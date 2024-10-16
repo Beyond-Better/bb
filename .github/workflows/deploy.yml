@@ -77,6 +77,8 @@ jobs:
           ssh $USER@$HOST << EOF
             # Create temporary directory for deployment
             mkdir -p $TEMP_DEPLOY_PATH
+            # Create final directory for deployment
+            mkdir -p $DEPLOY_PATH
           EOF
 
           # Deploy the built files to temporary directory
