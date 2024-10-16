@@ -77,14 +77,14 @@ jobs:
           ssh $USER@$HOST << EOF
             # Create temporary directory for deployment
             mkdir -p $TEMP_DEPLOY_PATH
-            # Create final directory for deployment
-            mkdir -p $DEPLOY_PATH
           EOF
 
           # Deploy the built files to temporary directory
           rsync -avz --delete bui/src/ $USER@$HOST:$TEMP_DEPLOY_PATH/
 
           ssh $USER@$HOST << EOF
+            # Create final directory for deployment
+            sudo /usr/bin/mkdir -p $DEPLOY_PATH
             # Move files from temporary directory to final location
             echo /usr/bin/rsync -avz --delete $TEMP_DEPLOY_PATH/ $DEPLOY_PATH/
             sudo /usr/bin/rsync -avz --delete $TEMP_DEPLOY_PATH/ $DEPLOY_PATH/
