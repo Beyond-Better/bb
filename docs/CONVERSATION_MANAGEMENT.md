@@ -1,6 +1,6 @@
-# Conversation Management in BBai
+# Conversation Management in BB
 
-This document summarizes the implementation of conversation management in the BBai project, focusing on the conversation list and loading history for selected conversations.
+This document summarizes the implementation of conversation management in the BB project, focusing on the conversation list and loading history for selected conversations.
 
 ## Overview
 
@@ -148,4 +148,4 @@ useEffect(() => {
 3. The WebSocket connection is used for real-time updates. Make sure it's properly initialized and managed.
 4. Error handling and loading states are implemented to provide feedback to the user during asynchronous operations.
 
-By following these instructions and referencing the provided code snippets, you should be able to manage the conversations list and load history for selected conversations effectively in the BBai project.
+By following these instructions and referencing the provided code snippets, you should be able to manage the conversations list and load history for selected conversations effectively in the BB project.

@@ -19,9 +19,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as {
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as {
 			querySuccess: Array<{ modelIdentifier: string; answer: string }>;
 			queryError: Array<{ modelIdentifier: string; error: string }>;
 		};
@@ -31,7 +31,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>✅ BBai has queried models:</strong>
+								<strong>✅ BB has queried models:</strong>
 							</p>
 							<p>
 								<ul>
@@ -55,7 +55,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>⚠️ BBai failed to query models:</strong>
+								<strong>⚠️ BB failed to query models:</strong>
 							</p>
 							<p>
 								<ul>
@@ -78,11 +78,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

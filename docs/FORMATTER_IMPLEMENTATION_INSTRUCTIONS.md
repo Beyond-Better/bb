@@ -1,7 +1,7 @@
 # Formatter Implementation Instructions
 
 ## Overview
-These instructions guide the process of creating and updating formatter files for all tools in the BBai project. The goal is to separate formatting logic from the main tool files and create consistent, type-safe formatters for both browser and console outputs.
+These instructions guide the process of creating and updating formatter files for all tools in the BB project. The goal is to separate formatting logic from the main tool files and create consistent, type-safe formatters for both browser and console outputs.
 
 ## Steps for Each Tool
 

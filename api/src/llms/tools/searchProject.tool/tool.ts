@@ -145,9 +145,9 @@ export default class LLMToolSearchProject extends LLMTool {
 			}
 			`;
 			const toolResponse = `Found ${files.length} files matching the search criteria: ${searchCriteria}`;
-			const bbaiResponse = `BBai found ${files.length} files matching the search criteria: ${searchCriteria}`;
+			const bbResponse = `BB found ${files.length} files matching the search criteria: ${searchCriteria}`;
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`Error searching project: ${error.message}`);
 

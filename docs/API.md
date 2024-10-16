@@ -1,6 +1,6 @@
-# BBai API Documentation
+# BB API Documentation
 
-This document provides details about the endpoints available in the BBai API.
+This document provides details about the endpoints available in the BB API.
 
 ## Base URL
 
@@ -86,7 +86,7 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
 
 ## LLM Tools
 
-The BBai API supports various LLM tools that can be used within conversations. Here are the available tools:
+The BB API supports various LLM tools that can be used within conversations. Here are the available tools:
 
 ### move_files
 

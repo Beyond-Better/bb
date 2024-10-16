@@ -44,26 +44,26 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('successful fetch - bbaiResponse:', result.bbaiResponse);
+			// console.log('successful fetch - bbResponse:', result.bbResponse);
 			// console.log('successful fetch - toolResponse:', result.toolResponse);
 			// console.log('successful fetch - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assertEquals(typeof result.toolResponse, 'string');
 
 			assertStringIncludes(result.toolResponse, `Successfully fetched screenshot from ${url}`);
 			assert(
-				isFetchWebScreenshotResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isFetchWebScreenshotResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isFetchWebScreenshotResponse(result.bbaiResponse)) {
-				assertEquals(result.bbaiResponse.data.url, 'https://google.com', 'URL should be google.com');
+			if (isFetchWebScreenshotResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.url, 'https://google.com', 'URL should be google.com');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for MultiModelQueryTool');
+				assert(false, 'bbResponse does not have the expected structure for MultiModelQueryTool');
 			}
 
 			// Check toolResults

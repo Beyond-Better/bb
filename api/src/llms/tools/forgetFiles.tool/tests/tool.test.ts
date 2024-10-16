@@ -4,7 +4,7 @@ import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -48,18 +48,18 @@ Deno.test({
 			};
 
 			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
-			// console.log('Forget existing files from conversation - bbaiResponse:', result.bbaiResponse);
+			// console.log('Forget existing files from conversation - bbResponse:', result.bbResponse);
 			// console.log('Forget existing files from conversation - toolResponse:', result.toolResponse);
 			// console.log('Forget existing files from conversation - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
-			if (isString(result.bbaiResponse)) {
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					'BBai has removed these files from the conversation',
+					result.bbResponse,
+					'BB has removed these files from the conversation',
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -119,18 +119,18 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Attempt to forget non-existent file - bbaiResponse:', result.bbaiResponse);
+			// console.log('Attempt to forget non-existent file - bbResponse:', result.bbResponse);
 			// console.log('Attempt to forget non-existent file - toolResponse:', result.toolResponse);
 			// console.log('Attempt to forget non-existent file - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
-			if (isString(result.bbaiResponse)) {
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					'BBai failed to remove these files from the conversation',
+					result.bbResponse,
+					'BB failed to remove these files from the conversation',
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -193,23 +193,23 @@ Deno.test({
 			};
 
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Forget mix of existing and non-existent files - bbaiResponse:', result.bbaiResponse);
+			// console.log('Forget mix of existing and non-existent files - bbResponse:', result.bbResponse);
 			// console.log('Forget mix of existing and non-existent files - toolResponse:', result.toolResponse);
 			// console.log('Forget mix of existing and non-existent files - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
-			if (isString(result.bbaiResponse)) {
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					'BBai has removed these files from the conversation: existing_file.txt (Revision: 1111-2222)',
+					result.bbResponse,
+					'BB has removed these files from the conversation: existing_file.txt (Revision: 1111-2222)',
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
-				result.bbaiResponse,
-				'BBai failed to remove these files from the conversation:\n- non_existent_file.txt (1111-2222): File is not in the conversation history',
+				result.bbResponse,
+				'BB failed to remove these files from the conversation:\n- non_existent_file.txt (1111-2222): File is not in the conversation history',
 			);
 
 			assertStringIncludes(result.toolResponse, 'Removed files from the conversation:\n- existing_file.txt');

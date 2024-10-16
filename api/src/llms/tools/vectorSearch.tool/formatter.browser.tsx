@@ -11,7 +11,7 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	return (
 		<div className='tool-result'>
 		</div>

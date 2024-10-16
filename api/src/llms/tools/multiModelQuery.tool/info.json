@@ -2,6 +2,6 @@
 	"name": "multi_model_query",
 	"description": "Query multiple LLM models with the same prompt and return their exact responses; DO NOT summarize or analyze",
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

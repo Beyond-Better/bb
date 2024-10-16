@@ -33,11 +33,11 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
 	const fileList = lines.slice(2, -1).join('\n');
 	return stripIndents`				
-		${colors.cyan(`${bbaiResponse}:`)}
+		${colors.cyan(`${bbResponse}:`)}
 
 		${fileList}
 	`;

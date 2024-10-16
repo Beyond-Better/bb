@@ -18,11 +18,11 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbaiResponse } = resultContent;
+	const { bbResponse } = resultContent;
 	return (
 		<div className='tool-result'>
 			<p>
-				<strong>{bbaiResponse}</strong>
+				<strong>{bbResponse}</strong>
 			</p>
 		</div>
 	);

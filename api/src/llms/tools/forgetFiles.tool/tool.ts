@@ -90,11 +90,11 @@ export default class LLMToolForgetFiles extends LLMTool {
 				}
 			}
 
-			const bbaiResponses = [];
+			const bbResponses = [];
 			const toolResponses = [];
 			if (filesSuccess.length > 0) {
-				bbaiResponses.push(
-					`BBai has removed these files from the conversation: ${
+				bbResponses.push(
+					`BB has removed these files from the conversation: ${
 						filesSuccess.map((f) => `${f.filePath} (Revision: ${f.revision})`).join(', ')
 					}`,
 				);
@@ -105,8 +105,8 @@ export default class LLMToolForgetFiles extends LLMTool {
 				);
 			}
 			if (filesError.length > 0) {
-				bbaiResponses.push(
-					`BBai failed to remove these files from the conversation:\n${
+				bbResponses.push(
+					`BB failed to remove these files from the conversation:\n${
 						filesError.map((f) => `- ${f.filePath} (${f.revision}): ${f.error}`).join('\n')
 					}`,
 				);
@@ -119,9 +119,9 @@ export default class LLMToolForgetFiles extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (allFilesFailed ? 'No files removed\n' : '') + toolResponses.join('\n\n');
-			const bbaiResponse = bbaiResponses.join('\n\n');
+			const bbResponse = bbResponses.join('\n\n');
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`Error removing files from conversation: ${error.message}`);
 

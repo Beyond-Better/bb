@@ -66,13 +66,13 @@ export default class LLMToolConversationMetrics extends LLMTool {
 
 			const toolResults = JSON.stringify(metrics, null, 2);
 			const toolResponse = `Conversation metrics calculated successfully.`;
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					metrics,
 				},
 			};
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`Error calculating conversation metrics: ${error.message}`);
 

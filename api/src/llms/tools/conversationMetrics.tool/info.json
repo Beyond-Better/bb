@@ -2,6 +2,6 @@
 	"name": "conversation_metrics",
 	"description": "Analyze conversation metrics such as turns, message types, and token usage",
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

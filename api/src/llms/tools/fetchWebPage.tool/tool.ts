@@ -51,7 +51,7 @@ export default class LLMToolFetchWebPage extends LLMTool {
 			return {
 				toolResults: this.extractTextFromHtml(content),
 				toolResponse: `Successfully fetched content from ${url}`,
-				bbaiResponse: {
+				bbResponse: {
 					data: {
 						url,
 						html: content,
@@ -62,9 +62,9 @@ export default class LLMToolFetchWebPage extends LLMTool {
 			logger.error(`Failed to fetch web page: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
-			const bbaiResponse = `BBai failed to fetch web page. Error: ${error.message}`;
+			const bbResponse = `BB failed to fetch web page. Error: ${error.message}`;
 			const toolResponse = `Failed to fetch web page. Error: ${error.message}`;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		}
 	}
 

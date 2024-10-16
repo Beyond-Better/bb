@@ -3,6 +3,6 @@
 	"description": "Delegate tasks to child interactions. Input includes background, instructions, and resources. Output is the completed task requirements.",
 	"enabled": false,
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

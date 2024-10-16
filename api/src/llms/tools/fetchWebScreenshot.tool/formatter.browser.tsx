@@ -26,15 +26,15 @@ export const getImageContent = (contentParts: LLMMessageContentParts): string =>
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { url } = bbaiResponse.data as { url: string };
+	const { toolResult, bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { url } = bbResponse.data as { url: string };
 		const content = getImageContent(toolResult as LLMMessageContentParts);
 		return (
 			<div className='tool-result'>
 				<p>
 					<strong>
-						BBai has fetched web page screenshot from {url}.
+						BB has fetched web page screenshot from {url}.
 					</strong>
 				</p>
 				<img
@@ -45,11 +45,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

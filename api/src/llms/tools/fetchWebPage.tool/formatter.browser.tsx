@@ -17,16 +17,16 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { url, html: _html } = bbaiResponse.data as { url: string; html: string };
+	const { toolResult, bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { url, html: _html } = bbResponse.data as { url: string; html: string };
 		const content = getContentFromToolResult(toolResult);
 		const contentPreview = content.length > 500 ? content.slice(0, 500) + '...' : content;
 		return (
 			<div className='tool-result'>
 				<p>
 					<strong>
-						BBai has fetched web page content from {url}.
+						BB has fetched web page content from {url}.
 					</strong>
 				</p>
 				<pre style='background-color: #f0f0f0; padding: 10px; white-space: pre-wrap;'>{contentPreview}</pre>
@@ -39,11 +39,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 				/>
 		 */
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

@@ -55,7 +55,7 @@ export async function generateCommitMessage(
 
 	return stripIndents`${msg}
         
-        Applied changes from BBai to ${fileCount} file${fileCount > 1 ? 's' : ''}
+        Applied changes from BB to ${fileCount} file${fileCount > 1 ? 's' : ''}
 
         Files modified:
         ${fileList}

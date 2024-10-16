@@ -56,13 +56,13 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
 	const fileList = lines.slice(2, -1).join('\n');
 	return (
 		<div className='tool-result'>
 			<p>
-				<strong>{bbaiResponse}</strong>
+				<strong>{bbResponse}</strong>
 			</p>
 			<pre style='background-color: #F0F8FF; padding: 10px;'>{fileList}</pre>
 		</div>

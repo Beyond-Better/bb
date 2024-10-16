@@ -57,10 +57,10 @@ export default class LLMToolVectorSearch extends LLMTool {
 
 			const toolResults = vectorSearchResults;
 			const toolResponse = '';
-			const bbaiResponse =
-				`BBai has completed vector search for query: "${query}". ${vectorSearchResults.length} results found.\n${vectorSearchResults}`;
+			const bbResponse =
+				`BB has completed vector search for query: "${query}". ${vectorSearchResults.length} results found.\n${vectorSearchResults}`;
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`Error performing vector search: ${error.message}`);
 			throw createError(ErrorType.VectorSearch, `Error performing vector search: ${error.message}`, {

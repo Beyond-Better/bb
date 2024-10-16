@@ -6,6 +6,6 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	return '';
 };

@@ -17,16 +17,16 @@
 2. Implement a way to "end" conversation which merges branch back to original
 
 ## Task Management
-1. Create an 'add task' tool allowing Claude to give BBai a list of tasks to complete
+1. Create an 'add task' tool allowing Claude to give BB a list of tasks to complete
 2. Implement each task as a new conversation to complete the task
 
 ## System Prompt and Project Info
 1. Update system prompt to give a clear explanation about using project-info to choose files rather than search_files
 2. Move project-info towards the beginning of the system prompt
 3. Create a high-level system prompt template to combine baseSystem with project info and files added
-4. Update system prompt to further clarify that assistant is talking to both BBai and user:
-   - Responses to tool use (e.g., "Change applied successfully") should be directed to BBai and wrapped in tags for parsing
-   - Everything not inside <bbai> tags will be shown to user as part of the conversation
+4. Update system prompt to further clarify that assistant is talking to both BB and user:
+   - Responses to tool use (e.g., "Change applied successfully") should be directed to BB and wrapped in tags for parsing
+   - Everything not inside <bb> tags will be shown to user as part of the conversation
    - 'User' message showing 'tool result' should be clearly separate from rest of the conversation
 
 ## Logging and Output
@@ -55,14 +55,14 @@
 ## New Tools and Commands
 1. Develop BUI-specific tools and commands
 2. Plan for DUI-specific tools and commands
-1. Create a `bbai doctor` command to zip a conversation for sharing
+1. Create a `bb doctor` command to zip a conversation for sharing
 2. Create a summarize history tool to reduce token count and delete earlier messages
 3. Implement new tools:
    - Record memory, remember instruction/guideline
 
 ## For CHANGELOG
 - Implement a repoInfo persistence solution
-- Create an 'add task' tool allowing Claude to give BBai a list of tasks to complete
+- Create an 'add task' tool allowing Claude to give BB a list of tasks to complete
 
 ## Completed Tasks
 1. ✓ `searchFiles` is now using exclude patterns read from the file instead of file names for exclude pattern
@@ -70,11 +70,11 @@
 3. ✓ Implemented creation of a new branch with each conversation, merging back at the end of the conversation
 4. ✓ Saved system prompt and project info in conversation persistence when running in localdev environment
 5. ✓ Check ENV environment and add `--watch` only for localdev
-6. ✓ When `bbai start` is called, check if running compiled binary or from repo to control how bbai-api is started
+6. ✓ When `bb start` is called, check if running compiled binary or from repo to control how bb-api is started
 7. ✓ Create a separate chat output log for conversation progress (no debugging or app logging)
-8. ✓ Save the chat log in the .bbai directory
-9. ✓ Add a `bbai` command to tail the chat log
-10. ✓ Modify `bbai chat` command to:
+8. ✓ Save the chat log in the .bb directory
+9. ✓ Add a `bb` command to tail the chat log
+10. ✓ Modify `bb chat` command to:
     - Listen to STDIN if '-p' isn't passed
     - Start a prompt for user input if nothing is piped in
     - End user input with '\n.\n' (a dot with a leading blank line)
@@ -88,13 +88,13 @@
 18. ✓ Use haiku to write commit messages
 19. ✓ Create a 'chat' class similar to LLMConversation:
     - designed for quick (fast) LLM conversations, e.g., to ask for a git message or for the 'title' of a conversation
-20. ✓ Update `bbai chat` to support proper readline text entry rather than just typing on stdin
+20. ✓ Update `bb chat` to support proper readline text entry rather than just typing on stdin
 21. ✓ Refactor conversation logging:
     - Write human-friendly and machine-parseable output to chat log
     - Allow users to tail the chat log directly for as-is viewing
-    - Use `bbai logs` for fancy formatting
-    - Make `bbai logs` check the TERM width and use that for max width
-22. ✓ Add `bbai restart` command for API (can just do a stop/start)
+    - Use `bb logs` for fancy formatting
+    - Make `bb logs` check the TERM width and use that for max width
+22. ✓ Add `bb restart` command for API (can just do a stop/start)
 23. ✓ Implement tool manager class
 24. ✓ Add websocket mode to get live updates between terminal and API
 25. ✓ Fix exclude args not being respected for file listing in `fileHandling.utils.ts`
@@ -121,12 +121,12 @@
 39. √ Create a new tool to add files rather than update files
 40. √ For new files in patches, check for paths starting with `b/` and strip it
 41. √ New files need to be staged before committing
-42. √ When running `bbai chat`:
+42. √ When running `bb chat`:
    - Check if API is running; if not, start it, and then kill it when exiting
    - Ensure the API logs go to file and not to chat terminal (Unless debug CLI arg is passed)
-   - Don't start API in watch mode if auto-started by `bbai chat` (pass args via action(...))
+   - Don't start API in watch mode if auto-started by `bb chat` (pass args via action(...))
 43. √ Allow users to specify projectInfo type in the config
-44. √ Don't create tags file in .bbai - either save with conversation or use the persistence solution
+44. √ Don't create tags file in .bb - either save with conversation or use the persistence solution
 45. √ Make the 'post-run' script (currently hard-coded for deno format) a user config option
 46. √ Implement new tools:
    - Move files

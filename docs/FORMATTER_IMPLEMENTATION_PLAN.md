@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the plan for implementing formatters for tool input and output in the BBai project. The goal is to provide flexible, maintainable, and type-safe formatting for both console and browser environments.
+This document outlines the plan for implementing formatters for tool input and output in the BB project. The goal is to provide flexible, maintainable, and type-safe formatting for both console and browser environments.
 
 ## Considered Approaches
 

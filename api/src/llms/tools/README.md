@@ -1,6 +1,6 @@
 # LLM Tools
 
-This directory contains the implementation of various tools that can be used by the Language Model (LLM) in the BBai project. These tools provide specific functionalities that enhance the capabilities of the LLM, allowing it to perform a wide range of tasks within the project.
+This directory contains the implementation of various tools that can be used by the Language Model (LLM) in the BB project. These tools provide specific functionalities that enhance the capabilities of the LLM, allowing it to perform a wide range of tasks within the project.
 
 ## Purpose
 

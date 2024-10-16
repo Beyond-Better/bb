@@ -80,9 +80,9 @@ export default class LLMToolRunCommand extends LLMTool {
 		if (!this.allowedCommands.some((allowed) => command.startsWith(allowed))) {
 			const toolResults = `Command not allowed: ${command}`;
 
-			const bbaiResponse = `BBai won't run unapproved commands: ${command}`;
+			const bbResponse = `BB won't run unapproved commands: ${command}`;
 			const toolResponse = toolResults;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} else {
 			logger.info(`Running command: ${command} ${args.join(' ')}`);
 
@@ -107,7 +107,7 @@ export default class LLMToolRunCommand extends LLMTool {
 					errorOutput ? `\n\nError output:\n${errorOutput}` : ''
 				}`;
 				const toolResponse = isError ? 'Command exited with non-zero status' : 'Command completed successfully';
-				const bbaiResponse = {
+				const bbResponse = {
 					data: {
 						code,
 						command,
@@ -117,7 +117,7 @@ export default class LLMToolRunCommand extends LLMTool {
 					},
 				};
 
-				return { toolResults, toolResponse, bbaiResponse };
+				return { toolResults, toolResponse, bbResponse };
 			} catch (error) {
 				const errorMessage = `Failed to execute command: ${error.message}`;
 				logger.error(errorMessage);

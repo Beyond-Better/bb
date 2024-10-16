@@ -43,45 +43,45 @@ jobs:
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
-          deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bbai${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
+          deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bb${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
 
       - name: Build API for ${{ matrix.target }}
         run: |
           cd api
-          deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bbai-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
+          deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
 
       - name: Create install script (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
         run: |
           echo '#!/bin/sh' > build/install.sh
-          echo 'cp bbai /usr/local/bin/' >> build/install.sh
-          echo 'cp bbai-api /usr/local/bin/' >> build/install.sh
-          echo 'chmod +x /usr/local/bin/bbai /usr/local/bin/bbai-api' >> build/install.sh
+          echo 'cp bb /usr/local/bin/' >> build/install.sh
+          echo 'cp bb-api /usr/local/bin/' >> build/install.sh
+          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api' >> build/install.sh
           chmod +x build/install.sh
 
       - name: Create batch files (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
-          echo '@echo off' > build/bbai_init.bat
-          echo 'echo Initializing BBai in the current directory...' >> build/bbai_init.bat
-          echo 'bbai init' >> build/bbai_init.bat
-          echo 'echo.' >> build/bbai_init.bat
-          echo 'echo Initialization complete. Press any key to exit.' >> build/bbai_init.bat
-          echo 'pause >nul' >> build/bbai_init.bat
+          echo '@echo off' > build/bb_init.bat
+          echo 'echo Initializing BB in the current directory...' >> build/bb_init.bat
+          echo 'bb init' >> build/bb_init.bat
+          echo 'echo.' >> build/bb_init.bat
+          echo 'echo Initialization complete. Press any key to exit.' >> build/bb_init.bat
+          echo 'pause >nul' >> build/bb_init.bat
 
-          echo '@echo off' > build/bbai_start.bat
-          echo 'echo Starting BBai...' >> build/bbai_start.bat
-          echo 'start "" bbai start' >> build/bbai_start.bat
-          echo 'echo.' >> build/bbai_start.bat
-          echo 'echo BBai has been started in your default web browser.' >> build/bbai_start.bat
-          echo 'echo You can close this window.' >> build/bbai_start.bat
+          echo '@echo off' > build/bb_start.bat
+          echo 'echo Starting BB...' >> build/bb_start.bat
+          echo 'start "" bb start' >> build/bb_start.bat
+          echo 'echo.' >> build/bb_start.bat
+          echo 'echo BB has been started in your default web browser.' >> build/bb_start.bat
+          echo 'echo You can close this window.' >> build/bb_start.bat
 
-          echo '@echo off' > build/bbai_stop.bat
-          echo 'echo Stopping BBai...' >> build/bbai_stop.bat
-          echo 'start "" bbai stop' >> build/bbai_stop.bat
-          echo 'echo.' >> build/bbai_stop.bat
-          echo 'echo BBai has been stopped.' >> build/bbai_stop.bat
-          echo 'echo You can close this window.' >> build/bbai_stop.bat
+          echo '@echo off' > build/bb_stop.bat
+          echo 'echo Stopping BB...' >> build/bb_stop.bat
+          echo 'start "" bb stop' >> build/bb_stop.bat
+          echo 'echo.' >> build/bb_stop.bat
+          echo 'echo BB has been stopped.' >> build/bb_stop.bat
+          echo 'echo You can close this window.' >> build/bb_stop.bat
 
       - name: Create MSI installer (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
@@ -91,59 +91,59 @@ jobs:
           
           # Create a temporary directory for the installer files
           mkdir installer_files
-          cp build/bbai.exe installer_files/
-          cp build/bbai-api.exe installer_files/
-          cp build/bbai_init.bat installer_files/
-          cp build/bbai_start.bat installer_files/
-          cp build/bbai_stop.bat installer_files/
+          cp build/bb.exe installer_files/
+          cp build/bb-api.exe installer_files/
+          cp build/bb_init.bat installer_files/
+          cp build/bb_start.bat installer_files/
+          cp build/bb_stop.bat installer_files/
           
           # Create a WiX source file
           @"
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-            <Product Id="*" Name="BBai" Language="1033" Version="1.0.0.0" Manufacturer="BBai-Tips" UpgradeCode="12345678-1234-1234-1234-123456789012">
+            <Product Id="*" Name="BB" Language="1033" Version="1.0.0.0" Manufacturer="Beyond-Better" UpgradeCode="12345678-1234-1234-1234-123456789012">
               <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
-              <Feature Id="ProductFeature" Title="BBai" Level="1">
+              <Feature Id="ProductFeature" Title="BB" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
               </Feature>
             </Product>
             <Fragment>
               <Directory Id="TARGETDIR" Name="SourceDir">
                 <Directory Id="ProgramFilesFolder">
-                  <Directory Id="INSTALLFOLDER" Name="BBai" />
+                  <Directory Id="INSTALLFOLDER" Name="BB" />
                 </Directory>
               </Directory>
             </Fragment>
             <Fragment>
               <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-                <Component Id="bbai.exe" Guid="*">
-                  <File Id="bbai.exe" Name="bbai.exe" Source="installer_files\bbai.exe" KeyPath="yes" />
+                <Component Id="bb.exe" Guid="*">
+                  <File Id="bb.exe" Name="bb.exe" Source="installer_files\bb.exe" KeyPath="yes" />
                 </Component>
-                <Component Id="bbai_api.exe" Guid="*">
-                  <File Id="bbai_api.exe" Name="bbai-api.exe" Source="installer_files\bbai-api.exe" KeyPath="yes" />
+                <Component Id="bb_api.exe" Guid="*">
+                  <File Id="bb_api.exe" Name="bb-api.exe" Source="installer_files\bb-api.exe" KeyPath="yes" />
                 </Component>
-                <Component Id="bbai_init.bat" Guid="*">
-                  <File Id="bbai_init.bat" Name="bbai_init.bat" Source="installer_files\bbai_init.bat" KeyPath="yes" />
+                <Component Id="bb_init.bat" Guid="*">
+                  <File Id="bb_init.bat" Name="bb_init.bat" Source="installer_files\bb_init.bat" KeyPath="yes" />
                 </Component>
-                <Component Id="bbai_start.bat" Guid="*">
-                  <File Id="bbai_start.bat" Name="bbai_start.bat" Source="installer_files\bbai_start.bat" KeyPath="yes" />
+                <Component Id="bb_start.bat" Guid="*">
+                  <File Id="bb_start.bat" Name="bb_start.bat" Source="installer_files\bb_start.bat" KeyPath="yes" />
                 </Component>
-                <Component Id="bbai_stop.bat" Guid="*">
-                  <File Id="bbai_stop.bat" Name="bbai_stop.bat" Source="installer_files\bbai_stop.bat" KeyPath="yes" />
+                <Component Id="bb_stop.bat" Guid="*">
+                  <File Id="bb_stop.bat" Name="bb_stop.bat" Source="installer_files\bb_stop.bat" KeyPath="yes" />
                 </Component>
               </ComponentGroup>
             </Fragment>
           </Wix>
-          "@ | Out-File -Encoding utf8 bbai.wxs
+          "@ | Out-File -Encoding utf8 bb.wxs
           
           # Compile and link the installer
-          candle bbai.wxs
-          light -ext WixUIExtension bbai.wixobj
+          candle bb.wxs
+          light -ext WixUIExtension bb.wixobj
           
           # Move the created MSI to the build directory
-          mv bbai.msi build/bbai-installer.msi
+          mv bb.msi build/bb-installer.msi
 
       - name: Copy README and INSTALL
         shell: bash
@@ -158,7 +158,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bbai-${{ matrix.target }}
+          name: bb-${{ matrix.target }}
           path: build/*
 
   release:
@@ -200,23 +200,23 @@ jobs:
           set -e
           for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
             echo "Processing target: $target"
-            if [ ! -d "bbai-$target" ]; then
-              echo "Error: Directory bbai-$target not found"
+            if [ ! -d "bb-$target" ]; then
+              echo "Error: Directory bb-$target not found"
               continue
             fi
-            cd bbai-$target
+            cd bb-$target
             if [ "$target" = "x86_64-pc-windows-msvc" ]; then
-              zip -r ../bbai-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bbai-installer.msi || echo "Failed to upload MSI for $target"
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
+              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
             else
-              zip -r ../bbai-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
-              chmod 755 install.sh bbai bbai-api
-              tar czf ../bbai-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz .
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
+              chmod 755 install.sh bb bb-api
+              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz .
             fi
             cd ..
-            gh release upload v${{ steps.get_version.outputs.VERSION }} bbai-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
+            gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
             if [ "$target" != "x86_64-pc-windows-msvc" ]; then
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bbai-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz || echo "Failed to upload tar.gz for $target"
+              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz || echo "Failed to upload tar.gz for $target"
             fi
           done
         env:
@@ -226,19 +226,19 @@ jobs:
 #       - name: Update Homebrew formula
 #         run: |
 #           # Download the archive
-#           curl -L -o bbai.tar.gz "https://github.com/BBai-Tips/bbai/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"
+#           curl -L -o bb.tar.gz "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"
 #           
 #           # Calculate SHA256
-#           SHA256=$(shasum -a 256 bbai.tar.gz | awk '{print $1}')
+#           SHA256=$(shasum -a 256 bb.tar.gz | awk '{print $1}')
 #           
 #           # Update the Homebrew formula
-#           sed -i 's/version ".*"/version "${{ steps.get_version.outputs.VERSION }}"/' deployment/homebrew/bbai.rb
-#           sed -i 's|url ".*"|url "https://github.com/BBai-Tips/bbai/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"|' deployment/homebrew/bbai.rb
-#           sed -i 's/sha256 ".*"/sha256 "'$SHA256'"/' deployment/homebrew/bbai.rb
+#           sed -i 's/version ".*"/version "${{ steps.get_version.outputs.VERSION }}"/' deployment/homebrew/bb.rb
+#           sed -i 's|url ".*"|url "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"|' deployment/homebrew/bb.rb
+#           sed -i 's/sha256 ".*"/sha256 "'$SHA256'"/' deployment/homebrew/bb.rb
 #           
 #           # Commit and push changes
 #           git config --local user.email "action@github.com"
 #           git config --local user.name "GitHub Action"
-#           git add deployment/homebrew/bbai.rb
+#           git add deployment/homebrew/bb.rb
 #           git commit -m "Update Homebrew formula to v${{ steps.get_version.outputs.VERSION }}"
 #           git push

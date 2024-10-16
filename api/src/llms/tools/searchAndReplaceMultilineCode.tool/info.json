@@ -3,6 +3,6 @@
 	"description": "Apply a list of search and replace operations to a file, supporting multiline code",
 	"enabled": false,
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

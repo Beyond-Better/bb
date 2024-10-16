@@ -49,7 +49,7 @@ async function setFileModificationTime(filePath: string, date: Date) {
 	await Deno.utime(filePath, date, date);
 }
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -76,19 +76,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Basic content search functionality - bbaiResponse:', result.bbaiResponse);
+			// console.log('Basic content search functionality - bbResponse:', result.bbResponse);
 			// console.log('Basic content search functionality - toolResponse:', result.toolResponse);
 			// console.log('Basic content search functionality - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					'BBai found 3 files matching the search criteria: content pattern "Hello", case-insensitive',
+					result.bbResponse,
+					'BB found 3 files matching the search criteria: content pattern "Hello", case-insensitive',
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -139,19 +139,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Search pattern spanning multiple buffers - bbaiResponse:', result.bbaiResponse);
+			// console.log('Search pattern spanning multiple buffers - bbResponse:', result.bbResponse);
 			// console.log('Search pattern spanning multiple buffers - toolResponse:', result.toolResponse);
 			// console.log('Search pattern spanning multiple buffers - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 1 files matching the search criteria: content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
+					result.bbResponse,
+					`BB found 1 files matching the search criteria: content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -201,18 +201,18 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			//console.log('Date-based search response:', result.bbaiResponse);
+			//console.log('Date-based search response:', result.bbResponse);
 			//console.log('Date-based search files:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 9 files matching the search criteria: modified after 2024-01-01, modified before 2026-01-01`,
+					result.bbResponse,
+					`BB found 9 files matching the search criteria: modified after 2024-01-01, modified before 2026-01-01`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -276,19 +276,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('File-only search (metadata) - bbaiResponse:', result.bbaiResponse);
+			// console.log('File-only search (metadata) - bbResponse:', result.bbResponse);
 			// console.log('File-only search (metadata) - toolResponse:', result.toolResponse);
 			// console.log('File-only search (metadata) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 9 files matching the search criteria: file pattern "*.txt", minimum size 1 bytes`,
+					result.bbResponse,
+					`BB found 9 files matching the search criteria: file pattern "*.txt", minimum size 1 bytes`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -354,19 +354,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Combining all search criteria - bbaiResponse:', result.bbaiResponse);
+			// console.log('Combining all search criteria - bbResponse:', result.bbResponse);
 			// console.log('Combining all search criteria - toolResponse:', result.toolResponse);
 			// console.log('Combining all search criteria - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -420,15 +420,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 1 files matching the search criteria: file pattern "*.txt", maximum size 0 bytes`,
+					result.bbResponse,
+					`BB found 1 files matching the search criteria: file pattern "*.txt", maximum size 0 bytes`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -481,15 +481,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt"`,
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -542,15 +542,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 2 files matching the search criteria: file pattern "*.txt", minimum size 5000 bytes`,
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: file pattern "*.txt", minimum size 5000 bytes`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -602,15 +602,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 0 files matching the search criteria: content pattern "NonexistentPattern"`,
+					result.bbResponse,
+					`BB found 0 files matching the search criteria: content pattern "NonexistentPattern"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -648,19 +648,19 @@ Deno.test({
 			};
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Error handling for invalid search pattern - bbaiResponse:', result.bbaiResponse);
+			// console.log('Error handling for invalid search pattern - bbResponse:', result.bbResponse);
 			// console.log('Error handling for invalid search pattern - toolResponse:', result.toolResponse);
 			// console.log('Error handling for invalid search pattern - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 0 files matching the search criteria: content pattern "["`,
+					result.bbResponse,
+					`BB found 0 files matching the search criteria: content pattern "["`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -706,15 +706,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", maximum size 1000 bytes`,
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", maximum size 1000 bytes`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -766,15 +766,15 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 1 files matching the search criteria: file pattern "file2.js`,
+					result.bbResponse,
+					`BB found 1 files matching the search criteria: file pattern "file2.js`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -833,16 +833,16 @@ Deno.test({
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.info('Tool result:', result);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, file pattern "bui/src/islands/Chat.tsx"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, file pattern "bui/src/islands/Chat.tsx"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(
@@ -900,16 +900,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 3 files matching the search criteria: content pattern "\btest\b", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 files matching the search criteria: content pattern "\btest\b", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -945,16 +945,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -989,16 +989,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1033,16 +1033,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1077,16 +1077,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1121,20 +1121,20 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Search with regex using quantifiers - case-sensitive - bbaiResponse:', result.bbaiResponse);
+			// console.log('Search with regex using quantifiers - case-sensitive - bbResponse:', result.bbResponse);
 			// console.log('Search with regex using quantifiers - case-sensitive - toolResponse:', result.toolResponse);
 			// console.log('Search with regex using quantifiers - case-sensitive - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "test.*test", case-sensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "test.*test", case-sensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1169,20 +1169,20 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Search with regex using quantifiers - case-insensitive - bbaiResponse:', result.bbaiResponse);
+			// console.log('Search with regex using quantifiers - case-insensitive - bbResponse:', result.bbResponse);
 			// console.log('Search with regex using quantifiers - case-insensitive - toolResponse:', result.toolResponse);
 			// console.log('Search with regex using quantifiers - case-insensitive - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 3 files matching the search criteria: content pattern "test.*test", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 files matching the search criteria: content pattern "test.*test", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1217,16 +1217,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "[Tt]esting [0-9]+", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "[Tt]esting [0-9]+", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1261,16 +1261,16 @@ Deno.test({
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 1 files matching the search criteria: content pattern "Test(?=ing)", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 files matching the search criteria: content pattern "Test(?=ing)", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1304,20 +1304,20 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Search with negative lookahead regex - bbaiResponse:', result.bbaiResponse);
+			// console.log('Search with negative lookahead regex - bbResponse:', result.bbResponse);
 			// console.log('Search with negative lookahead regex - toolResponse:', result.toolResponse);
 			// console.log('Search with negative lookahead regex - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
+					result.bbResponse,
 					String
-						.raw`BBai found 3 files matching the search criteria: content pattern "test(?!ing)", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 files matching the search criteria: content pattern "test(?!ing)", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1363,19 +1363,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Case-sensitive search - bbaiResponse:', result.bbaiResponse);
+			// console.log('Case-sensitive search - bbResponse:', result.bbResponse);
 			// console.log('Case-sensitive search - toolResponse:', result.toolResponse);
 			// console.log('Case-sensitive search - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 2 files matching the search criteria: content pattern "Test", case-sensitive, file pattern "regex_test*.txt"`,
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: content pattern "Test", case-sensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
@@ -1423,19 +1423,19 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Case-insensitive search - bbaiResponse:', result.bbaiResponse);
+			// console.log('Case-insensitive search - bbResponse:', result.bbResponse);
 			// console.log('Case-insensitive search - toolResponse:', result.toolResponse);
 			// console.log('Case-insensitive search - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai found 4 files matching the search criteria: content pattern "Test", case-insensitive, file pattern "regex_test*.txt"`,
+					result.bbResponse,
+					`BB found 4 files matching the search criteria: content pattern "Test", case-insensitive, file pattern "regex_test*.txt"`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;

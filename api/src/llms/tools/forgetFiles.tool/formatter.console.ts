@@ -12,6 +12,6 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	return `${colors.cyan(`${bbaiResponse}`)}`;
+	const { bbResponse } = resultContent;
+	return `${colors.cyan(`${bbResponse}`)}`;
 };

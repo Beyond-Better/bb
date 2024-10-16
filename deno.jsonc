@@ -1,5 +1,5 @@
 {
-	"name": "bbai",
+	"name": "bb",
 	"version": "0.0.26-beta",
 	"exports": "./cli/src/main.ts",
 	"tasks": {

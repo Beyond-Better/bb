@@ -13,7 +13,7 @@ import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 //import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { getStatementHistory } from './statementHistory.utils.ts';
-import { getBbaiDir } from 'shared/dataDir.ts';
+import { getBbDir } from 'shared/dataDir.ts';
 import type {
 	ConversationContinue,
 	ConversationId,
@@ -53,15 +53,15 @@ export class TerminalHandler {
 	private spinner!: Spinner;
 	private statementInProgress: boolean = false;
 	private startDir: string;
-	private bbaiDir!: string;
+	private bbDir!: string;
 	private apiClient!: ApiClient;
 
 	constructor(startDir: string) {
 		this.startDir = startDir;
-		this.spinner = this.createSpinner('BBai warming up...');
+		this.spinner = this.createSpinner('BB warming up...');
 	}
 	public async init(): Promise<TerminalHandler> {
-		this.bbaiDir = await getBbaiDir(this.startDir);
+		this.bbDir = await getBbDir(this.startDir);
 		this.loadHistory();
 		this.formatter = await new ConversationLogFormatter().init();
 		return this;
@@ -82,8 +82,8 @@ export class TerminalHandler {
 				//	preserveAspectRatio: true,
 				//}) + '  ' +
 				ansi.cursorTo(6, 2) +
-				colors.bold.blue.underline('BBai') + colors.bold.blue(' - Be Better with code and docs'),
-			//colors.bold.blue(ansi.link('BBai', 'https://bbai.tips')) +
+				colors.bold.blue.underline('BB') + colors.bold.blue(' - Beyond Better - with code and docs'),
+			//colors.bold.blue(ansi.link('BB', 'https://beyondbetter.dev')) +
 			//+ '\n',
 		);
 		this.apiClient = await ApiClient.create(this.startDir);
@@ -184,7 +184,7 @@ export class TerminalHandler {
 
 	private async loadHistory(): Promise<string[]> {
 		// TODO: Implement loading history from file or database
-		this.history = await getStatementHistory(this.bbaiDir);
+		this.history = await getStatementHistory(this.bbDir);
 		return this.history;
 	}
 

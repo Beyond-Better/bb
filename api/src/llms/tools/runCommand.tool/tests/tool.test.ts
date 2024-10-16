@@ -37,7 +37,7 @@ function isRunCommandResponse(
 	);
 }
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -111,35 +111,35 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Execute allowed command: deno task tool:check-types - bbaiResponse:', result.bbaiResponse);
+			// console.log('Execute allowed command: deno task tool:check-types - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:check-types - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:check-types - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assert(
-				isRunCommandResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRunCommandResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRunCommandResponse(result.bbaiResponse)) {
-				assertEquals(result.bbaiResponse.data.code, 0, 'Test response code should be 0');
+			if (isRunCommandResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.code, 0, 'Test response code should be 0');
 				assertEquals(
-					result.bbaiResponse.data.command,
+					result.bbResponse.data.command,
 					'deno task tool:check-types-args',
 					'Test response command should be "deno task tool:check-types-args"',
 				);
 				assertEquals(
-					result.bbaiResponse.data.stderrContainsError,
+					result.bbResponse.data.stderrContainsError,
 					false,
 					'Test response stderrContainsError should be false',
 				);
 
-				const stdout = stripAnsi(result.bbaiResponse.data.stdout);
+				const stdout = stripAnsi(result.bbResponse.data.stdout);
 				assertEquals(stdout, '', 'Test response stdout should be blank');
-				const stderr = stripAnsi(result.bbaiResponse.data.stderr);
+				const stderr = stripAnsi(result.bbResponse.data.stderr);
 				assertStringIncludes(
 					stderr,
 					'Task tool:check-types-args deno check test.ts',
@@ -148,10 +148,10 @@ Deno.test({
 				assertStringIncludes(stderr, 'Check file:', 'Test response stderr should include "Check file"');
 				assertStringIncludes(stderr, 'test.ts', 'Test response stderr should include "test.ts"');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
-			//assertStringIncludes(result.bbaiResponse, 'BBai ran command: deno task tool:check-types-args');
+			//assertStringIncludes(result.bbResponse, 'BB ran command: deno task tool:check-types-args');
 			assertStringIncludes(result.toolResponse, 'Command completed successfully');
 			assertStringIncludes(stripAnsiCode(result.toolResults as string), 'Command executed with exit code: 0');
 			assertStringIncludes(
@@ -186,33 +186,33 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Execute allowed command: deno task tool:test - bbaiResponse:', result.bbaiResponse);
+			// console.log('Execute allowed command: deno task tool:test - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:test - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:test - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assert(
-				isRunCommandResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRunCommandResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRunCommandResponse(result.bbaiResponse)) {
-				assertEquals(result.bbaiResponse.data.code, 0, 'Test response code should be 0');
+			if (isRunCommandResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.code, 0, 'Test response code should be 0');
 				assertEquals(
-					result.bbaiResponse.data.command,
+					result.bbResponse.data.command,
 					'deno task tool:test',
 					'Test response command should be "deno task tool:test"',
 				);
 				assertEquals(
-					result.bbaiResponse.data.stderrContainsError,
+					result.bbResponse.data.stderrContainsError,
 					false,
 					'Test response stderrContainsError should be false',
 				);
 
-				const stdout = stripAnsi(result.bbaiResponse.data.stdout);
+				const stdout = stripAnsi(result.bbResponse.data.stdout);
 				assertStringIncludes(
 					stdout,
 					'running 1 test from ./test_file.ts',
@@ -229,7 +229,7 @@ Deno.test({
 					'Test response stdout should include test results',
 				);
 
-				const stderr = stripAnsi(result.bbaiResponse.data.stderr);
+				const stderr = stripAnsi(result.bbResponse.data.stderr);
 				assertStringIncludes(
 					stderr,
 					'Task tool:test deno test test_file.ts',
@@ -238,7 +238,7 @@ Deno.test({
 				assertStringIncludes(stderr, 'Check file:', 'Test response stderr should include "Check file"');
 				assertStringIncludes(stderr, 'test_file.ts', 'Test response stderr should include "test_file.ts"');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
 			assertStringIncludes(result.toolResponse, 'Command completed successfully');
@@ -279,36 +279,36 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Execute allowed command: deno task tool:format - bbaiResponse:', result.bbaiResponse);
+			// console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assert(
-				isRunCommandResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRunCommandResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRunCommandResponse(result.bbaiResponse)) {
-				assertEquals(result.bbaiResponse.data.code, 0, 'Test response code should be 0');
+			if (isRunCommandResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.code, 0, 'Test response code should be 0');
 				assertEquals(
-					result.bbaiResponse.data.command,
+					result.bbResponse.data.command,
 					'deno task tool:format',
 					'Test response command should be "deno task tool:format"',
 				);
 				assertEquals(
-					result.bbaiResponse.data.stderrContainsError,
+					result.bbResponse.data.stderrContainsError,
 					false,
 					'Test response stderrContainsError should be false',
 				);
 
-				const stdout = stripAnsi(result.bbaiResponse.data.stdout);
+				const stdout = stripAnsi(result.bbResponse.data.stdout);
 				assertEquals(stdout, '', 'Test response stdout should be blank');
 
-				const stderr = stripAnsi(result.bbaiResponse.data.stderr);
+				const stderr = stripAnsi(result.bbResponse.data.stderr);
 				assertStringIncludes(
 					stderr,
 					'Task tool:format deno fmt test.ts',
@@ -317,7 +317,7 @@ Deno.test({
 				assertStringIncludes(stderr, 'test.ts', 'Test response stderr should include "test.ts"');
 				assertStringIncludes(stderr, 'Checked 1 file', 'Test response stderr should include "Checked 1 file"');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
 			assertStringIncludes(result.toolResponse, 'Command completed successfully');
@@ -358,19 +358,19 @@ Deno.test({
 			};
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			//console.log('Execute allowed command: deno task tool:format - bbaiResponse:', result.bbaiResponse);
+			//console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
 			//console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
 			//console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);
 
-			assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-			if (isString(result.bbaiResponse)) {
+			if (isString(result.bbResponse)) {
 				assertStringIncludes(
-					result.bbaiResponse,
-					`BBai won't run unapproved commands: echo`,
+					result.bbResponse,
+					`BB won't run unapproved commands: echo`,
 				);
 			} else {
-				assert(false, 'bbaiResponse is not a string as expected');
+				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			assertStringIncludes(result.toolResponse, 'Command not allowed: echo');

@@ -494,7 +494,7 @@ export default function Chat() {
 	return (
 		<div className='flex flex-col h-screen bg-gray-100'>
 			<header className='bg-blue-600 text-white p-4 shadow-md'>
-				<h1 className='text-2xl font-bold'>BBai Chat Interface</h1>
+				<h1 className='text-2xl font-bold'>BB Chat Interface</h1>
 			</header>
 			<main className='flex-grow flex flex-col md:flex-row p-4 space-y-4 md:space-y-0 md:space-x-4 overflow-hidden'>
 				{error && (

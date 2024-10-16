@@ -55,8 +55,8 @@ export interface GlobalConfigSchema {
 	project: ProjectDataConfigSchema;
 	repoInfo: RepoInfoConfigSchema;
 	version: string;
-	bbaiExeName: string;
-	bbaiApiExeName: string;
+	bbExeName: string;
+	bbApiExeName: string;
 }
 
 export interface ProjectConfigSchema {
@@ -104,8 +104,8 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 		type: 'local',
 	},
 	version: 'unknown', // This will be overwritten by the actual version from version.ts
-	bbaiExeName: 'bbai', // This will be overwritten by the correct exe name when creating globalConfig
-	bbaiApiExeName: 'bbai-api', // This will be overwritten by the correct exe name when creating globalConfig
+	bbExeName: 'bb', // This will be overwritten by the correct exe name when creating globalConfig
+	bbApiExeName: 'bb-api', // This will be overwritten by the correct exe name when creating globalConfig
 };
 
 export const defaultProjectConfig: ProjectConfigSchema = {

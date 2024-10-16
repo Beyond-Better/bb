@@ -1,8 +1,8 @@
-# Creating a New Tool for BBai
+# Creating a New Tool for BB
 
 **IMPORTANT: When creating a new tool, it is crucial to follow the structure, style, and conventions of existing tools as closely as possible. This ensures consistency across the project and makes maintenance easier. Always use an existing tool as a template and only modify what is necessary for the new functionality.**
 
-This document serves as a guide for creating new tools in the BBai project. It includes a step-by-step process, a template for gathering necessary information, and important considerations for tool development.
+This document serves as a guide for creating new tools in the BB project. It includes a step-by-step process, a template for gathering necessary information, and important considerations for tool development.
 
 ## Step-by-Step Guide
 
@@ -119,7 +119,7 @@ The `runTool` method should return an object of type `LLMToolRunResult`, which i
 
 - `toolResults`: The main output of the tool (can be a string, LLMMessageContentPart, or LLMMessageContentParts).
 - `toolResponse`: A string response for the tool execution.
-- `bbaiResponse`: A user-friendly response describing the tool's action.
+- `bbResponse`: A user-friendly response describing the tool's action.
 - `finalizeCallback` (optional): A function to perform any final actions after the tool use is recorded.
 
 ### Testing
@@ -178,4 +178,4 @@ Each tool should have an `info.json` file in its directory. This file should con
 
 ## Conclusion
 
-Creating a new tool involves careful planning, implementation, and testing. The most important principle to follow is to use an existing tool as a template and maintain consistency with it as much as possible. This approach ensures that new tools integrate seamlessly into the BBai project, follow established patterns, and are easier to maintain, and provide reliable functionality. Remember to consider both the technical implementation and the user experience when designing and implementing new tools, including proper formatting for both browser and console outputs.
+Creating a new tool involves careful planning, implementation, and testing. The most important principle to follow is to use an existing tool as a template and maintain consistency with it as much as possible. This approach ensures that new tools integrate seamlessly into the BB project, follow established patterns, and are easier to maintain, and provide reliable functionality. Remember to consider both the technical implementation and the user experience when designing and implementing new tools, including proper formatting for both browser and console outputs.

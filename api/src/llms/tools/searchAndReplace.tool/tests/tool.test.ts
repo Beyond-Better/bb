@@ -13,7 +13,7 @@ import {
 	withTestProject,
 } from 'api/tests/testSetup.ts';
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -54,19 +54,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Basic functionality - bbaiResponse:', result.bbaiResponse);
+				console.log('Basic functionality - bbResponse:', result.bbResponse);
 				console.log('Basic functionality - toolResponse:', result.toolResponse);
 				console.log('Basic functionality - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -133,19 +133,19 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 				console.log(`created file: ${newFilePath}`);
-				// console.log('Multiple operations on new file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Multiple operations on new file - bbResponse:', result.bbResponse);
 				// console.log('Multiple operations on new file - toolResponse:', result.toolResponse);
 				// console.log('Multiple operations on new file - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -308,15 +308,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -383,15 +383,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -516,15 +516,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -590,15 +590,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -664,15 +664,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -737,19 +737,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Case insensitive search - bbaiResponse:', result.bbaiResponse);
+				console.log('Case insensitive search - bbResponse:', result.bbResponse);
 				console.log('Case insensitive search - toolResponse:', result.toolResponse);
 				console.log('Case insensitive search - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -817,15 +817,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -895,15 +895,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -973,15 +973,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
@@ -1049,19 +1049,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Basic regex pattern - bbaiResponse:', result.bbaiResponse);
+				// console.log('Basic regex pattern - bbResponse:', result.bbResponse);
 				// console.log('Basic regex pattern - toolResponse:', result.toolResponse);
 				// console.log('Basic regex pattern - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -1132,15 +1132,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -1206,15 +1206,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -1280,15 +1280,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -1354,15 +1354,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai applied search and replace operations.',
+						result.bbResponse,
+						'BB applied search and replace operations.',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -1429,7 +1429,7 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Case-sensitive literal search with special regex characters - bbaiResponse:', result.bbaiResponse);
+				// console.log('Case-sensitive literal search with special regex characters - bbResponse:', result.bbResponse);
 				// console.log('Case-sensitive literal search with special regex characters - toolResponse:', result.toolResponse);
 				// console.log('Case-sensitive literal search with special regex characters - toolResults:', result.toolResults);
 

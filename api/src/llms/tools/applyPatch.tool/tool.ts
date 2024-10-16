@@ -153,14 +153,14 @@ export default class LLMToolApplyPatch extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = `Applied patch successfully to ${modifiedFiles.length + newFiles.length} file(s)`;
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					modifiedFiles,
 					newFiles,
 				},
 			};
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			let errorMessage: string;
 			if (error instanceof Deno.errors.NotFound) {
@@ -179,9 +179,9 @@ export default class LLMToolApplyPatch extends LLMTool {
 				},
 			];
 
-			const bbaiResponse = `BBai failed to apply patch. Error: ${errorMessage}`;
+			const bbResponse = `BB failed to apply patch. Error: ${errorMessage}`;
 			const toolResponse = `Failed to apply patch. Error: ${errorMessage}`;
-			return { toolResults: toolResultContentParts, toolResponse, bbaiResponse };
+			return { toolResults: toolResultContentParts, toolResponse, bbResponse };
 		}
 	}
 }

@@ -13,9 +13,9 @@ export const formatToolUse = (_toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { metrics } = bbaiResponse.data as { metrics: LLMToolConversationMetricsData };
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { metrics } = bbResponse.data as { metrics: LLMToolConversationMetricsData };
 		return stripIndents`
     ${colors.bold('Conversation Metrics')}
     
@@ -33,7 +33,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
     Tool: ${metrics.tokenUsage.tool}
   `;
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

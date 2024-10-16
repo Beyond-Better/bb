@@ -53,9 +53,9 @@ class ConversationPersistence {
 	}
 
 	async init(): Promise<ConversationPersistence> {
-		const bbaiDataDir = await this.projectEditor.getBbaiDataDir();
-		const conversationsDir = join(bbaiDataDir, 'conversations');
-		this.conversationsMetadataPath = join(bbaiDataDir, 'conversations.json');
+		const bbDataDir = await this.projectEditor.getBbDataDir();
+		const conversationsDir = join(bbDataDir, 'conversations');
+		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
 		await ensureDir(this.conversationDir);
@@ -80,8 +80,8 @@ class ConversationPersistence {
 		startDir: string;
 	}): Promise<{ conversations: ConversationMetadata[]; totalCount: number }> {
 		const projectRoot = await getProjectRoot(options.startDir);
-		const bbaiDataDir = join(projectRoot, '.bbai', 'data');
-		const conversationsMetadataPath = join(bbaiDataDir, 'conversations.json');
+		const bbDataDir = join(projectRoot, '.bb', 'data');
+		const conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		if (!await exists(conversationsMetadataPath)) {
 			await Deno.writeTextFile(conversationsMetadataPath, JSON.stringify([]));

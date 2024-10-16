@@ -36,15 +36,15 @@ export const setupProject = async (
 
 		// Path has already been validated
 
-		// Check if .bbai directory exists
-		const bbaiDir = join(fullPath, '.bbai');
-		const isBbaiProject = await Deno.stat(bbaiDir).then(() => true).catch(() => false);
+		// Check if .bb directory exists
+		const bbDir = join(fullPath, '.bb');
+		const isBbProject = await Deno.stat(bbDir).then(() => true).catch(() => false);
 
-		if (!isBbaiProject) {
+		if (!isBbProject) {
 			// Initialize the project
-			await ensureDir(bbaiDir);
+			await ensureDir(bbDir);
 			await Deno.writeTextFile(
-				join(bbaiDir, 'config.json'),
+				join(bbDir, 'config.json'),
 				JSON.stringify(
 					{
 						version: '1.0.0',
@@ -56,7 +56,7 @@ export const setupProject = async (
 			);
 		}
 
-		response.body = { fullPath, initialized: !isBbaiProject };
+		response.body = { fullPath, initialized: !isBbProject };
 	} catch (error) {
 		console.error('Error setting up project:', error);
 		response.status = 500;

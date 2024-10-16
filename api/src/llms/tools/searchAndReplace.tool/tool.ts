@@ -247,9 +247,9 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 
 				const toolResults = toolResultContentParts;
 				const toolResponse = operationStatus;
-				const bbaiResponse = `BBai applied search and replace operations.`;
+				const bbResponse = `BB applied search and replace operations.`;
 
-				return { toolResults, toolResponse, bbaiResponse };
+				return { toolResults, toolResponse, bbResponse };
 			} else {
 				const noChangesMessage = `No changes were made to the file: ${filePath}. Results: ${
 					JSON.stringify(operationResults)
@@ -266,7 +266,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				//	type: 'text',
 				//	text: noChangesMessage,
 				//}];
-				//return { toolResults: toolResultContentParts, toolResponse: noChangesMessage, bbaiResponse: noChangesMessage };
+				//return { toolResults: toolResultContentParts, toolResponse: noChangesMessage, bbResponse: noChangesMessage };
 			}
 		} catch (error) {
 			if (error.name === 'search-and-replace') {

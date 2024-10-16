@@ -4,45 +4,45 @@ import { join } from '@std/path';
 //import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 
-export async function createBbaiDir(startDir: string): Promise<void> {
-	const bbaiDir = join(startDir, '.bbai');
+export async function createBbDir(startDir: string): Promise<void> {
+	const bbDir = join(startDir, '.bb');
 	try {
-		await ensureDir(bbaiDir);
-		//logger.info(`Created .bbai directory in ${startDir}`);
+		await ensureDir(bbDir);
+		//logger.info(`Created .bb directory in ${startDir}`);
 	} catch (error) {
-		logger.error(`Failed to create .bbai directory: ${error.message}`);
+		logger.error(`Failed to create .bb directory: ${error.message}`);
 		throw error;
 	}
 }
 
-export async function createBbaiIgnore(startDir: string): Promise<void> {
-	const bbaiIgnorePath = join(startDir, '.bbai', 'ignore');
+export async function createBbIgnore(startDir: string): Promise<void> {
+	const bbIgnorePath = join(startDir, '.bb', 'ignore');
 	try {
-		const fileInfo = await Deno.stat(bbaiIgnorePath);
+		const fileInfo = await Deno.stat(bbIgnorePath);
 		if (fileInfo.isFile) {
-			logger.info('.bbai/ignore file already exists, skipping creation');
+			logger.info('.bb/ignore file already exists, skipping creation');
 			return;
 		}
 	} catch (error) {
 		if (!(error instanceof Deno.errors.NotFound)) {
-			logger.error(`Error checking .bbai/ignore file: ${error.message}`);
+			logger.error(`Error checking .bb/ignore file: ${error.message}`);
 			throw error;
 		}
 		// File doesn't exist, proceed with creation
 		try {
-			await Deno.writeTextFile(bbaiIgnorePath, getDefaultBbaiIgnore());
-			//logger.debug('Created .bbai/ignore file');
+			await Deno.writeTextFile(bbIgnorePath, getDefaultBbIgnore());
+			//logger.debug('Created .bb/ignore file');
 		} catch (writeError) {
-			logger.error(`Failed to create .bbai/ignore file: ${writeError.message}`);
+			logger.error(`Failed to create .bb/ignore file: ${writeError.message}`);
 			throw writeError;
 		}
 	}
 }
 
-export function getDefaultBbaiIgnore(): string {
+export function getDefaultBbIgnore(): string {
 	return `
-# Ignore patterns for BBai
-# Add files and directories that should be ignored by BBai here
+# Ignore patterns for BB
+# Add files and directories that should be ignored by BB here
 
 # Ignore node_modules directory
 node_modules/
@@ -69,8 +69,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Ignore BBai's own directory
-.bbai/
+# Ignore BB's own directory
+.bb/
 
 # Ignore git directory
 .git/

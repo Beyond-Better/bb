@@ -1,6 +1,6 @@
-import { assertEquals, delay } from '../deps.ts';
+import { assertEquals, delay } from 'api/tests/deps.ts';
 import { superoak } from 'superoak';
-import { withTestProject } from '../lib/testSetup.ts';
+import { withTestProject } from 'api/tests/testSetup.ts';
 
 Deno.test({
 	name: 'API root endpoint returns correct message',
@@ -18,7 +18,7 @@ Deno.test({
 					await request.get('/')
 						.expect(200)
 						.expect('Content-Type', /json/)
-						.expect({ message: 'Welcome to BBai API', docs: '/api-docs/openapi.json' });
+						.expect({ message: 'Welcome to BB API', docs: '/api-docs/openapi.json' });
 				} finally {
 					controller.abort();
 					await delay(0); // Allow any pending microtasks to complete

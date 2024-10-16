@@ -86,41 +86,41 @@ Deno.test({
 
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				const result = await tool.runTool(conversation, toolUse, projectEditor);
-				// console.log('successful query - bbaiResponse:', result.bbaiResponse);
+				// console.log('successful query - bbResponse:', result.bbResponse);
 				// console.log('successful query - toolResponse:', result.toolResponse);
 				// console.log('successful query - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isMultiModelQueryResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMultiModelQueryResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMultiModelQueryResponse(result.bbaiResponse)) {
+				if (isMultiModelQueryResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.querySuccess.length,
+						result.bbResponse.data.querySuccess.length,
 						2,
 						'Should have 2 successful query results',
 					);
-					const anthropicResult = result.bbaiResponse.data.querySuccess.find((r) =>
+					const anthropicResult = result.bbResponse.data.querySuccess.find((r) =>
 						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20240620'
 					);
-					const openaiResult = result.bbaiResponse.data.querySuccess.find((r) =>
+					const openaiResult = result.bbResponse.data.querySuccess.find((r) =>
 						r.modelIdentifier === 'openai/gpt-4'
 					);
 					assert(anthropicResult, 'Should have a result for Anthropic model');
 					assert(openaiResult, 'Should have a result for OpenAI model');
 					assertEquals(anthropicResult.answer, mockAnthropicResponse, 'Anthropic response should match mock');
 					assertEquals(openaiResult.answer, mockOpenAIResponse, 'OpenAI response should match mock');
-					assertEquals(result.bbaiResponse.data.queryError.length, 0, 'Should have no query errors');
+					assertEquals(result.bbResponse.data.queryError.length, 0, 'Should have no query errors');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(
@@ -184,29 +184,29 @@ Deno.test({
 
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				const result = await tool.runTool(conversation, toolUse, projectEditor);
-				// console.log('invalid provider - bbaiResponse:', result.bbaiResponse);
+				// console.log('invalid provider - bbResponse:', result.bbResponse);
 				// console.log('invalid provider - toolResponse:', result.toolResponse);
 				// console.log('invalid provider - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isMultiModelQueryResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMultiModelQueryResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMultiModelQueryResponse(result.bbaiResponse)) {
+				if (isMultiModelQueryResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.queryError.length,
+						result.bbResponse.data.queryError.length,
 						1,
 						'Should have 1 error results',
 					);
-					const errorResult = result.bbaiResponse.data.queryError.find((r) =>
+					const errorResult = result.bbResponse.data.queryError.find((r) =>
 						r.modelIdentifier === 'undefined/invalid-model'
 					);
 
@@ -217,9 +217,9 @@ Deno.test({
 						'Error response should be Unsupported provider',
 					);
 
-					assertEquals(result.bbaiResponse.data.querySuccess.length, 0, 'Should have no successful queries');
+					assertEquals(result.bbResponse.data.querySuccess.length, 0, 'Should have no successful queries');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(
@@ -279,30 +279,30 @@ Deno.test({
 
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				const result = await tool.runTool(conversation, toolUse, projectEditor);
-				//console.log('API error handling - bbaiResponse:', result.bbaiResponse);
+				//console.log('API error handling - bbResponse:', result.bbResponse);
 				//console.log('API error handling - toolResponse:', result.toolResponse);
 				//console.log('API error handling - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 
 				assert(
-					isMultiModelQueryResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMultiModelQueryResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMultiModelQueryResponse(result.bbaiResponse)) {
+				if (isMultiModelQueryResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.queryError.length,
+						result.bbResponse.data.queryError.length,
 						2,
 						'Should have 2 error results',
 					);
-					const anthropicResult = result.bbaiResponse.data.queryError.find((r) =>
+					const anthropicResult = result.bbResponse.data.queryError.find((r) =>
 						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20240620'
 					);
-					const openaiResult = result.bbaiResponse.data.queryError.find((r) =>
+					const openaiResult = result.bbResponse.data.queryError.find((r) =>
 						r.modelIdentifier === 'openai/gpt-4'
 					);
 					assert(anthropicResult, 'Should have a result for Anthropic model');
@@ -315,14 +315,14 @@ Deno.test({
 					);
 					assertEquals(openaiResult.error, 'OpenAI API error', 'OpenAI response should match API error');
 
-					assertEquals(result.bbaiResponse.data.querySuccess.length, 0, 'Should have no successful queries');
+					assertEquals(result.bbResponse.data.querySuccess.length, 0, 'Should have no successful queries');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				// 				assertStringIncludes(
-				// 					result.bbaiResponse,
-				// 					'BBai failed to query models:\n- anthropic/claude-3-5-sonnet-20240620: Anthropic API error\n- openai/gpt-4: OpenAI API error. You can review their responses in the output.',
+				// 					result.bbResponse,
+				// 					'BB failed to query models:\n- anthropic/claude-3-5-sonnet-20240620: Anthropic API error\n- openai/gpt-4: OpenAI API error. You can review their responses in the output.',
 				// 				);
 				assertStringIncludes(
 					result.toolResponse,

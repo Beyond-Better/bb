@@ -31,7 +31,7 @@ function isApplyPatchResponse(
 	);
 }
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -78,34 +78,34 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Basic functionality - bbaiResponse:', result.bbaiResponse);
+				// console.log('Basic functionality - bbResponse:', result.bbResponse);
 				// console.log('Basic functionality - toolResponse:', result.toolResponse);
 				// console.log('Basic functionality - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isApplyPatchResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isApplyPatchResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isApplyPatchResponse(result.bbaiResponse)) {
+				if (isApplyPatchResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.modifiedFiles.length,
+						result.bbResponse.data.modifiedFiles.length,
 						1,
 						'Should have 1 successful patch results',
 					);
-					const testResult = result.bbaiResponse.data.modifiedFiles.find((r) => r === 'test.txt');
+					const testResult = result.bbResponse.data.modifiedFiles.find((r) => r === 'test.txt');
 
 					assert(testResult, 'Should have a result for test.txt');
 
 					assertEquals(testResult, 'test.txt', 'Test response should match "test.txt"');
 
-					assertEquals(result.bbaiResponse.data.newFiles.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.newFiles.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Applied patch successfully to 1 file(s)');
@@ -181,27 +181,27 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Patch affecting multiple files - bbaiResponse:', result.bbaiResponse);
+				// console.log('Patch affecting multiple files - bbResponse:', result.bbResponse);
 				// console.log('Patch affecting multiple files - toolResponse:', result.toolResponse);
 				// console.log('Patch affecting multiple files - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isApplyPatchResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isApplyPatchResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isApplyPatchResponse(result.bbaiResponse)) {
+				if (isApplyPatchResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.modifiedFiles.length,
+						result.bbResponse.data.modifiedFiles.length,
 						2,
 						'Should have 2 successful patch results',
 					);
-					const testResult1 = result.bbaiResponse.data.modifiedFiles.find((r) => r === 'file1.txt');
-					const testResult2 = result.bbaiResponse.data.modifiedFiles.find((r) => r === 'file2.txt');
+					const testResult1 = result.bbResponse.data.modifiedFiles.find((r) => r === 'file1.txt');
+					const testResult2 = result.bbResponse.data.modifiedFiles.find((r) => r === 'file2.txt');
 
 					assert(testResult1, 'Should have a result for file1.txt');
 					assert(testResult2, 'Should have a result for file2.txt');
@@ -209,9 +209,9 @@ Deno.test({
 					assertEquals(testResult1, 'file1.txt', 'Test response should match "file1.txt"');
 					assertEquals(testResult2, 'file2.txt', 'Test response should match "file2.txt"');
 
-					assertEquals(result.bbaiResponse.data.newFiles.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.newFiles.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Applied patch successfully to 2 file(s)');
@@ -296,33 +296,33 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Complex patch with multiple changes - bbaiResponse:', result.bbaiResponse);
+				// console.log('Complex patch with multiple changes - bbResponse:', result.bbResponse);
 				// console.log('Complex patch with multiple changes - toolResponse:', result.toolResponse);
 				// console.log('Complex patch with multiple changes - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isApplyPatchResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isApplyPatchResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
-				if (isApplyPatchResponse(result.bbaiResponse)) {
+				if (isApplyPatchResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.modifiedFiles.length,
+						result.bbResponse.data.modifiedFiles.length,
 						1,
 						'Should have 1 successful patch results',
 					);
-					const testResult = result.bbaiResponse.data.modifiedFiles.find((r) => r === 'complex.txt');
+					const testResult = result.bbResponse.data.modifiedFiles.find((r) => r === 'complex.txt');
 
 					assert(testResult, 'Should have a result for complex.txt');
 
 					assertEquals(testResult, 'complex.txt', 'Test response should match "complex.txt"');
 
-					assertEquals(result.bbaiResponse.data.newFiles.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.newFiles.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Applied patch successfully to 1 file(s)');
@@ -391,33 +391,33 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Create new file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Create new file - bbResponse:', result.bbResponse);
 				// console.log('Create new file - toolResponse:', result.toolResponse);
 				// console.log('Create new file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isApplyPatchResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isApplyPatchResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
-				if (isApplyPatchResponse(result.bbaiResponse)) {
+				if (isApplyPatchResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.newFiles.length,
+						result.bbResponse.data.newFiles.length,
 						1,
 						'Should have 1 successful patch results',
 					);
-					const testResult = result.bbaiResponse.data.newFiles.find((r) => r === 'new_file.txt');
+					const testResult = result.bbResponse.data.newFiles.find((r) => r === 'new_file.txt');
 
 					assert(testResult, 'Should have a result for new_file.txt');
 
 					assertEquals(testResult, 'new_file.txt', 'Test response should match "new_file.txt"');
 
-					assertEquals(result.bbaiResponse.data.modifiedFiles.length, 0, 'Should have no modified files');
+					assertEquals(result.bbResponse.data.modifiedFiles.length, 0, 'Should have no modified files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Applied patch successfully to 1 file(s)');
@@ -483,19 +483,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Attempt to patch file outside project root - bbaiResponse:', result.bbaiResponse);
+				// console.log('Attempt to patch file outside project root - bbResponse:', result.bbResponse);
 				// console.log('Attempt to patch file outside project root - toolResponse:', result.toolResponse);
 				// console.log('Attempt to patch file outside project root - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the project directory',
+						result.bbResponse,
+						'BB failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the project directory',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(
@@ -574,19 +574,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Patch fails to apply - bbaiResponse:', result.bbaiResponse);
+				// console.log('Patch fails to apply - bbResponse:', result.bbResponse);
 				// console.log('Patch fails to apply - toolResponse:', result.toolResponse);
 				// console.log('Patch fails to apply - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai failed to apply patch. Error: Failed to apply patch: Failed to apply patch to mismatch.txt. The patch does not match the current file content. Consider using the `search_and_replace` tool for more precise modifications',
+						result.bbResponse,
+						'BB failed to apply patch. Error: Failed to apply patch: Failed to apply patch to mismatch.txt. The patch does not match the current file content. Consider using the `search_and_replace` tool for more precise modifications',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Failed to apply patch. Error: Failed to apply patch:');

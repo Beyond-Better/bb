@@ -19,12 +19,12 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	const results = getContentArrayFromToolResult(toolResult);
 	return (
 		<div className='tool-result'>
 			<p>
-				<strong>{bbaiResponse}</strong>
+				<strong>{bbResponse}</strong>
 			</p>
 			{results.map((content, index) => {
 				return (

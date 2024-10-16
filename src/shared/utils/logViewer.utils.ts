@@ -1,5 +1,5 @@
 import { join } from '@std/path';
-import { getBbaiDir } from 'shared/dataDir.ts';
+import { getBbDir } from 'shared/dataDir.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 
@@ -61,5 +61,5 @@ export async function getLogFilePath(startDir: string, isApiLog: boolean, conver
 	const fullConfig = await ConfigManager.fullConfig(startDir);
 	return !isApiLog && conversationId
 		? await ConversationLogger.getLogFileRawPath(startDir, conversationId)
-		: join(await getBbaiDir(startDir), fullConfig.api?.logFile ?? 'api.log');
+		: join(await getBbDir(startDir), fullConfig.api?.logFile ?? 'api.log');
 }

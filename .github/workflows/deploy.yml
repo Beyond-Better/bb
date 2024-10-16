@@ -18,11 +18,11 @@ jobs:
         with:
           deno-version: v1.x # Use the latest Deno version
 
-      - name: Create .bbai directory and config.yaml
+      - name: Create .bb directory and config.yaml
         run: |
-          mkdir -p .bbai
-          cat << EOF > .bbai/config.yaml
-          myPersonsName: bbai
+          mkdir -p .bb
+          cat << EOF > .bb/config.yaml
+          myPersonsName: bb
           myAssistantsName: Claude
           noBrowser: false
           api:
@@ -46,7 +46,7 @@ jobs:
             ctagsAutoGenerate: false
             tokenLimit: 1024
           project:
-            name: bbai
+            name: bb
             type: git
           EOF
 
@@ -63,9 +63,9 @@ jobs:
 
       - name: Deploy to Chat server
         env:
-          HOST: site.bbai.tips
+          HOST: site.beyondbetter.dev
           USER: deploy
-          DEPLOY_PATH: "/var/www/chat.bbai.tips/bbai/bui/src"
+          DEPLOY_PATH: "/var/www/chat.beyondbetter.dev/bb/bui/src"
           TEMP_DEPLOY_PATH: "/home/deploy/temp_deploy"
         run: |
           # Install rsync if not already installed
@@ -99,5 +99,5 @@ jobs:
             rm -rf $TEMP_DEPLOY_PATH
 
             # Restart the service
-            sudo systemctl restart bbai-bui.service
+            sudo systemctl restart bb-bui.service
           EOF

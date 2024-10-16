@@ -3,6 +3,6 @@
 	"description": "Performs vector search operations",
 	"enabled": false,
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

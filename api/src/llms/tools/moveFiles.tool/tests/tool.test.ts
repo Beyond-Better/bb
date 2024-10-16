@@ -31,7 +31,7 @@ function isMoveFilesResponse(
 	);
 }
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -71,39 +71,39 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Move single file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Move single file - bbResponse:', result.bbResponse);
 				// console.log('Move single file - toolResponse:', result.toolResponse);
 				// console.log('Move single file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesMoved.length,
+						result.bbResponse.data.filesMoved.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesMoved.find((r) => r === 'source.txt');
+					const testResult = result.bbResponse.data.filesMoved.find((r) => r === 'source.txt');
 
 					assert(testResult, 'Should have a result for source.txt');
 
 					assertEquals(testResult, 'source.txt', 'Test response should match "source.txt"');
 
-					assertEquals(result.bbaiResponse.data.destination, 'dest', 'Destination should match "dest"');
+					assertEquals(result.bbResponse.data.destination, 'dest', 'Destination should match "dest"');
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
-				//assertStringIncludes(result.bbaiResponse, 'BBai has moved these files to');
+				//assertStringIncludes(result.bbResponse, 'BB has moved these files to');
 				assertStringIncludes(result.toolResponse, 'Moved files to');
 
 				// Check toolResults
@@ -165,40 +165,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Create missing directories - bbaiResponse:', result.bbaiResponse);
+				// console.log('Create missing directories - bbResponse:', result.bbResponse);
 				// console.log('Create missing directories - toolResponse:', result.toolResponse);
 				// console.log('Create missing directories - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesMoved.length,
+						result.bbResponse.data.filesMoved.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesMoved.find((r) => r === 'source.txt');
+					const testResult = result.bbResponse.data.filesMoved.find((r) => r === 'source.txt');
 
 					assert(testResult, 'Should have a result for source.txt');
 
 					assertEquals(testResult, 'source.txt', 'Test response should match "source.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'new_dir/sub_dir',
 						'Destination should match "new_dir/sub_dir"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Moved files to');
@@ -249,40 +249,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Fail to create missing directories - bbaiResponse:', result.bbaiResponse);
+				// console.log('Fail to create missing directories - bbResponse:', result.bbResponse);
 				// console.log('Fail to create missing directories - toolResponse:', result.toolResponse);
 				// console.log('Fail to create missing directories - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesError.find((r) => r === 'source.txt');
+					const testResult = result.bbResponse.data.filesError.find((r) => r === 'source.txt');
 
 					assert(testResult, 'Should have a result for source.txt');
 
 					assertEquals(testResult, 'source.txt', 'Test response should match "source.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'another_new_dir/sub_dir',
 						'Destination should match "another_new_dir/sub_dir"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesMoved.length, 0, 'Should have no moved files');
+					assertEquals(result.bbResponse.data.filesMoved.length, 0, 'Should have no moved files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Failed to move files');
@@ -347,27 +347,27 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Move multiple files - bbaiResponse:', result.bbaiResponse);
+				// console.log('Move multiple files - bbResponse:', result.bbResponse);
 				// console.log('Move multiple files - toolResponse:', result.toolResponse);
 				// console.log('Move multiple files - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesMoved.length,
+						result.bbResponse.data.filesMoved.length,
 						2,
 						'Should have 2 successful moved file results',
 					);
-					const testResult1 = result.bbaiResponse.data.filesMoved.find((r) => r === 'file1.txt');
-					const testResult2 = result.bbaiResponse.data.filesMoved.find((r) => r === 'file2.txt');
+					const testResult1 = result.bbResponse.data.filesMoved.find((r) => r === 'file1.txt');
+					const testResult2 = result.bbResponse.data.filesMoved.find((r) => r === 'file2.txt');
 
 					assert(testResult1, 'Should have a result for file1.txt');
 					assert(testResult2, 'Should have a result for file2.txt');
@@ -376,14 +376,14 @@ Deno.test({
 					assertEquals(testResult2, 'file2.txt', 'Test response should match "file2.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'multi_dest',
 						'Destination should match "multi_dest"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Moved files to');
@@ -463,40 +463,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Move directory - bbaiResponse:', result.bbaiResponse);
+				// console.log('Move directory - bbResponse:', result.bbResponse);
 				// console.log('Move directory - toolResponse:', result.toolResponse);
 				// console.log('Move directory - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesMoved.length,
+						result.bbResponse.data.filesMoved.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesMoved.find((r) => r === 'source_dir');
+					const testResult = result.bbResponse.data.filesMoved.find((r) => r === 'source_dir');
 
 					assert(testResult, 'Should have a result for source.txt');
 
 					assertEquals(testResult, 'source_dir', 'Test response should match "source_dir"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'dest_dir',
 						'Destination should match "dest_dir"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Moved files to');
@@ -578,40 +578,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Overwrite existing file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Overwrite existing file - bbResponse:', result.bbResponse);
 				// console.log('Overwrite existing file - toolResponse:', result.toolResponse);
 				// console.log('Overwrite existing file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesMoved.length,
+						result.bbResponse.data.filesMoved.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesMoved.find((r) => r === 'overwrite.txt');
+					const testResult = result.bbResponse.data.filesMoved.find((r) => r === 'overwrite.txt');
 
 					assert(testResult, 'Should have a result for overwrite.txt');
 
 					assertEquals(testResult, 'overwrite.txt', 'Test response should match "overwrite.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'overwrite_dest',
 						'Destination should match "overwrite_dest"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no new files');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no new files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Moved files to');
@@ -684,40 +684,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Fail to overwrite without permission - bbaiResponse:', result.bbaiResponse);
+				// console.log('Fail to overwrite without permission - bbResponse:', result.bbResponse);
 				// console.log('Fail to overwrite without permission - toolResponse:', result.toolResponse);
 				// console.log('Fail to overwrite without permission - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesError.find((r) => r === 'no_overwrite.txt');
+					const testResult = result.bbResponse.data.filesError.find((r) => r === 'no_overwrite.txt');
 
 					assert(testResult, 'Should have a result for no_overwrite.txt');
 
 					assertEquals(testResult, 'no_overwrite.txt', 'Test response should match "no_overwrite.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'overwrite_dest',
 						'Destination should match "overwrite_dest"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesMoved.length, 0, 'Should have no moved files');
+					assertEquals(result.bbResponse.data.filesMoved.length, 0, 'Should have no moved files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'No files moved');
@@ -786,40 +786,40 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Attempt to move non-existent file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Attempt to move non-existent file - bbResponse:', result.bbResponse);
 				// console.log('Attempt to move non-existent file - toolResponse:', result.toolResponse);
 				// console.log('Attempt to move non-existent file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assert(
-					isMoveFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isMoveFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isMoveFilesResponse(result.bbaiResponse)) {
+				if (isMoveFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 successful moved file results',
 					);
-					const testResult = result.bbaiResponse.data.filesError.find((r) => r === 'non_existent.txt');
+					const testResult = result.bbResponse.data.filesError.find((r) => r === 'non_existent.txt');
 
 					assert(testResult, 'Should have a result for non_existent.txt');
 
 					assertEquals(testResult, 'non_existent.txt', 'Test response should match "non_existent.txt"');
 
 					assertEquals(
-						result.bbaiResponse.data.destination,
+						result.bbResponse.data.destination,
 						'non_existent_dest',
 						'Destination should match "non_existent_dest"',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesMoved.length, 0, 'Should have no moved files');
+					assertEquals(result.bbResponse.data.filesMoved.length, 0, 'Should have no moved files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 				assertStringIncludes(result.toolResponse, 'No files moved');
 

@@ -496,7 +496,7 @@ class OrchestratorController {
 			messageId,
 			toolResults,
 			toolResponse,
-			bbaiResponse,
+			bbResponse,
 			isError,
 		} = await this.toolManager.handleToolUse(
 			interaction,
@@ -511,7 +511,7 @@ class OrchestratorController {
 			messageId,
 			toolUse.toolName,
 			toolResults,
-			bbaiResponse,
+			bbResponse,
 		);
 
 		// Extract thinking content from the response
@@ -630,7 +630,7 @@ class OrchestratorController {
 								toolUse,
 								currentResponse.messageResponse,
 							);
-							//bbaiResponses.push(bbaiResponse);
+							//bbResponses.push(bbResponse);
 							toolResponses.push(toolResponse);
 							logger.debug(
 								`OrchestratorController: Thinking content for ${toolUse.toolName}:`,

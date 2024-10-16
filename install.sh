@@ -40,11 +40,11 @@ case $os in
 esac
 
 # Fetch latest release version
-latest_version=$(curl -sL https://api.github.com/repos/BBai-Tips/bbai/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+latest_version=$(curl -sL https://api.github.com/repos/Beyond-Better/bb/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 # echo "Latest version: $latest_version"
 
 # Download URL
-download_url="https://github.com/BBai-Tips/bbai/releases/download/${latest_version}/bbai-${arch}-${os}-${latest_version}.tar.gz"
+download_url="https://github.com/Beyond-Better/bb/releases/download/${latest_version}/bb-${arch}-${os}-${latest_version}.tar.gz"
 # echo "Download URL: $download_url"
 
 # Create a temporary directory
@@ -53,26 +53,26 @@ temp_dir=$(mktemp -d)
 trap 'rm -rf "$temp_dir"' EXIT
 
 # Download and extract the tarball
-echo "${YELLOW}Downloading BBai ${latest_version} for ${arch}-${os}...${NC}"
-curl -sL "$download_url" -o "$temp_dir/bbai.tar.gz"
-# echo "Download complete. File size: $(wc -c < "$temp_dir/bbai.tar.gz") bytes"
-# echo "File type: $(file "$temp_dir/bbai.tar.gz")"
+echo "${YELLOW}Downloading BB ${latest_version} for ${arch}-${os}...${NC}"
+curl -sL "$download_url" -o "$temp_dir/bb.tar.gz"
+# echo "Download complete. File size: $(wc -c < "$temp_dir/bb.tar.gz") bytes"
+# echo "File type: $(file "$temp_dir/bb.tar.gz")"
 echo "${YELLOW}Extracting archive...${NC}"
-tar xzf "$temp_dir/bbai.tar.gz" -C "$temp_dir"
+tar xzf "$temp_dir/bb.tar.gz" -C "$temp_dir"
 
 # List contents of temp directory
 # echo "Contents of $temp_dir:"
 # ls -la "$temp_dir"
 
 # Make binaries executable
-chmod +x "$temp_dir/bbai" "$temp_dir/bbai-api"
+chmod +x "$temp_dir/bb" "$temp_dir/bb-api"
 
 # Install binaries
-echo "${YELLOW}Installing 'bbai' and 'bbai-api' to /usr/local/bin...${NC}"
+echo "${YELLOW}Installing 'bb' and 'bb-api' to /usr/local/bin...${NC}"
 echo "${RED}Note: This step requires sudo access. You may be prompted for your password.${NC}"
-sudo mv "$temp_dir/bbai" "$temp_dir/bbai-api" /usr/local/bin/
+sudo mv "$temp_dir/bb" "$temp_dir/bb-api" /usr/local/bin/
 
-echo "${YELLOW}'bbai' and 'bbai-api' have been successfully installed to /usr/local/bin/${NC}"
-echo "${GREEN}You can now run '${BOLD}bbai init${NC}${GREEN}' from a project directory, and then run '${BOLD}bbai start${NC}${GREEN}' (or '${BOLD}bbai chat${NC}${GREEN}').${NC}"
+echo "${YELLOW}'bb' and 'bb-api' have been successfully installed to /usr/local/bin/${NC}"
+echo "${GREEN}You can now run '${BOLD}bb init${NC}${GREEN}' from a project directory, and then run '${BOLD}bb start${NC}${GREEN}' (or '${BOLD}bb chat${NC}${GREEN}').${NC}"
 
 

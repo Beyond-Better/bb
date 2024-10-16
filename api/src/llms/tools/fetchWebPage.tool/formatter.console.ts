@@ -14,14 +14,14 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { toolResult, bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { url } = bbaiResponse.data as { url: string; html: string };
+	const { toolResult, bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { url } = bbResponse.data as { url: string; html: string };
 		const content = getContentFromToolResult(toolResult);
 		const contentPreview = content.length > 500 ? content.slice(0, 500) + '...' : content;
-		return colors.bold(`BBai has fetched web page content from ${url}.\n\n`) + colors.cyan(contentPreview);
+		return colors.bold(`BB has fetched web page content from ${url}.\n\n`) + colors.cyan(contentPreview);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

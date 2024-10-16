@@ -1,6 +1,6 @@
 .aider*
 .aider.tags.cache.v3/*
-.bbai/*
+.bb/*
 .BBEditLSPWorkspaceConfig.json
 build/*
 deployment/releases/*

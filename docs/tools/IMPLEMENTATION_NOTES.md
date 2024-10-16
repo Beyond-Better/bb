@@ -97,8 +97,8 @@ api/src/llms/tools/multiModelQuery.tool/
    - Add examples and use cases in the documentation
    - Document the process for adding new providers
 
-6. **Integration with BBai System**
-   - Ensure smooth integration with the broader BBai system
+6. **Integration with BB System**
+   - Ensure smooth integration with the broader BB system
    - Implement any necessary hooks or event emitters
    - Update global type definitions if needed
 
@@ -141,4 +141,4 @@ api/src/llms/tools/multiModelQuery.tool/
 
 ## Conclusion
 
-The multiModelQuery tool now provides a functional way to compare responses from multiple LLM models. The next steps focus on enhancing its robustness, performance, and user experience. By addressing these areas, we can create a powerful and reliable tool for multi-model querying within the BBai system.
+The multiModelQuery tool now provides a functional way to compare responses from multiple LLM models. The next steps focus on enhancing its robustness, performance, and user experience. By addressing these areas, we can create a powerful and reliable tool for multi-model querying within the BB system.

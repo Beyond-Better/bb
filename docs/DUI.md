@@ -1,8 +1,8 @@
-# BBai Desktop User Interface (DUI) Documentation
+# BB Desktop User Interface (DUI) Documentation
 
 ## Overview
 
-The Desktop User Interface (DUI) for BBai is a planned feature that will provide a native application experience for interacting with the BBai system across multiple platforms. This document outlines the preliminary plans, potential features, and considerations for the future development of the DUI.
+The Desktop User Interface (DUI) for BB is a planned feature that will provide a native application experience for interacting with the BB system across multiple platforms. This document outlines the preliminary plans, potential features, and considerations for the future development of the DUI.
 
 ## Planned Features
 

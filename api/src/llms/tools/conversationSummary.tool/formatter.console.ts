@@ -16,9 +16,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { conversation } = bbaiResponse.data as { conversation: LLMToolConversationSummaryData };
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { conversation } = bbResponse.data as { conversation: LLMToolConversationSummaryData };
 		return stripIndents`
 			${colors.bold('Conversation Summary and Truncation')}
 			
@@ -36,7 +36,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			New: ${conversation.newTokenCount}
 		  `;
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

@@ -15,9 +15,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { modifiedFiles, newFiles } = bbaiResponse.data as { modifiedFiles: string[]; newFiles: string[] };
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { modifiedFiles, newFiles } = bbResponse.data as { modifiedFiles: string[]; newFiles: string[] };
 		return [
 			`✅ Patch applied successfully to ${modifiedFiles.length + newFiles.length} file(s):`,
 			`${
@@ -29,7 +29,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n');
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

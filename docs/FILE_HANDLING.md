@@ -1,6 +1,6 @@
-# File Handling in BBai Conversations
+# File Handling in BB Conversations
 
-This document outlines the conventions and strategies for handling files within BBai conversations.
+This document outlines the conventions and strategies for handling files within BB conversations.
 
 ## File Storage Strategy
 
@@ -67,13 +67,13 @@ When proposing changes to files, use the diff patch format:
 ## File Handling Workflow
 
 1. Assistant requests files using the provided tool
-2. BBai agent adds requested files to the conversation
+2. BB agent adds requested files to the conversation
 3. Assistant proposes changes using the diff patch format
-4. BBai agent applies changes and updates the conversation state
+4. BB agent applies changes and updates the conversation state
 
 ## Permissions and Error Handling
 
-- Assume BBai has necessary permissions to read/write files
+- Assume BB has necessary permissions to read/write files
 - If permission issues occur, treat as a conversation-ending error and notify the user
 
 ## Multiple Conversations Warning
@@ -93,15 +93,15 @@ When proposing changes to files, use the diff patch format:
 
 ## Important Links
 
-As an AI assistant for the BBai project, I should be aware of and use the following links when appropriate:
+As an AI assistant for the BB project, I should be aware of and use the following links when appropriate:
 
-- BBai GitHub Repository: https://github.com/BBai-Tips/bbai
-- BBai Documentation (future): https://bbai.tips
-- Contributing Guidelines: https://github.com/BBai-Tips/bbai/blob/main/CONTRIBUTING.md
-- Project Conventions: https://github.com/BBai-Tips/bbai/blob/main/CONVENTIONS.md
-- File Handling Guidelines: https://github.com/BBai-Tips/bbai/blob/main/FILE_HANDLING.md
-- API Documentation: https://github.com/BBai-Tips/bbai/blob/main/API.md
+- BB GitHub Repository: https://github.com/Beyond-Better/bb
+- BB Documentation (future): https://beyondbetter.dev
+- Contributing Guidelines: https://github.com/Beyond-Better/bb/blob/main/CONTRIBUTING.md
+- Project Conventions: https://github.com/Beyond-Better/bb/blob/main/CONVENTIONS.md
+- File Handling Guidelines: https://github.com/Beyond-Better/bb/blob/main/FILE_HANDLING.md
+- API Documentation: https://github.com/Beyond-Better/bb/blob/main/API.md
 
 When referencing these links in conversations or documentation, I should use the exact URLs provided above to ensure consistency and accuracy.
 
-By following these conventions and using the correct links, we ensure consistent and efficient file handling and communication throughout BBai conversations and documentation.
+By following these conventions and using the correct links, we ensure consistent and efficient file handling and communication throughout BB conversations and documentation.

@@ -1,5 +1,5 @@
 import { join, normalize, relative, resolve } from '@std/path';
-import { TextLineStream } from '@std/streams/text-line-stream';
+//import { TextLineStream } from '@std/streams';
 import { LRUCache } from 'npm:lru-cache';
 import { exists, walk } from '@std/fs';
 import globToRegExp from 'npm:glob-to-regexp';
@@ -10,7 +10,7 @@ import { contentType } from '@std/media-types';
 import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from '../errors/error.ts';
-import { createError, ErrorType } from '../utils/error.utils.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
 
 export const FILE_LISTING_TIERS = [
 	{ depth: Infinity, includeMetadata: true },
@@ -110,11 +110,11 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	const excludeFiles = [
 		join(projectRoot, 'tags.ignore'),
 		join(projectRoot, '.gitignore'),
-		join(projectRoot, '.bbai', 'ignore'),
-		join(projectRoot, '.bbai', 'tags.ignore'),
+		join(projectRoot, '.bb', 'ignore'),
+		join(projectRoot, '.bb', 'tags.ignore'),
 	];
 
-	const patterns = ['.bbai/*', '.git/*'];
+	const patterns = ['.bb/*', '.git/*'];
 	for (const file of excludeFiles) {
 		if (await exists(file)) {
 			const content = await Deno.readTextFile(file);

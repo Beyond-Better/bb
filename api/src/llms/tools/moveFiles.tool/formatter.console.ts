@@ -21,14 +21,14 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as { filesMoved: string[]; filesError: string[]; destination: string };
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as { filesMoved: string[]; filesError: string[]; destination: string };
 		return [
 			`${
 				data.filesMoved.length > 0
 					? (
-						colors.bold('✅ BBai has moved these files to ${data.destination}:\n') +
+						colors.bold('✅ BB has moved these files to ${data.destination}:\n') +
 						data.filesMoved.map((file) => colors.cyan(`- ${file}`)).join('\n')
 					)
 					: ''
@@ -36,7 +36,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			`${
 				data.filesError.length > 0
 					? (
-						colors.bold('⚠️ BBai failed to move these files to ${data.destination}:\n') +
+						colors.bold('⚠️ BB failed to move these files to ${data.destination}:\n') +
 						data.filesError.map((file) => colors.cyan(`- ${file}`)).join('\n')
 					)
 					: ''
@@ -44,7 +44,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n');
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

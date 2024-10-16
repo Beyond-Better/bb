@@ -6,7 +6,7 @@ import { join } from '@std/path';
 
 const TOOLS_DIR = './src/llms/tools';
 const MAIN_FILE = 'src/main.ts';
-const OUTPUT_FILE = '../build/bbai-api';
+const OUTPUT_FILE = '../build/bb-api';
 
 const args = parseArgs(Deno.args, {
 	string: ['target', 'output'],

@@ -1,17 +1,17 @@
-# BBai Browser User Interface (BUI) Development Instructions
+# BB Browser User Interface (BUI) Development Instructions
 
 ## Overview
 
-The BBai Browser User Interface (BUI) is being developed using Deno Fresh to
-provide a web-based interface for the BBai project. The BUI aims to offer the
+The BB Browser User Interface (BUI) is being developed using Deno Fresh to
+provide a web-based interface for the BB project. The BUI aims to offer the
 same core functionality as the CLI, with a focus on conversation management and
-interaction with the BBai system.
+interaction with the BB system.
 
 ## Key Features
 
-1. WebSocket-based real-time communication with the BBai API
+1. WebSocket-based real-time communication with the BB API
 2. Conversation management (start new, continue existing)
-3. Chat interface for interacting with BBai
+3. Chat interface for interacting with BB
 4. Setting and using the current working directory for project context
 
 ## Current Implementation
@@ -29,11 +29,11 @@ The main component of the BUI is the `Chat.tsx` file located in
 1. The `generateConversationId` function is imported from
    `shared/conversationManagement.ts`. This import should not be changed without
    explicit instruction.
-2. The `startDir` (current working directory) is crucial for the BBai system and
+2. The `startDir` (current working directory) is crucial for the BB system and
    must be sent with each message.
 3. A greeting message is sent automatically when the WebSocket connection is
    established.
-4. The default `startDir` is set to `~/bbai/`.
+4. The default `startDir` is set to `~/bb/`.
 5. The WebSocket server is expected to be running on `localhost:3000`.
 
 ## WebSocket Implementation
@@ -79,7 +79,7 @@ When testing the BUI, focus on:
 
 ## API Integration
 
-The BUI communicates with the BBai API primarily through WebSocket connections.
+The BUI communicates with the BB API primarily through WebSocket connections.
 Ensure that any changes to the API are reflected in the BUI, particularly in the
 message structure and handling.
 

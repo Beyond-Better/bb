@@ -1,4 +1,4 @@
-# BBai Project Conventions
+# BB Project Conventions
 
 ## Note to Users
 This document is primarily intended for the AI assistant to understand the project's conventions and guidelines. While you're welcome to read it, please be aware that changes to this file should only be made when explicitly instructed, as they directly affect how the AI interprets and works with the project.
@@ -8,7 +8,7 @@ This document is primarily intended for the AI assistant to understand the proje
 Refer to `docs/LLM_INSTRUCTIONS.md` as needed for guidance on project-specific files and their purposes. This file (CONVENTIONS.md) will always be available in the chat context, but other files should be requested when their specific information is required.
 
 ## Project Overview
-BBai is a versatile project that provides REST API and CLI tools to modify and enhance a wide range of text-based projects using LLM technology. BBai is designed to work with various text formats including, but not limited to:
+BB is a versatile project that provides REST API and CLI tools to modify and enhance a wide range of text-based projects using LLM technology. BB is designed to work with various text formats including, but not limited to:
 
 - Programming code in any language
 - Prose and documentation

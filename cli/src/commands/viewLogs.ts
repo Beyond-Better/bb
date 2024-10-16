@@ -1,6 +1,6 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { logger } from 'shared/logger.ts';
-//import { getBbaiDir } from 'shared/dataDir.ts';
+//import { getBbDir } from 'shared/dataDir.ts';
 import { getLogFilePath, viewLastLines, watchLogs } from 'shared/logViewer.ts';
 //import { join } from '@std/path';
 //import { ensureDir } from '@std/fs';

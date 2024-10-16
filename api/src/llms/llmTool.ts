@@ -12,10 +12,10 @@ export type LLMToolInputSchema = JSONSchema4;
 
 export type LLMToolRunResultContent = string | LLMMessageContentPart | LLMMessageContentParts;
 export type LLMToolRunToolResponse = string;
-export interface LLMToolRunBbaiResponseData {
+export interface LLMToolRunBbResponseData {
 	data: unknown;
 }
-export type LLMToolRunBbaiResponse = LLMToolRunBbaiResponseData | string;
+export type LLMToolRunBbResponse = LLMToolRunBbResponseData | string;
 
 export interface LLMToolFinalizeResult {
 	messageId: string;
@@ -24,7 +24,7 @@ export interface LLMToolFinalizeResult {
 export interface LLMToolRunResult {
 	toolResults: LLMToolRunResultContent;
 	toolResponse: LLMToolRunToolResponse;
-	bbaiResponse: LLMToolRunBbaiResponse;
+	bbResponse: LLMToolRunBbResponse;
 	finalizeCallback?: (messageId: ConversationId) => void;
 }
 

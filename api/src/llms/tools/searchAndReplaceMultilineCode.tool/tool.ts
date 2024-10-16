@@ -623,9 +623,9 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				const toolResponse = isNewFile
 					? `File created and search and replace operations applied successfully to file: ${filePath}`
 					: `Search and replace operations applied successfully to file: ${filePath}`;
-				const bbaiResponse = `BBai applied search and replace operations: ${toolWarning}`;
+				const bbResponse = `BB applied search and replace operations: ${toolWarning}`;
 
-				return { toolResults, toolResponse, bbaiResponse };
+				return { toolResults, toolResponse, bbResponse };
 			} else {
 				const noChangesMessage = allOperationsSkipped
 					? `${toolWarning}No changes were made to the file: ${filePath}. All operations were skipped due to identical source and destination strings.`

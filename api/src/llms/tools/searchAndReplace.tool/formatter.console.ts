@@ -32,10 +32,10 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { toolResult, bbaiResponse } = resultContent;
+	const { toolResult, bbResponse } = resultContent;
 	const results = getContentArrayFromToolResult(toolResult);
 	return stripIndents`
-		${colors.cyan(`${bbaiResponse}:`)}
+		${colors.cyan(`${bbResponse}:`)}
 	
 		${
 		results.map((content) => {

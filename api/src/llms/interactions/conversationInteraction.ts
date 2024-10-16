@@ -311,7 +311,7 @@ class LLMConversationInteraction extends LLMInteraction {
 						const textBlock: LLMMessageContentPartTextBlock = {
 							type: 'text',
 							text:
-								`<bbaiFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbaiFile>`,
+								`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
 						};
 						hydratedFiles.set(filePath, turnIndex);
 						return [imageBlock, textBlock] as LLMMessageContentParts;
@@ -319,9 +319,9 @@ class LLMConversationInteraction extends LLMInteraction {
 						//logger.info(`ConversationInteraction: Hydrating - preparing file: ${filePath}`);
 						const fileContent = await this.readProjectFileContent(filePath, messageId);
 						const fileXml =
-							`<bbaiFile path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" revision="${messageId}">
+							`<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" revision="${messageId}">
 ${fileContent}
-</bbaiFile>`;
+</bbFile>`;
 						hydratedFiles.set(filePath, turnIndex);
 						return { ...contentPart, text: fileXml };
 					}
