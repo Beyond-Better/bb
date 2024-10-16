@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.0.26-beta",
+	"version": "0.1.0",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
@@ -16,7 +16,9 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts"
 	},
 	"importMap": "../import_map.json",
-	"unstable": ["kv"],
+	"unstable": [
+		"kv"
+	],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -24,15 +26,26 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": ["src/", "tests/"],
-		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
+		"include": [
+			"src/",
+			"tests/"
+		],
+		"exclude": [
+			"src/testdata/",
+			"src/fixtures/**/*.ts"
+		]
 	},
 	"lint": {
 		"files": {
-			"include": ["tests/pipelineProvider.js"]
+			"include": [
+				"tests/pipelineProvider.js"
+			]
 		},
 		"rules": {
-			"exclude": ["require-await", "no-var"]
+			"exclude": [
+				"require-await",
+				"no-var"
+			]
 		}
 	}
 }
