@@ -178,7 +178,7 @@ export default class LLMToolMoveFiles extends LLMTool {
 			const toolResults = toolResultContentParts;
 			const toolResponse = (noFilesMoved ? 'No files moved\n' : '') +
 				toolResponses.join('\n\n');
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					filesMoved: movedSuccess.map((f) => f.name),
 					filesError: movedError.map((f) => f.name),
@@ -189,14 +189,14 @@ export default class LLMToolMoveFiles extends LLMTool {
 			return {
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 			};
 		} catch (error) {
 			logger.error(`Error moving files: ${error.message}`);
 			const toolResults = `⚠️  ${error.message}`;
-			const bbaiResponse = `BBai failed to move files. Error: ${error.message}`;
+			const bbResponse = `BB failed to move files. Error: ${error.message}`;
 			const toolResponse = `Failed to move files. Error: ${error.message}`;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		}
 	}
 }

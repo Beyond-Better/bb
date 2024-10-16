@@ -5,7 +5,7 @@ import { logger } from 'shared/logger.ts';
 
 export const config = new Command()
 	.name('config')
-	.description('View or update BBai configuration')
+	.description('View or update BB configuration')
 	.action(async () => {
 		const currentConfig = await ConfigManager.redactedFullConfig(Deno.cwd());
 		console.log('Current configuration:');

@@ -2,7 +2,7 @@
 	"name": "search_and_replace",
 	"description": "Apply a list of search and replace operations to a file",
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT",
 	"mutates": true
 }

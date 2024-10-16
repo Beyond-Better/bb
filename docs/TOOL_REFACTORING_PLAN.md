@@ -181,4 +181,4 @@ Completed tools:
 
 This refactoring plan focuses solely on restructuring the individual tools' file organization. It does not involve changes to the overall tool management system or the base classes.
 
-This refactoring plan aims to improve the organization and maintainability of the BBai tool system, setting the groundwork for future enhancements and user-supplied tools.
+This refactoring plan aims to improve the organization and maintainability of the BB tool system, setting the groundwork for future enhancements and user-supplied tools.

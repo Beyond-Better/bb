@@ -2,7 +2,7 @@
 	"name": "run_command",
 	"description": "Run a system command and return the output",
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT",
 	"config": {
 		"allowedCommands": [

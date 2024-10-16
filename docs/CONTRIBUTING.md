@@ -1,6 +1,6 @@
-# Contributing to BBai
+# Contributing to BB (Beyond Better)
 
-First off, thank you for considering contributing to BBai! It's people like you that make BBai such a great tool. We welcome contributions from everyone, whether it's a bug report, feature suggestion, documentation improvement, or code contribution.
+First off, thank you for considering contributing to BB! It's people like you that make BB such a great tool. We welcome contributions from everyone, whether it's a bug report, feature suggestion, documentation improvement, or code contribution.
 
 ## Table of Contents
 
@@ -14,7 +14,7 @@ First off, thank you for considering contributing to BBai! It's people like you 
 
 ## Code of Conduct
 
-BBai has a strict code of being kind to everyone - listening without judgement and being supportive to help others grow & improve. We expect all contributors to adhere to this principle in all project-related interactions.
+BB has a strict code of being kind to everyone - listening without judgement and being supportive to help others grow & improve. We expect all contributors to adhere to this principle in all project-related interactions.
 
 ## Getting Started
 
@@ -29,7 +29,7 @@ BBai has a strict code of being kind to everyone - listening without judgement a
 
 - Use the GitHub issue tracker to report bugs.
 - Describe the issue in detail, including steps to reproduce.
-- Include the version of BBai you're using and your operating system.
+- Include the version of BB you're using and your operating system.
 
 ### Suggesting Enhancements
 
@@ -48,7 +48,7 @@ BBai has a strict code of being kind to everyone - listening without judgement a
 ### Documentation
 
 - Help improve the README.md, API.md, or other documentation files.
-- Contribute to the upcoming documentation site at bbai.tips.
+- Contribute to the upcoming documentation site at beyondbetter.dev.
 
 ## Style Guidelines
 
@@ -62,7 +62,7 @@ BBai has a strict code of being kind to everyone - listening without judgement a
 - Use the past tense ("Added feature" not "Add feature").
 - Limit the first line to 72 characters or less.
 - Reference issues and pull requests liberally after the first line.
-- Ideally, all commit messages will come from BBai itself and be written by Claude.
+- Ideally, all commit messages will come from BB itself and be written by Claude.
 
 ## Pull Requests
 
@@ -103,7 +103,7 @@ BBai has a strict code of being kind to everyone - listening without judgement a
 6. Run tests: `deno task test`
 7. Build the project: `deno task build`
 8. If you've made version changes, update the version: `deno task update-version`
-9. Commit your changes (preferably using BBai to generate the commit message).
+9. Commit your changes (preferably using BB to generate the commit message).
 10. Push to your fork and submit a pull request.
 11. When working on a specific interface (API, BUI, CLI, or DUI), follow the respective guidelines mentioned in the [Interface-Specific Guidelines](#interface-specific-guidelines) section.
 
@@ -128,7 +128,7 @@ For more information about the project, please refer to the following documents:
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): Our community standards
 - [SECURITY.md](SECURITY.md): Security policy and reporting vulnerabilities
 - [API.md](API.md): API documentation
-- [FILE_HANDLING.md](FILE_HANDLING.md): Guidelines for handling files in BBai
+- [FILE_HANDLING.md](FILE_HANDLING.md): Guidelines for handling files in BB
 - [CONVENTIONS.md](../CONVENTIONS.md): Project conventions and best practices
 
-Thank you for your contribution to BBai!
+Thank you for your contribution to BB (Beyond Better)!

@@ -7,7 +7,7 @@ export default function App({ Component, url }: PageProps) {
 			<Head>
 				<meta charset='utf-8' />
 				<meta name='viewport' content='width=device-width, initial-scale=1.0' />
-				<title>BBai - Be Better with code and docs</title>
+				<title>BB - Beyond Better - with code and docs</title>
 				<link rel='stylesheet' href='/styles.css' />
 			</Head>
 			<body>

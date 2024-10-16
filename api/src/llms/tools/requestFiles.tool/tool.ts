@@ -78,7 +78,7 @@ export default class LLMToolRequestFiles extends LLMTool {
 				}
 			}
 
-			//const bbaiResponses = [];
+			//const bbResponses = [];
 			const toolResponses = [];
 			if (filesSuccess.length > 0) {
 				toolResponses.push(
@@ -95,7 +95,7 @@ export default class LLMToolRequestFiles extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (allFilesFailed ? 'No files added\n' : '') + toolResponses.join('\n\n');
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					filesAdded: filesSuccess.map((f) => f.name),
 					filesError: filesError.map((f) => f.name),
@@ -105,7 +105,7 @@ export default class LLMToolRequestFiles extends LLMTool {
 			return {
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 				finalizeCallback: (messageId) => {
 					interaction.addFilesForMessage(
 						filesAdded,
@@ -126,9 +126,9 @@ export default class LLMToolRequestFiles extends LLMTool {
 			logger.error(`Error adding files to conversation: ${errorMessage}`);
 
 			const toolResults = `⚠️  ${errorMessage}`;
-			const bbaiResponse = `BBai failed to add files. Error: ${errorMessage}`;
+			const bbResponse = `BB failed to add files. Error: ${errorMessage}`;
 			const toolResponse = `Failed to add files. Error: ${errorMessage}`;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 
 			// 			logger.error(`Error adding files to conversation: ${error.message}`);
 			//

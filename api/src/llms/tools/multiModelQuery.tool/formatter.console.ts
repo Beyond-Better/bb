@@ -14,9 +14,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as {
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as {
 			querySuccess: Array<{ modelIdentifier: string; answer: string }>;
 			queryError: Array<{ modelIdentifier: string; error: string }>;
 		};
@@ -24,7 +24,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			`${
 				data.querySuccess.length > 0
 					? (
-						colors.bold('✅  BBai has queried models:\n') +
+						colors.bold('✅  BB has queried models:\n') +
 						data.querySuccess.map((query) =>
 							`${colors.bold('Model: ')}${colors.yellow(query.modelIdentifier)}\nAnswer:\n${query.answer}`
 						).join('\n\n')
@@ -34,7 +34,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			`${
 				data.queryError.length > 0
 					? (
-						colors.bold.red('⚠️  BBai failed to query models:\n') +
+						colors.bold.red('⚠️  BB failed to query models:\n') +
 						data.queryError.map((query) =>
 							`${colors.bold('Model: ')}${colors.yellow(query.modelIdentifier)}\nError:\n${query.error}`
 						).join('\n\n')
@@ -44,7 +44,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n\n');
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

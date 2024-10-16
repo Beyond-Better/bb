@@ -149,7 +149,7 @@ export default class LogEntryFormatterManager {
 
 	private formatContentString(content: string): string[] {
 		return content
-			.replace(/<bbai>.*?<\/bbai>/gs, '')
+			.replace(/<bb>.*?<\/bb>/gs, '')
 			.split('\n')
 			.map((line) => line.trim());
 		//.filter((line) => line.length > 0);

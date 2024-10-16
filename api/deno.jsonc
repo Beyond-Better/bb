@@ -1,5 +1,5 @@
 {
-	"name": "bbai-api",
+	"name": "bb-api",
 	"version": "0.0.26-beta",
 	"exports": "./src/main.ts",
 	"tasks": {
@@ -9,16 +9,14 @@
 		"test": "deno test --allow-read --allow-write --allow-run --allow-net --allow-env tests/  tests/t/llms/tools/index.ts",
 		"generate-tools-manifest": "deno run --allow-read --allow-write scripts/generate_core_tools_manifest.ts && deno fmt ./src/llms/tools_manifest.ts",
 		"build": "deno run --allow-read --allow-run --allow-write scripts/compile.ts",
-		"build-local": "deno task generate-tools-manifest && deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --output ../build/bbai-api src/main.ts",
+		"build-local": "deno task generate-tools-manifest && deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --output ../build/bb-api src/main.ts",
 		"format": "deno fmt",
 		"check-format": "deno fmt --check",
 		"check-types": "deno check src/main.ts src/llms/tools/*.tool/*",
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts"
 	},
 	"importMap": "../import_map.json",
-	"unstable": [
-		"kv"
-	],
+	"unstable": ["kv"],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -26,26 +24,15 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": [
-			"src/",
-			"tests/"
-		],
-		"exclude": [
-			"src/testdata/",
-			"src/fixtures/**/*.ts"
-		]
+		"include": ["src/", "tests/"],
+		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
 	},
 	"lint": {
 		"files": {
-			"include": [
-				"tests/pipelineProvider.js"
-			]
+			"include": ["tests/pipelineProvider.js"]
 		},
 		"rules": {
-			"exclude": [
-				"require-await",
-				"no-var"
-			]
+			"exclude": ["require-await", "no-var"]
 		}
 	}
 }

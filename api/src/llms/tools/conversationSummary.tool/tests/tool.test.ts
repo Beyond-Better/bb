@@ -130,7 +130,7 @@ Deno.test({
 
 			assert(result.toolResults, 'Tool results should not be null');
 			assert(result.toolResponse, 'Tool response should not be null');
-			assert(result.bbaiResponse, 'BBai response should not be null');
+			assert(result.bbResponse, 'BB response should not be null');
 
 			const summary = JSON.parse(result.toolResults as string);
 
@@ -149,10 +149,10 @@ Deno.test({
 				'Tool response should indicate successful summarization and truncation',
 			);
 			assert(
-				stripAnsiCode(result.bbaiResponse).includes(
-					'BBai has summarized the conversation and truncated it if requested',
+				stripAnsiCode(result.bbResponse).includes(
+					'BB has summarized the conversation and truncated it if requested',
 				),
-				'BBai response should indicate summarization and truncation',
+				'BB response should indicate summarization and truncation',
 			);
 		});
 	},

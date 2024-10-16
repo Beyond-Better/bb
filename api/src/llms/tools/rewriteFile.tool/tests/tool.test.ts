@@ -13,7 +13,7 @@ import {
 } from 'api/tests/testSetup.ts';
 import { FileHandlingError } from 'api/errors/error.ts';
 
-// Type guard to check if bbaiResponse is a string
+// Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -52,19 +52,19 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('rewrite existing file - bbaiResponse:', result.bbaiResponse);
+				// console.log('rewrite existing file - bbResponse:', result.bbResponse);
 				// console.log('rewrite existing file - toolResponse:', result.toolResponse);
 				// console.log('rewrite existing file - toolResults:', result.toolResults);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai rewrote file test.txt with new contents',
+						result.bbResponse,
+						'BB rewrote file test.txt with new contents',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, `Rewrote existing file`);
@@ -114,15 +114,15 @@ Deno.test({
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-				assert(isString(result.bbaiResponse), 'bbaiResponse should be a string');
+				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
-				if (isString(result.bbaiResponse)) {
+				if (isString(result.bbResponse)) {
 					assertStringIncludes(
-						result.bbaiResponse,
-						'BBai created file new-test.txt with new contents',
+						result.bbResponse,
+						'BB created file new-test.txt with new contents',
 					);
 				} else {
-					assert(false, 'bbaiResponse is not a string as expected');
+					assert(false, 'bbResponse is not a string as expected');
 				}
 
 				assertStringIncludes(result.toolResponse, `Created a new file`);

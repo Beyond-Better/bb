@@ -23,12 +23,12 @@ import { ConfigManager, type FullConfigSchema } from 'shared/configManager.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import {
-	getBbaiDataDir,
-	getBbaiDir,
+	getBbDataDir,
+	getBbDir,
 	getProjectRoot,
-	readFromBbaiDir,
-	removeFromBbaiDir,
-	writeToBbaiDir,
+	readFromBbDir,
+	removeFromBbDir,
+	writeToBbDir,
 } from 'shared/dataDir.ts';
 import EventManager from 'shared/eventManager.ts';
 
@@ -82,27 +82,27 @@ class ProjectEditor {
 		return await getProjectRoot(this.startDir);
 	}
 
-	public async getBbaiDir(): Promise<string> {
-		return await getBbaiDir(this.startDir);
+	public async getBbDir(): Promise<string> {
+		return await getBbDir(this.startDir);
 	}
 
-	public async getBbaiDataDir(): Promise<string> {
-		return await getBbaiDataDir(this.startDir);
+	public async getBbDataDir(): Promise<string> {
+		return await getBbDataDir(this.startDir);
 	}
 
-	public async writeToBbaiDir(
+	public async writeToBbDir(
 		filename: string,
 		content: string,
 	): Promise<void> {
-		return await writeToBbaiDir(this.startDir, filename, content);
+		return await writeToBbDir(this.startDir, filename, content);
 	}
 
-	public async readFromBbaiDir(filename: string): Promise<string | null> {
-		return await readFromBbaiDir(this.startDir, filename);
+	public async readFromBbDir(filename: string): Promise<string | null> {
+		return await readFromBbDir(this.startDir, filename);
 	}
 
-	public async removeFromBbaiDir(filename: string): Promise<void> {
-		return await removeFromBbaiDir(this.startDir, filename);
+	public async removeFromBbDir(filename: string): Promise<void> {
+		return await removeFromBbDir(this.startDir, filename);
 	}
 
 	get projectInfo(): ProjectInfo {

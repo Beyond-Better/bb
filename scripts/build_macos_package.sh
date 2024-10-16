@@ -10,30 +10,30 @@ fi
 
 # Set variables
 VERSION=$(cat version.ts | grep VERSION | cut -d'"' -f2)
-PACKAGE_NAME="BBai-$VERSION"
+PACKAGE_NAME="BB-$VERSION"
 BUILD_DIR="build/macos_package"
-IDENTIFIER="tips.bbai.bbai"
+IDENTIFIER="tips.bb.bb"
 
 # Create build directory
 mkdir -p $BUILD_DIR/$PACKAGE_NAME/usr/local/bin
 
 # Create universal binaries
-lipo -create build/bbai-x86_64 build/bbai-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai
-lipo -create build/bbai-api-x86_64 build/bbai-api-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai-api
+lipo -create build/bb-x86_64 build/bb-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
+lipo -create build/bb-api-x86_64 build/bb-api-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
 
 # Make binaries executable
-chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai-api
+chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
 
 # Verify universal binaries
 echo "\nVerifying universal binaries:"
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bbai-api
+lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
+lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
 
 # Create distribution.xml
 cat > $BUILD_DIR/distribution.xml << EOF
 <?xml version="1.0" encoding="utf-8"?>
 <installer-script minSpecVersion="1.000000">
-    <title>BBai Installer</title>
+    <title>BB Installer</title>
     <options customize="never" allow-external-scripts="no"/>
     <domains enable_anywhere="true"/>
     <installation-check script="pm_install_check();"/>
@@ -41,7 +41,7 @@ cat > $BUILD_DIR/distribution.xml << EOF
         function pm_install_check() {
             if(!(system.compareVersions(system.version.ProductVersion,'10.15') >= 0)) {
                 my.result.title = 'Failure';
-                my.result.message = 'You need at least macOS 10.15 to install BBai.';
+                my.result.message = 'You need at least macOS 10.15 to install BB.';
                 my.result.type = 'Fatal';
                 return false;
             }
@@ -49,17 +49,17 @@ cat > $BUILD_DIR/distribution.xml << EOF
         }
     </script>
     <choices-outline>
-        <line choice="BBai"/>
+        <line choice="BB"/>
     </choices-outline>
-    <choice id="BBai" title="BBai">
+    <choice id="BB" title="BB">
         <pkg-ref id="$IDENTIFIER"/>
     </choice>
-    <pkg-ref id="$IDENTIFIER" version="$VERSION" onConclusion="none">BBai-component.pkg</pkg-ref>
+    <pkg-ref id="$IDENTIFIER" version="$VERSION" onConclusion="none">BB-component.pkg</pkg-ref>
 </installer-script>
 EOF
 
 # Build component package
-pkgbuild --root $BUILD_DIR/$PACKAGE_NAME --identifier $IDENTIFIER --version $VERSION --install-location / $BUILD_DIR/BBai-component.pkg
+pkgbuild --root $BUILD_DIR/$PACKAGE_NAME --identifier $IDENTIFIER --version $VERSION --install-location / $BUILD_DIR/BB-component.pkg
 
 # Build product package
 productbuild --distribution $BUILD_DIR/distribution.xml --package-path $BUILD_DIR $BUILD_DIR/$PACKAGE_NAME.pkg
@@ -78,7 +78,7 @@ find $BUILD_DIR/expanded_pkg -type f
 rm -rf $BUILD_DIR/expanded_pkg
 
 # Clean up intermediate files
-rm -rf $BUILD_DIR/$PACKAGE_NAME $BUILD_DIR/distribution.xml $BUILD_DIR/BBai-component.pkg
+rm -rf $BUILD_DIR/$PACKAGE_NAME $BUILD_DIR/distribution.xml $BUILD_DIR/BB-component.pkg
 
 # Optionally, move the package to a specific directory
 # mv $BUILD_DIR/$PACKAGE_NAME.pkg /path/to/destination/

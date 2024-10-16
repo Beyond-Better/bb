@@ -1,6 +1,6 @@
 import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
-import { readFromBbaiDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 
 export default class ApiClient {
 	private baseUrl: string;
@@ -13,7 +13,7 @@ export default class ApiClient {
 		this.wsUrl = wsUrl;
 		// [TODO] the custom httpClient doesn't solve websocket connections
 		// So using --unsafely-ignore-certificate-errors=localhost on cli instead
-		// It's set in `build` task in deno.jsonc and in scripts/bbai shebang
+		// It's set in `build` task in deno.jsonc and in scripts/bb shebang
 		//this.httpClient = Deno.createHttpClient({ caCerts: [rootCert] });
 	}
 
@@ -34,7 +34,7 @@ export default class ApiClient {
 		const baseUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
 		const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}`;
 		const rootCert = fullConfig.api.tlsRootCaPem ||
-			await readFromBbaiDir(startDir, fullConfig.api.tlsRootCaFile || 'rootCA.pem') ||
+			await readFromBbDir(startDir, fullConfig.api.tlsRootCaFile || 'rootCA.pem') ||
 			await readFromGlobalConfigDir(fullConfig.api.tlsRootCaFile || 'rootCA.pem') || '';
 
 		logger.debug(`APIClient: client created with baseUrl: ${baseUrl}, wsUrl: ${wsUrl}`);

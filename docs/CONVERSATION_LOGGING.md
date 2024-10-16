@@ -1,8 +1,8 @@
-# Conversation Logging and Formatting in BBai
+# Conversation Logging and Formatting in BB
 
 ## Overview
 
-This document outlines the conversation logging and formatting system for BBai, focusing on techniques for efficient and flexible logging across the API, CLI, and BUI components. The primary goal is to maintain a centralized logging system in the API while providing dynamic, tool-specific formatting capabilities for different output destinations.
+This document outlines the conversation logging and formatting system for BB, focusing on techniques for efficient and flexible logging across the API, CLI, and BUI components. The primary goal is to maintain a centralized logging system in the API while providing dynamic, tool-specific formatting capabilities for different output destinations.
 
 ## Key Components
 

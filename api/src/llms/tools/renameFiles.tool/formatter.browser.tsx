@@ -23,9 +23,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as {
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as {
 			filesRenamed: Array<{ source: string; destination: string }>;
 			filesError: Array<{ source: string; destination: string }>;
 		};
@@ -35,7 +35,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>✅ BBai has renamed these files:</strong>
+								<strong>✅ BB has renamed these files:</strong>
 							</p>
 							<p>
 								<ul>
@@ -49,7 +49,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>⚠️ BBai failed to rename these files:</strong>
+								<strong>⚠️ BB failed to rename these files:</strong>
 							</p>
 							<p>
 								<ul>
@@ -62,11 +62,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

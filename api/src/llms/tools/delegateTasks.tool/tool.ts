@@ -83,7 +83,7 @@ export default class DelegateTasksTool extends LLMTool {
 							},
 							resources: {
 								type: 'array',
-								description: 'Resources to be included by BBai for task completion',
+								description: 'Resources to be included by BB for task completion',
 								items: {
 									type: 'object',
 									properties: {
@@ -141,7 +141,7 @@ export default class DelegateTasksTool extends LLMTool {
 		const { fileNames } = toolInput as { fileNames: string[] };
 
 		try {
-			return { toolResults: [], toolResponse: '', bbaiResponse: '' };
+			return { toolResults: [], toolResponse: '', bbResponse: '' };
 		} catch (error) {
 			logger.error(`Error adding files to conversation: ${error.message}`);
 

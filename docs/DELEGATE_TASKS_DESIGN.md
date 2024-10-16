@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-This document outlines the design and implementation plan for the `delegate_tasks` tool in the BBai project. The tool aims to initiate new conversations or interactions with LLM to handle specific tasks, reducing token usage and costs while enabling potentially asynchronous task processing.
+This document outlines the design and implementation plan for the `delegate_tasks` tool in the BB project. The tool aims to initiate new conversations or interactions with LLM to handle specific tasks, reducing token usage and costs while enabling potentially asynchronous task processing.
 
 ## 2. Tool Structure and Parameters
 
@@ -307,4 +307,4 @@ class ProjectEditor {
 
 ## 12. Conclusion
 
-This design document outlines the implementation plan for the `delegate_tasks` tool and associated changes in the BBai project. By following this plan, we will create a flexible and powerful system for delegating tasks to child interactions, improving efficiency and reducing token usage.
+This design document outlines the implementation plan for the `delegate_tasks` tool and associated changes in the BB project. By following this plan, we will create a flexible and powerful system for delegating tasks to child interactions, improving efficiency and reducing token usage.

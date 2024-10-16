@@ -2,7 +2,7 @@ import { Command } from 'cliffy/command/mod.ts';
 import { Input, prompt } from 'cliffy/prompt/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { logger } from 'shared/logger.ts';
-import { createBbaiDir, createBbaiIgnore } from '../utils/init.utils.ts';
+import { createBbDir, createBbIgnore } from '../utils/init.utils.ts';
 import { basename } from '@std/path';
 import { GitUtils } from 'shared/git.ts';
 import type { ProjectType, WizardAnswers } from 'shared/configManager.ts';
@@ -106,7 +106,7 @@ async function detectProjectType(startDir: string): Promise<ProjectType> {
 async function printProjectDetails(projectName: string, projectType: string, wizardAnswers: WizardAnswers) {
 	const configManager = await ConfigManager.getInstance();
 	const globalConfig = await configManager.loadGlobalConfig();
-	console.log(`\n${colors.bold.blue.underline('BBai Project Details:')}`);
+	console.log(`\n${colors.bold.blue.underline('BB Project Details:')}`);
 	console.log(`  ${colors.bold('Name:')} ${colors.green(projectName)}`);
 	console.log(`  ${colors.bold('Type:')} ${colors.green(projectType)}`);
 	console.log(`  ${colors.bold('Your Name:')} ${colors.green(wizardAnswers.myPersonsName || 'Not set')}`);
@@ -119,18 +119,18 @@ async function printProjectDetails(projectName: string, projectType: string, wiz
 
 	console.log(`\n${colors.bold('Configuration Instructions:')}`);
 	console.log('1. To modify project-level config:');
-	console.log('   Edit the .bbai/config.yaml file in your project directory');
+	console.log('   Edit the .bb/config.yaml file in your project directory');
 	console.log('2. To modify system/user level config:');
 	console.log('   Edit the config.yaml file in your user home directory');
-	console.log('   (usually ~/.config/bbai/config.yaml on Unix-like systems)');
+	console.log('   (usually ~/.config/bb/config.yaml on Unix-like systems)');
 	console.log(
 		`\n${
 			colors.bold('Note:')
 		} Your Anthropic API key is stored in configuration. Ensure to keep your config files secure.`,
 	);
 	console.log(
-		`\nTo start using BBai, try running: ${colors.bold.green(`'${globalConfig.bbaiExeName} start'`)} or ${
-			colors.bold.green(`'${globalConfig.bbaiExeName} chat'`)
+		`\nTo start using BB, try running: ${colors.bold.green(`'${globalConfig.bbExeName} start'`)} or ${
+			colors.bold.green(`'${globalConfig.bbExeName} chat'`)
 		}`,
 	);
 }
@@ -161,12 +161,12 @@ function validateAnthropicApiKey(key: string): { isValid: boolean; message: stri
 
 export const init = new Command()
 	.name('init')
-	.description('Initialize BBai in the current directory')
+	.description('Initialize BB in the current directory')
 	.action(async () => {
 		const startDir = Deno.cwd();
 
 		try {
-			await createBbaiDir(startDir);
+			await createBbDir(startDir);
 
 			// Run the wizard
 			const wizardAnswers = await runWizard(startDir);
@@ -186,8 +186,8 @@ export const init = new Command()
 				);
 			}
 
-			// Create .bbai/ignore file
-			await createBbaiIgnore(startDir);
+			// Create .bb/ignore file
+			await createBbIgnore(startDir);
 
 			const certFileName = finalGlobalConfig.api.tlsCertFile || 'localhost.pem';
 			if (!await certificateFileExists(certFileName)) {
@@ -205,9 +205,9 @@ export const init = new Command()
 			//logger.debug('Printing project details...');
 			await printProjectDetails(wizardAnswers.project.name, wizardAnswers.project.type, wizardAnswers);
 
-			//logger.info('BBai initialization complete');
+			//logger.info('BB initialization complete');
 		} catch (error) {
-			logger.error(`Error during BBai initialization: ${error.message}`);
+			logger.error(`Error during BB initialization: ${error.message}`);
 			if (error instanceof Deno.errors.PermissionDenied) {
 				console.error('Error: Permission denied. Please check your file system permissions and try again.');
 			} else if (error instanceof Deno.errors.NotFound) {

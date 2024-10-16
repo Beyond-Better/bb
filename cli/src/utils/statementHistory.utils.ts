@@ -4,8 +4,8 @@ import { join } from '@std/path';
 const HISTORY_FILE = 'statement_history.json';
 const MAX_HISTORY_SIZE = 100;
 
-export async function getStatementHistory(bbaiDir: string): Promise<string[]> {
-	const historyPath = join(bbaiDir, HISTORY_FILE);
+export async function getStatementHistory(bbDir: string): Promise<string[]> {
+	const historyPath = join(bbDir, HISTORY_FILE);
 	await ensureFile(historyPath);
 
 	try {
@@ -16,11 +16,11 @@ export async function getStatementHistory(bbaiDir: string): Promise<string[]> {
 	}
 }
 
-export async function addToStatementHistory(bbaiDir: string, statement: string): Promise<void> {
-	const historyPath = join(bbaiDir, HISTORY_FILE);
+export async function addToStatementHistory(bbDir: string, statement: string): Promise<void> {
+	const historyPath = join(bbDir, HISTORY_FILE);
 	await ensureFile(historyPath);
 
-	let history = await getStatementHistory(bbaiDir);
+	let history = await getStatementHistory(bbDir);
 
 	// Remove duplicate if exists
 	history = history.filter((item) => item !== statement);

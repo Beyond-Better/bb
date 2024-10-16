@@ -3,7 +3,7 @@ import type LLMConversationInteraction from './interactions/conversationInteract
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolRunBbaiResponse, LLMToolRunResultContent, LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
+import type { LLMToolRunBbResponse, LLMToolRunResultContent, LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
 
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { LLMValidationErrorOptions } from '../errors/error.ts';
@@ -227,7 +227,7 @@ class LLMToolManager {
 			messageId: string;
 			toolResults: LLMToolRunResultContent;
 			toolResponse: LLMToolRunToolResponse;
-			bbaiResponse: LLMToolRunBbaiResponse;
+			bbResponse: LLMToolRunBbResponse;
 			isError: boolean;
 		}
 	> {
@@ -250,7 +250,7 @@ class LLMToolManager {
 			}
 
 			//logger.info(`llmToolManager: handleToolUse - Running Tool ${toolUse.toolName} with: `, toolUse);
-			const { toolResults, toolResponse, bbaiResponse, finalizeCallback } = await tool.runTool(
+			const { toolResults, toolResponse, bbResponse, finalizeCallback } = await tool.runTool(
 				interaction,
 				toolUse,
 				projectEditor,
@@ -270,7 +270,7 @@ class LLMToolManager {
 				messageId,
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 				isError: false,
 			};
 		} catch (error) {
@@ -282,7 +282,7 @@ class LLMToolManager {
 				messageId,
 				toolResults: [],
 				toolResponse: `Error with ${toolUse.toolName}: ${error.message}`,
-				bbaiResponse: 'BBai could not run the tool',
+				bbResponse: 'BB could not run the tool',
 				isError: true,
 			};
 		}

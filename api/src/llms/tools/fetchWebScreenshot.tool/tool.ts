@@ -63,9 +63,9 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 			return {
 				toolResults: toolResultContentPart,
 				toolResponse: `Successfully fetched screenshot from ${url}`,
-				// 				bbaiResponse:
+				// 				bbResponse:
 				// 					`I've captured a screenshot of ${url}. The image data is available as a base64-encoded string.`,
-				bbaiResponse: {
+				bbResponse: {
 					data: {
 						url,
 						//mediaType: 'image/png',
@@ -77,9 +77,9 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 			logger.error(`Failed to fetch web page screenshot: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
-			const bbaiResponse = `BBai failed to fetch web page screenshot. Error: ${error.message}`;
+			const bbResponse = `BB failed to fetch web page screenshot. Error: ${error.message}`;
 			const toolResponse = `Failed to fetch web page screenshot. Error: ${error.message}`;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		}
 	}
 }

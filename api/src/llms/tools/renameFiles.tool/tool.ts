@@ -172,7 +172,7 @@ export default class LLMToolRenameFiles extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (noFilesRenamed ? 'No files renamed\n' : '') + toolResponses.join('\n\n');
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					filesRenamed: renamedSuccess,
 					filesError: renamedError,
@@ -182,15 +182,15 @@ export default class LLMToolRenameFiles extends LLMTool {
 			return {
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 			};
 		} catch (error) {
 			logger.error(`Error renaming files: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
-			const bbaiResponse = `BBai failed to rename files. Error: ${error.message}`;
+			const bbResponse = `BB failed to rename files. Error: ${error.message}`;
 			const toolResponse = `Failed to rename files. Error: ${error.message}`;
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		}
 	}
 }

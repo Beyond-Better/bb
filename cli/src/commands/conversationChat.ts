@@ -7,7 +7,7 @@ import WebsocketManager from 'cli/websocketManager.ts';
 import type { ConversationContinue, ConversationId, ConversationResponse, ConversationStart } from 'shared/types.ts';
 import { isApiRunning } from '../utils/pid.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
-import { getBbaiDir, getProjectRoot } from 'shared/dataDir.ts';
+import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
@@ -25,7 +25,7 @@ export const conversationChat = new Command()
 	.action(async (options) => {
 		let apiStartedByUs = false;
 		const fullConfig = await ConfigManager.fullConfig(startDir);
-		const bbaiDir = await getBbaiDir(startDir);
+		const bbDir = await getBbDir(startDir);
 		const projectRoot = await getProjectRoot(startDir);
 
 		const apiHostname = fullConfig.api?.apiHostname || 'localhost';
@@ -246,7 +246,7 @@ export const conversationChat = new Command()
 
 					try {
 						//console.log(`Processing statement using conversationId: ${conversationId}`);
-						await processStatement(bbaiDir, websocketManager, terminalHandler, conversationId!, statement);
+						await processStatement(bbDir, websocketManager, terminalHandler, conversationId!, statement);
 					} catch (error) {
 						logger.error(`Error in chat: ${error.message}`);
 					}
@@ -281,13 +281,13 @@ function handleWebsocketReconnection() {
 }
 
 const processStatement = async (
-	bbaiDir: string,
+	bbDir: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,
 	conversationId: ConversationId,
 	statement: string,
 ): Promise<void> => {
-	await addToStatementHistory(bbaiDir, statement);
+	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
 	terminalHandler.startStatement('Claude is working...');
 	try {

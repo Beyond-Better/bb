@@ -4,7 +4,7 @@ import { exists } from '@std/fs';
 //import { encodeBase64 } from '@std/encoding';
 //import { crypto } from '@std/crypto/crypto';
 
-import { getBbaiDir, getGlobalConfigDir, writeToGlobalConfigDir } from 'shared/dataDir.ts';
+import { getBbDir, getGlobalConfigDir, writeToGlobalConfigDir } from 'shared/dataDir.ts';
 
 const globalDir = await getGlobalConfigDir();
 
@@ -30,9 +30,9 @@ const isCommandAvailable = async (command: string): Promise<boolean> => {
 export const certificateFileExists = async (certFileName: string = 'localhost.pem') => {
 	//console.debug(`${YELLOW}Checking for certificate file '${certFileName}'${NC}`);
 	const globalCertFile = join(globalDir, certFileName);
-	const bbaiCertFile = join(await getBbaiDir(Deno.cwd()), certFileName) || '';
-	//console.debug(`${YELLOW}Need to find either '${globalCertFile}' or '${bbaiCertFile}'${NC}`);
-	return (bbaiCertFile ? await exists(bbaiCertFile) : false) || await exists(globalCertFile);
+	const bbCertFile = join(await getBbDir(Deno.cwd()), certFileName) || '';
+	//console.debug(`${YELLOW}Need to find either '${globalCertFile}' or '${bbCertFile}'${NC}`);
+	return (bbCertFile ? await exists(bbCertFile) : false) || await exists(globalCertFile);
 };
 
 export const generateCertificate = async (
@@ -63,7 +63,7 @@ export const generateCertificate = async (
 				);
 			}
 			console.error(`${YELLOW}Install using choco:\n${NC}${GREEN}choco install mkcert${NC}`);
-			console.error(`${YELLOW}Then restart the Command Prompt and run 'bbai.exe init' again.${NC}`);
+			console.error(`${YELLOW}Then restart the Command Prompt and run 'bb.exe init' again.${NC}`);
 		} else {
 			if (!await isCommandAvailable('brew')) {
 				console.error(
@@ -346,7 +346,7 @@ async function createSelfSignedCert(
 import { createCA, createCert } from "mkcert";
 
 const ca = await createCA({
-  organization: "BBai",
+  organization: "Beyond Better",
   countryCode: "AU",
   state: "NSW",
   locality: "Sydney",

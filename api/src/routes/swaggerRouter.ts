@@ -6,10 +6,10 @@ import { ConfigManager } from 'shared/configManager.ts';
 const swaggerDefinition = {
 	openapi: '3.0.0',
 	info: {
-		title: 'BBai API',
+		title: 'BB API',
 		version: (await ConfigManager.globalConfig()).version,
 		description:
-			`BBai (pronounced b-b-aye) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BBai is here to help you "be better" at every step.`,
+			`BB (Beyond Better) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you "be better" at every step.`,
 	},
 };
 
@@ -30,7 +30,7 @@ const swaggerSpec = swaggerJsdoc(options);
  * /api-docs/openapi.json:
  *   get:
  *     summary: Get OpenAPI specification
- *     description: Returns the OpenAPI specification for the BBai API in JSON format
+ *     description: Returns the OpenAPI specification for the BB API in JSON format
  *     responses:
  *       200:
  *         description: Successful response with OpenAPI specification
@@ -45,7 +45,7 @@ const swaggerSpec = swaggerJsdoc(options);
  * /api-docs/swagger.json:
  *   get:
  *     summary: Get Swagger specification
- *     description: Returns the Swagger specification for the BBai API in JSON format
+ *     description: Returns the Swagger specification for the BB API in JSON format
  *     responses:
  *       200:
  *         description: Successful response with Swagger specification

@@ -21,9 +21,9 @@ export const getImageContent = (contentParts: LLMMessageContentParts): string =>
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { toolResult, bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { url } = bbaiResponse.data as { url: string };
+	const { toolResult, bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { url } = bbResponse.data as { url: string };
 		const filename = 'Screenshot.png';
 		const content = getImageContent(toolResult as LLMMessageContentParts);
 		//return `File=name=${filename};inline=1:${content}`;
@@ -31,7 +31,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		
 \u001b]1337;File=name=${filename};inline=1:${content}\u0007`;
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

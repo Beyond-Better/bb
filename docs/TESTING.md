@@ -1,7 +1,7 @@
-# BBai Testing Guidelines and Progress
+# BB Testing Guidelines and Progress
 
 ## Overview
-This document outlines the testing strategy, progress, and guidelines for the BBai project. It serves as a reference for current and future testing efforts, ensuring comprehensive coverage and consistent quality across the project.
+This document outlines the testing strategy, progress, and guidelines for the BB project. It serves as a reference for current and future testing efforts, ensuring comprehensive coverage and consistent quality across the project.
 
 ## Testing New Tools
 
@@ -150,4 +150,4 @@ deno task test
 This command is defined in the `deno.jsonc` file (which delegates to the `api/deno.jsonc` file) and includes the necessary permissions and test file locations.
 
 ## Conclusion
-Thorough testing is crucial for maintaining the reliability and functionality of the BBai project. By following these guidelines and continuously expanding our test coverage, we can ensure that the project remains robust and dependable as it grows and evolves. The recent updates to the tool directory structure and test file locations demonstrate our commitment to organized and comprehensive testing, laying the groundwork for consistent and reliable testing across all components of the system.
+Thorough testing is crucial for maintaining the reliability and functionality of the BB project. By following these guidelines and continuously expanding our test coverage, we can ensure that the project remains robust and dependable as it grows and evolves. The recent updates to the tool directory structure and test file locations demonstrate our commitment to organized and comprehensive testing, laying the groundwork for consistent and reliable testing across all components of the system.

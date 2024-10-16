@@ -19,9 +19,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as {
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as {
 			filesRenamed: Array<{ source: string; destination: string }>;
 			filesError: Array<{ source: string; destination: string }>;
 		};
@@ -29,7 +29,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			`${
 				data.filesRenamed.length > 0
 					? (
-						colors.bold('✅ BBai has renamed these files:\n') +
+						colors.bold('✅ BB has renamed these files:\n') +
 						data.filesRenamed.map((file) => colors.cyan(`- ${file.source} -> ${file.destination}`)).join(
 							'\n',
 						)
@@ -39,7 +39,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			`${
 				data.filesError.length > 0
 					? (
-						colors.bold('⚠️ BBai failed to renaqme these files:\n') +
+						colors.bold('⚠️ BB failed to renaqme these files:\n') +
 						data.filesError.map((file) => colors.cyan(`- ${file.source} -> ${file.destination}`)).join('\n')
 					)
 					: ''
@@ -47,7 +47,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n');
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
-		return bbaiResponse;
+		logger.error('Unexpected bbResponse format:', bbResponse);
+		return bbResponse;
 	}
 };

@@ -51,41 +51,41 @@ Deno.test({
 
 			const initialConversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
-			// console.log('Request existing files - bbaiResponse:', result.bbaiResponse);
+			// console.log('Request existing files - bbResponse:', result.bbResponse);
 			// console.log('Request existing files - toolResponse:', result.toolResponse);
 			// console.log('Request existing files - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assertEquals(typeof result.toolResponse, 'string');
 			assertEquals(typeof result.toolResults, 'object');
 
 			assert(
-				isRequestFilesResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRequestFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRequestFilesResponse(result.bbaiResponse)) {
+			if (isRequestFilesResponse(result.bbResponse)) {
 				assertEquals(
-					result.bbaiResponse.data.filesAdded.length,
+					result.bbResponse.data.filesAdded.length,
 					2,
 					'Should have 2 successful rename results',
 				);
 
 				assert(
-					result.bbaiResponse.data.filesAdded.some((f) => f === 'file1.txt'),
+					result.bbResponse.data.filesAdded.some((f) => f === 'file1.txt'),
 					'Should have a result for requested file1.txt',
 				);
 				assert(
-					result.bbaiResponse.data.filesAdded.some((f) => f === 'file2.txt'),
+					result.bbResponse.data.filesAdded.some((f) => f === 'file2.txt'),
 					'Should have a result for requested file2.txt',
 				);
 
-				assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no request file errors');
+				assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no request file errors');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
 			assertStringIncludes(result.toolResponse, 'Added files to the conversation:\n- file1.txt\n- file2.txt');
@@ -160,37 +160,37 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Request non-existent file - bbaiResponse:', result.bbaiResponse);
+			// console.log('Request non-existent file - bbResponse:', result.bbResponse);
 			// console.log('Request non-existent file - toolResponse:', result.toolResponse);
 			// console.log('Request non-existent file - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assertEquals(typeof result.toolResponse, 'string');
 			assertEquals(typeof result.toolResults, 'object');
 
 			assert(
-				isRequestFilesResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRequestFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRequestFilesResponse(result.bbaiResponse)) {
+			if (isRequestFilesResponse(result.bbResponse)) {
 				assertEquals(
-					result.bbaiResponse.data.filesError.length,
+					result.bbResponse.data.filesError.length,
 					1,
 					'Should have 1 successful rename results',
 				);
 
 				assert(
-					result.bbaiResponse.data.filesError.some((f) => f === 'non_existent.txt'),
+					result.bbResponse.data.filesError.some((f) => f === 'non_existent.txt'),
 					'Should have a result for nonExistentFile non_existent.txt',
 				);
 
-				assertEquals(result.bbaiResponse.data.filesAdded.length, 0, 'Should have no added files');
+				assertEquals(result.bbResponse.data.filesAdded.length, 0, 'Should have no added files');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
 			assertStringIncludes(result.toolResponse, 'No files added');
@@ -245,37 +245,37 @@ Deno.test({
 			};
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Request file outside project root - bbaiResponse:', result.bbaiResponse);
+			// console.log('Request file outside project root - bbResponse:', result.bbResponse);
 			// console.log('Request file outside project root - toolResponse:', result.toolResponse);
 			// console.log('Request file outside project root - toolResults:', result.toolResults);
 
 			assert(
-				result.bbaiResponse && typeof result.bbaiResponse === 'object',
-				'bbaiResponse should be an object',
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
 			);
 			assertEquals(typeof result.toolResponse, 'string');
 			assertEquals(typeof result.toolResults, 'object');
 
 			assert(
-				isRequestFilesResponse(result.bbaiResponse),
-				'bbaiResponse should have the correct structure for Tool',
+				isRequestFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
-			if (isRequestFilesResponse(result.bbaiResponse)) {
+			if (isRequestFilesResponse(result.bbResponse)) {
 				assertEquals(
-					result.bbaiResponse.data.filesError.length,
+					result.bbResponse.data.filesError.length,
 					1,
 					'Should have 1 successful rename results',
 				);
 
 				assert(
-					result.bbaiResponse.data.filesError.some((f) => f === '../outside_project.txt'),
+					result.bbResponse.data.filesError.some((f) => f === '../outside_project.txt'),
 					'Should have a result for nonExistentFile non_existent.txt',
 				);
 
-				assertEquals(result.bbaiResponse.data.filesAdded.length, 0, 'Should have no added files');
+				assertEquals(result.bbResponse.data.filesAdded.length, 0, 'Should have no added files');
 			} else {
-				assert(false, 'bbaiResponse does not have the expected structure for Tool');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
 			assertStringIncludes(result.toolResponse, '../outside_project.txt: Access denied');

@@ -24,9 +24,9 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const { code, command, stderrContainsError, stdout, stderr } = bbaiResponse.data as {
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { code, command, stderrContainsError, stdout, stderr } = bbResponse.data as {
 			code: number;
 			command: string;
 			stderrContainsError: boolean;
@@ -37,7 +37,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		return (
 			<div className='tool-result run-command'>
 				<p>
-					<strong>BBai ran command:</strong> <span style={{ color: '#DAA520' }}>{command}</span>
+					<strong>BB ran command:</strong> <span style={{ color: '#DAA520' }}>{command}</span>
 					{stderrContainsError ? ' (with potential issues in stderr)' : ''}
 					<br />
 					<strong>Exit Code:</strong> {code}
@@ -71,11 +71,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

@@ -3,6 +3,6 @@
 	"description": "Remove and Forget specified files from the chat when you no longer need them, to save on token cost and reduce the context you have to read",
 	"version": "1.0.0",
 	"category": "FileManipulation",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

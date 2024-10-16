@@ -2,7 +2,7 @@ import { join } from '@std/path';
 import { exists } from '@std/fs';
 import { parse as parseYaml } from '@std/yaml';
 import { stripIndents } from 'common-tags';
-import { getBbaiDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
+import { getBbDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
 import * as defaultPrompts from './defaultPrompts.ts';
 import { ConfigManager, type FullConfigSchema } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
@@ -27,8 +27,8 @@ class PromptManager {
 	}
 
 	async init(projectRoot: string): Promise<PromptManager> {
-		const bbaiDir = await getBbaiDir(projectRoot);
-		this.userPromptsDir = join(bbaiDir, 'prompts');
+		const bbDir = await getBbDir(projectRoot);
+		this.userPromptsDir = join(bbDir, 'prompts');
 		this.fullConfig = await ConfigManager.fullConfig(projectRoot);
 		return this;
 	}

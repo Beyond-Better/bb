@@ -27,14 +27,14 @@ jobs:
     - name: Build CLI for macOS (x86_64 and arm64)
       run: |
         cd cli
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bbai-x86_64 src/main.ts
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bbai-arm64 src/main.ts
+        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bb-x86_64 src/main.ts
+        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bb-arm64 src/main.ts
 
     - name: Build API for macOS (x86_64 and arm64)
       run: |
         cd api
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bbai-api-x86_64 src/main.ts
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bbai-api-arm64 src/main.ts
+        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bb-api-x86_64 src/main.ts
+        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bb-api-arm64 src/main.ts
 
     - name: Make build script executable
       run: chmod +x scripts/build_macos_package.sh

@@ -61,37 +61,37 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Rename single file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Rename single file - bbResponse:', result.bbResponse);
 				// console.log('Rename single file - toolResponse:', result.toolResponse);
 				// console.log('Rename single file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesRenamed.length,
+						result.bbResponse.data.filesRenamed.length,
 						1,
 						'Should have 1 successful rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesRenamed[0];
+					const renameResult1 = result.bbResponse.data.filesRenamed[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'source.txt', 'Result1 response should match source');
 					assertEquals(renameResult1.destination, 'renamed.txt', 'Result1 response should match destination');
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no rename errors');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no rename errors');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Renamed files');
@@ -154,29 +154,29 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Create missing directories - bbaiResponse:', result.bbaiResponse);
+				// console.log('Create missing directories - bbResponse:', result.bbResponse);
 				// console.log('Create missing directories - toolResponse:', result.toolResponse);
 				// console.log('Create missing directories - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesRenamed.length,
+						result.bbResponse.data.filesRenamed.length,
 						1,
 						'Should have 1 successful rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesRenamed[0];
+					const renameResult1 = result.bbResponse.data.filesRenamed[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'source.txt', 'Result1 response should match source');
@@ -186,9 +186,9 @@ Deno.test({
 						'Result1 response should match destination',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no rename errors');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no rename errors');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Renamed files');
@@ -239,29 +239,29 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Fail to create missing directories - bbaiResponse:', result.bbaiResponse);
+				console.log('Fail to create missing directories - bbResponse:', result.bbResponse);
 				console.log('Fail to create missing directories - toolResponse:', result.toolResponse);
 				console.log('Fail to create missing directories - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 error rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesError[0];
+					const renameResult1 = result.bbResponse.data.filesError[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'source.txt', 'Result1 response should match source');
@@ -276,9 +276,9 @@ Deno.test({
 						'Result1 response should have error',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
+					assertEquals(result.bbResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Failed to rename files');
@@ -334,30 +334,30 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Create missing directories - bbaiResponse:', result.bbaiResponse);
+				// console.log('Create missing directories - bbResponse:', result.bbResponse);
 				// console.log('Create missing directories - toolResponse:', result.toolResponse);
 				// console.log('Create missing directories - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesRenamed.length,
+						result.bbResponse.data.filesRenamed.length,
 						2,
 						'Should have 2 successful rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesRenamed[0];
-					const renameResult2 = result.bbaiResponse.data.filesRenamed[1];
+					const renameResult1 = result.bbResponse.data.filesRenamed[0];
+					const renameResult2 = result.bbResponse.data.filesRenamed[1];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'file1.txt', 'Result1 response should match source');
@@ -375,9 +375,9 @@ Deno.test({
 						'Result2 response should match destination',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no rename errors');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no rename errors');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Renamed files');
@@ -437,29 +437,29 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Overwrite existing file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Overwrite existing file - bbResponse:', result.bbResponse);
 				// console.log('Overwrite existing file - toolResponse:', result.toolResponse);
 				// console.log('Overwrite existing file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesRenamed.length,
+						result.bbResponse.data.filesRenamed.length,
 						1,
 						'Should have 1 successful rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesRenamed[0];
+					const renameResult1 = result.bbResponse.data.filesRenamed[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'source.txt', 'Result1 response should match source');
@@ -469,9 +469,9 @@ Deno.test({
 						'Result1 response should match destination',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesError.length, 0, 'Should have no rename errors');
+					assertEquals(result.bbResponse.data.filesError.length, 0, 'Should have no rename errors');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Renamed files');
@@ -528,29 +528,29 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Fail to overwrite without permission - bbaiResponse:', result.bbaiResponse);
+				// console.log('Fail to overwrite without permission - bbResponse:', result.bbResponse);
 				// console.log('Fail to overwrite without permission - toolResponse:', result.toolResponse);
 				// console.log('Fail to overwrite without permission - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 error rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesError[0];
+					const renameResult1 = result.bbResponse.data.filesError[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'source.txt', 'Result1 response should match source');
@@ -565,9 +565,9 @@ Deno.test({
 						'Result1 response should have error',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
+					assertEquals(result.bbResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
 				assertStringIncludes(result.toolResponse, 'Failed to rename files');
@@ -624,29 +624,29 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('Attempt to rename non-existent file - bbaiResponse:', result.bbaiResponse);
+				// console.log('Attempt to rename non-existent file - bbResponse:', result.bbResponse);
 				// console.log('Attempt to rename non-existent file - toolResponse:', result.toolResponse);
 				// console.log('Attempt to rename non-existent file - toolResults:', result.toolResults);
 
 				assert(
-					result.bbaiResponse && typeof result.bbaiResponse === 'object',
-					'bbaiResponse should be an object',
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
 				assertEquals(typeof result.toolResponse, 'string');
 				assertEquals(typeof result.toolResults, 'object');
 
 				assert(
-					isRenameFilesResponse(result.bbaiResponse),
-					'bbaiResponse should have the correct structure for Tool',
+					isRenameFilesResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
 				);
 
-				if (isRenameFilesResponse(result.bbaiResponse)) {
+				if (isRenameFilesResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbaiResponse.data.filesError.length,
+						result.bbResponse.data.filesError.length,
 						1,
 						'Should have 1 error rename results',
 					);
-					const renameResult1 = result.bbaiResponse.data.filesError[0];
+					const renameResult1 = result.bbResponse.data.filesError[0];
 
 					assert(renameResult1, 'Should have a result for renamed file');
 					assertEquals(renameResult1.source, 'non_existent.txt', 'Result1 response should match source');
@@ -661,9 +661,9 @@ Deno.test({
 						'Result1 response should have error',
 					);
 
-					assertEquals(result.bbaiResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
+					assertEquals(result.bbResponse.data.filesRenamed.length, 0, 'Should have no renamed files');
 				} else {
-					assert(false, 'bbaiResponse does not have the expected structure for Tool');
+					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 				assertStringIncludes(result.toolResponse, 'Failed to rename files');
 

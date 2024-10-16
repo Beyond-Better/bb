@@ -6,51 +6,51 @@ import { ConfigManager } from 'shared/configManager.ts';
 export async function getProjectRoot(startDir: string): Promise<string> {
 	let currentDir = resolve(startDir);
 	while (true) {
-		//console.log(`Looking for .bbai in: ${currentDir}`);
-		const bbaiDir = join(currentDir, '.bbai');
-		if (await exists(bbaiDir)) {
+		//console.log(`Looking for .bb in: ${currentDir}`);
+		const bbDir = join(currentDir, '.bb');
+		if (await exists(bbDir)) {
 			return currentDir;
 		}
 		const parentDir = resolve(currentDir, '..');
 		if (parentDir === currentDir) { // if current is same as parent, then must be at top, nowhere else to go.
-			break; // Reached root without finding .bbai
+			break; // Reached root without finding .bb
 		}
 		//console.log(`Moving up to parent: ${parentDir}`);
 		currentDir = parentDir;
 	}
-	throw new Error('No .bbai directory found in project hierarchy');
+	throw new Error('No .bb directory found in project hierarchy');
 }
 
-export async function getBbaiDir(startDir: string): Promise<string> {
+export async function getBbDir(startDir: string): Promise<string> {
 	const projectRoot = await getProjectRoot(startDir);
-	const bbaiDir = join(projectRoot, '.bbai');
-	await ensureDir(bbaiDir);
-	return bbaiDir;
+	const bbDir = join(projectRoot, '.bb');
+	await ensureDir(bbDir);
+	return bbDir;
 }
 export async function getGlobalConfigDir(): Promise<string> {
-	const globalConfigDir = Deno.build.os === 'windows' ? (join(Deno.env.get('APPDATA') || '', 'bbai')) : (
-		join(Deno.env.get('HOME') || '', '.config', 'bbai')
+	const globalConfigDir = Deno.build.os === 'windows' ? (join(Deno.env.get('APPDATA') || '', 'bb')) : (
+		join(Deno.env.get('HOME') || '', '.config', 'bb')
 	);
 	await ensureDir(globalConfigDir);
 	return globalConfigDir;
 }
 
-export async function getBbaiDataDir(startDir: string): Promise<string> {
-	const bbaiDir = await getBbaiDir(startDir);
-	const repoCacheDir = join(bbaiDir, 'data');
+export async function getBbDataDir(startDir: string): Promise<string> {
+	const bbDir = await getBbDir(startDir);
+	const repoCacheDir = join(bbDir, 'data');
 	await ensureDir(repoCacheDir);
 	return repoCacheDir;
 }
 
-export async function writeToBbaiDir(startDir: string, filename: string, content: string): Promise<void> {
-	const bbaiDir = await getBbaiDir(startDir);
-	const filePath = join(bbaiDir, filename);
+export async function writeToBbDir(startDir: string, filename: string, content: string): Promise<void> {
+	const bbDir = await getBbDir(startDir);
+	const filePath = join(bbDir, filename);
 	await Deno.writeTextFile(filePath, content);
 }
 
-export async function readFromBbaiDir(startDir: string, filename: string): Promise<string | null> {
-	const bbaiDir = await getBbaiDir(startDir);
-	const filePath = join(bbaiDir, filename);
+export async function readFromBbDir(startDir: string, filename: string): Promise<string | null> {
+	const bbDir = await getBbDir(startDir);
+	const filePath = join(bbDir, filename);
 	try {
 		return await Deno.readTextFile(filePath);
 	} catch (error) {
@@ -61,9 +61,9 @@ export async function readFromBbaiDir(startDir: string, filename: string): Promi
 	}
 }
 
-export async function removeFromBbaiDir(startDir: string, filename: string): Promise<void> {
-	const bbaiDir = await getBbaiDir(startDir);
-	const filePath = join(bbaiDir, filename);
+export async function removeFromBbDir(startDir: string, filename: string): Promise<void> {
+	const bbDir = await getBbDir(startDir);
+	const filePath = join(bbDir, filename);
 	try {
 		await Deno.remove(filePath);
 	} catch (error) {
@@ -74,14 +74,14 @@ export async function removeFromBbaiDir(startDir: string, filename: string): Pro
 }
 
 export async function writeToGlobalConfigDir(filename: string, content: string): Promise<void> {
-	const bbaiDir = await getGlobalConfigDir();
-	const filePath = join(bbaiDir, filename);
+	const bbDir = await getGlobalConfigDir();
+	const filePath = join(bbDir, filename);
 	await Deno.writeTextFile(filePath, content);
 }
 
 export async function readFromGlobalConfigDir(filename: string): Promise<string | null> {
-	const bbaiDir = await getGlobalConfigDir();
-	const filePath = join(bbaiDir, filename);
+	const bbDir = await getGlobalConfigDir();
+	const filePath = join(bbDir, filename);
 	try {
 		return await Deno.readTextFile(filePath);
 	} catch (error) {
@@ -93,8 +93,8 @@ export async function readFromGlobalConfigDir(filename: string): Promise<string 
 }
 
 export async function removeFromGlobalConfigDir(filename: string): Promise<void> {
-	const bbaiDir = await getGlobalConfigDir();
-	const filePath = join(bbaiDir, filename);
+	const bbDir = await getGlobalConfigDir();
+	const filePath = join(bbDir, filename);
 	try {
 		await Deno.remove(filePath);
 	} catch (error) {
@@ -104,14 +104,14 @@ export async function removeFromGlobalConfigDir(filename: string): Promise<void>
 	}
 }
 
-export async function writeToBbaiDataDir(startDir: string, filename: string, content: string): Promise<void> {
-	const dataDir = await getBbaiDataDir(startDir);
+export async function writeToBbDataDir(startDir: string, filename: string, content: string): Promise<void> {
+	const dataDir = await getBbDataDir(startDir);
 	const filePath = join(dataDir, filename);
 	await Deno.writeTextFile(filePath, content);
 }
 
-export async function readFromBbaiDataDir(startDir: string, filename: string): Promise<string | null> {
-	const dataDir = await getBbaiDataDir(startDir);
+export async function readFromBbDataDir(startDir: string, filename: string): Promise<string | null> {
+	const dataDir = await getBbDataDir(startDir);
 	const filePath = join(dataDir, filename);
 	try {
 		return await Deno.readTextFile(filePath);
@@ -123,8 +123,8 @@ export async function readFromBbaiDataDir(startDir: string, filename: string): P
 	}
 }
 
-export async function removeFromBbaiDataDir(startDir: string, filename: string): Promise<void> {
-	const dataDir = await getBbaiDataDir(startDir);
+export async function removeFromBbDataDir(startDir: string, filename: string): Promise<void> {
+	const dataDir = await getBbDataDir(startDir);
 	const filePath = join(dataDir, filename);
 	try {
 		await Deno.remove(filePath);

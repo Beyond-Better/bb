@@ -10,7 +10,7 @@ This is the output from running the tool. There are three data components:
 
 - `toolResults` - the data produced from the tool run, that is fed back to the LLM for further handling.
 - `toolResponse` [optional] - the textual response describing the results of the tool run
-- `bbaiResponse` - the textual response describing what BBai has done while running the tool. 
+- `bbaiResponse` - the textual response describing what BB has done while running the tool. 
 
 The `toolResults` are given back to the LLM for further handling, as well as passed to the `formatToolResult` method for display to the user in the current conversation. The `toolResults` need to be suitable for adding to conversation message (eg. `LLMToolRunResultContent`). 
 
@@ -25,7 +25,7 @@ The `bbaiResponse` is for providing the user with info/metadata about the tool r
 
 ## Conversation Logger vs LLM Message History
 
-The conversation logs are for displaying by BBai to the user. The LLM message history is the array of messages sent to the LLM with each conversation turn. There is a tight correlation between the two, but they are not the exact same thing. 
+The conversation logs are for displaying by BB to the user. The LLM message history is the array of messages sent to the LLM with each conversation turn. There is a tight correlation between the two, but they are not the exact same thing. 
 
 For example, the conversation history can have "side" conversations when asking for git commit message, or asking for conversation title, or when delegating tasks such as summarizing a conversation. The conversation logs contain "entries" which can come from multiple LLM interactions. 
 

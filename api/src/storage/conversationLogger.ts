@@ -6,13 +6,13 @@ import { renderToString } from 'preact-render-to-string';
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 import { ConversationId, ConversationMetrics, ConversationTokenUsage, TokenUsage } from 'shared/types.ts';
-import { getBbaiDataDir } from 'shared/dataDir.ts';
+import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 import type {
 	LLMToolFormatterDestination,
 	LLMToolInputSchema,
-	LLMToolRunBbaiResponse,
+	LLMToolRunBbResponse,
 	LLMToolRunResultContent,
 } from 'api/llms/llmTool.ts';
 
@@ -27,7 +27,7 @@ export type ConversationLogEntryType =
 
 export interface ConversationLogEntryContentToolResult {
 	toolResult: LLMToolRunResultContent;
-	bbaiResponse: LLMToolRunBbaiResponse;
+	bbResponse: LLMToolRunBbResponse;
 }
 
 export type ConversationLogEntryContent = string | LLMToolInputSchema | ConversationLogEntryContentToolResult;
@@ -43,7 +43,7 @@ const globalConfig = await ConfigManager.globalConfig();
 export default class ConversationLogger {
 	private logFileRaw!: string;
 	private logFileJson!: string;
-	private static readonly ENTRY_SEPARATOR = '<<<BBAI_LOG_ENTRY_SEPARATOR>>>';
+	private static readonly ENTRY_SEPARATOR = '<<<BB_LOG_ENTRY_SEPARATOR>>>';
 	private static readonly entryTypeLabels: Record<
 		ConversationLogEntryType,
 		string
@@ -85,8 +85,8 @@ export default class ConversationLogger {
 	}
 
 	static async getLogFileDirPath(startDir: string, conversationId: string): Promise<string> {
-		const bbaiDataDir = await getBbaiDataDir(startDir);
-		const conversationLogsDir = join(bbaiDataDir, 'conversations', conversationId);
+		const bbDataDir = await getBbDataDir(startDir);
+		const conversationLogsDir = join(bbDataDir, 'conversations', conversationId);
 		await ensureDir(conversationLogsDir);
 		return conversationLogsDir;
 	}
@@ -259,12 +259,12 @@ export default class ConversationLogger {
 		messageId: string,
 		toolName: string,
 		toolResult: LLMToolRunResultContent,
-		bbaiResponse: LLMToolRunBbaiResponse,
+		bbResponse: LLMToolRunBbResponse,
 	) {
 		try {
 			await this.logEntry(messageId, {
 				entryType: 'tool_result',
-				content: { toolResult, bbaiResponse },
+				content: { toolResult, bbResponse },
 				toolName,
 			});
 		} catch (error) {

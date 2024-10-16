@@ -1,4 +1,4 @@
-export interface BbAiState {
+export interface BbState {
 	//llmWorker: LLMWorkerService;
 	//services: {llmWorker: LLMWorkerService};
 }

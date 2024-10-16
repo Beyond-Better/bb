@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Fixed 'git not found' error when running init
-- Updated `bbai` strings to `bbai.exe` for Windows
+- Updated `bb` strings to `bb.exe` for Windows
 - Fixes for Windows compat
 - Added config option for API and BUI to listen with TLS
 - Updated CLI and BUI to initiate TLS connections if useTls is set
@@ -173,7 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Added wizard for `bbai init`; will re-use existing config values for defaults if present
+- Added wizard for `bb init`; will re-use existing config values for defaults if present
 - Changed git to be optional
 - Split config handling into global and project
 - Improved handling for API control (port number)
@@ -184,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - BUI is not a hosted site (can still be run manually from localhost)
-- Running `bbai start` will open browser page for hosted BUI, with apiPort pointing to localhost API
+- Running `bb start` will open browser page for hosted BUI, with apiPort pointing to localhost API
 
 
 ## [0.0.10b-alpha] - 2024-09-03
@@ -218,7 +218,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added mock stubs to bypass calls to LLM during unit tests
 - Added web page fetch tool
 - Added web screenshot fetch tool
-- Reworked tool results, tool response, bbai response for better conversation logging
+- Reworked tool results, tool response, bb response for better conversation logging
 - Refactored finalize callback for tool runs
 - Cleaned up dangling event listeners 
 

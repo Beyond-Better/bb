@@ -5,7 +5,7 @@ import { logger } from 'shared/logger.ts';
 
 export const apiRestart = new Command()
 	.name('restart')
-	.description('Restart the BBai API server')
+	.description('Restart the BB API server')
 	.option('--log-level <level:string>', 'Set the log level for the API server', { default: undefined })
 	.option('--log-file <file:string>', 'Specify a log file to write API output', { default: undefined })
 	.option('--hostname <string>', 'Specify the hostname for API to listen on', { default: undefined })
@@ -27,6 +27,6 @@ export const apiRestart = new Command()
 			await restartApiServer(startDir, apiHostname, apiPort, apiUseTls, apiLogLevel, apiLogFile);
 			logger.info('API restarted successfully.');
 		} catch (error) {
-			logger.error(`Error restarting BBai API server: ${error.message}`);
+			logger.error(`Error restarting BB API server: ${error.message}`);
 		}
 	});

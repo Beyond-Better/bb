@@ -115,9 +115,9 @@ export default class LLMToolRewriteFile extends LLMTool {
 
 			const toolResults = `File ${filePath} ${isNewFile ? 'created' : 'rewritten'} with new contents.`;
 			const toolResponse = isNewFile ? 'Created a new file' : 'Rewrote existing file';
-			const bbaiResponse = `BBai ${isNewFile ? 'created' : 'rewrote'} file ${filePath} with new contents.`;
+			const bbResponse = `BB ${isNewFile ? 'created' : 'rewrote'} file ${filePath} with new contents.`;
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			if (error.name === 'rewrite-file') {
 				throw error;

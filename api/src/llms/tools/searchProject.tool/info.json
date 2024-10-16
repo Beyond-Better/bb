@@ -2,6 +2,6 @@
 	"name": "search_project",
 	"description": "Searches the project for files matching content, name, date, or size criteria",
 	"version": "1.0.0",
-	"author": "BBai Team",
+	"author": "BB Team",
 	"license": "MIT"
 }

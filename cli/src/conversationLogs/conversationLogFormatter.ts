@@ -6,7 +6,7 @@ import { colors } from 'cliffy/ansi/mod.ts';
 //import { renderToString } from 'preact-render-to-string';
 
 import ConversationLogger from 'api/storage/conversationLogger.ts';
-//import { getBbaiDataDir } from 'shared/dataDir.ts';
+//import { getBbDataDir } from 'shared/dataDir.ts';
 import { ConversationId, ConversationLogEntryType, ConversationMetrics, TokenUsage } from 'shared/types.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 

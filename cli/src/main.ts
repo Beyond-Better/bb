@@ -16,9 +16,9 @@ const globalConfig = await ConfigManager.globalConfig();
 //logger.debug('CLI Config:', globalConfig.cli);
 
 const cli = new Command()
-	.name(globalConfig.bbaiExeName) // 'bbai' or 'bbai.exe'
+	.name(globalConfig.bbExeName) // 'bb' or 'bb.exe'
 	.version(globalConfig.version as string)
-	.description('CLI tool for BBai')
+	.description('CLI tool for BB')
 	.command('init', init)
 	//
 	// conversation commands

@@ -78,7 +78,7 @@ Deno.test({
 
 			assert(result.toolResults, 'Tool results should not be null');
 			assert(result.toolResponse, 'Tool response should not be null');
-			assert(result.bbaiResponse, 'BBai response should not be null');
+			assert(result.bbResponse, 'BB response should not be null');
 
 			const metrics = JSON.parse(result.toolResults as string);
 
@@ -95,7 +95,7 @@ Deno.test({
 				stripAnsiCode(result.toolResponse).includes('Conversation metrics calculated successfully'),
 				'Tool response should indicate successful calculation',
 			);
-			//assert(stripAnsiCode(result.bbaiResponse).includes('BBai has calculated the conversation metrics'), 'BBai response should indicate metrics calculation');
+			//assert(stripAnsiCode(result.bbResponse).includes('BB has calculated the conversation metrics'), 'BB response should indicate metrics calculation');
 		});
 	},
 	sanitizeResources: false,

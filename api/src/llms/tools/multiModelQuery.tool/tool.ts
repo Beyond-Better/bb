@@ -214,7 +214,7 @@ export default class LLMToolMultiModelQuery extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (querySuccess.length === 0 ? 'No models queried.\n' : '') + toolResponses.join('\n\n');
-			const bbaiResponse = {
+			const bbResponse = {
 				data: {
 					querySuccess,
 					queryError,
@@ -224,7 +224,7 @@ export default class LLMToolMultiModelQuery extends LLMTool {
 			return {
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 			};
 		} catch (error) {
 			logger.error(`Error querying models: ${error.message}`);

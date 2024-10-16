@@ -19,16 +19,16 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 };
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbaiResponse } = resultContent;
-	if (typeof bbaiResponse === 'object' && 'data' in bbaiResponse) {
-		const data = bbaiResponse.data as { filesAdded: string[]; filesError: string[] };
+	const { bbResponse } = resultContent;
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const data = bbResponse.data as { filesAdded: string[]; filesError: string[] };
 		return (
 			<div className='tool-result'>
 				{data.filesAdded.length > 0
 					? (
 						<div>
 							<p>
-								<strong>✅ BBai has added these files to the conversation:</strong>
+								<strong>✅ BB has added these files to the conversation:</strong>
 							</p>
 							<p>
 								<ul>{data.filesAdded.map((file) => <li>{file}</li>)}</ul>
@@ -40,7 +40,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>⚠️ BBai failed to add these files to the conversation:</strong>
+								<strong>⚠️ BB failed to add these files to the conversation:</strong>
 							</p>
 							<p>
 								<ul>{data.filesError.map((file) => <li>{file}</li>)}</ul>
@@ -51,11 +51,11 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbaiResponse format:', bbaiResponse);
+		logger.error('Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
-					<strong>{bbaiResponse}</strong>
+					<strong>{bbResponse}</strong>
 				</p>
 			</div>
 		);

@@ -7,11 +7,11 @@ import { oakCors } from 'cors';
 import { ConfigManager } from 'shared/configManager.ts';
 import router from './routes/routes.ts';
 import { logger } from 'shared/logger.ts';
-import type { BbAiState } from 'api/types.ts';
-import { readFromBbaiDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import type { BbState } from 'api/types.ts';
+import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from './utils/fileLogger.ts';
 
-// CWD is set by `bbai` in Deno.Command, or implicitly set by user if calling bbai-api directly
+// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 const startDir = Deno.cwd();
 const fullConfig = await ConfigManager.fullConfig(startDir);
 const redactedFullConfig = await ConfigManager.redactedFullConfig(startDir);
@@ -26,7 +26,7 @@ const args = parseArgs(Deno.args, {
 
 if (args.help) {
 	console.log(`
-Usage: ${fullConfig.bbaiApiExeName} [options]
+Usage: ${fullConfig.bbApiExeName} [options]
 
 Options:
   -h, --help                Show this help message
@@ -40,7 +40,7 @@ Options:
 }
 
 if (args.version) {
-	console.log(`BBai API version ${fullConfig.version}`);
+	console.log(`BB API version ${fullConfig.version}`);
 	Deno.exit(0);
 }
 
@@ -53,9 +53,9 @@ const customPort: number = args.port ? parseInt(args.port, 10) : apiPort as numb
 const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 	? (args['use-tls'] === 'true' ? true : false)
 	: !!apiUseTls;
-//console.debug(`BBai API starting at ${customHostname}:${customPort}`);
+//console.debug(`BB API starting at ${customHostname}:${customPort}`);
 
-const app = new Application<BbAiState>();
+const app = new Application<BbState>();
 
 app.use(oak_logger.logger);
 if (environment === 'local') {
@@ -63,8 +63,8 @@ if (environment === 'local') {
 }
 
 app.use(oakCors({
-	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?bbai\.tips$/],
-})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips
+	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?(bbai\.tips|beyondbetter\.dev)$/],
+})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips, beyondbetter.dev, and chat.beyondbetter.dev
 app.use(router.routes());
 app.use(router.allowedMethods());
 
@@ -84,10 +84,10 @@ if (import.meta.main) {
 	let listenOpts: ListenOptions = { hostname: customHostname, port: customPort };
 	if (customUseTls) {
 		const cert = fullConfig.api.tlsCertPem ||
-			await readFromBbaiDir(startDir, fullConfig.api.tlsCertFile || 'localhost.pem') ||
+			await readFromBbDir(startDir, fullConfig.api.tlsCertFile || 'localhost.pem') ||
 			await readFromGlobalConfigDir(fullConfig.api.tlsCertFile || 'localhost.pem') || '';
 		const key = fullConfig.api.tlsKeyPem ||
-			await readFromBbaiDir(startDir, fullConfig.api.tlsKeyFile || 'localhost-key.pem') ||
+			await readFromBbDir(startDir, fullConfig.api.tlsKeyFile || 'localhost-key.pem') ||
 			await readFromGlobalConfigDir(fullConfig.api.tlsKeyFile || 'localhost-key.pem') || '';
 
 		listenOpts = { ...listenOpts, secure: true, cert, key } as ListenOptionsTls;

@@ -75,9 +75,9 @@ export default class LLMToolConversationSummary extends LLMTool {
 
 			const toolResults = JSON.stringify(result, null, 2);
 			const toolResponse = `Conversation summarized and truncated successfully.`;
-			const bbaiResponse = `BBai has summarized the conversation and truncated it if requested.`;
+			const bbResponse = `BB has summarized the conversation and truncated it if requested.`;
 
-			return { toolResults, toolResponse, bbaiResponse };
+			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`Error summarizing and truncating conversation: ${error.message}`);
 

@@ -97,7 +97,7 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	const excludeFiles = [
 		join(projectRoot, 'tags.ignore'),
 		join(projectRoot, '.gitignore'),
-		join(projectRoot, '.bbai', 'tags.ignore'),
+		join(projectRoot, '.bb', 'tags.ignore'),
 	];
 
 	const excludeOptions = [];
@@ -108,13 +108,13 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	}
 
 	if (excludeOptions.length === 0) {
-		excludeOptions.push('--exclude=.bbai/*');
+		excludeOptions.push('--exclude=.bb/*');
 	}
 
 	return excludeOptions;
 }
 
-export async function generateCtags(bbaiDir: string, projectRoot: string): Promise<string | null> {
+export async function generateCtags(bbDir: string, projectRoot: string): Promise<string | null> {
 	const repoInfoConfig = (await ConfigManager.projectConfig(projectRoot)).repoInfo;
 
 	if (repoInfoConfig?.ctagsAutoGenerate === false) {
@@ -122,7 +122,7 @@ export async function generateCtags(bbaiDir: string, projectRoot: string): Promi
 		return null;
 	}
 
-	const ctagsFilePath = repoInfoConfig?.ctagsFilePath ? repoInfoConfig.ctagsFilePath : join(bbaiDir, 'tags');
+	const ctagsFilePath = repoInfoConfig?.ctagsFilePath ? repoInfoConfig.ctagsFilePath : join(bbDir, 'tags');
 	const tokenLimit = repoInfoConfig?.tokenLimit || 1024;
 	logger.info(`Ctags using tags file: ${ctagsFilePath}, token limit: ${tokenLimit}`);
 
@@ -138,12 +138,12 @@ export async function generateCtags(bbaiDir: string, projectRoot: string): Promi
 	return null;
 }
 
-export async function readCtagsFile(bbaiDir: string): Promise<string | null> {
-	const repoInfoConfig = (await ConfigManager.projectConfig(bbaiDir)).repoInfo;
+export async function readCtagsFile(bbDir: string): Promise<string | null> {
+	const repoInfoConfig = (await ConfigManager.projectConfig(bbDir)).repoInfo;
 
 	const ctagsFilePath = repoInfoConfig?.ctagsFilePath
-		? join(bbaiDir, repoInfoConfig.ctagsFilePath)
-		: join(bbaiDir, 'tags');
+		? join(bbDir, repoInfoConfig.ctagsFilePath)
+		: join(bbDir, 'tags');
 
 	if (await exists(ctagsFilePath)) {
 		try {
