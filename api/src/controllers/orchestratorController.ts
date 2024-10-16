@@ -725,28 +725,29 @@ class OrchestratorController {
 		let answer = '';
 		let assistantThinking = '';
 
-		if (
-			currentResponse.messageResponse.answerContent &&
-			Array.isArray(currentResponse.messageResponse.answerContent)
-		) {
-			for (const part of currentResponse.messageResponse.answerContent) {
-				if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-					const text = part.text;
-					const replyMatch = text.match(/<reply>(.*?)<\/reply>/s);
-					if (replyMatch) {
-						answer += replyMatch[1].trim() + '\n';
-					} else {
-						assistantThinking += text.trim() + '\n';
-					}
+		// if (
+		// 	currentResponse.messageResponse.answerContent &&
+		// 	Array.isArray(currentResponse.messageResponse.answerContent)
+		// ) {
+		for (const part of currentResponse.messageResponse.answerContent) {
+			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
+				const text = part.text;
+				const replyMatch = text.match(/<reply>(.*?)<\/reply>/s);
+				if (replyMatch) {
+					answer += replyMatch[1].trim() + '\n';
+				} else {
+					assistantThinking += text.trim() + '\n';
+					answer += text.trim() + '\n';
 				}
 			}
 		}
+		// }
 
 		answer = answer.trim();
 		assistantThinking = assistantThinking.trim();
 
-		logger.debug(`OrchestratorController: Extracted answer: ${answer}`);
-		logger.debug(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
+		logger.info(`OrchestratorController: Extracted answer: ${answer}`);
+		logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
 
 		const statementAnswer: ConversationResponse = {
 			logEntry: { entryType: 'answer', content: answer },

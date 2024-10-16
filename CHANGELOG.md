@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- always include LLM response in answer, regardless of 'thinking' text block
 
 
 ## [0.1.0] - 2024-10-16

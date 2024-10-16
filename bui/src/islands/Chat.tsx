@@ -405,9 +405,7 @@ export default function Chat() {
 				)
 				: logEntry.entryType === 'answer'
 				? 'Answer from Assistant'
-				: (
-					logEntry.entryType.charAt(0).toUpperCase() + logEntry.entryType.slice(1)
-				);
+				: logEntry.entryType.charAt(0).toUpperCase() + logEntry.entryType.slice(1);
 		};
 		const renderContent = (content: any) => {
 			if (typeof content === 'string') {
