@@ -10,7 +10,7 @@ This is the output from running the tool. There are three data components:
 
 - `toolResults` - the data produced from the tool run, that is fed back to the LLM for further handling.
 - `toolResponse` [optional] - the textual response describing the results of the tool run
-- `bbaiResponse` - the textual response describing what BB has done while running the tool. 
+- `bbResponse` - the textual response describing what BB has done while running the tool. 
 
 The `toolResults` are given back to the LLM for further handling, as well as passed to the `formatToolResult` method for display to the user in the current conversation. The `toolResults` need to be suitable for adding to conversation message (eg. `LLMToolRunResultContent`). 
 
@@ -20,7 +20,7 @@ The `toolResults` get passed to `addMessageForToolResult` which will handle conv
 
 The `toolResponse` is optional. It is for providing the LLM with info/metadata about the tool run, if the `toolResults` data needs further explanation. The `toolResponse` is included in the prompt/statement that is returned to the LLM as part of the tool_results messages. 
 
-The `bbaiResponse` is for providing the user with info/metadata about the tool run. It is added to the conversation via `conversationLogger`. 
+The `bbResponse` is for providing the user with info/metadata about the tool run. It is added to the conversation via `conversationLogger`. 
 
 
 ## Conversation Logger vs LLM Message History

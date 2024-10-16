@@ -1,12 +1,10 @@
 # Beyond Better (BB) - Your Intelligent Project Assistant
 
-*Formerly known as BBai*
+*Formerly known as [BBai](https://github.com/BBai-Tips/bbai)*
 
 ## Beyond Better At … Everything You Do With Text
 
 Beyond Better (BB) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you go beyond better at every step.
-
-_(The name Beyond Better, abbreviated as BB, is also a respectful nod to [BBEdit](https://www.barebones.com/products/bbedit/index.html), our beloved text editor by Bare Bones Software)_
 
 ## Table of Contents
 
