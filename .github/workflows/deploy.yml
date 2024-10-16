@@ -65,7 +65,7 @@ jobs:
         env:
           HOST: site.beyondbetter.dev
           USER: deploy
-          DEPLOY_PATH: "/var/www/chat.beyondbetter.dev/bb/bui/src"
+          DEPLOY_PATH: "/var/www/chat.beyondbetter.dev/bb"
           TEMP_DEPLOY_PATH: "/home/deploy/temp_deploy"
         run: |
           # Install rsync if not already installed
@@ -80,7 +80,7 @@ jobs:
           EOF
 
           # Deploy the built files to temporary directory
-          rsync -avz --delete bui/src/ $USER@$HOST:$TEMP_DEPLOY_PATH/
+          rsync -avz --delete ./ $USER@$HOST:$TEMP_DEPLOY_PATH/
 
           ssh $USER@$HOST << EOF
             # Create final directory for deployment
