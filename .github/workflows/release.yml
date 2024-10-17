@@ -267,20 +267,15 @@ jobs:
             cd bb-$target
             if [ "$target" = "x86_64-pc-windows-msvc" ]; then
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.sh"
+              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
             elif [[ "$target" == *"apple-darwin" ]]; then
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "bb-manager.bat" -x "bb-manager.sh"
-            else
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
-            else
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
-              chmod 755 install.sh bb bb-api
-              if [[ "$target" == *"apple-darwin" ]]; then
               tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="bb-manager.bat" --exclude="bb-manager.sh" .
             else
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
               tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="BB Manager.app" --exclude="bb-manager.bat" .
             fi
-            fi
+            chmod 755 install.sh bb bb-api
             cd ..
             gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
             if [ "$target" != "x86_64-pc-windows-msvc" ]; then
