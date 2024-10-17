@@ -101,14 +101,12 @@ jobs:
 
           # Copy BB Manager files to the build directory for inclusion in archives
           cp scripts/bb-manager.bat build/
-          cp scripts/bb_init_wrapper.bat build/
           
           # Create a temporary directory for the installer files
           mkdir installer_files
           cp build/bb.exe installer_files/
           cp build/bb-api.exe installer_files/
           cp build/bb-manager.bat installer_files/
-          cp build/bb_init_wrapper.bat installer_files/
           
           # Create a WiX source file
           @"
@@ -147,9 +145,6 @@ jobs:
               <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
                 <Component Id="bbmanager_bat" Guid="*">
                   <File Id="bbmanager_bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
-                </Component>
-                <Component Id="bbinit_wrapper_bat" Guid="*">
-                  <File Id="bbinit_wrapper_bat" Name="bb_init_wrapper.bat" Source="installer_files\bb_init_wrapper.bat" KeyPath="yes" />
                 </Component>
               </ComponentGroup>
               <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
