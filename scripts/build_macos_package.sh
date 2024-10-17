@@ -17,17 +17,21 @@ IDENTIFIER="tips.bb.bb"
 # Create build directory
 mkdir -p $BUILD_DIR/$PACKAGE_NAME/usr/local/bin
 
-# Create universal binaries
-lipo -create build/bb-x86_64 build/bb-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
-lipo -create build/bb-api-x86_64 build/bb-api-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+# Copy architecture-specific binaries
+cp build/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
+cp build/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
+cp build/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
+cp build/bb-api-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
 
 # Make binaries executable
-chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
 
-# Verify universal binaries
-echo "\nVerifying universal binaries:"
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+# Verify architecture-specific binaries
+echo "\nVerifying architecture-specific binaries:"
+file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
+file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
+file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
+file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
 
 # Create distribution.xml
 cat > $BUILD_DIR/distribution.xml << EOF
@@ -58,8 +62,23 @@ cat > $BUILD_DIR/distribution.xml << EOF
 </installer-script>
 EOF
 
+# Create post-installation script
+cat > $BUILD_DIR/$PACKAGE_NAME/postinstall << EOF
+#!/bin/bash
+arch=$(uname -m)
+if [ "\$arch" = "arm64" ]; then
+    ln -sf /usr/local/bin/bb-arm64 /usr/local/bin/bb
+    ln -sf /usr/local/bin/bb-api-arm64 /usr/local/bin/bb-api
+else
+    ln -sf /usr/local/bin/bb-x86_64 /usr/local/bin/bb
+    ln -sf /usr/local/bin/bb-api-x86_64 /usr/local/bin/bb-api
+fi
+EOF
+
+chmod +x $BUILD_DIR/$PACKAGE_NAME/postinstall
+
 # Build component package
-pkgbuild --root $BUILD_DIR/$PACKAGE_NAME --identifier $IDENTIFIER --version $VERSION --install-location / $BUILD_DIR/BB-component.pkg
+pkgbuild --root $BUILD_DIR/$PACKAGE_NAME --identifier $IDENTIFIER --version $VERSION --install-location / --scripts $BUILD_DIR/$PACKAGE_NAME $BUILD_DIR/BB-component.pkg
 
 # Build product package
 productbuild --distribution $BUILD_DIR/distribution.xml --package-path $BUILD_DIR $BUILD_DIR/$PACKAGE_NAME.pkg
