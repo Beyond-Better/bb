@@ -96,7 +96,8 @@ jobs:
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
           choco install wixtoolset -y
-          $env:PATH += ";C:\Program Files (x86)\WiX Toolset v3.11\bin"
+          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          $env:PATH += ";$wixPath"
           
           # Create a temporary directory for the installer files
           mkdir installer_files
@@ -112,15 +113,12 @@ jobs:
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
             <Product Id="*" Name="BB" Language="1033" Version="1.0.0.0" Manufacturer="Beyond-Better" UpgradeCode="12345678-1234-1234-1234-123456789012">
-              <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-              <!-- Removed BATCH_FILES_DIR property as it's no longer needed -->
-              <UIRef Id="WixUI_InstallDir" />
-              <UIRef Id="WixUI_ErrorProgressText" />
-
-              <!-- Removed CustomAction for BATCH_FILES_DIR as it's no longer needed -->
               <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
+              <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+              <UIRef Id="WixUI_InstallDir" />
+              <UIRef Id="WixUI_ErrorProgressText" />
               <Feature Id="ProductFeature" Title="BB" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
                 <ComponentGroupRef Id="BBManager" />
@@ -133,7 +131,6 @@ jobs:
                   <Directory Id="INSTALLFOLDER" Name="BB" />
                 </Directory>
                 <Directory Id="DesktopFolder" Name="Desktop" />
-                <!-- Removed BATCH_FILES_DIR as it's no longer needed -->
               </Directory>
             </Fragment>
             <Fragment>
@@ -161,8 +158,19 @@ jobs:
           "@ | Out-File -Encoding utf8 bb.wxs
           
           # Compile and link the installer
-          candle bb.wxs
-          light -ext WixUIExtension bb.wixobj
+          $candleOutput = & "$wixPath\candle.exe" bb.wxs 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Candle.exe failed with exit code $LASTEXITCODE"
+            Write-Error $candleOutput
+            exit 1
+          }
+          
+          $lightOutput = & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Light.exe failed with exit code $LASTEXITCODE"
+            Write-Error $lightOutput
+            exit 1
+          }
           
           # Move the created MSI to the build directory
           mv bb.msi build/bb-installer.msi
