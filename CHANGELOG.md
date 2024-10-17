@@ -9,9 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.1.5b] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
 ## [0.1.5a] - 2024-10-17
 
 ### Changed
+
+- version bump to test github workflow releases
 
 
 

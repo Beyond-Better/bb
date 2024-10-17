@@ -75,4 +75,18 @@ sudo mv "$temp_dir/bb" "$temp_dir/bb-api" /usr/local/bin/
 echo "${YELLOW}'bb' and 'bb-api' have been successfully installed to /usr/local/bin/${NC}"
 echo "${GREEN}You can now run '${BOLD}bb init${NC}${GREEN}' from a project directory, and then run '${BOLD}bb start${NC}${GREEN}' (or '${BOLD}bb chat${NC}${GREEN}').${NC}"
 
+# Install BB Manager
+echo "${YELLOW}Installing BB Manager...${NC}"
+if [ "$os" = "apple-darwin" ]; then
+    echo "${YELLOW}Copying BB Manager.app to /Applications...${NC}"
+    sudo cp -R "$temp_dir/BB Manager.app" /Applications/
+    echo "${GREEN}BB Manager.app has been installed to /Applications/${NC}"
+else
+    echo "${YELLOW}Copying bb-manager.sh to /usr/local/bin...${NC}"
+    sudo cp "$temp_dir/bb-manager.sh" /usr/local/bin/
+    sudo chmod +x /usr/local/bin/bb-manager.sh
+    echo "${GREEN}bb-manager.sh has been installed to /usr/local/bin/${NC}"
+fi
+
+
 
