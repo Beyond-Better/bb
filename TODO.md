@@ -137,6 +137,6 @@
 Thoughts...
 
 Pull thinking out of tool use 
-Pull <reply> out of answer and send as summary - rest of answer is 'assistant' log entry
+Pull <thinking> out of answer and send as summary - rest of answer is 'assistant' content
 
 

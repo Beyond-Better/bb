@@ -16,9 +16,7 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts"
 	},
 	"importMap": "../import_map.json",
-	"unstable": [
-		"kv"
-	],
+	"unstable": ["kv"],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -26,26 +24,15 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": [
-			"src/",
-			"tests/"
-		],
-		"exclude": [
-			"src/testdata/",
-			"src/fixtures/**/*.ts"
-		]
+		"include": ["src/", "tests/"],
+		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
 	},
 	"lint": {
 		"files": {
-			"include": [
-				"tests/pipelineProvider.js"
-			]
+			"include": ["tests/pipelineProvider.js"]
 		},
 		"rules": {
-			"exclude": [
-				"require-await",
-				"no-var"
-			]
+			"exclude": ["require-await", "no-var"]
 		}
 	}
 }

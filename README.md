@@ -79,6 +79,21 @@ Beyond Better (BB) excels in various scenarios:
 
 ## Getting Started
 
+### BB Manager
+
+BB Manager is a platform-specific tool designed to help you manage multiple BB projects efficiently:
+
+- **Windows**: `bb-manager.bat` - A batch script with a text-based menu interface.
+- **macOS**: `BB Manager.applescript` - An AppleScript application providing a native GUI.
+- **Linux**: `bb-manager.sh` - A shell script with a text-based menu interface.
+
+BB Manager allows you to:
+- List, add, and remove BB projects
+- Run BB commands (init, start, stop) for specific projects
+- Automatically set the correct working directory for each project
+
+To use BB Manager, run the appropriate file for your platform after installation.
+
 ### Prerequisites
 
 Before using Beyond Better (BB), ensure you have the following:
@@ -114,20 +129,25 @@ For detailed installation instructions, please refer to our [Installation Guide]
 
 After installation, you can start using Beyond Better as follows:
 
-1. Initialize Beyond Better in your project directory:
+1. Use BB Manager to add and manage your projects:
+   - Windows: Run `bb-manager.bat`
+   - macOS: Open `BB Manager.applescript`
+   - Linux: Run `bb-manager.sh`
+
+2. Use BB Manager to initialize a new project:
+   Select 'Run BB command' and choose 'init' for your project.
+
+3. Use BB Manager to start BB for a specific project:
+   Select 'Run BB command' and choose 'start' for your project.
+
+4. Alternatively, you can use BB directly from the command line:
    ```
-   bb init
-   ```
-2. Start the Beyond Better API and open the browser interface:
-   ```
-   bb start
-   ```
-3. Or, start the Beyond Better API and use the command-line interface:
-   ```
-   bb chat
+   bb init   # Initialize BB in the current directory
+   bb start  # Start the BB API and open the browser interface
+   bb chat   # Start the BB API and use the command-line interface
    ```
 
-On Windows, use `bb.exe` instead of `bb`.
+On Windows, use `bb.exe` instead of `bb` when using the command line directly.
 
 ## Documentation
 

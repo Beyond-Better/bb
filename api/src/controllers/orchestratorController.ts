@@ -732,12 +732,10 @@ class OrchestratorController {
 		for (const part of currentResponse.messageResponse.answerContent) {
 			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
 				const text = part.text;
-				const replyMatch = text.match(/<reply>(.*?)<\/reply>/s);
-				if (replyMatch) {
-					answer += replyMatch[1].trim() + '\n';
-				} else {
-					assistantThinking += text.trim() + '\n';
-					answer += text.trim() + '\n';
+				answer += text.trim() + '\n';
+				const thinkingMatch = text.match(/<thinking>(.*?)<\/thinking>/s);
+				if (thinkingMatch) {
+					assistantThinking += thinkingMatch[1].trim() + '\n';
 				}
 			}
 		}
@@ -750,7 +748,7 @@ class OrchestratorController {
 		logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
 
 		const statementAnswer: ConversationResponse = {
-			logEntry: { entryType: 'answer', content: answer },
+			logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },
 			conversationId: interaction.id,
 			conversationTitle: interaction.title,
 			timestamp: new Date().toISOString(),
