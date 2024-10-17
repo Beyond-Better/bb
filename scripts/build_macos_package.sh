@@ -15,23 +15,23 @@ BUILD_DIR="build/macos_package"
 IDENTIFIER="dev.beyondbetter.bb"
 
 # Create build directory
-mkdir -p $BUILD_DIR/$PACKAGE_NAME/usr/local/bin
+mkdir -p $BUILD_DIR/$PACKAGE_NAME/Applications/BB
 
 # Copy architecture-specific binaries
-cp build/bb-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
-cp build/bb-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
-cp build/bb-api-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
-cp build/bb-api-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
+cp build/bb-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-x86_64
+cp build/bb-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-arm64
+cp build/bb-api-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-x86_64
+cp build/bb-api-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-arm64
 
 # Make binaries executable
-chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
+chmod +x $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-arm64
 
 # Verify architecture-specific binaries
 echo "\nVerifying architecture-specific binaries:"
-file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
-file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
-file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
-file $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
+file $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-x86_64
+file $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-arm64
+file $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-x86_64
+file $BUILD_DIR/$PACKAGE_NAME/Applications/BB/bb-api-arm64
 
 # Create distribution.xml
 cat > $BUILD_DIR/distribution.xml << EOF
@@ -66,13 +66,16 @@ EOF
 cat > $BUILD_DIR/$PACKAGE_NAME/postinstall << EOF
 #!/bin/bash
 arch=$(uname -m)
+BIN_DIR="$HOME/.bb/bin"
+mkdir -p "$BIN_DIR"
 if [ "\$arch" = "arm64" ]; then
-    ln -sf /usr/local/bin/bb-arm64 /usr/local/bin/bb
-    ln -sf /usr/local/bin/bb-api-arm64 /usr/local/bin/bb-api
+    ln -sf /Applications/BB/bb-arm64 "$BIN_DIR/bb"
+    ln -sf /Applications/BB/bb-api-arm64 "$BIN_DIR/bb-api"
 else
-    ln -sf /usr/local/bin/bb-x86_64 /usr/local/bin/bb
-    ln -sf /usr/local/bin/bb-api-x86_64 /usr/local/bin/bb-api
+    ln -sf /Applications/BB/bb-x86_64 "$BIN_DIR/bb"
+    ln -sf /Applications/BB/bb-api-x86_64 "$BIN_DIR/bb-api"
 fi
+echo "Please add $BIN_DIR to your PATH to use BB."
 EOF
 
 chmod +x $BUILD_DIR/$PACKAGE_NAME/postinstall
