@@ -184,7 +184,7 @@ jobs:
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             cp scripts/bb-manager.bat build/
           else
-            cp scripts/BB\ Manager.app build/
+            cp -R scripts/BB\ Manager.app build/
             cp scripts/bb-manager.sh build/
           fi
 
