@@ -46,7 +46,10 @@ export class GitUtils {
 
 	static async initGit(repoPath: string): Promise<void> {
 		try {
-			const git: SimpleGit = await this.getGit(repoPath);
+			const git = await this.getGit(repoPath);
+			if (git === null) {
+				throw new Error('Git is not available');
+			}
 			await git.init();
 		} catch (error) {
 			throw new Error(`Failed to init git repo: ${error.message}`);
@@ -55,7 +58,10 @@ export class GitUtils {
 
 	static async stageAndCommit(repoPath: string, files: string[], commitMessage: string): Promise<string> {
 		try {
-			const git: SimpleGit = await this.getGit(repoPath);
+			const git = await this.getGit(repoPath);
+			if (git === null) {
+				throw new Error('Git is not available');
+			}
 			// Stage the specified files
 			await git.add(files);
 
@@ -70,7 +76,10 @@ export class GitUtils {
 
 	static async getCurrentCommit(repoPath: string): Promise<string | null> {
 		try {
-			const git: SimpleGit = await this.getGit(repoPath);
+			const git = await this.getGit(repoPath);
+			if (git === null) {
+				return null;
+			}
 			const result = await git.revparse(['HEAD']);
 			return result.trim();
 		} catch (error) {
@@ -80,7 +89,10 @@ export class GitUtils {
 
 	static async getLastCommitForFile(repoPath: string, filePath: string): Promise<string | null> {
 		try {
-			const git: SimpleGit = await this.getGit(repoPath);
+			const git = await this.getGit(repoPath);
+			if (git === null) {
+				return null;
+			}
 			const result = await git.log({ file: filePath, maxCount: 1 });
 			if (result.latest) {
 				return result.latest.hash;
