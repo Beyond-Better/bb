@@ -6,15 +6,20 @@ import { normalize, resolve } from '@std/path';
 export class GitUtils {
 	private static gitInstances: SimpleGit[] = [];
 
-	private static async getGit(path: string): Promise<SimpleGit> {
+	private static async getGit(path: string): Promise<SimpleGit | null> {
 		//logger.info(`Creating simpleGit in ${path}`);
-		const { installed } = await simpleGit().version();
-		if (!installed) {
-			throw new Error(`Exit: "git" not available.`);
+		try {
+			const { installed } = await simpleGit().version();
+			if (!installed) {
+				return null;
+			}
+			const git = simpleGit(path);
+			this.gitInstances.push(git);
+			return git;
+		} catch (error) {
+			// If an error occurs (e.g., git not found), return null
+			return null;
 		}
-		const git = simpleGit(path);
-		this.gitInstances.push(git);
-		return git;
 	}
 
 	static async cleanup(): Promise<void> {
