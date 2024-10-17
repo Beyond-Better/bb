@@ -119,7 +119,7 @@ if %project_count% equ 1 (
 set /p command="Enter BB command (init/start/stop): "
 
 if "%command%"=="init" (
-    cmd /c "cd /d "%selected_project%" && "%BB_EXE%" init && echo. && echo BB init completed. Press any key to close this window. && pause >nul"
+    start "BB Init" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" init && echo. && echo BB init completed. Press any key to close this window. && pause >nul && exit"
 ) else if "%command%"=="start" (
     start "" "%BB_EXE%" start
 ) else if "%command%"=="stop" (
