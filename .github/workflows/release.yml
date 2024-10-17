@@ -108,10 +108,6 @@ jobs:
           cp build/bb-api.exe installer_files/
           cp build/bb-manager.bat installer_files/
           
-          # List contents of installer_files directory
-          Write-Host "Contents of installer_files directory:"
-          Get-ChildItem installer_files
-          
           # Create a WiX source file
           @"
           <?xml version="1.0" encoding="UTF-8"?>
@@ -161,38 +157,21 @@ jobs:
           </Wix>
           "@ | Out-File -Encoding utf8 bb.wxs
           
-          # List contents of current directory
-          Write-Host "Contents of current directory:"
-          Get-ChildItem
-          
           # Compile and link the installer
-          Write-Host "Running candle.exe..."
-          $candleOutput = & "$wixPath\candle.exe" bb.wxs -v 2>&1
-          Write-Host "Candle.exe output:"
-          Write-Host $candleOutput
+          & "$wixPath\candle.exe" bb.wxs
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Candle.exe failed with exit code $LASTEXITCODE"
             exit 1
           }
           
-          Write-Host "Running light.exe..."
-          $lightOutput = & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj -v 2>&1
-          Write-Host "Light.exe output:"
-          Write-Host $lightOutput
+          & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Light.exe failed with exit code $LASTEXITCODE"
             exit 1
           }
           
-          # Check if bb.msi was created
-          if (Test-Path bb.msi) {
-            Write-Host "bb.msi was successfully created"
-            # Move the created MSI to the build directory
-            mv bb.msi build/bb-installer.msi
-          } else {
-            Write-Error "bb.msi was not created"
-            exit 1
-          }
+          # Move the created MSI to the build directory
+          mv bb.msi build/bb-installer.msi
 
       - name: Copy README and INSTALL
         shell: bash
@@ -275,7 +254,6 @@ jobs:
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
               tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="BB Manager.app" --exclude="bb-manager.bat" .
             fi
-            chmod 755 install.sh bb bb-api
             cd ..
             gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
             if [ "$target" != "x86_64-pc-windows-msvc" ]; then
