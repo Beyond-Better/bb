@@ -9,15 +9,18 @@ export class GitUtils {
 	private static async getGit(path: string): Promise<SimpleGit | null> {
 		//logger.info(`Creating simpleGit in ${path}`);
 		try {
-			const { installed } = await simpleGit().version();
-			if (!installed) {
-				return null;
-			}
 			const git = simpleGit(path);
+			// Test if git is available by running a simple command
+			await git.raw(['--version']);
 			this.gitInstances.push(git);
 			return git;
 		} catch (error) {
 			// If an error occurs (e.g., git not found), return null
+			if (error instanceof Error && error.message.includes('ENOENT')) {
+				//logger.warn('Git is not installed or not in the PATH');
+			} else {
+				//logger.error(`Unexpected error when initializing git: ${error.message}`);
+			}
 			return null;
 		}
 	}
