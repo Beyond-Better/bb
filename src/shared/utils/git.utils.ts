@@ -31,7 +31,10 @@ export class GitUtils {
 	static async findGitRoot(startPath: string = Deno.cwd()): Promise<string | null> {
 		//logger.info(`Checking for git repo in ${startPath}`);
 		try {
-			const git: SimpleGit = await this.getGit(startPath);
+			const git = await this.getGit(startPath);
+			if (git === null) {
+				return null; // Git not installed or not available
+			}
 			const result = await git.revparse(['--show-toplevel']);
 			const normalizedPath = normalize(result.trim());
 			const resolvedGitRoot = await Deno.realPath(resolve(normalizedPath));
