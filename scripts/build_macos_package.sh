@@ -12,16 +12,16 @@ fi
 VERSION=$(cat version.ts | grep VERSION | cut -d'"' -f2)
 PACKAGE_NAME="BB-$VERSION"
 BUILD_DIR="build/macos_package"
-IDENTIFIER="tips.bb.bb"
+IDENTIFIER="dev.beyondbetter.bb"
 
 # Create build directory
 mkdir -p $BUILD_DIR/$PACKAGE_NAME/usr/local/bin
 
 # Copy architecture-specific binaries
-cp build/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
-cp build/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
-cp build/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
-cp build/bb-api-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
+cp build/bb-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64
+cp build/bb-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64
+cp build/bb-api-x86_64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64
+cp build/bb-api-aarch64-apple-darwin $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
 
 # Make binaries executable
 chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-arm64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-x86_64 $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api-arm64
