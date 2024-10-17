@@ -57,12 +57,10 @@ class LLMToolManager {
 		for (const coreTool of CORE_TOOLS) {
 			const toolNamePath = join('tools', coreTool.toolNamePath);
 			coreTool.metadata.path = toolNamePath;
-			//logger.debug(`LLMToolManager: Metadata for CORE tool ${coreTool.toolNamePath}`, coreTool.metadata);
 			logger.debug(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
 			this.toolMetadata.set(coreTool.metadata.name, coreTool.metadata);
 		}
 
-		//logger.debug(`LLMToolManager: Processing tool directories:`, directories);
 		for (const directory of directories) {
 			logger.debug(`LLMToolManager: Checking ${directory} for tools`);
 			try {
@@ -77,22 +75,18 @@ class LLMToolManager {
 				}
 
 				for await (const entry of Deno.readDir(directory)) {
-					//logger.debug(`LLMToolManager: Reading ${directory} for tool info`, entry);
 					if (entry.isDirectory && entry.name.endsWith('.tool')) {
 						try {
 							const toolPath = join(directory, entry.name);
 							const metadataInfoPath = join(toolPath, 'info.json');
 							const metadata: ToolMetadata = JSON.parse(await Deno.readTextFile(metadataInfoPath));
 							metadata.path = toolPath;
-							//logger.debug(`LLMToolManager: Metadata for ${entry.name}`, metadata);
 
 							if (this.isToolInSet(metadata)) {
 								logger.debug(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
 								if (this.toolMetadata.has(metadata.name)) {
-									//logger.debug(`LLMToolManager: Tool ${metadata.name} has already been loaded`);
 									const existingMetadata = this.toolMetadata.get(metadata.name)!;
 									if (this.shouldReplaceExistingTool(existingMetadata, metadata)) {
-										//logger.debug(`LLMToolManager: Tool ${metadata.name} metadata is being saved [1]`);
 										this.toolMetadata.set(metadata.name, metadata);
 									} else {
 										logger.warn(
@@ -100,7 +94,6 @@ class LLMToolManager {
 										);
 									}
 								} else {
-									//logger.debug(`LLMToolManager: Tool ${metadata.name} metadata is being saved [2]`);
 									this.toolMetadata.set(metadata.name, metadata);
 								}
 							} else {
@@ -119,7 +112,6 @@ class LLMToolManager {
 				}
 			} catch (error) {
 				logger.error(`LLMToolManager: Error processing directory ${directory}: ${error.message}`);
-				//logger.debug(`LLMToolManager: ERROR - Loading tool metadata in directory ${directory}:`, error);
 			}
 		}
 	}
@@ -151,7 +143,6 @@ class LLMToolManager {
 	}
 
 	async getTool(name: string): Promise<LLMTool | undefined> {
-		//logger.debug(`LLMToolManager: Getting Tool ${name}`);
 		if (this.loadedTools.has(name)) {
 			logger.info(`LLMToolManager: Returning cached ${name} tool`);
 			return this.loadedTools.get(name);
@@ -168,15 +159,12 @@ class LLMToolManager {
 			return undefined;
 		}
 
-		// Proceed with loading the tool
-
 		try {
-			//logger.debug(`LLMToolManager: Is tool ${name} absolute ${metadata.path}`);
 			const toolPath = isAbsolute(metadata.path!)
 				? join(metadata.path!, 'tool.ts')
-				: `.${SEPARATOR}${metadata.path}${SEPARATOR}tool.ts`;
-			//logger.debug(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
-			const module = await import(toolPath);
+				: join('.', metadata.path!, 'tool.ts');
+			logger.debug(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
+			const module = await import(new URL(toolPath, import.meta.url).href);
 			const tool = await new module.default(
 				metadata.name,
 				metadata.description,
@@ -249,14 +237,12 @@ class LLMToolManager {
 				);
 			}
 
-			//logger.info(`llmToolManager: handleToolUse - Running Tool ${toolUse.toolName} with: `, toolUse);
 			const { toolResults, toolResponse, bbResponse, finalizeCallback } = await tool.runTool(
 				interaction,
 				toolUse,
 				projectEditor,
 			);
 
-			//logger.info(`llmToolManager: handleToolUse - Adding results for tool ${toolUse.toolName} with: `, toolResults);
 			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, toolResults, false) || '';
 
 			if (finalizeCallback) {
