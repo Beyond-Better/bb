@@ -170,25 +170,58 @@ bb-api.exe --help
 
 These commands should display the help information for BB and its API.
 
+## BB Manager
+
+After installation, you can use the BB Manager to easily manage multiple BB projects:
+
+### Windows
+Run `bb-manager.bat` from the installation directory or use the desktop shortcut.
+
+### macOS
+Open `BB Manager.applescript` from the installation directory.
+
+### Linux
+Run `bb-manager.sh` from the installation directory.
+
+BB Manager allows you to:
+- List, add, and remove BB projects
+- Run BB commands (init, start, stop) for specific projects
+- Automatically set the correct working directory for each project
+
 ## Usage
 
-After installation, you can start using BB in two main ways:
+After installation, you can start using BB in the following ways:
 
-1. Browser Interface:
+1. Using BB Manager (Recommended):
+   - Windows: Run `bb-manager.bat`
+   - macOS: Open `BB Manager.applescript`
+   - Linux: Run `bb-manager.sh`
+
+   Use the BB Manager to add projects, initialize them, and start/stop BB for specific projects.
+
+2. Browser Interface:
    To launch the API and open a browser window to start using BB, run:
    ```
    bb start
    ```
    This will start the BB API server and open your default web browser to the BB interface.
 
-2. Command Line Interface:
+3. Command Line Interface:
    To launch the API and start the CLI for BB, run:
    ```
    bb chat
    ```
    This will start the BB API server and initiate a chat session in your terminal.
 
-Both methods provide access to BB's features, allowing you to interact with your projects and leverage BB's capabilities.
+4. Direct Commands:
+   You can also use BB directly from the command line:
+   ```
+   bb init   # Initialize BB in the current directory
+   bb start  # Start the BB API and open the browser interface
+   bb stop   # Stop the BB API server
+   ```
+
+All these methods provide access to BB's features, allowing you to interact with your projects and leverage BB's capabilities. The BB Manager is particularly useful for managing multiple projects efficiently.
 
 ## Troubleshooting
 

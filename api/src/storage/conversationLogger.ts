@@ -35,6 +35,7 @@ export type ConversationLogEntryContent = string | LLMToolInputSchema | Conversa
 export interface ConversationLogEntry {
 	entryType: ConversationLogEntryType;
 	content: ConversationLogEntryContent;
+	thinking?: string;
 	toolName?: string;
 }
 

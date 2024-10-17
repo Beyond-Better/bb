@@ -63,25 +63,34 @@ jobs:
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
           echo '@echo off' > build/bb_init.bat
+          echo 'setlocal' >> build/bb_init.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_init.bat
           echo 'echo Initializing BB in the current directory...' >> build/bb_init.bat
-          echo 'bb init' >> build/bb_init.bat
+          echo '"%%SCRIPT_DIR%%bb.exe" init' >> build/bb_init.bat
           echo 'echo.' >> build/bb_init.bat
           echo 'echo Initialization complete. Press any key to exit.' >> build/bb_init.bat
           echo 'pause >nul' >> build/bb_init.bat
+          echo 'endlocal' >> build/bb_init.bat
 
           echo '@echo off' > build/bb_start.bat
+          echo 'setlocal' >> build/bb_start.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_start.bat
           echo 'echo Starting BB...' >> build/bb_start.bat
-          echo 'start "" bb start' >> build/bb_start.bat
+          echo 'start "" "%%SCRIPT_DIR%%bb.exe" start' >> build/bb_start.bat
           echo 'echo.' >> build/bb_start.bat
           echo 'echo BB has been started in your default web browser.' >> build/bb_start.bat
           echo 'echo You can close this window.' >> build/bb_start.bat
+          echo 'endlocal' >> build/bb_start.bat
 
           echo '@echo off' > build/bb_stop.bat
+          echo 'setlocal' >> build/bb_stop.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_stop.bat
           echo 'echo Stopping BB...' >> build/bb_stop.bat
-          echo 'start "" bb stop' >> build/bb_stop.bat
+          echo 'start "" "%%SCRIPT_DIR%%bb.exe" stop' >> build/bb_stop.bat
           echo 'echo.' >> build/bb_stop.bat
           echo 'echo BB has been stopped.' >> build/bb_stop.bat
           echo 'echo You can close this window.' >> build/bb_stop.bat
+          echo 'endlocal' >> build/bb_stop.bat
 
       - name: Create MSI installer (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
@@ -93,20 +102,31 @@ jobs:
           mkdir installer_files
           cp build/bb.exe installer_files/
           cp build/bb-api.exe installer_files/
-          cp build/bb_init.bat installer_files/
-          cp build/bb_start.bat installer_files/
-          cp build/bb_stop.bat installer_files/
+          cp scripts/bb-manager.bat installer_files/
+
+          # Copy BB Manager files to the build directory for inclusion in archives
+          cp scripts/BB\ Manager.app build/
+          cp scripts/bb-manager.bat build/
+          cp scripts/bb-manager.sh build/
           
           # Create a WiX source file
           @"
           <?xml version="1.0" encoding="UTF-8"?>
           <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
             <Product Id="*" Name="BB" Language="1033" Version="1.0.0.0" Manufacturer="Beyond-Better" UpgradeCode="12345678-1234-1234-1234-123456789012">
+              <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+              <!-- Removed BATCH_FILES_DIR property as it's no longer needed -->
+              <UIRef Id="WixUI_InstallDir" />
+              <UIRef Id="WixUI_ErrorProgressText" />
+
+              <!-- Removed CustomAction for BATCH_FILES_DIR as it's no longer needed -->
               <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
               <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
               <MediaTemplate EmbedCab="yes" />
               <Feature Id="ProductFeature" Title="BB" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
+                <ComponentGroupRef Id="BBManager" />
+                <ComponentGroupRef Id="DesktopShortcuts" />
               </Feature>
             </Product>
             <Fragment>
@@ -114,6 +134,8 @@ jobs:
                 <Directory Id="ProgramFilesFolder">
                   <Directory Id="INSTALLFOLDER" Name="BB" />
                 </Directory>
+                <Directory Id="DesktopFolder" Name="Desktop" />
+                <!-- Removed BATCH_FILES_DIR as it's no longer needed -->
               </Directory>
             </Fragment>
             <Fragment>
@@ -124,14 +146,16 @@ jobs:
                 <Component Id="bb_api.exe" Guid="*">
                   <File Id="bb_api.exe" Name="bb-api.exe" Source="installer_files\bb-api.exe" KeyPath="yes" />
                 </Component>
-                <Component Id="bb_init.bat" Guid="*">
-                  <File Id="bb_init.bat" Name="bb_init.bat" Source="installer_files\bb_init.bat" KeyPath="yes" />
+              </ComponentGroup>
+              <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
+                <Component Id="bb_manager.bat" Guid="*">
+                  <File Id="bb_manager.bat" Name="bb_manager.bat" Source="installer_files\bb_manager.bat" KeyPath="yes" />
                 </Component>
-                <Component Id="bb_start.bat" Guid="*">
-                  <File Id="bb_start.bat" Name="bb_start.bat" Source="installer_files\bb_start.bat" KeyPath="yes" />
-                </Component>
-                <Component Id="bb_stop.bat" Guid="*">
-                  <File Id="bb_stop.bat" Name="bb_stop.bat" Source="installer_files\bb_stop.bat" KeyPath="yes" />
+              </ComponentGroup>
+              <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+                <Component Id="BBManagerShortcut" Guid="*">
+                  <Shortcut Id="BBManagerShortcut" Name="BB Manager" Target="[INSTALLFOLDER]bb_manager.bat" WorkingDirectory="INSTALLFOLDER" />
+                  <RegistryValue Root="HKCU" Key="Software\Beyond-Better\BB" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
                 </Component>
               </ComponentGroup>
             </Fragment>
@@ -206,12 +230,20 @@ jobs:
             fi
             cd bb-$target
             if [ "$target" = "x86_64-pc-windows-msvc" ]; then
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.sh"
+            elif [[ "$target" == *"apple-darwin" ]]; then
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "bb-manager.bat" -x "bb-manager.sh"
+            else
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
               gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
             else
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
               chmod 755 install.sh bb bb-api
-              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz .
+              if [[ "$target" == *"apple-darwin" ]]; then
+              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="bb-manager.bat" --exclude="bb-manager.sh" .
+            else
+              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="BB Manager.app" --exclude="bb-manager.bat" .
+            fi
             fi
             cd ..
             gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"

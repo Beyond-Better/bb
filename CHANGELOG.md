@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.1.2] - 2024-10-17
+
+### Changed
+
+- Added BB Manager convenience scripts 
+- changed location of .bat files
+- Updated system prompt, conscious thinking
+
+
 ## [0.1.1] - 2024-10-16
 
 ### Changed

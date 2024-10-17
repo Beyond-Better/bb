@@ -168,6 +168,8 @@ export const init = new Command()
 		try {
 			await createBbDir(startDir);
 
+			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(startDir)}`);
+
 			// Run the wizard
 			const wizardAnswers = await runWizard(startDir);
 
