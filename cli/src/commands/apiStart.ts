@@ -63,7 +63,7 @@ export const apiStart = new Command()
 		if (!fullConfig.noBrowser) {
 			try {
 				const command = Deno.build.os === 'windows'
-					? new Deno.Command('cmd', { args: ['/c', 'start', `"${chatUrl}"`] })
+					? new Deno.Command('cmd', { args: ['/c', 'start', '""', chatUrl] })
 					: Deno.build.os === 'darwin'
 					? new Deno.Command('open', { args: [chatUrl] })
 					: new Deno.Command('xdg-open', { args: [chatUrl] });
