@@ -98,15 +98,15 @@ jobs:
           choco install wixtoolset -y
           $wixPath = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
           $env:PATH += ";$wixPath"
+
+          # Copy BB Manager files to the build directory for inclusion in archives
+          cp scripts/bb-manager.bat build/
           
           # Create a temporary directory for the installer files
           mkdir installer_files
           cp build/bb.exe installer_files/
           cp build/bb-api.exe installer_files/
-          cp scripts/bb-manager.bat installer_files/
-
-          # Copy BB Manager files to the build directory for inclusion in archives
-          cp scripts/bb-manager.bat build/
+          cp build/bb-manager.bat installer_files/
           
           # List contents of installer_files directory
           Write-Host "Contents of installer_files directory:"
@@ -147,13 +147,13 @@ jobs:
                 </Component>
               </ComponentGroup>
               <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
-                <Component Id="bb_manager.bat" Guid="*">
-                  <File Id="bb_manager.bat" Name="bb_manager.bat" Source="installer_files\bb_manager.bat" KeyPath="yes" />
+                <Component Id="bb-manager.bat" Guid="*">
+                  <File Id="bb-manager.bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
                 </Component>
               </ComponentGroup>
               <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
                 <Component Id="BBManagerShortcut" Guid="*">
-                  <Shortcut Id="BBManagerShortcut" Name="BB Manager" Target="[INSTALLFOLDER]bb_manager.bat" WorkingDirectory="INSTALLFOLDER" />
+                  <Shortcut Id="BBManagerShortcut" Name="BB Manager" Target="[INSTALLFOLDER]bb-manager.bat" WorkingDirectory="INSTALLFOLDER" />
                   <RegistryValue Root="HKCU" Key="Software\Beyond-Better\BB" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
                 </Component>
               </ComponentGroup>
