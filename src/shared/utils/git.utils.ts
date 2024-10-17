@@ -1,4 +1,5 @@
 import { SimpleGit, simpleGit } from 'simple-git';
+import { Command } from '@std/cli';
 import { normalize, resolve } from '@std/path';
 
 //import { logger } from './logger.utils.ts';
@@ -7,6 +8,20 @@ export class GitUtils {
 	private static gitInstances: SimpleGit[] = [];
 
 	private static async getGit(path: string): Promise<SimpleGit | null> {
+		// Check if git is available using Deno's Command API
+		try {
+			const gitCheck = new Command('git', '--version');
+			const gitCheckOutput = await gitCheck.output();
+			if (!gitCheckOutput.success) {
+				//logger.warn('Git is not installed or not in the PATH');
+				return null;
+			}
+		} catch (error) {
+			//logger.warn(`Error checking git: ${error.message}`);
+			return null;
+		}
+
+		// If we reach here, git is available, so we can proceed with simple-git
 		//logger.info(`Creating simpleGit in ${path}`);
 		try {
 			const git = simpleGit(path);
