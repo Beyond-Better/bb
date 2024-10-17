@@ -147,8 +147,8 @@ jobs:
                 </Component>
               </ComponentGroup>
               <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
-                <Component Id="bb-manager.bat" Guid="*">
-                  <File Id="bb-manager.bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
+                <Component Id="bbmanager_bat" Guid="*">
+                  <File Id="bbmanager_bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
                 </Component>
               </ComponentGroup>
               <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
