@@ -105,9 +105,7 @@ jobs:
           cp scripts/bb-manager.bat installer_files/
 
           # Copy BB Manager files to the build directory for inclusion in archives
-          cp scripts/BB\ Manager.app build/
           cp scripts/bb-manager.bat build/
-          cp scripts/bb-manager.sh build/
           
           # Create a WiX source file
           @"
@@ -177,6 +175,17 @@ jobs:
             cp INSTALL.md build/INSTALL.txt
           else
             cp README.md INSTALL.md build/
+          fi
+
+      - name: Copy BB Manager files
+        shell: bash
+        run: |
+          # Copy BB Manager files to the build directory for inclusion in archives
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp scripts/bb-manager.bat build/
+          else
+            cp scripts/BB\ Manager.app build/
+            cp scripts/bb-manager.sh build/
           fi
 
       - name: Upload artifacts
