@@ -13,12 +13,6 @@ if not exist "%PROJECTS_FILE%" (
 )
 if not exist "%LAST_PROJECT_FILE%" type nul > "%LAST_PROJECT_FILE%"
 
-if not exist "%BB_EXE%" (
-    echo Error: bb.exe not found in the script directory.
-    echo Please make sure bb.exe is in the same directory as this script.
-    pause
-    exit /b
-)
 
 :menu
 cls
