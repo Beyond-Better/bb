@@ -15,6 +15,7 @@ on:
 jobs:
   build-macos-package:
     runs-on: macos-latest
+    # We don't need a matrix strategy anymore as we're building both architectures in one job
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -24,20 +25,10 @@ jobs:
       with:
         deno-version: v1.x
 
-    - name: Build CLI for macOS (x86_64 and arm64)
+    - name: Build macOS binaries
       run: |
-        cd cli
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bb-x86_64 src/main.ts
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bb-arm64 src/main.ts
-
-    - name: Build API for macOS (x86_64 and arm64)
-      run: |
-        cd api
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target x86_64-apple-darwin --output ../build/bb-api-x86_64 src/main.ts
-        deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target aarch64-apple-darwin --output ../build/bb-api-arm64 src/main.ts
-
-    - name: Make build script executable
-      run: chmod +x scripts/build_macos_package.sh
+        chmod +x scripts/build_macos_binaries.sh
+        ./scripts/build_macos_binaries.sh
 
     - name: Build macOS package
       run: |

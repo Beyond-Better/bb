@@ -12,25 +12,73 @@ fi
 VERSION=$(cat version.ts | grep VERSION | cut -d'"' -f2)
 PACKAGE_NAME="BB-$VERSION"
 BUILD_DIR="build/macos_package"
-IDENTIFIER="tips.bb.bb"
+IDENTIFIER="dev.beyondbetter.bb"
+APP_NAME="BB.app"
 
 # Create build directory
-mkdir -p $BUILD_DIR/$PACKAGE_NAME/usr/local/bin
+mkdir -p "$BUILD_DIR/$APP_NAME/Contents/MacOS"
+mkdir -p "$BUILD_DIR/$APP_NAME/Contents/Resources"
 
-# Create universal binaries
-lipo -create build/bb-x86_64 build/bb-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
-lipo -create build/bb-api-x86_64 build/bb-api-arm64 -output $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+# Copy binaries
+cp build/bb-x86_64-apple-darwin "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-x86_64"
+cp build/bb-aarch64-apple-darwin "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-arm64"
+cp build/bb-api-x86_64-apple-darwin "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-api-x86_64"
+cp build/bb-api-aarch64-apple-darwin "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-api-arm64"
 
 # Make binaries executable
-chmod +x $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+chmod +x "$BUILD_DIR/$APP_NAME/Contents/MacOS/"*
 
-# Verify universal binaries
-echo "\nVerifying universal binaries:"
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb
-lipo -info $BUILD_DIR/$PACKAGE_NAME/usr/local/bin/bb-api
+# Create Info.plist
+cat > "$BUILD_DIR/$APP_NAME/Contents/Info.plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>bb-launcher</string>
+    <key>CFBundleIconFile</key>
+    <string>bb-icon</string>
+    <key>CFBundleIdentifier</key>
+    <string>$IDENTIFIER</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>BB</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$VERSION</string>
+    <key>CFBundleVersion</key>
+    <string>$VERSION</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+</dict>
+</plist>
+EOF
+
+# Create launcher script
+cat > "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-launcher" << EOF
+#!/bin/bash
+DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
+arch=\$(uname -m)
+if [ "\$arch" = "arm64" ]; then
+    BB_BIN="\$DIR/bb-arm64"
+    BB_API_BIN="\$DIR/bb-api-arm64"
+else
+    BB_BIN="\$DIR/bb-x86_64"
+    BB_API_BIN="\$DIR/bb-api-x86_64"
+fi
+export PATH="\$DIR:\$PATH"
+"\$BB_BIN" "\$@"
+EOF
+
+chmod +x "$BUILD_DIR/$APP_NAME/Contents/MacOS/bb-launcher"
+
+# Create component package
+pkgbuild --root "$BUILD_DIR" --identifier "$IDENTIFIER" --version "$VERSION" --install-location "/Applications" "$BUILD_DIR/$PACKAGE_NAME-component.pkg"
 
 # Create distribution.xml
-cat > $BUILD_DIR/distribution.xml << EOF
+cat > "$BUILD_DIR/distribution.xml" << EOF
 <?xml version="1.0" encoding="utf-8"?>
 <installer-script minSpecVersion="1.000000">
     <title>BB Installer</title>
@@ -49,36 +97,19 @@ cat > $BUILD_DIR/distribution.xml << EOF
         }
     </script>
     <choices-outline>
-        <line choice="BB"/>
+        <line choice="default"/>
     </choices-outline>
-    <choice id="BB" title="BB">
+    <choice id="default" title="BB">
         <pkg-ref id="$IDENTIFIER"/>
     </choice>
-    <pkg-ref id="$IDENTIFIER" version="$VERSION" onConclusion="none">BB-component.pkg</pkg-ref>
+    <pkg-ref id="$IDENTIFIER" version="$VERSION" onConclusion="none">$PACKAGE_NAME-component.pkg</pkg-ref>
 </installer-script>
 EOF
 
-# Build component package
-pkgbuild --root $BUILD_DIR/$PACKAGE_NAME --identifier $IDENTIFIER --version $VERSION --install-location / $BUILD_DIR/BB-component.pkg
-
 # Build product package
-productbuild --distribution $BUILD_DIR/distribution.xml --package-path $BUILD_DIR $BUILD_DIR/$PACKAGE_NAME.pkg
-
-# Sign package (commented out as developer account is not current)
-# productsign --sign "Developer ID Installer: Your Name (XXXXXXXXXX)" $BUILD_DIR/$PACKAGE_NAME.pkg $BUILD_DIR/$PACKAGE_NAME-signed.pkg
+productbuild --distribution "$BUILD_DIR/distribution.xml" --package-path "$BUILD_DIR" "$BUILD_DIR/$PACKAGE_NAME.pkg"
 
 echo "Package created: $BUILD_DIR/$PACKAGE_NAME.pkg"
 
-# Display package contents for verification
-echo "Package contents:"
-pkgutil --expand $BUILD_DIR/$PACKAGE_NAME.pkg $BUILD_DIR/expanded_pkg
-find $BUILD_DIR/expanded_pkg -type f
-
-# Clean up expanded package
-rm -rf $BUILD_DIR/expanded_pkg
-
 # Clean up intermediate files
-rm -rf $BUILD_DIR/$PACKAGE_NAME $BUILD_DIR/distribution.xml $BUILD_DIR/BB-component.pkg
-
-# Optionally, move the package to a specific directory
-# mv $BUILD_DIR/$PACKAGE_NAME.pkg /path/to/destination/
+rm -rf "$BUILD_DIR/$APP_NAME" "$BUILD_DIR/distribution.xml" "$BUILD_DIR/$PACKAGE_NAME-component.pkg"

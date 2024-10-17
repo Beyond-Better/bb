@@ -62,11 +62,16 @@ export const apiStart = new Command()
 
 		if (!fullConfig.noBrowser) {
 			try {
-				const command = Deno.build.os === 'windows'
-					? new Deno.Command('cmd', { args: ['/c', 'start', `"${chatUrl}"`] })
-					: Deno.build.os === 'darwin'
-					? new Deno.Command('open', { args: [chatUrl] })
-					: new Deno.Command('xdg-open', { args: [chatUrl] });
+				let command;
+				if (Deno.build.os === 'windows') {
+					// Escape & with ^ for Windows command prompt
+					const escapedUrl = chatUrl.replace(/&/g, '^&');
+					command = new Deno.Command('cmd', { args: ['/c', 'start', escapedUrl] });
+				} else if (Deno.build.os === 'darwin') {
+					command = new Deno.Command('open', { args: [chatUrl] });
+				} else {
+					command = new Deno.Command('xdg-open', { args: [chatUrl] });
+				}
 				await command.output();
 			} catch (error) {
 				console.error('Failed to open the browser automatically. Please open the URL manually.', error);

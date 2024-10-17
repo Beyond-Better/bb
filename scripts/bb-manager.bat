@@ -116,16 +116,20 @@ if %project_count% equ 1 (
 )
 
 :project_selected
-set /p command="Enter BB command (init/start/stop): "
+echo Select a BB command:
+echo 1. Initialize a BB project
+echo 2. Start BB API server
+echo 3. Stop BB API server
+set /p command="Enter your choice (1-3): "
 
-if "%command%"=="init" (
-    start "BB Init" cmd /c ""bb_init_wrapper.bat" "%selected_project%" "%BB_EXE%""
-) else if "%command%"=="start" (
+if "%command%"=="1" (
+    start "BB Init" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" init && echo. && echo BB init completed. Press any key to close this window. && pause >nul"
+) else if "%command%"=="2" (
     start "" "%BB_EXE%" start
-) else if "%command%"=="stop" (
+) else if "%command%"=="3" (
     "%BB_EXE%" stop
 ) else (
-    echo Invalid command. Please use init, start, or stop.
+    echo Invalid choice. Please enter 1, 2, or 3.
     pause
     goto menu
 )
