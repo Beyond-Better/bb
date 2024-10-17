@@ -99,8 +99,22 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 }
 
 async function detectProjectType(startDir: string): Promise<ProjectType> {
-	const gitRoot = await GitUtils.findGitRoot(startDir);
-	return gitRoot ? 'git' : 'local';
+	try {
+		const gitCheck = new Deno.Command('git', {
+			args: ['--version'],
+		});
+		const { code } = await gitCheck.output();
+		if (code === 0) {
+			return 'git';
+		} else {
+			return 'local';
+		}
+	} catch (_) {
+		return 'local';
+	}
+	// findGitRoot calls getGit which throws if git isn't installed, so just do the above manual check instead.
+	// const gitRoot = await GitUtils.findGitRoot(startDir);
+	// return gitRoot ? 'git' : 'local';
 }
 
 async function printProjectDetails(projectName: string, projectType: string, wizardAnswers: WizardAnswers) {

@@ -12,7 +12,7 @@
 		"highlight": "npm:highlight.js@11.10.0",
 		"swagger-jsdoc": "npm:swagger-jsdoc@6.2.8",
 		"common-tags": "https://esm.sh/common-tags@1.8.2",
-		"simple-git": "https://esm.sh/simple-git@3.25.0",
+		"simple-git": "https://esm.sh/simple-git@3.27.0",
 		"md5": "https://esm.sh/md5@2.3.0",
 		"astral": "jsr:@astral/astral@^0.4.7",
 		"json-schema": "https://esm.sh/v135/@types/json-schema@7.0.15/index.d.ts",

@@ -117,7 +117,7 @@ if %project_count% equ 1 (
 
 :project_selected
 echo Select a BB command:
-echo 1. Initialize BB API server
+echo 1. Initialize a BB project
 echo 2. Start BB API server
 echo 3. Stop BB API server
 set /p command="Enter your choice (1-3): "

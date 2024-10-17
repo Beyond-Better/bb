@@ -66,7 +66,7 @@ export const apiStart = new Command()
 				if (Deno.build.os === 'windows') {
 					// Escape & with ^ for Windows command prompt
 					const escapedUrl = chatUrl.replace(/&/g, '^&');
-					command = new Deno.Command('cmd', { args: ['/c', 'start', '""', escapedUrl] });
+					command = new Deno.Command('cmd', { args: ['/c', 'start', escapedUrl] });
 				} else if (Deno.build.os === 'darwin') {
 					command = new Deno.Command('open', { args: [chatUrl] });
 				} else {

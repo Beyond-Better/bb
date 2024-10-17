@@ -1,5 +1,4 @@
 import { SimpleGit, simpleGit } from 'simple-git';
-import { Command } from '@std/cli';
 import { normalize, resolve } from '@std/path';
 
 //import { logger } from './logger.utils.ts';
@@ -8,25 +7,36 @@ export class GitUtils {
 	private static gitInstances: SimpleGit[] = [];
 
 	private static async getGit(path: string): Promise<SimpleGit | null> {
-		// Check if git is available using Deno's Command API
-		try {
-			const gitCheck = new Command('git', '--version');
-			const gitCheckOutput = await gitCheck.output();
-			if (!gitCheckOutput.success) {
-				//logger.warn('Git is not installed or not in the PATH');
-				return null;
-			}
-		} catch (error) {
-			//logger.warn(`Error checking git: ${error.message}`);
-			return null;
-		}
+		// CNG - I'm moving this check to CLI init.ts, if project type is 'git' then we can assume git is installed
+		// // Check if git is available using Deno's Command API
+		// // [TODO] This is a real hack - using `const {installed} = await simpleGit().version();`
+		// // should give us an answer without `error: Uncaught Error: spawnSync git ENOENT`
+		// // https://github.com/steveukx/git-js/blob/main/examples/git-version.md
+		// // but we'll do this ugly hack instead
+		// try {
+		// 	const gitCheck = new Deno.Command('git', {
+		// 		args: ['--version'],
+		// 		stdout: 'piped',
+		// 		stderr: 'piped',
+		// 	});
+		// 	const { code, stdout, stderr } = await gitCheck.output();
+		// 	if (code !== 0) {
+		// 		//logger.warn('Git is not installed or not in the PATH');
+		// 		return null;
+		// 	}
+		// } catch (error) {
+		// 	//logger.warn(`Error checking git: ${error.message}`);
+		// 	return null;
+		// }
 
 		// If we reach here, git is available, so we can proceed with simple-git
 		//logger.info(`Creating simpleGit in ${path}`);
 		try {
+			const { installed } = await simpleGit().version();
+			if (!installed) {
+				throw new Error(`Exit: "git" not available.`);
+			}
 			const git = simpleGit(path);
-			// Test if git is available by running a simple command
-			await git.raw(['--version']);
 			this.gitInstances.push(git);
 			return git;
 		} catch (error) {
@@ -46,6 +56,7 @@ export class GitUtils {
 		}
 		this.gitInstances = [];
 	}
+
 	static async findGitRoot(startPath: string = Deno.cwd()): Promise<string | null> {
 		//logger.info(`Checking for git repo in ${startPath}`);
 		try {
