@@ -108,6 +108,10 @@ jobs:
           # Copy BB Manager files to the build directory for inclusion in archives
           cp scripts/bb-manager.bat build/
           
+          # List contents of installer_files directory
+          Write-Host "Contents of installer_files directory:"
+          Get-ChildItem installer_files
+          
           # Create a WiX source file
           @"
           <?xml version="1.0" encoding="UTF-8"?>
@@ -157,23 +161,38 @@ jobs:
           </Wix>
           "@ | Out-File -Encoding utf8 bb.wxs
           
+          # List contents of current directory
+          Write-Host "Contents of current directory:"
+          Get-ChildItem
+          
           # Compile and link the installer
-          $candleOutput = & "$wixPath\candle.exe" bb.wxs 2>&1
+          Write-Host "Running candle.exe..."
+          $candleOutput = & "$wixPath\candle.exe" bb.wxs -v 2>&1
+          Write-Host "Candle.exe output:"
+          Write-Host $candleOutput
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Candle.exe failed with exit code $LASTEXITCODE"
-            Write-Error $candleOutput
             exit 1
           }
           
-          $lightOutput = & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj 2>&1
+          Write-Host "Running light.exe..."
+          $lightOutput = & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj -v 2>&1
+          Write-Host "Light.exe output:"
+          Write-Host $lightOutput
           if ($LASTEXITCODE -ne 0) {
             Write-Error "Light.exe failed with exit code $LASTEXITCODE"
-            Write-Error $lightOutput
             exit 1
           }
           
-          # Move the created MSI to the build directory
-          mv bb.msi build/bb-installer.msi
+          # Check if bb.msi was created
+          if (Test-Path bb.msi) {
+            Write-Host "bb.msi was successfully created"
+            # Move the created MSI to the build directory
+            mv bb.msi build/bb-installer.msi
+          } else {
+            Write-Error "bb.msi was not created"
+            exit 1
+          }
 
       - name: Copy README and INSTALL
         shell: bash
