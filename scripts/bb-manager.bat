@@ -7,8 +7,18 @@ set "PROJECTS_FILE=%APPDATA%\BB\bb-projects.txt"
 set "LAST_PROJECT_FILE=%APPDATA%\BB\last-project.txt"
 
 if not exist "%APPDATA%\BB" mkdir "%APPDATA%\BB"
-if not exist "%PROJECTS_FILE%" type nul > "%PROJECTS_FILE%"
+if not exist "%PROJECTS_FILE%" (
+    echo No projects configured. Adding current directory as the first project.
+    echo %CD% > "%PROJECTS_FILE%"
+)
 if not exist "%LAST_PROJECT_FILE%" type nul > "%LAST_PROJECT_FILE%"
+
+if not exist "%BB_EXE%" (
+    echo Error: bb.exe not found in the script directory.
+    echo Please make sure bb.exe is in the same directory as this script.
+    pause
+    exit /b
+)
 
 :menu
 cls
@@ -17,8 +27,10 @@ echo =================
 echo 1. List projects
 echo 2. Add project
 echo 3. Remove project
-echo 4. Run BB command
-echo 5. Exit
+echo 4. Initialize a BB project
+echo 5. Start BB API server
+echo 6. Stop BB API server
+echo 7. Exit
 echo.
 
 set /p choice="Enter your choice: "
@@ -26,8 +38,10 @@ set /p choice="Enter your choice: "
 if "%choice%"=="1" goto list_projects
 if "%choice%"=="2" goto add_project
 if "%choice%"=="3" goto remove_project
-if "%choice%"=="4" goto run_command
-if "%choice%"=="5" exit /b
+if "%choice%"=="4" goto initialize_project
+if "%choice%"=="5" goto start_api_server
+if "%choice%"=="6" goto stop_api_server
+if "%choice%"=="7" exit /b
 
 echo Invalid choice. Please try again.
 timeout /t 2 >nul
@@ -74,7 +88,7 @@ if defined project_to_remove (
 pause
 goto menu
 
-:run_command
+:select_project
 set "project_count=0"
 for /f %%a in (%PROJECTS_FILE%) do set /a project_count+=1
 
@@ -116,24 +130,40 @@ if %project_count% equ 1 (
 )
 
 :project_selected
-echo Select a BB command:
-echo 1. Initialize a BB project
-echo 2. Start BB API server
-echo 3. Stop BB API server
-set /p command="Enter your choice (1-3): "
-
-if "%command%"=="1" (
-    start "BB Init" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" init && echo. && echo BB init completed. Press any key to close this window. && pause >nul"
-) else if "%command%"=="2" (
-    start "" "%BB_EXE%" start
-) else if "%command%"=="3" (
-    "%BB_EXE%" stop
-) else (
-    echo Invalid choice. Please enter 1, 2, or 3.
+if not defined selected_project (
+    echo Error: No project selected.
     pause
     goto menu
 )
 
+echo Selected project: %selected_project%
+goto %command_to_run%
+
+:initialize_project
+set "command_to_run=run_initialize"
+goto select_project
+
+:start_api_server
+set "command_to_run=run_start_api"
+goto select_project
+
+:stop_api_server
+set "command_to_run=run_stop_api"
+goto select_project
+
+:run_initialize
+start "BB Init" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" init && echo. && echo BB init completed. Press any key to close this window. && pause >nul"
+goto command_executed
+
+:run_start_api
+start "BB API Server" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" start"
+goto command_executed
+
+:run_stop_api
+start "BB API Server" cmd /k "cd /d "%selected_project%" && "%BB_EXE%" stop"
+goto command_executed
+
+:command_executed
 echo Command executed for project: %selected_project%
 pause
 goto menu
