@@ -191,9 +191,8 @@ jobs:
       - name: Build BB Manager app
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir -p build/BB_Manager_x86_64 build/BB_Manager_aarch64
-          osacompile -o ./build/BB_Manager_x86_64/BB\ Manager.app -a x86_64 ./scripts/BB\ Manager.applescript
-          osacompile -o ./build/BB_Manager_aarch64/BB\ Manager.app -a arm64 ./scripts/BB\ Manager.applescript
+          mkdir -p build
+          osacompile -o ./build/BB\ Manager.app ./scripts/BB\ Manager.applescript
 
       - name: Copy BB Manager files
         shell: bash
@@ -201,11 +200,7 @@ jobs:
           # Copy BB Manager files to the build directory for inclusion in archives
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             cp scripts/bb-manager.bat build/
-          elif [[ "${{ matrix.target }}" == "x86_64-apple-darwin" ]]; then
-            cp -R build/BB_Manager_x86_64/BB\ Manager.app build/
-            cp scripts/bb-manager.sh build/
-          elif [[ "${{ matrix.target }}" == "aarch64-apple-darwin" ]]; then
-            cp -R build/BB_Manager_aarch64/BB\ Manager.app build/
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
             cp scripts/bb-manager.sh build/
           fi
 
@@ -261,18 +256,16 @@ jobs:
             cd bb-$target
             if [ "$target" = "x86_64-pc-windows-msvc" ]; then
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.sh"
-              # Include the correct BB Manager.app for macOS builds
-              if [[ "$target" == "x86_64-apple-darwin" ]]; then
-                zip -ur ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip "BB Manager.app"
-              elif [[ "$target" == "aarch64-apple-darwin" ]]; then
+              # Include BB Manager.app for macOS builds
+              if [[ "$target" == *"apple-darwin" ]]; then
                 zip -ur ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip "BB Manager.app"
               fi
               gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
             elif [[ "$target" == *"apple-darwin" ]]; then
               zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "bb-manager.bat" -x "bb-manager.sh"
               tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="bb-manager.bat" --exclude="bb-manager.sh" .
-              # Include the correct BB Manager.app for macOS builds
-              if [[ "$target" == "x86_64-apple-darwin" || "$target" == "aarch64-apple-darwin" ]]; then
+              # Include BB Manager.app for macOS builds
+              if [[ "$target" == *"apple-darwin" ]]; then
                 tar rf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz "BB Manager.app"
                 gzip -f ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar
               fi
