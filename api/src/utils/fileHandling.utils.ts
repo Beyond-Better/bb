@@ -83,27 +83,32 @@ function shouldExclude(path: string, excludePatterns: string[]): boolean {
 }
 
 function isMatch(path: string, pattern: string): boolean {
-	// Handle directory patterns
-	if (pattern.endsWith('/')) {
-		pattern += '**';
-	}
+	// Split the pattern by '|' to handle multiple patterns
+	const patterns = pattern.split('|');
 
-	// Handle simple wildcard patterns
-	if (pattern.includes('*') && !pattern.includes('**')) {
-		// we were just changing '*' to '**' - why was that needed (it wasn't working to match subdirectories)
-		// [TODO] add more tests to search_project test to check for more complex file patterns with deeply nested sub directories
-		// pattern = pattern.split('*').join('**');
-		pattern = `**/${pattern}`;
-	}
+	return patterns.some((singlePattern) => {
+		// Handle directory patterns
+		if (singlePattern.endsWith('/')) {
+			singlePattern += '**';
+		}
 
-	// Handle bare filename (no path, no wildcards)
-	if (!pattern.includes('/') && !pattern.includes('*')) {
-		pattern = `**/${pattern}`;
-	}
+		// Handle simple wildcard patterns
+		if (singlePattern.includes('*') && !singlePattern.includes('**')) {
+			// we were just changing '*' to '**' - why was that needed (it wasn't working to match subdirectories)
+			// [TODO] add more tests to search_project test to check for more complex file patterns with deeply nested sub directories
+			// singlePattern = singlePattern.split('*').join('**');
+			singlePattern = `**/${singlePattern}`;
+		}
 
-	const regex = globToRegExp(pattern, { extended: true, globstar: true });
-	//logger.debug(`FileHandlingUtil: Regex for pattern: ${pattern}`, regex);
-	return regex.test(path); // || regex.test(join(path, ''));
+		// Handle bare filename (no path, no wildcards)
+		if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
+			singlePattern = `**/${singlePattern}`;
+		}
+
+		const regex = globToRegExp(singlePattern, { extended: true, globstar: true });
+		//logger.debug(`FileHandlingUtil: Regex for pattern: ${singlePattern}`, regex);
+		return regex.test(path); // || regex.test(join(path, ''));
+	});
 }
 
 async function getExcludeOptions(projectRoot: string): Promise<string[]> {
