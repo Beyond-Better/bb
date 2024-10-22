@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.1.6] - 2024-10-22
+
+### Changed
+
 - changed search_project tool to accept compound file patterns eg. *.js|*.ts|*.json
 
 
