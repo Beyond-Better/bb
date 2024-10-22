@@ -38,7 +38,8 @@ export default class LLMToolSearchProject extends LLMTool {
 				},
 				filePattern: {
 					type: 'string',
-					description: 'File name pattern to limit the search to specific file types or names',
+					description:
+						'File name (glob) pattern to limit the search to specific file types or names. Separate multiple patterns with pipe `|`.',
 				},
 				dateAfter: {
 					type: 'string',

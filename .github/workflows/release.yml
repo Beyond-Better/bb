@@ -108,6 +108,14 @@ jobs:
           cp build/bb-api.exe installer_files/
           cp build/bb-manager.bat installer_files/
           
+          # Convert LICENSE to RTF
+          pandoc -s LICENSE -o installer_files/LICENSE.rtf || (
+            echo "Failed to convert LICENSE to RTF. Creating a simple RTF file."
+            echo "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}" > installer_files/LICENSE.rtf
+            echo "{\\f0\\fs20 $(cat LICENSE | sed 's/\\/\\\\/g' | sed 's/}/\\}/g' | tr '\n' ' ')}" >> installer_files/LICENSE.rtf
+            echo "}" >> installer_files/LICENSE.rtf
+          )
+          
           # Create a WiX source file
           @"
           <?xml version="1.0" encoding="UTF-8"?>
@@ -119,6 +127,7 @@ jobs:
               <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
               <UIRef Id="WixUI_InstallDir" />
               <UIRef Id="WixUI_ErrorProgressText" />
+              <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
               <Feature Id="ProductFeature" Title="BB" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
                 <ComponentGroupRef Id="BBManager" />

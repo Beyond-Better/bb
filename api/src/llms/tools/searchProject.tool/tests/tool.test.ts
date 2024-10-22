@@ -2,8 +2,8 @@ import { join } from '@std/path';
 //import { existsSync } from '@std/fs';
 
 import { assert, assertStringIncludes } from 'api/tests/deps.ts';
-import LLMToolSearchProject from '../tool.ts';
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+//import type LLMToolSearchProject from '../tool.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
 async function createTestFiles(testProjectRoot: string) {
@@ -42,6 +42,22 @@ async function createTestFiles(testProjectRoot: string) {
 	await setFileModificationTime(join(testProjectRoot, 'empty_file.txt'), currentDate);
 	// Set modification time for the very large file
 	await setFileModificationTime(join(testProjectRoot, 'large_file_with_pattern.txt'), currentDate);
+}
+
+async function createTestFilesSimple(testProjectRoot: string) {
+	await Deno.writeTextFile(join(testProjectRoot, 'file1.js'), 'console.log("Hello");');
+	await Deno.writeTextFile(join(testProjectRoot, 'file2.ts'), 'const greeting: string = "Hello";');
+	await Deno.writeTextFile(join(testProjectRoot, 'data.json'), '{ "greeting": "Hello" }');
+	await Deno.writeTextFile(join(testProjectRoot, 'readme.md'), '# Hello');
+}
+
+async function createTestFilesSimpleDir(testProjectRoot: string) {
+	await Deno.mkdir(join(testProjectRoot, 'src'));
+	await Deno.mkdir(join(testProjectRoot, 'test'));
+	await Deno.writeTextFile(join(testProjectRoot, 'src', 'main.js'), 'console.log("Hello");');
+	await Deno.writeTextFile(join(testProjectRoot, 'src', 'util.ts'), 'export const greet = () => "Hello";');
+	await Deno.writeTextFile(join(testProjectRoot, 'test', 'main.test.js'), 'assert(true);');
+	await Deno.writeTextFile(join(testProjectRoot, 'test', 'util.test.ts'), 'test("greet", () => {});');
 }
 
 // Helper function to set file modification time
@@ -1443,6 +1459,116 @@ Deno.test({
 			assertStringIncludes(toolResults, '</files>');
 
 			const expectedFiles = ['regex_test1.txt', 'regex_test2.txt', 'regex_test3.txt', 'regex_test4.txt'];
+			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
+			const foundFiles = fileContent.split('\n');
+
+			expectedFiles.forEach((file) => {
+				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			});
+			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'SearchProjectTool - complex pattern with multiple extensions',
+	fn: async () => {
+		await withTestProject(async (testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectRoot);
+			await createTestFilesSimple(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('search_project');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolName: 'search_project',
+				toolUseId: 'test-id',
+				toolInput: {
+					filePattern: '*.js|*.ts|*.json',
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			// console.log('complex pattern with multiple extensions - bbResponse:', result.bbResponse);
+			// console.log('complex pattern with multiple extensions - toolResponse:', result.toolResponse);
+			// console.log('complex pattern with multiple extensions - toolResults:', result.toolResults);
+
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+
+			if (isString(result.bbResponse)) {
+				assertStringIncludes(
+					result.bbResponse,
+					`BB found 3 files matching the search criteria: file pattern "*.js|*.ts|*.json"`,
+				);
+			} else {
+				assert(false, 'bbResponse is not a string as expected');
+			}
+
+			const toolResults = result.toolResults as string;
+			assertStringIncludes(toolResults, '<files>');
+			assertStringIncludes(toolResults, '</files>');
+
+			const expectedFiles = ['file1.js', 'file2.ts', 'data.json'];
+			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
+			const foundFiles = fileContent.split('\n');
+
+			expectedFiles.forEach((file) => {
+				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			});
+			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'SearchProjectTool - complex pattern with different directories',
+	fn: async () => {
+		await withTestProject(async (testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectRoot);
+			await createTestFilesSimpleDir(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('search_project');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolName: 'search_project',
+				toolUseId: 'test-id',
+				toolInput: {
+					filePattern: 'src/*.js|test/*.ts',
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			// console.log('complex pattern with different directories - bbResponse:', result.bbResponse);
+			// console.log('complex pattern with different directories - toolResponse:', result.toolResponse);
+			// console.log('complex pattern with different directories - toolResults:', result.toolResults);
+
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+
+			if (isString(result.bbResponse)) {
+				assertStringIncludes(
+					result.bbResponse,
+					`BB found 2 files matching the search criteria: file pattern "src/*.js|test/*.ts"`,
+				);
+			} else {
+				assert(false, 'bbResponse is not a string as expected');
+			}
+
+			const toolResults = result.toolResults as string;
+			assertStringIncludes(toolResults, '<files>');
+			assertStringIncludes(toolResults, '</files>');
+
+			const expectedFiles = ['src/main.js', 'test/util.test.ts'];
 			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
 			const foundFiles = fileContent.split('\n');
 
