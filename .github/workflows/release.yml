@@ -1,10 +1,4 @@
-# Convert LICENSE to RTF
-          $licenseContent = Get-Content -Raw -Path LICENSE
-          $licenseContent = $licenseContent -replace '\\', '\\\\' -replace '{', '\\{' -replace '}', '\\}'
-          $rtfContent = "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}"
-          $rtfContent += "{\\f0\\fs20 $licenseContent}"
-          $rtfContent += "}"
-          Set-Content -Path installer_files/LICENSE.rtf -Value $rtfContent -Encoding UTF8name: Release
+name: Release
 
 on:
   workflow_dispatch:
@@ -116,9 +110,12 @@ jobs:
           
           # Convert LICENSE to RTF
           # pandoc -s LICENSE -o installer_files/LICENSE.rtf || echo "Failed to convert LICENSE to RTF."
-          Set-Content -Path installer_files/LICENSE.rtf -Value "{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Courier New;}}"
-          Add-Content -Path installer_files/LICENSE.rtf -Value "{\f0\fs20 $((Get-Content LICENSE | ForEach-Object { $_ -replace '\', '\\' -replace '}', '\}' }) -join ' ')}"
-          Add-Content -Path installer_files/LICENSE.rtf -Value "}"
+          $licenseContent = Get-Content -Raw -Path LICENSE
+          $licenseContent = $licenseContent -replace '\\', '\\\\' -replace '{', '\\{' -replace '}', '\\}'
+          $rtfContent = "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}"
+          $rtfContent += "{\\f0\\fs20 $licenseContent}"
+          $rtfContent += "}"
+          Set-Content -Path installer_files/LICENSE.rtf -Value $rtfContent -Encoding UTF8
 
           # Create a WiX source file
           @"
