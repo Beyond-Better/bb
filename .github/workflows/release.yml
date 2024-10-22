@@ -112,7 +112,7 @@ jobs:
           pandoc -s LICENSE -o installer_files/LICENSE.rtf || (
             echo "Failed to convert LICENSE to RTF. Creating a simple RTF file."
             echo "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}" > installer_files/LICENSE.rtf
-            echo "{\\f0\\fs20 $(cat LICENSE | sed 's/\\/\\\\/g' | sed 's/}/\\}/g' | tr '\n' ' ')}" >> installer_files/LICENSE.rtf
+            echo "{\\f0\\fs20 $(Get-Content LICENSE | ForEach-Object { $_ -replace '\\', '\\\\' -replace '}', '\\}' } | Out-String -NoNewline)}" >> installer_files/LICENSE.rtf
             echo "}" >> installer_files/LICENSE.rtf
           )
           
