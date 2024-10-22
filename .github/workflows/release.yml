@@ -128,7 +128,7 @@ jobs:
               <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
               <UIRef Id="WixUI_InstallDir" />
               <UIRef Id="WixUI_ErrorProgressText" />
-              <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
+              <WixVariable Id="WixUILicenseRtf" Value="installer_files/LICENSE.rtf " />
               <Feature Id="ProductFeature" Title="BB" Level="1">
                 <ComponentGroupRef Id="ProductComponents" />
                 <ComponentGroupRef Id="BBManager" />
