@@ -27,35 +27,47 @@ export default class LLMToolSearchProject extends LLMTool {
 			properties: {
 				contentPattern: {
 					type: 'string',
-					description: String
-						.raw`The search pattern for file contents (grep-compatible regular expression). Ensure to escape special regex characters with backslashes, e.g., "\.", "\?", "\*"`,
+					description: String.raw`A grep-compatible regular expression to search file contents. Examples:
+* "function.*search" matches lines containing "function" followed by "search"
+* "\bclass\b" matches the word "class" with word boundaries
+* "import.*from" matches import statements
+Special characters must be escaped with backslash:
+* "\." for literal dot
+* "\*" for literal asterisk
+* "\?" for literal question mark
+* "\(" and "\)" for parentheses
+Leave empty to search only by file name, date, or size.`,
 				},
 				caseSensitive: {
 					type: 'boolean',
 					description:
-						'Whether the `contentPattern` is a case sensitive regex. The default is false, to use case insensitive regex.',
+						'Controls case sensitivity of the contentPattern regex. Default is false (case-insensitive). Examples:\n* true: "Class" matches "Class" but not "class"\n* false: "Class" matches both "Class" and "class"',
 					default: false,
 				},
 				filePattern: {
 					type: 'string',
 					description:
-						'File name (glob) pattern to limit the search to specific file types or names. Separate multiple patterns with pipe `|`.',
+						'Glob pattern(s) to filter files by name. Use pipe | to separate multiple patterns. Examples:\n* "*.ts" for TypeScript files\n* "src/**/*.ts" for TypeScript files in src and subdirectories\n* "*.js|*.ts" for both JavaScript and TypeScript files\n* "test_*.py|*_test.py" for Python test files with prefix or suffix',
 				},
 				dateAfter: {
 					type: 'string',
-					description: 'Search for files modified after this date (YYYY-MM-DD format)',
+					description:
+						'Include only files modified after this date. Must be in YYYY-MM-DD format. Example: "2024-01-01" for files modified after January 1st, 2024.',
 				},
 				dateBefore: {
 					type: 'string',
-					description: 'Search for files modified before this date (YYYY-MM-DD format)',
+					description:
+						'Include only files modified before this date. Must be in YYYY-MM-DD format. Example: "2024-12-31" for files modified before December 31st, 2024.',
 				},
 				sizeMin: {
 					type: 'number',
-					description: 'Minimum file size in bytes',
+					description:
+						'Include only files larger than this size in bytes. Examples:\n* 1024 for files larger than 1KB\n* 1048576 for files larger than 1MB',
 				},
 				sizeMax: {
 					type: 'number',
-					description: 'Maximum file size in bytes',
+					description:
+						'Include only files smaller than this size in bytes. Examples:\n* 1024 for files smaller than 1KB\n* 1048576 for files smaller than 1MB',
 				},
 			},
 		};

@@ -43,7 +43,8 @@ class LLMInteraction {
 		outputTokensTotal: 0,
 	};
 
-	protected llm: LLM;
+	// [TODO] change llm to protected attribute and create a getter for other classes to call
+	public llm: LLM;
 	protected messages: LLMMessage[] = [];
 	protected tools: Map<string, LLMTool> = new Map();
 	protected _baseSystem: string = '';

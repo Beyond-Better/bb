@@ -27,15 +27,20 @@ export default class LLMToolRewriteFile extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				filePath: { type: 'string', description: 'The path of the file to be rewritten or created' },
+				filePath: {
+					type: 'string',
+					description:
+						'The path of the file to be rewritten or created, relative to the project root. Must be within the project directory.',
+				},
 				content: {
 					type: 'string',
 					description:
-						'The new content of the file. IMPORTANT: Include the full file contents. DO NOT replace any of the content with comments or placeholders. DO rewrite the whole file.',
+						"The complete new content that will replace the file's existing content. IMPORTANT: Must include the entire desired file contents - partial content or placeholders are not allowed. The file will be completely overwritten with this content.",
 				},
 				createIfMissing: {
 					type: 'boolean',
-					description: 'Create the file if it does not exist',
+					description:
+						'Whether to create the file if it does not exist. When true, missing parent directories will also be created.',
 					default: true,
 				},
 			},

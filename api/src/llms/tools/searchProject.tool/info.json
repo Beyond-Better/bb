@@ -1,6 +1,6 @@
 {
 	"name": "search_project",
-	"description": "Searches the project for files matching content, name, date, or size criteria",
+	"description": "Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Use this tool to discover files when you don't know their exact paths. For known file paths, use request_files instead.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT"

@@ -13,7 +13,6 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-//import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 
 import { AnthropicProvider } from './providers/anthropic.ts';
@@ -26,7 +25,7 @@ export interface ModelProvider {
 
 const MODELS = [
 	//anthropic
-	'claude-3-5-sonnet-20240620',
+	'claude-3-5-sonnet-20241022',
 	'claude-3-opus-20240229',
 	'claude-3-sonnet-20240229',
 	'claude-3-haiku-20240307',
@@ -42,7 +41,7 @@ const MODELS = [
 ];
 const MODELS_PROVIDERS = {
 	//anthropic
-	'claude-3-5-sonnet-20240620': 'anthropic',
+	'claude-3-5-sonnet-20241022': 'anthropic',
 	'claude-3-opus-20240229': 'anthropic',
 	'claude-3-sonnet-20240229': 'anthropic',
 	'claude-3-haiku-20240307': 'anthropic',
@@ -77,7 +76,6 @@ export default class LLMToolMultiModelQuery extends LLMTool {
 
 		this.models = toolConfig.models || MODELS;
 
-		// `description`: Query multiple LLM models with the same prompt and return their exact responses; DO NOT summarize or analyze
 		this.description = `${description}. Available models: ${this.models.join(', ')}`;
 
 		if (toolConfig.anthropicApiKey) this.providers.anthropic = new AnthropicProvider(toolConfig.anthropicApiKey);
@@ -101,22 +99,50 @@ export default class LLMToolMultiModelQuery extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				query: { type: 'string', description: 'The prompt to send to all models' },
+				query: {
+					type: 'string',
+					description:
+						`The exact prompt text that will be sent to each selected model. The prompt is used as provided with minimal modification. The tool will not:
+* Modify the prompt content
+* Add additional context
+* Change formatting
+* Insert model-specific instructions
+
+The user should ensure their prompt is appropriate for all selected models. Example prompt types:
+* Direct questions: "What is the difference between TCP and UDP?"
+* Task instructions: "Write a function that calculates the Fibonacci sequence"
+* Analysis requests: "Explain the advantages and disadvantages of microservices"
+* Creative prompts: "Write a story about a time traveler"
+
+Each model will receive exactly the same prompt text and their complete responses will be returned separately.`,
+				},
 				models: {
 					type: 'array',
 					items: { type: 'string' },
-					/*
-					items: {
-						type: 'object',
-						properties: {
-							provider: { type: 'string', enum: ['anthropic', 'openai'] },
-							model: { type: 'string' },
-						},
-						required: ['provider', 'model'],
-					},
-					 */
-					description: 'List of model identifiers to query',
-					//description: "List of model identifiers to query (format: 'provider:model')",
+					description: `List of model identifiers to query. Available models by provider:
+
+1. Anthropic:
+   * claude-3-5-sonnet-20241022 (Latest Sonnet)
+   * claude-3-opus-20240229 (Most capable)
+   * claude-3-sonnet-20240229
+   * claude-3-haiku-20240307 (Fastest)
+
+2. OpenAI:
+   * gpt-4o (Latest GPT-4)
+   * gpt-4o-mini
+   * gpt-4-turbo
+   * gpt-4
+   * gpt-3.5-turbo
+
+3. Google:
+   * gemini-pro
+
+Example selections:
+* ["claude-3-5-sonnet-20241022", "gpt-4o"] - Compare latest models
+* ["claude-3-opus-20240229", "claude-3-haiku-20240307"] - Compare Claude variants
+* ["gpt-4o", "gpt-3.5-turbo", "gemini-pro"] - Compare across providers
+
+Responses will be returned separately for each model, preserving their exact output.`,
 				},
 			},
 			required: ['query', 'models'],

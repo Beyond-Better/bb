@@ -29,6 +29,7 @@
 		"highlight.js": "https://esm.sh/highlight.js",
 		"marked": "https://esm.sh/marked@14.0.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",
+		"deno_dom": "jsr:@b-fuze/deno-dom@^0.1.48/wasm-noinit",
 
 		"$fresh/": "https://deno.land/x/fresh@1.6.8/",
 		"preact": "https://esm.sh/preact@10.23.2",
@@ -71,6 +72,7 @@
 		"api/utils/llms.ts": "./api/src/utils/llms.utils.ts",
 		"api/llms/llmMessage.ts": "./api/src/llms/llmMessage.ts",
 		"api/llms/llmTool.ts": "./api/src/llms/llmTool.ts",
+		"api/llms/baseInteraction.ts": "./api/src/llms/interactions/baseInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
 		"api/storage/conversationLogger.ts": "./api/src/storage/conversationLogger.ts",

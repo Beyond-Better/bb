@@ -54,7 +54,7 @@ Deno.test({
 			);
 			assertEquals(typeof result.toolResponse, 'string');
 
-			assertStringIncludes(result.toolResponse, `Successfully fetched screenshot from ${url}`);
+			assertStringIncludes(result.toolResponse, `Successfully captured screenshot of ${url}`);
 			assert(
 				isFetchWebScreenshotResponse(result.bbResponse),
 				'bbResponse should have the correct structure for Tool',
@@ -115,7 +115,7 @@ Deno.test({
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				await tool.runTool(conversation, toolUse, projectEditor);
 			} catch (error) {
-				assertStringIncludes(error.message, 'Failed to fetch web page screenshot');
+				assertStringIncludes(error.message, 'Failed to capture screenshot');
 			}
 		});
 	},

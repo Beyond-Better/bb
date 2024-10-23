@@ -232,6 +232,7 @@ class OrchestratorController {
 		const systemPrompt = await this.promptManager.getPrompt('system', {
 			userDefinedContent: 'You are an AI assistant helping with code and project management.',
 			fullConfig: this.projectEditor.fullConfig,
+			interaction,
 		});
 		interaction.baseSystem = systemPrompt;
 		//logger.info(`OrchestratorController: set system prompt for: ${typeof interaction}`, interaction.baseSystem);

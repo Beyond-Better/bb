@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Full rewrite of tool descriptions (based on guidance from Anthropic's "computer use" tools)
+- Updated to latest Sonnet (WOW, I'm impressed)
 
 
 ## [0.1.6] - 2024-10-22

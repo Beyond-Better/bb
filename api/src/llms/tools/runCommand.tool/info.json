@@ -1,6 +1,6 @@
 {
 	"name": "run_command",
-	"description": "Run a system command and return the output",
+	"description": "Run a system command from the user-configured allow list and return the output. For security, only commands explicitly added to the allow list can be executed. Users can configure any shell commands they wish to permit. If you need a command that isn't in the allowed list, suggest that the user add it to their configuration. Commands may output to both stdout and stderr; stderr doesn't always indicate an error.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",

@@ -36,20 +36,59 @@ export default class LLMToolMoveFiles extends LLMTool {
 				sources: {
 					type: 'array',
 					items: { type: 'string' },
-					description: 'Paths of files or directories to be moved',
+					description: `Array of files or directories to move, relative to project root. Important notes:
+
+1. Path Requirements:
+   * All paths must be relative to project root
+   * Sources must exist and be within project
+   * File names are preserved during move
+   Examples:
+   * ["src/utils/old-location/helper.ts"]
+   * ["tests/fixtures/data.json"]
+   * ["docs/old-location"]
+
+2. Common Move Patterns:
+   * Move related files together:
+     ["src/components/Button.tsx", "src/components/Button.test.tsx"]
+   * Move directory with contents:
+     ["src/legacy-utils"]
+   * Move multiple files to new location:
+     ["src/types/interfaces.ts", "src/types/constants.ts"]
+
+3. Safety Considerations:
+   * Check for import/require statements that reference moved files
+   * Update any relative imports in moved files
+   * Consider impact on project structure
+   * Move related files together (source + test files)`,
 				},
 				destination: {
 					type: 'string',
-					description: 'Path of the destination directory',
+					description: `Target directory for moved files, relative to project root. Important notes:
+
+1. Directory Behavior:
+   * Must be a directory path, not a file path
+   * Files maintain their original names
+   * Creates nested path if createMissingDirectories is true
+   Examples:
+   * "src/utils/new-location"
+   * "tests/new-fixtures"
+   * "docs/archive"
+
+2. Path Requirements:
+   * Must be within project
+   * Parent directory must exist (unless createMissingDirectories is true)
+   * Must have write permission`,
 				},
 				overwrite: {
 					type: 'boolean',
-					description: 'Whether to overwrite existing files at the destination',
+					description:
+						'When true, allows overwriting existing files at destination. Use with caution as this can cause data loss. Example: If "utils/helper.ts" exists at destination, moving another "helper.ts" with overwrite:true will replace it.',
 					default: false,
 				},
 				createMissingDirectories: {
 					type: 'boolean',
-					description: 'Whether to create missing directories in the destination path',
+					description:
+						'When true, creates any missing directories in the destination path. Useful when moving files to a new project structure. Example: Moving to "new/nested/dir" will create all parent directories.',
 					default: false,
 				},
 			},

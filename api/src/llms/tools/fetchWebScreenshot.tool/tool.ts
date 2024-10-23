@@ -22,7 +22,44 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				url: { type: 'string', description: 'The URL of the web page to capture' },
+				url: {
+					type: 'string',
+					description: `The complete URL of the web page to screenshot. Important considerations:
+
+1. URL Requirements:
+   * Must include protocol (http:// or https://)
+   * Should be properly encoded
+   * Must be publicly accessible
+   Examples:
+   * "https://example.com/design"
+   * "https://github.com/owner/repo"
+   * "http://localhost:3000/preview"
+
+2. Use Cases:
+   * Visual layout analysis
+   * Design review
+   * UI/UX discussions
+   * Complex content (charts, diagrams)
+   * Responsive design testing
+   * When text extraction isn't sufficient
+
+3. Common Issues:
+   * Dynamic content loading
+   * Authentication requirements
+   * Popup/cookie notices
+   * Responsive layouts
+   * Rate limiting
+   * Geoblocking
+   * CORS restrictions
+
+4. Best Practices:
+   * Allow time for page rendering
+   * Check site's terms of service
+   * Respect robots.txt
+   * Use fetch_web_page for text content
+   * Consider page load time
+   * Be aware of dynamic content`,
+				},
 			},
 			required: ['url'],
 		};
@@ -62,9 +99,9 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 
 			return {
 				toolResults: toolResultContentPart,
-				toolResponse: `Successfully fetched screenshot from ${url}`,
-				// 				bbResponse:
-				// 					`I've captured a screenshot of ${url}. The image data is available as a base64-encoded string.`,
+				toolResponse: `Successfully captured screenshot of ${url}`,
+				// bbResponse:
+				// 	`I've captured a screenshot of ${url}. The image data is available as a base64-encoded string.`,
 				bbResponse: {
 					data: {
 						url,
@@ -74,11 +111,11 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 				},
 			};
 		} catch (error) {
-			logger.error(`Failed to fetch web page screenshot: ${error.message}`);
+			logger.error(`Failed to capture screenshot: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
-			const bbResponse = `BB failed to fetch web page screenshot. Error: ${error.message}`;
-			const toolResponse = `Failed to fetch web page screenshot. Error: ${error.message}`;
+			const bbResponse = `BB failed to capture screenshot. Error: ${error.message}`;
+			const toolResponse = `Failed to capture screenshot. Error: ${error.message}`;
 			return { toolResults, toolResponse, bbResponse };
 		}
 	}

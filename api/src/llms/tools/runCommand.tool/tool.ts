@@ -41,14 +41,37 @@ export default class LLMToolRunCommand extends LLMTool {
 				command: {
 					type: 'string',
 					enum: this.allowedCommands,
-					description: 'The command to run',
+					description:
+						`The command to run. Only commands from the user-configured allow list can be executed. Currently allowed commands:
+
+${this.allowedCommands.map((cmd) => `* ${cmd}`).join('\n')}
+
+Important Notes:
+* The allow list is configured by the user and can include any shell commands
+* Current list shows commands the user has explicitly permitted
+* If you need a command that isn't listed, suggest the user add it to their configuration
+* Example suggestion: "I could help better if the 'git status' command was added to the allow list"
+
+Command Output Handling:
+* Commands may write to both stdout and stderr
+* stderr output doesn't always indicate an error (many tools use it for status messages)
+* Wait for command completion before proceeding
+* Review command output carefully before suggesting next steps`,
 				},
 				args: {
 					type: 'array',
 					items: {
 						type: 'string',
 					},
-					description: 'Arguments for the command',
+					description:
+						`Optional arguments for the command. Usage depends on the specific command in the allow list.
+
+Examples of argument usage:
+* File paths: ["path/to/file"]
+* Options: ["--verbose", "--format=json"]
+* Multiple args: ["src/", "--recursive"]
+
+Note: Arguments must be appropriate for the command being run. Review the command's documentation or help output if unsure about valid arguments.`,
 				},
 			},
 			required: ['command'],
@@ -78,9 +101,11 @@ export default class LLMToolRunCommand extends LLMTool {
 		};
 
 		if (!this.allowedCommands.some((allowed) => command.startsWith(allowed))) {
-			const toolResults = `Command not allowed: ${command}`;
+			const toolResults =
+				`Command not allowed: ${command}. For security reasons, only commands in the user's allow list can be run. Consider suggesting that the user adds this command to their configuration if it would be helpful.`;
 
-			const bbResponse = `BB won't run unapproved commands: ${command}`;
+			const bbResponse =
+				`BB won't run unapproved commands: ${command}. Suggest adding this command to the allow list if it's needed.`;
 			const toolResponse = toolResults;
 			return { toolResults, toolResponse, bbResponse };
 		} else {
@@ -154,7 +179,7 @@ export default class LLMToolRunCommand extends LLMTool {
 		- rsync: Outputs progress information to stderr
 		- wget: Outputs download progress to stderr
 		 */
-		// List of commands that use stderror for "status output" and not just errors - this list should become part of toolConfig.run_command
+		// List of commands that use stderr for "status output" and not just errors - this list should become part of toolConfig.run_command
 		const commandNames = ['deno', 'git', 'npm', 'docker', 'curl', 'ffmpeg', 'rsync', 'wget'];
 
 		// Check if any error indicators are present in stderr
