@@ -99,7 +99,7 @@ Deno.test({
 	name: 'generateFileListing - empty directory',
 	fn: async () => {
 		await withTestProject(async (testProjectRoot) => {
-			const listing = await generateFileListing(testProjectRoot);
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertEquals(listing, '');
 		});
 	},
@@ -115,7 +115,7 @@ Deno.test({
 			Deno.mkdirSync(join(testProjectRoot, 'subdir'));
 			Deno.writeTextFileSync(join(testProjectRoot, 'subdir', 'file2.txt'), 'content');
 
-			const listing = await generateFileListing(testProjectRoot);
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertStringIncludes(listing!, 'file1.txt');
 			assertStringIncludes(listing!, join('subdir', 'file2.txt'));
 		});
@@ -134,7 +134,7 @@ Deno.test({
 			Deno.mkdirSync(join(testProjectRoot, 'node_modules'));
 			Deno.writeTextFileSync(join(testProjectRoot, 'node_modules', 'package.json'), '{}');
 
-			const listing = await generateFileListing(testProjectRoot);
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertStringIncludes(listing!, 'file1.txt');
 			assertEquals(listing!.includes('debug.log'), false);
 			assertEquals(listing!.includes('node_modules'), false);

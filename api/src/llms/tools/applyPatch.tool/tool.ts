@@ -28,11 +28,51 @@ export default class LLMToolApplyPatch extends LLMTool {
 			properties: {
 				filePath: {
 					type: 'string',
-					description: 'The path of the file to be patched. Optional for multi-file patches.',
+					description:
+						'The path of the file to be patched, relative to project root. Required for single-file patches, optional for multi-file patches that include file paths. Example: "src/config.ts"',
 				},
 				patch: {
 					type: 'string',
-					description: 'The carefully written and well-formed patch to be applied in unified diff format',
+					description: `A unified diff format patch. Requirements:
+
+1. File Creation:
+   To create a new file, use /dev/null as oldFileName:
+   --- /dev/null
+   +++ new/file/path.ts
+   @@ -0,0 +1,3 @@
+   +line 1
+   +line 2
+   +line 3
+
+2. File Modification:
+   Include context lines (unchanged) around changes:
+   --- existing/file.ts
+   +++ existing/file.ts
+   @@ -10,6 +10,7 @@
+    unchanged line
+    unchanged line
+   -removed line
+   +added line
+    unchanged line
+    unchanged line
+
+3. Multi-file Patches:
+   Separate each file's patch with newlines:
+   --- file1.ts
+   +++ file1.ts
+   @@ ... @@
+   patch content
+
+   --- file2.ts
+   +++ file2.ts
+   @@ ... @@
+   patch content
+
+Notes:
+* Context lines help ensure correct placement
+* Small differences in nearby lines are allowed (fuzz factor: 2)
+* For simple changes, prefer search_and_replace tool
+* Indentation and whitespace must match exactly`,
 				},
 			},
 			required: ['patch'],

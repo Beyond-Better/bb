@@ -36,24 +36,59 @@ export default class LLMToolRenameFiles extends LLMTool {
 					items: {
 						type: 'object',
 						properties: {
-							source: { type: 'string', description: 'The source path for the file or directory' },
+							source: {
+								type: 'string',
+								description:
+									'The current path of the file or directory to rename, relative to project root. Must exist and be within project. Examples:\n* "src/old-name.ts"\n* "tests/old_dir"\n* "config/legacy.json"',
+							},
 							destination: {
 								type: 'string',
-								description: 'The destination path for the file or directory',
+								description:
+									'The new path for the file or directory, relative to project root. Must be within project. Parent directories will be created if createMissingDirectories is true. Examples:\n* "src/new-name.ts"\n* "tests/new_dir"\n* "config/current.json"',
 							},
 						},
 						required: ['source', 'destination'],
 					},
-					description: 'Array of rename operations, each containing source and destination paths',
+					description: `Array of rename operations to perform. Important considerations:
+
+1. Path Requirements:
+   * All paths must be relative to project root
+   * Both source and destination must be within project
+   * Source must exist (unless overwrite is true)
+   * Parent directories in destination path must exist (unless createMissingDirectories is true)
+
+2. Common Rename Patterns:
+   * File extension update: "file.js" -> "file.ts"
+   * Name convention change: "oldName.ts" -> "new-name.ts"
+   * Directory restructure: "old/path/file.ts" -> "new/path/file.ts"
+
+3. Safety Considerations:
+   * Check for existing files at destination
+   * Consider impact on imports and references
+   * Batch related renames together
+   * Use overwrite with caution
+
+4. Examples of Batch Operations:
+   * Rename file and its test:
+     [
+       { source: "src/handler.ts", destination: "src/processor.ts" },
+       { source: "tests/handler.test.ts", destination: "tests/processor.test.ts" }
+     ]
+   * Move directory with contents:
+     [
+       { source: "old/config", destination: "new/config" }
+     ]`,
 				},
 				overwrite: {
 					type: 'boolean',
-					description: 'Whether to overwrite existing files at the destination',
+					description:
+						'When true, allows overwriting existing files at destination paths. Use with caution as this can cause data loss. Default is false for safety.',
 					default: false,
 				},
 				createMissingDirectories: {
 					type: 'boolean',
-					description: 'Whether to create missing directories in the destination path',
+					description:
+						'When true, creates any missing parent directories in destination paths. Useful when restructuring project layout. Example: "new/nested/dir/file.ts" will create all parent directories.',
 					default: false,
 				},
 			},

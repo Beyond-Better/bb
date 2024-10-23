@@ -25,7 +25,7 @@ const toolConfig = {
 	anthropicApiKey: 'sk-ant-xxxx',
 	openaiApiKey: 'sk-proj-xxxx',
 	models: [
-		'claude-3-5-sonnet-20240620',
+		'claude-3-5-sonnet-20241022',
 		'claude-3-haiku-20240307',
 		'gpt-4',
 		'gpt-4o',
@@ -80,7 +80,7 @@ Deno.test({
 					toolInput: {
 						query: 'What is the capital of France?',
 						// 						models: ['anthropic:claude-2', 'openai:gpt-3.5-turbo'],
-						models: ['claude-3-5-sonnet-20240620', 'gpt-4'],
+						models: ['claude-3-5-sonnet-20241022', 'gpt-4'],
 					},
 				};
 
@@ -109,7 +109,7 @@ Deno.test({
 						'Should have 2 successful query results',
 					);
 					const anthropicResult = result.bbResponse.data.querySuccess.find((r) =>
-						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20240620'
+						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20241022'
 					);
 					const openaiResult = result.bbResponse.data.querySuccess.find((r) =>
 						r.modelIdentifier === 'openai/gpt-4'
@@ -125,7 +125,7 @@ Deno.test({
 
 				assertStringIncludes(
 					result.toolResponse,
-					'Queried models:\n- anthropic/claude-3-5-sonnet-20240620\n- openai/gpt-4',
+					'Queried models:\n- anthropic/claude-3-5-sonnet-20241022\n- openai/gpt-4',
 				);
 
 				// Check toolResults
@@ -134,7 +134,7 @@ Deno.test({
 
 				const firstResult = result.toolResults[0];
 				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, 'Model: anthropic/claude-3-5-sonnet-20240620');
+				assertStringIncludes(firstResult.text, 'Model: anthropic/claude-3-5-sonnet-20241022');
 				assertStringIncludes(firstResult.text, mockAnthropicResponse);
 
 				const secondResult = result.toolResults[1];
@@ -273,7 +273,7 @@ Deno.test({
 					toolUseId: 'test-id',
 					toolInput: {
 						query: 'What is the capital of France?',
-						models: ['claude-3-5-sonnet-20240620', 'gpt-4'],
+						models: ['claude-3-5-sonnet-20241022', 'gpt-4'],
 					},
 				};
 
@@ -300,7 +300,7 @@ Deno.test({
 						'Should have 2 error results',
 					);
 					const anthropicResult = result.bbResponse.data.queryError.find((r) =>
-						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20240620'
+						r.modelIdentifier === 'anthropic/claude-3-5-sonnet-20241022'
 					);
 					const openaiResult = result.bbResponse.data.queryError.find((r) =>
 						r.modelIdentifier === 'openai/gpt-4'
@@ -322,11 +322,11 @@ Deno.test({
 
 				// 				assertStringIncludes(
 				// 					result.bbResponse,
-				// 					'BB failed to query models:\n- anthropic/claude-3-5-sonnet-20240620: Anthropic API error\n- openai/gpt-4: OpenAI API error. You can review their responses in the output.',
+				// 					'BB failed to query models:\n- anthropic/claude-3-5-sonnet-20241022: Anthropic API error\n- openai/gpt-4: OpenAI API error. You can review their responses in the output.',
 				// 				);
 				assertStringIncludes(
 					result.toolResponse,
-					'No models queried.\nFailed to query models:\n- anthropic/claude-3-5-sonnet-20240620: Anthropic API error\n- openai/gpt-4: OpenAI API error',
+					'No models queried.\nFailed to query models:\n- anthropic/claude-3-5-sonnet-20241022: Anthropic API error\n- openai/gpt-4: OpenAI API error',
 				);
 
 				// Check toolResults
@@ -337,7 +337,7 @@ Deno.test({
 				assert(firstResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					firstResult.text,
-					'Error querying anthropic/claude-3-5-sonnet-20240620: Anthropic API error',
+					'Error querying anthropic/claude-3-5-sonnet-20241022: Anthropic API error',
 				);
 
 				const secondResult = result.toolResults[1];

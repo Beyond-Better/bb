@@ -21,7 +21,7 @@ export const FILE_LISTING_TIERS = [
 	{ depth: 1, includeMetadata: false },
 ];
 
-export async function generateFileListing(projectRoot: string): Promise<string | null> {
+export async function generateFileListing(projectRoot: string): Promise<{ listing: string; tier: number } | null> {
 	const projectConfig = await ConfigManager.projectConfig(projectRoot);
 	const repoInfoConfig = projectConfig.repoInfo;
 	const tokenLimit = repoInfoConfig?.tokenLimit || 1024;
@@ -40,7 +40,7 @@ export async function generateFileListing(projectRoot: string): Promise<string |
 		);
 		if (tokenCount <= tokenLimit) {
 			logger.info(`FileHandlingUtil: File listing generated successfully within token limit (${tokenLimit})`);
-			return listing;
+			return { listing, tier: tierIdx };
 		}
 	}
 

@@ -1,4 +1,5 @@
 import type { JSX } from 'preact';
+
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import {
@@ -23,8 +24,40 @@ export default class LLMToolRequestFiles extends LLMTool {
 			properties: {
 				fileNames: {
 					type: 'array',
-					items: { type: 'string' },
-					description: 'Array of file names to be added to the chat',
+					items: {
+						type: 'string',
+					},
+					description: `Array of file paths to add to the conversation. Important usage notes:
+
+1. Path Requirements:
+   * Use paths relative to project root
+   * Paths must be within the project
+   * Convert absolute paths by removing project root prefix
+   * Handle OS-specific path separators appropriately
+
+2. Batch Requests:
+   * Request multiple related files in one call
+   * Include test files when requesting source files
+   * Include imported/dependent files when relevant
+
+3. File Review:
+   * Always review file contents before:
+     - Making suggestions about the file
+     - Proposing changes to the file
+     - Commenting on relationships between files
+     - Answering questions about the file
+
+4. Mental Tracking:
+   * Mark requested files as "Active" in mental status
+   * Consider relationships with other active files
+   * Update status when files become irrelevant
+
+Examples:
+* ["src/config.ts"]
+* ["src/handler.ts", "tests/handler.test.ts"]
+* ["package.json", "package-lock.json"]
+
+Note: If you don't know the exact paths, use search_project tool first.`,
 				},
 			},
 			required: ['fileNames'],
@@ -47,7 +80,7 @@ export default class LLMToolRequestFiles extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolUseId: _toolUseId, toolInput } = toolUse;
+		const { toolInput } = toolUse;
 		const { fileNames } = toolInput as { fileNames: string[] };
 
 		try {

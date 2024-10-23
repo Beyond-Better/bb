@@ -1,5 +1,7 @@
 import type { JSX } from 'preact';
 
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import {
 	formatToolResult as formatToolResultBrowser,
 	formatToolUse as formatToolUseBrowser,
@@ -8,8 +10,6 @@ import {
 	formatToolResult as formatToolResultConsole,
 	formatToolUse as formatToolUseConsole,
 } from './formatter.console.ts';
-import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
@@ -31,16 +31,32 @@ export default class LLMToolForgetFiles extends LLMTool {
 						properties: {
 							filePath: {
 								type: 'string',
-								description: 'The path of the file to be removed from the chat',
+								description:
+									'The path of the file to be removed from the conversation context. When prompt caching is enabled, the file remains in the cached context but should be mentally excluded from consideration.',
 							},
 							revision: {
 								type: 'string',
-								description: 'The revision of the file to be removed from the chat',
+								description:
+									'The revision of the file to be removed. This helps track which version of a file is being excluded, especially important when files have been modified during the conversation.',
 							},
 						},
 						required: ['filePath', 'revision'],
 					},
-					description: 'Array of files to be removed from the chat',
+					description:
+						`Array of files to remove from the conversation context. Behavior depends on prompt caching:
+
+1. When prompt caching is ENABLED:
+   * Files physically remain in the cached context
+   * Mark files as "Ignored" in your mental tracking
+   * Do not reference or use ignored files
+   * Continue to track file status changes
+   Example: When asked to ignore tools_manifest.ts, maintain awareness that it exists but don't use its contents
+
+2. When prompt caching is DISABLED:
+   * Files are physically removed from the context
+   * Reduces token usage and context size
+   * Files can be re-added later if needed
+   Example: Removing large files that are no longer relevant to the current task`,
 				},
 			},
 			required: ['files'],
@@ -63,8 +79,13 @@ export default class LLMToolForgetFiles extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { files } = toolInput as { files: Array<{ filePath: string; revision: string }> };
+		const { toolInput } = toolUse;
+		const { files } = toolInput as {
+			files: Array<{
+				filePath: string;
+				revision: string;
+			}>;
+		};
 
 		try {
 			const toolResultContentParts = [];
@@ -120,6 +141,10 @@ export default class LLMToolForgetFiles extends LLMTool {
 			const toolResults = toolResultContentParts;
 			const toolResponse = (allFilesFailed ? 'No files removed\n' : '') + toolResponses.join('\n\n');
 			const bbResponse = bbResponses.join('\n\n');
+			// const fileList = files.map((file) => file.filePath);
+			// const toolResults = `Marked the following files to be excluded from consideration: ${fileList.join(', ')}`;
+			// const toolResponse = `Marked ${files.length} file(s) to be excluded`;
+			// const bbResponse = `BB marked ${files.length} file(s) to be excluded from consideration`;
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {

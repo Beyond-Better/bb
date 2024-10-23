@@ -22,7 +22,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'moveFiles.tool',
 		'metadata': {
 			'name': 'move_files',
-			'description': 'Move one or more files or directories to a new location within the project',
+			'description':
+				'Move one or more files or directories to a new location within the project. Preserves file names while changing location. For renaming files, use rename_files instead. Consider impact on imports and references when moving files between directories.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -33,7 +34,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'conversationMetrics.tool',
 		'metadata': {
 			'name': 'conversation_metrics',
-			'description': 'Analyze conversation metrics such as turns, message types, and token usage',
+			'description':
+				'Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -43,7 +45,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'searchProject.tool',
 		'metadata': {
 			'name': 'search_project',
-			'description': 'Searches the project for files matching content, name, date, or size criteria',
+			'description':
+				"Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Use this tool to discover files when you don't know their exact paths. For known file paths, use request_files instead.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -53,7 +56,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'requestFiles.tool',
 		'metadata': {
 			'name': 'request_files',
-			'description': 'Request one or more files within the project to be added to the conversation.',
+			'description':
+				'Request one or more files to be added to the conversation. Use this tool when you know the exact file paths. For discovering files, use search_project instead. Always review file contents before making suggestions or changes.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -63,7 +67,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'fetchWebScreenshot.tool',
 		'metadata': {
 			'name': 'fetch_web_screenshot',
-			'description': 'Fetches a screenshot of a specified web page',
+			'description':
+				"Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -73,7 +78,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'fetchWebPage.tool',
 		'metadata': {
 			'name': 'fetch_web_page',
-			'description': 'Fetches the content of a specified web page',
+			'description':
+				'Fetches the content of a specified web page. Returns the text content of HTML pages, stripping scripts and styles. For visual content, use fetch_web_screenshot instead. Some sites may block automated access or require authentication. Response size may be limited.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -83,7 +89,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'searchAndReplace.tool',
 		'metadata': {
 			'name': 'search_and_replace',
-			'description': 'Apply a list of search and replace operations to a file',
+			'description':
+				'Apply a list of search and replace operations to a file. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source file exactly. For regex patterns, use the regexPattern option.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -95,7 +102,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'forget_files',
 			'description':
-				'Remove and Forget specified files from the chat when you no longer need them, to save on token cost and reduce the context you have to read',
+				'Remove files from the conversation context to reduce token usage. When prompt caching is enabled, files remain in the cached context but should be mentally excluded. When prompt caching is disabled, files are actively removed from the context. Use this to manage conversation scope and reduce cognitive load.',
 			'version': '1.0.0',
 			'category': 'FileManipulation',
 			'author': 'BB Team',
@@ -128,7 +135,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'runCommand.tool',
 		'metadata': {
 			'name': 'run_command',
-			'description': 'Run a system command and return the output',
+			'description':
+				"Run a system command from the user-configured allow list and return the output. For security, only commands explicitly added to the allow list can be executed. Users can configure any shell commands they wish to permit. If you need a command that isn't in the allowed list, suggest that the user add it to their configuration. Commands may output to both stdout and stderr; stderr doesn't always indicate an error.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -159,7 +167,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'multi_model_query',
 			'description':
-				'Query multiple LLM models with the same prompt and return their exact responses; DO NOT summarize or analyze',
+				'Query multiple LLM models simultaneously using the exact prompt provided by the user. The prompt is passed to each model with minimal modification, and their complete responses are returned separately without summarization or analysis. Available models include Claude-3, GPT-4, and Gemini variants.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -169,7 +177,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'applyPatch.tool',
 		'metadata': {
 			'name': 'apply_patch',
-			'description': 'Apply a well-formed patch to one or more files',
+			'description':
+				'Apply a unified diff format patch to one or more files. Supports both modifying existing files and creating new ones. Use for complex multi-line changes where context is important. For simpler changes, prefer search_and_replace. Patches must match file content closely, with a small fuzz factor for nearby lines.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -180,7 +189,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'renameFiles.tool',
 		'metadata': {
 			'name': 'rename_files',
-			'description': 'Rename one or more files or directories within the project.',
+			'description':
+				'Rename one or more files or directories within the project. Handles both single files and batch operations. Consider impact on imports and references. All paths must be relative to project root. Use createMissingDirectories for new path structures.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -191,7 +201,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'rewriteFile.tool',
 		'metadata': {
 			'name': 'rewrite_file',
-			'description': 'Rewrites an entire file or creates a new one',
+			'description':
+				"Completely replaces an existing file's contents or creates a new file. Use with caution as this overwrites the entire file. For partial changes, prefer search_and_replace.",
 			'version': '1.0.0',
 			'category': 'FileManipulation',
 			'author': 'BB Team',

@@ -124,16 +124,21 @@ class ProjectEditor {
 
 		if (projectInfo.type === 'empty') {
 			const projectRoot = await this.getProjectRoot();
-			const fileListingContent = await generateFileListing(projectRoot);
+			//const { listing: fileListingContent, tier } = await generateFileListing(projectRoot);
+			const fileListing = await generateFileListing(projectRoot);
 
-			if (fileListingContent) {
+			if (fileListing) {
 				projectInfo.type = 'file-listing';
-				projectInfo.content = fileListingContent;
+				projectInfo.content = fileListing.listing;
+				projectInfo.tier = fileListing.tier;
 				// Determine which tier was used for file listing
-				const tier = FILE_LISTING_TIERS.findIndex((
-					t: { depth: number; includeMetadata: boolean },
-				) => t.depth === Infinity && t.includeMetadata === true);
-				projectInfo.tier = tier !== -1 ? tier : null;
+				//const tier = FILE_LISTING_TIERS.findIndex((
+				//	t: { depth: number; includeMetadata: boolean },
+				//) => t.depth === Infinity && t.includeMetadata === true);
+				//projectInfo.tier = tier !== -1 ? tier : null;
+				logger.info(
+					`ProjectEditor: Updated projectInfo for: ${this.startDir} using tier ${projectInfo.tier}`,
+				);
 			}
 		}
 

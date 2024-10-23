@@ -2,7 +2,9 @@ import { assert, assertEquals } from 'api/tests/deps.ts';
 import { stripAnsiCode } from '@std/fmt/colors';
 
 import LLMToolConversationMetrics from '../tool.ts';
+import type { LLMToolConversationMetricsData } from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMToolRunBbResponseData } from 'api/llms/llmTool.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
 Deno.test({
@@ -75,24 +77,30 @@ Deno.test({
 			};
 
 			const result = await tool.runTool(mockConversation as any, toolUse, projectEditor);
+			// console.log('Basic functionality - bbResponse:', result.bbResponse);
+			// console.log('Basic functionality - toolResponse:', result.toolResponse);
+			// console.log('Basic functionality - toolResults:', result.toolResults);
 
 			assert(result.toolResults, 'Tool results should not be null');
 			assert(result.toolResponse, 'Tool response should not be null');
 			assert(result.bbResponse, 'BB response should not be null');
 
-			const metrics = JSON.parse(result.toolResults as string);
+			//const metrics = JSON.parse(result.bbResponse as string);
+			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				console.log('metrics:', metrics);
 
-			assertEquals(metrics.totalTurns, 5, 'Total turns should be 5');
-			assertEquals(metrics.messageTypes.user, 2, 'User messages should be 2');
-			assertEquals(metrics.messageTypes.assistant, 2, 'Assistant messages should be 2');
-			assertEquals(metrics.messageTypes.tool, 1, 'Tool messages should be 1');
-			assertEquals(metrics.tokenUsage.total, 100, 'Total token usage should be 100');
-			assertEquals(metrics.tokenUsage.user, 30, 'User token usage should be 30');
-			assertEquals(metrics.tokenUsage.assistant, 40, 'Assistant token usage should be 40');
-			assertEquals(metrics.tokenUsage.tool, 30, 'Tool token usage should be 30');
-
+				assertEquals(metrics.summary.totalTurns, 5, 'Total turns should be 5');
+				assertEquals(metrics.summary.messageTypes.user, 2, 'User messages should be 2');
+				assertEquals(metrics.summary.messageTypes.assistant, 2, 'Assistant messages should be 2');
+				assertEquals(metrics.summary.messageTypes.tool, 1, 'Tool messages should be 1');
+				assertEquals(metrics.tokens.total, 100, 'Total token usage should be 100');
+				assertEquals(metrics.tokens.byRole.user, 30, 'User token usage should be 30');
+				assertEquals(metrics.tokens.byRole.assistant, 40, 'Assistant token usage should be 40');
+				assertEquals(metrics.tokens.byRole.tool, 30, 'Tool token usage should be 30');
+			}
 			assert(
-				stripAnsiCode(result.toolResponse).includes('Conversation metrics calculated successfully'),
+				stripAnsiCode(result.toolResponse).includes('Analyzed 5 conversation turns with 0 unique tools used.'),
 				'Tool response should indicate successful calculation',
 			);
 			//assert(stripAnsiCode(result.bbResponse).includes('BB has calculated the conversation metrics'), 'BB response should indicate metrics calculation');

@@ -30,7 +30,8 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			properties: {
 				filePath: {
 					type: 'string',
-					description: 'The path of the file to be modified or created',
+					description:
+						'The path of the file to be modified or created, relative to the project root. Example: "src/config.ts"',
 				},
 				operations: {
 					type: 'array',
@@ -40,37 +41,41 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 							search: {
 								type: 'string',
 								description:
-									'The exact literal text to search for with all leading and trailing whitespace from the original file; OR a JavaScript Regex search pattern. The `regexPattern` option must be set to `true` for patterns that are a Regex.',
+									'The text to search for in the file. Two modes available:\n\n1. Literal mode (default):\n* Must match the file content EXACTLY, including all whitespace and indentation\n* Special characters are matched literally\n* Example: "  const x = 10;" will only match if the spaces and semicolon exist\n\n2. Regex mode (set regexPattern: true):\n* Use JavaScript regex patterns\n* Can match varying whitespace with patterns like "\\s+"\n* Example: "const\\s+x\\s*=\\s*10" matches various spacing around "const x = 10"',
 							},
 							replace: {
 								type: 'string',
 								description:
-									'The text to replace with, matching the same indent level as the original file',
+									'The text to replace matches with. Important notes:\n* In literal mode: Match the indentation level of the original text\n* In regex mode: Use $1, $2, etc. for capture groups\n* Preserve line endings and spacing for clean diffs\nExample: If replacing "  const x = 10;" keep the leading spaces in the replacement',
 							},
 							regexPattern: {
 								type: 'boolean',
 								description:
-									'Whether the search pattern is a regex (true) or a literal pattern (false). This affects the usage of special characters. If regexPattern is false (default) then special characters will be a literal match',
+									'When true, treats search as a JavaScript regex pattern. When false (default), matches text literally including all whitespace. Examples:\n* false: "function main" matches that exact text with one space\n* true: "function\\s+main" matches the text with any whitespace between words',
 								default: false,
 							},
 							replaceAll: {
 								type: 'boolean',
-								description: 'Whether to replace all occurrences or just the first one',
+								description:
+									'When true, replaces all occurrences of the search text. When false (default), replaces only the first occurrence. Use carefully with regex patterns.',
 								default: false,
 							},
 							caseSensitive: {
 								type: 'boolean',
-								description: 'Whether the search should be case-sensitive',
+								description:
+									'When true (default), matches must have exact case. When false, matches ignore case. Examples:\n* true: "Constructor" only matches "Constructor"\n* false: "constructor" matches "Constructor" and "constructor"',
 								default: true,
 							},
 						},
 						required: ['search', 'replace'],
 					},
-					description: 'List of literal search and replace operations to apply',
+					description:
+						'Array of search and replace operations to apply in sequence. Each operation is applied to the result of previous operations.',
 				},
 				createIfMissing: {
 					type: 'boolean',
-					description: 'Create the file if it does not exist (recommended to set this to true)',
+					description:
+						"When true (recommended), creates the file and any missing parent directories if they don't exist. When false, fails if the file doesn't exist.",
 					default: true,
 				},
 			},

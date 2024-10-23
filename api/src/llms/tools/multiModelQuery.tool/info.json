@@ -1,6 +1,6 @@
 {
 	"name": "multi_model_query",
-	"description": "Query multiple LLM models with the same prompt and return their exact responses; DO NOT summarize or analyze",
+	"description": "Query multiple LLM models simultaneously using the exact prompt provided by the user. The prompt is passed to each model with minimal modification, and their complete responses are returned separately without summarization or analysis. Available models include Claude-3, GPT-4, and Gemini variants.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT"

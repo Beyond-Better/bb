@@ -1,6 +1,6 @@
 {
 	"name": "search_and_replace",
-	"description": "Apply a list of search and replace operations to a file",
+	"description": "Apply a list of search and replace operations to a file. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source file exactly. For regex patterns, use the regexPattern option.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",

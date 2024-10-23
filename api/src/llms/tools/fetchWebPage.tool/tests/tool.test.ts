@@ -70,7 +70,7 @@ Deno.test({
 				assert(false, 'bbResponse does not have the expected structure for MultiModelQueryTool');
 			}
 
-			assertStringIncludes(result.toolResponse, `Successfully fetched content from ${url}`);
+			assertStringIncludes(result.toolResponse, `Successfully fetched and cleaned content from ${url}`);
 
 			const content = result.toolResults as string;
 			assertStringIncludes(content, 'Google');

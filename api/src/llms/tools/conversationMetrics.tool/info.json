@@ -1,6 +1,6 @@
 {
 	"name": "conversation_metrics",
-	"description": "Analyze conversation metrics such as turns, message types, and token usage",
+	"description": "Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT"

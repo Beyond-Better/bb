@@ -1,6 +1,6 @@
 {
 	"name": "fetch_web_screenshot",
-	"description": "Fetches a screenshot of a specified web page",
+	"description": "Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT"

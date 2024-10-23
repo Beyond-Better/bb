@@ -1,6 +1,6 @@
 {
 	"name": "forget_files",
-	"description": "Remove and Forget specified files from the chat when you no longer need them, to save on token cost and reduce the context you have to read",
+	"description": "Remove files from the conversation context to reduce token usage. When prompt caching is enabled, files remain in the cached context but should be mentally excluded. When prompt caching is disabled, files are actively removed from the context. Use this to manage conversation scope and reduce cognitive load.",
 	"version": "1.0.0",
 	"category": "FileManipulation",
 	"author": "BB Team",
