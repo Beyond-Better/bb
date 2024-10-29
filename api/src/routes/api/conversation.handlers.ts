@@ -51,7 +51,7 @@ export const chatConversation = async (
 	const { id: conversationId } = params;
 	try {
 		const body = await request.body.json();
-		const { statement, startDir } = body;
+		const { statement, startDir, maxTurns } = body;
 
 		logger.info(
 			`ConversationHandler: chatConversation for conversationId: ${conversationId}, Prompt: "${
@@ -88,7 +88,9 @@ export const chatConversation = async (
 		);
 		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
 
-		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId);
+		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId, {
+			maxTurns,
+		});
 
 		logger.debug(
 			`ConversationHandler: HandlerContinueConversation: Response received from handleStatement for conversationId: ${conversationId}`,

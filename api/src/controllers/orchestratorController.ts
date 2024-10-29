@@ -522,7 +522,11 @@ class OrchestratorController {
 		return { toolResponse, thinkingContent };
 	}
 
-	async handleStatement(statement: string, conversationId: ConversationId): Promise<ConversationResponse> {
+	async handleStatement(
+		statement: string,
+		conversationId: ConversationId,
+		options: { maxTurns?: number } = {},
+	): Promise<ConversationResponse> {
 		this.isCancelled = false;
 		const interaction = this.interactionManager.getInteraction(conversationId) as LLMConversationInteraction;
 		if (!interaction) {
@@ -589,7 +593,7 @@ class OrchestratorController {
 		};
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = 25; // Maximum number of turns for the run loop
+		const maxTurns = options.maxTurns ?? this.fullConfig.api.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 		try {
 			logger.info(
@@ -618,7 +622,7 @@ class OrchestratorController {
 		let loopTurnCount = 0;
 
 		while (loopTurnCount < maxTurns && !this.isCancelled) {
-			logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}`);
+			logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
 			try {
 				// Handle tool calls and collect toolResponse
 				const toolResponses = [];
@@ -646,7 +650,7 @@ class OrchestratorController {
 						}
 					}
 				}
-				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount} - handled all tools`);
+				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
 
 				loopTurnCount++;
 

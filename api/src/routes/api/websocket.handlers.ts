@@ -65,10 +65,10 @@ class WebSocketHandler {
 
 	private async handleMessage(
 		conversationId: ConversationId,
-		message: { task: string; statement: string; startDir: string },
+		message: { task: string; statement: string; startDir: string; options?: { maxTurns?: number } },
 	) {
 		try {
-			const { task, statement, startDir } = message;
+			const { task, statement, startDir, options } = message;
 			//this.connections.set(ws, conversationId);
 			//logger.info('WebSocketHandler: handleMessage', message);
 			logger.info(`WebSocketHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
@@ -121,7 +121,7 @@ class WebSocketHandler {
 				return;
 			} else if (task === 'converse') {
 				try {
-					await projectEditor?.handleStatement(statement, conversationId);
+					await projectEditor?.handleStatement(statement, conversationId, options);
 
 					//const result = await projectEditor?.handleStatement(statement, conversationId);
 					//logger.debug(`handleStatement result: ${JSON.stringify(result)}`);

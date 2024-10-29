@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.2.1] - 2024-10-29
+
+### Changed
+
+- added config option and CLI arg for maxTurns
+
+
 ## [0.2.0] - 2024-10-23
 
 ### Changed
