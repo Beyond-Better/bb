@@ -2,6 +2,7 @@
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
 export interface ApiConfigSchema {
+	maxTurns?: number;
 	anthropicApiKey?: string;
 	openaiApiKey?: string;
 	voyageaiApiKey?: string;
@@ -87,6 +88,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 		logLevel: 'info',
 		toolConfigs: {},
 		userToolDirectories: ['./tools'], // This will be resolved to an absolute path by ConfigManager
+		maxTurns: 25, // Maximum number of turns in a conversation
 	},
 	bui: {
 		environment: 'local',

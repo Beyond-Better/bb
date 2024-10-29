@@ -4,7 +4,7 @@ import { extname } from '@std/path';
 
 import {
 	existsWithinProject,
-	FILE_LISTING_TIERS,
+	//FILE_LISTING_TIERS,
 	generateFileListing,
 	isPathWithinProject,
 } from 'api/utils/fileHandling.ts';
@@ -159,6 +159,7 @@ class ProjectEditor {
 	async handleStatement(
 		statement: string,
 		conversationId: ConversationId,
+		options?: { maxTurns?: number },
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
@@ -167,6 +168,7 @@ class ProjectEditor {
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,
 			conversationId,
+			options,
 		);
 		return statementAnswer;
 	}

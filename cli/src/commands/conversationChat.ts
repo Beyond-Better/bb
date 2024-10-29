@@ -21,6 +21,7 @@ export const conversationChat = new Command()
 	.option('-s, --statement <string>', 'Statement (or question) to start or continue the conversation')
 	.option('-i, --id <string>', 'Conversation ID to continue (optional)')
 	.option('-m, --model <string>', 'LLM model to use for the conversation')
+	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
 	.option('--text', 'Return plain text instead of JSON')
 	.action(async (options) => {
 		let apiStartedByUs = false;
@@ -133,6 +134,7 @@ export const conversationChat = new Command()
 					statement: statement,
 					//model: options.model,
 					startDir: startDir,
+					maxTurns: options.maxTurns,
 				});
 
 				if (response.ok) {
@@ -246,7 +248,9 @@ export const conversationChat = new Command()
 
 					try {
 						//console.log(`Processing statement using conversationId: ${conversationId}`);
-						await processStatement(bbDir, websocketManager, terminalHandler, conversationId!, statement);
+						await processStatement(bbDir, websocketManager, terminalHandler, conversationId!, statement, {
+							maxTurns: options.maxTurns,
+						});
 					} catch (error) {
 						logger.error(`Error in chat: ${error.message}`);
 					}
@@ -286,12 +290,15 @@ const processStatement = async (
 	terminalHandler: TerminalHandler,
 	conversationId: ConversationId,
 	statement: string,
+	options?: { maxTurns?: number },
 ): Promise<void> => {
 	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
 	terminalHandler.startStatement('Claude is working...');
 	try {
-		websocketManager.ws?.send(JSON.stringify({ conversationId, startDir, task, statement }));
+		websocketManager.ws?.send(
+			JSON.stringify({ conversationId, startDir, task, statement, options: { maxTurns: options?.maxTurns } }),
+		);
 		await websocketManager.waitForAnswer(conversationId);
 	} finally {
 		terminalHandler.stopStatement('Claude is finished');

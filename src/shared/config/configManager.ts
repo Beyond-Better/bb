@@ -360,6 +360,9 @@ export class ConfigManager {
 		const usePromptCaching = Deno.env.get('BB_USE_PROMPT_CACHING');
 		if (usePromptCaching) apiConfig.usePromptCaching = usePromptCaching === 'true';
 
+		const maxTurns = Deno.env.get('BB_MAX_TURNS');
+		if (maxTurns) apiConfig.maxTurns = parseInt(maxTurns, 10);
+
 		// BUI config options
 		if (environment) buiConfig.environment = environment;
 
