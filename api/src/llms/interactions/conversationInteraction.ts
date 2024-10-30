@@ -308,7 +308,7 @@ class LLMConversationInteraction extends LLMInteraction {
 					if (fileMetadata.type === 'image') {
 						const supportedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 						const mimeType = fileMetadata.mimeType || 'unknown';
-						
+
 						if (supportedImageTypes.includes(mimeType)) {
 							// For supported image types, create both an LLMMessageContentPartImageBlock and a text block
 							const imageData = await this.readProjectFileContent(filePath, messageId) as Uint8Array;
@@ -332,7 +332,9 @@ class LLMConversationInteraction extends LLMInteraction {
 							// For unsupported image types, create two text blocks: one for the warning and one for the file tag
 							const warningBlock: LLMMessageContentPartTextBlock = {
 								type: 'text',
-								text: `Note: Image file ${filePath} is in unsupported format (${mimeType === 'unknown' ? 'unknown type' : mimeType}). Only jpeg, png, gif, and webp formats are supported.`,
+								text: `Note: Image file ${filePath} is in unsupported format (${
+									mimeType === 'unknown' ? 'unknown type' : mimeType
+								}). Only jpeg, png, gif, and webp formats are supported.`,
 							};
 							const fileBlock: LLMMessageContentPartTextBlock = {
 								type: 'text',

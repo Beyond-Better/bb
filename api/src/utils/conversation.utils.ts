@@ -85,7 +85,9 @@ export async function generateObjective(
 		<user_statement>\n${prompt.substring(0, 2500)}${prompt.length > 2500 ? '...' : ''}\n</user_statement>
 
 		${
-		type === 'conversation' ? `Respond with a specific ${objectiveType}, without a leading label` : `Respond with EITHER:
+		type === 'conversation'
+			? `Respond with a specific ${objectiveType}, without a leading label`
+			: `Respond with EITHER:
 		1. A specific ${objectiveType}, without a leading label
 		2. OR "NEED_CONTEXT: [specific context needed]"`
 	}
