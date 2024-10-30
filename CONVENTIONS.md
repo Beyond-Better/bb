@@ -92,6 +92,9 @@ Key API Endpoints:
 
 ## TypeScript and Import Conventions
 - Use `import_map.json` for both `api` and `cli` projects
+- Always check `import_map.json` for correct import paths
+- When suggesting imports, use the paths defined in `import_map.json`
+- Convert absolute paths to mapped paths where possible
 - Use bare specifiers for imports
 - Maintain separate builds for API and CLI
 - Use `src/shared/` for code shared between API and CLI

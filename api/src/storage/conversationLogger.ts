@@ -44,6 +44,8 @@ const globalConfig = await ConfigManager.globalConfig();
 export default class ConversationLogger {
 	private logFileRaw!: string;
 	private logFileJson!: string;
+	private conversationLogsDir!: string;
+	private ensuredDir: boolean = false;
 	private static readonly ENTRY_SEPARATOR = '<<<BB_LOG_ENTRY_SEPARATOR>>>';
 	private static readonly entryTypeLabels: Record<
 		ConversationLogEntryType,
@@ -76,6 +78,8 @@ export default class ConversationLogger {
 		const fullConfig = await ConfigManager.fullConfig(this.startDir);
 		this.logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
 
+		this.conversationLogsDir = await ConversationLogger.getLogFileDirPath(this.startDir, this.conversationId);
+
 		this.logFileRaw = await ConversationLogger.getLogFileRawPath(this.startDir, this.conversationId);
 		this.logFileJson = await ConversationLogger.getLogFileJsonPath(this.startDir, this.conversationId);
 
@@ -85,10 +89,15 @@ export default class ConversationLogger {
 		return this;
 	}
 
+	async ensureConversationLogsDir(): Promise<void> {
+		if (this.ensuredDir) return;
+		await ensureDir(this.conversationLogsDir);
+		this.ensuredDir = true;
+	}
 	static async getLogFileDirPath(startDir: string, conversationId: string): Promise<string> {
 		const bbDataDir = await getBbDataDir(startDir);
 		const conversationLogsDir = join(bbDataDir, 'conversations', conversationId);
-		await ensureDir(conversationLogsDir);
+		//await ensureDir(conversationLogsDir);
 		return conversationLogsDir;
 	}
 	static async getLogFileRawPath(startDir: string, conversationId: string): Promise<string> {
@@ -107,9 +116,11 @@ export default class ConversationLogger {
 	}
 
 	private async appendToRawLog(content: string) {
+		await this.ensureConversationLogsDir();
 		await Deno.writeTextFile(this.logFileRaw, content + '\n', { append: true });
 	}
 	private async appendToJsonLog(content: string) {
+		await this.ensureConversationLogsDir();
 		await Deno.writeTextFile(this.logFileJson, content + '\n', { append: true });
 	}
 

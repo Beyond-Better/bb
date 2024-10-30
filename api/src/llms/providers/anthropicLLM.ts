@@ -202,7 +202,6 @@ class AnthropicLLM extends LLM {
 				type: anthropicMessage.type,
 				role: anthropicMessage.role,
 				model: anthropicMessage.model,
-				//system: messageParams.system,
 				fromCache: false,
 				timestamp: new Date().toISOString(),
 				answerContent: anthropicMessage.content as LLMMessageContentParts,

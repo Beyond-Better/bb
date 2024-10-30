@@ -28,6 +28,15 @@ export interface LLMToolRunResult {
 	finalizeCallback?: (messageId: ConversationId) => void;
 }
 
+export interface LLMToolFeatures {
+	mutates?: boolean; // Whether tool modifies resources
+	stateful?: boolean; // Whether tool maintains state
+	async?: boolean; // Whether tool runs asynchronously
+	idempotent?: boolean; // Whether multiple runs produce same result
+	resourceIntensive?: boolean; // Whether tool needs significant resources
+	requiresNetwork?: boolean; // Whether tool needs internet access
+}
+
 export type LLMToolConfig = Record<string, unknown>;
 
 export type LLMToolFormatterDestination = 'console' | 'browser';
@@ -42,6 +51,7 @@ abstract class LLMTool {
 		public name: string,
 		public description: string,
 		public toolConfig: LLMToolConfig,
+		public features: LLMToolFeatures = {},
 	) {
 		//logger.info(`LLMTool: Constructing tool ${name}`);
 	}

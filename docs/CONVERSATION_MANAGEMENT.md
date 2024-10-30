@@ -2,6 +2,36 @@
 
 This document summarizes the implementation of conversation management in the BB project, focusing on the conversation list and loading history for selected conversations.
 
+## Objectives System
+
+BB uses a hierarchical objectives system to maintain context and guide conversation flow:
+
+### Conversation Goals
+- Generated at the start of each conversation
+- Provides overall context for the entire conversation
+- Stored with conversation metadata
+- Loaded and displayed with conversation history
+
+### Statement Objectives
+- Generated for each user statement
+- Stored as an ordered array
+- Length matches the number of statements
+- Last objective represents current focus
+- Used to guide tool usage and responses
+
+### Implementation Details
+- Objectives are generated using separate LLM interactions
+- Conversation goals only generated if not already set
+- Statement objectives appended for each new statement
+- Both types of objectives persisted with conversation data
+- Tool feedback includes both objectives for context
+
+### Usage in Components
+- Chat interface displays current objectives
+- Tool feedback shows both objective levels
+- History view includes objectives in conversation timeline
+- Objectives help maintain context across session breaks
+
 ## Overview
 
 The conversation management functionality is primarily implemented in the `Chat.tsx` component, which is a Fresh island component. It handles both the list of conversations and the display of individual conversation histories.

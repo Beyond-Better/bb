@@ -5,7 +5,7 @@ import type LLMTool from 'api/llms/llmTool.ts';
 export type { LLMToolInputSchema } from '../llms/llmTool.ts';
 
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { LLMAnswerToolUse, LLMMessageContentParts } from '../llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from '../llms/llmMessage.ts';
 export type { LLMMessageContentPart, LLMMessageContentParts } from '../llms/llmMessage.ts';
 
 export enum AnthropicModel {
@@ -172,8 +172,9 @@ export interface LLMProviderMessageResponse {
 	createdAt?: Date;
 	updatedAt?: Date;
 }
+export type LLMProviderSystem = string | LLMMessageContentPart;
 export interface LLMProviderMessageMeta {
-	system: string;
+	system: LLMProviderSystem;
 }
 
 export type LLMValidateResponseCallback = (

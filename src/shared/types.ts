@@ -31,10 +31,6 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 	temperature: number;
 	maxTokens: number;
 
-	projectInfoType: string;
-	projectInfoTier?: number;
-	projectInfoContent?: string;
-
 	totalProviderRequests: number;
 
 	tokenUsageTurn: TokenUsage;
@@ -79,11 +75,41 @@ export interface ConversationTokenUsage {
 	//usageHistory?: Array<TokenUsage>
 }
 
+export interface ObjectivesData {
+	conversation?: string; // Overall conversation goal
+	statement: string[]; // Array of statement goals, one per statement
+	timestamp: string; // When the objective was set
+}
+
+export interface ResourceMetrics {
+	accessed: Set<string>; // All resources accessed
+	modified: Set<string>; // Resources modified
+	active: Set<string>; // Currently relevant resources
+}
+
+export interface ToolStats {
+	count: number;
+	success: number;
+	failure: number;
+	lastUse: {
+		success: boolean;
+		timestamp: string;
+	};
+}
+
 export interface ConversationMetrics {
 	statementCount: number;
 	statementTurnCount: number;
 	conversationTurnCount: number;
 	providerRequestCount?: number;
+
+	// New task-oriented metrics
+	objectives?: ObjectivesData;
+	resources?: ResourceMetrics;
+	toolUsage?: {
+		currentToolSet?: string;
+		toolStats: Map<string, ToolStats>;
+	};
 }
 
 export type ConversationEntry = ConversationStart | ConversationContinue | ConversationResponse;

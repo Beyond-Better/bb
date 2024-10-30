@@ -1,7 +1,15 @@
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from '../../types.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
-import type { ConversationId, ConversationMetrics, ConversationTokenUsage, TokenUsage } from 'shared/types.ts';
+import type {
+	ConversationId,
+	ConversationMetrics,
+	ConversationTokenUsage,
+	ObjectivesData,
+	ResourceMetrics,
+	TokenUsage,
+	ToolStats,
+} from 'shared/types.ts';
 import type {
 	LLMMessageContentPart,
 	LLMMessageContentPartImageBlock,
@@ -37,6 +45,16 @@ class LLMInteraction {
 	// token usage for most recent statement
 	protected _tokenUsageStatement: TokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
 	// token usage for for all statements
+	// Task-oriented metrics
+	protected _objectives: ObjectivesData;
+	protected _resources: ResourceMetrics = {
+		accessed: new Set<string>(),
+		modified: new Set<string>(),
+		active: new Set<string>(),
+	};
+	protected _toolStats: Map<string, ToolStats> = new Map();
+	protected _currentToolSet?: string;
+
 	protected _tokenUsageInteraction: ConversationTokenUsage = {
 		totalTokensTotal: 0,
 		inputTokensTotal: 0,
@@ -61,9 +79,15 @@ class LLMInteraction {
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		this.id = conversationId ?? generateConversationId();
 		this.llm = llm;
+		// Ensure objectives are properly initialized
+		this._objectives = {
+			conversation: undefined,
+			statement: [],
+			timestamp: new Date().toISOString(),
+		};
 	}
 
-	public async init(): Promise<LLMInteraction> {
+	public async init(parentId?: ConversationId): Promise<LLMInteraction> {
 		try {
 			const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
 			const logEntryHandler = async (
@@ -86,7 +110,8 @@ class LLMInteraction {
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor).init();
-			this.conversationLogger = await new ConversationLogger(projectRoot, this.id, logEntryHandler).init();
+			this.conversationLogger = await new ConversationLogger(projectRoot, parentId ?? this.id, logEntryHandler)
+				.init();
 			this.fullConfig = projectEditor.fullConfig;
 		} catch (error) {
 			logger.error('Failed to initialize LLMInteraction:', error);
@@ -170,15 +195,65 @@ class LLMInteraction {
 		return this._tokenUsageInteraction.totalTokensTotal;
 	}
 
-	//public updateTotals(tokenUsage: TokenUsage, providerRequests: number): void {
 	public updateTotals(tokenUsage: TokenUsage): void {
 		this._tokenUsageInteraction.totalTokensTotal += tokenUsage.totalTokens;
 		this._tokenUsageInteraction.inputTokensTotal += tokenUsage.inputTokens;
 		this._tokenUsageInteraction.outputTokensTotal += tokenUsage.outputTokens;
-		//this._totalProviderRequests += providerRequests;
 		this._tokenUsageStatement = tokenUsage;
 		this._statementTurnCount++;
 		this._conversationTurnCount++;
+	}
+
+	public updateToolStats(toolName: string, success: boolean): void {
+		const stats = this._toolStats.get(toolName) || {
+			count: 0,
+			success: 0,
+			failure: 0,
+			lastUse: { success: false, timestamp: '' },
+		};
+		stats.count++;
+		if (success) stats.success++;
+		else stats.failure++;
+		stats.lastUse = {
+			success,
+			timestamp: new Date().toISOString(),
+		};
+		this._toolStats.set(toolName, stats);
+	}
+
+	public updateResourceAccess(resource: string, modified: boolean = false): void {
+		this._resources.accessed.add(resource);
+		if (modified) this._resources.modified.add(resource);
+		this._resources.active.add(resource);
+	}
+
+	public setObjectives(conversation?: string, statement?: string): void {
+		// Initialize objectives if not set
+		if (!this._objectives) {
+			this._objectives = {
+				conversation: undefined,
+				statement: [],
+				timestamp: new Date().toISOString(),
+			};
+		}
+
+		// Update conversation goal if provided
+		if (conversation) {
+			this._objectives.conversation = String(conversation);
+		}
+
+		// Append new statement objective if provided
+		if (statement) {
+			this._objectives.statement.push(String(statement));
+		}
+
+		// Update timestamp
+		this._objectives.timestamp = new Date().toISOString();
+		logger.debug('Set objectives:', this._objectives);
+	}
+
+	public getObjectives(): ObjectivesData {
+		return this._objectives;
 	}
 
 	public getConversationStats(): ConversationMetrics {
@@ -186,21 +261,22 @@ class LLMInteraction {
 			statementTurnCount: this._statementTurnCount,
 			conversationTurnCount: this._conversationTurnCount,
 			statementCount: this._statementCount,
+
+			// New task-oriented metrics
+			objectives: this._objectives
+				? {
+					conversation: this._objectives.conversation,
+					statement: this._objectives.statement,
+					timestamp: this._objectives.timestamp,
+				}
+				: undefined,
+			resources: this._resources,
+			toolUsage: {
+				currentToolSet: this._currentToolSet,
+				toolStats: this._toolStats,
+			},
 		};
 	}
-	/*
-	public getAllStats(): ConversationMetrics {
-		return {
-			//totalProviderRequests: this._totalProviderRequests,
-			statementTurnCount: this._statementTurnCount,
-			conversationTurnCount: this._conversationTurnCount,
-			statementCount: this._statementCount,
-			tokenUsageTurn: this._tokenUsageTurn,
-			tokenUsageStatement: this._tokenUsageStatement,
-			tokenUsageInteraction: this._tokenUsageInteraction
-		};
-	}
- */
 
 	public prepareSytemPrompt(_system: string): Promise<string> {
 		throw new Error("Method 'prepareSytemPrompt' must be implemented.");
@@ -214,10 +290,8 @@ class LLMInteraction {
 
 	public addMessageForUserRole(content: LLMMessageContentPart | LLMMessageContentParts): string {
 		const lastMessage = this.getLastMessage();
-		//logger.debug('lastMessage for user', lastMessage);
 		if (lastMessage && lastMessage.role === 'user') {
 			// Append content to the content array of the last user message
-			//logger.debug('Adding content to existing user message', JSON.stringify(content, null, 2));
 			if (Array.isArray(content)) {
 				lastMessage.content.push(...content);
 			} else {
@@ -226,7 +300,6 @@ class LLMInteraction {
 			return lastMessage.id;
 		} else {
 			// Add a new user message
-			//logger.debug('Adding content to new user message', JSON.stringify(content, null, 2));
 			const newMessage = new LLMMessage('user', Array.isArray(content) ? content : [content]);
 			this.addMessage(newMessage);
 			return newMessage.id;
@@ -239,12 +312,10 @@ class LLMInteraction {
 		providerResponse?: LLMMessageProviderResponse,
 	): string {
 		const lastMessage = this.getLastMessage();
-		//logger.debug('lastMessage for assistant', lastMessage);
 
 		if (lastMessage && lastMessage.role === 'assistant') {
 			logger.error('LLMInteraction: Why are we adding another assistant message - SOMETHING IS WRONG!');
 			// Append content to the content array of the last assistant message
-			//logger.debug('Adding content to existing assistant message', JSON.stringify(content, null, 2));
 			if (Array.isArray(content)) {
 				lastMessage.content.push(...content);
 			} else {
@@ -253,7 +324,6 @@ class LLMInteraction {
 			return lastMessage.id;
 		} else {
 			// Add a new assistant message
-			//logger.debug('Adding content to new assistant message', JSON.stringify(content, null, 2));
 			const newMessage = new LLMMessage(
 				'assistant',
 				Array.isArray(content) ? content : [content],
@@ -365,6 +435,21 @@ class LLMInteraction {
 		return this.messages.slice(-1)[0];
 	}
 
+	/**
+	 * Returns the most recent message from the assistant in the conversation.
+	 * This is more reliable than getLastMessage() when specifically needing an assistant message,
+	 * as the last message could be from the user or a tool result.
+	 */
+	public getPreviousAssistantMessage(): LLMMessage | undefined {
+		// Search backwards through messages to find the last assistant message
+		for (let i = this.messages.length - 1; i >= 0; i--) {
+			if (this.messages[i].role === 'assistant') {
+				return this.messages[i];
+			}
+		}
+		return undefined;
+	}
+
 	public getId(): string {
 		return this.id;
 	}
@@ -467,7 +552,6 @@ class LLMInteraction {
 			speakOptions = {} as LLMSpeakWithOptions;
 		}
 
-		//logger.debug(`speakWithLLM - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
 		this.addMessageForUserRole({ type: 'text', text: prompt });
 
 		const response = await this.llm.speakWithRetry(this, speakOptions);

@@ -2,12 +2,7 @@ import { join } from '@std/path';
 import { contentType } from '@std/media-types';
 import { extname } from '@std/path';
 
-import {
-	existsWithinProject,
-	//FILE_LISTING_TIERS,
-	generateFileListing,
-	isPathWithinProject,
-} from 'api/utils/fileHandling.ts';
+import { existsWithinProject, generateFileListing, isPathWithinProject } from 'api/utils/fileHandling.ts';
 import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
 import type { ProjectInfo as BaseProjectInfo } from '../llms/interactions/conversationInteraction.ts';
 import type { FileMetadata } from 'shared/types.ts';
@@ -115,6 +110,11 @@ class ProjectEditor {
 	}
 
 	public async updateProjectInfo(): Promise<void> {
+		// If prompt caching is enabled and we've already generated the file listing, skip regeneration
+		if (this.fullConfig.api.usePromptCaching && this.projectInfo.type === 'file-listing') {
+			return;
+		}
+
 		const projectInfo: ProjectInfo = {
 			startDir: this.startDir,
 			type: 'empty',
@@ -122,27 +122,18 @@ class ProjectEditor {
 			tier: null,
 		};
 
-		if (projectInfo.type === 'empty') {
-			const projectRoot = await this.getProjectRoot();
-			//const { listing: fileListingContent, tier } = await generateFileListing(projectRoot);
-			const fileListing = await generateFileListing(projectRoot);
-
-			if (fileListing) {
-				projectInfo.type = 'file-listing';
-				projectInfo.content = fileListing.listing;
-				projectInfo.tier = fileListing.tier;
-				// Determine which tier was used for file listing
-				//const tier = FILE_LISTING_TIERS.findIndex((
-				//	t: { depth: number; includeMetadata: boolean },
-				//) => t.depth === Infinity && t.includeMetadata === true);
-				//projectInfo.tier = tier !== -1 ? tier : null;
-				logger.info(
-					`ProjectEditor: Updated projectInfo for: ${this.startDir} using tier ${projectInfo.tier}`,
-				);
-			}
+		const projectRoot = await this.getProjectRoot();
+		const fileListing = await generateFileListing(projectRoot);
+		if (fileListing) {
+			projectInfo.type = 'file-listing';
+			projectInfo.content = fileListing.listing;
+			projectInfo.tier = fileListing.tier;
+			logger.info(
+				`ProjectEditor: Updated projectInfo for: ${this.startDir} using tier ${projectInfo.tier}`,
+			);
 		}
 
-		this.projectInfo = { ...projectInfo, startDir: this.startDir };
+		this.projectInfo = projectInfo;
 	}
 
 	public async initConversation(

@@ -11,10 +11,20 @@ import { logger } from 'shared/logger.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
 
 import { compare as compareVersions, parse as parseVersion } from '@std/semver';
-import { isAbsolute, join, SEPARATOR } from '@std/path';
+import { isAbsolute, join } from '@std/path';
 import { exists } from '@std/fs';
 
 import { CORE_TOOLS } from './tools_manifest.ts';
+
+export interface ToolUsageStats {
+	toolCounts: Map<string, number>; // Track usage count per tool
+	toolResults: Map<string, { // Track success/failure per tool
+		success: number;
+		failure: number;
+	}>;
+	lastToolUse: string; // Name of last tool used
+	lastToolSuccess: boolean; // Success status of last tool
+}
 
 export interface ToolMetadata {
 	name: string;
@@ -252,6 +262,11 @@ class LLMToolManager {
 				finalizeCallback(messageId);
 			}
 
+			// Update tool usage stats
+			interaction.updateToolStats(toolUse.toolName, true);
+
+			// Resource tracking is now handled directly by tools using the interaction
+
 			return {
 				messageId,
 				toolResults,
@@ -263,6 +278,9 @@ class LLMToolManager {
 			logger.error(`llmToolManager: Error executing tool ${toolUse.toolName}: ${error.message}`);
 
 			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, error.message, true) || '';
+
+			// Update tool usage stats
+			interaction.updateToolStats(toolUse.toolName, false);
 
 			return {
 				messageId,
