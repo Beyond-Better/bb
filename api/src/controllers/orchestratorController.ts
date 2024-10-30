@@ -27,17 +27,72 @@ import type {
 	ConversationResponse,
 	ConversationStart,
 	ConversationTokenUsage,
+	ObjectivesData,
 	TokenUsage,
 } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from '../types.ts';
 import type { ConversationLogEntry } from 'shared/types.ts';
-import { generateConversationTitle } from '../utils/conversation.utils.ts';
+import {
+	generateConversationObjective,
+	generateConversationTitle,
+	generateStatementObjective,
+} from '../utils/conversation.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
+
+function getConversationObjective(objectives?: ObjectivesData): string | undefined {
+	if (!objectives) return undefined;
+	return objectives.conversation;
+}
+
+function getCurrentObjective(objectives?: ObjectivesData): string | undefined {
+	if (!objectives) return undefined;
+	if (!objectives.statement || objectives.statement.length === 0) return undefined;
+	// Return the last statement objective as the current one
+	return objectives.statement[objectives.statement.length - 1];
+}
+
+function formatTaskMetrics(interaction: LLMConversationInteraction, turnCount: number, maxTurns: number): string {
+	const stats = interaction.getConversationStats();
+	const parts = [`Turn ${turnCount}/${maxTurns}`];
+
+	// Add objectives if set
+	logger.debug('Raw objectives:', stats.objectives);
+	const conversationObjective = getConversationObjective(stats.objectives);
+	const currentObjective = getCurrentObjective(stats.objectives);
+	logger.debug('Extracted objectives:', { conversationObjective, currentObjective });
+
+	// Add conversation objective if set
+	if (conversationObjective) {
+		parts.push(`Conversation Goal: ${conversationObjective}`);
+	}
+
+	// Add current objective if set
+	if (currentObjective) {
+		parts.push(`Current Objective: ${currentObjective}`);
+	}
+
+	// Add tool usage stats
+	const toolStats = stats.toolUsage?.toolStats;
+	if (toolStats && toolStats.size > 0) {
+		const toolUsage = Array.from(toolStats.entries())
+			.map(([tool, stats]) => `${tool}(${stats.count}: ${stats.success}✓ ${stats.failure}✗)`).join(', ');
+		parts.push(`Tools Used: ${toolUsage}`);
+	}
+
+	// Add resource stats if any were accessed
+	if (stats.resources && stats.resources.accessed.size > 0) {
+		const resourceStats =
+			`Resources: ${stats.resources.accessed.size} accessed, ${stats.resources.modified.size} modified`;
+		parts.push(resourceStats);
+	}
+
+	return parts.join('\n');
+}
 
 class OrchestratorController {
 	private interactionStats: Map<ConversationId, ConversationMetrics> = new Map();
@@ -272,8 +327,11 @@ class OrchestratorController {
 
 			// Save system prompt and project info if running in local development
 			if (this.fullConfig.api?.environment === 'localdev') {
-				await persistence.saveSystemPrompt(currentResponse.messageMeta.system);
-				await persistence.saveProjectInfo(this.projectEditor.projectInfo);
+				const system = Array.isArray(currentResponse.messageMeta.system)
+					? currentResponse.messageMeta.system[0].text
+					: currentResponse.messageMeta.system;
+				await persistence.dumpSystemPrompt(system);
+				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 
 			logger.info(`OrchestratorController: Saved conversation: ${interaction.id}`);
@@ -298,8 +356,11 @@ class OrchestratorController {
 
 			// Save system prompt and project info if running in local development
 			if (this.fullConfig.api?.environment === 'localdev') {
-				await persistence.saveSystemPrompt(currentResponse.messageMeta.system);
-				await persistence.saveProjectInfo(this.projectEditor.projectInfo);
+				const system = Array.isArray(currentResponse.messageMeta.system)
+					? currentResponse.messageMeta.system[0].text
+					: currentResponse.messageMeta.system;
+				await persistence.dumpSystemPrompt(system);
+				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 		} catch (error) {
 			logger.error(`OrchestratorController: Error persisting the conversation:`, error);
@@ -561,6 +622,40 @@ class OrchestratorController {
 		if (!interaction.title) {
 			interaction.title = await this.generateConversationTitle(statement, interaction.id);
 		}
+
+		// Get current conversation stats to check objectives
+		const currentStats = interaction.getConversationStats();
+
+		// Generate conversation objective if not set
+		if (!currentStats.objectives?.conversation) {
+			const conversationObjective = await generateConversationObjective(
+				await this.createChatInteraction(interaction.id, 'Generate conversation objective'),
+				statement,
+			);
+			interaction.setObjectives(conversationObjective);
+			logger.debug('Set conversation objective:', conversationObjective);
+		}
+
+		// Generate statement objective with context from previous assistant response
+		const previousAssistantMessage = interaction.getPreviousAssistantMessage();
+		const previousResponse = previousAssistantMessage
+			? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
+			: undefined;
+
+		const previousObjectives = interaction.getObjectives().statement || [];
+		const previousObjective = previousObjectives[previousObjectives.length - 1];
+		logger.info('Previous objective:', previousObjective);
+
+		const statementObjective = await generateStatementObjective(
+			await this.createChatInteraction(interaction.id, 'Generate statement objective'),
+			statement,
+			currentStats.objectives?.conversation,
+			previousResponse,
+			previousObjective,
+		);
+		interaction.setObjectives(undefined, statementObjective);
+		logger.debug('Set statement objective:', statementObjective);
+
 		await this.projectEditor.updateProjectInfo();
 
 		this._statementTurnCount = 0;
@@ -660,8 +755,8 @@ class OrchestratorController {
 						await this.projectEditor.updateProjectInfo();
 
 						statement = `Tool results feedback:\n${
-							toolResponses.join('\n')
-						}\n\nPlease continue the conversation.`;
+							formatTaskMetrics(interaction, loopTurnCount, maxTurns)
+						}\n${toolResponses.join('\n')}`;
 
 						currentResponse = await interaction.speakWithLLM(statement, speakOptions);
 						//logger.info('OrchestratorController: tool response', currentResponse);

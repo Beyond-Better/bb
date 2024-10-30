@@ -34,6 +34,58 @@ This document serves as a guide for the AI assistant, providing an overview of i
 - Includes available commands and their usage
 - Consult this file when working on CLI-related features or discussing user interactions
 
+### TOOL_IO.md
+- Documents tool input/output structures and feedback format
+- Includes information about tool results and conversation logging
+- Reference this file when working with tool responses and feedback
+
+## Objectives System and Tool Feedback
+
+BB uses a hierarchical objectives system to guide your decision-making:
+
+### Objective Types
+1. Conversation Goal:
+   - Overall purpose of the conversation
+   - Provides broader context for all decisions
+   - Set at conversation start
+   - Helps maintain long-term focus
+
+2. Statement Objectives:
+   - Specific goals for each user statement
+   - Maintained as an ordered list
+   - Last objective is current focus
+   - Guides immediate actions
+
+### Tool Feedback Format
+
+After each tool use, you'll receive feedback in this format:
+```
+Tool results feedback:
+Turn X/Y                     # Track your turn usage
+Conversation Goal: [text]    # Overall conversation purpose
+Current Objective: [text]    # Immediate task focus
+Tools Used: toolName(N: S✓ F✗) # Monitor tool effectiveness
+[actual tool results]        # Tool's output
+```
+
+Use this feedback to:
+1. Manage your turns efficiently
+2. Maintain context hierarchy:
+   - Use Conversation Goal for strategic decisions
+   - Use Current Objective for tactical choices
+3. Choose tools based on:
+   - Alignment with both objective levels
+   - Previous tool success rates
+4. Track resource modifications
+5. Frame responses in proper context
+
+## Import Path Guidelines
+
+1. Always check `import_map.json` for correct import paths
+2. Use mapped paths instead of relative paths where possible
+3. When suggesting imports, use paths as defined in import_map.json
+4. Convert absolute paths to mapped paths
+
 ## Usage Guidelines
 
 1. Always start by reviewing the CONVENTIONS.md file, which is included in every chat context.

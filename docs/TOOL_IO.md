@@ -29,3 +29,55 @@ The conversation logs are for displaying by BB to the user. The LLM message hist
 
 For example, the conversation history can have "side" conversations when asking for git commit message, or asking for conversation title, or when delegating tasks such as summarizing a conversation. The conversation logs contain "entries" which can come from multiple LLM interactions. 
 
+## Objectives System
+
+BB uses a hierarchical objectives system to maintain context and guide decision-making:
+
+1. Conversation Goal:
+   - Overall objective for the entire conversation
+   - Set when conversation begins
+   - Provides high-level context for all actions
+
+2. Statement Objectives:
+   - Specific objectives for each user statement
+   - Maintained as an ordered list
+   - Last objective is the current focus
+   - Length matches number of statements
+
+Objectives help both the LLM and user track progress and maintain context throughout the conversation.
+
+## Tool Feedback Structure
+
+Tool feedback is provided to both the LLM and the user in a structured format:
+
+```
+Tool results feedback:
+Turn X/Y                     # Current turn and maximum turns
+Conversation Goal: [text]    # Overall conversation objective
+Current Objective: [text]    # Current statement objective
+Tools Used: toolName(N: S✓ F✗) # Tool usage stats (N=total, S=success, F=fail)
+[actual tool results]        # The tool's output
+```
+
+This structure helps:
+1. **Turn Management**: Track progress through available turns
+2. **Context Hierarchy**: Maintain both overall and immediate objectives
+3. **Focus Management**: Keep immediate tasks aligned with broader goals
+4. **Tool Usage**: Monitor which tools are being used and their success rates
+5. **Resource Tracking**: Track files and URLs accessed
+
+The objectives in the feedback serve different purposes:
+- **Conversation Goal**: Provides broader context for decision-making
+- **Current Objective**: Guides immediate actions and tool choices
+
+This dual-level objective system helps:
+1. Maintain consistency across multiple statements
+2. Guide tool selection and usage
+3. Frame responses in proper context
+4. Track progress toward overall goals
+
+The feedback is maintained by:
+- `LLMConversationInteraction`: Tracks objectives and resource access
+- `LLMToolManager`: Manages tool usage statistics
+- `OrchestratorController`: Formats and presents the feedback
+

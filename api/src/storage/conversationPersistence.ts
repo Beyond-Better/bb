@@ -10,8 +10,11 @@ import type {
 	ConversationMetadata,
 	ConversationMetrics,
 	ConversationTokenUsage,
+	ObjectivesData,
+	ResourceMetrics,
 	TokenUsage,
 } from 'shared/types.ts';
+import type { LLMProviderSystem } from 'api/types/llms.ts';
 import type { LLMMessageContentPartToolUseBlock } from 'api/llms/llmMessage.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
@@ -36,7 +39,11 @@ class ConversationPersistence {
 	private conversationsMetadataPath!: string;
 	private filesMetadataPath!: string;
 	private fileRevisionsDir!: string;
+	private objectivesPath!: string;
+	private resourcesPath!: string;
+	private projectInfoPath!: string;
 	private initialized: boolean = false;
+	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
 		private conversationId: ConversationId,
@@ -54,20 +61,28 @@ class ConversationPersistence {
 
 	async init(): Promise<ConversationPersistence> {
 		const bbDataDir = await this.projectEditor.getBbDataDir();
+
 		const conversationsDir = join(bbDataDir, 'conversations');
 		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
-		await ensureDir(this.conversationDir);
 
 		this.metadataPath = join(this.conversationDir, 'metadata.json');
+
 		this.messagesPath = join(this.conversationDir, 'messages.jsonl');
 		this.changeLogPath = join(this.conversationDir, 'changes.jsonl');
+
 		this.preparedSystemPath = join(this.conversationDir, 'prepared_system.json');
 		this.preparedToolsPath = join(this.conversationDir, 'prepared_tools.json');
+
 		this.filesMetadataPath = join(this.conversationDir, 'files_metadata.json');
 		this.fileRevisionsDir = join(this.conversationDir, 'file_revisions');
-		await ensureDir(this.fileRevisionsDir);
+
+		this.projectInfoPath = join(this.conversationDir, 'project_info.json');
+
+		this.objectivesPath = join(this.conversationDir, 'objectives.json');
+		this.resourcesPath = join(this.conversationDir, 'resources.json');
+
 		return this;
 	}
 
@@ -124,9 +139,22 @@ class ConversationPersistence {
 		};
 	}
 
+	/**
+	 * Ensures a directory exists, tracking which directories have been created to avoid redundant calls
+	 */
+	private async ensureDirectory(dir: string): Promise<void> {
+		if (!this.ensuredDirs.has(dir)) {
+			await ensureDir(dirname(dir)); // Ensure parent directory exists
+			await ensureDir(dir);
+			this.ensuredDirs.add(dir);
+		}
+	}
+
 	async saveConversation(conversation: LLMConversationInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
+			logger.debug(`ConversationPersistence: Ensure directory for saveConversation: ${this.conversationDir}`);
+			await this.ensureDirectory(this.conversationDir);
 
 			const metadata: ConversationMetadata = {
 				id: conversation.id,
@@ -154,20 +182,13 @@ class ConversationPersistence {
 				tokenUsageConversation: conversation.tokenUsageConversation,
 
 				totalProviderRequests: conversation.totalProviderRequests,
-
 				//tools: conversation.getAllTools().map((tool) => ({ name: tool.name, description: tool.description })),
-
-				// following attributes are for reference only; they are not set when conversation is loaded
-				projectInfoType: this.projectEditor.projectInfo.type,
-				projectInfoTier: this.projectEditor.projectInfo.tier ?? undefined,
-				projectInfoContent: this.projectEditor.projectInfo.content,
 			};
-			// projectInfoContent is only included for 'localdev' environment
-			const globalConfig = await ConfigManager.globalConfig();
-			if (globalConfig.api?.environment === 'localdev') {
-				detailedMetadata.projectInfoContent = this.projectEditor.projectInfo.content;
-			}
+
 			await this.saveMetadata(detailedMetadata);
+
+			// Save project info to JSON
+			await this.saveProjectInfo(this.projectEditor.projectInfo);
 
 			// Save messages
 			const statementCount = conversation.statementCount || 0; // Assuming this property exists
@@ -196,8 +217,19 @@ class ConversationPersistence {
 			for (const [key, value] of conversation.getFiles()) {
 				filesMetadata[key] = value;
 			}
-			this.saveFilesMetadata(filesMetadata);
+			await this.saveFilesMetadata(filesMetadata);
 			logger.info(`ConversationPersistence: Saved filesMetadata for conversation: ${conversation.id}`);
+
+			// Save objectives and resources
+			const stats = conversation.getConversationStats();
+			if (stats.objectives) {
+				await this.saveObjectives(stats.objectives);
+				logger.info(`ConversationPersistence: Saved objectives for conversation: ${conversation.id}`);
+			}
+			if (stats.resources) {
+				await this.saveResources(stats.resources);
+				logger.info(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
+			}
 		} catch (error) {
 			logger.error(`ConversationPersistence: Error saving conversation: ${error.message}`);
 			this.handleSaveError(error, this.metadataPath);
@@ -236,7 +268,44 @@ class ConversationPersistence {
 			conversation.conversationTurnCount = metadata.conversationStats.conversationTurnCount;
 			conversation.statementCount = metadata.conversationStats.statementCount;
 
-			//conversation.addTools((metadata.tools || []).map(tool => ({ ...tool, inputSchema: {}, validateInput: () => true, runTool: async () => ({ result: '' }) })));
+			// Load objectives if they exist
+			try {
+				const objectives = await this.getObjectives();
+				if (objectives) {
+					conversation.setObjectives(objectives.conversation);
+					for (const statement of objectives.statement) {
+						conversation.setObjectives(undefined, statement);
+					}
+				}
+			} catch (error) {
+				logger.warn(`ConversationPersistence: Error loading objectives: ${error.message}`);
+				// Continue loading - don't fail the whole conversation load
+			}
+
+			// Load resources if they exist
+			try {
+				const resources = await this.getResources();
+				if (resources) {
+					resources.accessed.forEach((r) => conversation.updateResourceAccess(r, false));
+					resources.modified.forEach((r) => conversation.updateResourceAccess(r, true));
+				}
+			} catch (error) {
+				logger.warn(`ConversationPersistence: Error loading resources: ${error.message}`);
+				// Continue loading - don't fail the whole conversation load
+			}
+
+			// Load project info if it exists
+			try {
+				const projectInfo = await this.getProjectInfo();
+				if (projectInfo) {
+					// Store in conversation if needed
+					// Currently just logging as project info is handled by projectEditor
+					logger.debug('ConversationPersistence: Loaded project info from JSON');
+				}
+			} catch (error) {
+				logger.warn(`ConversationPersistence: Error loading project info: ${error.message}`);
+				// Continue loading - don't fail the whole conversation load
+			}
 
 			if (await exists(this.messagesPath)) {
 				const messagesContent = await Deno.readTextFile(this.messagesPath);
@@ -305,6 +374,11 @@ class ConversationPersistence {
 			tokenUsageConversation?: ConversationTokenUsage;
 		},
 	): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(
+			`ConversationPersistence: Ensure directory for updateConversationsMetadata: ${this.conversationsMetadataPath}`,
+		);
+		await this.ensureDirectory(dirname(this.conversationsMetadataPath));
 		let conversations: ConversationMetadata[] = [];
 
 		if (await exists(this.conversationsMetadataPath)) {
@@ -377,6 +451,8 @@ class ConversationPersistence {
 
 	async saveFilesMetadata(filesMetadata: ConversationFilesMetadata): Promise<void> {
 		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for saveFilesMetadata: ${this.filesMetadataPath}`);
+		await this.ensureDirectory(dirname(this.filesMetadataPath));
 		const existingFilesMetadata = await this.getFilesMetadata();
 		const updatedFilesMetadata = { ...existingFilesMetadata, ...filesMetadata };
 		await Deno.writeTextFile(this.filesMetadataPath, JSON.stringify(updatedFilesMetadata, null, 2));
@@ -394,6 +470,8 @@ class ConversationPersistence {
 
 	async saveMetadata(metadata: Partial<ConversationDetailedMetadata>): Promise<void> {
 		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
+		await this.ensureDirectory(dirname(this.metadataPath));
 		const existingMetadata = await this.getMetadata();
 		const updatedMetadata = { ...existingMetadata, ...metadata };
 		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
@@ -447,10 +525,6 @@ class ConversationPersistence {
 			temperature: 0,
 			maxTokens: 4096,
 
-			projectInfoType: '',
-			projectInfoTier: 0,
-			projectInfoContent: '',
-
 			totalProviderRequests: 0,
 
 			tokenUsageTurn: ConversationPersistence.defaultTokenUsage(),
@@ -464,6 +538,10 @@ class ConversationPersistence {
 
 	async savePreparedSystemPrompt(systemPrompt: string): Promise<void> {
 		await this.ensureInitialized();
+		logger.debug(
+			`ConversationPersistence: Ensure directory for savePreparedSystemPrompt: ${this.preparedSystemPath}`,
+		);
+		await this.ensureDirectory(dirname(this.preparedSystemPath));
 		const promptData = { systemPrompt };
 		await Deno.writeTextFile(this.preparedSystemPath, JSON.stringify(promptData, null, 2));
 		logger.info(`ConversationPersistence: Prepared prompt saved for conversation: ${this.conversationId}`);
@@ -481,6 +559,8 @@ class ConversationPersistence {
 
 	async savePreparedTools(tools: LLMTool[]): Promise<void> {
 		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for savePreparedTools: ${this.preparedToolsPath}`);
+		await this.ensureDirectory(dirname(this.preparedToolsPath));
 		//const toolsData = Array.from(tools.values()).map((tool) => ({
 		const toolsData = tools.map((tool) => ({
 			name: tool.name,
@@ -501,16 +581,103 @@ class ConversationPersistence {
 		return null;
 	}
 
-	// this is a system prompt dump primarily used for debugging
-	async saveSystemPrompt(systemPrompt: string): Promise<void> {
+	async saveObjectives(objectives: ObjectivesData): Promise<void> {
+		if (!objectives.statement || !Array.isArray(objectives.statement)) {
+			throw createError(ErrorType.FileHandling, 'Invalid objectives format', {
+				filePath: this.objectivesPath,
+				operation: 'write',
+			} as FileHandlingErrorOptions);
+		}
+
 		await this.ensureInitialized();
-		const systemPromptInfoPath = join(this.conversationDir, 'dump_system_prompt.md');
-		await Deno.writeTextFile(systemPromptInfoPath, JSON.stringify(systemPrompt, null, 2));
-		logger.info(`ConversationPersistence: System prompt saved for conversation: ${this.conversationId}`);
+		logger.debug(`ConversationPersistence: Ensure directory for saveObjectives: ${this.objectivesPath}`);
+		await this.ensureDirectory(dirname(this.objectivesPath));
+		await Deno.writeTextFile(this.objectivesPath, JSON.stringify(objectives, null, 2));
+		logger.info(`ConversationPersistence: Saved objectives for conversation: ${this.conversationId}`);
 	}
-	// this is a project info dump primarily used for debugging
-	async saveProjectInfo(projectInfo: ProjectInfo): Promise<void> {
+
+	async getObjectives(): Promise<ObjectivesData | null> {
 		await this.ensureInitialized();
+		if (await exists(this.objectivesPath)) {
+			const content = await Deno.readTextFile(this.objectivesPath);
+			return JSON.parse(content);
+		}
+		return null;
+	}
+
+	async saveResources(resources: ResourceMetrics): Promise<void> {
+		if (!resources.accessed || !resources.modified || !resources.active) {
+			throw createError(ErrorType.FileHandling, 'Invalid resources format', {
+				filePath: this.resourcesPath,
+				operation: 'write',
+			} as FileHandlingErrorOptions);
+		}
+
+		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for saveResources: ${this.resourcesPath}`);
+		await this.ensureDirectory(dirname(this.resourcesPath));
+		// Convert Sets to arrays for storage
+		const storageFormat = {
+			accessed: Array.from(resources.accessed),
+			modified: Array.from(resources.modified),
+			active: Array.from(resources.active),
+			timestamp: new Date().toISOString(),
+		};
+		await Deno.writeTextFile(this.resourcesPath, JSON.stringify(storageFormat, null, 2));
+		logger.info(`ConversationPersistence: Saved resources for conversation: ${this.conversationId}`);
+	}
+
+	async getResources(): Promise<ResourceMetrics | null> {
+		await this.ensureInitialized();
+		if (await exists(this.resourcesPath)) {
+			const content = await Deno.readTextFile(this.resourcesPath);
+			const stored = JSON.parse(content);
+			// Convert arrays back to Sets
+			return {
+				accessed: new Set(stored.accessed),
+				modified: new Set(stored.modified),
+				active: new Set(stored.active),
+			};
+		}
+		return null;
+	}
+
+	async saveProjectInfo(projectInfo: ExtendedProjectInfo): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for saveProjectInfo: ${this.projectInfoPath}`);
+		await this.ensureDirectory(dirname(this.projectInfoPath));
+		try {
+			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
+			logger.info(`ConversationPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
+		} catch (error) {
+			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${error.message}`, {
+				filePath: this.projectInfoPath,
+				operation: 'write',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	async getProjectInfo(): Promise<ExtendedProjectInfo | null> {
+		await this.ensureInitialized();
+		try {
+			if (await exists(this.projectInfoPath)) {
+				const content = await Deno.readTextFile(this.projectInfoPath);
+				return JSON.parse(content);
+			}
+			return null;
+		} catch (error) {
+			throw createError(ErrorType.FileHandling, `Failed to load project info JSON: ${error.message}`, {
+				filePath: this.projectInfoPath,
+				operation: 'read',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	// This method saves project info as markdown for debugging in localdev environment
+	async dumpProjectInfo(projectInfo: ProjectInfo): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for dumpProjectInfo: ${this.conversationDir}`);
+		await this.ensureDirectory(this.conversationDir);
 		const projectInfoPath = join(this.conversationDir, 'dump_project_info.md');
 		const content = stripIndents`---
 			type: ${projectInfo.type}
@@ -519,7 +686,17 @@ class ConversationPersistence {
 			${projectInfo.content}
 		`;
 		await Deno.writeTextFile(projectInfoPath, content);
-		logger.info(`ConversationPersistence: Project info saved for conversation: ${this.conversationId}`);
+		logger.info(`ConversationPersistence: Project info dumped for conversation: ${this.conversationId}`);
+	}
+
+	// this is a system prompt dump primarily used for debugging
+	async dumpSystemPrompt(systemPrompt: string): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for dumpSystemPrompt: ${this.conversationDir}`);
+		await this.ensureDirectory(this.conversationDir);
+		const systemPromptPath = join(this.conversationDir, 'dump_system_prompt.md');
+		await Deno.writeTextFile(systemPromptPath, systemPrompt);
+		logger.info(`ConversationPersistence: System prompt dumped for conversation: ${this.conversationId}`);
 	}
 
 	private handleSaveError(error: unknown, filePath: string): never {
@@ -552,6 +729,8 @@ class ConversationPersistence {
 
 	async logChange(filePath: string, change: string): Promise<void> {
 		await this.ensureInitialized();
+		logger.debug(`ConversationPersistence: Ensure directory for logChange: ${this.changeLogPath}`);
+		await this.ensureDirectory(dirname(this.changeLogPath));
 
 		const changeEntry = JSON.stringify({
 			timestamp: new Date().toISOString(),
@@ -596,8 +775,9 @@ class ConversationPersistence {
 		await this.ensureInitialized();
 		const revisionFileName = `${fileName}_rev_${revisionId}`;
 		const revisionFileDir = join(this.fileRevisionsDir, dirname(revisionFileName));
-		ensureDir(revisionFileDir);
 		const revisionFilePath = join(this.fileRevisionsDir, revisionFileName);
+		logger.debug(`ConversationPersistence: Ensure directory for storeFileRevision: ${revisionFileDir}`);
+		await this.ensureDirectory(revisionFileDir);
 		logger.info(`ConversationPersistence: Writing revision file: ${revisionFilePath}`);
 		if (typeof content === 'string') {
 			await Deno.writeTextFile(revisionFilePath, content);
@@ -639,8 +819,10 @@ class ConversationPersistence {
 	// 	}
 
 	async createBackups(): Promise<void> {
+		await this.ensureInitialized();
 		const backupDir = join(this.conversationDir, 'backups');
-		await ensureDir(backupDir);
+		logger.debug(`ConversationPersistence: Ensure directory for createBackups: ${backupDir}`);
+		await this.ensureDirectory(backupDir);
 
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 		const filesToBackup = ['messages.jsonl', 'conversation.jsonl', 'metadata.json'];

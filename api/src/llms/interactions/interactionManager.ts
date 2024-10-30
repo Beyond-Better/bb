@@ -31,7 +31,7 @@ class InteractionManager {
 		if (type === 'conversation') {
 			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init();
 		} else {
-			interaction = await new LLMChatInteraction(llmProvider, interactionId).init();
+			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentId);
 		}
 
 		this.interactions.set(interactionId, interaction);

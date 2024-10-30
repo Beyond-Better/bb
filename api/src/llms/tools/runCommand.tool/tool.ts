@@ -31,7 +31,11 @@ export default class LLMToolRunCommand extends LLMTool {
 		);
 
 		this.allowedCommands = toolConfig.allowedCommands || [];
-		logger.info(`LLMToolRunCommand: Initialized with allowed commands:\n${this.allowedCommands.map(cmd => `  - ${cmd}`).join('\n')}`);
+		logger.info(
+			`LLMToolRunCommand: Initialized with allowed commands:\n${
+				this.allowedCommands.map((cmd) => `  - ${cmd}`).join('\n')
+			}`,
+		);
 	}
 
 	get inputSchema(): LLMToolInputSchema {
@@ -100,7 +104,11 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 			args?: string[];
 		};
 
-		logger.info(`LLMToolRunCommand: Validating command '${command}' against allowed commands:\n${this.allowedCommands.map(cmd => `  - ${cmd}`).join('\n')}`);
+		logger.info(
+			`LLMToolRunCommand: Validating command '${command}' against allowed commands:\n${
+				this.allowedCommands.map((cmd) => `  - ${cmd}`).join('\n')
+			}`,
+		);
 		if (!this.allowedCommands.some((allowed) => command.startsWith(allowed))) {
 			logger.info(`LLMToolRunCommand: Command '${command}' not in allowed list`);
 			const toolResults =

@@ -9,7 +9,7 @@ import type {
 	FileMetadata,
 	TokenUsage,
 } from 'shared/types.ts';
-import LLMInteraction from './baseInteraction.ts';
+import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
@@ -23,6 +23,7 @@ import { isFileHandlingError } from 'api/errors/error.ts';
 
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
+import type { ToolUsageStats } from '../llmToolManager.ts';
 import { logger } from 'shared/logger.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
 import { ResourceManager } from '../resourceManager.ts';
@@ -44,6 +45,12 @@ export interface ProjectInfo {
 class LLMConversationInteraction extends LLMInteraction {
 	private _files: Map<string, FileMetadata> = new Map();
 	private resourceManager: ResourceManager;
+	private toolUsageStats: ToolUsageStats = {
+		toolCounts: new Map(),
+		toolResults: new Map(),
+		lastToolUse: '',
+		lastToolSuccess: false,
+	};
 	private systemPromptFiles: string[] = [];
 	//private currentCommit: string | null = null;
 
@@ -296,25 +303,45 @@ class LLMConversationInteraction extends LLMInteraction {
 						}`,
 					);
 
+					// Error calling Anthropic API Error: 400 {"type":"error","error":{"type":"invalid_request_error",
+					// "message":"messages.4.content.0.tool_result.content.0.image.source.base64.media_type: Input should be 'image/jpeg', 'image/png', 'image/gif' or 'image/webp'"}}
 					if (fileMetadata.type === 'image') {
-						// For image files, we'll create both an LLMMessageContentPartImageBlock and a text block
-						const imageData = await this.readProjectFileContent(filePath, messageId) as Uint8Array;
-						const base64Data = encodeBase64(imageData);
-						const imageBlock: LLMMessageContentPartImageBlock = {
-							type: 'image',
-							source: {
-								type: 'base64',
-								media_type: fileMetadata.mimeType as LLMMessageContentPartImageBlockSourceMediaType,
-								data: base64Data,
-							},
-						};
-						const textBlock: LLMMessageContentPartTextBlock = {
-							type: 'text',
-							text:
-								`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
-						};
-						hydratedFiles.set(filePath, turnIndex);
-						return [imageBlock, textBlock] as LLMMessageContentParts;
+						const supportedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+						const mimeType = fileMetadata.mimeType || 'unknown';
+						
+						if (supportedImageTypes.includes(mimeType)) {
+							// For supported image types, create both an LLMMessageContentPartImageBlock and a text block
+							const imageData = await this.readProjectFileContent(filePath, messageId) as Uint8Array;
+							const base64Data = encodeBase64(imageData);
+							const imageBlock: LLMMessageContentPartImageBlock = {
+								type: 'image',
+								source: {
+									type: 'base64',
+									media_type: fileMetadata.mimeType as LLMMessageContentPartImageBlockSourceMediaType,
+									data: base64Data,
+								},
+							};
+							const textBlock: LLMMessageContentPartTextBlock = {
+								type: 'text',
+								text:
+									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
+							};
+							hydratedFiles.set(filePath, turnIndex);
+							return [imageBlock, textBlock] as LLMMessageContentParts;
+						} else {
+							// For unsupported image types, create two text blocks: one for the warning and one for the file tag
+							const warningBlock: LLMMessageContentPartTextBlock = {
+								type: 'text',
+								text: `Note: Image file ${filePath} is in unsupported format (${mimeType === 'unknown' ? 'unknown type' : mimeType}). Only jpeg, png, gif, and webp formats are supported.`,
+							};
+							const fileBlock: LLMMessageContentPartTextBlock = {
+								type: 'text',
+								text:
+									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
+							};
+							hydratedFiles.set(filePath, turnIndex);
+							return [warningBlock, fileBlock] as LLMMessageContentParts;
+						}
 					} else {
 						//logger.info(`ConversationInteraction: Hydrating - preparing file: ${filePath}`);
 						const fileContent = await this.readProjectFileContent(filePath, messageId);
@@ -510,6 +537,29 @@ ${fileContent}
 
 	getLastSystemPromptFile(): string {
 		return this.systemPromptFiles.slice(-1)[0];
+	}
+
+	public getToolUsageStats(): ToolUsageStats {
+		return this.toolUsageStats;
+	}
+
+	public updateToolStats(toolName: string, success: boolean): void {
+		// Update tool counts
+		const currentCount = this.toolUsageStats.toolCounts.get(toolName) || 0;
+		this.toolUsageStats.toolCounts.set(toolName, currentCount + 1);
+
+		// Update success/failure counts
+		const results = this.toolUsageStats.toolResults.get(toolName) || { success: 0, failure: 0 };
+		if (success) {
+			results.success++;
+		} else {
+			results.failure++;
+		}
+		this.toolUsageStats.toolResults.set(toolName, results);
+
+		// Update last tool use
+		this.toolUsageStats.lastToolUse = toolName;
+		this.toolUsageStats.lastToolSuccess = success;
 	}
 
 	clearSystemPromptFiles(): void {
