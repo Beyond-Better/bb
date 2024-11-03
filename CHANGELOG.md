@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- Full rewrite of tool descriptions (based on guidance from Anthropic's "computer use" tools)
-- Updated to latest Sonnet (WOW, I'm impressed)
+
+
+## [0.2.3] - 2024-11-03
+
+### Changed
+
+- changed one-shot task to use text format as default; json format is cli arg
+- updated cli config sub-command to work with full, global, and project level configs
+- updated cli config sub-command to accept more updates
+- updated cli config sub-command to output in colour
+
 
 ## [0.2.2] - 2024-10-30
 
