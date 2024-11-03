@@ -427,39 +427,69 @@ export class ConfigManager {
 		return sensitivePatterns.some((pattern) => pattern.test(key));
 	}
 
-	public async setGlobalConfigValue(key: string, value: string): Promise<void> {
-		const keys = key.split('.');
-		let current: any = await this.loadGlobalConfig();
-		for (let i = 0; i < keys.length - 1; i++) {
-			if (!current[keys[i]]) current[keys[i]] = {};
-			current = current[keys[i]];
+	public async setProjectConfigValue(key: string, value: string, startDir: string): Promise<void> {
+		const projectRoot = await this.getProjectRoot(startDir);
+		const projectConfigPath = join(projectRoot, '.bb', 'config.yaml');
+		let current: ProjectConfigSchema;
+
+		try {
+			const content = await Deno.readTextFile(projectConfigPath);
+			current = parseYaml(content) as ProjectConfigSchema;
+		} catch (error) {
+			if (error instanceof Deno.errors.NotFound) {
+				current = defaultProjectConfig;
+			} else {
+				throw error;
+			}
 		}
-		current[keys[keys.length - 1]] = value;
+
+		// Update the value
+		this.updateNestedValue(current, key, value);
+
+		if (!this.validateProjectConfig(current)) {
+			throw new Error('Invalid project configuration after setting value');
+		}
+
+		// Ensure .bb directory exists
+		await ensureDir(join(projectRoot, '.bb'));
+
+		// Write the updated config
+		await Deno.writeTextFile(projectConfigPath, stringifyYaml(current));
+
+		// Update cache
+		this.projectConfigs.set(projectRoot, current);
+	}
+
+	public async setGlobalConfigValue(key: string, value: string): Promise<void> {
+		const globalConfigPath = join(await getGlobalConfigDir(), 'config.yaml');
+		let current: GlobalConfigSchema;
+
+		try {
+			const content = await Deno.readTextFile(globalConfigPath);
+			current = parseYaml(content) as GlobalConfigSchema;
+		} catch (error) {
+			if (error instanceof Deno.errors.NotFound) {
+				current = defaultGlobalConfig;
+			} else {
+				throw error;
+			}
+		}
+
+		// Update the value
+		this.updateNestedValue(current, key, value);
 
 		if (!this.validateGlobalConfig(current)) {
 			throw new Error('Invalid global configuration after setting value');
 		}
 
-		await this.saveGlobalConfig(current);
-	}
+		// Ensure config directory exists
+		await ensureDir(await getGlobalConfigDir());
 
-	public async getGlobalConfigValue(key: string): Promise<string | undefined> {
-		const keys = key.split('.');
-		let current: any = await this.loadGlobalConfig();
-		for (const k of keys) {
-			if (current[k] === undefined) return undefined;
-			current = current[k];
-		}
-		return current;
-	}
+		// Write the updated config
+		await Deno.writeTextFile(globalConfigPath, stringifyYaml(current));
 
-	private async saveGlobalConfig(fullConfig: GlobalConfigSchema): Promise<void> {
-		const globalConfigPath = join(Deno.env.get('HOME') || '', '.config', 'bb', 'config.yaml');
-		try {
-			await Deno.writeTextFile(globalConfigPath, stringifyYaml(fullConfig));
-		} catch (error) {
-			throw error;
-		}
+		// Update cache
+		this.globalConfig = current;
 	}
 
 	private validateFullConfig(config: Partial<FullConfigSchema>): boolean {
@@ -478,6 +508,54 @@ export class ConfigManager {
 		}
 		//if (!Array.isArray(globalConfig.api.userToolDirectories)) return false;
 		return true;
+	}
+
+	/**
+	 * Updates a nested value in a configuration object using a dot-notation path.
+	 * @param obj The configuration object to update
+	 * @param key The dot-notation path to the value (e.g., 'api.logLevel')
+	 * @param value The string value to set, will be parsed appropriately
+	 * @throws Error if the path is invalid or if intermediate values are not objects
+	 */
+	private updateNestedValue<T extends GlobalConfigSchema | ProjectConfigSchema>(
+		obj: T,
+		key: string,
+		value: string,
+	): void {
+		const keys = key.split('.');
+		// Safe conversion: first to unknown, then to Record
+		let target = (obj as unknown) as Record<string, unknown>;
+
+		// Navigate to the nested location, creating objects as needed
+		for (let i = 0; i < keys.length - 1; i++) {
+			if (!target[keys[i]] || typeof target[keys[i]] !== 'object') {
+				target[keys[i]] = {};
+			}
+			target = target[keys[i]] as Record<string, unknown>;
+			if (!target) {
+				throw new Error(`Invalid configuration path: ${key}`);
+			}
+		}
+
+		// Set the value at the final key
+		target[keys[keys.length - 1]] = this.parseConfigValue(value);
+	}
+
+	private parseConfigValue(value: string): unknown {
+		// Try to parse as JSON if it looks like a complex value
+		if (
+			value.startsWith('{') || value.startsWith('[') ||
+			value === 'true' || value === 'false' ||
+			value === 'null' || !isNaN(Number(value))
+		) {
+			try {
+				return JSON.parse(value);
+			} catch {
+				// If parsing fails, return as string
+				return value;
+			}
+		}
+		return value;
 	}
 
 	private validateProjectConfig(projectConfig: Partial<ProjectConfigSchema>): boolean {

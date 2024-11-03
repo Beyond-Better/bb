@@ -18,11 +18,11 @@ const startDir = Deno.cwd();
 export const conversationChat = new Command()
 	.name('chat')
 	.description('Start a new conversation or continue an existing one')
-	.option('-s, --statement <string>', 'Statement (or question) to start or continue the conversation')
+	.option('-p, -s, --statement <string>', 'Statement (or question) to start or continue the conversation')
 	.option('-i, --id <string>', 'Conversation ID to continue (optional)')
 	.option('-m, --model <string>', 'LLM model to use for the conversation')
 	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
-	.option('--text', 'Return plain text instead of JSON')
+	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
 		let apiStartedByUs = false;
 		const fullConfig = await ConfigManager.fullConfig(startDir);
