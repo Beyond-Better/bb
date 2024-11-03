@@ -4,7 +4,7 @@ import { colors } from 'cliffy/ansi/colors.ts';
 import { logger } from 'shared/logger.ts';
 import { createBbDir, createBbIgnore } from '../utils/init.utils.ts';
 import { basename } from '@std/path';
-import { GitUtils } from 'shared/git.ts';
+//import { GitUtils } from 'shared/git.ts';
 import type { ProjectType, WizardAnswers } from 'shared/configManager.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
@@ -98,7 +98,7 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 	return filteredAnswers;
 }
 
-async function detectProjectType(startDir: string): Promise<ProjectType> {
+async function detectProjectType(_startDir: string): Promise<ProjectType> {
 	try {
 		const gitCheck = new Deno.Command('git', {
 			args: ['--version'],
