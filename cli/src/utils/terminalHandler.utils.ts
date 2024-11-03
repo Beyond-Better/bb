@@ -374,7 +374,7 @@ export class TerminalHandler {
 
 	public async displayConversationComplete(
 		response: ConversationResponse,
-		options: { id?: string; text?: boolean },
+		options: { id?: string; json?: boolean },
 		_expectingMoreInput: boolean = false,
 	): Promise<void> {
 		this.hideSpinner();
@@ -387,7 +387,7 @@ export class TerminalHandler {
 			totalTokensTotal: response.tokenUsageStatement.totalTokens,
 		};
 
-		if (!options.text) {
+		if (options.json) {
 			console.log(JSON.stringify(
 				{
 					...response,

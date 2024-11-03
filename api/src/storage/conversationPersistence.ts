@@ -14,10 +14,10 @@ import type {
 	ResourceMetrics,
 	TokenUsage,
 } from 'shared/types.ts';
-import type { LLMProviderSystem } from 'api/types/llms.ts';
+//import type { LLMProviderSystem } from 'api/types/llms.ts';
 import type { LLMMessageContentPartToolUseBlock } from 'api/llms/llmMessage.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+//import { ConfigManager } from 'shared/configManager.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from '../errors/error.ts';
 import type ProjectEditor from '../editor/projectEditor.ts';
