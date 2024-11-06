@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.2.4] - 2024-11-06
+
+### Changed
+
 - set apiUseTls to false during project init if certs could not be created
 - fixed message hydration to keep last two versions of each file
 - changed prompt caching to add cache points of three most recent messages with hydrated files
