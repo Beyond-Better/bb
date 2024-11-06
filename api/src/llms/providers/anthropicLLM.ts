@@ -47,29 +47,233 @@ class AnthropicLLM extends LLM {
 		this.anthropic = new Anthropic(clientOptions);
 	}
 
+	// Helper function to check for bbFile tags
+	private hasBBFileTags(text: string): boolean {
+		try {
+			const matches = text.match(/<bbFile path=.+?>/gs);
+			return matches !== null && matches.length > 0;
+		} catch (e) {
+			return false;
+		}
+	}
+
+	private logMessageDetails(messages: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[]): void {
+		logger.info('Message Details for LLM Request:');
+
+		const messagesWithCache: number[] = [];
+		const messagesWithFiles: number[] = [];
+
+		messages.forEach((message, index) => {
+			const contentParts = Array.isArray(message.content) ? message.content : [message.content];
+			const summary: string[] = [];
+
+			const processContent = (part: any, depth: number = 0): void => {
+				const indent = '  '.repeat(depth);
+
+				if (typeof part === 'string') {
+					summary.push(`${indent}Content: plain text (no bbFile or cache_control possible)`);
+					return;
+				}
+
+				// Log the type of this part
+				summary.push(`${indent}Type: ${part.type}`);
+
+				// For tool_result, process its nested content
+				if (part.type === 'tool_result' && Array.isArray(part.content)) {
+					summary.push(`${indent}Tool Use ID: ${part.tool_use_id || 'none'}`);
+					summary.push(`${indent}Is Error: ${part.is_error || false}`);
+
+					// Check if any nested content has file content
+					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPartTextBlock) =>
+						nestedPart.type === 'text' &&
+						typeof nestedPart.text === 'string' &&
+						(this.hasBBFileTags(nestedPart.text) ||
+							(nestedPart.text.startsWith('Note: File') &&
+								nestedPart.text.includes('is up-to-date')))
+					);
+					if (fileContentParts.length > 0) {
+						summary.push(`${indent}Files in this tool_result:`);
+						fileContentParts.forEach((p: LLMMessageContentPartTextBlock) => {
+							if (p.text.startsWith('Note: File')) {
+								const match = p.text.match(
+									/Note: File (.*?) \(this revision: (\w+)\) is up-to-date at turn (\d+) with revision (\w+)/,
+								);
+								if (match) {
+									summary.push(
+										`${indent}  - ${match[1]} [this revision ${match[2]}] (current from turn ${
+											match[3]
+										} with revision ${match[4]})`,
+									);
+								}
+							} else {
+								const bbFileMatch = p.text.match(
+									/<bbFile[^>]*path="([^"]*)"[^>]*revision="([^"]*)"[^>]*>/,
+								);
+								if (bbFileMatch && bbFileMatch.length >= 3) {
+									summary.push(`${indent}  - ${bbFileMatch[1]} (revision: ${bbFileMatch[2]})`);
+								}
+							}
+						});
+						messagesWithFiles.push(index + 1);
+					}
+
+					summary.push(`${indent}Nested Content:`);
+					part.content.forEach((nestedPart: any, nestedIndex: number) => {
+						summary.push(`${indent}  Content Part ${nestedIndex + 1}:`);
+						processContent(nestedPart, depth + 2);
+					});
+					return;
+				}
+
+				// Process text content
+				if ('text' in part && typeof part.text === 'string') {
+					const hasFileContent = this.hasBBFileTags(part.text);
+					const hasFileNote = part.text.startsWith('Note: File') &&
+						part.text.includes('content is up-to-date');
+					summary.push(`${indent}Has file content: ${hasFileContent || hasFileNote}`);
+
+					if (hasFileNote) {
+						const match = part.text.match(
+							/Note: File (.*?) \(this revision: (\w+)\) is up-to-date at turn (\d+) with revision (\w+)/,
+						);
+						if (match) {
+							summary.push(
+								`${indent}File: ${match[1]} [this revision ${match[2]}] (current from turn ${
+									match[3]
+								} with revision ${match[4]})`,
+							);
+						}
+					}
+
+					// Extract file path and revision from bbFile tags if present
+					try {
+						const bbFileMatch = part.text.match(/<bbFile[^>]*path="([^"]*)"[^>]*revision="([^"]*)"[^>]*>/);
+						if (bbFileMatch && bbFileMatch.length >= 3) {
+							summary.push(`${indent}bbFile Path: ${bbFileMatch[1]}`);
+							summary.push(`${indent}bbFile Revision: ${bbFileMatch[2]}`);
+						}
+					} catch (e) {}
+
+					// Check for bbFile tags
+					const hasTags = this.hasBBFileTags(part.text);
+					if (hasTags) {
+						const bbFileMatch = part.text.match(
+							/<bbFile path="([^"]*)" type="([^"]*)"[^>]*?revision="([^"]*)"[^>]*?>/,
+						);
+						if (bbFileMatch) {
+							const [, path, type, revision] = bbFileMatch;
+							summary.push(`${indent}bbFile: ${path} (${type}) [revision: ${revision}]`);
+						}
+					} else {
+						summary.push(`${indent}No bbFile tags found`);
+					}
+				}
+
+				// Check for cache_control
+				if (part && typeof part === 'object' && 'cache_control' in part) {
+					const cacheControl = (part as any).cache_control;
+					summary.push(`${indent}Has cache_control: yes (${cacheControl.type})`);
+					if (!messagesWithCache.includes(index + 1)) {
+						messagesWithCache.push(index + 1);
+					}
+				} else {
+					summary.push(`${indent}Has cache_control: no`);
+				}
+			};
+
+			summary.push(`\nMessage ${index + 1}:`);
+			summary.push(`Role: ${message.role}`);
+			summary.push(`Content Parts: ${contentParts.length}`);
+
+			contentParts.forEach((part, partIndex) => {
+				summary.push(`\n  Content Part ${partIndex + 1}:`);
+				processContent(part, 1);
+			});
+
+			logger.info(summary.join('\n'));
+		});
+
+		logger.info(`\nMessages with files: ${messagesWithFiles.join(', ')}`);
+		logger.info(`Messages with cache_control: ${messagesWithCache.join(', ')}`);
+	}
+
 	//private asProviderMessageType(messages: LLMMessage[]): Anthropic.MessageParam[] {
 	private asProviderMessageType(
 		messages: LLMMessage[],
 	): Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] {
 		const usePromptCaching = this.fullConfig.api?.usePromptCaching ?? true;
-		const firstAssistantToolUseIndex = messages.findIndex((m) =>
-			m.role === 'assistant' && Array.isArray(m.content) && m.content.some((block) => block.type === 'tool_use')
-		);
+
+		// Find all messages that contain file additions with non-empty bbFile tags
+		const fileAddedMessages = messages
+			.map((m, index) => ({ message: m, index }))
+			.filter(({ message }) =>
+				message.role === 'user' &&
+				Array.isArray(message.content) &&
+				message.content.some((block) => {
+					if (block.type === 'tool_result' && Array.isArray(block.content)) {
+						// Look for bbFile tags (for text or image) or file update notes in the nested content
+						// we only need to check type === 'text' - images will have a corresponding text part with <bbFile> tags
+						// return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
+						// 	(this.hasBBFileTags(nestedPart.text) ||
+						// 		nestedPart.text.startsWith('Note: File') &&
+						// 			nestedPart.text.includes('is up-to-date')))
+						// );
+						return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
+							this.hasBBFileTags(nestedPart.text))
+						);
+					}
+					return false;
+				})
+			);
+
+		// Get the last three such messages
+		const lastThreeFileAddedMessages = fileAddedMessages.slice(-3);
+		const lastThreeIndices = new Set(lastThreeFileAddedMessages.map((m) => m.index));
+
 		return messages.map((m, index) => {
 			const prevContent: AnthropicBlockParam = m.content as AnthropicBlockParam;
 			let content: AnthropicBlockParam;
-			if (m.role === 'assistant' && usePromptCaching && index === firstAssistantToolUseIndex) {
-				if (Array.isArray(prevContent)) {
-					content = prevContent.map((block) => {
-						if (block.type === 'tool_use') {
-							return { ...block, cache_control: { type: 'ephemeral' } };
-						}
-						return block;
-					});
-				} else if (typeof prevContent === 'string') {
-					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
+
+			// Add cache_control to the last content part of the last three file-added messages
+			if (m.role === 'user' && usePromptCaching && lastThreeIndices.has(index)) {
+				// Verify this message actually has a tool_result with file content
+				// const hasFileContent = Array.isArray(m.content) &&
+				// 	m.content.some((block) =>
+				// 		block.type === 'tool_result' &&
+				// 		Array.isArray(block.content) &&
+				// 		block.content.some((part) =>
+				// 			(part.type === 'text' &&
+				// 				typeof part.text === 'string' &&
+				// 				(this.hasBBFileTags(part.text) ||
+				// 					(part.text.startsWith('Note: File') &&
+				// 						part.text.includes('is up-to-date')))) ||
+				// 			part.type === 'image'
+				// 		)
+				// 	);
+				const hasFileContent = Array.isArray(m.content) &&
+					m.content.some((block) =>
+						block.type === 'tool_result' &&
+						Array.isArray(block.content) &&
+						// we only need to check type === 'text' - images will have a corresponding text part with <bbFile> tags
+						block.content.some((part) => (part.type === 'text' &&
+							this.hasBBFileTags(part.text))
+						)
+					);
+
+				if (hasFileContent) {
+					if (Array.isArray(prevContent)) {
+						content = [...prevContent];
+						const lastBlock = content[content.length - 1];
+						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					} else if (typeof prevContent === 'string') {
+						content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
+					} else {
+						content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					}
 				} else {
-					content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					content = (Array.isArray(prevContent)
+						? prevContent
+						: [prevContent]) as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam[];
 				}
 			} else {
 				content = (Array.isArray(prevContent)
@@ -121,9 +325,10 @@ class AnthropicLLM extends LLM {
 				interaction.id,
 			),
 		);
-		if (tools.length > 0 && usePromptCaching) {
-			tools[tools.length - 1].cache_control = { type: 'ephemeral' };
-		}
+		// system cache_control also includes tools
+		//if (tools.length > 0 && usePromptCaching) {
+		//	tools[tools.length - 1].cache_control = { type: 'ephemeral' };
+		//}
 
 		const messages = this.asProviderMessageType(
 			await this.invoke(
@@ -132,6 +337,8 @@ class AnthropicLLM extends LLM {
 				interaction.id,
 			),
 		);
+		// Log detailed message information
+		if (this.fullConfig.api.logFileHydration) this.logMessageDetails(messages);
 
 		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
 			logger.error('maxTokens missing from both speakOptions and interaction');
@@ -146,8 +353,8 @@ class AnthropicLLM extends LLM {
 
 		const messageParams: Anthropic.Beta.PromptCaching.MessageCreateParams = {
 			messages,
-			tools,
 			system,
+			tools,
 			model,
 			max_tokens: maxTokens,
 			temperature,
@@ -182,7 +389,7 @@ class AnthropicLLM extends LLM {
 				).withResponse();
 
 			const anthropicMessage = anthropicMessageStream as Anthropic.Beta.PromptCaching.PromptCachingBetaMessage;
-			logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
+			//logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('llms-anthropic-anthropicResponse', anthropicResponse);
 
 			const headers = anthropicResponse?.headers;

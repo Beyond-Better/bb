@@ -44,6 +44,44 @@ export interface ProjectInfo {
 
 class LLMConversationInteraction extends LLMInteraction {
 	private _files: Map<string, FileMetadata> = new Map();
+
+	// Track the last _maxHydratedMessagesPerFile messages for each file
+	private hydratedFiles = new Map<
+		string,
+		Array<{
+			turnIndex: number;
+			messageId: string;
+			// Limit to 2 entries per file, with most recent first
+			// [0] = most recent
+			// [1] = previous (if exists)
+		}>
+	>();
+
+	/**
+	 * Maximum number of messages to keep per file in the hydratedFiles map.
+	 * This controls how many previous versions of a file's content are maintained.
+	 * Default is 2 to keep current and one previous version.
+	 */
+	private _maxHydratedMessagesPerFile: number = 2;
+
+	/**
+	 * Gets the maximum number of messages to keep per file in the hydratedFiles map.
+	 */
+	get maxHydratedMessagesPerFile(): number {
+		return this._maxHydratedMessagesPerFile;
+	}
+
+	/**
+	 * Sets the maximum number of messages to keep per file in the hydratedFiles map.
+	 * @param value - Must be a positive integer
+	 * @throws Error if value is less than 1
+	 */
+	set maxHydratedMessagesPerFile(value: number) {
+		if (!Number.isInteger(value) || value < 1) {
+			throw new Error('maxHydratedMessagesPerFile must be a positive integer');
+		}
+		this._maxHydratedMessagesPerFile = value;
+	}
 	private resourceManager: ResourceManager;
 	private toolUsageStats: ToolUsageStats = {
 		toolCounts: new Map(),
@@ -273,9 +311,43 @@ class LLMConversationInteraction extends LLMInteraction {
 		return system;
 	}
 
-	async hydrateMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
-		const hydratedFiles = new Map<string, number>();
+	/**
+	 * Adds or updates an entry in the hydratedFiles map.
+	 * @param filePath - The path of the file being hydrated
+	 * @param turnIndex - The current turn number
+	 * @param messageId - The message ID (revision) for this version
+	 * @param maxEntries - Optional override for maxHydratedMessagesPerFile
+	 */
+	private addHydratedFileEntry(filePath: string, turnIndex: number, messageId: string, maxEntries?: number): void {
+		logger.debug(`Adding hydrated file entry for ${filePath} - Turn: ${turnIndex}, MessageId: ${messageId}`);
+		const entriesToKeep = maxEntries ?? this._maxHydratedMessagesPerFile;
+		// Validate maxEntries if provided
+		if (maxEntries !== undefined && (!Number.isInteger(maxEntries) || maxEntries < 1)) {
+			throw new Error('maxEntries must be a positive integer');
+		}
+		const existingEntries = this.hydratedFiles.get(filePath) || [];
+		const newEntries = [{
+			turnIndex,
+			messageId,
+		}];
 
+		// Add existing entries up to maxEntries - 1 (since we already added one)
+		if (existingEntries.length > 0) {
+			newEntries.push(...existingEntries.slice(0, entriesToKeep - 1));
+		}
+
+		this.hydratedFiles.set(filePath, newEntries);
+		logger.debug(`Updated hydrated entries for ${filePath} - Total entries: ${newEntries.length}`, newEntries);
+	}
+
+	async hydrateMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
+		// Log the state before clearing
+		logger.debug(`Starting new hydration run. Current hydrated files count: ${this.hydratedFiles.size}`);
+
+		// Reset hydratedFiles at the start of each hydration run
+		// This ensures we don't maintain state between different hydration calls
+		this.hydratedFiles.clear();
+		logger.debug('Cleared hydratedFiles map for new hydration run');
 		const processContentPart = async (
 			contentPart: LLMMessageContentPart,
 			messageId: string,
@@ -293,10 +365,19 @@ class LLMConversationInteraction extends LLMInteraction {
 					);
 					return contentPart;
 				}
+				logger.error(
+					`ConversationInteraction: Hydrating content part for turn ${turnIndex}: ${
+						JSON.stringify(contentPart)
+					}`,
+				);
 
 				// if prompt caching is enabled then add file for each message
 				// if prompt caching is NOT enabled then only add file once (to last message)
-				if (this.fullConfig.api.usePromptCaching || !hydratedFiles.has(filePath)) {
+				// [TODO] we only have 4 cache points, so no benefit for full message history
+				// so until we can cache the whole conversation; ignore usePromptCaching for file hydration
+				//if (this.fullConfig.api.usePromptCaching || !hydratedFiles.has(filePath)) {
+				const existingEntries = this.hydratedFiles.get(filePath) || [];
+				if (existingEntries.length < this._maxHydratedMessagesPerFile) {
 					logger.info(
 						`ConversationInteraction: Hydrating message for file: ${filePath} - Revision:(${messageId}) - Turn: ${turnIndex} - Metadata:  ${
 							JSON.stringify(fileMetadata)
@@ -324,9 +405,9 @@ class LLMConversationInteraction extends LLMInteraction {
 							const textBlock: LLMMessageContentPartTextBlock = {
 								type: 'text',
 								text:
-									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
+									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}" turn="${turnIndex}"></bbFile>`,
 							};
-							hydratedFiles.set(filePath, turnIndex);
+							this.addHydratedFileEntry(filePath, turnIndex, messageId);
 							return [imageBlock, textBlock] as LLMMessageContentParts;
 						} else {
 							// For unsupported image types, create two text blocks: one for the warning and one for the file tag
@@ -339,29 +420,34 @@ class LLMConversationInteraction extends LLMInteraction {
 							const fileBlock: LLMMessageContentPartTextBlock = {
 								type: 'text',
 								text:
-									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}"></bbFile>`,
+									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}" turn="${turnIndex}"></bbFile>`,
 							};
-							hydratedFiles.set(filePath, turnIndex);
+							this.addHydratedFileEntry(filePath, turnIndex, messageId);
 							return [warningBlock, fileBlock] as LLMMessageContentParts;
 						}
 					} else {
 						//logger.info(`ConversationInteraction: Hydrating - preparing file: ${filePath}`);
 						const fileContent = await this.readProjectFileContent(filePath, messageId);
 						const fileXml =
-							`<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" revision="${messageId}">
+							`<bbFile path="${filePath}" type="text" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" revision="${messageId}" turn="${turnIndex}">
 ${fileContent}
 </bbFile>`;
-						hydratedFiles.set(filePath, turnIndex);
+						this.addHydratedFileEntry(filePath, turnIndex, messageId);
+
 						return { ...contentPart, text: fileXml };
 					}
 				} else {
-					const lastHydratedTurn = hydratedFiles.get(filePath)!;
+					const lastEntry = existingEntries[0]; // Most recent entry
 					logger.info(
-						`ConversationInteraction: Skipping hydration for file: ${filePath} - Current Turn: ${turnIndex}, Last Hydrated Turn: ${lastHydratedTurn}`,
+						`ConversationInteraction: Skipping hydration for file: ${filePath} (revision: ${lastEntry.messageId}) - Current Turn: ${turnIndex}, Last Hydrated Turn: ${lastEntry.turnIndex}`,
 					);
+					// Include both turn number and revision in the up-to-date message
+					// This helps track which version of the file is being referenced
+					// Important when files have been modified during the conversation
 					return {
 						...contentPart,
-						text: `Note: File ${filePath} content is up-to-date as of turn ${lastHydratedTurn}.`,
+						text:
+							`Note: File ${filePath} (this revision: ${lastEntry.messageId}) is up-to-date at turn ${lastEntry.turnIndex} with revision ${lastEntry.messageId}.`,
 					};
 				}
 			}
@@ -390,7 +476,7 @@ ${fileContent}
 				return message;
 			}
 			if (message.role === 'user') {
-				logger.error(`ConversationInteraction: Hydrating message: ${JSON.stringify(message)}`);
+				logger.error(`ConversationInteraction: Processing message: ${JSON.stringify(message)}`);
 				const updatedContent: LLMMessageContentPart[] = [];
 				for (const part of message.content) {
 					const processedPart = await processContentPart(
@@ -407,6 +493,7 @@ ${fileContent}
 				const updatedMessage = new LLMMessage(
 					message.role,
 					updatedContent,
+					message.conversationStats,
 					message.tool_call_id,
 					message.providerResponse,
 					message.id,
@@ -419,7 +506,12 @@ ${fileContent}
 		const reversedMessages = [...messages].reverse();
 		const processedMessages = [];
 		for (let i = 0; i < reversedMessages.length; i++) {
-			const processedMessage = await processMessage(reversedMessages[i], i);
+			// Convert from reversed array index to original message index
+			// Example: with 10 messages (1-10):
+			// i=0 (last message) → originalIndex=10 (correct turn number)
+			// i=9 (first message) → originalIndex=1 (correct turn number)
+			const originalIndex = reversedMessages.length - i;
+			const processedMessage = await processMessage(reversedMessages[i], originalIndex);
 			processedMessages.push(processedMessage);
 		}
 		return processedMessages.reverse();

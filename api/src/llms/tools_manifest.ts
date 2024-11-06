@@ -202,7 +202,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'rewrite_file',
 			'description':
-				"Completely replaces an existing file's contents or creates a new file. Use with caution as this overwrites the entire file. For partial changes, prefer search_and_replace.",
+				"Completely replaces an existing file's contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.",
 			'version': '1.0.0',
 			'category': 'FileManipulation',
 			'author': 'BB Team',

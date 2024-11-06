@@ -478,7 +478,8 @@ export class ConfigManager {
 		// Update the value
 		this.updateNestedValue(current, key, value);
 
-		if (!this.validateGlobalConfig(current)) {
+		if (!this.validateGlobalConfig({ ...current, version: VERSION })) {
+			console.error(current);
 			throw new Error('Invalid global configuration after setting value');
 		}
 
@@ -507,6 +508,14 @@ export class ConfigManager {
 			return false;
 		}
 		//if (!Array.isArray(globalConfig.api.userToolDirectories)) return false;
+		return true;
+	}
+
+	private validateProjectConfig(projectConfig: Partial<ProjectConfigSchema>): boolean {
+		if (!projectConfig.project || typeof projectConfig.project !== 'object') return false;
+		if (typeof projectConfig.project.name !== 'string') return false;
+		if (projectConfig.project.type !== 'git' && projectConfig.project.type !== 'local') return false;
+		//if (!Array.isArray(projectConfig.api.userToolDirectories)) return false;
 		return true;
 	}
 
@@ -556,13 +565,5 @@ export class ConfigManager {
 			}
 		}
 		return value;
-	}
-
-	private validateProjectConfig(projectConfig: Partial<ProjectConfigSchema>): boolean {
-		if (!projectConfig.project || typeof projectConfig.project !== 'object') return false;
-		if (typeof projectConfig.project.name !== 'string') return false;
-		if (projectConfig.project.type !== 'git' && projectConfig.project.type !== 'local') return false;
-		//if (!Array.isArray(projectConfig.api.userToolDirectories)) return false;
-		return true;
 	}
 }

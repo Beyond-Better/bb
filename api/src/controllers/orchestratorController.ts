@@ -56,7 +56,11 @@ function getCurrentObjective(objectives?: ObjectivesData): string | undefined {
 	return objectives.statement[objectives.statement.length - 1];
 }
 
-function formatTaskMetrics(interaction: LLMConversationInteraction, turnCount: number, maxTurns: number): string {
+function formatToolObjectivesAndStats(
+	interaction: LLMConversationInteraction,
+	turnCount: number,
+	maxTurns: number,
+): string {
 	const stats = interaction.getConversationStats();
 	const parts = [`Turn ${turnCount}/${maxTurns}`];
 
@@ -634,27 +638,28 @@ class OrchestratorController {
 			);
 			interaction.setObjectives(conversationObjective);
 			logger.debug('Set conversation objective:', conversationObjective);
+		} else {
+			// Only create statement objective on subsequent statements; not the first one
+			// Generate statement objective with context from previous assistant response
+			const previousAssistantMessage = interaction.getPreviousAssistantMessage();
+			const previousResponse = previousAssistantMessage
+				? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
+				: undefined;
+
+			const previousObjectives = interaction.getObjectives().statement || [];
+			const previousObjective = previousObjectives[previousObjectives.length - 1];
+			logger.info('Previous objective:', previousObjective);
+
+			const statementObjective = await generateStatementObjective(
+				await this.createChatInteraction(interaction.id, 'Generate statement objective'),
+				statement,
+				currentStats.objectives?.conversation,
+				previousResponse,
+				previousObjective,
+			);
+			interaction.setObjectives(undefined, statementObjective);
+			logger.debug('Set statement objective:', statementObjective);
 		}
-
-		// Generate statement objective with context from previous assistant response
-		const previousAssistantMessage = interaction.getPreviousAssistantMessage();
-		const previousResponse = previousAssistantMessage
-			? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
-			: undefined;
-
-		const previousObjectives = interaction.getObjectives().statement || [];
-		const previousObjective = previousObjectives[previousObjectives.length - 1];
-		logger.info('Previous objective:', previousObjective);
-
-		const statementObjective = await generateStatementObjective(
-			await this.createChatInteraction(interaction.id, 'Generate statement objective'),
-			statement,
-			currentStats.objectives?.conversation,
-			previousResponse,
-			previousObjective,
-		);
-		interaction.setObjectives(undefined, statementObjective);
-		logger.debug('Set statement objective:', statementObjective);
 
 		await this.projectEditor.updateProjectInfo();
 
@@ -755,7 +760,7 @@ class OrchestratorController {
 						await this.projectEditor.updateProjectInfo();
 
 						statement = `Tool results feedback:\n${
-							formatTaskMetrics(interaction, loopTurnCount, maxTurns)
+							formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
 						}\n${toolResponses.join('\n')}`;
 
 						currentResponse = await interaction.speakWithLLM(statement, speakOptions);
@@ -844,8 +849,8 @@ class OrchestratorController {
 		answer = answer.trim();
 		assistantThinking = assistantThinking.trim();
 
-		logger.info(`OrchestratorController: Extracted answer: ${answer}`);
-		logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
+		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);
+		//logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
 
 		const statementAnswer: ConversationResponse = {
 			logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },

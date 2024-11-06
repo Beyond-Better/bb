@@ -191,13 +191,13 @@ class ConversationPersistence {
 			await this.saveProjectInfo(this.projectEditor.projectInfo);
 
 			// Save messages
-			const statementCount = conversation.statementCount || 0; // Assuming this property exists
+			//const statementCount = conversation.statementCount || 0; // Assuming this property exists
 			const messages = conversation.getMessages();
-			const messagesContent = messages.map((m) => {
+			const messagesContent = messages.map((m, idx) => {
 				if (m && typeof m === 'object') {
 					return JSON.stringify({
-						statementCount,
-						statementTurnCount: conversation.statementTurnCount,
+						idx,
+						conversationStats: m.conversationStats,
 						role: m.role,
 						content: m.content,
 						id: m.id,
