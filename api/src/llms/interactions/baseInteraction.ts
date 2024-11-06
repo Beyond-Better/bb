@@ -300,7 +300,11 @@ class LLMInteraction {
 			return lastMessage.id;
 		} else {
 			// Add a new user message
-			const newMessage = new LLMMessage('user', Array.isArray(content) ? content : [content]);
+			const newMessage = new LLMMessage(
+				'user',
+				Array.isArray(content) ? content : [content],
+				this.conversationStats,
+			);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}
@@ -327,6 +331,7 @@ class LLMInteraction {
 			const newMessage = new LLMMessage(
 				'assistant',
 				Array.isArray(content) ? content : [content],
+				this.conversationStats,
 				tool_call_id,
 				providerResponse,
 			);
@@ -401,21 +406,32 @@ class LLMInteraction {
 				'LLMInteraction: Adding new user message with tool result',
 				JSON.stringify(toolResult, null, 2),
 			);
-			const newMessage = new LLMMessage('user', [toolResult]);
+			const newMessage = new LLMMessage('user', [toolResult], this.conversationStats);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}
 	}
 
-	public addMessage(message: Omit<LLMMessage, 'timestamp'> | LLMMessage): void {
+	public addMessage(
+		message: {
+			role: 'user' | 'assistant' | 'system' | 'tool';
+			content: LLMMessageContentParts;
+			conversationStats: ConversationMetrics;
+			id?: string;
+			tool_call_id?: string;
+			providerResponse?: LLMMessageProviderResponse;
+		} | LLMMessage,
+	): void {
 		let completeMessage: LLMMessage;
 		if (message instanceof LLMMessage) {
+			// LLMMessage will call setTimestamp if needed
+			//if (message?.timestamp === undefined) message.setTimestamp();
 			completeMessage = message;
-			completeMessage.setTimestamp();
 		} else {
 			completeMessage = new LLMMessage(
 				message.role,
 				message.content,
+				message.conversationStats,
 				message.tool_call_id,
 				message.providerResponse,
 				message.id,

@@ -5,6 +5,7 @@ import LLMToolConversationSummary from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
+import type { ConversationMetrics } from 'shared/types.ts';
 
 // Mock functions
 const mockSaveConversation = async () => {};
@@ -25,6 +26,14 @@ const mockEnsureDir = async () => {};
 // fs.ensureDir = mockEnsureDir;
 
 let copiedFiles: { src: string; dest: string }[] = [];
+
+function incrementConversationStats(conversationStats: ConversationMetrics) {
+	return {
+		statementCount: conversationStats.statementCount++,
+		statementTurnCount: conversationStats.statementTurnCount++,
+		conversationTurnCount: conversationStats.conversationTurnCount++,
+	};
+}
 
 /*
 Deno.test({
@@ -47,12 +56,17 @@ Deno.test({
 			};
 
 			// Mock conversation messages
+			const conversationStats = {
+				statementCount: 0,
+				statementTurnCount: 0,
+				conversationTurnCount: 0,
+			}
 			const mockMessages = [
-				new LLMMessage('user', 'Hello', { usage: { totalTokens: 10 } }),
-				new LLMMessage('assistant', 'Hi there!', { usage: { totalTokens: 15 } }),
-				new LLMMessage('user', 'How are you?', { usage: { totalTokens: 20 } }),
-				new LLMMessage('assistant', "I'm doing well, thank you!", { usage: { totalTokens: 25 } }),
-				new LLMMessage('tool', 'Some tool usage', { usage: { totalTokens: 30 } }),
+				new LLMMessage('user', 'Hello', incrementConversationStats(conversationStats), { usage: { totalTokens: 10 } }),
+				new LLMMessage('assistant', 'Hi there!', incrementConversationStats(conversationStats), { usage: { totalTokens: 15 } }),
+				new LLMMessage('user', 'How are you?', incrementConversationStats(conversationStats), { usage: { totalTokens: 20 } }),
+				new LLMMessage('assistant', "I'm doing well, thank you!", incrementConversationStats(conversationStats), { usage: { totalTokens: 25 } }),
+				new LLMMessage('tool', 'Some tool usage', incrementConversationStats(conversationStats), { usage: { totalTokens: 30 } }),
 			];
 
 			const mockConversation = {
@@ -103,12 +117,17 @@ Deno.test({
 			};
 
 			// Mock conversation messages
+			const conversationStats = {
+				statementCount: 0,
+				statementTurnCount: 0,
+				conversationTurnCount: 0,
+			}
 			const mockMessages = [
-				new LLMMessage('user', 'Hello', { usage: { totalTokens: 10 } }),
-				new LLMMessage('assistant', 'Hi there!', { usage: { totalTokens: 15 } }),
-				new LLMMessage('user', 'How are you?', { usage: { totalTokens: 20 } }),
-				new LLMMessage('assistant', "I'm doing well, thank you!", { usage: { totalTokens: 25 } }),
-				new LLMMessage('tool', 'Some tool usage', { usage: { totalTokens: 30 } }),
+				new LLMMessage('user', 'Hello', incrementConversationStats(conversationStats), { usage: { totalTokens: 10 } }),
+				new LLMMessage('assistant', 'Hi there!', incrementConversationStats(conversationStats), { usage: { totalTokens: 15 } }),
+				new LLMMessage('user', 'How are you?', incrementConversationStats(conversationStats), { usage: { totalTokens: 20 } }),
+				new LLMMessage('assistant', "I'm doing well, thank you!", incrementConversationStats(conversationStats), { usage: { totalTokens: 25 } }),
+				new LLMMessage('tool', 'Some tool usage', incrementConversationStats(conversationStats), { usage: { totalTokens: 30 } }),
 			];
 
 			const mockLLMProvider = {
@@ -180,9 +199,14 @@ Deno.test({
 			};
 
 			// Mock conversation messages
+			const conversationStats = {
+				statementCount: 0,
+				statementTurnCount: 0,
+				conversationTurnCount: 0,
+			}
 			const mockMessages = [
-				new LLMMessage('user', 'Hello', { usage: { totalTokens: 10 } }),
-				new LLMMessage('assistant', 'Hi there!', { usage: { totalTokens: 15 } }),
+				new LLMMessage('user', 'Hello', incrementConversationStats(conversationStats), { usage: { totalTokens: 10 } }),
+				new LLMMessage('assistant', 'Hi there!', incrementConversationStats(conversationStats), { usage: { totalTokens: 15 } }),
 			];
 
 			const mockLLMProvider = {

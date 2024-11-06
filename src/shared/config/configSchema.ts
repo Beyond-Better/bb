@@ -20,6 +20,7 @@ export interface ApiConfigSchema {
 	usePromptCaching?: boolean;
 	logFile?: string;
 	logLevel: 'debug' | 'info' | 'warn' | 'error';
+	logFileHydration?: boolean;
 	userToolDirectories: string[];
 	toolConfigs: Record<string, unknown>;
 }
@@ -86,6 +87,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 		usePromptCaching: true,
 		logFile: 'api.log',
 		logLevel: 'info',
+		logFileHydration: false,
 		toolConfigs: {},
 		userToolDirectories: ['./tools'], // This will be resolved to an absolute path by ConfigManager
 		maxTurns: 25, // Maximum number of turns in a conversation
@@ -123,6 +125,7 @@ export const defaultProjectConfig: ProjectConfigSchema = {
 		usePromptCaching: true,
 		logFile: 'api.log',
 		logLevel: 'info',
+		logFileHydration: false,
 		toolConfigs: {},
 		userToolDirectories: ['./tools'], // This will be resolved to an absolute path by ConfigManager
 	},

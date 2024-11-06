@@ -5,6 +5,7 @@ import LLMConversationInteraction from '../../src/llms/interactions/conversation
 import LLMMessage, { LLMMessageContentPart, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
 import { LLMCallbackType } from 'api/types.ts';
+import type { ConversationMetrics } from 'shared/types.ts';
 import { getProjectEditor, withTestProject } from '../lib/testSetup.ts';
 
 // Mock LLM class
@@ -33,6 +34,14 @@ async function setupTestEnvironment(projectRoot: string) {
 	return { projectEditor, conversation, projectRoot, testFiles };
 }
 
+function incrementConversationStats(conversationStats: ConversationMetrics) {
+	return {
+		statementCount: conversationStats.statementCount++,
+		statementTurnCount: conversationStats.statementTurnCount++,
+		conversationTurnCount: conversationStats.conversationTurnCount++,
+	};
+}
+
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
@@ -42,18 +51,32 @@ Deno.test({
 			);
 
 			// Create test messages
+			const conversationStats = {
+				statementCount: 0,
+				statementTurnCount: 0,
+				conversationTurnCount: 0,
+			};
 			const messages: LLMMessage[] = [
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg1',
 				),
-				new LLMMessage('assistant', [{ type: 'text', text: 'Acknowledged.' }], undefined, undefined, 'msg2'),
+				new LLMMessage(
+					'assistant',
+					[{ type: 'text', text: 'Acknowledged.' }],
+					incrementConversationStats(conversationStats),
+					undefined,
+					undefined,
+					'msg2',
+				),
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[1]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg3',
@@ -61,6 +84,7 @@ Deno.test({
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg4',

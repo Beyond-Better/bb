@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- set apiUseTls to false during project init if certs could not be created
+- fixed message hydration to keep last two versions of each file
+- changed prompt caching to add cache points of three most recent messages with hydrated files
+- removed "statement objective" on first statement, in favour of "conversation objective"
+- fixed statement counts in messages.jsonl
 
 
 ## [0.2.3] - 2024-11-03

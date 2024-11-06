@@ -117,7 +117,12 @@ async function detectProjectType(_startDir: string): Promise<ProjectType> {
 	// return gitRoot ? 'git' : 'local';
 }
 
-async function printProjectDetails(projectName: string, projectType: string, wizardAnswers: WizardAnswers) {
+async function printProjectDetails(
+	projectName: string,
+	projectType: string,
+	wizardAnswers: WizardAnswers,
+	useTlsCert: boolean,
+) {
 	const configManager = await ConfigManager.getInstance();
 	const globalConfig = await configManager.loadGlobalConfig();
 	console.log(`\n${colors.bold.blue.underline('BB Project Details:')}`);
@@ -130,13 +135,18 @@ async function printProjectDetails(projectName: string, projectType: string, wiz
 			colors.green(wizardAnswers.anthropicApiKey ? 'Set in project config' : 'Not set in project config')
 		}`,
 	);
+	console.log(`  ${colors.bold('Using TLS Certificate:')} ${colors.green(useTlsCert ? 'Yes' : 'No')}`);
 
 	console.log(`\n${colors.bold('Configuration Instructions:')}`);
 	console.log('1. To modify project-level config:');
-	console.log('   Edit the .bb/config.yaml file in your project directory');
+	console.log(`   Use ${colors.bold.green(`'${globalConfig.bbExeName} config set --project <key> <value>'`)}`);
+	console.log('   OR - manually edit the .bb/config.yaml file in your project directory');
 	console.log('2. To modify system/user level config:');
-	console.log('   Edit the config.yaml file in your user home directory');
+	console.log(`   Use ${colors.bold.green(`'${globalConfig.bbExeName} config set --global <key> <value>'`)}`);
+	console.log('   OR - manually edit the config.yaml file in your user home directory');
 	console.log('   (usually ~/.config/bb/config.yaml on Unix-like systems)');
+	console.log('3. To view the current config:');
+	console.log(`   Use ${colors.bold.green(`'${globalConfig.bbExeName} config view'`)}`);
 	console.log(
 		`\n${
 			colors.bold('Note:')
@@ -205,21 +215,35 @@ export const init = new Command()
 			// Create .bb/ignore file
 			await createBbIgnore(startDir);
 
+			let useTlsCert = true;
 			const certFileName = finalGlobalConfig.api.tlsCertFile || 'localhost.pem';
 			if (!await certificateFileExists(certFileName)) {
 				const domain = finalGlobalConfig.api.apiHostname || 'localhost';
 				const validityDays = 365;
 				const certCreated = await generateCertificate(domain, validityDays);
 				if (!certCreated) {
-					//console.log(`  ${colors.bold.read('No TLS certificate exists and could not be created.')}`);
-					throw new Error(
-						'No TLS certificate exists and could not be created.',
+					console.warn(
+						`${colors.bold.yellow('Warning:')} ${colors.yellow('Could not create TLS certificate')}\n` +
+							`${colors.yellow('TLS will be disabled for the API server.')}`,
 					);
+					// Continue without cert - we'll set apiUseTls to false
+					await configManager.setGlobalConfigValue('api.apiUseTls', 'false');
+					useTlsCert = false;
+
+					//console.log(`  ${colors.bold.read('No TLS certificate exists and could not be created.')}`);
+					//throw new Error(
+					//	'No TLS certificate exists and could not be created.',
+					//);
 				}
 			}
 
 			//logger.debug('Printing project details...');
-			await printProjectDetails(wizardAnswers.project.name, wizardAnswers.project.type, wizardAnswers);
+			await printProjectDetails(
+				wizardAnswers.project.name,
+				wizardAnswers.project.type,
+				wizardAnswers,
+				useTlsCert,
+			);
 
 			//logger.info('BB initialization complete');
 		} catch (error) {
