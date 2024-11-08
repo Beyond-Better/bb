@@ -110,7 +110,7 @@ Notes:
 				if (!currentFilePath) {
 					throw new Error('File path is undefined');
 				}
-				logger.info(`Checking location of file: ${currentFilePath}`);
+				logger.info(`LLMToolApplyPatch: Checking location of file: ${currentFilePath}`);
 
 				if (!await isPathWithinProject(projectEditor.projectRoot, currentFilePath)) {
 					throw createError(
@@ -135,7 +135,7 @@ Notes:
 
 					await ensureDir(dirname(fullFilePath));
 					await Deno.writeTextFile(fullFilePath, newFileContent);
-					logger.info(`Created new file: ${currentFilePath}`);
+					logger.info(`LLMToolApplyPatch: Created new file: ${currentFilePath}`);
 				} else {
 					// Existing file, apply patch
 					modifiedFiles.push(currentFilePath);
@@ -157,7 +157,7 @@ Notes:
 					}
 
 					await Deno.writeTextFile(fullFilePath, patchedContent);
-					logger.info(`Patch applied to existing file: ${currentFilePath}`);
+					logger.info(`LLMToolApplyPatch: Patch applied to existing file: ${currentFilePath}`);
 				}
 
 				// [TODO] the `logChangeAndCommit` (used below) is already adding to patchedFiles and patchContents
@@ -210,7 +210,7 @@ Notes:
 			} else {
 				errorMessage = `Failed to apply patch: ${error.message}`;
 			}
-			logger.error(errorMessage);
+			logger.error(`LLMToolApplyPatch: ${errorMessage}`);
 
 			const toolResultContentParts: LLMMessageContentParts = [
 				{

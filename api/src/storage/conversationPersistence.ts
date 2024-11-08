@@ -15,7 +15,6 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 //import type { LLMProviderSystem } from 'api/types/llms.ts';
-import type { LLMMessageContentPartToolUseBlock } from 'api/llms/llmMessage.ts';
 import { logger } from 'shared/logger.ts';
 //import { ConfigManager } from 'shared/configManager.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
@@ -319,26 +318,6 @@ class ConversationPersistence {
 						logger.error(`ConversationPersistence: Error parsing message: ${error.message}`);
 						// Continue to the next message if there's an error
 					}
-				}
-
-				// Check if the last message has a 'tool_use' content part
-				const lastMessage = conversation.getLastMessage();
-				if (
-					lastMessage && lastMessage.role === 'assistant' &&
-					lastMessage.content.some((part: { type: string }) => part.type === 'tool_use')
-				) {
-					const toolUsePart = lastMessage.content.filter((part: { type: string }) =>
-						part.type === 'tool_use'
-					)[0] as LLMMessageContentPartToolUseBlock;
-					// Add a new message with a 'tool_result' content part
-					conversation.addMessageForToolResult(
-						toolUsePart.id,
-						'Tool use was interrupted, results could not be generated. You may try again now.',
-						true,
-					);
-					logger.warn(
-						'ConversationPersistence: Added generated tool_result message due to interrupted tool use',
-					);
 				}
 			}
 
@@ -825,7 +804,7 @@ class ConversationPersistence {
 		await this.ensureDirectory(backupDir);
 
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const filesToBackup = ['messages.jsonl', 'conversation.jsonl', 'metadata.json'];
+		const filesToBackup = ['messages.jsonl', 'conversation.jsonl', 'conversation.log', 'metadata.json'];
 
 		for (const file of filesToBackup) {
 			const sourcePath = join(this.conversationDir, file);

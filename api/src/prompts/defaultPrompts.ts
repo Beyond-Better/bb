@@ -140,7 +140,11 @@ export const system: Prompt = {
 		  2. Include multiple independent tool calls in one response when possible
 		  3. Ensure all required parameters are provided
 		  4. If parameters are missing or no relevant tools exist, ask ${myPersonsName}
-		  5. When tool results reference other files:
+		  5. Monitor conversation length and token usage:
+		     - Use conversation_metrics tool to analyze conversation efficiency
+		     - When conversations grow long, use conversation_summary tool to maintain context while reducing token usage
+		     - Choose appropriate summary length (short/medium/long) based on the importance of the removed content
+		  6. When tool results reference other files:
 		     - Convert absolute paths to relative by removing "${projectRoot}"
 		     - Handle path separators appropriately for the OS
 		     - Ensure paths don't start with "/" or contain ".." segments

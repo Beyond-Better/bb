@@ -253,7 +253,7 @@ Responses will be returned separately for each model, preserving their exact out
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`Error querying models: ${error.message}`);
+			logger.error(`LLMToolMultiModelQuery: Error querying models: ${error.message}`);
 			throw error;
 		}
 	}

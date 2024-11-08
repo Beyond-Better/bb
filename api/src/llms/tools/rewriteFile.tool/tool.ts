@@ -80,7 +80,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 		}
 
 		const fullFilePath = join(projectEditor.projectRoot, filePath);
-		logger.info(`Handling rewrite for file: ${fullFilePath}`);
+		logger.info(`LLMToolRewriteFile: Handling rewrite for file: ${fullFilePath}`);
 
 		try {
 			let isNewFile = false;
@@ -89,10 +89,10 @@ export default class LLMToolRewriteFile extends LLMTool {
 			} catch (error) {
 				if (error instanceof Deno.errors.NotFound && createIfMissing) {
 					isNewFile = true;
-					logger.info(`File ${fullFilePath} not found. Creating new file.`);
+					logger.info(`LLMToolRewriteFile: File ${fullFilePath} not found. Creating new file.`);
 					// Create missing directories
 					await ensureDir(dirname(fullFilePath));
-					logger.info(`Created directory structure for ${fullFilePath}`);
+					logger.info(`LLMToolRewriteFile: Created directory structure for ${fullFilePath}`);
 				} else {
 					throw error;
 				}
@@ -101,7 +101,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 			if (!content) {
 				const noChangesMessage =
 					`No changes were made to the file: ${filePath}. The content for the file is empty.`;
-				logger.info(noChangesMessage);
+				logger.info(`LLMToolRewriteFile: ${noChangesMessage}`);
 				throw createError(ErrorType.FileHandling, noChangesMessage, {
 					name: 'rewrite-file',
 					filePath: filePath,
@@ -128,7 +128,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 				throw error;
 			}
 			const errorMessage = `Failed to write contents to ${filePath}: ${error.message}`;
-			logger.error(errorMessage);
+			logger.error(`LLMToolRewriteFile: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {
 				name: 'rewrite-file',

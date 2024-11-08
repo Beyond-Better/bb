@@ -202,7 +202,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`Error calculating conversation metrics: ${error.message}`);
+			logger.error(`LLMToolConversationMetrics: Error calculating conversation metrics: ${error.message}`);
 
 			throw createError(ErrorType.ToolHandling, `Error calculating conversation metrics: ${error.message}`, {
 				name: 'conversation-metrics',

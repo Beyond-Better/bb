@@ -231,7 +231,7 @@ export default class LLMToolMoveFiles extends LLMTool {
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`Error moving files: ${error.message}`);
+			logger.error(`LLMToolMoveFiles: Error moving files: ${error.message}`);
 			const toolResults = `⚠️  ${error.message}`;
 			const bbResponse = `BB failed to move files. Error: ${error.message}`;
 			const toolResponse = `Failed to move files. Error: ${error.message}`;

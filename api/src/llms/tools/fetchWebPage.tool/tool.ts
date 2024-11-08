@@ -121,7 +121,7 @@ export default class LLMToolFetchWebPage extends LLMTool {
 				},
 			};
 		} catch (error) {
-			logger.error(`Failed to fetch web page: ${error.message}`);
+			logger.error(`LLMToolFetchWebPage: Failed to fetch web page: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
 			const bbResponse = `BB failed to fetch web page. Error: ${error.message}`;

@@ -83,7 +83,7 @@ ${colors.cyan('Start Time:')} ${new Date(metrics.summary.startTime).toLocaleStri
 ${colors.cyan('Last Update:')} ${new Date(metrics.summary.lastUpdateTime).toLocaleString()}
   `;
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolConversationMetrics: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

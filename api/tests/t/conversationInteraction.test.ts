@@ -1,12 +1,11 @@
-import { assertEquals, assertExists } from '../deps.ts';
+import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
-import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMMessage, { LLMMessageContentPart, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
 import { LLMCallbackType } from 'api/types.ts';
-import type { ConversationMetrics } from 'shared/types.ts';
-import { getProjectEditor, withTestProject } from '../lib/testSetup.ts';
+import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';
 
 // Mock LLM class
 class MockLLM {
@@ -32,14 +31,6 @@ async function setupTestEnvironment(projectRoot: string) {
 	}
 
 	return { projectEditor, conversation, projectRoot, testFiles };
-}
-
-function incrementConversationStats(conversationStats: ConversationMetrics) {
-	return {
-		statementCount: conversationStats.statementCount++,
-		statementTurnCount: conversationStats.statementTurnCount++,
-		conversationTurnCount: conversationStats.conversationTurnCount++,
-	};
 }
 
 Deno.test({

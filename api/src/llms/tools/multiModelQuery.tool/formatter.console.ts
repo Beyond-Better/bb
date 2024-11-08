@@ -44,7 +44,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n\n');
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolMultiModelQuery: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

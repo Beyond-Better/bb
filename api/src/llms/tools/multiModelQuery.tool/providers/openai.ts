@@ -25,7 +25,7 @@ export class OpenAIProvider implements ModelProvider {
 
 			return response.choices[0].message.content || '';
 		} catch (error) {
-			logger.error(`Error querying OpenAI model ${model}:`, error);
+			logger.error(`LLMToolMultiModelQuery[OpenAIProvider]: Error querying OpenAI model ${model}:`, error);
 			throw new Error(`Failed to query OpenAI model ${model}: ${error.message}`);
 		}
 	}

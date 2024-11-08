@@ -1,11 +1,13 @@
 import { ConfigManager, type WizardAnswers } from 'shared/configManager.ts';
-import { assert } from '../deps.ts';
+import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
-import ProjectEditor from '../../src/editor/projectEditor.ts';
+import ProjectEditor from 'api/editor/projectEditor.ts';
 import ProjectEditorManager from '../../src/editor/projectEditorManager.ts';
-import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import LLMChatInteraction from '../../src/llms/interactions/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
+import type { ConversationMetrics } from 'shared/types.ts';
 
 export async function setupTestProject(): Promise<string> {
 	const testProjectRoot = Deno.makeTempDirSync();
@@ -60,6 +62,18 @@ export async function createTestInteraction(
 	return interaction as LLMConversationInteraction;
 }
 
+export async function createTestChatInteraction(
+	conversationId: string,
+	projectEditor: ProjectEditor,
+	chatTitle: string = 'Chat Title',
+): Promise<LLMChatInteraction> {
+	const chatInteraction = await projectEditor.orchestratorController.createChatInteraction(
+		conversationId,
+		chatTitle,
+	);
+	return chatInteraction as LLMChatInteraction;
+}
+
 export async function withTestProject<T>(
 	testFn: (projectRoot: string) => Promise<T>,
 ): Promise<T> {
@@ -69,4 +83,12 @@ export async function withTestProject<T>(
 	} finally {
 		await cleanupTestProject(testProjectRoot);
 	}
+}
+
+export function incrementConversationStats(conversationStats: ConversationMetrics): ConversationMetrics {
+	return {
+		statementCount: conversationStats.statementCount++,
+		statementTurnCount: conversationStats.statementTurnCount++,
+		conversationTurnCount: conversationStats.conversationTurnCount++,
+	};
 }

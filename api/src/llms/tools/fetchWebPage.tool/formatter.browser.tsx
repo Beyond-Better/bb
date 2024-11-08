@@ -39,7 +39,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 				/>
 		 */
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolFetchWebPage: Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>

@@ -119,7 +119,7 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 			const toolResponse = toolResults;
 			return { toolResults, toolResponse, bbResponse };
 		} else {
-			logger.info(`Running command: ${command} ${args.join(' ')}`);
+			logger.info(`LLMToolRunCommand: Running command: ${command} ${args.join(' ')}`);
 
 			try {
 				const [denoCommand, ...denoArgs] = command.split(' ');
@@ -155,7 +155,7 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 				return { toolResults, toolResponse, bbResponse };
 			} catch (error) {
 				const errorMessage = `Failed to execute command: ${error.message}`;
-				logger.error(errorMessage);
+				logger.error(`LLMToolRunCommand: ${errorMessage}`);
 
 				throw createError(ErrorType.CommandExecution, errorMessage, {
 					name: 'command-execution-error',

@@ -37,7 +37,7 @@ interface Resource {
 
 type InputSchema = Record<string, unknown>;
 
-export default class DelegateTasksTool extends LLMTool {
+export default class LLMToolDelegateTasks extends LLMTool {
 	/*
 	private interactionManager: InteractionManager;
 	private resourceManager: ResourceManager;
@@ -143,7 +143,7 @@ export default class DelegateTasksTool extends LLMTool {
 		try {
 			return { toolResults: [], toolResponse: '', bbResponse: '' };
 		} catch (error) {
-			logger.error(`Error adding files to conversation: ${error.message}`);
+			logger.error(`LLMToolDelegateTasks: Error adding files to conversation: ${error.message}`);
 
 			throw createError(ErrorType.FileHandling, `Error adding files to conversation: ${error.message}`, {
 				name: 'request-files',

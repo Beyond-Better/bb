@@ -14,7 +14,7 @@ export class AnthropicProvider implements ModelProvider {
 		}
 
 		const clientOptions: ClientOptions = { apiKey };
-		//logger.info(`AnthropicProvider: creating client with: `, clientOptions);
+		//logger.info(`LLMToolMultiModelQuery[AnthropicProvider]: creating client with: `, clientOptions);
 		this.client = new Anthropic(clientOptions);
 	}
 
@@ -29,7 +29,7 @@ export class AnthropicProvider implements ModelProvider {
 			const contentBlocks = response.content as Array<Anthropic.TextBlock>;
 			return contentBlocks[0].text;
 		} catch (error) {
-			logger.error(`Error querying Anthropic model ${model}:`, error);
+			logger.error(`LLMToolMultiModelQuery[AnthropicProvider]: Error querying Anthropic model ${model}:`, error);
 			throw new Error(`Failed to query Anthropic model ${model}: ${error.message}`);
 		}
 	}

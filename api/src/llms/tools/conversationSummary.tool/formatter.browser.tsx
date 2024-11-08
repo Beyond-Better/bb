@@ -7,14 +7,14 @@ import type { LLMToolConversationSummaryData } from './tool.ts';
 import { logger } from 'shared/logger.ts';
 
 export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { maxTokens, summaryLength } = toolInput as { maxTokens?: number; summaryLength?: string };
+	const { maxTokensToKeep, summaryLength } = toolInput as { maxTokensToKeep?: number; summaryLength?: string };
 	return (
 		<div className='tool-use'>
 			<h3>Summarizing and Truncating Conversation</h3>
 			<ul>
-				{maxTokens && (
+				{maxTokensToKeep && (
 					<li>
-						<strong>Max Tokens:</strong> {maxTokens}
+						<strong>Max Tokens:</strong> {maxTokensToKeep}
 					</li>
 				)}
 				{summaryLength && (
@@ -30,33 +30,49 @@ export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const { conversation } = bbResponse.data as { conversation: LLMToolConversationSummaryData };
+		const data = bbResponse.data as LLMToolConversationSummaryData;
 		return (
 			<div className='tool-result'>
 				<h3>Conversation Summary and Truncation</h3>
-				<h4>Summary ({conversation.summaryLength}):</h4>
-				<p>{conversation.summary}</p>
-				<h4>Truncated Conversation:</h4>
+				<h4>Summary ({data.summaryLength}):</h4>
+				<p>{data.summary}</p>
+				<h4>Message Counts:</h4>
 				<ul>
-					{conversation.truncatedConversation.map((msg: LLMMessage, index: number) => (
-						<li key={index}>
-							<strong>{msg.role}:</strong> {msg.content}
-						</li>
-					))}
+					<li>
+						<strong>Original:</strong> {data.originalMessageCount}
+					</li>
+					<li>
+						<strong>Kept:</strong> {data.keptMessages?.length}
+					</li>
+					<li>
+						<strong>Removed:</strong> {data.originalMessageCount - data.keptMessages?.length}
+					</li>
 				</ul>
 				<h4>Token Counts:</h4>
 				<ul>
 					<li>
-						<strong>Original:</strong> {conversation.originalTokenCount}
+						<strong>Original:</strong> {data.originalTokenCount}
 					</li>
 					<li>
-						<strong>New:</strong> {conversation.newTokenCount}
+						<strong>New:</strong> {data.newTokenCount}
+					</li>
+					<li>
+						<strong>Summary:</strong> {data.metadata.summaryTokenCount}
+					</li>
+				</ul>
+				<h4>Metadata:</h4>
+				<ul>
+					<li>
+						<strong>Model:</strong> {data.metadata.model}
+					</li>
+					<li>
+						<strong>Summary Type:</strong> {data.summaryLength}
 					</li>
 				</ul>
 			</div>
 		);
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolConversationSummary: Unexpected bbResponse format:', bbResponse);
 		return (
 			<div className='tool-result'>
 				<p>
