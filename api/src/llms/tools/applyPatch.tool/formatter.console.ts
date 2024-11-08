@@ -29,7 +29,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n');
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolApplyPatch: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

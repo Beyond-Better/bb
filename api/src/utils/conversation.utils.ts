@@ -1,7 +1,7 @@
 import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
 //import type { ObjectivesData } from 'shared/types.ts';
 import { stripIndents } from 'common-tags';
-import { logger } from 'shared/logger.ts';
+//import { logger } from 'shared/logger.ts';
 
 export async function generateConversationTitle(chat: LLMChatInteraction, prompt: string): Promise<string> {
 	const titlePrompt = stripIndents`
@@ -71,17 +71,13 @@ export async function generateObjective(
 		   - OR there is no conversation goal provided
 		4. Previous assistant response is optional and should not trigger NEED_CONTEXT
 		5. Ensure the objective aligns with the conversation goal`
-	}
-
-		${conversationGoal ? `<overall_conversation_goal>\n${conversationGoal}\n</overall_conversation_goal>` : ''}
-		${
+	}${conversationGoal ? `\n<overall_conversation_goal>\n${conversationGoal}\n</overall_conversation_goal>\n` : ''}${
 		previousAssistantResponse
-			? `<previous_assistant_response>\n${previousAssistantResponse.substring(0, 2500)}${
+			? `\n<previous_assistant_response>\n${previousAssistantResponse.substring(0, 2500)}${
 				previousAssistantResponse.length > 2500 ? '...' : ''
-			}\n</previous_assistant_response>`
+			}\n</previous_assistant_response>\n`
 			: ''
 	}
-
 		<user_statement>\n${prompt.substring(0, 2500)}${prompt.length > 2500 ? '...' : ''}\n</user_statement>
 
 		${

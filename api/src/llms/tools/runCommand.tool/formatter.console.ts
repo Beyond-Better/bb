@@ -34,7 +34,7 @@ ${colors.bold('Exit code:')} ${code}
 ${stdout ? `\n${colors.bold.cyan('Command output:')}\n${stdout}` : ''}
 ${stderr ? `\n${colors.bold.red('Error output:')}\n${stderr}` : ''}`;
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolRunCommand: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

@@ -1,6 +1,5 @@
-import { join } from '@std/path';
+import { extname, join } from '@std/path';
 import { contentType } from '@std/media-types';
-import { extname } from '@std/path';
 
 import { existsWithinProject, generateFileListing, isPathWithinProject } from 'api/utils/fileHandling.ts';
 import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';

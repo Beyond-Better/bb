@@ -22,7 +22,7 @@ export class GeminiProvider implements ModelProvider {
 			const response = result.response;
 			return response.text();
 		} catch (error) {
-			logger.error(`Error querying Gemini model ${model}:`, error);
+			logger.error(`LLMToolMultiModelQuery[GeminiProvider]: Error querying Gemini model ${model}:`, error);
 			throw new Error(`Gemini query failed: ${error.message}`);
 		}
 	}

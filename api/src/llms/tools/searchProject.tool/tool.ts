@@ -162,7 +162,7 @@ Leave empty to search only by file name, date, or size.`,
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`Error searching project: ${error.message}`);
+			logger.error(`LLMToolSearchProject: Error searching project: ${error.message}`);
 
 			throw createError(ErrorType.FileHandling, `Error searching project: ${error.message}`, {
 				name: 'search-project',

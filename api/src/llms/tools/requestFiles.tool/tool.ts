@@ -156,14 +156,14 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 			} else {
 				errorMessage = error.message;
 			}
-			logger.error(`Error adding files to conversation: ${errorMessage}`);
+			logger.error(`LLMToolRequestFiles: Error adding files to conversation: ${errorMessage}`);
 
 			const toolResults = `⚠️  ${errorMessage}`;
 			const bbResponse = `BB failed to add files. Error: ${errorMessage}`;
 			const toolResponse = `Failed to add files. Error: ${errorMessage}`;
 			return { toolResults, toolResponse, bbResponse };
 
-			// 			logger.error(`Error adding files to conversation: ${error.message}`);
+			// 			logger.error(`LLMToolRequestFiles: Error adding files to conversation: ${error.message}`);
 			//
 			// 			throw createError(
 			// 				ErrorType.FileHandling,

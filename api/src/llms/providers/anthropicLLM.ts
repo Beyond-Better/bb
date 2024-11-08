@@ -392,6 +392,16 @@ class AnthropicLLM extends LLM {
 			//logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('llms-anthropic-anthropicResponse', anthropicResponse);
 
+			// Validate essential response properties
+			if (!anthropicMessage || !anthropicMessage.content) {
+				logger.error('Invalid Anthropic response - missing message or content:', { anthropicMessage });
+				throw createError(
+					ErrorType.LLM,
+					'Invalid response from Anthropic API: missing required properties',
+					{ provider: this.llmProviderName, model: messageParams.model } as LLMErrorOptions,
+				);
+			}
+
 			const headers = anthropicResponse?.headers;
 
 			//const requestId = headers.get('request-id');
@@ -403,6 +413,12 @@ class AnthropicLLM extends LLM {
 			const tokensRemaining = Number(headers.get('anthropic-ratelimit-tokens-remaining'));
 			const tokensLimit = Number(headers.get('anthropic-ratelimit-tokens-limit'));
 			const tokensResetDate = new Date(headers.get('anthropic-ratelimit-tokens-reset') || '');
+
+			//logger.debug(`provider[${this.llmProviderName}] Creating message response from Anthropic message:`, {
+			//	messageType: anthropicMessage.type,
+			//	role: anthropicMessage.role,
+			//	contentLength: anthropicMessage.content.length,
+			//});
 
 			const messageResponse: LLMProviderMessageResponse = {
 				id: anthropicMessage.id,
@@ -437,6 +453,11 @@ class AnthropicLLM extends LLM {
 					statusText: anthropicResponse.statusText,
 				},
 			};
+			logger.debug(`provider[${this.llmProviderName}] Created message response:`, {
+				id: messageResponse.id,
+				type: messageResponse.type,
+				contentLength: messageResponse.answerContent.length,
+			});
 			//logger.debug("llms-anthropic-messageResponse", messageResponse);
 
 			return { messageResponse, messageMeta: { system: messageParams.system } };
@@ -444,7 +465,7 @@ class AnthropicLLM extends LLM {
 			logger.error('Error calling Anthropic API', err);
 			throw createError(
 				ErrorType.LLM,
-				'Could not get response from Anthropic API.',
+				`Could not get response from Anthropic API: ${err.message}`,
 				{
 					model: messageParams.model,
 					provider: this.llmProviderName,

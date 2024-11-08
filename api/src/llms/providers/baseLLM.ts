@@ -196,9 +196,38 @@ class LLM {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
 				this.extractToolUse(llmSpeakWithResponse.messageResponse);
 			} else {
-				const answerPart = llmSpeakWithResponse.messageResponse.answerContent[0] as LLMMessageContentPart;
-				if ('text' in answerPart) {
+				// Add logging and robust error handling for response processing
+				logger.info(`provider[${this.llmProviderName}] Processing non-tool response`);
+
+				if (!llmSpeakWithResponse.messageResponse.answerContent) {
+					logger.error(`provider[${this.llmProviderName}] answerContent is missing in response`);
+					throw createError(
+						ErrorType.LLM,
+						'Invalid response format: answerContent is missing',
+						{ provider: this.llmProviderName } as LLMErrorOptions,
+					);
+				}
+
+				const answerPart = llmSpeakWithResponse.messageResponse.answerContent[0];
+				logger.info(`provider[${this.llmProviderName}] First answer part:`, answerPart);
+
+				if (answerPart && typeof answerPart === 'object' && 'text' in answerPart) {
 					llmSpeakWithResponse.messageResponse.answer = answerPart.text;
+					logger.info(
+						`provider[${this.llmProviderName}] Extracted text answer:`,
+						answerPart.text.substring(0, 100) + '...',
+					);
+				} else {
+					llmSpeakWithResponse.messageResponse.answer = 'Error: Empty content response from LLM';
+					llmSpeakWithResponse.messageResponse.answerContent = [{
+						type: 'text',
+						text: llmSpeakWithResponse.messageResponse.answer,
+					}];
+					logger.warn(
+						`provider[${this.llmProviderName}] First answer part does not contain text property. Type: ${
+							answerPart ? typeof answerPart : 'undefined'
+						}`,
+					);
 				}
 			}
 

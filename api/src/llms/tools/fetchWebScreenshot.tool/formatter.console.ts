@@ -31,7 +31,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		
 \u001b]1337;File=name=${filename};inline=1:${content}\u0007`;
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolFetchWebScreenshot: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

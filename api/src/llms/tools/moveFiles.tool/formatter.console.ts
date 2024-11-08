@@ -44,7 +44,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		`,
 		].join('\n\n');
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolMoveFiles: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

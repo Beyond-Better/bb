@@ -125,7 +125,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 		}
 
 		const fullFilePath = join(projectEditor.projectRoot, filePath);
-		logger.info(`Handling search and replace for file: ${fullFilePath}`);
+		logger.info(`LLMToolSearchAndReplace: Handling search and replace for file: ${fullFilePath}`);
 
 		try {
 			let content: string;
@@ -136,10 +136,10 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				if (error instanceof Deno.errors.NotFound && createIfMissing) {
 					content = '';
 					isNewFile = true;
-					logger.info(`File ${fullFilePath} not found. Creating new file.`);
+					logger.info(`LLMToolSearchAndReplace: File ${fullFilePath} not found. Creating new file.`);
 					// Create missing directories
 					await ensureDir(dirname(fullFilePath));
-					logger.info(`Created directory structure for ${fullFilePath}`);
+					logger.info(`LLMToolSearchAndReplace: Created directory structure for ${fullFilePath}`);
 				} else {
 					throw error;
 				}
@@ -182,7 +182,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					// literal search that is case sensitive
 					searchPattern = search;
 				}
-				//logger.info(`Searching for pattern: `, searchPattern);
+				//logger.info(`LLMToolSearchAndReplace: Searching for pattern: `, searchPattern);
 
 				content = replaceAll && searchPattern instanceof RegExp
 					? content.replaceAll(searchPattern, replace)
@@ -226,7 +226,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			if (successfulOperations.length > 0 || isNewFile) {
 				await Deno.writeTextFile(fullFilePath, content);
 
-				logger.info(`Saving conversation search and replace operations: ${interaction.id}`);
+				logger.info(`LLMToolSearchAndReplace: Saving conversation search and replace operations: ${interaction.id}`);
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
 					filePath,
@@ -259,7 +259,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				const noChangesMessage = `No changes were made to the file: ${filePath}. Results: ${
 					JSON.stringify(operationResults)
 				}`;
-				logger.info(noChangesMessage);
+				logger.info(`LLMToolSearchAndReplace: ${noChangesMessage}`);
 
 				throw createError(ErrorType.FileHandling, noChangesMessage, {
 					name: 'search-and-replace',
@@ -278,7 +278,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				throw error;
 			}
 			const errorMessage = `Failed to apply search and replace to ${filePath}: ${error.message}`;
-			logger.error(errorMessage);
+			logger.error(`LLMToolSearchAndReplace: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {
 				name: 'search-and-replace',

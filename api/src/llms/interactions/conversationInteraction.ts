@@ -18,6 +18,7 @@ import type {
 	LLMMessageContentPartImageBlockSourceMediaType,
 	LLMMessageContentParts,
 	LLMMessageContentPartTextBlock,
+	LLMMessageContentPartToolUseBlock,
 } from 'api/llms/llmMessage.ts';
 import { isFileHandlingError } from 'api/errors/error.ts';
 
@@ -476,7 +477,7 @@ ${fileContent}
 				return message;
 			}
 			if (message.role === 'user') {
-				logger.error(`ConversationInteraction: Processing message: ${JSON.stringify(message)}`);
+				//logger.error(`ConversationInteraction: Processing message: ${JSON.stringify(message)}`);
 				const updatedContent: LLMMessageContentPart[] = [];
 				for (const part of message.content) {
 					const processedPart = await processContentPart(
@@ -680,6 +681,26 @@ ${fileContent}
 			 */
 		}
 		this._statementTurnCount++;
+
+		// Check if the last message has a 'tool_use' content part
+		const lastMessage = this.getLastMessage();
+		if (
+			lastMessage && lastMessage.role === 'assistant' &&
+			lastMessage.content.some((part: { type: string }) => part.type === 'tool_use')
+		) {
+			const toolUsePart = lastMessage.content.filter((part: { type: string }) =>
+				part.type === 'tool_use'
+			)[0] as LLMMessageContentPartToolUseBlock;
+			// Add a new message with a 'tool_result' content part
+			this.addMessageForToolResult(
+				toolUsePart.id,
+				'Tool use was interrupted, results could not be generated. You may try again now.',
+				true,
+			);
+			logger.warn(
+				'ConversationInteraction: converse - Added generated tool_result message due to interrupted tool use',
+			);
+		}
 
 		//logger.debug(`ConversationInteraction: converse - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
 		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });

@@ -127,9 +127,9 @@ class LLMMessage {
 	}
 
 	public set conversationStats(stats: ConversationMetrics) {
-		this._statementCount = stats.statementCount;
-		this._statementTurnCount = stats.statementTurnCount;
-		this._conversationTurnCount = stats.conversationTurnCount;
+		this._statementCount = stats.statementCount ?? 1;
+		this._statementTurnCount = stats.statementTurnCount ?? 1;
+		this._conversationTurnCount = stats.conversationTurnCount ?? 1;
 	}
 
 	public setTimestamp(): void {

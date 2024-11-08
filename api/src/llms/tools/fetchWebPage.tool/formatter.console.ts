@@ -21,7 +21,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 		const contentPreview = content.length > 500 ? content.slice(0, 500) + '...' : content;
 		return colors.bold(`BB has fetched web page content from ${url}.\n\n`) + colors.cyan(contentPreview);
 	} else {
-		logger.error('Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolFetchWebPage: Unexpected bbResponse format:', bbResponse);
 		return bbResponse;
 	}
 };

@@ -11,11 +11,12 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'conversationSummary.tool',
 		'metadata': {
 			'name': 'conversation_summary',
-			'description': 'Summarize and optionally truncate the current conversation',
+			'description':
+				'Summarize and optionally truncate the current conversation. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
-			'enabled': false,
+			'enabled': true,
 		},
 	},
 	{

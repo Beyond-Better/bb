@@ -220,7 +220,7 @@ export default class LLMToolRenameFiles extends LLMTool {
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`Error renaming files: ${error.message}`);
+			logger.error(`LLMToolRenameFiles: Error renaming files: ${error.message}`);
 
 			const toolResults = `⚠️  ${error.message}`;
 			const bbResponse = `BB failed to rename files. Error: ${error.message}`;

@@ -523,7 +523,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		}
 
 		const fullFilePath = join(projectEditor.projectRoot, filePath);
-		logger.info(`Handling search and replace for file: ${fullFilePath}`);
+		logger.info(`LLMToolSearchAndReplaceCode: Handling search and replace for file: ${fullFilePath}`);
 
 		try {
 			let content: string;
@@ -534,10 +534,10 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				if (error instanceof Deno.errors.NotFound && createIfMissing) {
 					content = '';
 					isNewFile = true;
-					logger.info(`File ${fullFilePath} not found. Creating new file.`);
+					logger.info(`LLMToolSearchAndReplaceCode: File ${fullFilePath} not found. Creating new file.`);
 					// Create missing directories
 					await ensureDir(dirname(fullFilePath));
-					logger.info(`Created directory structure for ${fullFilePath}`);
+					logger.info(`LLMToolSearchAndReplaceCode: Created directory structure for ${fullFilePath}`);
 				} else {
 					throw error;
 				}
@@ -553,7 +553,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				if (!isNewFile && search.length < LLMToolSearchAndReplaceCode.MIN_SEARCH_LENGTH) {
 					const warningMessage =
 						`Warning: Search string is too short (minimum ${LLMToolSearchAndReplaceCode.MIN_SEARCH_LENGTH} character(s)) for existing file. Operation skipped.`;
-					logger.warn(warningMessage);
+					logger.warn(`LLMToolSearchAndReplaceCode: ${warningMessage}`);
 					toolWarnings.push(warningMessage);
 					continue;
 				}
@@ -561,7 +561,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				// Validate that search and replace strings are different
 				if (search === replace) {
 					const warningMessage = `Warning: Search and replace strings are identical. Operation skipped.`;
-					logger.warn(warningMessage);
+					logger.warn(`LLMToolSearchAndReplaceCode: ${warningMessage}`);
 					toolWarnings.push(warningMessage);
 					continue;
 				}
@@ -611,7 +611,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 
 			if (changesMade || isNewFile) {
 				await Deno.writeTextFile(fullFilePath, content);
-				logger.info(`Saving conversation search and replace: ${interaction.id}`);
+				logger.info(`LLMToolSearchAndReplaceCode: Saving conversation search and replace: ${interaction.id}`);
 
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
@@ -630,7 +630,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				const noChangesMessage = allOperationsSkipped
 					? `${toolWarning}No changes were made to the file: ${filePath}. All operations were skipped due to identical source and destination strings.`
 					: `${toolWarning}No changes were made to the file: ${filePath}. The search strings were not found in the file content.`;
-				logger.info(noChangesMessage);
+				logger.info(`LLMToolSearchAndReplaceCode: ${noChangesMessage}`);
 
 				throw createError(ErrorType.FileHandling, noChangesMessage, {
 					name: 'search-and-replace',
@@ -643,7 +643,7 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				throw error;
 			}
 			let errorMessage = `Failed to apply search and replace to ${filePath}: ${error.message}`;
-			logger.error(errorMessage);
+			logger.error(`LLMToolSearchAndReplaceCode: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {
 				name: 'search-and-replace',
