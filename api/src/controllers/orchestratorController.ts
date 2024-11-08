@@ -642,11 +642,10 @@ class OrchestratorController {
 			// Only create statement objective on subsequent statements; not the first one
 			// Generate statement objective with context from previous assistant response
 			const previousAssistantMessage = interaction.getPreviousAssistantMessage();
-			const previousResponse =
-				previousAssistantMessage && Array.isArray(previousAssistantMessage.content) &&
+			const previousResponse = previousAssistantMessage && Array.isArray(previousAssistantMessage.content) &&
 					previousAssistantMessage.content.length > 0
-					? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
-					: undefined;
+				? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
+				: undefined;
 
 			const previousObjectives = interaction.getObjectives().statement || [];
 			const previousObjective = previousObjectives[previousObjectives.length - 1];

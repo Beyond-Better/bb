@@ -560,7 +560,9 @@ Ensure your summary accurately captures all important context from the removed m
 		for (const message of messages) {
 			if (this.hasToolUse(message)) {
 				logger.info(
-					`LLMToolConversationSummary: Found tool use in message: role=${message.role}, content=${JSON.stringify(message.content)}`,
+					`LLMToolConversationSummary: Found tool use in message: role=${message.role}, content=${
+						JSON.stringify(message.content)
+					}`,
 				);
 				if (expectingResult) {
 					// Found tool use while expecting result
@@ -574,7 +576,9 @@ Ensure your summary accurately captures all important context from the removed m
 				expectingResult = true;
 			} else if (this.hasToolResult(message)) {
 				logger.info(
-					`LLMToolConversationSummary: Found tool result in message: role=${message.role}, content=${JSON.stringify(message.content)}`,
+					`LLMToolConversationSummary: Found tool result in message: role=${message.role}, content=${
+						JSON.stringify(message.content)
+					}`,
 				);
 				if (!expectingResult) {
 					// Found result without preceding use
@@ -607,7 +611,11 @@ Ensure your summary accurately captures all important context from the removed m
 		for (let i = 1; i < messages.length; i++) {
 			const prevRole = messages[i - 1].role;
 			const currRole = messages[i].role;
-			logger.info(`LLMToolConversationSummary: validateMessageAlternation - checking messages ${i - 1} and ${i}: ${prevRole} -> ${currRole}`);
+			logger.info(
+				`LLMToolConversationSummary: validateMessageAlternation - checking messages ${
+					i - 1
+				} and ${i}: ${prevRole} -> ${currRole}`,
+			);
 			if (currRole === prevRole) {
 				logger.info(
 					`LLMToolConversationSummary: validateMessageAlternation - found broken alternation at index ${i}: ${prevRole} -> ${currRole}`,
@@ -637,7 +645,7 @@ Ensure your summary accurately captures all important context from the removed m
 	 * @returns Array of messages with interrupted sequences removed
 	 */
 	private removeInterruptedSequences(messages: LLMMessage[]): LLMMessage[] {
-/* 
+		/*
 		logger.info(
 			'LLMToolConversationSummary: removeInterruptedSequences - processing messages:',
 			messages.map((m) => ({
@@ -731,7 +739,7 @@ Ensure your summary accurately captures all important context from the removed m
 		// Build final result array
 		const result = messages.filter((_, i) => indicesToKeep.has(i));
 
-/* 
+		/*
 		logger.info(
 			'LLMToolConversationSummary: removeInterruptedSequences - result:',
 			result.map((m) => ({
@@ -827,7 +835,9 @@ Ensure your summary accurately captures all important context from the removed m
 		// First, find the minimum number of messages we need to keep from the end
 		let lastPairIndex = messages.length - 1;
 		logger.info('LLMToolConversationSummary: Finding last complete message pair:');
-		logger.info(`LLMToolConversationSummary: Starting from index ${lastPairIndex}: ${messages[lastPairIndex].role}`);
+		logger.info(
+			`LLMToolConversationSummary: Starting from index ${lastPairIndex}: ${messages[lastPairIndex].role}`,
+		);
 		while (lastPairIndex > 0 && messages[lastPairIndex].role === messages[lastPairIndex - 1].role) {
 			lastPairIndex--;
 			logger.info(`LLMToolConversationSummary: Moved to index ${lastPairIndex}: ${messages[lastPairIndex].role}`);
@@ -883,7 +893,9 @@ Ensure your summary accurately captures all important context from the removed m
 			})),
 		);
 
-		logger.info('LLMToolConversationSummary: truncateConversation - removing interrupted sequences from kept messages');
+		logger.info(
+			'LLMToolConversationSummary: truncateConversation - removing interrupted sequences from kept messages',
+		);
 		const keptMessages = this.removeInterruptedSequences(initialKeptMessages);
 		logger.info(
 			'LLMToolConversationSummary: truncateConversation - kept messages after cleaning:',
@@ -903,7 +915,7 @@ Ensure your summary accurately captures all important context from the removed m
 		);
 
 		const removedMessages = messages.slice(0, splitIndex);
-/* 
+		/*
 		logger.info(
 			'LLMToolConversationSummary: truncateConversation - removed messages:',
 			removedMessages.map((m) => ({

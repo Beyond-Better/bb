@@ -226,7 +226,9 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			if (successfulOperations.length > 0 || isNewFile) {
 				await Deno.writeTextFile(fullFilePath, content);
 
-				logger.info(`LLMToolSearchAndReplace: Saving conversation search and replace operations: ${interaction.id}`);
+				logger.info(
+					`LLMToolSearchAndReplace: Saving conversation search and replace operations: ${interaction.id}`,
+				);
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
 					filePath,

@@ -319,7 +319,6 @@ class ConversationPersistence {
 						// Continue to the next message if there's an error
 					}
 				}
-
 			}
 
 			// Load filesMetadata
