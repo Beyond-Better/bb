@@ -23,6 +23,7 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 
 // [TODO] Use tokenUsage.jsonl for more accurate and efficient token counting
 // [TODO] Add project-specific significance patterns (e.g., research conclusions, architectural decisions)
@@ -322,7 +323,8 @@ A summary of the removed messages has been added to the start of the conversatio
 					);
 				}
 
-				summary = response.messageResponse.answer;
+				//summary = response.messageResponse.answer || 'no answer from LLM';
+				summary = extractTextFromContent(response.messageResponse.answerContent);
 				summaryTokenCount = response.messageResponse.usage.outputTokens;
 				model = response.messageResponse.model;
 
@@ -982,7 +984,8 @@ Ensure your summary accurately captures all important context from the removed m
 				'Generate conversation summary',
 			);
 			const response = await chat.chat(summaryPrompt);
-			const answer = response.messageResponse.answer;
+			//const answer = response.messageResponse.answer || 'no answer from LLM';
+			const answer = extractTextFromContent(response.messageResponse.answerContent);
 
 			// Validate summary structure based on summaryLength
 			const requiredSections = ['## Removed Conversation Context'];
