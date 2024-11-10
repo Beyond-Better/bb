@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.2.6] - 2024-11-10
+
+### Changed
+
 - refactored handling (recording and reporting) of token usage
 - added tests for persistence layer
 - changed from adding files inside <bbFile> tags to using separate content part
