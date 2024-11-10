@@ -197,7 +197,7 @@ class LLM {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
 				this.extractToolUse(llmSpeakWithResponse.messageResponse);
 				llmSpeakWithResponse.messageResponse.answer = llmSpeakWithResponse.messageResponse.toolsUsed.map(
-					(toolUse) => toolUse.toolThinking
+					(toolUse) => toolUse.toolThinking,
 				).join('\n');
 			} else {
 				// Add logging and robust error handling for response processing
