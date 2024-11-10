@@ -132,6 +132,62 @@ Apply precise text replacements with support for literal or regex matching.
 }
 ```
 
+### search_and_replace_multiline_code
+
+Apply search and replace operations with multiline code support.
+
+**Description**: [Currently Disabled] Enhanced version of search_and_replace with better support for multiline code patterns.
+
+**Status**: Disabled in current version
+
+**Planned Features**:
+- Multiline pattern matching
+- Code-aware replacements
+- Indentation preservation
+- Language-specific handling
+
+### search_and_replace with support for literal or regex matching.
+
+**Description**: Apply a list of search and replace operations to a file. Each operation can use exact literal text matching or regex patterns.
+
+**Parameters**:
+- `filePath` (string): Target file path
+- `operations` (array): List of search/replace operations
+- `createIfMissing` (boolean, default: true): Create file if it doesn't exist
+
+**Operation Properties**:
+- `search` (string): Text to find
+- `replace` (string): Replacement text
+- `regexPattern` (boolean, default: false): Use regex matching
+- `replaceAll` (boolean, default: false): Replace all occurrences
+- `caseSensitive` (boolean, default: true): Case-sensitive matching
+
+**Use Cases**:
+- Updating variable names
+- Modifying configuration values
+- Fixing typos
+- Updating import statements
+
+**Example**:
+```typescript
+{
+  filePath: "src/config.ts",
+  operations: [
+    {
+      search: "const DEBUG = false;",
+      replace: "const DEBUG = true;",
+      replaceAll: false
+    },
+    {
+      search: "import\\s+{\\s*([^}]+)\\s*}\\s+from\\s+'([^']+)'",
+      replace: "import { $1 } from '$2'",
+      regexPattern: true,
+      replaceAll: true
+    }
+  ]
+}
+```
+
 ### apply_patch
 
 Apply unified diff format patches for complex changes.
@@ -256,6 +312,52 @@ Capture visual screenshots of web pages.
 
 ## Analysis Tools
 
+### vector_search
+
+Perform vector similarity searches.
+
+**Description**: [Currently Disabled] Performs vector search operations for finding similar content.
+
+**Status**: Disabled in current version
+
+**Planned Features**:
+- Semantic similarity search
+- Embedding-based retrieval
+- Configurable similarity thresholds
+- Support for various content types
+
+### conversation_summary
+
+Summarize and manage conversation context.
+
+**Description**: Summarize and optionally truncate the current conversation. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long.
+
+**Parameters**:
+- `summaryLength` (string, default: "long"): Controls summary detail level ("short", "medium", "long")
+- `maxTokensToKeep` (number, default: 64000): Maximum tokens to keep when truncating
+- `requestSource` (string, default: "tool"): Indicates whether summary was requested by user or tool
+
+**Use Cases**:
+- Managing long conversations
+- Reducing token usage
+- Maintaining context awareness
+- Preserving key information
+
+**Examples**:
+```typescript
+// Generate a concise summary
+{
+  summaryLength: "short",
+  requestSource: "user"
+}
+
+// Truncate while preserving recent context
+{
+  maxTokensToKeep: 32000,
+  summaryLength: "medium"
+}
+```
+
 ### conversation_metrics
 
 Analyze conversation patterns and usage.
@@ -278,6 +380,20 @@ Analyze conversation patterns and usage.
 - Token usage
 - Response times
 - Quality indicators
+
+### delegate_tasks
+
+Delegate tasks to child interactions.
+
+**Description**: [Currently Disabled] Delegate tasks to child interactions with specific context and resources.
+
+**Status**: Disabled in current version
+
+**Planned Features**:
+- Task delegation with context
+- Resource allocation
+- Progress tracking
+- Result aggregation
 
 ### multi_model_query
 

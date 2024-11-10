@@ -1,5 +1,7 @@
 # Tool Use and Tool Results Structure
 
+This document describes the technical implementation of tool I/O in BB. For LLM-specific instructions, see [LLM Tool I/O Guide](../llm/tool_io.md).
+
 ## Tool Input
 
 The `inputSchema` defines the structure of "tool use". The schema is the input provided by the LLM when running a tool. It's passed to `runTool` as `toolUse`. It's passed to `formatToolUse` as `toolInput`. The 'tool use' data received from the LLM will always be validated against `inputSchema`. 
@@ -21,7 +23,6 @@ The `toolResults` get passed to `addMessageForToolResult` which will handle conv
 The `toolResponse` is optional. It is for providing the LLM with info/metadata about the tool run, if the `toolResults` data needs further explanation. The `toolResponse` is included in the prompt/statement that is returned to the LLM as part of the tool_results messages. 
 
 The `bbResponse` is for providing the user with info/metadata about the tool run. It is added to the conversation via `conversationLogger`. 
-
 
 ## Conversation Logger vs LLM Message History
 
@@ -80,4 +81,3 @@ The feedback is maintained by:
 - `LLMConversationInteraction`: Tracks objectives and resource access
 - `LLMToolManager`: Manages tool usage statistics
 - `OrchestratorController`: Formats and presents the feedback
-

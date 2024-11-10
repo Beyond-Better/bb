@@ -97,10 +97,10 @@ As an AI assistant for the BB project, I should be aware of and use the followin
 
 - BB GitHub Repository: https://github.com/Beyond-Better/bb
 - BB Documentation (future): https://beyondbetter.dev
-- Contributing Guidelines: https://github.com/Beyond-Better/bb/blob/main/CONTRIBUTING.md
-- Project Conventions: https://github.com/Beyond-Better/bb/blob/main/CONVENTIONS.md
-- File Handling Guidelines: https://github.com/Beyond-Better/bb/blob/main/FILE_HANDLING.md
-- API Documentation: https://github.com/Beyond-Better/bb/blob/main/API.md
+- Contributing Guidelines: ../../../CONTRIBUTING.md
+- Project Conventions: ../../../CONVENTIONS.md
+- File Handling Guidelines: file_handling.md
+- API Documentation: ../../API.md
 
 When referencing these links in conversations or documentation, I should use the exact URLs provided above to ensure consistency and accuracy.
 

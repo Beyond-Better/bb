@@ -50,8 +50,7 @@ export async function generateCommitMessage(
 		'Generate Commit Message',
 	);
 	const response = await chat.chat(prompt);
-	const contentPart = response.messageResponse.answerContent[0] as { type: 'text'; text: string };
-	const msg = contentPart.text;
+	const msg = response.messageResponse.answer;
 
 	return stripIndents`${msg}
         

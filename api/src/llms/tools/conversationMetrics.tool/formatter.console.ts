@@ -1,6 +1,6 @@
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationMetricsData } from './tool.ts';
+import type { LLMToolConversationMetricsData, TokenMetrics } from './tool.ts';
 import { logger } from 'shared/logger.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
@@ -11,6 +11,28 @@ export const formatToolUse = (_toolInput: LLMToolInputSchema): string => {
     Analyzing turns, message types, and token usage...
   `.trim();
 };
+
+function formatChatMetrics(chatMetrics: TokenMetrics): string {
+	if (chatMetrics.totalUsage.total === 0) {
+		return '- No auxiliary chat activity';
+	}
+
+	return stripIndents`
+${colors.cyan('Total Usage:')}
+  Input: ${chatMetrics.totalUsage.input}
+  Output: ${chatMetrics.totalUsage.output}
+  Total: ${chatMetrics.totalUsage.total}
+
+${colors.cyan('Cache Impact:')}
+  Total Savings: ${chatMetrics.cacheImpact.totalSavings}
+  Savings Percentage: ${chatMetrics.cacheImpact.savingsPercentage.toFixed(2)}%
+
+${colors.cyan('By Role:')}
+  User: ${chatMetrics.byRole.user}
+  Assistant: ${chatMetrics.byRole.assistant}
+  System: ${chatMetrics.byRole.system}
+  `.trim();
+}
 
 export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
 	const { bbResponse } = resultContent;
@@ -30,8 +52,30 @@ ${colors.cyan('Active Files:')} ${metrics.summary.activeFiles}
 ${colors.cyan('Unique Tools Used:')} ${metrics.summary.uniqueToolsUsed}
 ${colors.cyan('Duration:')} ${(metrics.timing.totalDuration / 1000 / 60).toFixed(2)} minutes
 
-${colors.bold('Token Usage:')}
-${colors.cyan('Total:')} ${metrics.tokens.total}
+${colors.bold('Main Conversation Token Usage:')}
+${colors.cyan('Total Usage:')}
+  Input: ${metrics.tokens.totalUsage.input}
+  Output: ${metrics.tokens.totalUsage.output}
+  Total: ${metrics.tokens.totalUsage.total}
+
+${colors.cyan('Differential Usage:')}
+  Input: ${metrics.tokens.differentialUsage.input}
+  Output: ${metrics.tokens.differentialUsage.output}
+  Total: ${metrics.tokens.differentialUsage.total}
+
+${colors.cyan('Cache Impact:')}
+  Potential Cost: ${metrics.tokens.cacheImpact.potentialCost}
+  Actual Cost: ${metrics.tokens.cacheImpact.actualCost}
+  Total Savings: ${metrics.tokens.cacheImpact.totalSavings}
+  Savings Percentage: ${metrics.tokens.cacheImpact.savingsPercentage.toFixed(2)}%
+
+${colors.cyan('By Role:')}
+  User: ${metrics.tokens.byRole.user}
+  Assistant: ${metrics.tokens.byRole.assistant}
+  System: ${metrics.tokens.byRole.system}
+
+${colors.bold('Chat Token Usage:')}
+${metrics.chatTokens ? formatChatMetrics(metrics.chatTokens) : '- No auxiliary chat activity'}
 ${colors.cyan('Average per Turn:')} ${metrics.tokens.averagePerTurn.toFixed(1)}
 ${colors.cyan('By Role:')}
   User: ${metrics.tokens.byRole.user}

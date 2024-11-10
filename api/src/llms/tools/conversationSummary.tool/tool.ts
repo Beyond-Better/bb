@@ -310,19 +310,19 @@ A summary of the removed messages has been added to the start of the conversatio
 				);
 				const response = await chat.chat(summaryPrompt);
 				// Validate response structure
-				if (
-					!response.messageResponse?.answerContent?.[0] ||
-					response.messageResponse.answerContent[0].type !== 'text'
-				) {
-					throw createError(ErrorType.ToolHandling, 'Invalid response structure from LLM', {
-						name: 'validate-response',
-						toolName: 'conversation_summary',
-						operation: 'tool-run',
-					});
+				if (!response.messageResponse?.answerContent) {
+					throw createError(
+						ErrorType.ToolHandling,
+						'Invalid response structure from LLM: missing answerContent',
+						{
+							name: 'validate-response',
+							toolName: 'conversation_summary',
+							operation: 'tool-run',
+						},
+					);
 				}
 
-				const contentPart = response.messageResponse.answerContent[0] as { type: 'text'; text: string };
-				summary = contentPart.text.trim();
+				summary = response.messageResponse.answer;
 				summaryTokenCount = response.messageResponse.usage.outputTokens;
 				model = response.messageResponse.model;
 
@@ -419,10 +419,10 @@ ${
 ### Files Referenced
 ${
 			summaryLength === 'short'
-				? '[List key files that were modified or significantly discussed, only including files wrapped in <bbFile> tags or matching the file placeholder pattern: "Note: File {filePath} (this revision: {messageId}) is up-to-date at turn {turnIndex} with revision {messageId}." Ignore any other file mentions in general discussion.]'
+				? '[List key files that were modified or significantly discussed, only including files with JSON metadata (delimited by ---bb-file-metadata---) or matching the file placeholder pattern: "Note: File {filePath} (this revision: {messageId}) is up-to-date at turn {turnIndex} with revision {messageId}." Ignore any other file mentions in general discussion.]'
 				: summaryLength === 'medium'
-				? '[List files that were referenced (from <bbFile> tags or file placeholders), with their revisions and how they were used (modified, reviewed, discussed). Include only files that were actually accessed, not just mentioned in discussion.]'
-				: '[List all files referenced (from <bbFile> tags or file placeholders), including their revisions, how they were used, and their relationships to other files and changes. Track file states across the conversation but only for files that were actually accessed.]'
+				? '[List files that were referenced (from JSON metadata blocks or file placeholders), with their revisions and how they were used (modified, reviewed, discussed). Include only files that were actually accessed, not just mentioned in discussion.]'
+				: '[List all files referenced (from JSON metadata blocks or file placeholders), including their revisions, how they were used, and their relationships to other files and changes. Track file states across the conversation but only for files that were actually accessed.]'
 		}
 
 ### Tools Used
@@ -982,8 +982,7 @@ Ensure your summary accurately captures all important context from the removed m
 				'Generate conversation summary',
 			);
 			const response = await chat.chat(summaryPrompt);
-			const contentPart = response.messageResponse.answerContent[0] as { type: 'text'; text: string };
-			const answer = contentPart.text.trim();
+			const answer = response.messageResponse.answer;
 
 			// Validate summary structure based on summaryLength
 			const requiredSections = ['## Removed Conversation Context'];

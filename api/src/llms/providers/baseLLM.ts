@@ -16,6 +16,7 @@ import type { LLMMessageContentPart } from '../llmMessage.ts';
 import type { LLMToolInputSchema } from '../llmTool.ts';
 import type LLMInteraction from '../interactions/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
@@ -195,6 +196,9 @@ class LLM {
 			if (llmSpeakWithResponse.messageResponse.isTool) {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
 				this.extractToolUse(llmSpeakWithResponse.messageResponse);
+				llmSpeakWithResponse.messageResponse.answer = llmSpeakWithResponse.messageResponse.toolsUsed.map(
+					(toolUse) => toolUse.toolThinking
+				).join('\n');
 			} else {
 				// Add logging and robust error handling for response processing
 				logger.info(`provider[${this.llmProviderName}] Processing non-tool response`);
@@ -208,26 +212,36 @@ class LLM {
 					);
 				}
 
-				const answerPart = llmSpeakWithResponse.messageResponse.answerContent[0];
-				logger.info(`provider[${this.llmProviderName}] First answer part:`, answerPart);
-
-				if (answerPart && typeof answerPart === 'object' && 'text' in answerPart) {
-					llmSpeakWithResponse.messageResponse.answer = answerPart.text;
-					logger.info(
-						`provider[${this.llmProviderName}] Extracted text answer:`,
-						answerPart.text.substring(0, 100) + '...',
+				// Process all answer parts and combine text content
+				try {
+					const combinedAnswer = extractTextFromContent(llmSpeakWithResponse.messageResponse.answerContent);
+					if (combinedAnswer) {
+						llmSpeakWithResponse.messageResponse.answer = combinedAnswer;
+						logger.info(
+							`provider[${this.llmProviderName}] Extracted combined text answer:`,
+							combinedAnswer.substring(0, 100) + '...',
+						);
+					} else {
+						llmSpeakWithResponse.messageResponse.answer =
+							'Error: No valid text content found in LLM response';
+						llmSpeakWithResponse.messageResponse.answerContent = [{
+							type: 'text',
+							text: llmSpeakWithResponse.messageResponse.answer,
+						}];
+						logger.warn(
+							`provider[${this.llmProviderName}] No valid text content found in any answer parts`,
+						);
+					}
+				} catch (error) {
+					logger.error(
+						`provider[${this.llmProviderName}] Error processing answer content: ${error.message}`,
+						error,
 					);
-				} else {
-					llmSpeakWithResponse.messageResponse.answer = 'Error: Empty content response from LLM';
+					llmSpeakWithResponse.messageResponse.answer = 'Error: Failed to process LLM response content';
 					llmSpeakWithResponse.messageResponse.answerContent = [{
 						type: 'text',
 						text: llmSpeakWithResponse.messageResponse.answer,
 					}];
-					logger.warn(
-						`provider[${this.llmProviderName}] First answer part does not contain text property. Type: ${
-							answerPart ? typeof answerPart : 'undefined'
-						}`,
-					);
 				}
 			}
 

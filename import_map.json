@@ -61,12 +61,13 @@
 		"@std/encoding": "jsr:@std/encoding@^1.0.5",
 		"@std/testing/mock": "jsr:@std/testing@^1.0.0/mock",
 		"@std/testing/bdd": "jsr:@std/testing@^1.0.0/bdd",
-		"@std/assert": "jsr:@std/assert@^1.0.2",
+		"@std/assert": "jsr:@std/assert@^1.0.7",
 
 		"api/types.ts": "./api/src/types.ts",
 		"api/types/llms.ts": "./api/src/types/llms.types.ts",
 		"api/editor/projectEditor.ts": "./api/src/editor/projectEditor.ts",
 		"api/errors/error.ts": "./api/src/errors/error.ts",
+		"api/utils/contentTypes.ts": "./api/src/utils/contentTypes.utils.ts",
 		"api/utils/fileHandling.ts": "./api/src/utils/fileHandling.utils.ts",
 		"api/utils/error.ts": "./api/src/utils/error.utils.ts",
 		"api/utils/llms.ts": "./api/src/utils/llms.utils.ts",
@@ -79,6 +80,7 @@
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
 		"api/tests/testSetup.ts": "./api/tests/lib/testSetup.ts",
+		"api/tests/mockData.ts": "./api/tests/lib/mockData.ts",
 
 		"cli/apiClient.ts": "./cli/src/utils/apiClient.utils.ts",
 		"cli/websocketManager.ts": "./cli/src/utils/websocketManager.utils.ts",

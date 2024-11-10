@@ -164,7 +164,7 @@ export interface LLMProviderMessageResponse {
 	providerMessageResponseMeta: LLMProviderMessageResponseMeta;
 	answerContent: LLMMessageContentParts;
 	fromCache: boolean;
-	answer?: string;
+	answer: string;
 	isTool: boolean;
 	toolsUsed?: Array<LLMAnswerToolUse>;
 	toolThinking?: string;

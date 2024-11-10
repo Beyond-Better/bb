@@ -121,7 +121,7 @@ Beyond Better can be installed on various platforms:
   curl -sSL https://raw.githubusercontent.com/Beyond-Better/bb/main/install.sh | sh
   ```
 
-- **Windows**: Download and run the `bb-installer.msi` from our [Releases page](https://github.com/Beyond-Better/bb/releases). For detailed instructions, see our [Windows User Guide](docs/WINDOWS_GUIDE.md).
+- **Windows**: Download and run the `bb-installer.msi` from our [Releases page](https://github.com/Beyond-Better/bb/releases). For detailed instructions, see our [Windows User Guide](docs/user/guides/windows_guide.md).
 
 - **Manual Installation**: For advanced users, we provide options to install from release packages or build from source.
 
@@ -227,5 +227,5 @@ Your feedback is crucial in shaping the future of Beyond Better!
 - [Security Policy](docs/SECURITY.md)
 - [API Documentation](docs/API.md)
 - [CLI Documentation](docs/CLI.md)
-- [File Handling Guidelines](docs/FILE_HANDLING.md)
+- [File Handling Guidelines](docs/development/reference/file_handling.md)
 - [Project Conventions](CONVENTIONS.md)

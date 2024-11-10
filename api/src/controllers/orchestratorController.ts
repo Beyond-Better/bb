@@ -31,6 +31,7 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from '../types.ts';
 import type { ConversationLogEntry } from 'shared/types.ts';
@@ -828,26 +829,17 @@ class OrchestratorController {
 		});
 		 */
 
-		let answer = '';
+		// Extract full answer text
+		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
+		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
+
+		// Extract thinking content from answer using global regex
 		let assistantThinking = '';
-
-		// if (
-		// 	currentResponse.messageResponse.answerContent &&
-		// 	Array.isArray(currentResponse.messageResponse.answerContent)
-		// ) {
-		for (const part of currentResponse.messageResponse.answerContent) {
-			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-				const text = part.text;
-				answer += text.trim() + '\n';
-				const thinkingMatch = text.match(/<thinking>(.*?)<\/thinking>/s);
-				if (thinkingMatch) {
-					assistantThinking += thinkingMatch[1].trim() + '\n';
-				}
-			}
+		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
+		let match;
+		while ((match = thinkingRegex.exec(answer)) !== null) {
+			assistantThinking += match[1].trim() + '\n';
 		}
-		// }
-
-		answer = answer.trim();
 		assistantThinking = assistantThinking.trim();
 
 		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);

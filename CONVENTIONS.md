@@ -5,7 +5,7 @@ This document is primarily intended for the AI assistant to understand the proje
 
 ## IMPORTANT NOTE FOR ASSISTANT
 
-Refer to `docs/LLM_INSTRUCTIONS.md` as needed for guidance on project-specific files and their purposes. This file (CONVENTIONS.md) will always be available in the chat context, but other files should be requested when their specific information is required.
+Refer to `docs/development/llm/llm_instructions.md` as needed for guidance on project-specific files and their purposes. This file (CONVENTIONS.md) will always be available in the chat context, but other files should be requested when their specific information is required.
 
 ## Project Overview
 BB is a versatile project that provides REST API, CLI tools, and BUI browser interface to modify and enhance a wide range of text-based projects using LLM technology. BB is designed to work with various text formats including, but not limited to:
@@ -151,7 +151,7 @@ Key API Endpoints:
 - Use JSDoc comments for code documentation
 - Use Swagger/OpenAPI comments for API endpoints
 - Create documentation site at https://beyondbetter.dev
-- Refer to TESTING.md for comprehensive testing guidelines and current test coverage
+- Refer to docs/development/llm/testing.md for comprehensive testing guidelines and current test coverage
 - Each tool should have its own test file in the `api/tests/t/llms/tools` directory
 - Tests should cover basic functionality, edge cases, and error scenarios
 - Use `Deno.test()` for creating test cases, with `sanitizeResources` and `sanitizeOps` set to `false`
@@ -164,7 +164,7 @@ Key API Endpoints:
 - Create LLM provider abstraction layer
 - Implement pipelines for common conversations
 - Use embeddings for vector similarity for code chunks
-- Refer to NEW_TOOL.md for guidelines on creating new AI tools
+- Refer to docs/development/llm/new_tool.md for guidelines on creating new AI tools
 - Implement robust error handling and input validation for all AI tools
 - Ensure proper integration of new tools with the LLMToolManager
 - Consider different types of tools (file manipulation, data retrieval, system command) and their specific requirements

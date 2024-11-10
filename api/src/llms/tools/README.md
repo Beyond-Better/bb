@@ -33,7 +33,7 @@ When adding new tools to this directory:
 
 All tools in this directory should have comprehensive test coverage. Tests for these tools are located in the `tests/` directory within each tool's directory.
 
-For more information on testing, refer to the `TESTING.md` file in the project's root directory.
+For more information on testing, refer to the `docs/development/llm/testing.md` file.
 
 ## Maintenance
 

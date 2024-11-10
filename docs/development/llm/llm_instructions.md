@@ -1,40 +1,54 @@
 # LLM Instructions for BB Project
 
+NOTE: All file paths in this document are relative to the project root unless otherwise specified. The project root is the directory containing CONVENTIONS.md.
+
 This document serves as a guide for the AI assistant, providing an overview of important reference files within the BB project. These files contain crucial information about project conventions, testing procedures, tool creation, file handling, and more.
 
 ## Key Reference Files
 
-### CONVENTIONS.md
+### CONVENTIONS.md (Project Root)
 - Contains overall project conventions and guidelines
 - Always available in the chat context
 - Refer to this file for general project structure, coding standards, and best practices
 
-### TESTING.md
+### docs/development/llm/testing.md
 - Outlines the testing strategy and progress for the BB project
 - Includes information on test coverage, pending tests, and testing principles
 - Consult this file when working on or discussing project testing
 
-### NEW_TOOL.md
+### docs/development/llm/new_tool.md
 - Provides a comprehensive guide for creating new tools in the BB project
 - Includes step-by-step instructions, information gathering template, and implementation guidelines
 - Reference this file when assisting with the creation or modification of project tools
 
-### FILE_HANDLING.md
+### docs/development/llm/file_handling.md
 - Details the file handling mechanisms and best practices in the BB project
 - Includes information on file operations, path handling, and security considerations
 - Consult this file when working with file-related functionalities
 
-### API.md
+### docs/API.md
 - Documents the API structure and endpoints of the BB project
 - Useful for understanding the overall architecture and available services
 - Refer to this file when discussing or implementing API-related features
 
-### CLI.md
+### docs/BUI.md
+- Documents the Browser User Interface (BUI) of BB
+- Includes information about components, layouts, and user interactions
+- Reference this file when discussing or implementing BUI-related features
+- Consult for frontend development guidelines and patterns
+
+### docs/CLI.md
 - Provides information about the Command Line Interface of BB
 - Includes available commands and their usage
 - Consult this file when working on CLI-related features or discussing user interactions
 
-### TOOL_IO.md
+### docs/DUI.md
+- Documents the Desktop User Interface (DUI) of BB
+- Contains specifications and plans for the desktop application interface
+- Reference this file when discussing desktop-specific features and requirements
+- Important for understanding the planned desktop application architecture
+
+### docs/development/llm/tool_io.md
 - Documents tool input/output structures and feedback format
 - Includes information about tool results and conversation logging
 - Reference this file when working with tool responses and feedback
@@ -81,14 +95,14 @@ Use this feedback to:
 
 ## Import Path Guidelines
 
-1. Always check `import_map.json` for correct import paths
+1. Always check `import_map.json` in the project root for correct import paths
 2. Use mapped paths instead of relative paths where possible
 3. When suggesting imports, use paths as defined in import_map.json
 4. Convert absolute paths to mapped paths
 
 ## Usage Guidelines
 
-1. Always start by reviewing the CONVENTIONS.md file, which is included in every chat context.
+1. Always start by reviewing the CONVENTIONS.md file in the project root, which is included in every chat context.
 2. For specific tasks or discussions, refer to the relevant files mentioned above.
 3. If you need information that might be in one of these files, ask to see the content of the file.
 4. When providing assistance or suggestions, ensure they align with the guidelines and conventions outlined in these documents.

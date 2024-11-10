@@ -44,7 +44,7 @@ The BUI is designed as a single-page application (SPA) that communicates with th
 
 ## Contributing
 
-Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for general contribution guidelines and the interface-specific guidelines for BUI development.
+Please refer to the [CONTRIBUTING.md](../CONTRIBUTING.md) file for general contribution guidelines and the interface-specific guidelines for BUI development.
 
 ## Future Enhancements
 

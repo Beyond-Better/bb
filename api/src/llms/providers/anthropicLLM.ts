@@ -2,6 +2,7 @@ import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
+import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from '../interactions/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -17,6 +18,7 @@ import type {
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from '../../types.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 
 type AnthropicBlockParam =
 	| string
@@ -47,11 +49,10 @@ class AnthropicLLM extends LLM {
 		this.anthropic = new Anthropic(clientOptions);
 	}
 
-	// Helper function to check for bbFile tags
-	private hasBBFileTags(text: string): boolean {
+	// Helper function to check for file metadata blocks
+	private hasFileMetadata(text: string): boolean {
 		try {
-			const matches = text.match(/<bbFile path=.+?>/gs);
-			return matches !== null && matches.length > 0;
+			return text.includes(BB_FILE_METADATA_DELIMITER);
 		} catch (e) {
 			return false;
 		}
@@ -71,7 +72,7 @@ class AnthropicLLM extends LLM {
 				const indent = '  '.repeat(depth);
 
 				if (typeof part === 'string') {
-					summary.push(`${indent}Content: plain text (no bbFile or cache_control possible)`);
+					summary.push(`${indent}Content: plain text (no metadata or cache_control possible)`);
 					return;
 				}
 
@@ -87,7 +88,7 @@ class AnthropicLLM extends LLM {
 					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPartTextBlock) =>
 						nestedPart.type === 'text' &&
 						typeof nestedPart.text === 'string' &&
-						(this.hasBBFileTags(nestedPart.text) ||
+						(this.hasFileMetadata(nestedPart.text) ||
 							(nestedPart.text.startsWith('Note: File') &&
 								nestedPart.text.includes('is up-to-date')))
 					);
@@ -96,21 +97,29 @@ class AnthropicLLM extends LLM {
 						fileContentParts.forEach((p: LLMMessageContentPartTextBlock) => {
 							if (p.text.startsWith('Note: File')) {
 								const match = p.text.match(
-									/Note: File (.*?) \(this revision: (\w+)\) is up-to-date at turn (\d+) with revision (\w+)/,
+									/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
 								);
 								if (match) {
 									summary.push(
-										`${indent}  - ${match[1]} [this revision ${match[2]}] (current from turn ${
+										`${indent}  - ${match[1]} with revision ${match[2]} (current from turn ${
 											match[3]
 										} with revision ${match[4]})`,
 									);
 								}
-							} else {
-								const bbFileMatch = p.text.match(
-									/<bbFile[^>]*path="([^"]*)"[^>]*revision="([^"]*)"[^>]*>/,
-								);
-								if (bbFileMatch && bbFileMatch.length >= 3) {
-									summary.push(`${indent}  - ${bbFileMatch[1]} (revision: ${bbFileMatch[2]})`);
+							} else if (this.hasFileMetadata(p.text)) {
+								try {
+									const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+									const metadata = JSON.parse(metadataText);
+									summary.push(
+										`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
+									);
+									summary.push(`${indent}    Size: ${metadata.size} bytes`);
+									summary.push(`${indent}    Last Modified: ${metadata.last_modified}`);
+									if (metadata.mime_type) {
+										summary.push(`${indent}    MIME Type: ${metadata.mime_type}`);
+									}
+								} catch (e) {
+									summary.push(`${indent}  - Error parsing file metadata: ${e.message}`);
 								}
 							}
 						});
@@ -127,45 +136,38 @@ class AnthropicLLM extends LLM {
 
 				// Process text content
 				if ('text' in part && typeof part.text === 'string') {
-					const hasFileContent = this.hasBBFileTags(part.text);
+					const hasFileContent = this.hasFileMetadata(part.text);
 					const hasFileNote = part.text.startsWith('Note: File') &&
-						part.text.includes('content is up-to-date');
-					summary.push(`${indent}Has file content: ${hasFileContent || hasFileNote}`);
+						part.text.includes('content is up-to-date from turn');
 
-					if (hasFileNote) {
+					if (hasFileContent) {
+						try {
+							const metadataText = part.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+							const metadata = JSON.parse(metadataText);
+							summary.push(
+								`${indent}File: ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
+							);
+							summary.push(`${indent}Size: ${metadata.size} bytes`);
+							summary.push(`${indent}Last Modified: ${metadata.last_modified}`);
+							if (metadata.mime_type) {
+								summary.push(`${indent}MIME Type: ${metadata.mime_type}`);
+							}
+						} catch (e) {
+							summary.push(`${indent}Error parsing file metadata: ${e.message}`);
+						}
+					} else if (hasFileNote) {
 						const match = part.text.match(
-							/Note: File (.*?) \(this revision: (\w+)\) is up-to-date at turn (\d+) with revision (\w+)/,
+							/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
 						);
 						if (match) {
 							summary.push(
-								`${indent}File: ${match[1]} [this revision ${match[2]}] (current from turn ${
+								`${indent}File: ${match[1]} with revision ${match[2]} (current from turn ${
 									match[3]
 								} with revision ${match[4]})`,
 							);
 						}
-					}
-
-					// Extract file path and revision from bbFile tags if present
-					try {
-						const bbFileMatch = part.text.match(/<bbFile[^>]*path="([^"]*)"[^>]*revision="([^"]*)"[^>]*>/);
-						if (bbFileMatch && bbFileMatch.length >= 3) {
-							summary.push(`${indent}bbFile Path: ${bbFileMatch[1]}`);
-							summary.push(`${indent}bbFile Revision: ${bbFileMatch[2]}`);
-						}
-					} catch (e) {}
-
-					// Check for bbFile tags
-					const hasTags = this.hasBBFileTags(part.text);
-					if (hasTags) {
-						const bbFileMatch = part.text.match(
-							/<bbFile path="([^"]*)" type="([^"]*)"[^>]*?revision="([^"]*)"[^>]*?>/,
-						);
-						if (bbFileMatch) {
-							const [, path, type, revision] = bbFileMatch;
-							summary.push(`${indent}bbFile: ${path} (${type}) [revision: ${revision}]`);
-						}
 					} else {
-						summary.push(`${indent}No bbFile tags found`);
+						summary.push(`${indent}No file metadata found`);
 					}
 				}
 
@@ -197,13 +199,12 @@ class AnthropicLLM extends LLM {
 		logger.info(`Messages with cache_control: ${messagesWithCache.join(', ')}`);
 	}
 
-	//private asProviderMessageType(messages: LLMMessage[]): Anthropic.MessageParam[] {
 	private asProviderMessageType(
 		messages: LLMMessage[],
 	): Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] {
 		const usePromptCaching = this.fullConfig.api?.usePromptCaching ?? true;
 
-		// Find all messages that contain file additions with non-empty bbFile tags
+		// Find all messages that contain file additions with file metadata part
 		const fileAddedMessages = messages
 			.map((m, index) => ({ message: m, index }))
 			.filter(({ message }) =>
@@ -211,15 +212,9 @@ class AnthropicLLM extends LLM {
 				Array.isArray(message.content) &&
 				message.content.some((block) => {
 					if (block.type === 'tool_result' && Array.isArray(block.content)) {
-						// Look for bbFile tags (for text or image) or file update notes in the nested content
-						// we only need to check type === 'text' - images will have a corresponding text part with <bbFile> tags
-						// return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
-						// 	(this.hasBBFileTags(nestedPart.text) ||
-						// 		nestedPart.text.startsWith('Note: File') &&
-						// 			nestedPart.text.includes('is up-to-date')))
-						// );
+						// Look for file metadata part (for text or image) or file update notes in the nested content
 						return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
-							this.hasBBFileTags(nestedPart.text))
+							this.hasFileMetadata(nestedPart.text))
 						);
 					}
 					return false;
@@ -244,9 +239,9 @@ class AnthropicLLM extends LLM {
 				// 		block.content.some((part) =>
 				// 			(part.type === 'text' &&
 				// 				typeof part.text === 'string' &&
-				// 				(this.hasBBFileTags(part.text) ||
+				// 				(this.hasFileMetadata(part.text) ||
 				// 					(part.text.startsWith('Note: File') &&
-				// 						part.text.includes('is up-to-date')))) ||
+				// 						part.text.includes('content is up-to-date')))) ||
 				// 			part.type === 'image'
 				// 		)
 				// 	);
@@ -254,9 +249,9 @@ class AnthropicLLM extends LLM {
 					m.content.some((block) =>
 						block.type === 'tool_result' &&
 						Array.isArray(block.content) &&
-						// we only need to check type === 'text' - images will have a corresponding text part with <bbFile> tags
+						// we only need to check type === 'text' - images will have a corresponding metadata block
 						block.content.some((part) => (part.type === 'text' &&
-							this.hasBBFileTags(part.text))
+							this.hasFileMetadata(part.text))
 						)
 					);
 
@@ -402,6 +397,27 @@ class AnthropicLLM extends LLM {
 				);
 			}
 
+			// Validate and normalize content to ensure it's a non-empty array
+			if (!Array.isArray(anthropicMessage.content)) {
+				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:', {
+					content: anthropicMessage.content,
+				});
+				// Convert to array if possible, or create error message
+				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
+					anthropicMessage.content = [anthropicMessage.content];
+				} else if (typeof anthropicMessage.content === 'string') {
+					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content }];
+				} else {
+					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM' }];
+				}
+			}
+
+			// Ensure content array is not empty
+			if (anthropicMessage.content.length === 0) {
+				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
+				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM' }];
+			}
+
 			const headers = anthropicResponse?.headers;
 
 			//const requestId = headers.get('request-id');
@@ -428,6 +444,7 @@ class AnthropicLLM extends LLM {
 				fromCache: false,
 				timestamp: new Date().toISOString(),
 				answerContent: anthropicMessage.content as LLMMessageContentParts,
+				answer: extractTextFromContent(anthropicMessage.content as LLMMessageContentParts), // answer will get overridden in baseLLM - but this keeps type checking happy
 				isTool: anthropicMessage.stop_reason === 'tool_use',
 				messageStop: {
 					stopReason: anthropicMessage.stop_reason,

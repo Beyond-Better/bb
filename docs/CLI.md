@@ -6,7 +6,7 @@
 
 For detailed installation instructions, please refer to the [INSTALL.md](../INSTALL.md) file.
 
-For Windows users, we provide an MSI installer and batch files for easy setup and usage. Please see our [Windows User Guide](WINDOWS_GUIDE.md) for more information.
+For Windows users, we provide an MSI installer and batch files for easy setup and usage. Please see our [Windows User Guide](user/guides/windows_guide.md) for more information.
 
 ## Usage
 

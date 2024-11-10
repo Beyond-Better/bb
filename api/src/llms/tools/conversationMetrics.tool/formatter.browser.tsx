@@ -55,10 +55,94 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 				</div>
 
 				<div class='metrics-section'>
-					<h3>Token Usage</h3>
+					<h3>Chat Token Usage</h3>
+					<div class='metric-group'>
+						{metrics.chatTokens
+							? (
+								<>
+									<div class='metric'>
+										<strong>Total Usage:</strong>
+										<ul>
+											<li>
+												<strong>Input:</strong> {metrics.chatTokens.totalUsage.input}
+											</li>
+											<li>
+												<strong>Output:</strong> {metrics.chatTokens.totalUsage.output}
+											</li>
+											<li>
+												<strong>Total:</strong> {metrics.chatTokens.totalUsage.total}
+											</li>
+										</ul>
+									</div>
+									<div class='metric'>
+										<strong>Cache Impact:</strong>
+										<ul>
+											<li>
+												<strong>Total Savings:</strong>{' '}
+												{metrics.chatTokens.cacheImpact.totalSavings}
+											</li>
+											<li>
+												<strong>Savings Percentage:</strong>{' '}
+												{metrics.chatTokens.cacheImpact.savingsPercentage.toFixed(2)}%
+											</li>
+										</ul>
+									</div>
+								</>
+							)
+							: <div class='metric'>No auxiliary chat activity</div>}
+					</div>
+				</div>
+
+				<div class='metrics-section'>
+					<h3>Main Conversation Token Usage</h3>
 					<div class='metric-group'>
 						<div class='metric'>
-							<strong>Total:</strong> {metrics.tokens.total}
+							<strong>Total Usage:</strong>
+							<ul>
+								<li>
+									<strong>Input:</strong> {metrics.tokens.totalUsage.input}
+								</li>
+								<li>
+									<strong>Output:</strong> {metrics.tokens.totalUsage.output}
+								</li>
+								<li>
+									<strong>Total:</strong> {metrics.tokens.totalUsage.total}
+								</li>
+							</ul>
+						</div>
+						<div class='metric'>
+							<strong>Differential Usage:</strong>
+							<ul>
+								<li>
+									<strong>Input:</strong> {metrics.tokens.differentialUsage.input}
+								</li>
+								<li>
+									<strong>Output:</strong> {metrics.tokens.differentialUsage.output}
+								</li>
+								<li>
+									<strong>Total:</strong> {metrics.tokens.differentialUsage.total}
+								</li>
+							</ul>
+						</div>
+						<div class='metric'>
+							<strong>Cache Impact:</strong>
+							<ul>
+								<li>
+									<strong>Potential Cost:</strong> {metrics.tokens.cacheImpact.potentialCost}
+								</li>
+								<li>
+									<strong>Actual Cost:</strong> {metrics.tokens.cacheImpact.actualCost}
+								</li>
+								<li>
+									<strong>Total Savings:</strong> {metrics.tokens.cacheImpact.totalSavings}
+								</li>
+								<li>
+									<strong>Savings Percentage:</strong>{' '}
+									{metrics.tokens.cacheImpact.savingsPercentage.toFixed(2)}%
+								</li>
+							</ul>
+						</div>
+						<div class='metric'>
 						</div>
 						<div class='metric'>
 							<strong>Average per Turn:</strong> {metrics.tokens.averagePerTurn.toFixed(1)}

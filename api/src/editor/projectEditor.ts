@@ -1,5 +1,5 @@
-import { extname, join } from '@std/path';
-import { contentType } from '@std/media-types';
+import { join } from '@std/path';
+import { getContentType } from 'api/utils/contentTypes.ts';
 
 import { existsWithinProject, generateFileListing, isPathWithinProject } from 'api/utils/fileHandling.ts';
 import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
@@ -58,8 +58,7 @@ class ProjectEditor {
 				`ProjectEditor config for ${this.fullConfig.api.apiHostname}:${this.fullConfig.api.apiPort}`,
 			);
 			this.eventManager = EventManager.getInstance();
-			this.orchestratorController = await new OrchestratorController(this)
-				.init();
+			this.orchestratorController = await new OrchestratorController(this).init();
 
 			logger.info(`ProjectEditor initialized for ${this.startDir}`);
 		} catch (error) {
@@ -193,8 +192,8 @@ class ProjectEditor {
 
 				const fullFilePath = join(this.projectRoot, fileName);
 
-				const fileExtension = extname(fileName);
-				const mimeType = contentType(fileExtension) || 'application/octet-stream';
+				//const fileExtension = extname(fileName);
+				const mimeType = getContentType(fileName);
 				const isImage = mimeType.startsWith('image/');
 				const { size } = await Deno.stat(fullFilePath).catch((_) => ({ size: 0 }));
 

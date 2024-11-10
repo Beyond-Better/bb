@@ -243,7 +243,7 @@ For more information or if you need assistance, please refer to the following re
 - [Contributing Guidelines](docs/CONTRIBUTING.md)
 - [Code of Conduct](docs/CODE_OF_CONDUCT.md)
 - [Security Policy](docs/SECURITY.md)
-- [File Handling Guidelines](docs/FILE_HANDLING.md)
+- [File Handling Guidelines](docs/development/reference/file_handling.md)
 - [Project Conventions](CONVENTIONS.md)
 
 ### Using BB
