@@ -1,11 +1,12 @@
-import LLMInteraction from './baseInteraction.ts';
+import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { AnthropicModel } from 'api/types.ts';
-import type { LLMMessageContentPart, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import type { ConversationId, TokenUsage } from 'shared/types.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+//import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { logger } from 'shared/logger.ts';
 
 class LLMChatInteraction extends LLMInteraction {
@@ -22,6 +23,18 @@ class LLMChatInteraction extends LLMInteraction {
 	}
 	public async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
 		return Array.from(tools.values());
+	}
+
+	public async updateTotals(
+		tokenUsage: TokenUsage,
+		role: 'user' | 'assistant' | 'system' = 'assistant',
+	): Promise<void> {
+		// Record token usage in new format with chat type
+		const record = this.createTokenUsageRecord(tokenUsage, role, 'chat');
+		await this.conversationPersistence.writeTokenUsage(record, 'chat');
+
+		// Update existing tracking
+		await super.updateTotals(tokenUsage, role);
 	}
 
 	public async chat(
@@ -42,9 +55,11 @@ class LLMChatInteraction extends LLMInteraction {
 		this.conversationLogger.logAuxiliaryMessage(messageId, prompt);
 
 		const response = await this.llm.speakWithPlus(this, speakOptions);
-		const contentPart: LLMMessageContentPart = response.messageResponse
-			.answerContent[0] as LLMMessageContentPartTextBlock;
-		const msg = contentPart.text;
+
+		// Update token usage tracking
+		await this.updateTotals(response.messageResponse.usage);
+		//const msg = extractTextFromContent(response.messageResponse.answerContent);
+		const msg = response.messageResponse.answer;
 
 		this.conversationLogger.logAuxiliaryMessage(this.getLastMessageId(), msg);
 

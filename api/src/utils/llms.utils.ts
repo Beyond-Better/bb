@@ -25,3 +25,39 @@ export const getTextContent = (content: LLMMessageContentPart): string => {
 	}
 	return '[Unknown content]';
 };
+
+/**
+ * Extract text content from an LLM response's answerContent array.
+ * Combines all text parts and handles non-text content appropriately.
+ * @param answerContent Array of message content parts from LLM response
+ * @returns Combined text content from all parts
+ */
+export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): string => {
+	if (!Array.isArray(answerContent)) {
+		throw new Error('answerContent must be an array');
+	}
+
+	let combinedText = '';
+	for (const part of answerContent) {
+		if (part && typeof part === 'object') {
+			if ('text' in part) {
+				combinedText += part.text;
+			} else {
+				// Handle non-text content
+				const contentType = part.type || 'unknown';
+				let contentStr = `[${contentType} content]`;
+
+				// Try to coerce content to string if possible
+				try {
+					if ('content' in part) {
+						contentStr = `[${contentType} content: ${JSON.stringify(part.content)}]`;
+					}
+				} catch {
+					// Keep default contentStr if JSON.stringify fails
+				}
+				combinedText += contentStr;
+			}
+		}
+	}
+	return combinedText.trim();
+};

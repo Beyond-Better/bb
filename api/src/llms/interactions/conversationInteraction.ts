@@ -9,6 +9,17 @@ import type {
 	FileMetadata,
 	TokenUsage,
 } from 'shared/types.ts';
+
+export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
+
+export interface BBFileMetadata {
+	path: string;
+	type: 'text' | 'image';
+	size: number;
+	last_modified: string;
+	revision: string;
+	mime_type?: string;
+}
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -26,6 +37,7 @@ import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { ToolUsageStats } from '../llmToolManager.ts';
 import { logger } from 'shared/logger.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
 import { ResourceManager } from '../resourceManager.ts';
 //import { GitUtils } from 'shared/git.ts';
@@ -168,13 +180,14 @@ class LLMConversationInteraction extends LLMInteraction {
 		return await this.hydrateMessages(messages);
 	}
 
-	protected async createFileXmlString(
+	protected async createFileContentBlocks(
 		filePath: string,
 		revisionId: string,
-	): Promise<string | null> {
+		_turnIndex: number,
+	): Promise<LLMMessageContentParts | null> {
 		try {
 			logger.info(
-				'ConversationInteraction: createFileXmlString - filePath',
+				'ConversationInteraction: createFileContentBlocks - filePath',
 				filePath,
 			);
 			const content = await this.readProjectFileContent(filePath, revisionId);
@@ -182,15 +195,62 @@ class LLMConversationInteraction extends LLMInteraction {
 			if (!fileMetadata) {
 				throw new Error(`File has not been added to conversation: ${filePath}`);
 			}
-			return `<file path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}">\n${content}\n</file>`;
+
+			// Create metadata block
+			const metadata: BBFileMetadata = {
+				path: filePath,
+				type: fileMetadata.type || 'text',
+				size: fileMetadata.size,
+				last_modified: fileMetadata.lastModified.toISOString(),
+				revision: revisionId,
+				mime_type: fileMetadata.mimeType,
+			};
+
+			const metadataBlock: LLMMessageContentPartTextBlock = {
+				type: 'text',
+				text: `${BB_FILE_METADATA_DELIMITER}\n${JSON.stringify(metadata, null, 2)}`,
+			};
+
+			// For images, create image block and metadata block
+			if (fileMetadata.type === 'image') {
+				const supportedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+				const mimeType = fileMetadata.mimeType || 'unknown';
+
+				if (supportedImageTypes.includes(mimeType)) {
+					const imageData = content as Uint8Array;
+					const base64Data = encodeBase64(imageData);
+					const imageBlock: LLMMessageContentPartImageBlock = {
+						type: 'image',
+						source: {
+							type: 'base64',
+							media_type: fileMetadata.mimeType as LLMMessageContentPartImageBlockSourceMediaType,
+							data: base64Data,
+						},
+					};
+					return [metadataBlock, imageBlock];
+				} else {
+					// For unsupported image types, create warning block and metadata block
+					const warningBlock: LLMMessageContentPartTextBlock = {
+						type: 'text',
+						text: `Note: Image file ${filePath} is in unsupported format (${
+							mimeType === 'unknown' ? 'unknown type' : mimeType
+						}). Only jpeg, png, gif, and webp formats are supported.`,
+					};
+					return [warningBlock, metadataBlock];
+				}
+			}
+
+			// For text files, create content block and metadata block
+			const contentBlock: LLMMessageContentPartTextBlock = {
+				type: 'text',
+				text: content as string,
+			};
+
+			return [metadataBlock, contentBlock];
 		} catch (error) {
 			logger.error(
-				`ConversationInteraction: Error creating XML string for ${filePath}: ${error.message}`,
+				`ConversationInteraction: Error creating content blocks for ${filePath}: ${error.message}`,
 			);
-			//throw createError(ErrorType.FileHandling, `Failed to create xmlString for ${filePath}`, {
-			//	filePath,
-			//	operation: 'write',
-			//} as FileHandlingErrorOptions);
 		}
 		return null;
 	}
@@ -312,6 +372,33 @@ class LLMConversationInteraction extends LLMInteraction {
 		return system;
 	}
 
+	protected async createFileXmlString(
+		filePath: string,
+		revisionId: string,
+	): Promise<string | null> {
+		try {
+			logger.info(
+				'ConversationInteraction: createFileXmlString - filePath',
+				filePath,
+			);
+			const content = await this.readProjectFileContent(filePath, revisionId);
+			const fileMetadata = this.getFileMetadata(filePath, revisionId);
+			if (!fileMetadata) {
+				throw new Error(`File has not been added to conversation: ${filePath}`);
+			}
+			return `<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}">\n${content}\n</bbFile>`;
+		} catch (error) {
+			logger.error(
+				`ConversationInteraction: Error creating XML string for ${filePath}: ${error.message}`,
+			);
+			//throw createError(ErrorType.FileHandling, `Failed to create xmlString for ${filePath}`, {
+			//	filePath,
+			//	operation: 'write',
+			//} as FileHandlingErrorOptions);
+		}
+		return null;
+	}
+
 	/**
 	 * Adds or updates an entry in the hydratedFiles map.
 	 * @param filePath - The path of the file being hydrated
@@ -349,6 +436,13 @@ class LLMConversationInteraction extends LLMInteraction {
 		// This ensures we don't maintain state between different hydration calls
 		this.hydratedFiles.clear();
 		logger.debug('Cleared hydratedFiles map for new hydration run');
+		// Log the state before clearing
+		logger.debug(`Starting new hydration run. Current hydrated files count: ${this.hydratedFiles.size}`);
+
+		// Reset hydratedFiles at the start of each hydration run
+		// This ensures we don't maintain state between different hydration calls
+		this.hydratedFiles.clear();
+		logger.debug('Cleared hydratedFiles map for new hydration run');
 		const processContentPart = async (
 			contentPart: LLMMessageContentPart,
 			messageId: string,
@@ -366,100 +460,79 @@ class LLMConversationInteraction extends LLMInteraction {
 					);
 					return contentPart;
 				}
-				logger.error(
+				logger.debug(
 					`ConversationInteraction: Hydrating content part for turn ${turnIndex}: ${
 						JSON.stringify(contentPart)
 					}`,
 				);
 
-				// if prompt caching is enabled then add file for each message
-				// if prompt caching is NOT enabled then only add file once (to last message)
-				// [TODO] we only have 4 cache points, so no benefit for full message history
-				// so until we can cache the whole conversation; ignore usePromptCaching for file hydration
-				//if (this.fullConfig.api.usePromptCaching || !hydratedFiles.has(filePath)) {
 				const existingEntries = this.hydratedFiles.get(filePath) || [];
 				if (existingEntries.length < this._maxHydratedMessagesPerFile) {
 					logger.info(
-						`ConversationInteraction: Hydrating message for file: ${filePath} - Revision:(${messageId}) - Turn: ${turnIndex} - Metadata:  ${
+						`ConversationInteraction: Hydrating message for file: ${filePath} - Revision:(${messageId}) - Turn: ${turnIndex} - Metadata: ${
 							JSON.stringify(fileMetadata)
 						}`,
 					);
 
-					// Error calling Anthropic API Error: 400 {"type":"error","error":{"type":"invalid_request_error",
-					// "message":"messages.4.content.0.tool_result.content.0.image.source.base64.media_type: Input should be 'image/jpeg', 'image/png', 'image/gif' or 'image/webp'"}}
-					if (fileMetadata.type === 'image') {
-						const supportedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-						const mimeType = fileMetadata.mimeType || 'unknown';
-
-						if (supportedImageTypes.includes(mimeType)) {
-							// For supported image types, create both an LLMMessageContentPartImageBlock and a text block
-							const imageData = await this.readProjectFileContent(filePath, messageId) as Uint8Array;
-							const base64Data = encodeBase64(imageData);
-							const imageBlock: LLMMessageContentPartImageBlock = {
-								type: 'image',
-								source: {
-									type: 'base64',
-									media_type: fileMetadata.mimeType as LLMMessageContentPartImageBlockSourceMediaType,
-									data: base64Data,
-								},
-							};
-							const textBlock: LLMMessageContentPartTextBlock = {
-								type: 'text',
-								text:
-									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}" turn="${turnIndex}"></bbFile>`,
-							};
-							this.addHydratedFileEntry(filePath, turnIndex, messageId);
-							return [imageBlock, textBlock] as LLMMessageContentParts;
-						} else {
-							// For unsupported image types, create two text blocks: one for the warning and one for the file tag
-							const warningBlock: LLMMessageContentPartTextBlock = {
-								type: 'text',
-								text: `Note: Image file ${filePath} is in unsupported format (${
-									mimeType === 'unknown' ? 'unknown type' : mimeType
-								}). Only jpeg, png, gif, and webp formats are supported.`,
-							};
-							const fileBlock: LLMMessageContentPartTextBlock = {
-								type: 'text',
-								text:
-									`<bbFile path="${filePath}" type="image" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" mime_type="${fileMetadata.mimeType}" revision="${messageId}" turn="${turnIndex}"></bbFile>`,
-							};
-							this.addHydratedFileEntry(filePath, turnIndex, messageId);
-							return [warningBlock, fileBlock] as LLMMessageContentParts;
-						}
-					} else {
-						//logger.info(`ConversationInteraction: Hydrating - preparing file: ${filePath}`);
-						const fileContent = await this.readProjectFileContent(filePath, messageId);
-						const fileXml =
-							`<bbFile path="${filePath}" type="text" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}" revision="${messageId}" turn="${turnIndex}">
-${fileContent}
-</bbFile>`;
-						this.addHydratedFileEntry(filePath, turnIndex, messageId);
-
-						return { ...contentPart, text: fileXml };
+					// Create file content blocks using the new format
+					const contentBlocks = await this.createFileContentBlocks(filePath, messageId, turnIndex);
+					if (!contentBlocks) {
+						logger.error(
+							`ConversationInteraction: Failed to create content blocks for ${filePath}`,
+						);
+						return contentPart;
 					}
+
+					this.addHydratedFileEntry(filePath, turnIndex, messageId);
+					return contentBlocks;
 				} else {
 					const lastEntry = existingEntries[0]; // Most recent entry
 					logger.info(
 						`ConversationInteraction: Skipping hydration for file: ${filePath} (revision: ${lastEntry.messageId}) - Current Turn: ${turnIndex}, Last Hydrated Turn: ${lastEntry.turnIndex}`,
 					);
-					// Include both turn number and revision in the up-to-date message
-					// This helps track which version of the file is being referenced
-					// Important when files have been modified during the conversation
-					return {
-						...contentPart,
-						text:
-							`Note: File ${filePath} (this revision: ${lastEntry.messageId}) is up-to-date at turn ${lastEntry.turnIndex} with revision ${lastEntry.messageId}.`,
+
+					// Create metadata block for up-to-date message
+					const metadata: BBFileMetadata = {
+						path: filePath,
+						type: fileMetadata.type || 'text',
+						size: fileMetadata.size,
+						last_modified: fileMetadata.lastModified.toISOString(),
+						revision: lastEntry.messageId,
+						mime_type: fileMetadata.mimeType,
 					};
+
+					const metadataBlock: LLMMessageContentPartTextBlock = {
+						type: 'text',
+						text: `${BB_FILE_METADATA_DELIMITER}\n${JSON.stringify(metadata, null, 2)}`,
+					};
+
+					const noteBlock: LLMMessageContentPartTextBlock = {
+						type: 'text',
+						text:
+							`Note: File ${filePath} (revision: ${messageId}) content is up-to-date from turn ${lastEntry.turnIndex} (revision: ${lastEntry.messageId}).`,
+					};
+
+					return [noteBlock, metadataBlock];
 				}
 			}
 			if (
 				contentPart.type === 'tool_result' && Array.isArray(contentPart.content)
 			) {
-				// processContentPart can return an array or an object, which can result in nested arrays
-				// use `flat()` to un-nest the array
-				const updatedContent = (await Promise.all(
+				// Process each content part in the tool result
+				const processedParts = await Promise.all(
 					contentPart.content.map((part) => processContentPart(part, messageId, turnIndex)),
-				)).flat();
+				);
+
+				// Flatten the array and handle any nested arrays from file content blocks
+				const updatedContent = processedParts.reduce((acc: LLMMessageContentPart[], part) => {
+					if (Array.isArray(part)) {
+						acc.push(...part);
+					} else {
+						acc.push(part);
+					}
+					return acc;
+				}, []);
+
 				return {
 					...contentPart,
 					content: updatedContent,
@@ -713,14 +786,20 @@ ${fileContent}
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
-		// Update totals once per turn
-		//this.updateTotals(response.messageResponse.usage, 1); // Assuming 1 provider request per converse call
-		this.updateTotals(response.messageResponse.usage); // Assuming 1 provider request per converse call
+		// Update token usage tracking with appropriate role
+		await this.updateTotals(response.messageResponse.usage, 'assistant');
 
-		const contentPart: LLMMessageContentPart = response.messageResponse
-			.answerContent[0] as LLMMessageContentPartTextBlock;
+		// Record token usage for user message if available
+		if (response?.messageResponse?.usage) {
+			await this.updateTotals(response.messageResponse.usage, 'user');
+		}
 
-		const msg = contentPart.text;
+		// 		// Update totals once per turn
+		// 		//this.updateTotals(response.messageResponse.usage, 1); // Assuming 1 provider request per converse call
+		// 		this.updateTotals(response.messageResponse.usage); // Assuming 1 provider request per converse call
+
+		//const msg = extractTextFromContent(response.messageResponse.answerContent);
+		const msg = response.messageResponse.answer;
 		const conversationStats: ConversationMetrics = this.getConversationStats();
 		const tokenUsageMessage: TokenUsage = response.messageResponse.usage;
 

@@ -128,7 +128,7 @@ For more information about the project, please refer to the following documents:
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): Our community standards
 - [SECURITY.md](SECURITY.md): Security policy and reporting vulnerabilities
 - [API.md](API.md): API documentation
-- [FILE_HANDLING.md](FILE_HANDLING.md): Guidelines for handling files in BB
+- [FILE_HANDLING.md](development/reference/file_handling.md): Guidelines for handling files in BB
 - [CONVENTIONS.md](../CONVENTIONS.md): Project conventions and best practices
 
 Thank you for your contribution to BB (Beyond Better)!

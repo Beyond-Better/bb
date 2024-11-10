@@ -13,9 +13,12 @@ import type {
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
+	TokenUsageAnalysis,
+	TokenUsageRecord,
 } from 'shared/types.ts';
 //import type { LLMProviderSystem } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
+import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 //import { ConfigManager } from 'shared/configManager.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from '../errors/error.ts';
@@ -42,6 +45,7 @@ class ConversationPersistence {
 	private resourcesPath!: string;
 	private projectInfoPath!: string;
 	private initialized: boolean = false;
+	private tokenUsagePersistence!: TokenUsagePersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
@@ -81,6 +85,8 @@ class ConversationPersistence {
 
 		this.objectivesPath = join(this.conversationDir, 'objectives.json');
 		this.resourcesPath = join(this.conversationDir, 'resources.json');
+
+		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationDir).init();
 
 		return this;
 	}
@@ -149,6 +155,16 @@ class ConversationPersistence {
 		}
 	}
 
+	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat'): Promise<void> {
+		await this.ensureInitialized();
+		await this.tokenUsagePersistence.writeUsage(record, type);
+	}
+
+	async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
+		await this.ensureInitialized();
+		return this.tokenUsagePersistence.getUsage(type);
+	}
+
 	async saveConversation(conversation: LLMConversationInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
@@ -164,6 +180,9 @@ class ConversationPersistence {
 				updatedAt: new Date().toISOString(),
 			};
 			await this.updateConversationsMetadata(metadata);
+
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
@@ -447,7 +466,17 @@ class ConversationPersistence {
 		return {};
 	}
 
+	async getTokenUsageAnalysis(): Promise<{ conversation: TokenUsageAnalysis; chat: TokenUsageAnalysis }> {
+		await this.ensureInitialized();
+		return {
+			conversation: await this.tokenUsagePersistence.analyzeUsage('conversation'),
+			chat: await this.tokenUsagePersistence.analyzeUsage('chat'),
+		};
+	}
+
 	async saveMetadata(metadata: Partial<ConversationDetailedMetadata>): Promise<void> {
+		// Set version 2 for new token usage format
+		metadata.version = 2;
 		await this.ensureInitialized();
 		logger.debug(`ConversationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
 		await this.ensureDirectory(dirname(this.metadataPath));
@@ -491,7 +520,8 @@ class ConversationPersistence {
 		};
 	}
 	static defaultMetadata(): ConversationDetailedMetadata {
-		return {
+		const metadata = {
+			version: 1, // default version for existing conversations
 			//startDir: this.projectEditor.projectInfo.startDir,
 			id: '',
 			title: '',
@@ -513,6 +543,7 @@ class ConversationPersistence {
 			conversationStats: ConversationPersistence.defaultConversationStats(),
 			//tools: [],
 		};
+		return metadata;
 	}
 
 	async savePreparedSystemPrompt(systemPrompt: string): Promise<void> {

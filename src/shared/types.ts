@@ -16,6 +16,7 @@ export type VectorId = string;
 
 export interface ConversationMetadata {
 	//startDir: string;
+	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
 	conversationStats?: ConversationMetrics;
 	tokenUsageConversation?: ConversationTokenUsage;
 	id: ConversationId;
@@ -27,6 +28,10 @@ export interface ConversationMetadata {
 }
 
 export interface ConversationDetailedMetadata extends ConversationMetadata {
+	tokenAnalysis?: {
+		conversation: TokenUsageAnalysis;
+		chat: TokenUsageAnalysis;
+	};
 	//system: string;
 	temperature: number;
 	maxTokens: number;
@@ -66,6 +71,59 @@ export interface TokenUsage {
 	totalTokens: number;
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
+}
+
+export interface TokenUsageDifferential {
+	inputTokens: number; // Current - Previous for user messages
+	outputTokens: number; // Direct from LLM for assistant messages
+	totalTokens: number; // Combined differential
+}
+
+export interface CacheImpact {
+	potentialCost: number; // Cost without cache
+	actualCost: number; // Cost with cache
+	savings: number; // Calculated savings
+}
+
+export interface TokenUsageRecord {
+	messageId: string; // Links to message in messages.jsonl
+	timestamp: string; // ISO timestamp
+	role: 'user' | 'assistant' | 'system'; // Message role
+	type: 'conversation' | 'chat'; // Interaction type
+
+	// Raw usage from LLM
+	rawUsage: TokenUsage;
+
+	// Calculated Differential Costs
+	differentialUsage: TokenUsageDifferential;
+
+	// Cache Impact Analysis
+	cacheImpact: CacheImpact;
+}
+
+export interface TokenUsageAnalysis {
+	totalUsage: {
+		input: number;
+		output: number;
+		total: number;
+	};
+	differentialUsage: {
+		input: number;
+		output: number;
+		total: number;
+	};
+	cacheImpact: {
+		potentialCost: number;
+		actualCost: number;
+		totalSavings: number;
+		savingsPercentage: number;
+	};
+	byRole: {
+		user: number;
+		assistant: number;
+		system: number;
+		tool: number;
+	};
 }
 
 export interface ConversationTokenUsage {

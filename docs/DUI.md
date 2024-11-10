@@ -42,7 +42,7 @@ The Desktop User Interface (DUI) for BB is a planned feature that will provide a
 
 ## Contributing
 
-While the DUI is still in the planning phase, we welcome ideas and suggestions. Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for general contribution guidelines and the interface-specific guidelines for DUI development.
+While the DUI is still in the planning phase, we welcome ideas and suggestions. Please refer to the [CONTRIBUTING.md](../CONTRIBUTING.md) file for general contribution guidelines and the interface-specific guidelines for DUI development.
 
 ## Roadmap
 

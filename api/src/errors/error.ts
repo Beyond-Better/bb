@@ -5,6 +5,7 @@ import { Status } from '@oak/oak';
 
 export enum ErrorType {
 	CommandExecution = 'CommandExecution',
+	Persistence = 'PersistenceError',
 	API = 'APIError',
 	LLM = 'LLMError',
 	LLMRateLimit = 'RateLimitError',
@@ -12,15 +13,18 @@ export enum ErrorType {
 	ToolHandling = 'ToolHandlingError',
 	FileHandling = 'FileHandlingError',
 	VectorSearch = 'VectorSearchError',
+	TokenUsageValidation = 'TokenUsageValidationError',
 }
 export const ErrorTypes = [
 	ErrorType.API,
+	ErrorType.Persistence,
 	ErrorType.LLM,
 	ErrorType.LLMRateLimit,
 	ErrorType.LLMValidation,
 	ErrorType.ToolHandling,
 	ErrorType.FileHandling,
 	ErrorType.VectorSearch,
+	ErrorType.TokenUsageValidation,
 ];
 
 export interface CommandExecutionErrorOptions extends ErrorOptions {
@@ -59,6 +63,12 @@ export interface LLMValidationErrorOptions extends LLMErrorOptions {
 	validation_error?: string;
 	original_prompt?: string;
 	replacement_prompt?: string;
+}
+
+export interface TokenUsageValidationErrorOptions extends ErrorOptions {
+	field?: string;
+	value?: unknown;
+	constraint?: string;
 }
 
 export class APIError extends Error {
@@ -115,6 +125,20 @@ export class ValidationError extends LLMError {
 }
 export const isValidationError = (value: unknown): value is ValidationError => {
 	return value instanceof ValidationError;
+};
+
+export class TokenUsageValidationError extends Error {
+	constructor(
+		message: string,
+		public options: TokenUsageValidationErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.TokenUsageValidation;
+	}
+}
+
+export const isTokenUsageValidationError = (value: unknown): value is TokenUsageValidationError => {
+	return value instanceof TokenUsageValidationError;
 };
 
 export interface FileHandlingErrorOptions extends ErrorOptions {
@@ -220,4 +244,23 @@ export class ToolHandlingError extends Error {
 
 export const isToolHandlingError = (value: unknown): value is ToolHandlingError => {
 	return value instanceof ToolHandlingError;
+};
+
+export interface PersistenceErrorOptions extends ErrorOptions {
+	filePath: string;
+	operation: 'read' | 'write' | 'append';
+}
+
+export class PersistenceError extends Error {
+	constructor(
+		message: string,
+		public options: PersistenceErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.Persistence;
+	}
+}
+
+export const isPersistenceError = (value: unknown): value is PersistenceError => {
+	return value instanceof PersistenceError;
 };

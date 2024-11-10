@@ -1,8 +1,9 @@
-import { assert, assertEquals, assertStringIncludes } from '../deps.ts';
+import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { join } from '@std/path';
-import { generateFileListing, searchFilesContent, searchFilesMetadata } from '../../src/utils/fileHandling.utils.ts';
+//import { generateFileListing, searchFilesContent, searchFilesMetadata } from 'api/utils/fileHandling.ts';
+import { searchFilesMetadata } from 'api/utils/fileHandling.ts';
 //import { GitUtils } from 'shared/git.ts';
-import { withTestProject } from '../lib/testSetup.ts';
+import { withTestProject } from 'api/tests/testSetup.ts';
 
 async function setFileModificationTime(filePath: string, date: Date) {
 	await Deno.utime(filePath, date, date);

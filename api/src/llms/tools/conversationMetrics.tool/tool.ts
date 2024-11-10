@@ -19,6 +19,7 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { TokenUsageAnalysis } from 'shared/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
@@ -42,14 +43,10 @@ export interface FileMetrics {
 	currentStatus: string;
 }
 
-export interface TokenMetrics {
+export interface TokenMetrics extends TokenUsageAnalysis {
+	// Legacy metrics maintained for compatibility
+
 	total: number;
-	byRole: {
-		user: number;
-		assistant: number;
-		tool: number;
-		system: number;
-	};
 	byTurn: Array<{
 		turn: number;
 		tokens: number;
@@ -82,6 +79,7 @@ export interface LLMToolConversationMetricsData {
 		lastUpdateTime: string;
 	};
 	tokens: TokenMetrics;
+	chatTokens?: TokenMetrics;
 	timing: TimeMetrics;
 	tools: {
 		usage: ToolMetrics[];
@@ -182,7 +180,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			const messages = interaction.getMessages();
 			const filteredMessages = startTurn || endTurn ? messages.slice((startTurn || 1) - 1, endTurn) : messages;
 
-			const metrics = this.calculateMetrics(filteredMessages, {
+			const metrics = await this.calculateMetrics(filteredMessages, interaction, {
 				includeTools,
 				includeFiles,
 				includeTokens,
@@ -212,8 +210,9 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		}
 	}
 
-	private calculateMetrics(
+	private async calculateMetrics(
 		messages: LLMMessage[],
+		interaction: LLMConversationInteraction,
 		options: {
 			includeTools: boolean;
 			includeFiles: boolean;
@@ -221,7 +220,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			includeTiming: boolean;
 			includeQuality: boolean;
 		},
-	): LLMToolConversationMetricsData {
+	): Promise<LLMToolConversationMetricsData> {
 		const metrics: LLMToolConversationMetricsData = {
 			summary: {
 				totalTurns: messages.length,
@@ -237,13 +236,31 @@ export default class LLMToolConversationMetrics extends LLMTool {
 				lastUpdateTime: messages[messages.length - 1]?.timestamp || new Date().toISOString(),
 			},
 			tokens: {
-				total: 0,
+				// TokenUsageAnalysis fields
+				totalUsage: {
+					input: 0,
+					output: 0,
+					total: 0,
+				},
+				differentialUsage: {
+					input: 0,
+					output: 0,
+					total: 0,
+				},
+				cacheImpact: {
+					potentialCost: 0,
+					actualCost: 0,
+					totalSavings: 0,
+					savingsPercentage: 0,
+				},
 				byRole: {
 					user: 0,
 					assistant: 0,
-					tool: 0,
 					system: 0,
+					tool: 0,
 				},
+				// Legacy fields
+				total: 0,
 				byTurn: [],
 				averagePerTurn: 0,
 			},
@@ -288,17 +305,72 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			metrics.summary.messageTypes[message.role]++;
 
 			// Token metrics
-			if (options.includeTokens && message.providerResponse?.usage) {
-				const turnTokens = message.providerResponse.usage.totalTokens;
-				metrics.tokens.total += turnTokens;
-				metrics.tokens.byRole[message.role] += turnTokens;
-				metrics.tokens.byTurn.push({
-					turn: index + 1,
-					tokens: turnTokens,
-					role: message.role,
-				});
-			}
+			if (options.includeTokens) {
+				// Get token analysis from persistence
+				const tokenAnalysis = await interaction.conversationPersistence.getTokenUsageAnalysis();
 
+				// Add chat metrics if available
+				if (tokenAnalysis.chat.totalUsage.total > 0) {
+					// Chat interactions don't use tools, so tool count is always 0
+					const chatByRole = {
+						...tokenAnalysis.chat.byRole,
+						tool: 0,
+					};
+					metrics.chatTokens = {
+						// TokenUsageAnalysis fields
+						totalUsage: tokenAnalysis.chat.totalUsage,
+						differentialUsage: tokenAnalysis.chat.differentialUsage,
+						cacheImpact: tokenAnalysis.chat.cacheImpact,
+						byRole: chatByRole,
+						// Legacy metrics
+						total: tokenAnalysis.chat.totalUsage.total,
+						byTurn: [],
+						averagePerTurn: 0,
+					};
+				}
+				if (tokenAnalysis.chat.totalUsage.total > 0) {
+					metrics.chatTokens = {
+						...tokenAnalysis.chat,
+						// Legacy metrics maintained for compatibility
+						total: tokenAnalysis.chat.totalUsage.total,
+						byRole: tokenAnalysis.chat.byRole,
+						byTurn: [],
+						averagePerTurn: 0,
+					};
+				}
+				// Calculate total tool usage from toolStats
+				const toolTotal = Array.from(toolUsage.values())
+					.reduce((sum, tool) => sum + tool.uses, 0);
+
+				const conversationByRole = {
+					...tokenAnalysis.conversation.byRole,
+					tool: toolTotal, // Set tool usage from actual tool metrics
+				};
+				metrics.tokens = {
+					// TokenUsageAnalysis fields
+					totalUsage: tokenAnalysis.conversation.totalUsage,
+					differentialUsage: tokenAnalysis.conversation.differentialUsage,
+					cacheImpact: tokenAnalysis.conversation.cacheImpact,
+					byRole: conversationByRole,
+					// Legacy metrics
+					total: tokenAnalysis.conversation.totalUsage.total,
+					byTurn: metrics.tokens.byTurn,
+					averagePerTurn: tokenAnalysis.conversation.totalUsage.total / messages.length,
+				};
+
+				// Only add turn data if we have provider response
+				if (message.providerResponse?.usage) {
+					const turnTokens = message.providerResponse.usage.totalTokens;
+					// Update legacy metrics
+					metrics.tokens.total += turnTokens;
+					metrics.tokens.byRole[message.role] += turnTokens;
+					metrics.tokens.byTurn.push({
+						turn: index + 1,
+						tokens: turnTokens,
+						role: message.role,
+					});
+				}
+			}
 			// Timing metrics
 			if (options.includeTiming && message.timestamp && lastTimestamp) {
 				const duration = new Date(message.timestamp).getTime() - new Date(lastTimestamp).getTime();
@@ -485,12 +557,27 @@ Basic Statistics:
 - Duration: ${(metrics.timing.totalDuration / 1000 / 60).toFixed(2)} minutes
 
 Token Usage:
-- Total Tokens: ${metrics.tokens.total}
+- Total Usage:
+  * Input: ${metrics.tokens.totalUsage.input}
+  * Output: ${metrics.tokens.totalUsage.output}
+  * Total: ${metrics.tokens.totalUsage.total}
+- Differential Usage:
+  * Input: ${metrics.tokens.differentialUsage.input}
+  * Output: ${metrics.tokens.differentialUsage.output}
+  * Total: ${metrics.tokens.differentialUsage.total}
+- Cache Impact:
+  * Potential Cost: ${metrics.tokens.cacheImpact.potentialCost}
+  * Actual Cost: ${metrics.tokens.cacheImpact.actualCost}
+  * Total Savings: ${metrics.tokens.cacheImpact.totalSavings}
+  * Savings Percentage: ${metrics.tokens.cacheImpact.savingsPercentage.toFixed(2)}%
 - Average per Turn: ${metrics.tokens.averagePerTurn.toFixed(1)}
 - By Role: ${
 			Object.entries(metrics.tokens.byRole)
 				.map(([role, tokens]) => `${role}: ${tokens}`).join(', ')
 		}
+
+Tool Usage:
+- Total Tool Tokens: ${metrics.tokens.byRole.tool}
 
 Tool Performance:
 - Most Used Tools: ${
@@ -514,6 +601,19 @@ File Operations:
 				.join(', ')
 		}
 
+Detailed Tool Metrics:
+${
+			metrics.tools.usage
+				.sort((a, b) => b.uses - a.uses)
+				.map((tool) =>
+					`- ${tool.name}:
+  * Uses: ${tool.uses}
+  * Success Rate: ${(tool.successes / tool.uses * 100).toFixed(1)}%
+  * Average Response Time: ${tool.averageResponseTime.toFixed(2)}ms`
+				)
+				.join('\n')
+		}
+
 Quality Metrics:
 - Error Rate: ${(metrics.quality.errorRate * 100).toFixed(1)}%
 - Tool Success Rate: ${(metrics.quality.averageToolSuccess * 100).toFixed(1)}%
@@ -521,6 +621,24 @@ Quality Metrics:
 - User Corrections: ${metrics.quality.userCorrections}
 
 Start Time: ${metrics.summary.startTime}
-Last Update: ${metrics.summary.lastUpdateTime}`;
+Last Update: ${metrics.summary.lastUpdateTime}
+
+${
+			metrics.chatTokens
+				? `Chat Token Usage:
+- Total Usage:
+  * Input: ${metrics.chatTokens.totalUsage.input}
+  * Output: ${metrics.chatTokens.totalUsage.output}
+  * Total: ${metrics.chatTokens.totalUsage.total}
+- Cache Impact:
+  * Total Savings: ${metrics.chatTokens.cacheImpact.totalSavings}
+  * Savings Percentage: ${metrics.chatTokens.cacheImpact.savingsPercentage.toFixed(2)}%
+- By Role:
+  * User: ${metrics.chatTokens.byRole.user}
+  * Assistant: ${metrics.chatTokens.byRole.assistant}
+  * System: ${metrics.chatTokens.byRole.system}
+  * Tool: ${metrics.chatTokens.byRole.tool}`
+				: '- No auxiliary chat activity'
+		}`;
 	}
 }

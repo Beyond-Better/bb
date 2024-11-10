@@ -10,8 +10,7 @@ export async function generateConversationTitle(chat: LLMChatInteraction, prompt
         
         Respond with the title only, no additional text.`;
 	const response = await chat.chat(titlePrompt);
-	const contentPart = response.messageResponse.answerContent[0] as { type: 'text'; text: string };
-	return contentPart.text.trim();
+	return response.messageResponse.answer;
 }
 
 export async function generateConversationObjective(chat: LLMChatInteraction, prompt: string): Promise<string> {
@@ -90,6 +89,5 @@ export async function generateObjective(
 		No additional text.`;
 
 	const response = await chat.chat(objectivePrompt);
-	const contentPart = response.messageResponse.answerContent[0] as { type: 'text'; text: string };
-	return contentPart.text.trim();
+	return response.messageResponse.answer;
 }

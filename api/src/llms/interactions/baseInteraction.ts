@@ -2,12 +2,15 @@ import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from '../../types.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
+	CacheImpact,
 	ConversationId,
 	ConversationMetrics,
 	ConversationTokenUsage,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
+	TokenUsageDifferential,
+	TokenUsageRecord,
 	ToolStats,
 } from 'shared/types.ts';
 import type {
@@ -195,7 +198,73 @@ class LLMInteraction {
 		return this._tokenUsageInteraction.totalTokensTotal;
 	}
 
-	public updateTotals(tokenUsage: TokenUsage): void {
+	protected calculateDifferentialUsage(
+		tokenUsage: TokenUsage,
+		role: 'user' | 'assistant' | 'system',
+	): TokenUsageDifferential {
+		// For assistant messages, use output tokens directly
+		if (role === 'assistant') {
+			return {
+				inputTokens: 0, // Assistant doesn't add to input differential
+				outputTokens: tokenUsage.outputTokens,
+				totalTokens: tokenUsage.outputTokens,
+			};
+		}
+
+		// For user messages, calculate input token difference
+		const previousMessage = this.getPreviousAssistantMessage();
+		const previousTokens = previousMessage?.providerResponse?.usage?.inputTokens ?? 0;
+		const inputDiff = Math.max(0, tokenUsage.inputTokens - previousTokens);
+
+		return {
+			inputTokens: inputDiff,
+			outputTokens: 0, // User messages don't generate output tokens
+			totalTokens: inputDiff,
+		};
+	}
+
+	protected calculateCacheImpact(tokenUsage: TokenUsage): CacheImpact {
+		// Calculate potential cost without cache
+		const potentialCost = tokenUsage.inputTokens;
+
+		// Calculate actual cost with cache
+		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
+
+		// Calculate savings
+		const savings = Math.max(0, potentialCost - actualCost);
+
+		return {
+			potentialCost,
+			actualCost,
+			savings,
+		};
+	}
+
+	protected createTokenUsageRecord(
+		tokenUsage: TokenUsage,
+		role: 'user' | 'assistant' | 'system',
+		type: 'conversation' | 'chat',
+	): TokenUsageRecord {
+		return {
+			messageId: this.getLastMessageId(),
+			timestamp: new Date().toISOString(),
+			role,
+			type,
+			rawUsage: tokenUsage,
+			differentialUsage: this.calculateDifferentialUsage(tokenUsage, role),
+			cacheImpact: this.calculateCacheImpact(tokenUsage),
+		};
+	}
+
+	public async updateTotals(
+		tokenUsage: TokenUsage,
+		role: 'user' | 'assistant' | 'system' = 'assistant',
+	): Promise<void> {
+		// Record token usage in new format
+		const record = this.createTokenUsageRecord(tokenUsage, role, 'conversation');
+		await this.conversationPersistence.writeTokenUsage(record, 'conversation');
+
+		// Update existing tracking
 		this._tokenUsageInteraction.totalTokensTotal += tokenUsage.totalTokens;
 		this._tokenUsageInteraction.inputTokensTotal += tokenUsage.inputTokens;
 		this._tokenUsageInteraction.outputTokensTotal += tokenUsage.outputTokens;

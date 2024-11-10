@@ -30,6 +30,13 @@ This document serves as a guide for creating new tools in the BB project. It inc
 
 10. **Documentation**: Add necessary documentation for the tool.
 
+11. **Update Tools Documentation**: Add the tool to `docs/development/reference/tools.md`:
+    - Add an entry under the appropriate category section
+    - Include description, parameters, use cases, and examples
+    - Follow the existing format and style
+    - Ensure all parameters are documented
+    - Include status if tool is disabled
+
 ## Information Gathering Template
 
 When creating a new tool, gather the following information:

@@ -6,7 +6,7 @@ import LLMToolConversationSummary from '../tool.ts';
 import type { LLMToolConversationBbResponseData } from '../tool.ts';
 import type {
 	LLMAnswerToolUse,
-	LLMMessageContentPart,
+	//LLMMessageContentPart,
 	//LLMMessageContentParts,
 	LLMMessageContentPartTextBlock,
 	LLMMessageContentPartToolResultBlock,
@@ -100,11 +100,11 @@ Deno.test({
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
 
-			const conversationStats = {
-				statementCount: 0,
-				statementTurnCount: 0,
-				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			// const conversationStats = {
+			// 	statementCount: 0,
+			// 	statementTurnCount: 0,
+			// 	conversationTurnCount: 0,
+			// } as ConversationMetrics;
 
 			// Create test messages
 			const testMessages = [] as LLMMessage[];
@@ -1145,7 +1145,7 @@ Deno.test({
 					}, {
 						type: 'text',
 						text:
-							'<bbFile path="src/config.ts" type="text" size="1000" last_modified="2024-01-01T00:00:00.000Z" revision="abc123">\nconst config = {\n  // Config file contents\n};\n</bbFile>',
+							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1000,\n  "last_modified": "2024-01-01T00:00:00.000Z",\n  "revision": "abc123"\n}\n\nconst config = {\n  // Config file contents\n};',
 					}],
 					conversationStats: incrementConversationStats(conversationStats),
 				},
@@ -1163,7 +1163,7 @@ Deno.test({
 					}, {
 						type: 'text',
 						text:
-							'<bbFile path="src/config.ts" type="text" size="1100" last_modified="2024-01-01T00:00:01.000Z" revision="def456">\nconst config = {\n  // Updated config file contents\n};\n</bbFile>',
+							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1100,\n  "last_modified": "2024-01-01T00:00:01.000Z",\n  "revision": "def456"\n}\n\nconst config = {\n  // Updated config file contents\n};',
 					}],
 					conversationStats: incrementConversationStats(conversationStats),
 				},
@@ -1932,7 +1932,7 @@ Deno.test({
 			// }
 
 			// Read back the messages file to verify content
-			const messagesContent = await Deno.readTextFile(join(conversationsDir, 'messages.jsonl'));
+			// const messagesContent = await Deno.readTextFile(join(conversationsDir, 'messages.jsonl'));
 			// console.log('\nVerifying messages.jsonl content:');
 			// console.log(messagesContent);
 
@@ -2701,7 +2701,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				// const data = result.bbResponse.data as LLMToolConversationBbResponseData;
 
 				// Verify we kept at least one complete message pair
 				const messages = interaction.getMessages();
@@ -2859,7 +2859,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				// const data = result.bbResponse.data as LLMToolConversationBbResponseData;
 
 				// Verify messages are properly truncated
 				const messages = interaction.getMessages();
