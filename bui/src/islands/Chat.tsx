@@ -443,7 +443,7 @@ export default function Chat(): JSX.Element {
 							onChange={(value) => {
 								if (!chatState.value.status.isReady) return;
 								setInput(value.slice(0, 10000));
-								window.getSelection()?.removeAllRanges();
+								setSelection(undefined);
 							}}
 							onSend={sendConverse}
 							status={chatState.value.status}

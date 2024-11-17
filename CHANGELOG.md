@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- refactored handling (recording and reporting) of token usage
+- added tests for persistence layer
+- changed from adding files inside <bbFile> tags to using separate content part
+- changed handling of content extraction from LLM response
+- restructured contents of docs directory
+- improved parsing for file mime type
 
 
 ## [0.3.0] - 2024-11-17
