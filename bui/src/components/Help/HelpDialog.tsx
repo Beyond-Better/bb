@@ -1,3 +1,4 @@
+import { JSX } from 'preact';
 import { useEffect } from 'preact/hooks';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 import { useFadeTransition, useTransition } from '../../hooks/useTransition.ts';
