@@ -75,12 +75,12 @@ class LLMToolManager {
 			logger.debug(`LLMToolManager: Checking ${directory} for tools`);
 			try {
 				if (!await exists(directory)) {
-					logger.warn(`LLMToolManager: Skipping ${directory} as it is does not exist`);
+					logger.debug(`LLMToolManager: Skipping ${directory} as it is does not exist`);
 					continue;
 				}
 				const directoryInfo = await Deno.stat(directory);
 				if (!directoryInfo.isDirectory) {
-					logger.warn(`LLMToolManager: Skipping ${directory} as it is not a directory`);
+					logger.debug(`LLMToolManager: Skipping ${directory} as it is not a directory`);
 					continue;
 				}
 
@@ -180,7 +180,7 @@ class LLMToolManager {
 				metadata.description,
 				this.fullConfig.api.toolConfigs[name] || {},
 			).init();
-			logger.info(`LLMToolManager: Loaded Tool ${tool.name}`);
+			logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
 			this.loadedTools.set(name, tool);
 			return tool;
 		} catch (error) {

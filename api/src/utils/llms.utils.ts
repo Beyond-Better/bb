@@ -45,7 +45,7 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 			} else {
 				// Handle non-text content
 				const contentType = part.type || 'unknown';
-				let contentStr = `[${contentType} content]`;
+				let contentStr = contentType === 'tool_use' ? '' : `[${contentType} content]`;
 
 				// Try to coerce content to string if possible
 				try {

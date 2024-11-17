@@ -8,7 +8,7 @@ import * as $_middleware from './routes/_middleware.ts';
 import * as $index from './routes/index.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Counter from './islands/Counter.tsx';
-import { type Manifest } from '$fresh/server.ts';
+import type { Manifest } from '$fresh/server.ts';
 
 const manifest = {
 	routes: {

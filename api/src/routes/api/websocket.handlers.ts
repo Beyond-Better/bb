@@ -16,6 +16,8 @@ class WebSocketHandler {
 	constructor(private eventManager: EventManager) {
 	}
 
+	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading conversations
+
 	handleConnection(ws: WebSocket, conversationId: ConversationId) {
 		try {
 			// Check if there's an existing connection for this conversation ID
@@ -28,12 +30,29 @@ class WebSocketHandler {
 
 			// Set the new connection
 			this.activeConnections.set(conversationId, ws);
+
+			// Set timeout for conversation loading
+			const loadTimeout = setTimeout(() => {
+				if (this.activeConnections.has(conversationId)) {
+					logger.error(`WebSocketHandler: Timeout loading conversation: ${conversationId}`);
+					this.eventManager.emit('projectEditor:conversationError', {
+						conversationId,
+						error: 'Timeout loading conversation',
+						code: 'LOAD_TIMEOUT',
+					});
+					this.removeConnection(ws, conversationId);
+				}
+			}, this.LOAD_TIMEOUT);
+
 			ws.onopen = () => {
 				logger.info(`WebSocketHandler: WebSocket connection opened for conversationId: ${conversationId}`);
 			};
 
 			ws.onmessage = async (event) => {
 				try {
+					// Clear load timeout on first message
+					clearTimeout(loadTimeout);
+
 					const message = JSON.parse(event.data);
 					await this.handleMessage(conversationId, message);
 				} catch (error) {
@@ -46,6 +65,8 @@ class WebSocketHandler {
 			};
 
 			ws.onclose = () => {
+				// Clear load timeout on close
+				clearTimeout(loadTimeout);
 				logger.info(`WebSocketHandler: WebSocket connection closed for conversationId: ${conversationId}`);
 				this.removeConnection(ws, conversationId);
 			};
@@ -76,6 +97,9 @@ class WebSocketHandler {
 			const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
 
 			if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
+				logger.error(
+					`WebSocketHandler: No projectEditor and type not greeting or cancel for conversationId: ${conversationId}`,
+				);
 				this.eventManager.emit('projectEditor:conversationError', {
 					conversationId,
 					error: 'No active conversation',
@@ -189,6 +213,10 @@ class WebSocketHandler {
 				callback: (data) => this.sendMessage(ws, 'conversationReady', data),
 			},
 			{
+				event: 'projectEditor:conversationCancelled',
+				callback: (data) => this.sendMessage(ws, 'conversationCancelled', data),
+			},
+			{
 				event: 'projectEditor:conversationContinue',
 				callback: (data) => this.sendMessage(ws, 'conversationContinue', data),
 			},
@@ -225,12 +253,16 @@ class WebSocketHandler {
 	}
 
 	private removeConnection(ws: WebSocket, conversationId: ConversationId) {
-		this.activeConnections.delete(conversationId);
-		projectEditorManager.releaseEditor(conversationId);
-		ws.close();
-		this.activeConnections.delete(conversationId);
-		projectEditorManager.releaseEditor(conversationId);
-		ws.close();
+		// Only perform cleanup once
+		if (this.activeConnections.has(conversationId)) {
+			this.activeConnections.delete(conversationId);
+			projectEditorManager.releaseEditor(conversationId);
+
+			// Only close if the socket is still open
+			if (ws.readyState === ws.OPEN) {
+				ws.close(1000, 'Connection removed');
+			}
+		}
 		// removeEventListeners is called by the 'close' event listener
 		// so we don't need to call it explicitly here
 	}
@@ -239,6 +271,7 @@ class WebSocketHandler {
 	private sendMessage = (ws: WebSocket, type: string, data: unknown) => {
 		//logger.debug(`WebSocketHandler: Sending message for conversationId: ${conversationId}: type=${type}, data=${JSON.stringify(data)}`);
 		logger.info(`WebSocketHandler: Sending message of type: ${type}`);
+		if (type === 'conversationError') logger.info(`WebSocketHandler: error:`, data);
 		ws.send(JSON.stringify({ type, data }));
 	};
 }

@@ -1,62 +1,108 @@
-// Browser-compatible logger
-const logger = {
-	info: (message: string) => console.log(message),
-	error: (message: string) => console.error(message),
-};
+import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+
+export interface ConversationResponse {
+	id: string;
+	title: string;
+	updatedAt: string;
+	conversationStats: {
+		conversationTurnCount: number;
+	};
+	tokenUsageConversation: {
+		totalTokensTotal: number;
+	};
+}
+
+export interface ConversationListResponse {
+	conversations: ConversationMetadata[];
+}
+
+export interface LogEntryFormatResponse {
+	formattedContent: string;
+}
 
 export class ApiClient {
-	private baseUrl: string;
+	private apiUrl: string;
 
-	constructor(baseUrl: string) {
-		this.baseUrl = baseUrl;
+	constructor(apiUrl: string) {
+		this.apiUrl = apiUrl;
 	}
 
-	static create(): ApiClient {
-		let baseUrl: string;
-		if (typeof window !== 'undefined' && window.location) {
-			baseUrl = window.location.origin;
-		} else {
-			// Fallback for non-browser environments (e.g., during SSR)
-			baseUrl = 'https://localhost:3000';
-		}
-		logger.info(`APIClient: client created with baseUrl: ${baseUrl}`);
-		return new ApiClient(baseUrl);
-	}
+	private async request<T>(
+		endpoint: string,
+		options: RequestInit = {},
+		allowedCodes: number[] = [],
+	): Promise<T | null> {
+		const url = `${this.apiUrl}${endpoint}`;
+		console.log(`APIClient: sending ${options.method || 'GET'} to: ${url}`);
 
-	async get(endpoint: string) {
 		try {
-			const response = await fetch(`${this.baseUrl}${endpoint}`);
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
-			}
-			return response;
-		} catch (error) {
-			logger.error(
-				`APIClient: GET request failed for ${endpoint}: ${error.message}`,
-			);
-			throw error;
-		}
-	}
-
-	async post(endpoint: string, data: Record<string, unknown>) {
-		logger.info(`APIClient: sending POST to: ${this.baseUrl}${endpoint}`);
-		try {
-			const response = await fetch(`${this.baseUrl}${endpoint}`, {
-				method: 'POST',
+			const response = await fetch(url, {
+				...options,
 				headers: {
 					'Content-Type': 'application/json',
+					...options.headers,
 				},
-				body: JSON.stringify(data),
 			});
+
 			if (!response.ok) {
+				// Check if this status code is explicitly allowed
+				if (allowedCodes.includes(response.status)) {
+					return null;
+				}
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
-			return response;
+
+			return await response.json() as T;
 		} catch (error) {
-			logger.error(
-				`APIClient: POST request failed for ${endpoint}: ${error.message}`,
+			console.error(
+				`APIClient: ${options.method || 'GET'} request failed for ${endpoint}: ${error.message}`,
 			);
 			throw error;
 		}
 	}
+
+	async get<T>(endpoint: string, allowedCodes: number[] = []): Promise<T | null> {
+		return this.request<T>(endpoint, {}, allowedCodes);
+	}
+
+	async post<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
+		return this.request<T>(endpoint, {
+			method: 'POST',
+			body: JSON.stringify(data),
+		}, allowedCodes);
+	}
+
+	// Conversation Management Methods
+	async createConversation(id: string, startDir: string): Promise<ConversationResponse | null> {
+		return this.get<ConversationResponse>(
+			`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`,
+		);
+	}
+
+	async getConversations(startDir: string, limit = 50): Promise<ConversationListResponse | null> {
+		return this.get<ConversationListResponse>(
+			`/api/v1/conversation?startDir=${encodeURIComponent(startDir)}&limit=${limit}`,
+		);
+	}
+
+	async getConversation(
+		id: string,
+		startDir: string,
+	): Promise<(ConversationResponse & { logEntries: ConversationEntry[] }) | null> {
+		return this.get<ConversationResponse & { logEntries: ConversationEntry[] }>(
+			`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`,
+			[404],
+		);
+	}
+
+	async formatLogEntry(entryType: string, logEntry: any, startDir: string): Promise<LogEntryFormatResponse | null> {
+		return this.post<LogEntryFormatResponse>(
+			`/api/v1/format_log_entry/browser/${entryType}`,
+			{ logEntry, startDir },
+		);
+	}
+}
+
+export function createApiClientManager(url: string): ApiClient {
+	return new ApiClient(url);
 }

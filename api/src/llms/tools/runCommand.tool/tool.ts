@@ -31,7 +31,7 @@ export default class LLMToolRunCommand extends LLMTool {
 		);
 
 		this.allowedCommands = toolConfig.allowedCommands || [];
-		logger.info(
+		logger.debug(
 			`LLMToolRunCommand: Initialized with allowed commands:\n${
 				this.allowedCommands.map((cmd) => `  - ${cmd}`).join('\n')
 			}`,

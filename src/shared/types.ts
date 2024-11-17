@@ -47,6 +47,24 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 	//tools?: Array<{ name: string; description: string }>;
 }
 
+export interface Conversation {
+	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
+	id: ConversationId;
+	title: string;
+
+	logEntries: ConversationLogEntry[];
+
+	conversationStats?: ConversationMetrics;
+	tokenUsageTurn: TokenUsage;
+	tokenUsageStatement: TokenUsage;
+	tokenUsageConversation: ConversationTokenUsage;
+
+	//tools?: Array<{ name: string; description: string }>;
+	model: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface FileMetadata {
 	type: 'text' | 'image';
 	mimeType?: LLMMessageContentPartImageBlockSourceMediaType;

@@ -10,7 +10,7 @@ export default function Error404() {
 				<div class='max-w-screen-md mx-auto flex flex-col items-center justify-center'>
 					<img
 						class='my-6'
-						src='/logo.svg'
+						src='/logo.png'
 						width='128'
 						height='128'
 						alt='BB: Beyond Better - with code and docs'
