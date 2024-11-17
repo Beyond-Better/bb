@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - improved parsing for file mime type
 
 
+## [0.3.0] - 2024-11-17
+
+### Changed
+
+- made some changes to BUI
+
+
 ## [0.2.6] - 2024-11-10
 
 ### Changed
