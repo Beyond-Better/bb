@@ -1,5 +1,5 @@
 import { JSX } from 'preact';
-import { useState, useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import type { RefObject } from 'preact/compat';
 type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement>;
 
@@ -96,9 +96,11 @@ export function ToolBar({ onSendMessage, chatInputRef, disabled, startDir }: Too
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			// Only trigger if '?' is pressed and chat input is not focused
-			if (e.key === '?' && 
-					document.activeElement !== chatInputRef.current?.textarea &&
-					!showHelp) {
+			if (
+				e.key === '?' &&
+				document.activeElement !== chatInputRef.current?.textarea &&
+				!showHelp
+			) {
 				e.preventDefault();
 				setShowHelp(true);
 			}
@@ -141,7 +143,7 @@ export function ToolBar({ onSendMessage, chatInputRef, disabled, startDir }: Too
 
 				{/* Divider */}
 				<div className='h-6 w-px bg-gray-200' />
-				
+
 				{/* Metrics Button */}
 				<button
 					onClick={handleMetricsClick}
