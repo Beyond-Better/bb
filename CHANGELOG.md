@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.3.0a] - 2024-11-17
+
+### Changed
+
 - hotfix for broken input
 
 
