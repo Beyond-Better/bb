@@ -37,7 +37,7 @@ import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { ToolUsageStats } from '../llmToolManager.ts';
 import { logger } from 'shared/logger.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+//import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
 import { ResourceManager } from '../resourceManager.ts';
 //import { GitUtils } from 'shared/git.ts';
@@ -201,7 +201,16 @@ class LLMConversationInteraction extends LLMInteraction {
 				path: filePath,
 				type: fileMetadata.type || 'text',
 				size: fileMetadata.size,
-				last_modified: fileMetadata.lastModified.toISOString(),
+				last_modified: (() => {
+					try {
+						return fileMetadata.lastModified instanceof Date
+							? fileMetadata.lastModified.toISOString()
+							: new Date(fileMetadata.lastModified).toISOString();
+					} catch (error) {
+						logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`);
+						return new Date().toISOString(); // Fallback to current date
+					}
+				})(),
 				revision: revisionId,
 				mime_type: fileMetadata.mimeType,
 			};
@@ -386,7 +395,17 @@ class LLMConversationInteraction extends LLMInteraction {
 			if (!fileMetadata) {
 				throw new Error(`File has not been added to conversation: ${filePath}`);
 			}
-			return `<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${fileMetadata.lastModified}">\n${content}\n</bbFile>`;
+			const lastModifiedISOString = (() => {
+				try {
+					return fileMetadata.lastModified instanceof Date
+						? fileMetadata.lastModified.toISOString()
+						: new Date(fileMetadata.lastModified).toISOString();
+				} catch (error) {
+					logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`);
+					return new Date().toISOString(); // Fallback to current date
+				}
+			})();
+			return `<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${lastModifiedISOString}">\n${content}\n</bbFile>`;
 		} catch (error) {
 			logger.error(
 				`ConversationInteraction: Error creating XML string for ${filePath}: ${error.message}`,
@@ -496,7 +515,18 @@ class LLMConversationInteraction extends LLMInteraction {
 						path: filePath,
 						type: fileMetadata.type || 'text',
 						size: fileMetadata.size,
-						last_modified: fileMetadata.lastModified.toISOString(),
+						last_modified: (() => {
+							try {
+								return fileMetadata.lastModified instanceof Date
+									? fileMetadata.lastModified.toISOString()
+									: new Date(fileMetadata.lastModified).toISOString();
+							} catch (error) {
+								logger.warn(
+									`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`,
+								);
+								return new Date().toISOString(); // Fallback to current date
+							}
+						})(),
 						revision: lastEntry.messageId,
 						mime_type: fileMetadata.mimeType,
 					};
@@ -794,23 +824,25 @@ class LLMConversationInteraction extends LLMInteraction {
 			await this.updateTotals(response.messageResponse.usage, 'user');
 		}
 
-		// 		// Update totals once per turn
-		// 		//this.updateTotals(response.messageResponse.usage, 1); // Assuming 1 provider request per converse call
-		// 		this.updateTotals(response.messageResponse.usage); // Assuming 1 provider request per converse call
+		// // Update totals once per turn
+		// //this.updateTotals(response.messageResponse.usage, 1); // Assuming 1 provider request per converse call
+		// this.updateTotals(response.messageResponse.usage); // Assuming 1 provider request per converse call
 
-		//const msg = extractTextFromContent(response.messageResponse.answerContent);
-		const msg = response.messageResponse.answer;
-		const conversationStats: ConversationMetrics = this.getConversationStats();
-		const tokenUsageMessage: TokenUsage = response.messageResponse.usage;
+		// // moving logAssistantMessage to orchestratorController
+		// //const msg = extractTextFromContent(response.messageResponse.answerContent);
+		// const msg = response.messageResponse.answer;
+		// const conversationStats: ConversationMetrics = this.getConversationStats();
+		// const tokenUsageMessage: TokenUsage = response.messageResponse.usage;
+		//
+		// this.conversationLogger.logAssistantMessage(
+		// 	this.getLastMessageId(),
+		// 	msg,
+		// 	conversationStats,
+		// 	tokenUsageMessage,
+		// 	this._tokenUsageStatement,
+		// 	this._tokenUsageInteraction,
+		// );
 
-		this.conversationLogger.logAssistantMessage(
-			this.getLastMessageId(),
-			msg,
-			conversationStats,
-			tokenUsageMessage,
-			this._tokenUsageStatement,
-			this._tokenUsageInteraction,
-		);
 		this._statementCount++;
 
 		return response;

@@ -708,6 +708,25 @@ class OrchestratorController {
 			logger.info('OrchestratorController: Received response from LLM');
 			//logger.debug('OrchestratorController: LLM Response:', currentResponse);
 
+			// Only log assistant message if tools are being used
+			if (currentResponse.messageResponse.toolsUsed && currentResponse.messageResponse.toolsUsed.length > 0) {
+				// Extract any text content from the initial response
+				const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
+				if (textContent) {
+					const conversationStats: ConversationMetrics = interaction.getConversationStats();
+					const tokenUsageMessage: TokenUsage = currentResponse.messageResponse.usage;
+
+					interaction.conversationLogger.logAssistantMessage(
+						interaction.getLastMessageId(),
+						textContent,
+						conversationStats,
+						tokenUsageMessage,
+						interaction.tokenUsageStatement,
+						interaction.tokenUsageInteraction,
+					);
+				}
+			}
+
 			// Update orchestrator's stats
 			this.updateStats(interaction.id, interaction.getConversationStats());
 		} catch (error) {
