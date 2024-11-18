@@ -1,9 +1,13 @@
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+
+export type CacheStatus = 'active' | 'expiring' | 'inactive';
 import {} from 'shared/types.ts';
 
 export interface Status {
+	cacheStatus: CacheStatus;
+	lastApiCallTime: number | null; // Timestamp of last API call
 	isConnecting: boolean; // WebSocket connection in progress
 	isLoading: boolean; // Conversation loading/switching
 	isProcessing: boolean; // Message processing ([TODO] - this should probably be Cluade is working rather than message processing)
@@ -32,6 +36,7 @@ export interface ChatConfig {
 }
 
 export interface ChatHandlers {
+	updateCacheStatus: () => void; // Update cache status based on lastApiCallTime
 	clearError: () => void;
 	sendConverse: (message: string) => Promise<void>;
 	selectConversation: (id: string) => Promise<void>;

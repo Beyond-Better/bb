@@ -1,9 +1,11 @@
 import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 import {
 	ConversationContinue,
+	ConversationDeleted,
 	ConversationId,
 	ConversationLogEntryType,
 	ConversationMetrics,
+	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
 } from 'shared/types.ts';
@@ -11,6 +13,8 @@ import { logger } from 'shared/logger.ts';
 
 export type EventMap = {
 	projectEditor: {
+		conversationNew: ConversationNew;
+		conversationDeleted: ConversationDeleted;
 		speakWith: { conversationId: ConversationId; startDir: string; prompt: string };
 		conversationReady: ConversationStart;
 		conversationContinue: ConversationContinue;
@@ -30,6 +34,7 @@ export type EventMap = {
 		};
 	};
 	cli: {
+		conversationNew: ConversationNew;
 		conversationWaitForReady: { conversationId: ConversationId };
 		conversationWaitForAnswer: { conversationId: ConversationId };
 		conversationReady: ConversationStart;

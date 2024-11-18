@@ -1,4 +1,4 @@
-import ProjectEditor from './projectEditor.ts';
+import ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationId } from 'shared/types.ts';
 
 class ProjectEditorManager {

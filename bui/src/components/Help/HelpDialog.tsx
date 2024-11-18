@@ -27,7 +27,19 @@ const HELP_SECTIONS: HelpSection[] = [
 					<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>Enter</kbd>
 				</div>
 				<div className='flex justify-between items-center'>
-					<span className='text-gray-600'>New line in message</span>
+					<span className='text-gray-600'>New line in message box</span>
+					<div className='flex items-center space-x-1'>
+						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
+							Ctrl
+						</kbd>
+						<span aria-hidden='true'>+</span>
+						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
+							Enter
+						</kbd>
+					</div>
+				</div>
+				<div className='flex justify-between items-center'>
+					<span className='text-gray-600'>Alternative new line</span>
 					<div className='flex items-center space-x-1'>
 						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
 							Shift
@@ -39,8 +51,19 @@ const HELP_SECTIONS: HelpSection[] = [
 					</div>
 				</div>
 				<div className='flex justify-between items-center'>
-					<span className='text-gray-600'>Expand/collapse message</span>
+					<span className='text-gray-600'>Expand/collapse message in history</span>
 					<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>Space</kbd>
+				</div>
+				<div className='flex justify-between items-center'>
+					<span className='text-gray-600'>Navigate messages</span>
+					<div className='flex items-center space-x-1'>
+						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>↑</kbd>
+						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>↓</kbd>
+					</div>
+				</div>
+				<div className='flex justify-between items-center'>
+					<span className='text-gray-600'>Clear message box</span>
+					<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>Esc</kbd>
 				</div>
 			</div>
 		),
@@ -50,13 +73,19 @@ const HELP_SECTIONS: HelpSection[] = [
 		content: (
 			<div className='space-y-3'>
 				<p className='text-gray-600'>
-					Messages can be expanded or collapsed using the spacebar or by clicking. Use Tab to move between
-					interactive elements in messages.
+					Messages can be expanded or collapsed using the spacebar or by clicking the message header. Use Tab
+					to move between interactive elements in messages. Each message shows a timestamp and can be copied
+					using the copy button.
 				</p>
-				<p className='text-gray-600'>
-					Each message shows its role (user, assistant, tool) and content. Tool messages show the specific
-					action being taken.
-				</p>
+				<div className='text-gray-600'>
+					Messages are color-coded by role:
+					<ul className='list-disc list-inside mt-2 ml-4'>
+						<li>Blue - User messages</li>
+						<li>Green - Assistant (Claude) responses</li>
+						<li>Yellow - Tool operations and results</li>
+						<li>Purple - Auxillary operations</li>
+					</ul>
+				</div>
 			</div>
 		),
 	},
@@ -65,15 +94,22 @@ const HELP_SECTIONS: HelpSection[] = [
 		content: (
 			<div className='space-y-3'>
 				<p className='text-gray-600'>
-					Conversations get more expensive as they grow longer. Consider starting new conversations or using
-					the conversation summary button to reduce token usage.
+					Conversations maintain context but get more expensive as they grow longer. Each message adds to the
+					token count, which affects both response time and cost. Consider starting new conversations for
+					different tasks or using the conversation summary button to reduce token usage.
 				</p>
 				<div className='space-y-2'>
 					<h4 className='font-medium text-gray-700'>Toolbar Actions:</h4>
 					<ul className='list-disc list-inside space-y-1 text-gray-600'>
 						<li>Add Files Template - Insert template for adding files to conversation</li>
 						<li>Show Metrics - Display conversation statistics and token usage</li>
-						<li>Summarize - Create a summary and truncate the conversation</li>
+						<li>Summarize - Create a summary and truncate the conversation to reduce token usage</li>
+					</ul>
+					<h4 className='font-medium text-gray-700 mt-3'>Best Practices:</h4>
+					<ul className='list-disc list-inside space-y-1 text-gray-600'>
+						<li>Start new conversations for unrelated tasks</li>
+						<li>Use conversation summary when context grows too large</li>
+						<li>Remove unused files from the conversation</li>
 					</ul>
 				</div>
 			</div>
@@ -84,12 +120,18 @@ const HELP_SECTIONS: HelpSection[] = [
 		content: (
 			<div className='space-y-3'>
 				<p className='text-gray-600'>
-					BB can work with multiple projects. The current project directory is shown in the header and can be
-					changed to switch between projects.
+					BB can work with multiple projects simultaneously. The current project directory is shown in the
+					header and can be changed using the project selector to switch between projects.
 				</p>
-				<p className='text-gray-600'>
-					All file paths are relative to the current project directory.
-				</p>
+				<div className='text-gray-600'>
+					All file paths are relative to the current project directory. When referencing files:
+					<ul className='list-disc list-inside mt-2 ml-4'>
+						<li>Use forward slashes (/) for paths</li>
+						<li>Paths start from the project root</li>
+						<li>Example: "src/components/Button.tsx"</li>
+					</ul>
+					BB will automatically handle path conversions for your operating system.
+				</div>
 			</div>
 		),
 	},
@@ -98,12 +140,24 @@ const HELP_SECTIONS: HelpSection[] = [
 		content: (
 			<div className='space-y-3'>
 				<p className='text-gray-600'>
-					The header shows API connection status and total token usage. A banner appears when Claude is
-					processing your request.
+					The header shows API connection status, current project, and total token usage. The connection
+					indicator turns red if there are API issues. A banner appears when Claude is processing your
+					request.
 				</p>
 				<p className='text-gray-600'>
 					Token usage is tracked per conversation and shown in the conversation list.
 				</p>
+				<div className='text-gray-600'>
+					The colored indicator shows the status of Anthropic's prompt cache. When active (green), Claude can
+					reuse context from recent interactions at a 90% discount in token costs. The cache automatically
+					expires after 5 minutes of inactivity, at which point Claude will need to reprocess the full context
+					at standard token rates. This is handled automatically by the API and requires no user action.
+					<ul className='list-disc list-inside mt-2 ml-4'>
+						<li>Green - Cache active (90% token discount)</li>
+						<li>Yellow - Cache expiring soon</li>
+						<li>Gray - No active cache</li>
+					</ul>
+				</div>
 			</div>
 		),
 	},
@@ -115,7 +169,15 @@ const HELP_SECTIONS: HelpSection[] = [
 					<div>
 						<dt className='font-medium text-gray-700'>Project</dt>
 						<dd className='text-gray-600'>
-							The root directory and all files BB is working with. BB can work with multiple projects.
+							<div>
+								The root directory and all files BB is working with. Projects can be Git repositories
+								with:
+								<ul className='list-disc list-inside mt-2 ml-4'>
+									<li>Source code and related files</li>
+									<li>Project configuration files</li>
+									<li>Documentation and resources</li>
+								</ul>
+							</div>
 						</dd>
 					</div>
 					<div>
@@ -127,7 +189,14 @@ const HELP_SECTIONS: HelpSection[] = [
 					<div>
 						<dt className='font-medium text-gray-700'>Statement</dt>
 						<dd className='text-gray-600'>
-							All messages from a user query through the assistant's answer, including tool messages.
+							<div>
+								A complete interaction including:
+								<ul className='list-disc list-inside mt-2 ml-4'>
+									<li>Your initial query</li>
+									<li>Claude's response and any tool usage</li>
+									<li>Final results or answers</li>
+								</ul>
+							</div>
 						</dd>
 					</div>
 					<div>
@@ -137,8 +206,14 @@ const HELP_SECTIONS: HelpSection[] = [
 					<div>
 						<dt className='font-medium text-gray-700'>Tool Input/Output</dt>
 						<dd className='text-gray-600'>
-							Requests from Claude for BB to take action (input) and the results of those actions
-							(output).
+							<div>
+								Actions BB can perform, such as:
+								<ul className='list-disc list-inside mt-2 ml-4'>
+									<li>Reading and modifying files</li>
+									<li>Running commands</li>
+									<li>Fetching web content</li>
+								</ul>
+							</div>
 						</dd>
 					</div>
 					<div>
@@ -151,13 +226,23 @@ const HELP_SECTIONS: HelpSection[] = [
 						<dt className='font-medium text-gray-700'>Objectives</dt>
 						<dd className='text-gray-600'>
 							The focus given to Claude. Each statement has a new objective, plus an overall conversation
-							objective.
+							objective. Helps maintain context and purpose throughout the conversation.
 						</dd>
 					</div>
 					<div>
 						<dt className='font-medium text-gray-700'>Tools</dt>
 						<dd className='text-gray-600'>
-							The core functionality that enables BB to take action - the code that performs tasks.
+							<div>
+								BB's core capabilities including:
+								<ul className='list-disc list-inside mt-2 ml-4'>
+									<li>File operations (read, write, move)</li>
+									<li>Code analysis and modification</li>
+									<li>Project management</li>
+									<li>Web content retrieval</li>
+									<li>System command execution</li>
+									<li>Conversation management</li>
+								</ul>
+							</div>
 						</dd>
 					</div>
 					<div>

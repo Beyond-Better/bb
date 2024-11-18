@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.2] - 2024-11-18
+
+### Changed
+
+- improved websocket reconnection handling
+- improved conversation admin (adding and deleting)
+- improved notifications 
+- prompt caching indicator
+
+
 ## [0.3.1] - 2024-11-17
 
 ### Changed

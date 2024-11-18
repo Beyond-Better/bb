@@ -48,6 +48,8 @@ const initialState: ChatState = {
 		isLoading: false,
 		isProcessing: false,
 		isReady: false,
+		cacheStatus: 'inactive',
+		lastApiCallTime: null,
 	},
 	error: null,
 };
@@ -197,7 +199,53 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			};
 		};
 
-		const handleMessage = (data: { msgType: 'continue' | 'answer'; logEntryData: ConversationEntry }) => {
+		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
+			// Update cache status on any API interaction
+			chatState.value = {
+				...chatState.value,
+				status: {
+					...chatState.value.status,
+					lastApiCallTime: Date.now(),
+					cacheStatus: 'active',
+				},
+			};
+			if (!mounted) return;
+
+			// Handle new conversation message
+			if (data.msgType === 'conversationNew') {
+				chatState.value = {
+					...chatState.value,
+					conversations: [...chatState.value.conversations, {
+						id: data.logEntryData.conversationId,
+						title: data.logEntryData.conversationTitle,
+						tokenUsageConversation: data.logEntryData.tokenUsageConversation,
+						conversationStats: data.logEntryData.conversationStats,
+						createdAt: data.logEntryData.timestamp,
+						updatedAt: data.logEntryData.timestamp,
+						llmProviderName: 'anthropic', // Default provider
+						model: 'claude-3', // Default model
+					}],
+				};
+				return;
+			}
+
+			// Handle conversation deletion
+			if (data.msgType === 'conversationDeleted') {
+				const deletedId = data.logEntryData.conversationId;
+				chatState.value = {
+					...chatState.value,
+					conversations: chatState.value.conversations.filter((conv) => conv.id !== deletedId),
+					// Clear current conversation if it was deleted
+					conversationId: chatState.value.conversationId === deletedId
+						? null
+						: chatState.value.conversationId,
+					// Clear log entries if current conversation was deleted
+					logEntries: chatState.value.conversationId === deletedId ? [] : chatState.value.logEntries,
+				};
+				return;
+			}
+
+			// Handle continue/answer messages
 			if (!mounted) return;
 
 			// Only process messages for the current conversation
@@ -240,7 +288,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			// Provide user-friendly error messages
 			let errorMessage = error.message;
 			if (error.message.includes('WebSocket')) {
-				errorMessage = 'Lost connection to chat server. Please check your network.';
+				errorMessage = 'Lost connection to server.';
 			} else if (error.message.includes('timeout')) {
 				errorMessage = 'Request timed out. Please try again.';
 			}
@@ -256,11 +304,23 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			};
 		};
 
+		// [TODO] There can be errors other websocket errors that get displayed
+		// So we need to have error tracking and only clear appropriate error messages
+		// The whole error display layer needs re-working
+		const handleClearError = () => {
+			if (!mounted) return;
+			chatState.value = {
+				...chatState.value,
+				error: null,
+			};
+		};
+
 		wsManager.on('statusChange', handleStatusChange);
 		wsManager.on('readyChange', handleReadyChange);
 		wsManager.on('message', handleMessage);
 		wsManager.on('cancelled', handleCancelled);
 		wsManager.on('error', handleError);
+		wsManager.on('clearError', handleClearError);
 
 		return () => {
 			mounted = false;
@@ -269,11 +329,38 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			wsManager.off('message', handleMessage);
 			wsManager.off('cancelled', handleCancelled);
 			wsManager.off('error', handleError);
+			wsManager.off('clearError', handleClearError);
 		};
 	}, [chatState.value.wsManager]);
 
 	// Message and conversation handlers
 	const handlers: ChatHandlers = {
+		updateCacheStatus: () => {
+			if (!chatState.value.status.lastApiCallTime) {
+				chatState.value = {
+					...chatState.value,
+					status: { ...chatState.value.status, cacheStatus: 'inactive' },
+				};
+				return;
+			}
+
+			const timeSinceLastCall = Date.now() - chatState.value.status.lastApiCallTime;
+			const timeUntilExpiry = 5 * 60 * 1000 - timeSinceLastCall; // 5 minutes in milliseconds
+
+			let newStatus: 'active' | 'expiring' | 'inactive';
+			if (timeUntilExpiry <= 0) {
+				newStatus = 'inactive';
+			} else if (timeUntilExpiry <= 60 * 1000) { // Last minute
+				newStatus = 'expiring';
+			} else {
+				newStatus = 'active';
+			}
+
+			chatState.value = {
+				...chatState.value,
+				status: { ...chatState.value.status, cacheStatus: newStatus },
+			};
+		},
 		sendConverse: async (message: string) => {
 			if (!chatState.value.wsManager) {
 				console.error('sendConverse: wsManager is null');

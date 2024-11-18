@@ -17,6 +17,7 @@ import { getBbDir } from 'shared/dataDir.ts';
 import type {
 	ConversationContinue,
 	ConversationId,
+	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
 	ConversationTokenUsage,
@@ -198,7 +199,7 @@ export class TerminalHandler {
 	}
 
 	public async displayConversationStart(
-		data: ConversationStart,
+		data: ConversationStart | ConversationNew,
 		conversationId?: ConversationId,
 		expectingMoreInput: boolean = true,
 	): Promise<void> {
@@ -211,6 +212,10 @@ export class TerminalHandler {
 		}
 
 		const { conversationTitle } = data;
+		if (!conversationTitle) {
+			console.log('Warning: No conversation title available');
+			return;
+		}
 		const statementCount = data.conversationStats?.statementCount || 1;
 		const shortTitle = conversationTitle ? conversationTitle.substring(0, 30) : '<pending>';
 

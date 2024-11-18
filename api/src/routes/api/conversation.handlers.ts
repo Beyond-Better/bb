@@ -223,7 +223,7 @@ export const deleteConversation = async (
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		projectEditor.orchestratorController.interactionManager.removeInteraction(conversationId as ConversationId);
+		projectEditor.orchestratorController.deleteConversation(conversationId as ConversationId);
 
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} deleted` };
