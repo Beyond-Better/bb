@@ -182,7 +182,7 @@ class ConversationPersistence {
 			await this.updateConversationsMetadata(metadata);
 
 			// Get token usage analysis
-			const tokenAnalysis = await this.getTokenUsageAnalysis();
+			//const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
@@ -763,6 +763,33 @@ class ConversationPersistence {
 		const lines = content.trim().split('\n');
 
 		return lines.map((line) => JSON.parse(line));
+	}
+
+	async deleteConversation(): Promise<void> {
+		await this.ensureInitialized();
+
+		try {
+			// Remove from conversations metadata first
+			if (await exists(this.conversationsMetadataPath)) {
+				const content = await Deno.readTextFile(this.conversationsMetadataPath);
+				let conversations: ConversationMetadata[] = JSON.parse(content);
+				conversations = conversations.filter((conv) => conv.id !== this.conversationId);
+				await Deno.writeTextFile(this.conversationsMetadataPath, JSON.stringify(conversations, null, 2));
+			}
+
+			// Delete the conversation directory and all its contents
+			if (await exists(this.conversationDir)) {
+				await Deno.remove(this.conversationDir, { recursive: true });
+			}
+
+			logger.info(`ConversationPersistence: Successfully deleted conversation: ${this.conversationId}`);
+		} catch (error) {
+			logger.error(`ConversationPersistence: Error deleting conversation: ${this.conversationId}`, error);
+			throw createError(ErrorType.FileHandling, `Failed to delete conversation: ${error.message}`, {
+				filePath: this.conversationDir,
+				operation: 'delete',
+			} as FileHandlingErrorOptions);
+		}
 	}
 
 	async removeLastChange(): Promise<void> {

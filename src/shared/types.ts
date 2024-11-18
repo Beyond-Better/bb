@@ -213,6 +213,19 @@ export interface ConversationContinue {
 	formattedContent?: string;
 }
 
+export interface ConversationNew {
+	conversationId: ConversationId;
+	conversationTitle: string;
+	timestamp: string;
+	tokenUsageConversation: ConversationTokenUsage;
+	conversationStats: ConversationMetrics;
+}
+
+export interface ConversationDeleted {
+	conversationId: ConversationId;
+	timestamp: string;
+}
+
 export interface ConversationResponse {
 	conversationId: ConversationId;
 	conversationTitle: string;

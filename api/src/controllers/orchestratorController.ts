@@ -626,6 +626,17 @@ class OrchestratorController {
 
 		if (!interaction.title) {
 			interaction.title = await this.generateConversationTitle(statement, interaction.id);
+			// Emit new conversation event after title is generated
+			this.eventManager.emit(
+				'projectEditor:conversationNew',
+				{
+					conversationId: interaction.id,
+					conversationTitle: interaction.title,
+					timestamp: new Date().toISOString(),
+					tokenUsageConversation: this.tokenUsageTotals,
+					conversationStats: interaction.getConversationStats(),
+				} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
+			);
 		}
 
 		// Get current conversation stats to check objectives
@@ -968,6 +979,40 @@ class OrchestratorController {
 
 		this.projectEditor.changedFiles.clear();
 		this.projectEditor.changeContents.clear();
+	}
+
+	async deleteConversation(conversationId: ConversationId): Promise<void> {
+		logger.info(`OrchestratorController: Deleting conversation: ${conversationId}`);
+
+		try {
+			// Emit deletion event before cleanup
+			this.eventManager.emit(
+				'projectEditor:conversationDeleted',
+				{
+					conversationId,
+					timestamp: new Date().toISOString(),
+				} as EventPayloadMap['projectEditor']['projectEditor:conversationDeleted'],
+			);
+
+			// Clean up interaction
+			this.interactionManager.removeInteraction(conversationId);
+
+			// Clean up stats and usage tracking
+			this.interactionStats.delete(conversationId);
+			this.interactionTokenUsage.delete(conversationId);
+
+			// Update total stats
+			this.updateTotalStats();
+
+			// Clean up persistence
+			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
+			await persistence.deleteConversation();
+
+			logger.info(`OrchestratorController: Successfully deleted conversation: ${conversationId}`);
+		} catch (error) {
+			logger.error(`OrchestratorController: Error deleting conversation: ${conversationId}`, error);
+			throw error;
+		}
 	}
 
 	async revertLastChange(): Promise<void> {

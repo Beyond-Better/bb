@@ -209,6 +209,14 @@ class WebSocketHandler {
 
 		const listeners: Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }> = [
 			{
+				event: 'projectEditor:conversationNew',
+				callback: (data) => this.sendMessage(ws, 'conversationNew', data),
+			},
+			{
+				event: 'projectEditor:conversationDeleted',
+				callback: (data) => this.sendMessage(ws, 'conversationDeleted', data),
+			},
+			{
 				event: 'projectEditor:conversationReady',
 				callback: (data) => this.sendMessage(ws, 'conversationReady', data),
 			},

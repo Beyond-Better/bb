@@ -65,6 +65,10 @@ export class ApiClient {
 		return this.request<T>(endpoint, {}, allowedCodes);
 	}
 
+	async delete<T>(endpoint: string, allowedCodes: number[] = []): Promise<T | null> {
+		return this.request<T>(endpoint, { method: 'DELETE' }, allowedCodes);
+	}
+
 	async post<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
 		return this.request<T>(endpoint, {
 			method: 'POST',
@@ -79,7 +83,7 @@ export class ApiClient {
 		);
 	}
 
-	async getConversations(startDir: string, limit = 50): Promise<ConversationListResponse | null> {
+	async getConversations(startDir: string, limit = 200): Promise<ConversationListResponse | null> {
 		return this.get<ConversationListResponse>(
 			`/api/v1/conversation?startDir=${encodeURIComponent(startDir)}&limit=${limit}`,
 		);
@@ -93,6 +97,10 @@ export class ApiClient {
 			`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`,
 			[404],
 		);
+	}
+
+	async deleteConversation(id: string, startDir: string): Promise<void> {
+		await this.delete(`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`, [404]);
 	}
 
 	async formatLogEntry(entryType: string, logEntry: any, startDir: string): Promise<LogEntryFormatResponse | null> {

@@ -19,6 +19,8 @@ interface WebSocketMessage {
 
 interface WebSocketResponse {
 	type:
+		| 'conversationNew'
+		| 'conversationDeleted'
 		| 'conversationReady'
 		| 'conversationContinue'
 		| 'conversationAnswer'
@@ -44,7 +46,7 @@ interface WebSocketManagerConfig {
 	onOpen?: () => void;
 }
 
-type EventType = 'statusChange' | 'readyChange' | 'message' | 'error' | 'cancelled';
+type EventType = 'statusChange' | 'readyChange' | 'message' | 'error' | 'clearError' | 'cancelled';
 
 export class WebSocketManager {
 	private socket: WebSocket | null = null;
@@ -84,7 +86,7 @@ export class WebSocketManager {
 		if (config.onOpen) this.on('statusChange', (status: boolean) => status && config.onOpen?.());
 
 		// Initialize browser event handlers
-		//this.setupBrowserEventHandlers();
+		this.setupBrowserEventHandlers();
 	}
 
 	on(event: EventType, handler: Function) {
@@ -166,12 +168,12 @@ export class WebSocketManager {
 				if (this.socket?.readyState !== WebSocket.OPEN) {
 					console.log('WebSocketManager: Connection timeout');
 					this.handleError(new Error('Connection timeout'));
+					this.scheduleRetry();
 				}
 			}, 5000) as unknown as number;
 		} catch (error) {
 			console.error('WebSocketManager: Connection error:', error);
 			this.handleError(error);
-			// Schedule retry
 			this.scheduleRetry();
 		}
 	}
@@ -220,7 +222,7 @@ export class WebSocketManager {
 		} else {
 			// Full cleanup
 			this.clearHealthCheck();
-			//this.removeBrowserEventHandlers();
+			this.removeBrowserEventHandlers();
 			this._status.value = { isConnecting: false, isReady: false };
 			this.emit('readyChange', false);
 			if (wasConnected) {
@@ -313,13 +315,14 @@ export class WebSocketManager {
 				return;
 			}
 
-			const formatLogEntry = (
+			const generateLogEntryData = (
 				msgData: any,
 				msgType: 'continue' | 'answer',
 			): ConversationContinue | ConversationResponse => {
 				const baseEntry = {
 					conversationId: this.conversationId!,
-					conversationTitle: msgData.data.conversationTitle || 'Untitled Conversation',
+					// Title is now managed via conversationNew event
+					conversationTitle: '',
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
 					tokenUsageConversation: msgData.data.tokenUsageConversation || {
@@ -367,10 +370,27 @@ export class WebSocketManager {
 				console.log('WebSocketManager: Received message:', msg.type);
 
 				switch (msg.type) {
+					case 'conversationNew':
+						// Forward the new conversation event
+						this.emit('message', {
+							msgType: 'conversationNew',
+							logEntryData: msg.data,
+						});
+						break;
+
+					case 'conversationDeleted':
+						// Forward the deletion event
+						this.emit('message', {
+							msgType: 'conversationDeleted',
+							logEntryData: msg.data,
+						});
+						break;
+
 					case 'conversationReady':
 						this._status.value = { isConnecting: false, isReady: true };
 						this.emit('readyChange', true);
 						this.emit('statusChange', true);
+						this.emit('clearError');
 
 						// Start health check after conversation is ready
 						this.startHealthCheck();
@@ -380,7 +400,7 @@ export class WebSocketManager {
 						// Format and emit message event with type and data
 						this.emit('message', {
 							msgType: 'continue',
-							logEntryData: formatLogEntry(msg, 'continue'),
+							logEntryData: generateLogEntryData(msg, 'continue'),
 						});
 						break;
 
@@ -388,7 +408,7 @@ export class WebSocketManager {
 						// Format and emit message event with type and data
 						this.emit('message', {
 							msgType: 'answer',
-							logEntryData: formatLogEntry(msg, 'answer'),
+							logEntryData: generateLogEntryData(msg, 'answer'),
 						});
 						break;
 
@@ -581,6 +601,7 @@ export class WebSocketManager {
 		this.retryTimeout = setTimeout(() => {
 			console.log('WebSocketManager: Executing retry attempt', this.retryCount);
 			this.retryTimeout = null;
+			this._status.value = { ...this._status.value, isConnecting: false };
 			this.connect();
 		}, delay) as unknown as number;
 	}

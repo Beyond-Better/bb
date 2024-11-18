@@ -91,6 +91,12 @@ export default class WebsocketManager {
 		const msgData = JSON.parse(event.data);
 		//console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type}`);
 		switch (msgData.type) {
+			case 'conversationNew':
+				eventManager.emit(
+					'cli:conversationNew',
+					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationNew'],
+				);
+				break;
 			case 'conversationReady':
 				eventManager.emit(
 					'cli:conversationReady',

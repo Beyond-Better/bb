@@ -1,8 +1,10 @@
 import { JSX } from 'preact';
 import { Status } from '../types/chat.types.ts';
+import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
 import type { ConversationEntry } from 'shared/types.ts';
 
 interface ConversationHeaderProps {
+	cacheStatus: 'active' | 'expiring' | 'inactive';
 	startDir: string;
 	onStartDirChange: (dir: string) => void;
 	onClearConversation: () => void;
@@ -14,6 +16,7 @@ interface ConversationHeaderProps {
 }
 
 export function ConversationHeader({
+	cacheStatus,
 	startDir,
 	onStartDirChange,
 	onClearConversation,
@@ -80,8 +83,9 @@ export function ConversationHeader({
 					</div>
 				</div>
 
-				{/* Connection Status */}
+				{/* Status Indicators */}
 				<div className='flex items-center space-x-4 text-sm shrink-0 border-l border-gray-600 pl-4'>
+					{/* Connection Status */}
 					<span
 						className={`flex items-center ${
 							status.isReady ? 'text-green-400' : status.isConnecting ? 'text-yellow-400' : 'text-red-400'
@@ -94,6 +98,11 @@ export function ConversationHeader({
 						/>
 						{status.isReady ? 'Connected' : status.isConnecting ? 'Connecting' : 'Disconnected'}
 					</span>
+
+					{/* Cache Status */}
+					<div className='flex items-center space-x-2'>
+						<CacheStatusIndicator status={cacheStatus} />
+					</div>
 				</div>
 			</div>
 		</header>

@@ -12,6 +12,7 @@ export class TokenUsagePersistence {
 	private readonly tokenUsageDir: string;
 	private readonly conversationFile: string;
 	private readonly chatsFile: string;
+	private ensuredDir: boolean = false;
 
 	constructor(private conversationDir: string) {
 		this.tokenUsageDir = join(this.conversationDir, 'tokenUsage');
@@ -24,20 +25,27 @@ export class TokenUsagePersistence {
 	 * Creates the tokenUsage directory if it doesn't exist.
 	 */
 	async init(): Promise<TokenUsagePersistence> {
-		try {
-			await ensureDir(this.tokenUsageDir);
-		} catch (error) {
-			throw new PersistenceError(
-				`Failed to create token usage directory: ${error.message}`,
-				{
-					name: 'TokenUsagePersistenceError',
-					filePath: this.tokenUsageDir,
-					operation: 'write',
-				},
-			);
-		}
-
 		return this;
+	}
+
+	/**
+	 * Ensures tokenUsageDir exists, uses ensuredDir to avoid redundant calls
+	 */
+	private async ensureDirectory(): Promise<void> {
+		if (!this.ensuredDir) {
+			try {
+				await ensureDir(this.tokenUsageDir);
+			} catch (error) {
+				throw new PersistenceError(
+					`Failed to create token usage directory: ${error.message}`,
+					{
+						name: 'TokenUsagePersistenceError',
+						filePath: this.tokenUsageDir,
+						operation: 'write',
+					},
+				);
+			}
+		}
 	}
 
 	/**
@@ -256,6 +264,7 @@ export class TokenUsagePersistence {
 		// Validate record - structural errors will throw, value errors will log
 		this.validateRecord(record);
 
+		await this.ensureDirectory();
 		const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
 		try {
 			const line = JSON.stringify(record) + '\n';
@@ -277,6 +286,7 @@ export class TokenUsagePersistence {
 	 */
 	async getUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
 		try {
+			await this.ensureDirectory();
 			const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
 			const content = await Deno.readTextFile(filePath);
 			return content

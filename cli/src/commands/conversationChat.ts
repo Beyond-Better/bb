@@ -37,6 +37,7 @@ export const conversationChat = new Command()
 
 		let terminalHandler: TerminalHandler | null = null;
 		let conversationId: ConversationId;
+		let conversationTitle: string | undefined;
 
 		const handleInterrupt = async () => {
 			if (terminalHandler && terminalHandler.isStatementInProgress()) {
@@ -173,7 +174,29 @@ export const conversationChat = new Command()
 
 				// Set up event listeners
 				let conversationChatDisplayed = false;
+
+				// Handle new conversation metadata
+				eventManager.on('cli:conversationNew', async (data) => {
+					conversationTitle = (data as ConversationStart).conversationTitle;
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationNew`,
+						);
+					}
+					await terminalHandler?.displayConversationStart(
+						data as ConversationStart,
+						conversationId,
+						true,
+					);
+					conversationChatDisplayed = true;
+				}, conversationId);
+
 				eventManager.on('cli:conversationReady', async (data) => {
+					// For existing conversations, get title from ready event
+					if (!conversationTitle) {
+						conversationTitle = (data as ConversationStart).conversationTitle;
+					}
+					// Only display start if we haven't received conversationNew
 					if (!conversationChatDisplayed) {
 						if (!terminalHandler) {
 							logger.error(
@@ -195,8 +218,14 @@ export const conversationChat = new Command()
 							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationContinue`,
 						);
 					}
+					// Use stored title if available
+					const messageData = {
+						...(data as ConversationContinue),
+						conversationTitle: conversationTitle || (data as ConversationContinue).conversationTitle ||
+							'<pending>',
+					} as ConversationContinue;
 					await terminalHandler?.displayConversationContinue(
-						data as ConversationContinue,
+						messageData,
 						conversationId,
 						true,
 					);
@@ -208,8 +237,14 @@ export const conversationChat = new Command()
 							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationAnswer`,
 						);
 					}
+					// Use stored title if available
+					const messageData = {
+						...(data as ConversationResponse),
+						conversationTitle: conversationTitle || (data as ConversationResponse).conversationTitle ||
+							'<pending>',
+					} as ConversationResponse;
 					await terminalHandler?.displayConversationAnswer(
-						data as ConversationResponse,
+						messageData,
 						conversationId,
 						false,
 					);

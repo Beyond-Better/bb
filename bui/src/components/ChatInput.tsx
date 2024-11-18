@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact/compat';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
+import { Action, InputStatusBar } from './InputStatusBar.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -8,6 +9,7 @@ interface ChatInputRef {
 }
 
 interface ChatInputProps {
+	onCancelProcessing?: () => void;
 	value: string;
 	onChange: (value: string) => void;
 	onSend: () => void;
@@ -20,7 +22,6 @@ interface ChatInputProps {
 	};
 	disabled?: boolean;
 	maxLength?: number;
-	disabledReason?: string;
 }
 
 export function ChatInput({
@@ -31,7 +32,7 @@ export function ChatInput({
 	status,
 	disabled = false,
 	maxLength = 4000,
-	disabledReason = 'Waiting for chat to be ready...',
+	onCancelProcessing,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
@@ -44,7 +45,6 @@ export function ChatInput({
 		}
 	};
 
-	// Update the ref object when the textarea or adjust function changes
 	useEffect(() => {
 		if (internalTextareaRef.current) {
 			const ref: ChatInputRef = {
@@ -74,16 +74,69 @@ export function ChatInput({
 		}
 	};
 
-	const getInputStatus = () => {
-		if (disabled) return disabledReason;
-		if (status.isProcessing) return 'Type your message... (Claude is working)';
-		if (status.isLoading) return 'Sending message...';
-		if (!status.isReady) return 'Connecting...';
-		return 'Type your message... (Shift + Enter for new line)';
+	// Determine status message and type
+	const getStatusInfo = () => {
+		if (status.isProcessing) {
+			return {
+				message: 'Claude is working...',
+				type: 'info' as const,
+				visible: true,
+				action: onCancelProcessing
+					? {
+						label: 'Stop',
+						onClick: onCancelProcessing,
+						variant: 'danger',
+					}
+					: undefined,
+			};
+		}
+		if (!status.isReady) {
+			return {
+				message: 'Connecting to server...',
+				type: 'warning' as const,
+				visible: true,
+			};
+		}
+		if (status.isProcessing) {
+			return {
+				message: 'Claude is working...',
+				type: 'info' as const,
+				visible: true,
+			};
+		}
+		if (status.isLoading) {
+			return {
+				message: 'Sending message...',
+				type: 'info' as const,
+				visible: true,
+			};
+		}
+		if (disabled) {
+			return {
+				message: 'Chat is currently unavailable',
+				type: 'error' as const,
+				visible: true,
+			};
+		}
+		return {
+			message: '',
+			type: 'info' as const,
+			visible: false,
+		};
 	};
+
+	const statusInfo = getStatusInfo();
 
 	return (
 		<div className='bg-white px-4 py-2'>
+			<InputStatusBar
+				visible={statusInfo.visible}
+				message={statusInfo.message}
+				type={statusInfo.type}
+				action={statusInfo.action as Action}
+				className='mx-1'
+			/>
+
 			<div className='flex items-end space-x-3'>
 				<div className='flex-grow relative'>
 					<textarea
@@ -92,14 +145,17 @@ export function ChatInput({
 						onInput={handleInput}
 						onKeyPress={handleKeyPress}
 						className={`w-full px-3 py-2 border rounded-md resize-none overflow-y-auto 
-                                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                  transition-all duration-200 max-h-[200px]
-                                  ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
-                                  ${status.isProcessing ? 'border-blue-200 bg-white' : ''}`}
-						placeholder={getInputStatus()}
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                      transition-all duration-200 max-h-[200px]
+                      ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
+                      ${status.isProcessing ? 'border-blue-200 bg-white' : ''}`}
+						placeholder={status.isProcessing
+							? 'Type your message... (Claude is working)'
+							: 'Type your message... (Shift + Enter for new line)'}
 						rows={1}
 						maxLength={maxLength}
 						disabled={disabled}
+						aria-label='Message input'
 					/>
 					<div className='absolute bottom-2 right-2 flex items-center space-x-2'>
 						<span
@@ -112,9 +168,9 @@ export function ChatInput({
 				<button
 					onClick={onSend}
 					className={`px-4 py-2 mb-1 rounded-md transition-colors 
-                              focus:outline-none focus:ring-2 focus:ring-blue-500 
-                              focus:ring-opacity-50 min-w-[60px] ml-2
-                              ${
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 
+                    focus:ring-opacity-50 min-w-[60px] ml-2
+                    ${
 						status.isProcessing
 							? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 							: disabled
@@ -122,15 +178,11 @@ export function ChatInput({
 							: 'bg-blue-500 text-white hover:bg-blue-600'
 					}`}
 					disabled={status.isLoading || disabled || status.isProcessing}
+					aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
 				>
 					{status.isLoading ? <LoadingSpinner size='small' color='text-white' /> : 'Send'}
 				</button>
 			</div>
-			{disabled && (
-				<div className='mt-2 text-sm text-gray-500 text-center'>
-					{disabledReason}
-				</div>
-			)}
 		</div>
 	);
 }

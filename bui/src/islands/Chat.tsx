@@ -16,7 +16,8 @@ import {
 import { MessageEntry } from '../components/MessageEntry.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
-import { ErrorMessage } from '../components/ErrorMessage.tsx';
+import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
+
 import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationHeader } from '../components/ConversationHeader.tsx';
 import { ConversationMetadata } from '../components/ConversationMetadata.tsx';
@@ -110,7 +111,12 @@ export default function Chat(): JSX.Element {
 	if (!apiHostname || !apiPort) {
 		return (
 			<div className='flex items-center justify-center h-screen'>
-				<ErrorMessage message='Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port' />
+				<AnimatedNotification
+					visible={true}
+					type='error'
+				>
+					<span>Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port</span>
+				</AnimatedNotification>
 			</div>
 		);
 	}
@@ -127,6 +133,34 @@ export default function Chat(): JSX.Element {
 	};
 
 	const [chatState, handlers] = useChatState(config);
+
+	// Update cache status every 30 seconds
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+
+		const updateCacheStatus = () => {
+			if (!chatState.value.status.lastApiCallTime) {
+				chatState.value.status.cacheStatus = 'inactive';
+				return;
+			}
+
+			const timeSinceLastCall = Date.now() - chatState.value.status.lastApiCallTime;
+			const timeUntilExpiry = 5 * 60 * 1000 - timeSinceLastCall; // 5 minutes in milliseconds
+
+			if (timeUntilExpiry <= 0) {
+				chatState.value.status.cacheStatus = 'inactive';
+			} else if (timeUntilExpiry <= 60 * 1000) { // Last minute
+				chatState.value.status.cacheStatus = 'expiring';
+			} else {
+				chatState.value.status.cacheStatus = 'active';
+			}
+		};
+
+		const intervalId = setInterval(updateCacheStatus, 30000); // Update every 30 seconds
+		updateCacheStatus(); // Initial update
+
+		return () => clearInterval(intervalId);
+	}, [chatState.value.status.lastApiCallTime]);
 
 	// Utility functions
 	const updateStartDir = (newDir: string) => {
@@ -149,6 +183,9 @@ export default function Chat(): JSX.Element {
 	};
 
 	const sendConverse = async (retryCount = 0) => {
+		// Update lastApiCallTime when sending a message
+		chatState.value.status.lastApiCallTime = Date.now();
+		chatState.value.status.cacheStatus = 'active';
 		if (!input.trim() || !chatState.value.status.isReady || chatState.value.status.isProcessing) return;
 
 		const trimmedInput = input.trim();
@@ -176,6 +213,53 @@ export default function Chat(): JSX.Element {
 		return logEntryData;
 	};
 
+	const deleteConversation = async (id: string) => {
+		try {
+			if (!chatState.value.apiClient) throw new Error('API client not initialized');
+			if (!chatState.value.status.isReady) {
+				throw new Error('WebSocket connection not ready. Please try again.');
+			}
+
+			// Prevent multiple simultaneous deletions
+			if (chatState.value.status.isProcessing) {
+				throw new Error('Please wait for the current operation to complete');
+			}
+
+			await chatState.value.apiClient.deleteConversation(id, startDir);
+
+			// Update conversations list immediately
+			chatState.value = {
+				...chatState.value,
+				conversations: chatState.value.conversations.filter((conv) => conv.id !== id),
+			};
+
+			// Handle currently selected conversation
+			if (id === chatState.value.conversationId) {
+				await handlers.clearConversation();
+				const url = new URL(window.location.href);
+				url.searchParams.delete('conversationId');
+				const hash = window.location.hash;
+				window.history.pushState({}, '', url.pathname + url.search + hash);
+			}
+		} catch (error) {
+			console.error('Failed to delete conversation:', error);
+			setToastMessage(error.message || 'Failed to delete conversation');
+			setShowToast(true);
+
+			// If WebSocket is disconnected, wait for reconnection and retry
+			if (!chatState.value.status.isReady) {
+				const retryInterval = setInterval(() => {
+					if (chatState.value.status.isReady) {
+						clearInterval(retryInterval);
+						deleteConversation(id).catch(console.error);
+					}
+				}, 1000);
+				// Clear interval after 10 seconds
+				setTimeout(() => clearInterval(retryInterval), 10000);
+			}
+		}
+	};
+
 	const selectConversation = async (id: string) => {
 		try {
 			await handlers.selectConversation(id);
@@ -197,6 +281,15 @@ export default function Chat(): JSX.Element {
 	};
 
 	// Browser history navigation support
+	// Handle cancel processing event
+	useEffect(() => {
+		const handleCancelProcessing = () => {
+			handlers.cancelProcessing();
+		};
+		window.addEventListener('bb:cancel-processing', handleCancelProcessing);
+		return () => window.removeEventListener('bb:cancel-processing', handleCancelProcessing);
+	}, [handlers]);
+
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 
@@ -300,14 +393,14 @@ export default function Chat(): JSX.Element {
 	return (
 		<div className='flex flex-col h-screen bg-gray-50 overflow-hidden'>
 			{/* Connection status banner */}
-			{chatState.value.status.isConnecting && !chatState.value.error && (
-				<div className='bg-red-100 text-red-700 px-4 py-2 text-sm flex items-center justify-center shadow-sm'>
-					<div className='max-w-7xl w-full flex items-center justify-center'>
-						<div className='animate-pulse mr-2'>⚠️</div>
-						<span>Connection lost. Attempting to reconnect...</span>
-					</div>
+			<AnimatedNotification
+				visible={chatState.value.status.isConnecting && !chatState.value.error}
+				type='warning'
+			>
+				<div className='flex items-center justify-center'>
+					<span>Connection lost. Attempting to reconnect...</span>
 				</div>
-			)}
+			</AnimatedNotification>
 
 			<ConversationHeader
 				startDir={startDir}
@@ -319,6 +412,7 @@ export default function Chat(): JSX.Element {
 					(total, conv) => total + (conv.tokenUsageConversation?.totalTokensTotal ?? 0),
 					0,
 				)}
+				cacheStatus={chatState.value.status.cacheStatus}
 			/>
 
 			{/* Main content */}
@@ -333,6 +427,7 @@ export default function Chat(): JSX.Element {
 						const id = generateConversationId();
 						await selectConversation(id);
 					}}
+					onDelete={deleteConversation}
 				/>
 
 				{/* Chat area */}
@@ -379,24 +474,6 @@ export default function Chat(): JSX.Element {
 
 					{/* Messages */}
 					<div className='flex-1 overflow-hidden relative flex flex-col'>
-						{/* Processing indicator - sticky banner */}
-						{chatState.value.status.isProcessing && (
-							<div className='sticky top-0 bg-blue-50 text-blue-700 px-4 py-2 flex items-center justify-center border-b border-blue-100 z-10 shadow-sm'>
-								<div className='flex items-center justify-between w-full max-w-3xl'>
-									<div className='flex items-center space-x-2'>
-										<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-700 border-t-transparent' />
-										<span>Claude is working...</span>
-									</div>
-									<button
-										onClick={() => handlers.cancelProcessing()}
-										className='px-2 py-1 text-sm bg-blue-100 hover:bg-blue-200 rounded-md transition-colors'
-									>
-										Stop
-									</button>
-								</div>
-							</div>
-						)}
-
 						<div
 							ref={messagesEndRef}
 							className='flex-1 overflow-y-auto px-6 py-8 space-y-6 min-h-0 min-w-0'
@@ -447,8 +524,8 @@ export default function Chat(): JSX.Element {
 							onSend={sendConverse}
 							status={chatState.value.status}
 							disabled={!chatState.value.status.isReady}
+							onCancelProcessing={handlers.cancelProcessing}
 							maxLength={10000}
-							disabledReason={!chatState.value.status.isReady ? 'Connecting to chat...' : undefined}
 						/>
 					</div>
 				</main>
@@ -465,12 +542,28 @@ export default function Chat(): JSX.Element {
 			)}
 
 			{/* Error display */}
-			{chatState.value.error && (
-				<ErrorMessage
-					message={chatState.value.error}
-					onClose={() => handlers.clearError()}
-				/>
-			)}
+			<AnimatedNotification
+				visible={!!chatState.value.error}
+				type='error'
+			>
+				<div className='flex items-center justify-between'>
+					<span>{chatState.value.error}</span>
+					<button
+						onClick={() => handlers.clearError()}
+						className='ml-4 text-red-700 hover:text-red-800'
+						aria-label='Dismiss error'
+					>
+						<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								strokeWidth={2}
+								d='M6 18L18 6M6 6l12 12'
+							/>
+						</svg>
+					</button>
+				</div>
+			</AnimatedNotification>
 		</div>
 	);
 }

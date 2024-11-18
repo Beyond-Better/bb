@@ -173,7 +173,7 @@ export function saveCollapseState(
 }
 
 // Helper to generate content summary
-export function getContentSummary(content: string, maxLength: number = 100): string {
+export function getContentSummary(content: string, maxLength: number = 150): string {
 	// Strip markdown syntax
 	const strippedContent = content
 		.replace(/[#*_`~]/g, '') // Remove common markdown characters
