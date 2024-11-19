@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.3.3] - 2024-11-19
+
+### Changed
+
 - changed search_project tool to use Deno-native `walk` options for match and skip
 - updated tool description to clarify use of ** vs * in file patterns
 

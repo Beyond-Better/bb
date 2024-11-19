@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
