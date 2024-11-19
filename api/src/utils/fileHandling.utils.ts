@@ -2,6 +2,7 @@ import { join, normalize, relative, resolve } from '@std/path';
 //import { TextLineStream } from '@std/streams';
 import { LRUCache } from 'npm:lru-cache';
 import { exists, walk } from '@std/fs';
+import type { WalkOptions } from '@std/fs';
 import globToRegExp from 'npm:glob-to-regexp';
 //import { globToRegExp } from '@std/path';
 import { countTokens } from 'anthropic-tokenizer';
@@ -50,43 +51,11 @@ export async function generateFileListing(projectRoot: string): Promise<{ listin
 	return null;
 }
 
-async function generateFileListingTier(
-	projectRoot: string,
-	excludePatterns: string[],
-	maxDepth: number,
-	includeMetadata: boolean,
-): Promise<string> {
-	const listing = [];
-	for await (const entry of walk(projectRoot, { maxDepth, includeDirs: false })) {
-		const relativePath = relative(projectRoot, entry.path);
-		if (shouldExclude(relativePath, excludePatterns)) continue;
-
-		if (includeMetadata) {
-			const stat = await Deno.stat(entry.path);
-			const mimeType = contentType(entry.name) || 'application/octet-stream';
-			listing.push(`${relativePath} (${mimeType}, ${stat.size} bytes, modified: ${stat.mtime?.toISOString()})`);
-		} else {
-			listing.push(relativePath);
-		}
-	}
-	return listing.sort().join('\n');
-}
-
-function shouldExclude(path: string, excludePatterns: string[]): boolean {
-	return excludePatterns.some((pattern) => {
-		// Handle negation patterns
-		if (pattern.startsWith('!')) {
-			return !isMatch(path, pattern.slice(1));
-		}
-		return isMatch(path, pattern);
-	});
-}
-
-function isMatch(path: string, pattern: string): boolean {
+function createMatchRegexPatterns(matchPattern: string, projectRoot: string): RegExp[] {
 	// Split the pattern by '|' to handle multiple patterns
-	const patterns = pattern.split('|');
+	const patterns = matchPattern.split('|');
 
-	return patterns.some((singlePattern) => {
+	return patterns.map((singlePattern) => {
 		// Handle directory patterns
 		if (singlePattern.endsWith('/')) {
 			singlePattern += '**';
@@ -105,10 +74,78 @@ function isMatch(path: string, pattern: string): boolean {
 			singlePattern = `**/${singlePattern}`;
 		}
 
-		const regex = globToRegExp(singlePattern, { extended: true, globstar: true });
-		//logger.debug(`FileHandlingUtil: Regex for pattern: ${singlePattern}`, regex);
-		return regex.test(path); // || regex.test(join(path, ''));
+		// Prepend projectRoot to the pattern
+		const fullPattern = join(projectRoot, singlePattern);
+		logger.info(
+			`FileHandlingUtil: createMatchRegexPatterns - creating regex from file pattern: ${fullPattern}`,
+		);
+
+		return globToRegExp(fullPattern, { extended: true, globstar: true });
+		// const regexPattern = globToRegExp(fullPattern, { extended: true, globstar: true });
+		// logger.info(
+		// 	`FileHandlingUtil: createMatchRegexPatterns - using regex: `, regexPattern,
+		// );
+		// return regexPattern;
 	});
+}
+
+function createExcludeRegexPatterns(excludePatterns: string[]): RegExp[] {
+	return excludePatterns.flatMap((pattern) => {
+		// Handle negation patterns
+		if (pattern.startsWith('!')) {
+			return [globToRegExp(pattern.slice(1), { extended: true, globstar: true })];
+		}
+
+		// Split the pattern by '|' to handle multiple patterns
+		const patterns = pattern.split('|');
+
+		return patterns.map((singlePattern) => {
+			// Handle directory patterns
+			if (singlePattern.endsWith('/')) {
+				singlePattern += '**';
+			}
+
+			// Handle simple wildcard patterns
+			if (singlePattern.includes('*') && !singlePattern.includes('**')) {
+				singlePattern = `**/${singlePattern}`;
+			}
+
+			// Handle bare filename (no path, no wildcards)
+			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
+				singlePattern = `**/${singlePattern}`;
+			}
+
+			return globToRegExp(singlePattern, { extended: true, globstar: true });
+		});
+	});
+}
+
+async function generateFileListingTier(
+	projectRoot: string,
+	excludePatterns: string[],
+	maxDepth: number,
+	includeMetadata: boolean,
+): Promise<string> {
+	const listing = [];
+	const excludeOptionsRegex = createExcludeRegexPatterns(excludePatterns);
+	const walkOptions: WalkOptions = {
+		maxDepth,
+		includeDirs: false,
+		skip: excludeOptionsRegex,
+	};
+
+	for await (const entry of walk(projectRoot, walkOptions)) {
+		const relativePath = relative(projectRoot, entry.path);
+
+		if (includeMetadata) {
+			const stat = await Deno.stat(entry.path);
+			const mimeType = contentType(entry.name) || 'application/octet-stream';
+			listing.push(`${relativePath} (${mimeType}, ${stat.size} bytes, modified: ${stat.mtime?.toISOString()})`);
+		} else {
+			listing.push(relativePath);
+		}
+	}
+	return listing.sort().join('\n');
 }
 
 async function getExcludeOptions(projectRoot: string): Promise<string[]> {
@@ -236,23 +273,40 @@ export async function searchFilesContent(
 		return { files: [], errorMessage: `Invalid regular expression: ${error.message}` };
 	}
 
-	const excludeOptions = await getExcludeOptions(projectRoot);
-
 	try {
 		const filesToProcess = [];
-		for await (const entry of walk(projectRoot, { includeDirs: false })) {
+
+		const excludeOptions = await getExcludeOptions(projectRoot);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions);
+		const walkOptions: WalkOptions = {
+			includeDirs: false,
+			skip: excludeOptionsRegex,
+		};
+
+		// Add match option if file pattern is provided
+		if (searchFileOptions?.filePattern) {
+			logger.info(
+				`FileHandlingUtil: searchFilesContent - search in ${projectRoot} with file pattern: ${searchFileOptions?.filePattern}`,
+			);
+			walkOptions.match = createMatchRegexPatterns(searchFileOptions.filePattern, projectRoot);
+		}
+		// logger.info(
+		// 	`FileHandlingUtil: searchFilesContent - Searching ${projectRoot} using walkOptions: ${
+		// 		JSON.stringify(walkOptions)
+		// 	}`,
+		// );
+
+		for await (const entry of walk(projectRoot, walkOptions)) {
 			const relativePath = relative(projectRoot, entry.path);
-			if (shouldExclude(relativePath, excludeOptions)) {
-				logger.debug(`FileHandlingUtil: Skipping excluded file: ${relativePath}`);
-				continue;
-			}
-			if (searchFileOptions?.filePattern && !isMatch(relativePath, searchFileOptions.filePattern)) {
-				logger.debug(`FileHandlingUtil: Skipping file not matching pattern: ${relativePath}`);
-				continue;
-			}
 
 			filesToProcess.push({ path: entry.path, relativePath });
 		}
+		logger.info(`FileHandlingUtil: File content search starting. Found ${filesToProcess.length} to search.`);
+		// logger.info(
+		// 	`FileHandlingUtil: searchFilesContent - Searching ${projectRoot} found files to process: ${
+		// 		JSON.stringify(filesToProcess)
+		// 	}`,
+		// );
 
 		const results = await Promise.all(
 			chunk(filesToProcess, MAX_CONCURRENT).map(async (batch) =>
@@ -574,30 +628,45 @@ export async function searchFilesMetadata(
 		sizeMax?: number;
 	},
 ): Promise<{ files: string[]; errorMessage: string | null }> {
+	logger.info(
+		`FileHandlingUtil: Starting file metadata search in ${projectRoot} with file pattern: ${searchFileOptions?.filePattern}`,
+	);
 	try {
-		const excludeOptions = await getExcludeOptions(projectRoot);
 		const matchingFiles: string[] = [];
 
-		for await (const entry of walk(projectRoot, { includeDirs: false })) {
+		const excludeOptions = await getExcludeOptions(projectRoot);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions);
+		const walkOptions: WalkOptions = {
+			includeDirs: false,
+			skip: excludeOptionsRegex,
+		};
+
+		// Add match option if file pattern is provided
+		if (searchFileOptions?.filePattern) {
+			walkOptions.match = createMatchRegexPatterns(searchFileOptions?.filePattern, projectRoot);
+		}
+		// logger.info(
+		// 	`FileHandlingUtil: searchFilesMetadata - Searching ${projectRoot} using walkOptions: ${
+		// 		JSON.stringify(walkOptions)
+		// 	}`,
+		// );
+
+		for await (const entry of walk(projectRoot, walkOptions)) {
 			const relativePath = relative(projectRoot, entry.path);
-			if (shouldExclude(relativePath, excludeOptions)) continue;
 
 			const stat = await Deno.stat(entry.path);
 
-			// Check file pattern
-			if (searchFileOptions.filePattern && !isMatch(relativePath, searchFileOptions.filePattern)) continue;
-
 			// Check date range
 			if (!stat.mtime) {
-				console.log(`File ${relativePath} has no modification time, excluding from results`);
+				logger.info(`FileHandlingUtil: File ${relativePath} has no modification time, excluding from results`);
 				continue;
 			}
 			if (searchFileOptions.dateAfter) {
 				const afterDate = new Date(searchFileOptions.dateAfter);
 				//if (stat.mtime < afterDate || stat.mtime > now) {
 				if (stat.mtime < afterDate) {
-					console.log(
-						`File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (after ${searchFileOptions.dateAfter})`,
+					logger.info(
+						`FileHandlingUtil: File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (after ${searchFileOptions.dateAfter})`,
 					);
 					continue;
 				}
@@ -606,8 +675,8 @@ export async function searchFilesMetadata(
 				const beforeDate = new Date(searchFileOptions.dateBefore);
 				//if (stat.mtime >= beforeDate || stat.mtime > now) {
 				if (stat.mtime >= beforeDate) {
-					console.log(
-						`File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (before ${searchFileOptions.dateBefore})`,
+					logger.info(
+						`FileHandlingUtil: File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (before ${searchFileOptions.dateBefore})`,
 					);
 					continue;
 				}
@@ -617,9 +686,11 @@ export async function searchFilesMetadata(
 			if (searchFileOptions.sizeMin !== undefined && stat.size < searchFileOptions.sizeMin) continue;
 			if (searchFileOptions.sizeMax !== undefined && stat.size > searchFileOptions.sizeMax) continue;
 
-			console.log(`File ${relativePath} matches all criteria`);
+			logger.info(`FileHandlingUtil: File ${relativePath} matches all criteria`);
 			matchingFiles.push(relativePath);
 		}
+
+		logger.info(`FileHandlingUtil: File metadata search completed. Found ${matchingFiles.length} matching files.`);
 
 		return { files: matchingFiles, errorMessage: null };
 	} catch (error) {

@@ -60,6 +60,68 @@ async function createTestFilesSimpleDir(testProjectRoot: string) {
 	await Deno.writeTextFile(join(testProjectRoot, 'test', 'util.test.ts'), 'test("greet", () => {});');
 }
 
+async function createTestFilesSearchProjectTest(testProjectRoot: string) {
+	// Create directories at different depths
+	await Deno.mkdir(join(testProjectRoot, 'src', 'tools'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'tests', 'deep', 'nested'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'lib'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests'), { recursive: true });
+
+	// Add test files at various depths with searchProject in the name
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests', 'tool.test.ts'),
+		'export const test = true;',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'src', 'tools', 'searchProject.test.ts'),
+		'export const test = true;',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'tests', 'deep', 'nested', 'mySearchProject.test.ts'),
+		'describe("test", () => {});',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'tests', 'deep', 'nested', 'searchProject.test.ts'),
+		'describe("test", () => {});',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'lib', 'searchProjectUtil.test.ts'),
+		'test("util", () => {});',
+	);
+	// Add some non-matching files
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'src', 'search.test.ts'),
+		'// Should not match',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'tests', 'project.test.ts'),
+		'// Should not match',
+	);
+}
+
+async function createTestFilesKubernetes(testProjectRoot: string) {
+	// Create deep Kubernetes directory structure
+	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'base'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'dev'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'prod'), { recursive: true });
+
+	// Add files at various levels
+	await Deno.writeTextFile(join(testProjectRoot, 'deploy', 'Kubernetes', 'kustomization.yaml'), 'bases:\n  - base');
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'deploy', 'Kubernetes', 'base', 'deployment.yaml'),
+		'kind: Deployment',
+	);
+	await Deno.writeTextFile(join(testProjectRoot, 'deploy', 'Kubernetes', 'base', 'service.yaml'), 'kind: Service');
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'dev', 'kustomization.yaml'),
+		'bases:\n  - ../../base',
+	);
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'prod', 'kustomization.yaml'),
+		'bases:\n  - ../../base',
+	);
+}
+
 // Helper function to set file modification time
 async function setFileModificationTime(filePath: string, date: Date) {
 	await Deno.utime(filePath, date, date);
@@ -217,8 +279,9 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			//console.log('Date-based search response:', result.bbResponse);
-			//console.log('Date-based search files:', result.toolResults);
+			// console.log('Date-based search - bbResponse:', result.bbResponse);
+			// console.log('Date-based search - toolResponse:', result.toolResponse);
+			// console.log('Date-based search - toolResults:', result.toolResults);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -847,7 +910,9 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.info('Tool result:', result);
+			console.log('Search with specific content and file pattern - bbResponse:', result.bbResponse);
+			console.log('Search with specific content and file pattern - toolResponse:', result.toolResponse);
+			console.log('Search with specific content and file pattern - toolResults:', result.toolResults);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -1576,6 +1641,207 @@ Deno.test({
 				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
 			});
 			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'SearchProjectTool - deep directory traversal with Kubernetes files',
+	fn: async () => {
+		await withTestProject(async (testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectRoot);
+			await createTestFilesKubernetes(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('search_project');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolName: 'search_project',
+				toolUseId: 'test-id',
+				toolInput: {
+					filePattern: 'deploy/Kubernetes/**/*',
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			console.log('deep directory traversal with Kubernetes files - bbResponse:', result.bbResponse);
+			console.log('deep directory traversal with Kubernetes files - toolResponse:', result.toolResponse);
+			console.log('deep directory traversal with Kubernetes files - toolResults:', result.toolResults);
+
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+
+			if (isString(result.bbResponse)) {
+				assertStringIncludes(
+					result.bbResponse,
+					`BB found 5 files matching the search criteria: file pattern "deploy/Kubernetes/**/*"`,
+				);
+			} else {
+				assert(false, 'bbResponse is not a string as expected');
+			}
+
+			const toolResults = result.toolResults as string;
+			assertStringIncludes(toolResults, '<files>');
+			assertStringIncludes(toolResults, '</files>');
+
+			const expectedFiles = [
+				'deploy/Kubernetes/kustomization.yaml',
+				'deploy/Kubernetes/base/deployment.yaml',
+				'deploy/Kubernetes/base/service.yaml',
+				'deploy/Kubernetes/overlays/dev/kustomization.yaml',
+				'deploy/Kubernetes/overlays/prod/kustomization.yaml',
+			];
+			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
+			const foundFiles = fileContent.split('\n');
+
+			expectedFiles.forEach((file) => {
+				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			});
+			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+
+			// Test that all files are found regardless of depth
+			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
+			assert(Math.min(...depths) === 2, 'Should find files at minimum depth (deploy/Kubernetes/)');
+			assert(Math.max(...depths) === 4, 'Should find files at maximum depth (deploy/Kubernetes/overlays/env/)');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'SearchProjectTool - deep directory traversal with double-star pattern',
+	fn: async () => {
+		await withTestProject(async (testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectRoot);
+			await createTestFilesSearchProjectTest(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('search_project');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolName: 'search_project',
+				toolUseId: 'test-id',
+				toolInput: {
+					filePattern: '**/searchProject*test.ts',
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			console.log('deep directory traversal with double-star pattern - bbResponse:', result.bbResponse);
+			console.log('deep directory traversal with double-star pattern - toolResponse:', result.toolResponse);
+			console.log('deep directory traversal with double-star pattern - toolResults:', result.toolResults);
+
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+
+			if (isString(result.bbResponse)) {
+				assertStringIncludes(
+					result.bbResponse,
+					`BB found 3 files matching the search criteria: file pattern "**/searchProject*test.ts"`,
+				);
+			} else {
+				assert(false, 'bbResponse is not a string as expected');
+			}
+
+			const toolResults = result.toolResults as string;
+			assertStringIncludes(toolResults, '<files>');
+			assertStringIncludes(toolResults, '</files>');
+
+			const expectedFiles = [
+				'src/tools/searchProject.test.ts',
+				'tests/deep/nested/searchProject.test.ts',
+				'lib/searchProjectUtil.test.ts',
+			];
+			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
+			const foundFiles = fileContent.split('\n');
+
+			expectedFiles.forEach((file) => {
+				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			});
+			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+
+			// Test that files at different depths are found
+			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
+			assert(Math.min(...depths) === 1, 'Should find files at minimum depth (lib/)');
+			assert(Math.max(...depths) === 3, 'Should find files at maximum depth (tests/deep/nested/)');
+
+			// Verify non-matching files are not included
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include files without searchProject');
+			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include files without searchProject');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+Deno.test({
+	name: 'SearchProjectTool - deep directory traversal with dual double-star pattern',
+	fn: async () => {
+		await withTestProject(async (testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectRoot);
+			await createTestFilesSearchProjectTest(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('search_project');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolName: 'search_project',
+				toolUseId: 'test-id',
+				toolInput: {
+					filePattern: '**/searchProject*/**/*.test.ts',
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			// console.log('deep directory traversal with dual double-star pattern - bbResponse:', result.bbResponse);
+			// console.log('deep directory traversal with dual double-star pattern - toolResponse:', result.toolResponse);
+			// console.log('deep directory traversal with dual double-star pattern - toolResults:', result.toolResults);
+
+			assert(isString(result.bbResponse), 'bbResponse should be a string');
+
+			if (isString(result.bbResponse)) {
+				assertStringIncludes(
+					result.bbResponse,
+					`BB found 1 files matching the search criteria: file pattern "**/searchProject*/**/*.test.ts"`,
+				);
+			} else {
+				assert(false, 'bbResponse is not a string as expected');
+			}
+
+			const toolResults = result.toolResults as string;
+			assertStringIncludes(toolResults, '<files>');
+			assertStringIncludes(toolResults, '</files>');
+
+			const expectedFiles = [
+				'src/tools/searchProject.tool/tests/tool.test.ts',
+			];
+			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
+			const foundFiles = fileContent.split('\n');
+
+			expectedFiles.forEach((file) => {
+				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			});
+			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+
+			// Test that files at different depths are found
+			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
+			assert(
+				Math.max(...depths) === 4,
+				'Should find files at maximum depth (src/tools/searchProject.tool/tests/)',
+			);
+
+			// Verify non-matching files are not included
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include files without searchProject');
+			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include files without searchProject');
 		});
 	},
 	sanitizeResources: false,

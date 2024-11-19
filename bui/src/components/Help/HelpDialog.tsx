@@ -79,11 +79,19 @@ const HELP_SECTIONS: HelpSection[] = [
 				</p>
 				<div className='text-gray-600'>
 					Messages are color-coded by role:
-					<ul className='list-disc list-inside mt-2 ml-4'>
-						<li>Blue - User messages</li>
-						<li>Green - Assistant (Claude) responses</li>
-						<li>Yellow - Tool operations and results</li>
-						<li>Purple - Auxillary operations</li>
+					<ul className='space-y-1 mt-2 ml-4'>
+						<li className='bg-blue-50 p-2 rounded'>
+							<span className='text-blue-700'>Blue</span> - User messages
+						</li>
+						<li className='bg-green-50 p-2 rounded'>
+							<span className='text-green-700'>Green</span> - Assistant (Claude) responses
+						</li>
+						<li className='bg-yellow-50 p-2 rounded'>
+							<span className='text-yellow-700'>Yellow</span> - Tool operations and results
+						</li>
+						<li className='bg-purple-50 p-2 rounded'>
+							<span className='text-purple-700'>Purple</span> - Auxiliary operations
+						</li>
 					</ul>
 				</div>
 			</div>
