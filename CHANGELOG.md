@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.3] - 2024-11-19
+
+### Changed
+
+- changed search_project tool to use Deno-native `walk` options for match and skip
+- updated tool description to clarify use of ** vs * in file patterns
+
+
 ## [0.3.2] - 2024-11-18
 
 ### Changed

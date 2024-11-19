@@ -39,6 +39,7 @@ export interface ToolMetadata {
 	mutates?: boolean; //defaults to true
 	error?: string;
 	config?: unknown;
+	examples?: Array<{ description: string; input: unknown }>;
 }
 
 export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creative';
@@ -154,7 +155,7 @@ class LLMToolManager {
 
 	async getTool(name: string): Promise<LLMTool | undefined> {
 		if (this.loadedTools.has(name)) {
-			logger.info(`LLMToolManager: Returning cached ${name} tool`);
+			//logger.info(`LLMToolManager: Returning cached ${name} tool`);
 			return this.loadedTools.get(name);
 		}
 

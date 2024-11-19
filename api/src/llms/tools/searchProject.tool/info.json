@@ -1,7 +1,27 @@
 {
 	"name": "search_project",
-	"description": "Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Use this tool to discover files when you don't know their exact paths. For known file paths, use request_files instead.",
+	"description": "Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. File Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project when you don't know exact file paths. For known paths, use request_files instead.",
 	"version": "1.0.0",
 	"author": "BB Team",
-	"license": "MIT"
+	"license": "MIT",
+	"examples": [
+		{
+			"description": "Find all TypeScript files in the docs directory (not subdirectories)",
+			"input": {
+				"filePattern": "docs/*.ts"
+			}
+		},
+		{
+			"description": "Find all files in docs directory AND its subdirectories",
+			"input": {
+				"filePattern": "docs/*|docs/**/*"
+			}
+		},
+		{
+			"description": "Find TypeScript files containing 'util' in their name at any depth",
+			"input": {
+				"filePattern": "**/*util*.ts"
+			}
+		}
+	]
 }
