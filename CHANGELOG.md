@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- fixed bug with missing data dir
+- fixed bug with symlinks in project listing
+
 
 
 ## [0.3.3] - 2024-11-19

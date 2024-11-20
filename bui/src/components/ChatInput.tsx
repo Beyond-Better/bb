@@ -24,6 +24,9 @@ interface ChatInputProps {
 	maxLength?: number;
 }
 
+const inputMaxCharLength = 5000;
+const inputMaxScrollHeight = 350;
+
 export function ChatInput({
 	value,
 	onChange,
@@ -31,7 +34,7 @@ export function ChatInput({
 	textareaRef: externalRef,
 	status,
 	disabled = false,
-	maxLength = 4000,
+	maxLength = inputMaxCharLength,
 	onCancelProcessing,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -40,7 +43,7 @@ export function ChatInput({
 	const adjustTextareaHeight = () => {
 		if (internalTextareaRef.current) {
 			internalTextareaRef.current.style.height = 'auto';
-			const newHeight = Math.min(internalTextareaRef.current.scrollHeight, 200);
+			const newHeight = Math.min(internalTextareaRef.current.scrollHeight, inputMaxScrollHeight);
 			internalTextareaRef.current.style.height = `${newHeight}px`;
 		}
 	};

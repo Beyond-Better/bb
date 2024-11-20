@@ -37,8 +37,9 @@
 		"@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
 		"$std/": "https://deno.land/std@0.216.0/",
 		"preact-render-to-string": "https://esm.sh/preact-render-to-string@6.5.10",
-		"tailwindcss": "npm:tailwindcss@3.3.5",
-		"tailwindcss/plugin": "npm:tailwindcss@3.3.5/plugin",
+		"tailwindcss": "npm:tailwindcss@3.4.1",
+		"tailwindcss/": "npm:/tailwindcss@3.4.1/",
+		"tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
 		"@tailwindcss/typography": "npm:@tailwindcss/typography@0.5.10",
 
 		"@std/assert": "jsr:@std/assert@^1.0.8",

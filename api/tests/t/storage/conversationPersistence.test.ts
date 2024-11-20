@@ -263,7 +263,7 @@ Deno.test({
 	sanitizeOps: false,
 });
 
-/* 
+/*
 // [TODO] Test is unreliable (or intermittent) - fails when running in github actions
 // re-enable when eiher test or persistence class is fixed
 Deno.test({
