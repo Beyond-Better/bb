@@ -101,6 +101,7 @@ class ConversationPersistence {
 	}): Promise<{ conversations: ConversationMetadata[]; totalCount: number }> {
 		const projectRoot = await getProjectRoot(options.startDir);
 		const bbDataDir = join(projectRoot, '.bb', 'data');
+		await this.ensureDirectory(bbDataDir);
 		const conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		if (!await exists(conversationsMetadataPath)) {

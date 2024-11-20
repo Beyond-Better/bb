@@ -151,7 +151,7 @@ class WebSocketHandler {
 					//logger.debug(`handleStatement result: ${JSON.stringify(result)}`);
 				} catch (error) {
 					logger.error(
-						`WebSocketHandler: Error handling statement for conversationId: ${conversationId}:`,
+						`WebSocketHandler: Error handling statement for conversationId ${conversationId}:`,
 						error,
 					);
 					this.eventManager.emit('projectEditor:conversationError', {
@@ -161,7 +161,7 @@ class WebSocketHandler {
 					});
 				}
 			} else if (task === 'cancel') {
-				logger.error(`WebSocketHandler: Cancelling statement for conversationId: ${conversationId}`);
+				logger.error(`WebSocketHandler: Cancelling statement for conversationId ${conversationId}`);
 				try {
 					projectEditor?.orchestratorController.cancelCurrentOperation(conversationId);
 					this.eventManager.emit('projectEditor:conversationCancelled', {
@@ -181,7 +181,7 @@ class WebSocketHandler {
 				}
 			} else {
 				logger.error(
-					`WebSocketHandler: Error handling statement for conversationId: ${conversationId}, unknown task: ${task}`,
+					`WebSocketHandler: Error handling statement for conversationId ${conversationId}, unknown task: ${task}`,
 				);
 				this.eventManager.emit('projectEditor:conversationError', {
 					conversationId,

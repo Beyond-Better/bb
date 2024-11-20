@@ -131,6 +131,8 @@ async function generateFileListingTier(
 	const walkOptions: WalkOptions = {
 		maxDepth,
 		includeDirs: false,
+		includeSymlinks: false,
+		//followSymlinks: false,
 		skip: excludeOptionsRegex,
 	};
 
