@@ -1,4 +1,5 @@
 import { logger } from 'shared/logger.ts';
+import { relative, resolve } from '@std/path';
 import { stripIndents } from 'common-tags';
 import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
 import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
@@ -17,14 +18,64 @@ export async function stageAndCommitAfterChanging(
 		return;
 	}
 
-	const commitMessage = await generateCommitMessage(interaction, changedFiles, changeContents, projectEditor);
-	const changedFilesArray = Array.from(changedFiles);
+	logger.info(`Starting commit process for ${changedFiles.size} files:`);
+	for (const file of changedFiles) {
+		logger.info(`  - ${file}`);
+	}
+	logger.info(`Project root is: ${projectRoot}`);
 
-	try {
-		await GitUtils.stageAndCommit(projectRoot, changedFilesArray, commitMessage);
-		logger.info(`Created commit for changed files: ${changedFilesArray.join(', ')}`);
-	} catch (error) {
-		logger.error(`Failed to create commit: ${error.message}`);
+	// Group files by their git repository root
+	const repoFiles = new Map<string, Set<string>>();
+	for (const file of changedFiles) {
+		logger.info(`Finding git root for file: ${file}`);
+		const fullPath = resolve(projectRoot, file);
+		logger.info(`  Full path: ${fullPath}`);
+		const gitRoot = await GitUtils.findGitRoot(fullPath, projectRoot);
+		logger.info(`  Git root: ${gitRoot || 'not found'}`);
+
+		if (!gitRoot) {
+			logger.warn(`No git repository found for file: ${file}`);
+			continue;
+		}
+		if (!repoFiles.has(gitRoot)) {
+			logger.info(`Creating new file set for repository: ${gitRoot}`);
+			repoFiles.set(gitRoot, new Set<string>());
+		}
+		repoFiles.get(gitRoot)!.add(file);
+	}
+
+	// Process each repository separately
+	logger.info(`Processing ${repoFiles.size} repositories:`);
+	for (const [gitRoot, files] of repoFiles) {
+		logger.info(`\nProcessing repository: ${gitRoot}`);
+		logger.info(`Files in this repository:`);
+		files.forEach((file) => logger.info(`  - ${file}`));
+
+		// Convert file paths to be relative to git root instead of project root
+		const filesRelativeToGitRoot = new Set<string>();
+		for (const file of files) {
+			const fullPath = resolve(projectRoot, file);
+			const relativeToGitRoot = relative(gitRoot, fullPath);
+			logger.info(
+				`Converting path for git:\n  Project relative: ${file}\n  Full path: ${fullPath}\n  Git relative: ${relativeToGitRoot}`,
+			);
+			filesRelativeToGitRoot.add(relativeToGitRoot);
+		}
+
+		logger.info('Generating commit message...');
+		const commitMessage = await generateCommitMessage(interaction, files, changeContents, projectEditor);
+		logger.info(`Commit message generated: ${commitMessage.split('\n')[0]}...`);
+		const filesArray = Array.from(filesRelativeToGitRoot);
+
+		try {
+			logger.info(`Attempting to stage and commit ${filesArray.length} files...`);
+			logger.info('Files to commit (relative to git root):', filesArray);
+			await GitUtils.stageAndCommit(gitRoot, filesArray, commitMessage);
+			logger.info(`✓ Successfully created commit in ${gitRoot} for files: ${filesArray.join(', ')}`);
+		} catch (error) {
+			logger.error(`✗ Failed to create commit in ${gitRoot}: ${error.message}`);
+			logger.error('Stack trace:', error.stack);
+		}
 	}
 }
 

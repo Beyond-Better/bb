@@ -1,5 +1,6 @@
 import { JSX } from 'preact';
 import { Status } from '../types/chat.types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
 import type { ConversationEntry } from 'shared/types.ts';
 
@@ -96,12 +97,30 @@ export function ConversationHeader({
 								status.isReady ? 'bg-green-400' : status.isConnecting ? 'bg-yellow-400' : 'bg-red-400'
 							}`}
 						/>
-						{status.isReady ? 'Connected' : status.isConnecting ? 'Connecting' : 'Disconnected'}
+						{status.isReady
+							? (status.apiStatus === ApiStatus.IDLE ? 'Connected' : 'Working')
+							: status.isConnecting
+							? 'Connecting'
+							: 'Disconnected'}
 					</span>
 
 					{/* Cache Status */}
 					<div className='flex items-center space-x-2'>
 						<CacheStatusIndicator status={cacheStatus} />
+						{/* API Status */}
+						<div className='flex items-center space-x-2'>
+							<span
+								className={`flex items-center ${
+									status.apiStatus === ApiStatus.ERROR ? 'text-red-400' : 'text-gray-300'
+								}`}
+							>
+								{status.apiStatus === ApiStatus.LLM_PROCESSING && 'Claude is thinking...'}
+								{status.apiStatus === ApiStatus.TOOL_HANDLING &&
+									`Using tool: ${status.toolName || 'unknown'}`}
+								{status.apiStatus === ApiStatus.API_BUSY && 'API is processing...'}
+								{status.apiStatus === ApiStatus.ERROR && 'Error occurred'}
+							</span>
+						</div>
 					</div>
 				</div>
 			</div>

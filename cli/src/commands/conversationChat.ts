@@ -4,8 +4,16 @@ import { TerminalHandler } from '../utils/terminalHandler.utils.ts';
 import { logger } from 'shared/logger.ts';
 import ApiClient from 'cli/apiClient.ts';
 import WebsocketManager from 'cli/websocketManager.ts';
-import type { ConversationContinue, ConversationId, ConversationResponse, ConversationStart } from 'shared/types.ts';
-import { isApiRunning } from '../utils/pid.utils.ts';
+import type {
+	ConversationContinue,
+	ConversationId,
+	ConversationResponse,
+	ConversationStart,
+	ProgressStatusMessage,
+	PromptCacheTimerMessage,
+} from 'shared/types.ts';
+//import { ApiStatus } from 'shared/types.ts';
+import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
@@ -68,39 +76,66 @@ export const conversationChat = new Command()
 		Deno.addSignalListener('SIGTERM', exit);
 
 		try {
-			// Check if API is running, start it if not
-			const apiRunning = await isApiRunning(projectRoot);
-			if (!apiRunning) {
-				console.log('API is not running. Starting it now...');
+			// Check API status with enhanced checking
+			const processStatus = await checkApiStatus(projectRoot);
+			if (!processStatus.apiResponds) {
+				if (processStatus.pidExists) {
+					console.log('API process exists but is not responding. Attempting restart...');
+					await stopApiServer(projectRoot);
+				} else {
+					console.log('API is not running. Starting it now...');
+				}
+
 				const { pid: _pid, apiLogFilePath: _apiLogFilePath, listen: _listen } = await startApiServer(
 					projectRoot,
 					apiHostname,
 					`${apiPort}`,
 				);
-				//console.debug(`API running - PID: ${pid} - Log: ${apiLogFilePath} - Listening on: ${listen}.`);
-
-				// Check if the API is running
+				// Check if the API is running with enhanced status checking
 				let apiRunning = false;
 				const maxAttempts = 5;
 				const delayMs = 250;
 
 				await new Promise((resolve) => setTimeout(resolve, delayMs * 2));
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+					const processStatus = await checkApiStatus(startDir);
 					const status = await getApiStatus(startDir);
-					if (status.running) {
+
+					if (processStatus.apiResponds && status.running) {
 						apiRunning = true;
 						break;
 					}
+
+					// Provide detailed status information
+					if (processStatus.pidExists && !processStatus.apiResponds) {
+						console.error(colors.yellow(
+							`API process exists but is not responding [${attempt}/${maxAttempts}]. PID: ${processStatus.pid}`,
+						));
+					} else if (!processStatus.pidExists) {
+						console.error(colors.yellow(
+							`API process not found [${attempt}/${maxAttempts}]. Starting up...`,
+						));
+					}
+
+					if (status.error) {
+						console.error(colors.yellow(`API status check [${attempt}/${maxAttempts}]: ${status.error}`));
+					}
+
 					await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
-					console.error(colors.yellow(`API status[${attempt}/${maxAttempts}]: ${status.error}`));
 				}
 				if (!apiRunning) {
-					//console.error(colors.bold.red('Failed to start the API server after multiple attempts.'));
-					//exit(1);
-					throw new Error('Failed to start the API server.');
+					const finalStatus = await checkApiStatus(startDir);
+					if (finalStatus.pidExists && !finalStatus.apiResponds) {
+						throw new Error(
+							`API process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
+						);
+					} else {
+						throw new Error('Failed to start the API server: ' + (finalStatus.error || 'unknown error'));
+					}
 				} else {
 					apiStartedByUs = true;
-					console.log(colors.bold.green('API started successfully.'));
+					const finalStatus = await checkApiStatus(startDir);
+					console.log(colors.bold.green(`API started successfully (PID: ${finalStatus.pid}).`));
 				}
 			}
 
@@ -261,6 +296,30 @@ export const conversationChat = new Command()
 				}, conversationId);
 
 				eventManager.on('cli:websocketReconnected', handleWebsocketReconnection);
+
+				// Handle progress status updates
+				eventManager.on('cli:progressStatus', async (data) => {
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:progressStatus`,
+						);
+						return;
+					}
+					const message = data as ProgressStatusMessage;
+					terminalHandler.handleProgressStatus(message);
+				}, conversationId);
+
+				// Handle prompt cache timer updates
+				eventManager.on('cli:promptCacheTimer', async (data) => {
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:promptCacheTimer`,
+						);
+						return;
+					}
+					const message = data as PromptCacheTimerMessage;
+					terminalHandler.handlePromptCacheTimer(message);
+				}, conversationId);
 
 				await websocketManager.waitForReady(conversationId!);
 

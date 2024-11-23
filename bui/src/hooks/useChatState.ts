@@ -1,7 +1,10 @@
 import { useEffect } from 'preact/hooks';
 import { Signal, signal } from '@preact/signals';
+import { StatusQueue } from '../utils/statusQueue.utils.ts';
+import { ApiStatus } from 'shared/types.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
+import { isProcessing } from '../types/chat.types.ts';
 import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
@@ -46,10 +49,11 @@ const initialState: ChatState = {
 	status: {
 		isConnecting: false,
 		isLoading: false,
-		isProcessing: false,
 		isReady: false,
 		cacheStatus: 'inactive',
 		lastApiCallTime: null,
+		apiStatus: ApiStatus.IDLE,
+		toolName: undefined,
 	},
 	error: null,
 };
@@ -69,7 +73,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				// Set initial loading state
 				chatState.value = {
 					...chatState.value,
-					status: { ...chatState.value.status, isLoading: true, isProcessing: false },
+					status: { ...chatState.value.status, isLoading: true },
 				};
 
 				const { apiClient, wsManager } = await initializeChat(config);
@@ -151,7 +155,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				chatState.value = {
 					...chatState.value,
 					error: errorMessage,
-					status: { ...chatState.value.status, isLoading: false, isProcessing: false },
+					status: { ...chatState.value.status, isLoading: false },
 				};
 			}
 		}
@@ -172,6 +176,18 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		if (!chatState.value.wsManager) return;
 
 		const wsManager = chatState.value.wsManager;
+		// Create StatusQueue instance
+		const statusQueue = new StatusQueue((status) => {
+			if (!mounted) return;
+			chatState.value = {
+				...chatState.value,
+				status: {
+					...chatState.value.status,
+					apiStatus: status.status,
+					toolName: status.metadata?.toolName,
+				},
+			};
+		});
 		let mounted = true;
 
 		const handleStatusChange = (connected: boolean) => {
@@ -194,7 +210,6 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 					...chatState.value.status,
 					isReady: ready,
 					isLoading: chatState.value.status.isLoading && !ready,
-					isProcessing: chatState.value.status.isProcessing && ready,
 				},
 			};
 		};
@@ -263,7 +278,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 					...chatState.value,
 					status: {
 						...chatState.value.status,
-						isProcessing: false,
+
 						isLoading: false,
 					},
 				};
@@ -276,8 +291,34 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				...chatState.value,
 				status: {
 					...chatState.value.status,
-					isProcessing: false,
+					apiStatus: ApiStatus.IDLE,
 					isLoading: false,
+				},
+			};
+		};
+
+		const handleProgressStatus = (data: any) => {
+			console.log('useChatState: Received progressStatus:', data);
+			if (!mounted) return;
+			console.log('useChatState: Adding message to status queue');
+			statusQueue.addMessage({
+				status: data.status,
+				timestamp: Date.now(),
+				statementCount: data.statementCount,
+				sequence: data.sequence,
+				metadata: data.metadata,
+			});
+		};
+
+		const handlePromptCacheTimer = (data: any) => {
+			console.log('useChatState: Received promptCacheTimer:', data);
+			if (!mounted) return;
+			chatState.value = {
+				...chatState.value,
+				status: {
+					...chatState.value.status,
+					lastApiCallTime: data.startTimestamp,
+					cacheStatus: 'active',
 				},
 			};
 		};
@@ -299,7 +340,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				status: {
 					...chatState.value.status,
 					isLoading: false,
-					isProcessing: false,
+					apiStatus: ApiStatus.IDLE,
 				},
 			};
 		};
@@ -319,8 +360,12 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		wsManager.on('readyChange', handleReadyChange);
 		wsManager.on('message', handleMessage);
 		wsManager.on('cancelled', handleCancelled);
+		wsManager.on('progressStatus', handleProgressStatus);
+		wsManager.on('promptCacheTimer', handlePromptCacheTimer);
 		wsManager.on('error', handleError);
 		wsManager.on('clearError', handleClearError);
+		wsManager.on('progressStatus', handleProgressStatus);
+		wsManager.on('promptCacheTimer', handlePromptCacheTimer);
 
 		return () => {
 			mounted = false;
@@ -330,6 +375,9 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			wsManager.off('cancelled', handleCancelled);
 			wsManager.off('error', handleError);
 			wsManager.off('clearError', handleClearError);
+			wsManager.off('progressStatus', handleProgressStatus);
+			wsManager.off('promptCacheTimer', handlePromptCacheTimer);
+			statusQueue.reset();
 		};
 	}, [chatState.value.wsManager]);
 
@@ -372,7 +420,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 
 			chatState.value = {
 				...chatState.value,
-				status: { ...chatState.value.status, isProcessing: true },
+				status: { ...chatState.value.status, apiStatus: ApiStatus.LLM_PROCESSING },
 			};
 
 			try {
@@ -385,7 +433,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				console.error('Failed to send message:', error);
 				chatState.value = {
 					...chatState.value,
-					status: { ...chatState.value.status, isProcessing: false },
+					status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
 					error: 'Failed to send message. Please try again.',
 				};
 				throw error;
@@ -405,7 +453,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 
 			chatState.value = {
 				...chatState.value,
-				status: { ...chatState.value.status, isLoading: true, isProcessing: false },
+				status: { ...chatState.value.status, isLoading: true },
 			};
 
 			try {
@@ -438,7 +486,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 					status: {
 						...chatState.value.status,
 						isLoading: false,
-						isProcessing: false,
+						apiStatus: ApiStatus.IDLE,
 					},
 					error: 'Failed to load conversation. Please try again.',
 				};
@@ -450,7 +498,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			chatState.value = {
 				...chatState.value,
 				logEntries: [],
-				status: { ...chatState.value.status, isProcessing: false },
+				status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
 			};
 		},
 

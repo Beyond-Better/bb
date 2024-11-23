@@ -4,9 +4,13 @@
 	"exports": "./cli/src/main.ts",
 	"tasks": {
 		"tool:check-types-project": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",
+		"tool:check-types-api": "deno task -c ./api/deno.jsonc check-types",
+		"tool:check-types-bui": "deno task -c ./bui/deno.jsonc check-types",
+		"tool:check-types-cli": "deno task -c ./cli/deno.jsonc check-types",
 		"tool:check-types-args": "deno check --all $DENO_ARGS",
 		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"tool:format": "deno fmt $DENO_ARGS",
+		"tool:run-bui": "deno task -c ./bui/deno.jsonc start",
 		"format": "deno fmt src/ && deno task -c ./cli/deno.jsonc format && deno task -c ./bui/deno.jsonc format && deno task -c ./api/deno.jsonc format",
 		"format-deno": "deno fmt ./deno.jsonc ./cli/deno.jsonc ./bui/deno.jsonc ./api/deno.jsonc",
 		"check-types": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",

@@ -1,6 +1,6 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 
 export default class WebsocketManager {
@@ -132,6 +132,18 @@ export default class WebsocketManager {
 				eventManager.emit(
 					'cli:conversationError',
 					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationError'],
+				);
+				break;
+			case 'progressStatus':
+				eventManager.emit(
+					'cli:progressStatus',
+					{ ...msgData } as EventPayloadMap['cli']['cli:progressStatus'], //ProgressStatusMessage
+				);
+				break;
+			case 'promptCacheTimer':
+				eventManager.emit(
+					'cli:promptCacheTimer',
+					{ ...msgData } as EventPayloadMap['cli']['cli:promptCacheTimer'], //PromptCacheTimerMessage
 				);
 				break;
 			default:

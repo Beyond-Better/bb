@@ -23,6 +23,7 @@ import type {
 	ConversationContinue,
 	ConversationEntry,
 	ConversationId,
+	ConversationLogEntry,
 	ConversationMetrics,
 	ConversationResponse,
 	ConversationStart,
@@ -30,11 +31,11 @@ import type {
 	ObjectivesData,
 	TokenUsage,
 } from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from '../types.ts';
-import type { ConversationLogEntry } from 'shared/types.ts';
 import {
 	generateConversationObjective,
 	generateConversationTitle,
@@ -103,6 +104,8 @@ class OrchestratorController {
 	private interactionStats: Map<ConversationId, ConversationMetrics> = new Map();
 	private interactionTokenUsage: Map<ConversationId, ConversationTokenUsage> = new Map();
 	private isCancelled: boolean = false;
+	//private currentStatus: ApiStatus = ApiStatus.IDLE;
+	private statusSequence: number = 0;
 	public interactionManager: InteractionManager;
 	public primaryInteractionId: ConversationId | null = null;
 	private agentControllers: Map<string, AgentController> = new Map();
@@ -143,6 +146,73 @@ class OrchestratorController {
 		return this;
 	}
 
+	private handleLLMError(error: Error, interaction: LLMConversationInteraction): void {
+		// Extract useful information from the error if it's our custom error type
+		const errorDetails = error instanceof Error
+			? {
+				message: error.message,
+				code: error.name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
+				// Include any additional error properties if available
+				details: (error as any).details || {},
+			}
+			: {
+				message: String(error),
+				code: 'UNKNOWN_ERROR',
+			};
+
+		this.eventManager.emit(
+			'projectEditor:conversationError',
+			{
+				conversationId: interaction.id,
+				conversationTitle: interaction.title || '',
+				timestamp: new Date().toISOString(),
+				conversationStats: {
+					statementCount: this._statementCount,
+					statementTurnCount: this._statementTurnCount,
+					conversationTurnCount: this._conversationTurnCount,
+				},
+				error: errorDetails.message,
+				code: errorDetails.code,
+				details: errorDetails.details,
+			} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+		);
+
+		// Always log the full error for debugging
+		logger.error(`OrchestratorController: LLM communication error:`, error);
+	}
+
+	private emitStatus(status: ApiStatus, metadata?: { toolName?: string; error?: string }) {
+		if (!this.primaryInteractionId) {
+			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit status');
+			return;
+		}
+		//this.currentStatus = status;
+		this.statusSequence++;
+		this.eventManager.emit('projectEditor:progressStatus', {
+			type: 'progress_status',
+			conversationId: this.primaryInteractionId,
+			status,
+			timestamp: new Date().toISOString(),
+			statementCount: this._statementCount,
+			sequence: this.statusSequence,
+			metadata,
+		});
+		logger.warn(`OrchestratorController: Emitted progress_status: ${status}`);
+	}
+
+	private emitPromptCacheTimer() {
+		if (!this.primaryInteractionId) {
+			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit timer');
+			return;
+		}
+		this.eventManager.emit('projectEditor:promptCacheTimer', {
+			type: 'prompt_cache_timer',
+			conversationId: this.primaryInteractionId,
+			startTimestamp: Date.now(),
+			duration: 300000, // 5 minutes in milliseconds
+		});
+		logger.warn(`OrchestratorController: Emitted prompt_cache_timer`);
+	}
 	get projectEditor(): ProjectEditor {
 		const projectEditor = this.projectEditorRef.deref();
 		if (!projectEditor) throw new Error('No projectEditor to deref from projectEditorRef');
@@ -588,12 +658,19 @@ class OrchestratorController {
 		return { toolResponse, thinkingContent };
 	}
 
+	private resetStatus() {
+		this.statusSequence = 0;
+		this.emitStatus(ApiStatus.IDLE);
+	}
+
 	async handleStatement(
 		statement: string,
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
 	): Promise<ConversationResponse> {
 		this.isCancelled = false;
+		this.resetStatus();
+		this.emitStatus(ApiStatus.API_BUSY);
 		const interaction = this.interactionManager.getInteraction(conversationId) as LLMConversationInteraction;
 		if (!interaction) {
 			throw new Error(`No interaction found for ID: ${conversationId}`);
@@ -715,7 +792,11 @@ class OrchestratorController {
 				}..."`,
 			);
 
+			// START OF STATEMENT - REQUEST TO LLM
+			this.emitStatus(ApiStatus.LLM_PROCESSING);
+			this.emitPromptCacheTimer();
 			currentResponse = await interaction.converse(statement, speakOptions);
+			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
 			//logger.debug('OrchestratorController: LLM Response:', currentResponse);
 
@@ -741,7 +822,7 @@ class OrchestratorController {
 			// Update orchestrator's stats
 			this.updateStats(interaction.id, interaction.getConversationStats());
 		} catch (error) {
-			logger.error(`OrchestratorController: Error in LLM communication:`, error);
+			this.handleLLMError(error, interaction);
 			throw error;
 		}
 
@@ -762,6 +843,7 @@ class OrchestratorController {
 					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
 						logger.info('OrchestratorController: Handling tool', toolUse);
 						try {
+							this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
 							const { toolResponse, thinkingContent } = await this.handleToolUse(
 								interaction,
 								toolUse,
@@ -795,10 +877,13 @@ class OrchestratorController {
 							formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
 						}\n${toolResponses.join('\n')}`;
 
+						this.emitStatus(ApiStatus.LLM_PROCESSING);
+						this.emitPromptCacheTimer();
 						currentResponse = await interaction.speakWithLLM(statement, speakOptions);
+						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
 					} catch (error) {
-						logger.error(`OrchestratorController: Error in LLM communication: ${error.message}`);
+						this.handleLLMError(error, interaction);
 						throw error; // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
 					}
 				} else {
@@ -817,6 +902,7 @@ class OrchestratorController {
 							type: 'text',
 							text: `Error occurred: ${error.message}. Continuing conversation.`,
 						}],
+						answer: `Error occurred: ${error.message}. Continuing conversation.`,
 					},
 					messageMeta: {},
 				} as LLMSpeakWithResponse;
@@ -835,13 +921,12 @@ class OrchestratorController {
 		this._conversationTurnCount += loopTurnCount;
 
 		// Final save of the entire conversation at the end of the loop
-		logger.info(
+		logger.debug(
 			`OrchestratorController: Saving conversation at end of statement: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
 		);
+
 		await this.saveConversationAfterStatement(interaction, currentResponse);
-		logger.info(
-			`OrchestratorController: Final save of conversation: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
-		);
+
 		logger.info(
 			`OrchestratorController: Final save of conversation: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
 		);
@@ -901,6 +986,7 @@ class OrchestratorController {
 			this.tokenUsageTotals,
 		);
 
+		this.resetStatus();
 		return statementAnswer;
 	}
 

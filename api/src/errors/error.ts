@@ -30,6 +30,7 @@ export const ErrorTypes = [
 export interface CommandExecutionErrorOptions extends ErrorOptions {
 	command: string;
 	args?: string[];
+	cwd?: string;
 }
 
 export interface ErrorOptions {

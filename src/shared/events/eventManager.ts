@@ -1,5 +1,6 @@
 import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 import {
+	ApiStatus,
 	ConversationContinue,
 	ConversationDeleted,
 	ConversationId,
@@ -20,6 +21,22 @@ export type EventMap = {
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		conversationCancelled: { conversationId: ConversationId; message: string };
+		progressStatus: {
+			type: 'progress_status';
+			status: ApiStatus;
+			timestamp: string;
+			statementCount: number;
+			sequence: number;
+			metadata?: {
+				toolName?: string;
+				error?: string;
+			};
+		};
+		promptCacheTimer: {
+			type: 'prompt_cache_timer';
+			startTimestamp: number;
+			duration: number;
+		};
 		conversationError: {
 			conversationId: ConversationId;
 			conversationTitle: string;
@@ -41,6 +58,22 @@ export type EventMap = {
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		websocketReconnected: { conversationId: ConversationId };
+		progressStatus: {
+			type: 'progress_status';
+			status: ApiStatus;
+			timestamp: string;
+			statementCount: number;
+			sequence: number;
+			metadata?: {
+				toolName?: string;
+				error?: string;
+			};
+		};
+		promptCacheTimer: {
+			type: 'prompt_cache_timer';
+			startTimestamp: number;
+			duration: number;
+		};
 		conversationError: {
 			conversationId: ConversationId;
 			error: string;

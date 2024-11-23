@@ -25,7 +25,9 @@ interface WebSocketResponse {
 		| 'conversationContinue'
 		| 'conversationAnswer'
 		| 'conversationError'
-		| 'conversationCancelled';
+		| 'conversationCancelled'
+		| 'progressStatus'
+		| 'promptCacheTimer';
 	data: {
 		logEntry?: ConversationLogEntry;
 		conversationTitle?: string;
@@ -46,7 +48,15 @@ interface WebSocketManagerConfig {
 	onOpen?: () => void;
 }
 
-type EventType = 'statusChange' | 'readyChange' | 'message' | 'error' | 'clearError' | 'cancelled';
+type EventType =
+	| 'statusChange'
+	| 'readyChange'
+	| 'message'
+	| 'error'
+	| 'clearError'
+	| 'cancelled'
+	| 'progressStatus'
+	| 'promptCacheTimer';
 
 export class WebSocketManager {
 	private socket: WebSocket | null = null;
@@ -367,6 +377,7 @@ export class WebSocketManager {
 
 			try {
 				const msg = JSON.parse(event.data) as WebSocketResponse;
+				//console.log('WebSocketManager: Raw message:', event.data);
 				console.log('WebSocketManager: Received message:', msg.type);
 
 				switch (msg.type) {
@@ -417,6 +428,16 @@ export class WebSocketManager {
 						this.status.isReady = true;
 						this.emit('readyChange', true);
 						this.emit('cancelled', msg.data);
+						break;
+
+					case 'progressStatus':
+						console.log('WebSocketManager: Received progressStatus:', msg.data);
+						this.emit('progressStatus', msg.data);
+						break;
+
+					case 'promptCacheTimer':
+						console.log('WebSocketManager: Received promptCacheTimer:', msg.data);
+						this.emit('promptCacheTimer', msg.data);
 						break;
 
 					case 'conversationError':
