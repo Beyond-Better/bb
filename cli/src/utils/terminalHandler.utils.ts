@@ -181,7 +181,8 @@ export class TerminalHandler {
 
 		// Show prompt cache timer if applicable
 		if (
-			lastMessageInBatch.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime && this.promptCacheDuration
+			lastMessageInBatch.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime &&
+			this.promptCacheDuration
 		) {
 			const elapsed = now - this.promptCacheStartTime;
 			const remaining = Math.max(0, this.promptCacheDuration - elapsed);
