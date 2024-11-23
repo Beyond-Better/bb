@@ -7,6 +7,7 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import type { ChatConfig, ConversationListState } from '../types/chat.types.ts';
+import { isProcessing } from '../types/chat.types.ts';
 import {
 	getDefaultConversationTokenUsage,
 	getDefaultTokenUsage,
@@ -186,7 +187,7 @@ export default function Chat(): JSX.Element {
 		// Update lastApiCallTime when sending a message
 		chatState.value.status.lastApiCallTime = Date.now();
 		chatState.value.status.cacheStatus = 'active';
-		if (!input.trim() || !chatState.value.status.isReady || chatState.value.status.isProcessing) return;
+		if (!input.trim() || !chatState.value.status.isReady || isProcessing(chatState.value.status)) return;
 
 		const trimmedInput = input.trim();
 		const maxRetries = 3;
@@ -221,7 +222,7 @@ export default function Chat(): JSX.Element {
 			}
 
 			// Prevent multiple simultaneous deletions
-			if (chatState.value.status.isProcessing) {
+			if (isProcessing(chatState.value.status)) {
 				throw new Error('Please wait for the current operation to complete');
 			}
 
@@ -319,7 +320,7 @@ export default function Chat(): JSX.Element {
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 
-		if (messagesEndRef.current && chatState.value.status.isProcessing) {
+		if (messagesEndRef.current && isProcessing(chatState.value.status)) {
 			messagesEndRef.current.scrollTo({
 				top: messagesEndRef.current.scrollHeight,
 				behavior: 'smooth',
@@ -327,14 +328,14 @@ export default function Chat(): JSX.Element {
 		}
 
 		const handleVisibilityChange = () => {
-			if (document.visibilityState === 'hidden' && chatState.value.status.isProcessing) {
+			if (document.visibilityState === 'hidden' && isProcessing(chatState.value.status)) {
 				setToastMessage('Claude is working in background');
 				setShowToast(true);
 			}
 		};
 
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-			if (chatState.value.status.isProcessing) {
+			if (isProcessing(chatState.value.status)) {
 				event.preventDefault();
 				return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
 			}
@@ -347,7 +348,7 @@ export default function Chat(): JSX.Element {
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			window.removeEventListener('beforeunload', handleBeforeUnload);
 		};
-	}, [chatState.value.status.isProcessing]);
+	}, [chatState.value.status.apiStatus]);
 
 	useEffect(() => {
 		let disconnectTimeoutId: number;
@@ -467,7 +468,7 @@ export default function Chat(): JSX.Element {
 								await handlers.sendConverse(message);
 							}}
 							chatInputRef={chatInputRef}
-							disabled={!chatState.value.status.isReady || chatState.value.status.isProcessing}
+							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
 							startDir={startDir}
 						/>
 					</div>
@@ -478,7 +479,7 @@ export default function Chat(): JSX.Element {
 							ref={messagesEndRef}
 							className='flex-1 overflow-y-auto px-6 py-8 space-y-6 min-h-0 min-w-0'
 						>
-							{chatState.value.logEntries.length === 0 && !chatState.value.status.isProcessing && (
+							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
 								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
 									<svg
 										className='w-12 h-12 mb-4 text-gray-400'

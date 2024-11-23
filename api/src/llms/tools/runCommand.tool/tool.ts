@@ -15,6 +15,8 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
+import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { join } from '@std/path';
 
 interface LLMToolRunCommandConfig extends LLMToolConfig {
 	allowedCommands?: string[];
@@ -77,6 +79,29 @@ Examples of argument usage:
 
 Note: Arguments must be appropriate for the command being run. Review the command's documentation or help output if unsure about valid arguments.`,
 				},
+				cwd: {
+					type: 'string',
+					description:
+						`The working directory for command execution, relative to project root. Important considerations:
+
+1. Path Requirements:
+   * Must be relative to project root
+   * Cannot navigate outside project directory
+   * Parent directory references (..) not allowed
+   Examples:
+   * "src" - Run in project's src directory
+   * "tests/fixtures" - Run in test fixtures directory
+
+2. Default Behavior:
+   * If not provided, commands run from project root
+   * Useful for commands that need specific context
+   * Affects how relative paths in args are resolved
+
+3. Common Use Cases:
+   * Running tests from test directory
+   * Building from specific source directory
+   * Managing dependencies in package directory`,
+				},
 			},
 			required: ['command'],
 		};
@@ -99,9 +124,10 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { command, args = [] } = toolInput as {
+		const { command, args = [], cwd } = toolInput as {
 			command: string;
 			args?: string[];
+			cwd?: string;
 		};
 
 		logger.info(
@@ -118,51 +144,70 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 				`BB won't run unapproved commands: ${command}. Suggest adding this command to the allow list if it's needed.`;
 			const toolResponse = toolResults;
 			return { toolResults, toolResponse, bbResponse };
-		} else {
-			logger.info(`LLMToolRunCommand: Running command: ${command} ${args.join(' ')}`);
+		}
 
-			try {
-				const [denoCommand, ...denoArgs] = command.split(' ');
-				const process = new Deno.Command(denoCommand, {
-					args: [...denoArgs, ...args],
-					cwd: projectEditor.projectRoot,
-					stdout: 'piped',
-					stderr: 'piped',
-				});
-
-				const { code, stdout, stderr } = await process.output();
-
-				const output = new TextDecoder().decode(stdout);
-				const errorOutput = new TextDecoder().decode(stderr);
-
-				const isError = code !== 0;
-				const stderrContainsError = this.checkStderrForErrors(errorOutput, command);
-
-				const toolResults = `Command executed with exit code: ${code}\n\nOutput:\n${output}${
-					errorOutput ? `\n\nError output:\n${errorOutput}` : ''
-				}`;
-				const toolResponse = isError ? 'Command exited with non-zero status' : 'Command completed successfully';
-				const bbResponse = {
-					data: {
-						code,
+		// Validate working directory if provided
+		let workingDir = projectEditor.projectRoot;
+		if (cwd) {
+			if (!await isPathWithinProject(projectEditor.projectRoot, cwd)) {
+				throw createError(
+					ErrorType.CommandExecution,
+					`Invalid working directory: ${cwd} is outside the project directory`,
+					{
+						name: 'command-execution-error',
 						command,
-						stderrContainsError,
-						stdout: output,
-						stderr: errorOutput,
+						args,
+						cwd,
 					},
-				};
-
-				return { toolResults, toolResponse, bbResponse };
-			} catch (error) {
-				const errorMessage = `Failed to execute command: ${error.message}`;
-				logger.error(`LLMToolRunCommand: ${errorMessage}`);
-
-				throw createError(ErrorType.CommandExecution, errorMessage, {
-					name: 'command-execution-error',
-					command,
-					args,
-				});
+				);
 			}
+			workingDir = join(projectEditor.projectRoot, cwd);
+			logger.info(`LLMToolRunCommand: Using working directory: ${workingDir}`);
+		}
+
+		try {
+			logger.info(`LLMToolRunCommand: Running command: ${command} ${args.join(' ')}`);
+			const [denoCommand, ...denoArgs] = command.split(' ');
+			const process = new Deno.Command(denoCommand, {
+				args: [...denoArgs, ...args],
+				cwd: workingDir,
+				stdout: 'piped',
+				stderr: 'piped',
+			});
+
+			const { code, stdout, stderr } = await process.output();
+
+			const output = new TextDecoder().decode(stdout);
+			const errorOutput = new TextDecoder().decode(stderr);
+
+			const isError = code !== 0;
+			const stderrContainsError = this.checkStderrForErrors(errorOutput, command);
+
+			const toolResults = `Command executed with exit code: ${code}\n\nOutput:\n${output}${
+				errorOutput ? `\n\nError output:\n${errorOutput}` : ''
+			}`;
+			const toolResponse = isError ? 'Command exited with non-zero status' : 'Command completed successfully';
+			const bbResponse = {
+				data: {
+					code,
+					command,
+					stderrContainsError,
+					stdout: output,
+					stderr: errorOutput,
+				},
+			};
+
+			return { toolResults, toolResponse, bbResponse };
+		} catch (error) {
+			const errorMessage = `Failed to execute command: ${error.message}`;
+			logger.error(`LLMToolRunCommand: ${errorMessage}`);
+
+			throw createError(ErrorType.CommandExecution, errorMessage, {
+				name: 'command-execution-error',
+				command,
+				args,
+				cwd,
+			});
 		}
 	}
 

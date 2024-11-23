@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'preact/hooks';
 import type { RefObject } from 'preact/compat';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
+import { isProcessing, Status } from '../types/chat.types.ts';
+import { ApiStatus } from 'shared/types.ts';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -14,12 +16,7 @@ interface ChatInputProps {
 	onChange: (value: string) => void;
 	onSend: () => void;
 	textareaRef?: RefObject<ChatInputRef>;
-	status: {
-		isConnecting: boolean;
-		isLoading: boolean;
-		isProcessing: boolean;
-		isReady: boolean;
-	};
+	status: Status;
 	disabled?: boolean;
 	maxLength?: number;
 }
@@ -71,7 +68,7 @@ export function ChatInput({
 	};
 
 	const handleKeyPress = (e: KeyboardEvent) => {
-		if (e.key === 'Enter' && !e.shiftKey && !disabled && !status.isLoading && !status.isProcessing) {
+		if (e.key === 'Enter' && !e.shiftKey && !disabled && !status.isLoading && !isProcessing(status)) {
 			e.preventDefault();
 			onSend();
 		}
@@ -79,7 +76,66 @@ export function ChatInput({
 
 	// Determine status message and type
 	const getStatusInfo = () => {
-		if (status.isProcessing) {
+		// Handle connection and loading states first
+		if (!status.isReady) {
+			return {
+				message: 'Connecting to server...',
+				visible: true,
+				status: ApiStatus.IDLE,
+			};
+		}
+
+		// Handle API status states
+		switch (status.apiStatus) {
+			case ApiStatus.LLM_PROCESSING:
+				return {
+					message: 'Claude is thinking...',
+					status: status.apiStatus,
+					visible: true,
+					action: onCancelProcessing
+						? {
+							label: 'Stop',
+							onClick: onCancelProcessing,
+							variant: 'danger',
+						}
+						: undefined,
+				};
+			case ApiStatus.TOOL_HANDLING:
+				return {
+					message: `Using tool: ${status.toolName || 'unknown'}`,
+					type: 'info' as const,
+					visible: true,
+					status: status.apiStatus,
+					action: onCancelProcessing
+						? {
+							label: 'Stop',
+							onClick: onCancelProcessing,
+							variant: 'danger',
+						}
+						: undefined,
+				};
+			case ApiStatus.API_BUSY:
+				return {
+					message: 'API is processing...',
+					type: 'info' as const,
+					visible: true,
+					status: status.apiStatus,
+				};
+			case ApiStatus.ERROR:
+				return {
+					message: 'An error occurred',
+					visible: true,
+					status: status.apiStatus,
+				};
+			default:
+				return {
+					message: '',
+					type: 'info' as const,
+					visible: false,
+					status: ApiStatus.IDLE,
+				};
+		}
+		if (isProcessing(status)) {
 			return {
 				message: 'Claude is working...',
 				type: 'info' as const,
@@ -100,7 +156,7 @@ export function ChatInput({
 				visible: true,
 			};
 		}
-		if (status.isProcessing) {
+		if (isProcessing(status)) {
 			return {
 				message: 'Claude is working...',
 				type: 'info' as const,
@@ -135,7 +191,7 @@ export function ChatInput({
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}
-				type={statusInfo.type}
+				status={statusInfo.status || ApiStatus.IDLE}
 				action={statusInfo.action as Action}
 				className='mx-1'
 			/>
@@ -151,8 +207,8 @@ export function ChatInput({
                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                       transition-all duration-200 max-h-[200px]
                       ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
-                      ${status.isProcessing ? 'border-blue-200 bg-white' : ''}`}
-						placeholder={status.isProcessing
+                      ${isProcessing(status) ? 'border-blue-200 bg-white' : ''}`}
+						placeholder={isProcessing(status)
 							? 'Type your message... (Claude is working)'
 							: 'Type your message... (Shift + Enter for new line)'}
 						rows={1}
@@ -174,13 +230,13 @@ export function ChatInput({
                     focus:outline-none focus:ring-2 focus:ring-blue-500 
                     focus:ring-opacity-50 min-w-[60px] ml-2
                     ${
-						status.isProcessing
+						isProcessing(status)
 							? 'bg-gray-100 text-gray-400 cursor-not-allowed'
 							: disabled
 							? 'bg-gray-300 cursor-not-allowed'
 							: 'bg-blue-500 text-white hover:bg-blue-600'
 					}`}
-					disabled={status.isLoading || disabled || status.isProcessing}
+					disabled={status.isLoading || disabled || isProcessing(status)}
 					aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
 				>
 					{status.isLoading ? <LoadingSpinner size='small' color='text-white' /> : 'Send'}

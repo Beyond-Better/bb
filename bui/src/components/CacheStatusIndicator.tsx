@@ -1,4 +1,11 @@
 import { JSX } from 'preact';
+import { useEffect, useState } from 'preact/hooks';
+
+interface TimerState {
+	startTimestamp: number;
+	duration: number;
+	remaining: number;
+}
 
 type CacheStatus = 'active' | 'expiring' | 'inactive';
 
@@ -8,6 +15,44 @@ interface CacheStatusIndicatorProps {
 }
 
 export function CacheStatusIndicator({ status, className = '' }: CacheStatusIndicatorProps): JSX.Element {
+	const [timer, setTimer] = useState<TimerState | null>(null);
+	const [intervalId, setIntervalId] = useState<number | null>(null);
+
+	useEffect(() => {
+		return () => {
+			if (intervalId) clearInterval(intervalId);
+		};
+	}, []);
+
+	const startTimer = (startTimestamp: number, duration: number) => {
+		if (intervalId) clearInterval(intervalId);
+
+		setTimer({ startTimestamp, duration, remaining: duration });
+		const id = setInterval(() => {
+			const now = Date.now();
+			const elapsed = now - startTimestamp;
+			const remaining = Math.max(0, duration - elapsed);
+
+			if (remaining <= 0) {
+				clearInterval(id);
+				setTimer(null);
+			} else {
+				setTimer((prev) => prev ? { ...prev, remaining } : null);
+			}
+		}, 1000) as unknown as number;
+		setIntervalId(id);
+	};
+
+	// This would be called when receiving a promptCacheTimer message
+	const handleTimerMessage = (startTimestamp: number, duration: number) => {
+		startTimer(startTimestamp, duration);
+	};
+
+	const getTimerStatus = (): CacheStatus => {
+		if (!timer) return 'inactive';
+		if (timer.remaining > 60000) return 'active'; // More than 1 minute
+		return 'expiring';
+	};
 	const getStatusColor = (status: CacheStatus): string => {
 		switch (status) {
 			case 'active':
@@ -19,10 +64,18 @@ export function CacheStatusIndicator({ status, className = '' }: CacheStatusIndi
 		}
 	};
 
+	const formatTimeRemaining = (ms: number): string => {
+		const minutes = Math.floor(ms / 60000);
+		const seconds = Math.floor((ms % 60000) / 1000);
+		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	};
+
 	const getStatusText = (status: CacheStatus): string => {
 		switch (status) {
 			case 'active':
-				return 'Anthropic API prompt cache status: Active (reduced token costs)';
+				return `Anthropic API prompt cache status: Active (${
+					timer ? formatTimeRemaining(timer.remaining) : ''
+				} remaining)`;
 			case 'expiring':
 				return 'Anthropic API prompt cache status: Expiring Soon';
 			case 'inactive':

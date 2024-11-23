@@ -1,4 +1,6 @@
 import { Input } from 'cliffy/prompt/mod.ts';
+import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { ansi, colors, tty } from 'cliffy/ansi/mod.ts';
 //import { crayon } from 'https://deno.land/x/crayon@3.3.3/mod.ts';
 //import { handleInput, handleKeyboardControls, handleMouseControls, Tui } from 'https://deno.land/x/tui@2.1.11/mod.ts';
@@ -48,10 +50,27 @@ export const palette = {
 	info: colors.magenta,
 };
 
+interface StatusMessage {
+	status: ApiStatus;
+	timestamp: number;
+	statementCount: number;
+	sequence: number;
+	metadata?: {
+		toolName?: string;
+		error?: string;
+	};
+}
+
 export class TerminalHandler {
 	private formatter!: ConversationLogFormatter;
 	private history: string[] = [];
 	private spinner!: Spinner;
+	private currentStatus: StatusMessage | null = null;
+	private statusQueue: StatusMessage[] = [];
+	private lastStatusUpdateTime: number = 0;
+	private readonly minStatusDisplayTime: number = 500; // ms
+	private promptCacheStartTime: number | null = null;
+	private promptCacheDuration: number | null = null;
 	private statementInProgress: boolean = false;
 	private startDir: string;
 	private bbDir!: string;
@@ -61,6 +80,113 @@ export class TerminalHandler {
 		this.startDir = startDir;
 		this.spinner = this.createSpinner('BB warming up...');
 	}
+	private getStatusColor(status: ApiStatus): (s: string) => string {
+		switch (status) {
+			case ApiStatus.LLM_PROCESSING:
+				return palette.success; // green
+			case ApiStatus.TOOL_HANDLING:
+				return palette.warning; // yellow
+			case ApiStatus.API_BUSY:
+				return palette.secondary; // cyan
+			case ApiStatus.ERROR:
+				return palette.error; // red
+			default:
+				return palette.info; // magenta
+		}
+	}
+
+	private getStatusMessage(status: ApiStatus, metadata?: { toolName?: string; error?: string }): string {
+		switch (status) {
+			case ApiStatus.LLM_PROCESSING:
+				return 'Claude is thinking...';
+			case ApiStatus.TOOL_HANDLING:
+				return `Running tool: ${metadata?.toolName || 'unknown'}`;
+			case ApiStatus.API_BUSY:
+				return 'Processing request...';
+			case ApiStatus.ERROR:
+				return `Error: ${metadata?.error || 'Unknown error'}`;
+			default:
+				return 'Ready';
+		}
+	}
+
+	public handleProgressStatus(message: ProgressStatusMessage): void {
+		// Ignore messages from previous statements
+		if (this.currentStatus && message.statementCount < this.currentStatus.statementCount) {
+			return;
+		}
+
+		// Add to queue sorted by sequence number
+		this.statusQueue.push(message);
+		this.statusQueue.sort((a, b) => {
+			if (a.statementCount !== b.statementCount) {
+				return a.statementCount - b.statementCount;
+			}
+			return a.sequence - b.sequence;
+		});
+
+		this.processStatusQueue();
+	}
+
+	public handlePromptCacheTimer(message: PromptCacheTimerMessage): void {
+		this.promptCacheStartTime = message.startTimestamp;
+		this.promptCacheDuration = message.duration;
+	}
+
+	private processStatusQueue(): void {
+		const now = Date.now();
+		const timeSinceLastUpdate = now - this.lastStatusUpdateTime;
+
+		// If we haven't waited long enough since the last update, schedule a check
+		if (this.currentStatus && timeSinceLastUpdate < this.minStatusDisplayTime) {
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime - timeSinceLastUpdate);
+			return;
+		}
+
+		// Process all messages that are ready
+		while (this.statusQueue.length > 0) {
+			const nextMessage = this.statusQueue[0];
+
+			// If this is a very quick status change and not the final message, skip it
+			if (
+				this.statusQueue.length > 1 &&
+				nextMessage.statementCount === this.statusQueue[1].statementCount &&
+				nextMessage.timestamp + this.minStatusDisplayTime > now
+			) {
+				this.statusQueue.shift(); // Remove the quick status
+				continue;
+			}
+
+			// Update the status
+			this.currentStatus = nextMessage;
+			this.lastStatusUpdateTime = now;
+			this.statusQueue.shift();
+
+			// Update the spinner with the new status
+			const statusColor = this.getStatusColor(nextMessage.status);
+			let statusMessage = statusColor(this.getStatusMessage(nextMessage.status, nextMessage.metadata));
+
+			// Show prompt cache timer if applicable
+			if (
+				nextMessage.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime && this.promptCacheDuration
+			) {
+				const elapsed = now - this.promptCacheStartTime;
+				const remaining = Math.max(0, this.promptCacheDuration - elapsed);
+				if (remaining > 0) {
+					statusMessage += palette.info(` (Cache: ${Math.ceil(remaining / 1000)}s)`);
+				}
+			}
+			this.startSpinner(statusMessage);
+
+			break;
+		}
+
+		// If there are more messages, schedule the next check
+		if (this.statusQueue.length > 0) {
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime);
+		}
+	}
+
 	public async init(): Promise<TerminalHandler> {
 		this.bbDir = await getBbDir(this.startDir);
 		this.loadHistory();

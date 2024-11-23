@@ -1,5 +1,12 @@
 import { logger } from 'shared/logger.ts';
-import { getPid, isApiRunning, removePid, savePid } from '../utils/pid.utils.ts';
+import {
+	type ApiStatusCheck,
+	checkApiStatus,
+	getPid,
+	reconcilePidState,
+	removePid,
+	savePid,
+} from '../utils/apiStatus.utils.ts';
 import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
 import { dirname, join } from '@std/path';
 import { isCompiledBinary } from '../utils/environment.utils.ts';
@@ -17,9 +24,12 @@ export async function startApiServer(
 	apiLogFile?: string,
 	follow?: boolean,
 ): Promise<{ pid: number; apiLogFilePath: string; listen: string }> {
+	// First reconcile any existing state
+	await reconcilePidState(startDir);
 	const fullConfig = await ConfigManager.fullConfig(startDir);
-	if (await isApiRunning(startDir)) {
-		logger.info('BB API server is already running.');
+	const status = await checkApiStatus(startDir);
+	if (status.apiResponds) {
+		logger.info('BB API server is already running and responding.');
 		const pid = await getPid(startDir);
 		const bbDir = await getBbDir(startDir);
 		const apiLogFileName = apiLogFile || fullConfig.api?.logFile || 'api.log';
@@ -115,9 +125,16 @@ export async function startApiServer(
 }
 
 export async function stopApiServer(startDir: string): Promise<void> {
-	if (!(await isApiRunning(startDir))) {
+	const status = await checkApiStatus(startDir);
+
+	if (!status.pidExists && !status.apiResponds) {
 		logger.info('BB API server is not running.');
+		await removePid(startDir); // Cleanup any stale PID file
 		return;
+	}
+
+	if (status.pidExists && !status.apiResponds) {
+		logger.warn('API process exists but is not responding - attempting forced shutdown.');
 	}
 
 	logger.info('Stopping BB API server...');
@@ -181,22 +198,27 @@ export async function getApiStatus(startDir: string): Promise<{
 	pid?: number;
 	apiUrl?: string;
 	apiStatus?: unknown;
+	processStatus?: ApiStatusCheck;
 	error?: string;
 }> {
 	const fullConfig = await ConfigManager.fullConfig(startDir);
 	const apiHostname = fullConfig.api.apiHostname || 'localhost';
 	const apiPort = fullConfig.api.apiPort || 3000;
 	const apiUseTls = typeof fullConfig.api.apiUseTls !== 'undefined' ? fullConfig.api.apiUseTls : true;
-	const isRunning = await isApiRunning(startDir);
+	const processStatus = await checkApiStatus(startDir);
 	const status: {
 		running: boolean;
 		pid?: number;
 		apiUrl?: string;
 		apiStatus?: unknown;
+		processStatus?: ApiStatusCheck;
 		error?: string;
-	} = { running: isRunning };
+	} = {
+		running: processStatus.apiResponds,
+		processStatus,
+	};
 
-	if (isRunning) {
+	if (processStatus.apiResponds) {
 		const pid = await getPid(startDir);
 		status.pid = pid !== null ? pid : undefined;
 		status.apiUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;

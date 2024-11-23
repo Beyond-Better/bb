@@ -1,36 +1,12 @@
 import { SimpleGit, simpleGit } from 'simple-git';
-import { normalize, resolve } from '@std/path';
-
-//import { logger } from './logger.utils.ts';
+import { dirname, normalize, resolve } from '@std/path';
+import { logger } from './logger.utils.ts';
+import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 
 export class GitUtils {
 	private static gitInstances: SimpleGit[] = [];
 
 	private static async getGit(path: string): Promise<SimpleGit | null> {
-		// CNG - I'm moving this check to CLI init.ts, if project type is 'git' then we can assume git is installed
-		// // Check if git is available using Deno's Command API
-		// // [TODO] This is a real hack - using `const {installed} = await simpleGit().version();`
-		// // should give us an answer without `error: Uncaught Error: spawnSync git ENOENT`
-		// // https://github.com/steveukx/git-js/blob/main/examples/git-version.md
-		// // but we'll do this ugly hack instead
-		// try {
-		// 	const gitCheck = new Deno.Command('git', {
-		// 		args: ['--version'],
-		// 		stdout: 'piped',
-		// 		stderr: 'piped',
-		// 	});
-		// 	const { code, stdout, stderr } = await gitCheck.output();
-		// 	if (code !== 0) {
-		// 		//logger.warn('Git is not installed or not in the PATH');
-		// 		return null;
-		// 	}
-		// } catch (error) {
-		// 	//logger.warn(`Error checking git: ${error.message}`);
-		// 	return null;
-		// }
-
-		// If we reach here, git is available, so we can proceed with simple-git
-		//logger.info(`Creating simpleGit in ${path}`);
 		try {
 			const { installed } = await simpleGit().version();
 			if (!installed) {
@@ -42,9 +18,9 @@ export class GitUtils {
 		} catch (error) {
 			// If an error occurs (e.g., git not found), return null
 			if (error instanceof Error && error.message.includes('ENOENT')) {
-				//logger.warn('Git is not installed or not in the PATH');
+				logger.warn('Git is not installed or not in the PATH');
 			} else {
-				//logger.error(`Unexpected error when initializing git: ${error.message}`);
+				logger.error(`Unexpected error when initializing git: ${error.message}`);
 			}
 			return null;
 		}
@@ -57,16 +33,39 @@ export class GitUtils {
 		this.gitInstances = [];
 	}
 
-	static async findGitRoot(startPath: string = Deno.cwd()): Promise<string | null> {
-		//logger.info(`Checking for git repo in ${startPath}`);
+	static async findGitRoot(startPath: string = Deno.cwd(), projectRoot?: string): Promise<string | null> {
+		logger.info(`Checking for git repo in ${startPath}`);
 		try {
-			const git = await this.getGit(startPath);
+			// Get the directory path if startPath is a file
+			let dirPath = startPath;
+			try {
+				const stat = await Deno.stat(startPath);
+				if (!stat.isDirectory) {
+					dirPath = dirname(startPath);
+					logger.info(`Using parent directory for git check: ${dirPath}`);
+				}
+			} catch {
+				// If stat fails, assume it's a non-existent path and use its parent
+				dirPath = dirname(startPath);
+				logger.info(`Path doesn't exist, using parent directory: ${dirPath}`);
+			}
+			const git = await this.getGit(dirPath);
 			if (git === null) {
 				return null; // Git not installed or not available
 			}
 			const result = await git.revparse(['--show-toplevel']);
 			const normalizedPath = normalize(result.trim());
 			const resolvedGitRoot = await Deno.realPath(resolve(normalizedPath));
+
+			// If projectRoot is provided, verify the git root is within the project
+			if (projectRoot) {
+				const isWithinProject = await isPathWithinProject(projectRoot, resolvedGitRoot);
+				if (!isWithinProject) {
+					logger.warn(`Git root ${resolvedGitRoot} is outside project root ${projectRoot}`);
+					return null;
+				}
+			}
+
 			return resolvedGitRoot;
 		} catch (_) {
 			return null; // Git root not found

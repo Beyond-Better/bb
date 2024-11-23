@@ -236,6 +236,14 @@ class WebSocketHandler {
 				event: 'projectEditor:conversationError',
 				callback: (data) => this.sendMessage(ws, 'conversationError', data),
 			},
+			{
+				event: 'projectEditor:progressStatus',
+				callback: (data) => this.sendMessage(ws, 'progressStatus', data),
+			},
+			{
+				event: 'projectEditor:promptCacheTimer',
+				callback: (data) => this.sendMessage(ws, 'promptCacheTimer', data),
+			},
 		];
 
 		listeners.forEach((listener) => this.eventManager.on(listener.event, listener.callback, conversationId));
@@ -277,7 +285,7 @@ class WebSocketHandler {
 
 	// Method to send messages back to the client
 	private sendMessage = (ws: WebSocket, type: string, data: unknown) => {
-		//logger.debug(`WebSocketHandler: Sending message for conversationId: ${conversationId}: type=${type}, data=${JSON.stringify(data)}`);
+		//logger.debug(`WebSocketHandler: Sending message: type=${type}, data=${JSON.stringify(data)}`);
 		logger.info(`WebSocketHandler: Sending message of type: ${type}`);
 		if (type === 'conversationError') logger.info(`WebSocketHandler: error:`, data);
 		ws.send(JSON.stringify({ type, data }));

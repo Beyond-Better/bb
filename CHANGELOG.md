@@ -9,13 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.5] - 2024-11-23
+
+### Changed
+
+- Fixed API startup failure recovery mechanism
+- Added graceful handling of tool cancellation states
+- Implemented error message propagation from LLM to BUI/CLI
+- Added distinct status indicators for Claude, API, or tool execution
+- Exposed prompt cache status via API websocket
+- Added support for multiple git repositories in subdirectories
+
+
 ## [0.3.4] - 2024-11-20
 
 ### Changed
 
 - fixed bug with missing data dir
 - fixed bug with symlinks in project listing
-
 
 
 ## [0.3.3] - 2024-11-19

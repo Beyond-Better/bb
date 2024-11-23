@@ -243,3 +243,29 @@ export interface VectorEmbedding {
 	vector: number[];
 	metadata: Record<string, unknown>;
 }
+
+export enum ApiStatus {
+	IDLE = 'idle',
+	API_BUSY = 'api_busy',
+	LLM_PROCESSING = 'llm_processing',
+	TOOL_HANDLING = 'tool_handling',
+	ERROR = 'error',
+}
+
+export interface PromptCacheTimerMessage {
+	type: 'prompt_cache_timer';
+	startTimestamp: number;
+	duration: number;
+}
+
+export interface ProgressStatusMessage {
+	type: 'progress_status';
+	status: ApiStatus;
+	timestamp: number;
+	statementCount: number;
+	sequence: number;
+	metadata?: {
+		toolName?: string;
+		error?: string;
+	};
+}

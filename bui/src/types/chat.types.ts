@@ -1,16 +1,22 @@
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
-import { Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import { ApiStatus, Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 
 export type CacheStatus = 'active' | 'expiring' | 'inactive';
-import {} from 'shared/types.ts';
+
+export function isProcessing(status: Status): boolean {
+	return status.apiStatus === ApiStatus.LLM_PROCESSING ||
+		status.apiStatus === ApiStatus.TOOL_HANDLING ||
+		status.apiStatus === ApiStatus.API_BUSY;
+}
 
 export interface Status {
 	cacheStatus: CacheStatus;
 	lastApiCallTime: number | null; // Timestamp of last API call
 	isConnecting: boolean; // WebSocket connection in progress
 	isLoading: boolean; // Conversation loading/switching
-	isProcessing: boolean; // Message processing ([TODO] - this should probably be Cluade is working rather than message processing)
+	apiStatus: ApiStatus; // Current API status (idle, busy, llm_processing, tool_handling)
+	toolName?: string; // Current tool being used (when status is tool_handling)
 	isReady: boolean; // System is initialized and ready
 }
 
