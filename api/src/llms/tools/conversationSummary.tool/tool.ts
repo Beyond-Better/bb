@@ -219,7 +219,7 @@ Model Used: ${result.metadata.model}
 
 A summary of the removed messages has been added to the start of the conversation.`;
 
-			const toolResponse = `Conversation ${maxTokensToKeep ? 'truncated and ' : ''}summarized successfully. ${
+			const toolResponse = `Conversation ${maxTokensToKeep ? 'truncated and ' : ''}summarized successfully. Unless specifically asked to continue with other tasks, no further action is needed. ${
 				maxTokensToKeep
 					? `Reduced token count from ${result.originalTokenCount} to ${result.newTokenCount}.`
 					: ''

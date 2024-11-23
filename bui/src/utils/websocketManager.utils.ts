@@ -416,11 +416,11 @@ export class WebSocketManager {
 						break;
 
 					case 'conversationAnswer':
-						// Format and emit message event with type and data
-						this.emit('message', {
-							msgType: 'answer',
-							logEntryData: generateLogEntryData(msg, 'answer'),
-						});
+					// Format and emit message event with type and data
+					this.emit('message', {
+						msgType: 'answer',
+						logEntryData: generateLogEntryData(msg, 'answer'),
+					});
 						break;
 
 					case 'conversationCancelled':

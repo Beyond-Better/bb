@@ -795,7 +795,9 @@ class OrchestratorController {
 			// START OF STATEMENT - REQUEST TO LLM
 			this.emitStatus(ApiStatus.LLM_PROCESSING);
 			this.emitPromptCacheTimer();
+
 			currentResponse = await interaction.converse(statement, speakOptions);
+
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
 			//logger.debug('OrchestratorController: LLM Response:', currentResponse);
@@ -879,7 +881,9 @@ class OrchestratorController {
 
 						this.emitStatus(ApiStatus.LLM_PROCESSING);
 						this.emitPromptCacheTimer();
+
 						currentResponse = await interaction.speakWithLLM(statement, speakOptions);
+
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
 					} catch (error) {

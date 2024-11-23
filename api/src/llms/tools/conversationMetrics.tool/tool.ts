@@ -193,7 +193,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 
 			const toolResults = formattedMetrics;
 			const toolResponse =
-				`Analyzed ${metrics.summary.totalTurns} conversation turns with ${metrics.summary.uniqueToolsUsed} unique tools used.`;
+				`Analyzed ${metrics.summary.totalTurns} conversation turns with ${metrics.summary.uniqueToolsUsed} unique tools used. Unless specifically asked to perform additional analysis or tasks, no further action is needed.`;
 			const bbResponse = {
 				data: metrics,
 			};
