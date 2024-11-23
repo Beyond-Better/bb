@@ -143,43 +143,54 @@ export class TerminalHandler {
 			return;
 		}
 
-		// Process all messages that are ready
-		while (this.statusQueue.length > 0) {
-			const nextMessage = this.statusQueue[0];
+		// If queue is empty, nothing to do
+		if (this.statusQueue.length === 0) return;
 
-			// If this is a very quick status change and not the final message, skip it
-			if (
-				this.statusQueue.length > 1 &&
-				nextMessage.statementCount === this.statusQueue[1].statementCount &&
-				nextMessage.timestamp + this.minStatusDisplayTime > now
-			) {
-				this.statusQueue.shift(); // Remove the quick status
-				continue;
+		// Get the last message in the current batch (messages for the same statement)
+		const currentMessage = this.statusQueue[0];
+		const currentStatementCount = currentMessage.statementCount;
+		let lastMessageInBatch = currentMessage;
+		let batchSize = 1;
+
+		// Look ahead to find all messages in the same batch
+		for (let i = 1; i < this.statusQueue.length; i++) {
+			if (this.statusQueue[i].statementCount === currentStatementCount) {
+				lastMessageInBatch = this.statusQueue[i];
+				batchSize++;
+			} else {
+				break;
 			}
-
-			// Update the status
-			this.currentStatus = nextMessage;
-			this.lastStatusUpdateTime = now;
-			this.statusQueue.shift();
-
-			// Update the spinner with the new status
-			const statusColor = this.getStatusColor(nextMessage.status);
-			let statusMessage = statusColor(this.getStatusMessage(nextMessage.status, nextMessage.metadata));
-
-			// Show prompt cache timer if applicable
-			if (
-				nextMessage.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime && this.promptCacheDuration
-			) {
-				const elapsed = now - this.promptCacheStartTime;
-				const remaining = Math.max(0, this.promptCacheDuration - elapsed);
-				if (remaining > 0) {
-					statusMessage += palette.info(` (Cache: ${Math.ceil(remaining / 1000)}s)`);
-				}
-			}
-			this.startSpinner(statusMessage);
-
-			break;
 		}
+
+		// If we have multiple messages in the batch and the last one is recent
+		if (batchSize > 1 && lastMessageInBatch.timestamp + (this.minStatusDisplayTime / 2) > now) {
+			// Wait a short time to see if more messages arrive
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime / 2);
+			return;
+		}
+
+		// Process the last message in the batch
+		this.currentStatus = lastMessageInBatch;
+		this.lastStatusUpdateTime = now;
+		// Remove all messages up to and including the one we're processing
+		this.statusQueue.splice(0, batchSize);
+
+		// Update the spinner with the new status
+		const statusColor = this.getStatusColor(lastMessageInBatch.status);
+		let statusMessage = statusColor(this.getStatusMessage(lastMessageInBatch.status, lastMessageInBatch.metadata));
+
+		// Show prompt cache timer if applicable
+		if (
+			lastMessageInBatch.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime &&
+			this.promptCacheDuration
+		) {
+			const elapsed = now - this.promptCacheStartTime;
+			const remaining = Math.max(0, this.promptCacheDuration - elapsed);
+			if (remaining > 0) {
+				statusMessage += palette.info(` (Cache: ${Math.ceil(remaining / 1000)}s)`);
+			}
+		}
+		this.startSpinner(statusMessage);
 
 		// If there are more messages, schedule the next check
 		if (this.statusQueue.length > 0) {

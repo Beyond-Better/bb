@@ -12,7 +12,7 @@ import type {
 	ProgressStatusMessage,
 	PromptCacheTimerMessage,
 } from 'shared/types.ts';
-//import { ApiStatus } from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
@@ -283,6 +283,14 @@ export const conversationChat = new Command()
 						conversationId,
 						false,
 					);
+					// Set idle state after answer is displayed
+					terminalHandler?.handleProgressStatus({
+						type: 'progress_status',
+						status: ApiStatus.IDLE,
+						statementCount: messageData.conversationStats.statementCount,
+						sequence: Number.MAX_SAFE_INTEGER,
+						timestamp: Date.now(),
+					});
 				}, conversationId);
 
 				eventManager.on('cli:conversationError', async (data) => {

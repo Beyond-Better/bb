@@ -184,7 +184,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				status: {
 					...chatState.value.status,
 					apiStatus: status.status,
-					toolName: status.metadata?.toolName,
+					toolName: status.metadata?.toolName?.replace(/_/g, ' '),
 				},
 			};
 		});
@@ -272,16 +272,22 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				logEntries: [...chatState.value.logEntries, data.logEntryData],
 			};
 
-			// If this is an answer, end processing
+			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				chatState.value = {
 					...chatState.value,
 					status: {
 						...chatState.value.status,
-
 						isLoading: false,
 					},
 				};
+				// Add idle state to status queue with max sequence to ensure it's last
+				statusQueue.addMessage({
+					status: ApiStatus.IDLE,
+					timestamp: Date.now(),
+					statementCount: data.logEntryData.conversationStats.statementCount,
+					sequence: Number.MAX_SAFE_INTEGER,
+				});
 			}
 		};
 

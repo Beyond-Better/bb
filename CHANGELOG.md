@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.6] - 2024-11-23
+
+### Changed
+
+- Improved status handling in BUI and CLI to provide smoother transitions and more reliable idle state handling
+- Updated conversation_metrics and conversation_summary tools to provide clearer guidance about stopping after completion unless explicitly asked to continue
+
+
+
 ## [0.3.5] - 2024-11-23
 
 ### Changed

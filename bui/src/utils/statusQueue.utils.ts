@@ -52,28 +52,39 @@ export class StatusQueue {
 			return;
 		}
 
-		// Process all messages that are ready
-		while (this.queue.length > 0) {
-			const nextMessage = this.queue[0];
+		// If queue is empty, nothing to do
+		if (this.queue.length === 0) return;
 
-			// If this is a very quick status change and not the final message, skip it
-			if (
-				this.queue.length > 1 &&
-				nextMessage.statementCount === this.queue[1].statementCount &&
-				nextMessage.timestamp + this.minDisplayTime > now
-			) {
-				this.queue.shift(); // Remove the quick status
-				continue;
+		// Get the last message in the current batch (messages for the same statement)
+		const currentMessage = this.queue[0];
+		const currentStatementCount = currentMessage.statementCount;
+		let lastMessageInBatch = currentMessage;
+		let batchSize = 1;
+
+		// Look ahead to find all messages in the same batch
+		for (let i = 1; i < this.queue.length; i++) {
+			if (this.queue[i].statementCount === currentStatementCount) {
+				lastMessageInBatch = this.queue[i];
+				batchSize++;
+			} else {
+				break;
 			}
-
-			// Update the status
-			this.currentStatus = nextMessage;
-			this.lastUpdateTime = now;
-			this.queue.shift();
-			console.log('StatusQueue: Updating status:', nextMessage);
-			this.updateCallback(nextMessage);
-			break;
 		}
+
+		// If we have multiple messages in the batch and the last one is recent
+		if (batchSize > 1 && lastMessageInBatch.timestamp + (this.minDisplayTime / 2) > now) {
+			// Wait a short time to see if more messages arrive
+			setTimeout(() => this.processQueue(), this.minDisplayTime / 2);
+			return;
+		}
+
+		// Process the last message in the batch
+		this.currentStatus = lastMessageInBatch;
+		this.lastUpdateTime = now;
+		// Remove all messages up to and including the one we're processing
+		this.queue.splice(0, batchSize);
+		console.log('StatusQueue: Updating status:', lastMessageInBatch);
+		this.updateCallback(lastMessageInBatch);
 
 		// If there are more messages, schedule the next check
 		if (this.queue.length > 0) {
