@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
+## [0.3.5] - 2024-11-23
+
+### Changed
+
 - Fixed API startup failure recovery mechanism
 - Added graceful handling of tool cancellation states
 - Implemented error message propagation from LLM to BUI/CLI
