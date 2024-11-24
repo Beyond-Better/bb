@@ -2,8 +2,8 @@ import { logger } from 'shared/logger.ts';
 import { relative, resolve } from '@std/path';
 import { stripIndents } from 'common-tags';
 import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
-import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
-import type ProjectEditor from '../editor/projectEditor.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createFileChangeXmlString } from './fileChange.utils.ts';
 import { GitUtils } from 'shared/git.ts';
 
@@ -73,8 +73,8 @@ export async function stageAndCommitAfterChanging(
 			await GitUtils.stageAndCommit(gitRoot, filesArray, commitMessage);
 			logger.info(`✓ Successfully created commit in ${gitRoot} for files: ${filesArray.join(', ')}`);
 		} catch (error) {
-			logger.error(`✗ Failed to create commit in ${gitRoot}: ${error.message}`);
-			logger.error('Stack trace:', error.stack);
+			logger.error(`✗ Failed to create commit in ${gitRoot}: ${(error as Error).message}`);
+			logger.error('Stack trace:', (error as Error).stack);
 		}
 	}
 }

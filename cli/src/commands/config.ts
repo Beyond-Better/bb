@@ -70,7 +70,7 @@ export const config = new Command()
 			}
 			console.log(formatValue(config));
 		} catch (error) {
-			console.error(colors.red(`Error: ${error.message}`));
+			console.error(colors.red(`Error: ${(error as Error).message}`));
 			Deno.exit(1);
 		}
 	})
@@ -105,7 +105,7 @@ export const config = new Command()
 
 			console.log(formatValue(value));
 		} catch (error) {
-			console.error(colors.red(`Error: ${error.message}`));
+			console.error(colors.red(`Error: ${(error as Error).message}`));
 			Deno.exit(1);
 		}
 	})
@@ -134,7 +134,7 @@ export const config = new Command()
 				);
 			}
 		} catch (error) {
-			console.error(colors.red(`Error: ${error.message}`));
+			console.error(colors.red(`Error: ${(error as Error).message}`));
 			Deno.exit(1);
 		}
 	});

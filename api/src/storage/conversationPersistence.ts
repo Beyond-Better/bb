@@ -21,9 +21,9 @@ import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 //import { ConfigManager } from 'shared/configManager.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from '../errors/error.ts';
-import type ProjectEditor from '../editor/projectEditor.ts';
-import type { ProjectInfo } from '../llms/interactions/conversationInteraction.ts';
+import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 
 // Ensure ProjectInfo includes startDir
@@ -251,7 +251,7 @@ class ConversationPersistence {
 				logger.info(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
 			}
 		} catch (error) {
-			logger.error(`ConversationPersistence: Error saving conversation: ${error.message}`);
+			logger.error(`ConversationPersistence: Error saving conversation: ${(error as Error).message}`);
 			this.handleSaveError(error, this.metadataPath);
 		}
 	}
@@ -298,7 +298,7 @@ class ConversationPersistence {
 					}
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading objectives: ${error.message}`);
+				logger.warn(`ConversationPersistence: Error loading objectives: ${(error as Error).message}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -310,7 +310,7 @@ class ConversationPersistence {
 					resources.modified.forEach((r) => conversation.updateResourceAccess(r, true));
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading resources: ${error.message}`);
+				logger.warn(`ConversationPersistence: Error loading resources: ${(error as Error).message}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -323,7 +323,7 @@ class ConversationPersistence {
 					logger.debug('ConversationPersistence: Loaded project info from JSON');
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading project info: ${error.message}`);
+				logger.warn(`ConversationPersistence: Error loading project info: ${(error as Error).message}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -336,7 +336,7 @@ class ConversationPersistence {
 						const messageData = JSON.parse(line);
 						conversation.addMessage(messageData);
 					} catch (error) {
-						logger.error(`ConversationPersistence: Error parsing message: ${error.message}`);
+						logger.error(`ConversationPersistence: Error parsing message: ${(error as Error).message}`);
 						// Continue to the next message if there's an error
 					}
 				}
@@ -356,7 +356,7 @@ class ConversationPersistence {
 
 			return conversation;
 		} catch (error) {
-			logger.error(`ConversationPersistence: Error loading conversation: ${error.message}`);
+			logger.error(`ConversationPersistence: Error loading conversation: ${(error as Error).message}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`File or directory not found when loading conversation: ${this.metadataPath}`,
@@ -662,7 +662,7 @@ class ConversationPersistence {
 			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
 			logger.info(`ConversationPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
 		} catch (error) {
-			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${error.message}`, {
+			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${(error as Error).message}`, {
 				filePath: this.projectInfoPath,
 				operation: 'write',
 			} as FileHandlingErrorOptions);
@@ -678,7 +678,7 @@ class ConversationPersistence {
 			}
 			return null;
 		} catch (error) {
-			throw createError(ErrorType.FileHandling, `Failed to load project info JSON: ${error.message}`, {
+			throw createError(ErrorType.FileHandling, `Failed to load project info JSON: ${(error as Error).message}`, {
 				filePath: this.projectInfoPath,
 				operation: 'read',
 			} as FileHandlingErrorOptions);
@@ -787,7 +787,7 @@ class ConversationPersistence {
 			logger.info(`ConversationPersistence: Successfully deleted conversation: ${this.conversationId}`);
 		} catch (error) {
 			logger.error(`ConversationPersistence: Error deleting conversation: ${this.conversationId}`, error);
-			throw createError(ErrorType.FileHandling, `Failed to delete conversation: ${error.message}`, {
+			throw createError(ErrorType.FileHandling, `Failed to delete conversation: ${(error as Error).message}`, {
 				filePath: this.conversationDir,
 				operation: 'delete',
 			} as FileHandlingErrorOptions);

@@ -1,12 +1,12 @@
-import type LLMInteraction from '../llms/interactions/baseInteraction.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type { TokenUsage } from 'shared/types.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
-export type { LLMToolInputSchema } from '../llms/llmTool.ts';
+export type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from '../llms/llmMessage.ts';
-export type { LLMMessageContentPart, LLMMessageContentParts } from '../llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
+export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 export enum AnthropicModel {
 	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',

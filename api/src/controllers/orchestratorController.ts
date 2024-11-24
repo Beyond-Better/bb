@@ -2,8 +2,8 @@ import * as diff from 'diff';
 
 import type InteractionManager from '../llms/interactions/interactionManager.ts';
 import { interactionManager } from '../llms/interactions/interactionManager.ts';
-import type ProjectEditor from '../editor/projectEditor.ts';
-import type { ProjectInfo } from '../editor/projectEditor.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLM from '../llms/providers/baseLLM.ts';
 import LLMFactory from '../llms/llmProvider.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -11,7 +11,7 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
 import LLMToolManager from '../llms/llmToolManager.ts';
-import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
 import AgentController from './agentController.ts';
 import PromptManager from '../prompts/promptManager.ts';
@@ -35,7 +35,7 @@ import { ApiStatus } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
-import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from '../types.ts';
+import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import {
 	generateConversationObjective,
 	generateConversationTitle,
@@ -150,10 +150,10 @@ class OrchestratorController {
 		// Extract useful information from the error if it's our custom error type
 		const errorDetails = error instanceof Error
 			? {
-				message: error.message,
-				code: error.name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
+				message: (error as Error).message,
+				code: (error as Error).name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
 				// Include any additional error properties if available
-				details: (error as any).details || {},
+				details: (error as unknown as {details:unknown}).details || {},
 			}
 			: {
 				message: String(error),
@@ -345,9 +345,9 @@ class OrchestratorController {
 
 			return conversation;
 		} catch (error) {
-			logger.warn(`OrchestratorController: Failed to load conversation ${conversationId}: ${error.message}`);
+			logger.warn(`OrchestratorController: Failed to load conversation ${conversationId}: ${(error as Error).message}`);
 			logger.error(`OrchestratorController: Error details:`, error);
-			logger.debug(`OrchestratorController: Stack trace:`, error.stack);
+			logger.debug(`OrchestratorController: Stack trace:`, (error as Error).stack);
 			return null;
 		}
 	}
@@ -824,7 +824,7 @@ class OrchestratorController {
 			// Update orchestrator's stats
 			this.updateStats(interaction.id, interaction.getConversationStats());
 		} catch (error) {
-			this.handleLLMError(error, interaction);
+			this.handleLLMError(error as Error, interaction);
 			throw error;
 		}
 
@@ -860,9 +860,9 @@ class OrchestratorController {
 							// You can use thinkingContent here as needed, e.g., add it to a separate array or log it
 						} catch (error) {
 							logger.warn(
-								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${error.message}`,
+								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${(error as Error).message}`,
 							);
-							toolResponses.push(`Error with ${toolUse.toolName}: ${error.message}`);
+							toolResponses.push(`Error with ${toolUse.toolName}: ${(error as Error).message}`);
 						}
 					}
 				}
@@ -887,7 +887,7 @@ class OrchestratorController {
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
 					} catch (error) {
-						this.handleLLMError(error, interaction);
+						this.handleLLMError(error as Error, interaction);
 						throw error; // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
 					}
 				} else {
@@ -895,7 +895,7 @@ class OrchestratorController {
 					break;
 				}
 			} catch (error) {
-				logger.error(`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${error.message}`);
+				logger.error(`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`);
 				if (loopTurnCount === maxTurns - 1) {
 					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 				}
@@ -904,9 +904,9 @@ class OrchestratorController {
 					messageResponse: {
 						answerContent: [{
 							type: 'text',
-							text: `Error occurred: ${error.message}. Continuing conversation.`,
+							text: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
 						}],
-						answer: `Error occurred: ${error.message}. Continuing conversation.`,
+						answer: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
 					},
 					messageMeta: {},
 				} as LLMSpeakWithResponse;
@@ -1144,7 +1144,7 @@ class OrchestratorController {
 			// Remove the last change from the log
 			await persistence.removeLastChange();
 		} catch (error) {
-			logger.error(`Error reverting last change: ${error.message}`);
+			logger.error(`Error reverting last change: ${(error as Error).message}`);
 			throw error;
 		}
 	}

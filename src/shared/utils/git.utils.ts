@@ -20,7 +20,7 @@ export class GitUtils {
 			if (error instanceof Error && error.message.includes('ENOENT')) {
 				logger.warn('Git is not installed or not in the PATH');
 			} else {
-				logger.error(`Unexpected error when initializing git: ${error.message}`);
+				logger.error(`Unexpected error when initializing git: ${(error as Error).message}`);
 			}
 			return null;
 		}
@@ -80,7 +80,7 @@ export class GitUtils {
 			}
 			await git.init();
 		} catch (error) {
-			throw new Error(`Failed to init git repo: ${error.message}`);
+			throw new Error(`Failed to init git repo: ${(error as Error).message}`);
 		}
 	}
 
@@ -98,7 +98,7 @@ export class GitUtils {
 
 			return `Changes committed successfully: ${commitMessage}`;
 		} catch (error) {
-			throw new Error(`Failed to stage and commit changes: ${error.message}`);
+			throw new Error(`Failed to stage and commit changes: ${(error as Error).message}`);
 		}
 	}
 
@@ -111,7 +111,7 @@ export class GitUtils {
 			const result = await git.revparse(['HEAD']);
 			return result.trim();
 		} catch (error) {
-			throw new Error(`Failed to get current commit: ${error.message}`);
+			throw new Error(`Failed to get current commit: ${(error as Error).message}`);
 		}
 	}
 
@@ -127,7 +127,7 @@ export class GitUtils {
 			}
 			return null;
 		} catch (error) {
-			throw new Error(`Failed to get last commit for file ${filePath}: ${error.message}`);
+			throw new Error(`Failed to get last commit for file ${filePath}: ${(error as Error).message}`);
 		}
 	}
 }

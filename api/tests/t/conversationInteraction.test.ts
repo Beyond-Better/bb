@@ -2,7 +2,7 @@ import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import LLMMessage, { LLMMessageContentPart, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';

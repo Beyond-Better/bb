@@ -146,9 +146,9 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 
 				// Provide user-friendly error messages
 				let errorMessage = 'Failed to initialize chat';
-				if (error.message.includes('timeout')) {
+				if ((error as Error).message.includes('timeout')) {
 					errorMessage = 'Connection timed out. Please check your network and try again.';
-				} else if (error.message.includes('WebSocket')) {
+				} else if ((error as Error).message.includes('WebSocket')) {
 					errorMessage = 'Failed to establish real-time connection. Please refresh the page.';
 				}
 

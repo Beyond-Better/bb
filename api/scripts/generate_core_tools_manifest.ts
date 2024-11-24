@@ -1,5 +1,5 @@
 import { join } from '@std/path';
-import { stripIndents } from 'common-tags';
+//import { stripIndents } from 'common-tags';
 
 // paths relative to api/deno.jsonc
 const TOOLS_DIR = './src/llms/tools';
@@ -19,7 +19,7 @@ async function generateCoreTools() {
 					metadata: info,
 				});
 			} catch (error) {
-				console.error(`Error reading ${infoPath}:`, error);
+				console.error(`Error reading ${infoPath}:`, error as Error);
 			}
 		}
 	}

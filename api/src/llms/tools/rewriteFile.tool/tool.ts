@@ -253,10 +253,10 @@ export default class LLMToolRewriteFile extends LLMTool {
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			if (error.name === 'rewrite-file') {
+			if ((error as Error).name === 'rewrite-file') {
 				throw error;
 			}
-			const errorMessage = `Failed to write contents to ${filePath}: ${error.message}`;
+			const errorMessage = `Failed to write contents to ${filePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolRewriteFile: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {

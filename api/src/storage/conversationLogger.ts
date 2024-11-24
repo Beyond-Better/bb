@@ -5,7 +5,7 @@ import { renderToString } from 'preact-render-to-string';
 
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
-import { ConversationId, ConversationMetrics, ConversationTokenUsage, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, ConversationMetrics, ConversationTokenUsage, TokenUsage } from 'shared/types.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
@@ -190,7 +190,7 @@ export default class ConversationLogger {
 		try {
 			await this.appendToJsonLog(jsonEntry);
 		} catch (error) {
-			logger.error('Error appending to json log:', error);
+			logger.error('Error appending to json log:', (error as Error));
 		}
 	}
 

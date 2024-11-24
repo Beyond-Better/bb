@@ -10,11 +10,11 @@ import type {
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
 	LLMValidateResponseCallback,
-} from '../../types.ts';
-import type { LLMMessageContentPart } from '../llmMessage.ts';
+} from 'api/types.ts';
+import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
 //import LLMTool from '../llmTool.ts';
-import type { LLMToolInputSchema } from '../llmTool.ts';
-import type LLMInteraction from '../interactions/baseInteraction.ts';
+import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
@@ -159,11 +159,11 @@ class LLM {
 					// Handle any unexpected errors
 					throw createError(
 						ErrorType.LLM,
-						`Unexpected error calling LLM service: ${error.message}`,
+						`Unexpected error calling LLM service: ${(error as Error).message}`,
 						{
 							model: interaction.model,
 							provider: this.llmProviderName,
-							args: { reason: error },
+							args: { reason: (error as Error) },
 							conversationId: interaction.id,
 						} as LLMErrorOptions,
 					);
@@ -234,8 +234,8 @@ class LLM {
 					}
 				} catch (error) {
 					logger.error(
-						`provider[${this.llmProviderName}] Error processing answer content: ${error.message}`,
-						error,
+						`provider[${this.llmProviderName}] Error processing answer content: ${(error as Error).message}`,
+						(error as Error),
 					);
 					llmSpeakWithResponse.messageResponse.answer = 'Error: Failed to process LLM response content';
 					llmSpeakWithResponse.messageResponse.answerContent = [{
@@ -303,9 +303,9 @@ class LLM {
 			} catch (error) {
 				logger.error(
 					`provider[${this.llmProviderName}] speakWithRetry: Error calling speakWithPlus`,
-					error,
+					(error as Error),
 				);
-				failReason = `caught error: ${error}`;
+				failReason = `caught error: ${(error as Error)}`;
 			}
 			logger.warn(
 				`provider[${this.llmProviderName}] Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,

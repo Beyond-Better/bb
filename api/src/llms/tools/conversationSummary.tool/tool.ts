@@ -244,11 +244,11 @@ A summary of the removed messages has been added to the start of the conversatio
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`LLMToolConversationSummary: Error summarizing and truncating conversation: ${error.message}`);
+			logger.error(`LLMToolConversationSummary: Error summarizing and truncating conversation: ${(error as Error).message}`);
 
 			throw createError(
 				ErrorType.ToolHandling,
-				`Error summarizing and truncating conversation: ${error.message}`,
+				`Error summarizing and truncating conversation: ${(error as Error).message}`,
 				{
 					name: 'summarize-and-truncate',
 					toolName: 'conversation_summary',
@@ -399,7 +399,7 @@ A summary of the removed messages has been added to the start of the conversatio
 		} catch (error) {
 			throw createError(
 				ErrorType.ToolHandling,
-				`Failed to summarize and truncate conversation: ${error.message}`,
+				`Failed to summarize and truncate conversation: ${(error as Error).message}`,
 				{
 					name: 'summarize-and-truncate',
 					toolName: 'conversation_summary',
@@ -1104,7 +1104,7 @@ Ensure your summary accurately captures all important context from the removed m
 
 			return { keptMessages: finalKeptMessages, summary, providerResponse: response.messageResponse };
 		} catch (error) {
-			throw createError(ErrorType.ToolHandling, `Failed to generate and validate summary: ${error.message}`, {
+			throw createError(ErrorType.ToolHandling, `Failed to generate and validate summary: ${(error as Error).message}`, {
 				name: 'generate-summary',
 				toolName: 'conversation_summary',
 				operation: 'tool-run',

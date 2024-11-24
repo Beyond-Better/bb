@@ -121,11 +121,11 @@ export default class LLMToolFetchWebPage extends LLMTool {
 				},
 			};
 		} catch (error) {
-			logger.error(`LLMToolFetchWebPage: Failed to fetch web page: ${error.message}`);
+			logger.error(`LLMToolFetchWebPage: Failed to fetch web page: ${(error as Error).message}`);
 
-			const toolResults = `⚠️  ${error.message}`;
-			const bbResponse = `BB failed to fetch web page. Error: ${error.message}`;
-			const toolResponse = `Failed to fetch web page. Error: ${error.message}`;
+			const toolResults = `⚠️  ${(error as Error).message}`;
+			const bbResponse = `BB failed to fetch web page. Error: ${(error as Error).message}`;
+			const toolResponse = `Failed to fetch web page. Error: ${(error as Error).message}`;
 			return { toolResults, toolResponse, bbResponse };
 		}
 	}

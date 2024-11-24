@@ -10,6 +10,7 @@ import { conversationChat } from './commands/conversationChat.ts';
 import { conversationList } from './commands/conversationList.ts';
 import { viewLogs } from './commands/viewLogs.ts';
 import { config as configCommand } from './commands/config.ts';
+import { secure } from './commands/secure.ts';
 //import { logger } from 'shared/logger.ts';
 
 const globalConfig = await ConfigManager.globalConfig();
@@ -34,7 +35,8 @@ const cli = new Command()
 	.command('stop', apiStop)
 	.command('status', apiStatus)
 	.command('restart', apiRestart)
-	.command('config', configCommand);
+	.command('config', configCommand)
+	.command('secure', secure);
 
 export const main = async () => {
 	await cli.parse(Deno.args);

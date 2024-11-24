@@ -59,10 +59,10 @@ export const logEntryFormatter = async (
 		response.body = { formattedContent: htmlContent };
 	} catch (error) {
 		logger.error(
-			`Error in logEntryFormatter for logEntryFormatterType: ${logEntryFormatterType}: ${error.message}`,
+			`Error in logEntryFormatter for logEntryFormatterType: ${logEntryFormatterType}: ${(error as Error).message}`,
 			error,
 		);
 		response.status = 500;
-		response.body = { error: 'Failed to format log entry', details: error.message };
+		response.body = { error: 'Failed to format log entry', details: (error as Error).message };
 	}
 };

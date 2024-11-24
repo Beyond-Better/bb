@@ -51,6 +51,6 @@ export const viewLogs = new Command()
 				console.log(lastLines);
 			}
 		} catch (error) {
-			console.error(JSON.stringify({ error: `Error reading log file: ${error.message}` }));
+			console.error(JSON.stringify({ error: `Error reading log file: ${(error as Error).message}` }));
 		}
 	});

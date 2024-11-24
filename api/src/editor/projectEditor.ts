@@ -2,8 +2,8 @@ import { join } from '@std/path';
 import { getContentType } from 'api/utils/contentTypes.ts';
 
 import { existsWithinProject, generateFileListing, isPathWithinProject } from 'api/utils/fileHandling.ts';
-import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
-import type { ProjectInfo as BaseProjectInfo } from '../llms/interactions/conversationInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type { FileMetadata } from 'shared/types.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 
@@ -208,8 +208,8 @@ class ProjectEditor {
 
 				logger.info(`ProjectEditor: Prepared file ${fileName}`);
 			} catch (error) {
-				logger.error(`ProjectEditor: Error adding file ${fileName}: ${error.message}`);
-				const errorMessage = error.message;
+				logger.error(`ProjectEditor: Error adding file ${fileName}: ${(error as Error).message}`);
+				const errorMessage = (error as Error).message;
 				filesAdded.push({
 					fileName,
 					metadata: {

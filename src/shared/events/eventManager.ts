@@ -151,7 +151,9 @@ class EventManager extends EventTarget {
 			) {
 				const result = callback(e.detail);
 				if (result instanceof Promise) {
-					result.catch((error) => logger.error(`EventManager: Error in event handler for ${event}:`, error));
+					result.catch((error) =>
+						logger.error(`EventManager: Error in event handler for ${event}:`, error)
+					);
 				}
 			}
 		}) as EventListener;

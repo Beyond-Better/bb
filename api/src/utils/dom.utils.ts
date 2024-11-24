@@ -1,4 +1,4 @@
-import { DOMParser, Element, initParser } from 'deno_dom';
+import { DOMParser, type Element, initParser } from 'deno_dom';
 import { logger } from 'shared/logger.ts';
 
 export interface DOMConfig {
@@ -62,7 +62,7 @@ export async function extractTextFromHtml(html: string, config: DOMConfig = {}):
 				try {
 					doc.querySelectorAll(selector).forEach((el: Element) => el.remove());
 				} catch (error) {
-					logger.warn(`Failed to remove elements with selector "${selector}": ${error.message}`);
+					logger.warn(`Failed to remove elements with selector "${selector}": ${(error as Error).message}`);
 				}
 			});
 		}
@@ -145,7 +145,7 @@ export async function extractTextFromHtml(html: string, config: DOMConfig = {}):
 
 		return text;
 	} catch (error) {
-		logger.error(`Failed to extract text from HTML: ${error.message}`);
+		logger.error(`Failed to extract text from HTML: ${(error as Error).message}`);
 		throw error;
 	}
 }
@@ -182,7 +182,7 @@ export async function validateHtml(html: string): Promise<{
 		return {
 			isValid: false,
 			length: html.length,
-			error: error.message,
+			error: (error as Error).message,
 		};
 	}
 }

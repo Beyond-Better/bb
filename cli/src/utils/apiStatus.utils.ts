@@ -60,7 +60,7 @@ export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> 
 			}
 		}
 	} catch (error) {
-		status.error = `Process check failed: ${error.message}`;
+		status.error = `Process check failed: ${(error as Error).message}`;
 		return status;
 	}
 
@@ -77,7 +77,7 @@ export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> 
 			status.apiResponds = response.ok;
 			status.processResponds = true;
 		} catch (error) {
-			status.error = `API check failed: ${error.message}`;
+			status.error = `API check failed: ${(error as Error).message}`;
 		}
 	}
 

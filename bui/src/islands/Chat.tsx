@@ -244,7 +244,7 @@ export default function Chat(): JSX.Element {
 			}
 		} catch (error) {
 			console.error('Failed to delete conversation:', error);
-			setToastMessage(error.message || 'Failed to delete conversation');
+			setToastMessage((error as Error).message || 'Failed to delete conversation');
 			setShowToast(true);
 
 			// If WebSocket is disconnected, wait for reconnection and retry
@@ -329,7 +329,7 @@ export default function Chat(): JSX.Element {
 
 		const handleVisibilityChange = () => {
 			if (document.visibilityState === 'hidden' && isProcessing(chatState.value.status)) {
-				setToastMessage('Claude is working in background');
+				setToastMessage('Statement in progress in background');
 				setShowToast(true);
 			}
 		};
@@ -470,6 +470,7 @@ export default function Chat(): JSX.Element {
 							chatInputRef={chatInputRef}
 							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
 							startDir={startDir}
+							apiClient={chatState.value.apiClient!}
 						/>
 					</div>
 

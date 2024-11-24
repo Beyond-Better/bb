@@ -105,7 +105,7 @@ export const isLLMError = (value: unknown): value is LLMError => {
 export class RateLimitError extends LLMError {
 	constructor(
 		message: string,
-		public options?: LLMRateLimitErrorOptions,
+		public override options?: LLMRateLimitErrorOptions,
 	) {
 		super(message);
 		//this.type = ErrorType.LLMRateLimit;
@@ -118,7 +118,7 @@ export const isRateLimitError = (value: unknown): value is RateLimitError => {
 export class ValidationError extends LLMError {
 	constructor(
 		message: string,
-		public options?: LLMValidationErrorOptions,
+		public override options?: LLMValidationErrorOptions,
 	) {
 		super(message);
 		//this.type = ErrorType.LLMValidation;

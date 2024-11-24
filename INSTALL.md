@@ -12,25 +12,22 @@ Before using BB, ensure you have the following:
 
 1. An Anthropic API key (Note: This is different from your Anthropic chat console login. You can create an API key at https://console.anthropic.com/settings/keys)
 2. [Git](https://git-scm.com/) (latest stable version, recommended but optional)
-3. [ctags](https://github.com/universal-ctags/ctags) (optional, enhances project understanding)
-4. Either `mkcert` or `openssl` for TLS certificate generation (required for proper operation)
 
-Git, ctags, and mkcert can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of BB.
+Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of BB.
 
-To install `mkcert`:
-- On Windows: `choco install mkcert`
-- On macOS: `brew install mkcert`
-- On Linux: Follow the instructions at https://github.com/FiloSottile/mkcert#linux
+Note: BB automatically handles TLS certificate generation and management. During initialization or when enabling TLS, BB will:
+1. Create a local Certificate Authority (CA)
+2. Create a server certificate signed by that CA
+3. Add the CA to your system's trust store (requires your computer's login password)
 
-Note: TLS certificates are required for proper operation of BB. The initialization process will automatically generate the necessary certificates using either `mkcert` or `openssl` if they are installed. If neither is available, an error will be generated explaining how to install them.
+See the [Certificate Management Guide](docs/user/security/certificates.md) for more details.
 
-For technical users: Any valid TLS certificate can be used. BB provides four config options for custom certificates:
-- `api.tlsKeyFile`: File path to the TLS key
-- `api.tlsCertFile`: File path to the TLS certificate
-- `api.tlsKeyPem`: Inlined PEM content of the TLS key
-- `api.tlsCertPem`: Inlined PEM content of the TLS certificate
+For technical users: BB provides several options for TLS configuration:
+- Automatic certificate management (default)
+- Custom certificates via file paths or inline PEM content
+- TLS can be managed using the `bb secure` command
 
-Use either file paths or inlined PEM content, not both.
+See the [Certificate Management Guide](docs/user/security/certificates.md) for advanced configuration options.
 
 ## Installation Methods
 

@@ -150,7 +150,7 @@ export async function stopApiServer(startDir: string): Promise<void> {
 		await removePid(startDir);
 		logger.info('BB API server stopped successfully.');
 	} catch (error) {
-		logger.error(`Error stopping BB API server: ${error.message}`);
+		logger.error(`Error stopping BB API server: ${(error as Error).message}`);
 	}
 }
 
@@ -186,7 +186,7 @@ export async function followApiLogs(apiLogFilePath: string, startDir: string): P
 		if (error instanceof Deno.errors.Interrupted) {
 			console.log('Log following interrupted.');
 		} else {
-			console.error(`Error following logs: ${error.message}`);
+			console.error(`Error following logs: ${(error as Error).message}`);
 		}
 	} finally {
 		Deno.removeSignalListener('SIGINT', () => {});

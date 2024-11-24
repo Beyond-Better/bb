@@ -1,5 +1,5 @@
 import type InteractionManager from '../llms/interactions/interactionManager.ts';
-import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLM from '../llms/providers/baseLLM.ts';
 import type { ConversationId } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
@@ -31,12 +31,13 @@ class AgentController {
 		return interaction;
 	}
 
-	async executeTask(_task: any): Promise<void> { // Replace 'any' with appropriate task type
+	async executeTask(_task: unknown): Promise<void> { // Replace 'any' with appropriate task type
 		// Implement task execution logic here
 	}
 
-	async reportToOrchestrator(): Promise<any> { // Replace 'any' with appropriate return type
+	async reportToOrchestrator(): Promise<unknown> { // Replace 'any' with appropriate return type
 		// Implement reporting logic here
+		return null;
 	}
 
 	// Add other necessary methods

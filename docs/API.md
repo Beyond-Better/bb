@@ -10,14 +10,40 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
 
 ### API Status
 - **GET** `/status`
-  - Check the status of the API.
-  - Response: 
+  - Check the status of the API and TLS configuration.
+  - Query Parameters:
+    - `startDir` (string, optional): Project directory for project-specific configuration
+  - Headers:
+    - `Accept`: Use `text/html` for HTML response, defaults to JSON
+  - Response (JSON): 
     ```json
     {
       "status": "OK",
-      "message": "API is running"
+      "message": "API is running",
+      "platform": "darwin|windows|linux",
+      "platformDisplay": "macOS|Windows|Linux",
+      "trustStoreLocation": "/path/to/trust/store",
+      "tls": {
+        "enabled": true,
+        "certType": "custom|self-signed",
+        "certPath": "path/to/cert.pem",
+        "certSource": "config|project|global",
+        "validFrom": "2024-01-01T00:00:00.000Z",
+        "validUntil": "2025-01-01T00:00:00.000Z",
+        "issuer": "Certificate issuer",
+        "subject": "Certificate subject",
+        "expiryStatus": "valid|expiring|expired"
+      },
+      "configType": "project|global",
+      "projectName": "optional project name"
     }
     ```
+  - HTML Response:
+    - Provides a user-friendly status page
+    - Shows detailed certificate information
+    - Includes platform-specific guidance
+    - Displays trust store status
+    - Provides troubleshooting help
 
 ### Conversation Management
 

@@ -1,4 +1,4 @@
-import { ModelProvider } from '../tool.ts';
+import type { ModelProvider } from '../tool.ts';
 import OpenAI from 'openai';
 import { logger } from 'shared/logger.ts';
 
@@ -25,8 +25,11 @@ export class OpenAIProvider implements ModelProvider {
 
 			return response.choices[0].message.content || '';
 		} catch (error) {
-			logger.error(`LLMToolMultiModelQuery[OpenAIProvider]: Error querying OpenAI model ${model}:`, error);
-			throw new Error(`Failed to query OpenAI model ${model}: ${error.message}`);
+			logger.error(
+				`LLMToolMultiModelQuery[OpenAIProvider]: Error querying OpenAI model ${model}:`,
+				error as Error,
+			);
+			throw new Error(`Failed to query OpenAI model ${model}: ${(error as Error).message}`);
 		}
 	}
 }

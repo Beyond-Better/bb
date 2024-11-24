@@ -1,12 +1,12 @@
-import type ProjectEditor from '../editor/projectEditor.ts';
-import type LLMConversationInteraction from './interactions/conversationInteraction.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunBbResponse, LLMToolRunResultContent, LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
 
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { LLMValidationErrorOptions } from '../errors/error.ts';
+import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
 
@@ -116,13 +116,13 @@ class LLMToolManager {
 							}
 						} catch (error) {
 							logger.error(
-								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${error.message}`,
+								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${(error as Error).message}`,
 							);
 						}
 					}
 				}
 			} catch (error) {
-				logger.error(`LLMToolManager: Error processing directory ${directory}: ${error.message}`);
+				logger.error(`LLMToolManager: Error processing directory ${directory}: ${(error as Error).message}`);
 			}
 		}
 	}
@@ -185,8 +185,8 @@ class LLMToolManager {
 			this.loadedTools.set(name, tool);
 			return tool;
 		} catch (error) {
-			logger.error(`LLMToolManager: Error loading tool ${name}: ${error.message}`);
-			metadata.error = error.message;
+			logger.error(`LLMToolManager: Error loading tool ${name}: ${(error as Error).message}`);
+			metadata.error = (error as Error).message;
 			return undefined;
 		}
 	}
@@ -276,9 +276,9 @@ class LLMToolManager {
 				isError: false,
 			};
 		} catch (error) {
-			logger.error(`llmToolManager: Error executing tool ${toolUse.toolName}: ${error.message}`);
+			logger.error(`llmToolManager: Error executing tool ${toolUse.toolName}: ${(error as Error).message}`);
 
-			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, error.message, true) || '';
+			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, (error as Error).message, true) || '';
 
 			// Update tool usage stats
 			interaction.updateToolStats(toolUse.toolName, false);
@@ -286,7 +286,7 @@ class LLMToolManager {
 			return {
 				messageId,
 				toolResults: [],
-				toolResponse: `Error with ${toolUse.toolName}: ${error.message}`,
+				toolResponse: `Error with ${toolUse.toolName}: ${(error as Error).message}`,
 				bbResponse: 'BB could not run the tool',
 				isError: true,
 			};

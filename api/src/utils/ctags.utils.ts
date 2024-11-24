@@ -88,7 +88,7 @@ async function generateCtagsTier(
 		logger.info(`Created tags for ${tier} using ${tokenCount} tokens - args: ${TIERS[tier].args.join(' ')}`);
 		return tokenCount <= tokenLimit;
 	} catch (error) {
-		logger.error(`Error executing ctags command: ${error.message}`);
+		logger.error(`Error executing ctags command: ${(error as Error).message}`);
 		return false;
 	}
 }
@@ -149,7 +149,7 @@ export async function readCtagsFile(bbDir: string): Promise<string | null> {
 		try {
 			return await Deno.readTextFile(ctagsFilePath);
 		} catch (error) {
-			logger.error(`Error reading ctags file: ${error.message}`);
+			logger.error(`Error reading ctags file: ${(error as Error).message}`);
 		}
 	}
 

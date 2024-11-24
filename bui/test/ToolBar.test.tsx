@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/preact';
+import { render, fireEvent, screen } from '@testing-library/preact';
 import { ToolBar } from '../src/components/ToolBar.tsx';
 import { useRef } from 'preact/hooks';
 
@@ -14,10 +14,47 @@ const createMockChatInputRef = () => {
 };
 
 describe('ToolBar', () => {
+  const mockApiClient = {
+    // Status-related methods
+    getStatus: () => Promise.resolve({
+      status: 'ok',
+      message: 'API is running',
+      platform: 'darwin',
+      platformDisplay: 'macOS',
+      tls: {
+        enabled: true,
+        certType: 'self-signed',
+        certPath: '/path/to/cert',
+        certSource: 'project',
+        validFrom: '2024-01-01T00:00:00Z',
+        validUntil: '2025-01-01T00:00:00Z',
+        issuer: 'Test CA',
+        subject: 'localhost',
+        expiryStatus: 'valid',
+      },
+      configType: 'project',
+      projectName: 'test-project',
+    }),
+    getStatusHtml: () => Promise.resolve('<div>Status HTML</div>'),
+    
+    // Core API methods
+    get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn(),
+    request: vi.fn(),
+
+    // Conversation methods
+    createConversation: vi.fn(),
+    getConversations: vi.fn(),
+    getConversation: vi.fn(),
+    deleteConversation: vi.fn(),
+    formatLogEntry: vi.fn(),
+  };
   const defaultProps = {
     onSendMessage: vi.fn(),
     disabled: false,
     startDir: '.',
+    apiClient: mockApiClient,
   };
 
   it('renders help button and dialog', () => {
@@ -97,6 +134,40 @@ describe('ToolBar', () => {
   });
 
   // Test other toolbar buttons still work with help integration
+  it('shows status dialog when clicking status button', () => {
+    const chatInputRef = createMockChatInputRef();
+    const { getByTitle } = render(
+      <ToolBar 
+        {...defaultProps}
+        onSendMessage={vi.fn()}
+        chatInputRef={chatInputRef}
+      />
+    );
+
+    // Test status button
+    const statusButton = getByTitle('View API status');
+    expect(statusButton).toBeInTheDocument();
+    fireEvent.click(statusButton);
+
+    // Check dialog appears
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('API Status')).toBeInTheDocument();
+  });
+
+  it('disables status button when toolbar is disabled', () => {
+    const chatInputRef = createMockChatInputRef();
+    const { getByTitle } = render(
+      <ToolBar 
+        {...defaultProps}
+        disabled={true}
+        chatInputRef={chatInputRef}
+      />
+    );
+
+    const statusButton = getByTitle('View API status');
+    expect(statusButton).toBeDisabled();
+  });
+
   it('maintains existing toolbar functionality', () => {
     const onSendMessage = vi.fn();
     const chatInputRef = createMockChatInputRef();

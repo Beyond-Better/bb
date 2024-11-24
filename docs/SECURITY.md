@@ -33,11 +33,35 @@ While using BB:
 
 ## TLS Security
 
-BB requires TLS for secure operation. Here are some important points regarding TLS security:
+BB includes built-in TLS certificate management for secure operation. Here are the key security aspects:
 
-1. TLS certificates are automatically generated during the initialization process using either `mkcert` or `openssl`.
-2. If you're using custom certificates, ensure they are from a trusted source and kept up-to-date.
-3. The TLS configuration options (`api.tlsKeyFile`, `tlsKeyPem`, `tlsCertFile`, `tlsCertPem`) should be handled with care, and the key files should be properly secured.
-4. Regularly update your TLS certificates to maintain security standards.
+1. Certificate Management:
+   - Automatic certificate generation and trust store integration
+   - Self-contained certificate authority (CA) creation
+   - Secure certificate storage and handling
+   - Automatic trust store updates
+
+2. Security Features:
+   - TLS enabled by default for all connections
+   - Automatic certificate renewal before expiry
+   - Platform-specific trust store integration
+   - Certificate validation and verification
+
+3. Best Practices:
+   - Keep TLS enabled (default setting)
+   - Monitor certificate expiry through status page
+   - Back up certificate files when deploying
+   - Use `bb secure status` to check certificate health
+
+4. Advanced Configuration:
+   - Custom certificate support via configuration
+   - Multiple certificate storage options
+   - Flexible trust store management
+   - Certificate pinning capabilities
+
+For detailed information about certificate management, see:
+- [Certificate Management Guide](docs/user/security/certificates.md)
+- [Trust Store Guide](docs/user/security/trust-store.md)
+- [Security Troubleshooting](docs/user/security/troubleshooting.md)
 
 Thank you for helping keep BB and our users safe!

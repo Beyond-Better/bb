@@ -201,7 +201,7 @@ Responses will be returned separately for each model, preserving their exact out
 						type: 'error',
 						modelName,
 						modelIdentifier,
-						error: error.message,
+						error: (error as Error).message,
 					};
 				}
 			});
@@ -220,7 +220,7 @@ Responses will be returned separately for each model, preserving their exact out
 						'type': 'text',
 						'text': `Error querying ${result.modelIdentifier}: ${result.error}`,
 					});
-					queryError.push({ modelIdentifier: result.modelIdentifier, error: result.error });
+					queryError.push({ modelIdentifier: result.modelIdentifier, error: result.error || '' });
 				}
 			});
 
@@ -253,7 +253,7 @@ Responses will be returned separately for each model, preserving their exact out
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`LLMToolMultiModelQuery: Error querying models: ${error.message}`);
+			logger.error(`LLMToolMultiModelQuery: Error querying models: ${(error as Error).message}`);
 			throw error;
 		}
 	}

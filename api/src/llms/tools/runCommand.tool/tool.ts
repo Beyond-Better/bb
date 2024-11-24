@@ -199,7 +199,7 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			const errorMessage = `Failed to execute command: ${error.message}`;
+			const errorMessage = `Failed to execute command: ${(error as Error).message}`;
 			logger.error(`LLMToolRunCommand: ${errorMessage}`);
 
 			throw createError(ErrorType.CommandExecution, errorMessage, {
@@ -212,6 +212,7 @@ Note: Arguments must be appropriate for the command being run. Review the comman
 	}
 
 	private stripAnsi(str: string): string {
+		// deno-lint-ignore no-control-regex
 		return str.replace(/\u001b\[\d+m/g, '');
 	}
 

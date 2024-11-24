@@ -82,6 +82,42 @@ To select an option, enter the corresponding number and press Enter.
 3. Select your project directory.
 4. Enter `stop` as the command.
 
+### Certificate Management
+
+BB includes built-in certificate management for secure HTTPS connections:
+
+1. View Certificate Status:
+   ```cmd
+   bb.exe secure status
+   ```
+   This shows:
+   - TLS status (enabled/disabled)
+   - Certificate details and validity
+   - Trust store status
+   - Browser compatibility info
+
+2. Enable TLS (recommended):
+   ```cmd
+   bb.exe secure on
+   ```
+   This will:
+   - Generate necessary certificates
+   - Add the CA to Windows trust store
+   - Update BB configuration
+   Note: You may see a User Account Control (UAC) prompt to allow trust store updates.
+
+3. Disable TLS (not recommended):
+   ```cmd
+   bb.exe secure off
+   ```
+
+4. View Certificates in Windows:
+   - Press Windows+R
+   - Type `certmgr.msc` and press Enter
+   - Expand "Trusted Root Certification Authorities"
+   - Click "Certificates"
+   - Look for "Beyond Better CA"
+
 ### Using BB from Command Line
 
 You can also use BB directly from the command line:
@@ -102,6 +138,12 @@ If you encounter any issues:
 2. Check the API logs: `bb.exe logs --api`
 3. Ensure you're running Command Prompt as an administrator for certain operations.
 4. Verify that your Anthropic API key is correctly set in the `.bb/config.yaml` file.
+5. Check certificate status: `bb.exe secure status`
+6. Try re-enabling TLS: `bb.exe secure on`
+7. Verify certificate in Windows trust store:
+   - Press Windows+R
+   - Type `certmgr.msc` and press Enter
+   - Check "Trusted Root Certification Authorities" > "Certificates"
 
 If problems persist, please create an issue on the [BB GitHub repository](https://github.com/Beyond-Better/bb) with details about the error and steps to reproduce it.
 

@@ -1,4 +1,4 @@
-import { assertEquals, assertExists, assertSpyCalls } from '../../deps.ts';
+import { assertEquals, assertExists, assertSpyCalls } from 'api/tests/deps.ts';
 import { stub } from 'https://deno.land/std@0.181.0/testing/mock.ts';
 import { Application } from 'https://deno.land/x/oak@v12.4.0/mod.ts';
 import { superoak } from 'https://deno.land/x/superoak@4.7.0/mod.ts';

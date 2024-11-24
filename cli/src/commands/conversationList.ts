@@ -71,7 +71,7 @@ export const conversationList = new Command()
 				console.error('Error details:', errorBody.error);
 			}
 		} catch (error) {
-			// 			stopSpinner(spinner);
-			console.error('Error fetching saved conversations:', error.message);
+			//stopSpinner(spinner);
+			console.error('Error fetching saved conversations:', (error as Error).message);
 		}
 	});

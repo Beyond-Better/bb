@@ -7,7 +7,7 @@ import { colors } from 'cliffy/ansi/mod.ts';
 
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import { ConversationId, ConversationLogEntryType, ConversationMetrics, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, ConversationLogEntryType, ConversationMetrics, TokenUsage } from 'shared/types.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 
 // [TODO] this needs to be projectConfig (or fullConfig), which means startDir needs to get passed in
@@ -325,7 +325,7 @@ export async function displayFormattedLogs(
 			}
 		}
 	} catch (error) {
-		console.error(`Error reading log file: ${error.message}`);
+		console.error(`Error reading log file: ${(error as Error).message}`);
 	}
 }
 
@@ -338,7 +338,7 @@ export async function countLogEntries(conversationId: ConversationId): Promise<n
 		// Filter out any empty entries
 		return entries.filter((entry) => entry.trim() !== '').length;
 	} catch (error) {
-		console.error(`Error counting log entries: ${error.message}`);
+		console.error(`Error counting log entries: ${(error as Error).message}`);
 		return 0;
 	}
 }

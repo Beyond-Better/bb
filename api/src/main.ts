@@ -96,8 +96,8 @@ if (import.meta.main) {
 	try {
 		await app.listen(listenOpts);
 	} catch (error) {
-		logger.error(`Failed to start server: ${error.message}`);
-		logger.error(`Stack trace: ${error.stack}`);
+		logger.error(`Failed to start server: ${(error as Error).message}`);
+		logger.error(`Stack trace: ${(error as Error).stack}`);
 		Deno.exit(1);
 	}
 }

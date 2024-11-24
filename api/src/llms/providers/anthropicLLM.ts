@@ -4,9 +4,13 @@ import type { ClientOptions } from 'anthropic';
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
 import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 import LLM from './baseLLM.ts';
-import type LLMInteraction from '../interactions/baseInteraction.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import type {
+	LLMMessageContentPart,
+	LLMMessageContentParts,
+	LLMMessageContentPartTextBlock,
+} from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -17,10 +21,21 @@ import type {
 	LLMProviderMessageResponse,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-} from '../../types.ts';
+} from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
 type AnthropicBlockParam =
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+type AnthropicBlockParamOrString =
+	| string
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+type AnthropicBlockParamOrArray =
 	| string
 	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
 	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
@@ -53,7 +68,7 @@ class AnthropicLLM extends LLM {
 	private hasFileMetadata(text: string): boolean {
 		try {
 			return text.includes(BB_FILE_METADATA_DELIMITER);
-		} catch (e) {
+		} catch (_e) {
 			return false;
 		}
 	}
@@ -65,10 +80,12 @@ class AnthropicLLM extends LLM {
 		const messagesWithFiles: number[] = [];
 
 		messages.forEach((message, index) => {
-			const contentParts = Array.isArray(message.content) ? message.content : [message.content];
+			const contentParts: AnthropicBlockParamOrString[] = Array.isArray(message.content)
+				? message.content
+				: [message.content];
 			const summary: string[] = [];
 
-			const processContent = (part: any, depth: number = 0): void => {
+			const processContent = (part: AnthropicBlockParamOrString, depth: number = 0): void => {
 				const indent = '  '.repeat(depth);
 
 				if (typeof part === 'string') {
@@ -85,7 +102,7 @@ class AnthropicLLM extends LLM {
 					summary.push(`${indent}Is Error: ${part.is_error || false}`);
 
 					// Check if any nested content has file content
-					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPartTextBlock) =>
+					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPart) =>
 						nestedPart.type === 'text' &&
 						typeof nestedPart.text === 'string' &&
 						(this.hasFileMetadata(nestedPart.text) ||
@@ -94,40 +111,46 @@ class AnthropicLLM extends LLM {
 					);
 					if (fileContentParts.length > 0) {
 						summary.push(`${indent}Files in this tool_result:`);
-						fileContentParts.forEach((p: LLMMessageContentPartTextBlock) => {
-							if (p.text.startsWith('Note: File')) {
-								const match = p.text.match(
-									/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
-								);
-								if (match) {
-									summary.push(
-										`${indent}  - ${match[1]} with revision ${match[2]} (current from turn ${
-											match[3]
-										} with revision ${match[4]})`,
+						fileContentParts.forEach((p: LLMMessageContentPart) => {
+							if (p.type === 'text' && typeof p.text === 'string') {
+								if (p.text.startsWith('Note: File')) {
+									const match = p.text.match(
+										/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
 									);
-								}
-							} else if (this.hasFileMetadata(p.text)) {
-								try {
-									const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
-									const metadata = JSON.parse(metadataText);
-									summary.push(
-										`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
-									);
-									summary.push(`${indent}    Size: ${metadata.size} bytes`);
-									summary.push(`${indent}    Last Modified: ${metadata.last_modified}`);
-									if (metadata.mime_type) {
-										summary.push(`${indent}    MIME Type: ${metadata.mime_type}`);
+									if (match) {
+										summary.push(
+											`${indent}  - ${match[1]} with revision ${match[2]} (current from turn ${
+												match[3]
+											} with revision ${match[4]})`,
+										);
 									}
-								} catch (e) {
-									summary.push(`${indent}  - Error parsing file metadata: ${e.message}`);
+								} else if (this.hasFileMetadata(p.text)) {
+									try {
+										const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadata = JSON.parse(metadataText);
+										summary.push(
+											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
+										);
+										summary.push(`${indent}    Size: ${metadata.size} bytes`);
+										summary.push(`${indent}    Last Modified: ${metadata.last_modified}`);
+										if (metadata.mime_type) {
+											summary.push(`${indent}    MIME Type: ${metadata.mime_type}`);
+										}
+									} catch (e) {
+										summary.push(
+											`${indent}  - Error parsing file metadata: ${(e as Error).message}`,
+										);
+									}
 								}
+							} else {
+								logger.error(`content part is not type text: ${p.type}`);
 							}
 						});
 						messagesWithFiles.push(index + 1);
 					}
 
 					summary.push(`${indent}Nested Content:`);
-					part.content.forEach((nestedPart: any, nestedIndex: number) => {
+					part.content.forEach((nestedPart: AnthropicBlockParamOrString, nestedIndex: number) => {
 						summary.push(`${indent}  Content Part ${nestedIndex + 1}:`);
 						processContent(nestedPart, depth + 2);
 					});
@@ -153,7 +176,7 @@ class AnthropicLLM extends LLM {
 								summary.push(`${indent}MIME Type: ${metadata.mime_type}`);
 							}
 						} catch (e) {
-							summary.push(`${indent}Error parsing file metadata: ${e.message}`);
+							summary.push(`${indent}Error parsing file metadata: ${(e as Error).message}`);
 						}
 					} else if (hasFileNote) {
 						const match = part.text.match(
@@ -173,8 +196,8 @@ class AnthropicLLM extends LLM {
 
 				// Check for cache_control
 				if (part && typeof part === 'object' && 'cache_control' in part) {
-					const cacheControl = (part as any).cache_control;
-					summary.push(`${indent}Has cache_control: yes (${cacheControl.type})`);
+					const cacheControl = (part as AnthropicBlockParam).cache_control;
+					summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
 					if (!messagesWithCache.includes(index + 1)) {
 						messagesWithCache.push(index + 1);
 					}
@@ -226,8 +249,8 @@ class AnthropicLLM extends LLM {
 		const lastThreeIndices = new Set(lastThreeFileAddedMessages.map((m) => m.index));
 
 		return messages.map((m, index) => {
-			const prevContent: AnthropicBlockParam = m.content as AnthropicBlockParam;
-			let content: AnthropicBlockParam;
+			const prevContent: AnthropicBlockParamOrArray = m.content as AnthropicBlockParamOrArray;
+			let content: AnthropicBlockParamOrArray;
 
 			// Add cache_control to the last content part of the last three file-added messages
 			if (m.role === 'user' && usePromptCaching && lastThreeIndices.has(index)) {
@@ -291,7 +314,7 @@ class AnthropicLLM extends LLM {
 		} as Anthropic.Tool));
 	}
 
-	async prepareMessageParams(
+	override async prepareMessageParams(
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<Anthropic.MessageCreateParams> {
@@ -367,7 +390,7 @@ class AnthropicLLM extends LLM {
 	 * @param speakOptions LLMSpeakWithOptions
 	 * @returns Promise<LLMProviderMessageResponse> The response from Anthropic or an error
 	 */
-	public async speakWith(
+	public override async speakWith(
 		messageParams: LLMProviderMessageRequest,
 	): Promise<LLMSpeakWithResponse> {
 		try {
@@ -482,7 +505,7 @@ class AnthropicLLM extends LLM {
 			logger.error('Error calling Anthropic API', err);
 			throw createError(
 				ErrorType.LLM,
-				`Could not get response from Anthropic API: ${err.message}`,
+				`Could not get response from Anthropic API: ${(err as Error).message}`,
 				{
 					model: messageParams.model,
 					provider: this.llmProviderName,
@@ -491,7 +514,7 @@ class AnthropicLLM extends LLM {
 		}
 	}
 
-	protected modifySpeakWithInteractionOptions(
+	protected override modifySpeakWithInteractionOptions(
 		interaction: LLMInteraction,
 		speakOptions: LLMSpeakWithOptions,
 		validationFailedReason: string,
@@ -528,7 +551,7 @@ class AnthropicLLM extends LLM {
 		}
 	}
 
-	protected checkStopReason(llmProviderMessageResponse: LLMProviderMessageResponse): void {
+	protected override checkStopReason(llmProviderMessageResponse: LLMProviderMessageResponse): void {
 		// Check if the response has a stop reason
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			// Perform special handling based on the stop reason

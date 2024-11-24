@@ -6,7 +6,7 @@ import type { ConversationId, TokenUsage } from 'shared/types.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+//import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { logger } from 'shared/logger.ts';
 
 class LLMChatInteraction extends LLMInteraction {
@@ -14,18 +14,18 @@ class LLMChatInteraction extends LLMInteraction {
 		super(llm, conversationId);
 	}
 
-	public async prepareSytemPrompt(system: string): Promise<string> {
+	public override async prepareSytemPrompt(system: string): Promise<string> {
 		//logger.info('ChatInteraction: Preparing system prompt for chat', system);
 		return new Promise((resolve) => resolve(system));
 	}
-	public async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
+	public override async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
 		return new Promise((resolve) => resolve(messages));
 	}
-	public async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
+	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
 		return Array.from(tools.values());
 	}
 
-	public async updateTotals(
+	public override async updateTotals(
 		tokenUsage: TokenUsage,
 		role: 'user' | 'assistant' | 'system' = 'assistant',
 	): Promise<void> {

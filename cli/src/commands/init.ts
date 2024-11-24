@@ -1,15 +1,38 @@
 import { Command } from 'cliffy/command/mod.ts';
-import { Input, prompt } from 'cliffy/prompt/mod.ts';
+import { Confirm, Input, prompt } from 'cliffy/prompt/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { logger } from 'shared/logger.ts';
 import { createBbDir, createBbIgnore } from '../utils/init.utils.ts';
 import { basename } from '@std/path';
 //import { GitUtils } from 'shared/git.ts';
-import type { ProjectType, WizardAnswers } from 'shared/configManager.ts';
+import type { ProjectType } from 'shared/configManager.ts';
+
+interface WizardAnswers {
+	project: {
+		name: string;
+		type: ProjectType;
+	};
+	anthropicApiKey?: string;
+	myPersonsName?: string;
+	myAssistantsName?: string;
+	useTls?: boolean;
+}
 import { ConfigManager } from 'shared/configManager.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
 async function runWizard(startDir: string): Promise<WizardAnswers> {
+	// Show password notice if not on Windows
+	if (Deno.build.os !== 'windows') {
+		console.log(colors.bold('\nImportant Note about Security Setup:'));
+		console.log("During the setup process, you may be asked to enter your computer's login password.");
+		console.log('This is needed to install security certificates that keep your connection private.');
+		console.log('When entering your password:');
+		console.log('1. The password will not be visible as you type (this is normal)');
+		console.log("2. Press Return/Enter when you're done typing your password");
+		console.log('3. This is the same password you use to log into your computer');
+		console.log('\nThis is a one-time setup step to ensure secure communication.\n');
+	}
+
 	const configManager = await ConfigManager.getInstance();
 	const existingProjectConfig = await configManager.getExistingProjectConfig(startDir);
 	const globalConfig = await configManager.loadGlobalConfig();
@@ -41,6 +64,13 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 			type: Input,
 			default: defaultAssistantName,
 			hint: 'Used in conversation display',
+		},
+		{
+			name: 'useTls',
+			message: 'Enable secure HTTPS connection?',
+			type: Confirm,
+			default: true,
+			hint: 'Recommended for security',
 		},
 		{
 			name: 'anthropicApiKey',
@@ -93,6 +123,7 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 	if (answers.myAssistantsName && answers.myAssistantsName.trim() !== '') {
 		filteredAnswers.myAssistantsName = answers.myAssistantsName.trim();
 	}
+	filteredAnswers.useTls = answers.useTls;
 	//console.log(filteredAnswers);
 
 	return filteredAnswers;
@@ -215,9 +246,9 @@ export const init = new Command()
 			// Create .bb/ignore file
 			await createBbIgnore(startDir);
 
-			let useTlsCert = true;
+			let useTlsCert = wizardAnswers.useTls ?? true;
 			const certFileName = finalGlobalConfig.api.tlsCertFile || 'localhost.pem';
-			if (!await certificateFileExists(certFileName)) {
+			if (useTlsCert && !await certificateFileExists(certFileName)) {
 				const domain = finalGlobalConfig.api.apiHostname || 'localhost';
 				const validityDays = 365;
 				const certCreated = await generateCertificate(domain, validityDays);
@@ -247,7 +278,7 @@ export const init = new Command()
 
 			//logger.info('BB initialization complete');
 		} catch (error) {
-			logger.error(`Error during BB initialization: ${error.message}`);
+			logger.error(`Error during BB initialization: ${(error as Error).message}`);
 			if (error instanceof Deno.errors.PermissionDenied) {
 				console.error('Error: Permission denied. Please check your file system permissions and try again.');
 			} else if (error instanceof Deno.errors.NotFound) {

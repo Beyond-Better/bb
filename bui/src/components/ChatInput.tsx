@@ -137,7 +137,7 @@ export function ChatInput({
 		}
 		if (isProcessing(status)) {
 			return {
-				message: 'Claude is working...',
+				message: 'Statement in progress...',
 				type: 'info' as const,
 				visible: true,
 				action: onCancelProcessing
@@ -153,13 +153,6 @@ export function ChatInput({
 			return {
 				message: 'Connecting to server...',
 				type: 'warning' as const,
-				visible: true,
-			};
-		}
-		if (isProcessing(status)) {
-			return {
-				message: 'Claude is working...',
-				type: 'info' as const,
 				visible: true,
 			};
 		}
@@ -209,7 +202,7 @@ export function ChatInput({
                       ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
                       ${isProcessing(status) ? 'border-blue-200 bg-white' : ''}`}
 						placeholder={isProcessing(status)
-							? 'Type your message... (Claude is working)'
+							? 'Type your message... (Statement in progress)'
 							: 'Type your message... (Shift + Enter for new line)'}
 						rows={1}
 						maxLength={maxLength}

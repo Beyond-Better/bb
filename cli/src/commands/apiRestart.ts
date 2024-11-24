@@ -27,6 +27,6 @@ export const apiRestart = new Command()
 			await restartApiServer(startDir, apiHostname, apiPort, apiUseTls, apiLogLevel, apiLogFile);
 			logger.info('API restarted successfully.');
 		} catch (error) {
-			logger.error(`Error restarting BB API server: ${error.message}`);
+			logger.error(`Error restarting BB API server: ${(error as Error).message}`);
 		}
 	});

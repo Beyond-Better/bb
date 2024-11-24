@@ -276,10 +276,10 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				//return { toolResults: toolResultContentParts, toolResponse: noChangesMessage, bbResponse: noChangesMessage };
 			}
 		} catch (error) {
-			if (error.name === 'search-and-replace') {
+			if ((error as Error).name === 'search-and-replace') {
 				throw error;
 			}
-			const errorMessage = `Failed to apply search and replace to ${filePath}: ${error.message}`;
+			const errorMessage = `Failed to apply search and replace to ${filePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolSearchAndReplace: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {

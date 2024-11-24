@@ -314,8 +314,8 @@ export const websocketConversation = (ctx: Context) => {
 		ctx.response.status = 200;
 		//ctx.response.body = { status: 'CONNECTED' };
 	} catch (error) {
-		logger.error(`WebSocketHandler: Error in websocketConversation: ${error.message}`, error);
+		logger.error(`WebSocketHandler: Error in websocketConversation: ${(error as Error).message}`, error);
 		ctx.response.status = 500;
-		ctx.response.body = { error: 'Failed to generate response', details: error.message };
+		ctx.response.body = { error: 'Failed to generate response', details: (error as Error).message };
 	}
 };

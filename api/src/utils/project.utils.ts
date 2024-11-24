@@ -13,6 +13,6 @@ export async function runFormatCommand(projectRoot: string, formatCommand: strin
 			throw new Error(`Format command exited with status ${code}`);
 		}
 	} catch (error) {
-		logger.error(`Failed to run format command: ${error.message}`);
+		logger.error(`Failed to run format command: ${(error as Error).message}`);
 	}
 }

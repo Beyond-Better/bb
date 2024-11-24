@@ -46,7 +46,7 @@ In a world where AI assistants are becoming commonplace, Beyond Better stands ou
 - **Intelligent Tools**: Employs LLM tools for clear, purpose-driven interactions.
 - **Web Page Fetching**: The `FetchWebPage` tool allows Beyond Better to retrieve content from web pages, providing additional context and information for the LLM to reference during conversations.
 - **Web Page Screenshot**: The `FetchWebScreenshot` tool enables Beyond Better to capture screenshots of web pages, allowing the LLM to analyze visual content when needed.
-- **Project-Wide Understanding**: Uses `ctags` for initial project comprehension, with plans for advanced techniques like RAG and embeddings in the future.
+- **Project-Wide Understanding**: Uses project file listing for initial project comprehension, with plans for advanced techniques like RAG and embeddings in the future.
 - **Multiple Interface Options**: API, Browser User Interface (BUI), Command Line Interface (CLI), and future Desktop User Interface (DUI) for flexible usage.
 
 ## Who Can Benefit from Beyond Better?
@@ -100,17 +100,16 @@ Before using Beyond Better (BB), ensure you have the following:
 
 1. An Anthropic API key (Note: This is different from your Anthropic chat console login. You'll need to create an API key at https://console.anthropic.com/settings/keys)
 2. [Git](https://git-scm.com/downloads) (latest stable version, recommended but optional)
-3. [ctags](https://github.com/universal-ctags/ctags) (optional, enhances project understanding)
-4. Either `mkcert` or `openssl` for TLS certificate generation (required for proper operation)
 
-To install `mkcert`:
-- On Windows: `choco install mkcert`
-- On macOS: `brew install mkcert`
-- On Linux: Follow the instructions at https://github.com/FiloSottile/mkcert#linux
+Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of Beyond Better.
 
-Note for technical users: Any valid TLS certificate can be used. Beyond Better provides four config options for custom certificates: `api.tlsKeyFile`, `api.tlsCertFile`, `api.tlsKeyPem`, `api.tlsCertPem`. Use either file paths or inlined PEM content, not both.
+Beyond Better includes built-in TLS certificate management:
+- Automatic certificate generation and trust store integration
+- Secure HTTPS communication out of the box
+- Easy management with `bb secure` command
+- Platform-specific trust store handling
 
-Git, ctags, and mkcert can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of Beyond Better. TLS certificates are required for proper operation, and will be automatically generated during the initialization process if not provided.
+See the [Certificate Management Guide](docs/user/security/certificates.md) for details.
 
 ### Installation
 
@@ -153,12 +152,24 @@ On Windows, use `bb.exe` instead of `bb` when using the command line directly.
 
 For detailed information on how to use Beyond Better (BB), please refer to our documentation:
 
-- [API Documentation](docs/API.md): Explore the Beyond Better API endpoints for integrating BB into your workflows or building custom tools.
-- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for Beyond Better.
-- [CLI Documentation](docs/CLI.md): Understand how to use the Beyond Better Command Line Interface for various operations.
-- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface.
+### Core Documentation
+- [Understanding BB](docs/user/understanding-bb.md): Guide to working effectively with BB
+- [How BB Works](docs/user/how-bb-works.md): Technical deep dive into BB's operation
+- [Managing Conversations](docs/user/managing-conversations.md): Learn to manage conversations effectively
+- [Planning Templates](docs/user/planning/README.md): Templates for various project tasks
 
-These guides provide comprehensive information on Beyond Better's features, usage patterns, and best practices to help you make the most of this powerful tool.
+### Security Documentation
+- [Certificates](docs/user/security/certificates.md): Certificate management guide
+- [Trust Store](docs/user/security/trust-store.md): Trust store configuration and management
+- [Security Troubleshooting](docs/user/security/troubleshooting.md): Security-related troubleshooting
+
+### Interface Documentation
+- [API Documentation](docs/API.md): Explore the Beyond Better API endpoints for integrating BB into your workflows or building custom tools
+- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for Beyond Better
+- [CLI Documentation](docs/CLI.md): Understand how to use the Beyond Better Command Line Interface for various operations
+- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface
+
+These guides provide comprehensive information on Beyond Better's features, usage patterns, and best practices to help you make the most of this powerful tool. For a complete overview of available documentation, see our [Documentation Index](docs/README.md).
 
 ## Why Choose Beyond Better?
 

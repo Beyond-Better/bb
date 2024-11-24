@@ -1,24 +1,22 @@
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 //import { existsSync } from '@std/fs';
 
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
+interface FetchWebScreenshotResponseData {
+	data: { url: string; html: string };
+}
 function isFetchWebScreenshotResponse(
 	response: unknown,
-): response is {
-	data: {
-		url: string;
-		html: string;
-	};
-} {
+): response is FetchWebScreenshotResponseData {
 	return (
 		typeof response === 'object' &&
 		response !== null &&
 		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'url' in (response as any).data &&
-		typeof (response as any).data.url === 'string'
+		typeof (response as FetchWebScreenshotResponseData).data === 'object' &&
+		'url' in (response as FetchWebScreenshotResponseData).data &&
+		typeof (response as FetchWebScreenshotResponseData).data.url === 'string'
 	);
 }
 
@@ -115,7 +113,7 @@ Deno.test({
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				await tool.runTool(conversation, toolUse, projectEditor);
 			} catch (error) {
-				assertStringIncludes(error.message, 'Failed to capture screenshot');
+				assertStringIncludes((error as Error).message, 'Failed to capture screenshot');
 			}
 		});
 	},
