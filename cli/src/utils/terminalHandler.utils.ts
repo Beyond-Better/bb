@@ -377,7 +377,7 @@ export class TerminalHandler {
 		console.log('');
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 
@@ -434,13 +434,13 @@ export class TerminalHandler {
 				console.log(formattedEntry);
 			}
 		} catch (error) {
-			console.error(`Error formatting log entry: ${error.message}`);
+			console.error(`Error formatting log entry: ${(error as Error).message}`);
 			// Fallback to basic formatting
 			console.log(`${logEntry.entryType.toUpperCase()}: ${logEntry.content}`);
 		}
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 
@@ -510,7 +510,7 @@ export class TerminalHandler {
 		console.log(summaryLine);
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 

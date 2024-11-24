@@ -2,7 +2,7 @@ import { assert, assertEquals, assertRejects } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 
-import LLMToolConversationSummary from '../tool.ts';
+import type LLMToolConversationSummary from '../tool.ts';
 import type { LLMToolConversationBbResponseData } from '../tool.ts';
 import type {
 	LLMAnswerToolUse,
@@ -13,7 +13,7 @@ import type {
 	LLMMessageContentPartToolUseBlock,
 	//LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import LLMMessage from 'api/llms/llmMessage.ts';
+import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { ConversationMetrics } from 'shared/types.ts';
 
 import { makeChatInteractionStub, makeOrchestratorControllerStub } from 'api/tests/stubs.ts';

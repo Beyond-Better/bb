@@ -14,7 +14,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { createError, ErrorType } from 'api/utils/error.ts';
+//import type { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 
 export default class LLMToolRequestFiles extends LLMTool {
@@ -154,7 +154,7 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 			} else if (error instanceof Deno.errors.PermissionDenied) {
 				errorMessage = `Permission denied: ${error.message}`;
 			} else {
-				errorMessage = error.message;
+				errorMessage = (error as Error).message;
 			}
 			logger.error(`LLMToolRequestFiles: Error adding files to conversation: ${errorMessage}`);
 

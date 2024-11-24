@@ -235,7 +235,8 @@ export class ConfigManager {
 	}
 
 	public async loadGlobalConfig(): Promise<GlobalConfigSchema> {
-		const globalConfigPath = await getGlobalConfigDir();
+		const globalConfigDir = await getGlobalConfigDir();
+		const globalConfigPath = join(globalConfigDir, 'config.yaml');
 		try {
 			const content = await Deno.readTextFile(globalConfigPath);
 			const globalConfig = parseYaml(content) as GlobalConfigSchema;
@@ -249,6 +250,7 @@ export class ConfigManager {
 
 			return globalConfig;
 		} catch (error) {
+			console.error('Error loading global config (using default global config): ', error);
 			return this.defaultGlobalConfig;
 		}
 	}
@@ -273,7 +275,7 @@ export class ConfigManager {
 			this.projectConfigs.set(projectConfig.project.name, projectConfig);
 			return projectConfig;
 		} catch (error) {
-			throw new Error(`Failed to load project config for ${startDir}: ${error.message}`);
+			throw new Error(`Failed to load project config for ${startDir}: ${(error as Error).message}`);
 		}
 	}
 

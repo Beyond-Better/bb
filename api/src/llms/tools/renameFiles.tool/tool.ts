@@ -173,9 +173,9 @@ export default class LLMToolRenameFiles extends LLMTool {
 				} catch (error) {
 					toolResultContentParts.push({
 						'type': 'text',
-						'text': `${source}: ${error.message}`,
+						'text': `${source}: ${(error as Error).message}`,
 					} as LLMMessageContentPartTextBlock);
-					renamedError.push({ source, destination, error: error.message });
+					renamedError.push({ source, destination, error: (error as Error).message });
 				}
 			}
 
@@ -220,11 +220,11 @@ export default class LLMToolRenameFiles extends LLMTool {
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`LLMToolRenameFiles: Error renaming files: ${error.message}`);
+			logger.error(`LLMToolRenameFiles: Error renaming files: ${(error as Error).message}`);
 
-			const toolResults = `⚠️  ${error.message}`;
-			const bbResponse = `BB failed to rename files. Error: ${error.message}`;
-			const toolResponse = `Failed to rename files. Error: ${error.message}`;
+			const toolResults = `⚠️  ${(error as Error).message}`;
+			const bbResponse = `BB failed to rename files. Error: ${(error as Error).message}`;
+			const toolResponse = `Failed to rename files. Error: ${(error as Error).message}`;
 			return { toolResults, toolResponse, bbResponse };
 		}
 	}

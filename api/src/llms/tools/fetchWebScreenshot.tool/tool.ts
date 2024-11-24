@@ -111,11 +111,11 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 				},
 			};
 		} catch (error) {
-			logger.error(`LLMToolFetchWebScreenshot: Failed to capture screenshot: ${error.message}`);
+			logger.error(`LLMToolFetchWebScreenshot: Failed to capture screenshot: ${(error as Error).message}`);
 
-			const toolResults = `⚠️  ${error.message}`;
-			const bbResponse = `BB failed to capture screenshot. Error: ${error.message}`;
-			const toolResponse = `Failed to capture screenshot. Error: ${error.message}`;
+			const toolResults = `⚠️  ${(error as Error).message}`;
+			const bbResponse = `BB failed to capture screenshot. Error: ${(error as Error).message}`;
+			const toolResponse = `Failed to capture screenshot. Error: ${(error as Error).message}`;
 			return { toolResults, toolResponse, bbResponse };
 		}
 	}

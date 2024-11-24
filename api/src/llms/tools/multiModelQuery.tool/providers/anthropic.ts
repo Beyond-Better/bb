@@ -1,4 +1,4 @@
-import { ModelProvider } from '../tool.ts';
+import type { ModelProvider } from '../tool.ts';
 import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
 import { logger } from 'shared/logger.ts';
@@ -29,8 +29,11 @@ export class AnthropicProvider implements ModelProvider {
 			const contentBlocks = response.content as Array<Anthropic.TextBlock>;
 			return contentBlocks[0].text;
 		} catch (error) {
-			logger.error(`LLMToolMultiModelQuery[AnthropicProvider]: Error querying Anthropic model ${model}:`, error);
-			throw new Error(`Failed to query Anthropic model ${model}: ${error.message}`);
+			logger.error(
+				`LLMToolMultiModelQuery[AnthropicProvider]: Error querying Anthropic model ${model}:`,
+				error as Error,
+			);
+			throw new Error(`Failed to query Anthropic model ${model}: ${(error as Error).message}`);
 		}
 	}
 }

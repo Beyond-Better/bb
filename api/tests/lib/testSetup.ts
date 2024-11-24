@@ -24,7 +24,7 @@ export async function cleanupTestProject(testProjectRoot: string) {
 	try {
 		await Deno.remove(testProjectRoot, { recursive: true });
 	} catch (error) {
-		console.error(`Failed to clean up test directory: ${error}`);
+		console.error(`Failed to clean up test directory: ${(error as Error).message}`);
 	}
 }
 

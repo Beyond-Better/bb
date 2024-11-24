@@ -39,7 +39,7 @@ export const requestChanges = new Command()
 			console.error(JSON.stringify(
 				{
 					error: 'Error requesting changes',
-					message: error.message,
+					message: (error as Error).message,
 				},
 				null,
 				2,

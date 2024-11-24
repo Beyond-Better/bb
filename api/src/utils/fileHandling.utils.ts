@@ -10,7 +10,7 @@ import { contentType } from '@std/media-types';
 
 import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { FileHandlingErrorOptions } from '../errors/error.ts';
+import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 
 export const FILE_LISTING_TIERS = [
@@ -272,7 +272,7 @@ export async function searchFilesContent(
 		regex = new RegExp(contentPattern, regexFlags);
 	} catch (error) {
 		logger.error(`FileHandlingUtil: Invalid regular expression: ${contentPattern}`);
-		return { files: [], errorMessage: `Invalid regular expression: ${error.message}` };
+		return { files: [], errorMessage: `Invalid regular expression: ${(error as Error).message}` };
 	}
 
 	try {
@@ -324,8 +324,8 @@ export async function searchFilesContent(
 		searchCache.set(cacheKey, matchingFiles);
 		return { files: matchingFiles, errorMessage: null };
 	} catch (error) {
-		logger.error(`FileHandlingUtil: Error in searchFilesContent: ${error.message}`);
-		return { files: [], errorMessage: error.message };
+		logger.error(`FileHandlingUtil: Error in searchFilesContent: ${(error as Error).message}`);
+		return { files: [], errorMessage: (error as Error).message };
 	}
 }
 
@@ -586,7 +586,7 @@ async function processFile(
 
 		return null;
 	} catch (error) {
-		logger.warn(`FileHandlingUtil: Error processing file ${filePath}: ${error.message}`);
+		logger.warn(`FileHandlingUtil: Error processing file ${filePath}: ${(error as Error).message}`);
 		return null;
 	} finally {
 		if (reader) {
@@ -594,7 +594,9 @@ async function processFile(
 				await reader.cancel();
 				reader.releaseLock();
 			} catch (cancelError) {
-				logger.warn(`FileHandlingUtil: Error cancelling reader for ${filePath}: ${cancelError.message}`);
+				logger.warn(
+					`FileHandlingUtil: Error cancelling reader for ${filePath}: ${(cancelError as Error).message}`,
+				);
 			}
 		}
 		if (file) {
@@ -604,7 +606,7 @@ async function processFile(
 				if (closeError instanceof Deno.errors.BadResource) {
 					logger.debug(`FileHandlingUtil: File was already closed: ${relativePath}`);
 				} else {
-					logger.warn(`FileHandlingUtil: Error closing file ${filePath}: ${closeError.message}`);
+					logger.warn(`FileHandlingUtil: Error closing file ${filePath}: ${(closeError as Error).message}`);
 				}
 			}
 		}
@@ -696,7 +698,7 @@ export async function searchFilesMetadata(
 
 		return { files: matchingFiles, errorMessage: null };
 	} catch (error) {
-		logger.error(`FileHandlingUtil: Error in searchFilesMetadata: ${error.message}`);
-		return { files: [], errorMessage: error.message };
+		logger.error(`FileHandlingUtil: Error in searchFilesMetadata: ${(error as Error).message}`);
+		return { files: [], errorMessage: (error as Error).message };
 	}
 }

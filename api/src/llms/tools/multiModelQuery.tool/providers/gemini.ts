@@ -1,4 +1,4 @@
-import { ModelProvider } from '../tool.ts';
+import type { ModelProvider } from '../tool.ts';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from 'shared/logger.ts';
 
@@ -22,8 +22,11 @@ export class GeminiProvider implements ModelProvider {
 			const response = result.response;
 			return response.text();
 		} catch (error) {
-			logger.error(`LLMToolMultiModelQuery[GeminiProvider]: Error querying Gemini model ${model}:`, error);
-			throw new Error(`Gemini query failed: ${error.message}`);
+			logger.error(
+				`LLMToolMultiModelQuery[GeminiProvider]: Error querying Gemini model ${model}:`,
+				error as Error,
+			);
+			throw new Error(`Gemini query failed: ${(error as Error).message}`);
 		}
 	}
 }

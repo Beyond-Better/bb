@@ -1,11 +1,11 @@
 {
 	"name": "bb-cli",
-	"version": "0.3.6",
+	"version": "0.3.7",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts",
 		"dev": "deno run --watch --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts --log-level-debug",
-		"test": "deno test --allow-env --allow-net --allow-read --allow-run --allow-write tests/",
+		"test": "deno test --allow-env --allow-net --allow-read --allow-run --allow-write --allow-import tests/",
 		"build": "deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --unsafely-ignore-certificate-errors=localhost --output ../build/bb src/main.ts",
 		"format": "deno fmt",
 		"check-format": "deno fmt --check",

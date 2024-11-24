@@ -6,9 +6,17 @@ This directory contains comprehensive documentation for the BB project, organize
 
 ### [user/](user/)
 User-facing documentation and guides for BB users.
+- [Understanding BB](user/understanding-bb.md) - Guide to working effectively with BB
+- [How BB Works](user/how-bb-works.md) - Technical operation details
+- [Managing Conversations](user/managing-conversations.md) - Conversation management guide
+- [Planning Templates](user/planning/README.md) - Project planning templates and examples
 - Installation guides
 - Usage instructions
 - Configuration guides
+- Security documentation:
+  - [Certificates](user/security/certificates.md)
+  - [Trust Store](user/security/trust-store.md)
+  - [Security Troubleshooting](user/security/troubleshooting.md)
 
 ### [development/](development/)
 Documentation for BB developers and contributors.
@@ -36,6 +44,10 @@ The following core documents are maintained at the project root level for easy a
 
 Each subdirectory contains its own README.md with detailed information about the documents in that section. Use these README files to navigate to specific documentation:
 
-- [User Documentation](user/README.md)
-- [Development Documentation](development/README.md)
-- [Archive](archive/README.md)
+- [User Documentation](user/README.md) - Guides and documentation for BB users
+  - Understanding BB and operation guides
+  - Conversation management
+  - Planning templates and examples
+  - Installation and configuration guides
+- [Development Documentation](development/README.md) - Technical documentation for developers
+- [Archive](archive/README.md) - Historical documentation

@@ -62,8 +62,8 @@ export default class LLMToolVectorSearch extends LLMTool {
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`LLMToolVectorSearch: Error performing vector search: ${error.message}`);
-			throw createError(ErrorType.VectorSearch, `Error performing vector search: ${error.message}`, {
+			logger.error(`LLMToolVectorSearch: Error performing vector search: ${(error as Error).message}`);
+			throw createError(ErrorType.VectorSearch, `Error performing vector search: ${(error as Error).message}`, {
 				name: 'vector-search',
 				query,
 				operation: 'search',

@@ -4,7 +4,7 @@ import type { JSX } from 'preact';
 import LLMToolManager from '../llms/llmToolManager.ts';
 import type { ConversationLogEntry, ConversationLogEntryContent, ConversationLogEntryType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import { FullConfigSchema } from 'shared/configSchema.ts';
+import type { FullConfigSchema } from 'shared/configSchema.ts';
 import { escape as escapeHtmlEntities } from '@std/html';
 
 export default class LogEntryFormatterManager {
@@ -63,7 +63,9 @@ export default class LogEntryFormatterManager {
 			}
 		} catch (error) {
 			logger.error(
-				`LogEntryFormatterManager: Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}: ${error.message}`,
+				`LogEntryFormatterManager: Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}: ${
+					(error as Error).message
+				}`,
 			);
 			return `Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}`;
 		}

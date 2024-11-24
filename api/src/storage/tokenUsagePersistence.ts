@@ -37,7 +37,7 @@ export class TokenUsagePersistence {
 				await ensureDir(this.tokenUsageDir);
 			} catch (error) {
 				throw new PersistenceError(
-					`Failed to create token usage directory: ${error.message}`,
+					`Failed to create token usage directory: ${(error as Error).message}`,
 					{
 						name: 'TokenUsagePersistenceError',
 						filePath: this.tokenUsageDir,
@@ -271,7 +271,7 @@ export class TokenUsagePersistence {
 			await Deno.writeTextFile(filePath, line, { append: true });
 		} catch (error) {
 			throw new PersistenceError(
-				`Failed to write token usage record: ${error.message}`,
+				`Failed to write token usage record: ${(error as Error).message}`,
 				{
 					name: 'TokenUsagePersistenceError',
 					filePath,
@@ -298,7 +298,7 @@ export class TokenUsagePersistence {
 				return [];
 			}
 			throw new PersistenceError(
-				`Failed to read token usage records: ${error.message}`,
+				`Failed to read token usage records: ${(error as Error).message}`,
 				{
 					name: 'TokenUsagePersistenceError',
 					filePath: type === 'conversation' ? this.conversationFile : this.chatsFile,
@@ -360,7 +360,7 @@ export class TokenUsagePersistence {
 					'TokenUsagePersistence: Error processing record in analysis',
 					{
 						recordId: record.messageId,
-						error: error.message,
+						error: (error as Error).message,
 					},
 				);
 				// Continue processing other records

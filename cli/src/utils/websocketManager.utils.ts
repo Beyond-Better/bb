@@ -1,6 +1,7 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
-import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+//import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import type { ConversationId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 
 export default class WebsocketManager {
@@ -27,7 +28,7 @@ export default class WebsocketManager {
 				// apiClient.connectWebSocket returns a promise, so we return that promise rather than awaiting
 				return apiClient.connectWebSocket(`/api/v1/ws/conversation/${conversationId}`);
 			} catch (error) {
-				await this.handleRetry(error);
+				await this.handleRetry(error as Error);
 				return connectWebSocket();
 			}
 		};
@@ -208,7 +209,7 @@ export default class WebsocketManager {
 				this.cancellationRequested = false;
 				return;
 			} catch (error) {
-				if (error.message !== 'Timeout') throw error;
+				if ((error as Error).message !== 'Timeout') throw error;
 			}
 		}
 		this.cancellationRequested = false;

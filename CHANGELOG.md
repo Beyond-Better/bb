@@ -9,13 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.7] - 2024-11-24
+
+### Changed
+
+- Upgraded to Deno v2
+- Fixed status queue processing to ensure IDLE status is always displayed after conversation answer
+- Fixed error loading global config
+- Documentation updates
+
+### Added
+
+- Improved TLS certificate management:
+  - Automatic certificate generation and trust store integration
+  - New `bb secure` command for certificate management
+  - Platform-specific trust store handling
+  - Removed external mkcert dependency
+
+- Enhanced security documentation:
+  - New certificate management guide
+  - Trust store documentation
+  - Security troubleshooting guide
+  - Platform-specific certificate handling
+  - Browser compatibility guidance
+
+- Improved status page:
+  - Enhanced certificate information display
+  - Trust store status
+  - Platform-specific guidance
+  - Browser warning solutions
+
+
+
 ## [0.3.6] - 2024-11-23
 
 ### Changed
 
 - Improved status handling in BUI and CLI to provide smoother transitions and more reliable idle state handling
 - Updated conversation_metrics and conversation_summary tools to provide clearer guidance about stopping after completion unless explicitly asked to continue
-
 
 
 ## [0.3.5] - 2024-11-23

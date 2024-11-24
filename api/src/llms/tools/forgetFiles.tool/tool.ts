@@ -148,13 +148,17 @@ export default class LLMToolForgetFiles extends LLMTool {
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`LLMToolForgetFiles: Error removing files from conversation: ${error.message}`);
+			logger.error(`LLMToolForgetFiles: Error removing files from conversation: ${(error as Error).message}`);
 
-			throw createError(ErrorType.FileHandling, `Error removing files from conversation: ${error.message}`, {
-				name: 'forget-files',
-				filePath: projectEditor.projectRoot,
-				operation: 'forget-files',
-			});
+			throw createError(
+				ErrorType.FileHandling,
+				`Error removing files from conversation: ${(error as Error).message}`,
+				{
+					name: 'forget-files',
+					filePath: projectEditor.projectRoot,
+					operation: 'forget-files',
+				},
+			);
 		}
 	}
 }

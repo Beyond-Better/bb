@@ -354,27 +354,27 @@ export const conversationChat = new Command()
 							maxTurns: options.maxTurns,
 						});
 					} catch (error) {
-						logger.error(`Error in chat: ${error.message}`);
+						logger.error(`Error in chat: ${(error as Error).message}`);
 					}
 				}
 				await cleanup();
 				Deno.exit(0);
 			}
 		} catch (error) {
-			if (error.message.startsWith('Failed to start')) {
-				console.error(colors.bold.red(error.message));
+			if ((error as Error).message.startsWith('Failed to start')) {
+				console.error(colors.bold.red((error as Error).message));
 				exit(1);
 			} else {
 				console.error(JSON.stringify(
 					{
 						error: 'Error in conversation',
-						message: error.message,
+						message: (error as Error).message,
 					},
 					null,
 					2,
 				));
-				logger.error(`Unexpected error: ${error.message}`);
-				logger.error(`Stack trace: ${error.stack}`);
+				logger.error(`Unexpected error: ${(error as Error).message}`);
+				logger.error(`Stack trace: ${(error as Error).stack}`);
 			}
 		} finally {
 			await cleanup();
@@ -396,7 +396,7 @@ const processStatement = async (
 ): Promise<void> => {
 	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
-	terminalHandler.startStatement('Claude is working...');
+	terminalHandler.startStatement('Claude is thinking...');
 	try {
 		websocketManager.ws?.send(
 			JSON.stringify({ conversationId, startDir, task, statement, options: { maxTurns: options?.maxTurns } }),

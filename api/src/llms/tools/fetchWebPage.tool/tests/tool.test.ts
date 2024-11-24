@@ -1,27 +1,25 @@
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 //import { existsSync } from '@std/fs';
 
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
+interface FetchWebPageResponseData {
+	data: { url: string; html: string };
+}
 // Type guard function
 function isFetchWebPageResponse(
 	response: unknown,
-): response is {
-	data: {
-		url: string;
-		html: string;
-	};
-} {
+): response is FetchWebPageResponseData {
 	return (
 		typeof response === 'object' &&
 		response !== null &&
 		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'url' in (response as any).data &&
-		typeof (response as any).data.url === 'string' &&
-		'html' in (response as any).data &&
-		typeof (response as any).data.html === 'string'
+		typeof (response as FetchWebPageResponseData).data === 'object' &&
+		'url' in (response as FetchWebPageResponseData).data &&
+		typeof (response as FetchWebPageResponseData).data.url === 'string' &&
+		'html' in (response as FetchWebPageResponseData).data &&
+		typeof (response as FetchWebPageResponseData).data.html === 'string'
 	);
 }
 
@@ -103,7 +101,7 @@ Deno.test({
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				await tool.runTool(conversation, toolUse, projectEditor);
 			} catch (error) {
-				assertStringIncludes(error.message, 'Failed to fetch web page');
+				assertStringIncludes((error as Error).message, 'Failed to fetch web page');
 			}
 		});
 	},
@@ -134,7 +132,7 @@ Deno.test({
 				const conversation = await projectEditor.initConversation('test-conversation-id');
 				await tool.runTool(conversation, toolUse, projectEditor);
 			} catch (error) {
-				assertStringIncludes(error.message, 'Failed to fetch web page');
+				assertStringIncludes((error as Error).message, 'Failed to fetch web page');
 			}
 		});
 	},

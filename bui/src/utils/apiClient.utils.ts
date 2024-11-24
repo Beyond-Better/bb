@@ -1,6 +1,27 @@
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 
-export interface ConversationResponse {
+export interface ApiStatus {
+	status: string;
+	message: string;
+	platform: string;
+	platformDisplay: string;
+	trustStoreLocation?: string;
+	tls: {
+		enabled: boolean;
+		certType?: 'custom' | 'self-signed';
+		certPath?: string;
+		certSource?: 'config' | 'project' | 'global';
+		validFrom?: string;
+		validUntil?: string;
+		issuer?: string;
+		subject?: string;
+		expiryStatus?: 'valid' | 'expiring' | 'expired';
+	};
+	configType: 'project' | 'global';
+	projectName?: string;
+}
+
+interface ConversationResponse {
 	id: string;
 	title: string;
 	updatedAt: string;
@@ -55,7 +76,7 @@ export class ApiClient {
 			return await response.json() as T;
 		} catch (error) {
 			console.error(
-				`APIClient: ${options.method || 'GET'} request failed for ${endpoint}: ${error.message}`,
+				`APIClient: ${options.method || 'GET'} request failed for ${endpoint}: ${(error as Error).message}`,
 			);
 			throw error;
 		}
@@ -101,6 +122,20 @@ export class ApiClient {
 
 	async deleteConversation(id: string, startDir: string): Promise<void> {
 		await this.delete(`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`, [404]);
+	}
+
+	async getStatus(): Promise<ApiStatus | null> {
+		return this.get<ApiStatus>('/api/v1/status');
+	}
+
+	async getStatusHtml(): Promise<string | null> {
+		const response = await fetch(`${this.apiUrl}/api/v1/status`, {
+			headers: {
+				'Accept': 'text/html',
+			},
+		});
+		if (!response.ok) return null;
+		return response.text();
 	}
 
 	async formatLogEntry(entryType: string, logEntry: any, startDir: string): Promise<LogEntryFormatResponse | null> {

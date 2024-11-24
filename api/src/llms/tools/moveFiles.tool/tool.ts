@@ -182,9 +182,9 @@ export default class LLMToolMoveFiles extends LLMTool {
 				} catch (error) {
 					toolResultContentParts.push({
 						'type': 'text',
-						'text': `${source}: ${error.message}`,
+						'text': `${source}: ${(error as Error).message}`,
 					} as LLMMessageContentPartTextBlock);
-					movedError.push({ name: source, error: error.message });
+					movedError.push({ name: source, error: (error as Error).message });
 				}
 			}
 
@@ -231,10 +231,10 @@ export default class LLMToolMoveFiles extends LLMTool {
 				bbResponse,
 			};
 		} catch (error) {
-			logger.error(`LLMToolMoveFiles: Error moving files: ${error.message}`);
-			const toolResults = `⚠️  ${error.message}`;
-			const bbResponse = `BB failed to move files. Error: ${error.message}`;
-			const toolResponse = `Failed to move files. Error: ${error.message}`;
+			logger.error(`LLMToolMoveFiles: Error moving files: ${(error as Error).message}`);
+			const toolResults = `⚠️  ${(error as Error).message}`;
+			const bbResponse = `BB failed to move files. Error: ${(error as Error).message}`;
+			const toolResponse = `Failed to move files. Error: ${(error as Error).message}`;
 			return { toolResults, toolResponse, bbResponse };
 		}
 	}

@@ -31,7 +31,7 @@ export const system: Prompt = {
 				const resolvedPath = await resolveFilePath(guidelinesPath);
 				guidelines = await readFileContent(resolvedPath) || '';
 			} catch (error) {
-				logger.error(`Failed to load guidelines: ${error.message}`);
+				logger.error(`Failed to load guidelines: ${(error as Error).message}`);
 			}
 		}
 

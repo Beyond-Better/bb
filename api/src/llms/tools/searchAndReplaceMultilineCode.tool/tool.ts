@@ -639,10 +639,10 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 				} as FileHandlingErrorOptions);
 			}
 		} catch (error) {
-			if (error.name === 'search-and-replace') {
+			if ((error as Error).name === 'search-and-replace') {
 				throw error;
 			}
-			let errorMessage = `Failed to apply search and replace to ${filePath}: ${error.message}`;
+			const errorMessage = `Failed to apply search and replace to ${filePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolSearchAndReplaceCode: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {

@@ -1,4 +1,4 @@
-import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from '../../types.ts';
+import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
@@ -20,7 +20,7 @@ import type {
 	LLMMessageContentPartTextBlock,
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
-} from '../llmMessage.ts';
+} from 'api/llms/llmMessage.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -117,7 +117,7 @@ class LLMInteraction {
 				.init();
 			this.fullConfig = projectEditor.fullConfig;
 		} catch (error) {
-			logger.error('Failed to initialize LLMInteraction:', error);
+			logger.error('Failed to initialize LLMInteraction:', error as Error);
 			throw error;
 		}
 		return this;

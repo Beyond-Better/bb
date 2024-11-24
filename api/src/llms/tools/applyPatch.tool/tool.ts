@@ -208,7 +208,7 @@ Notes:
 			} else if (error instanceof Deno.errors.PermissionDenied) {
 				errorMessage = `Permission denied: ${error.message}`;
 			} else {
-				errorMessage = `Failed to apply patch: ${error.message}`;
+				errorMessage = `Failed to apply patch: ${(error as Error).message}`;
 			}
 			logger.error(`LLMToolApplyPatch: ${errorMessage}`);
 

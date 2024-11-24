@@ -48,10 +48,11 @@ On Windows, you can also use the provided batch files:
   - Options:
     - `-s, -p, --prompt <string>`: Prompt (or statement) to start or continue the conversation.
     - `-i, --id <string>`: Conversation ID to continue.
-    - `-m, --model <string>`: LLM model to use for the conversation.
     - `--json`: Return JSON instead of plain text.
 
 ### Configuration Management
+
+- `bb secure`: Manage TLS security settings (see Security Management section)
 
 - `bb config`: View or update BB configuration.
   - Commands:
@@ -109,13 +110,46 @@ On Windows, you can also use the provided batch files:
 
 ### Utility Commands
 
-- `bb usage`: Show current token usage (not implemented).
 - `bb logs`: View chat conversation logs (default).
   - Options:
     - `-n, --lines <number>`: Number of lines to display (default: 20).
     - `-f, --follow`: Follow the log output in real-time with color-enabled display for chat conversations.
     - `--api`: Show logs for the API server instead of chat conversations.
     - `-i, --id <string>`: Conversation ID to view logs for.
+- `bb usage`: Show current token usage (not implemented).
+
+### Security Management
+
+- `bb secure`: Manage TLS security for BB API
+  - Commands:
+    - `on`: Enable TLS (recommended)
+      - Generates CA and server certificates
+      - Adds CA to system trust store
+      - Updates configuration
+    - `off`: Disable TLS (not recommended)
+      - Disables TLS in configuration
+      - Keeps certificates for future use
+    - `status`: Show detailed TLS status
+      - Certificate details and validity
+      - Trust store status
+      - Browser compatibility info
+      - Platform-specific guidance
+  - Examples:
+    ```bash
+    # Enable TLS (recommended)
+    bb secure on
+
+    # Check TLS status
+    bb secure status
+
+    # Disable TLS (not recommended)
+    bb secure off
+    ```
+  - Notes:
+    - TLS is enabled by default for security
+    - Certificates are automatically managed
+    - Your computer's login password may be required to update the trust store
+    - See [Certificate Management Guide](user/security/certificates.md) for details
 
 ## Examples
 

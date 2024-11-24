@@ -15,12 +15,13 @@ import { logger } from 'shared/logger.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type InteractionManager from '../../../llms/interactions/interactionManager.ts';
-import type { ResourceManager } from '../../../llms/resourceManager.ts';
-import type { CapabilityManager } from '../../../llms/capabilityManager.ts';
-import type { ErrorHandler } from '../../../llms/errorHandler.ts';
-import type { TaskQueue } from '../../../llms/taskQueue.ts';
+//import type InteractionManager from '../../../llms/interactions/interactionManager.ts';
+//import type { ResourceManager } from '../../../llms/resourceManager.ts';
+//import type { CapabilityManager } from '../../../llms/capabilityManager.ts';
+//import type { ErrorHandler } from '../../../llms/errorHandler.ts';
+//import type { TaskQueue } from '../../../llms/taskQueue.ts';
 
+/*
 interface Task {
 	title: string;
 	background: string;
@@ -36,6 +37,7 @@ interface Resource {
 }
 
 type InputSchema = Record<string, unknown>;
+ */
 
 export default class LLMToolDelegateTasks extends LLMTool {
 	/*
@@ -133,23 +135,27 @@ export default class LLMToolDelegateTasks extends LLMTool {
 	}
 
 	async runTool(
-		interaction: LLMConversationInteraction,
+		_interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { fileNames } = toolInput as { fileNames: string[] };
+		const { fileNames: _filenames } = toolInput as { fileNames: string[] };
 
 		try {
 			return { toolResults: [], toolResponse: '', bbResponse: '' };
 		} catch (error) {
-			logger.error(`LLMToolDelegateTasks: Error adding files to conversation: ${error.message}`);
+			logger.error(`LLMToolDelegateTasks: Error adding files to conversation: ${(error as Error).message}`);
 
-			throw createError(ErrorType.FileHandling, `Error adding files to conversation: ${error.message}`, {
-				name: 'request-files',
-				filePath: projectEditor.projectRoot,
-				operation: 'request-files',
-			});
+			throw createError(
+				ErrorType.FileHandling,
+				`Error adding files to conversation: ${(error as Error).message}`,
+				{
+					name: 'request-files',
+					filePath: projectEditor.projectRoot,
+					operation: 'request-files',
+				},
+			);
 		}
 	}
 
@@ -172,7 +178,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 				const result = await this.executeTask(task);
 				results.push(`Task '${task.title}' completed successfully: ${result}`);
 			} catch (error) {
-				await this.errorHandler.handleError(error, task, 0);
+				await this.errorHandler.handleError((error as Error), task, 0);
 			}
 		}
 

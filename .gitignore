@@ -12,3 +12,6 @@ tags.ignore
 
 bui-orig*
 bui-rewrite*
+
+dui/node_modules
+dui/src-tauri/target/debug

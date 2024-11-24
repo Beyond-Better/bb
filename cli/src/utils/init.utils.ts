@@ -10,7 +10,7 @@ export async function createBbDir(startDir: string): Promise<void> {
 		await ensureDir(bbDir);
 		//logger.info(`Created .bb directory in ${startDir}`);
 	} catch (error) {
-		logger.error(`Failed to create .bb directory: ${error.message}`);
+		logger.error(`Failed to create .bb directory: ${(error as Error).message}`);
 		throw error;
 	}
 }
@@ -25,7 +25,7 @@ export async function createBbIgnore(startDir: string): Promise<void> {
 		}
 	} catch (error) {
 		if (!(error instanceof Deno.errors.NotFound)) {
-			logger.error(`Error checking .bb/ignore file: ${error.message}`);
+			logger.error(`Error checking .bb/ignore file: ${(error as Error).message}`);
 			throw error;
 		}
 		// File doesn't exist, proceed with creation
@@ -33,7 +33,7 @@ export async function createBbIgnore(startDir: string): Promise<void> {
 			await Deno.writeTextFile(bbIgnorePath, getDefaultBbIgnore());
 			//logger.debug('Created .bb/ignore file');
 		} catch (writeError) {
-			logger.error(`Failed to create .bb/ignore file: ${writeError.message}`);
+			logger.error(`Failed to create .bb/ignore file: ${(writeError as Error).message}`);
 			throw writeError;
 		}
 	}

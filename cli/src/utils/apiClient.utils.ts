@@ -51,7 +51,7 @@ export default class ApiClient {
 			}
 			return response;
 		} catch (error) {
-			logger.error(`APIClient: GET request failed for ${endpoint}: ${error.message}`);
+			logger.error(`APIClient: GET request failed for ${endpoint}: ${(error as Error).message}`);
 			throw error;
 		}
 	}
@@ -72,7 +72,7 @@ export default class ApiClient {
 			}
 			return response;
 		} catch (error) {
-			logger.error(`APIClient: POST request failed for ${endpoint}: ${error.message}`);
+			logger.error(`APIClient: POST request failed for ${endpoint}: ${(error as Error).message}`);
 			throw error;
 		}
 	}

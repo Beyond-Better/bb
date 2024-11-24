@@ -4,10 +4,10 @@ import { encodeBase64 } from '@std/encoding';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type {
 	ConversationId,
-	ConversationMetrics,
+	//ConversationMetrics,
 	ConversationTokenUsage,
 	FileMetadata,
-	TokenUsage,
+	//TokenUsage,
 } from 'shared/types.ts';
 
 export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
@@ -118,7 +118,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this._tokenUsageInteraction = tokenUsage;
 	}
 
-	public async prepareSytemPrompt(baseSystem: string): Promise<string> {
+	public override async prepareSytemPrompt(baseSystem: string): Promise<string> {
 		//logger.info('ConversationInteraction: Preparing system prompt', baseSystem);
 		if (!this.conversationPersistence) {
 			throw new Error('ConversationPersistence not initialized');
@@ -149,7 +149,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		return preparedSystemPrompt;
 	}
 
-	public async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
+	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
 		if (!this.conversationPersistence) {
 			throw new Error(
 				'ConversationInteraction: ConversationPersistence not initialized',
@@ -176,7 +176,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		return preparedTools || [];
 	}
 
-	public async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
+	public override async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
 		return await this.hydrateMessages(messages);
 	}
 
@@ -207,7 +207,9 @@ class LLMConversationInteraction extends LLMInteraction {
 							? fileMetadata.lastModified.toISOString()
 							: new Date(fileMetadata.lastModified).toISOString();
 					} catch (error) {
-						logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`);
+						logger.warn(
+							`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`,
+						);
 						return new Date().toISOString(); // Fallback to current date
 					}
 				})(),
@@ -258,7 +260,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			return [metadataBlock, contentBlock];
 		} catch (error) {
 			logger.error(
-				`ConversationInteraction: Error creating content blocks for ${filePath}: ${error.message}`,
+				`ConversationInteraction: Error creating content blocks for ${filePath}: ${(error as Error).message}`,
 			);
 		}
 		return null;
@@ -313,12 +315,16 @@ class LLMConversationInteraction extends LLMInteraction {
 			//logger.info(`ConversationInteraction: Error getting File from project ${filePath} (${revisionId}`, error);
 			if (error instanceof Deno.errors.NotFound) {
 				logger.info(
-					`ConversationInteraction: File not found: ${filePath} (${revisionId}) - ${error.message}`,
+					`ConversationInteraction: File not found: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return '';
 			} else if (error instanceof Deno.errors.PermissionDenied) {
 				logger.info(
-					`ConversationInteraction: Permission denied: ${filePath} (${revisionId}) - ${error.message}`,
+					`ConversationInteraction: Permission denied: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return '';
 			} else {
@@ -340,12 +346,14 @@ class LLMConversationInteraction extends LLMInteraction {
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound || isFileHandlingError(error)) {
 				logger.info(
-					`ConversationInteraction: getFileRevision - File not found: ${filePath} (${revisionId}) - ${error.message}`,
+					`ConversationInteraction: getFileRevision - File not found: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return null;
 				// } else if (error instanceof Deno.errors.PermissionDenied) {
 				// 	logger.info(
-				// 		`ConversationInteraction: getFileRevision - Permission denied: ${filePath} (${revisionId}) - ${error.message}`,
+				// 		`ConversationInteraction: getFileRevision - Permission denied: ${filePath} (${revisionId}) - ${(error as Error).message}`,
 				// 	);
 				// 	return null;
 			} else {
@@ -401,14 +409,16 @@ class LLMConversationInteraction extends LLMInteraction {
 						? fileMetadata.lastModified.toISOString()
 						: new Date(fileMetadata.lastModified).toISOString();
 				} catch (error) {
-					logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`);
+					logger.warn(
+						`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`,
+					);
 					return new Date().toISOString(); // Fallback to current date
 				}
 			})();
 			return `<bbFile path="${filePath}" size="${fileMetadata.size}" last_modified="${lastModifiedISOString}">\n${content}\n</bbFile>`;
 		} catch (error) {
 			logger.error(
-				`ConversationInteraction: Error creating XML string for ${filePath}: ${error.message}`,
+				`ConversationInteraction: Error creating XML string for ${filePath}: ${(error as Error).message}`,
 			);
 			//throw createError(ErrorType.FileHandling, `Failed to create xmlString for ${filePath}`, {
 			//	filePath,
@@ -522,7 +532,9 @@ class LLMConversationInteraction extends LLMInteraction {
 									: new Date(fileMetadata.lastModified).toISOString();
 							} catch (error) {
 								logger.warn(
-									`Failed to convert lastModified to ISO string for ${filePath}: ${error.message}`,
+									`Failed to convert lastModified to ISO string for ${filePath}: ${
+										(error as Error).message
+									}`,
 								);
 								return new Date().toISOString(); // Fallback to current date
 							}
@@ -741,7 +753,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		return this.toolUsageStats;
 	}
 
-	public updateToolStats(toolName: string, success: boolean): void {
+	public override updateToolStats(toolName: string, success: boolean): void {
 		// Update tool counts
 		const currentCount = this.toolUsageStats.toolCounts.get(toolName) || 0;
 		this.toolUsageStats.toolCounts.set(toolName, currentCount + 1);

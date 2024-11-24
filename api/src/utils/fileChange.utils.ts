@@ -4,7 +4,7 @@ export function createFileChangeXmlString(filePath: string, changeContent: strin
 	try {
 		return `<file path="${filePath}">\n${changeContent}\n</file>`;
 	} catch (error) {
-		logger.error(`Error creating XML string for ${filePath}: ${error.message}`);
+		logger.error(`Error creating XML string for ${filePath}: ${(error as Error).message}`);
 		return null;
 	}
 }

@@ -183,7 +183,7 @@ export class WebSocketManager {
 			}, 5000) as unknown as number;
 		} catch (error) {
 			console.error('WebSocketManager: Connection error:', error);
-			this.handleError(error);
+			this.handleError(error as Error);
 			this.scheduleRetry();
 		}
 	}
@@ -452,7 +452,7 @@ export class WebSocketManager {
 				}
 			} catch (error) {
 				console.error('WebSocketManager: Error processing message:', error);
-				this.handleError(error);
+				this.handleError(error as Error);
 			}
 		};
 

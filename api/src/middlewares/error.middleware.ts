@@ -1,8 +1,8 @@
 import { Status } from '@oak/oak';
 import type { Context, State } from '@oak/oak';
 import type { Middleware } from '@oak/oak';
-import { isAPIError } from '../errors/error.ts';
-import type { APIError } from '../errors/error.ts';
+import { isAPIError } from 'api/errors/error.ts';
+import type { APIError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 
@@ -60,7 +60,7 @@ export const errorHandler: Middleware = async (
 			 */
 			const message = globalConfig.api?.environment === 'local' ||
 					globalConfig.api?.environment === 'localdev'
-				? (err.message ?? 'Unknown error occurred')
+				? ((err as Error).message ?? 'Unknown error occurred')
 				: 'Internal Server Error';
 
 			ctx.response.status = Status.InternalServerError;

@@ -1,5 +1,5 @@
-import type LLMInteraction from './baseInteraction.ts';
-import LLMConversationInteraction from './conversationInteraction.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import LLMChatInteraction from './chatInteraction.ts';
 //import { generateConversationId } from 'shared/conversationManagement.ts';

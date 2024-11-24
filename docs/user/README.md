@@ -2,10 +2,32 @@
 
 This directory contains user-facing documentation and guides for BB users.
 
+## Core Documentation
+
+### Understanding BB
+- [Understanding BB](understanding-bb.md) - A guide to working effectively with BB
+- [How BB Works](how-bb-works.md) - Technical deep dive into BB's operation
+- [Managing Conversations](managing-conversations.md) - Guide to effective conversation management
+
+### Planning and Templates
+- [Planning Templates](planning/README.md) - Collection of templates for various tasks
+  - [Basic Planning Template](planning/examples/basic-planning.md)
+  - [API Refactoring Example](planning/examples/api-refactoring.md)
+  - [Documentation Update Template](planning/examples/documentation-update.md)
+  - [Code Review Template](planning/examples/code-review.md)
+  - [Bug Investigation Template](planning/examples/bug-investigation.md)
+  - [Feature Implementation Template](planning/examples/feature-implementation.md)
+  - [Project Analysis Template](planning/examples/project-analysis.md)
+
 ## Guides
 
 ### Installation and Setup
 - [Windows Guide](guides/windows_guide.md) - Detailed guide for installing and using BB on Windows systems
+
+### Security
+- [Certificates](security/certificates.md) - Certificate management guide
+- [Trust Store](security/trust-store.md) - Trust store configuration and management
+- [Troubleshooting](security/troubleshooting.md) - Security-related troubleshooting guide
 
 ## Additional Resources
 
