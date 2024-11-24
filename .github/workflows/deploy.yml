@@ -16,7 +16,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x # Use the latest Deno version
+          deno-version: v2.x # Use the latest Deno version
 
       - name: Create .bb directory and config.yaml
         run: |
