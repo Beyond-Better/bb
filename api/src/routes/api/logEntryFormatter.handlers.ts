@@ -59,7 +59,9 @@ export const logEntryFormatter = async (
 		response.body = { formattedContent: htmlContent };
 	} catch (error) {
 		logger.error(
-			`Error in logEntryFormatter for logEntryFormatterType: ${logEntryFormatterType}: ${(error as Error).message}`,
+			`Error in logEntryFormatter for logEntryFormatterType: ${logEntryFormatterType}: ${
+				(error as Error).message
+			}`,
 			error,
 		);
 		response.status = 500;

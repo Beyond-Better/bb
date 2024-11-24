@@ -1,8 +1,6 @@
 import type { Context } from '@oak/oak';
 import { ConfigManager } from 'shared/configManager.ts';
-import type {
-	FullConfigSchema,
-} from 'shared/configSchema.ts';
+import type { FullConfigSchema } from 'shared/configSchema.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
 //import { logger } from 'shared/logger.ts';

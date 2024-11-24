@@ -190,7 +190,7 @@ export default class ConversationLogger {
 		try {
 			await this.appendToJsonLog(jsonEntry);
 		} catch (error) {
-			logger.error('Error appending to json log:', (error as Error));
+			logger.error('Error appending to json log:', error as Error);
 		}
 	}
 

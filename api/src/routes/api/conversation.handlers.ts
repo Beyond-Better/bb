@@ -106,7 +106,9 @@ export const chatConversation = async (
 		};
 	} catch (error) {
 		logger.error(
-			`ConversationHandler: Error in chatConversation for conversationId: ${conversationId}: ${(error as Error).message}`,
+			`ConversationHandler: Error in chatConversation for conversationId: ${conversationId}: ${
+				(error as Error).message
+			}`,
 			error,
 		);
 		response.status = 500;

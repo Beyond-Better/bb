@@ -234,8 +234,10 @@ class LLM {
 					}
 				} catch (error) {
 					logger.error(
-						`provider[${this.llmProviderName}] Error processing answer content: ${(error as Error).message}`,
-						(error as Error),
+						`provider[${this.llmProviderName}] Error processing answer content: ${
+							(error as Error).message
+						}`,
+						error as Error,
 					);
 					llmSpeakWithResponse.messageResponse.answer = 'Error: Failed to process LLM response content';
 					llmSpeakWithResponse.messageResponse.answerContent = [{
@@ -303,7 +305,7 @@ class LLM {
 			} catch (error) {
 				logger.error(
 					`provider[${this.llmProviderName}] speakWithRetry: Error calling speakWithPlus`,
-					(error as Error),
+					error as Error,
 				);
 				failReason = `caught error: ${(error as Error)}`;
 			}

@@ -27,7 +27,7 @@ export class TaskQueue {
 			try {
 				await this.executeTask(task);
 			} catch (error) {
-				await this.errorHandler.handleError((error as Error), task, 0);
+				await this.errorHandler.handleError(error as Error, task, 0);
 			}
 		}
 		this.running = false;

@@ -73,9 +73,11 @@ export class StatusQueue {
 
 		// If we have multiple messages in the batch and the last one is recent
 		// Don't delay processing if the last message is IDLE status
-		if (batchSize > 1 && 
-		    lastMessageInBatch.timestamp + (this.minDisplayTime / 2) > now && 
-		    lastMessageInBatch.status !== ApiStatus.IDLE) {
+		if (
+			batchSize > 1 &&
+			lastMessageInBatch.timestamp + (this.minDisplayTime / 2) > now &&
+			lastMessageInBatch.status !== ApiStatus.IDLE
+		) {
 			// Wait a short time to see if more messages arrive
 			setTimeout(() => this.processQueue(), this.minDisplayTime / 2);
 			return;

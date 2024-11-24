@@ -63,7 +63,9 @@ export default class LogEntryFormatterManager {
 			}
 		} catch (error) {
 			logger.error(
-				`LogEntryFormatterManager: Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}: ${(error as Error).message}`,
+				`LogEntryFormatterManager: Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}: ${
+					(error as Error).message
+				}`,
 			);
 			return `Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}`;
 		}

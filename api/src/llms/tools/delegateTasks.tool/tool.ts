@@ -21,7 +21,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 //import type { ErrorHandler } from '../../../llms/errorHandler.ts';
 //import type { TaskQueue } from '../../../llms/taskQueue.ts';
 
-/* 
+/*
 interface Task {
 	title: string;
 	background: string;
@@ -147,11 +147,15 @@ export default class LLMToolDelegateTasks extends LLMTool {
 		} catch (error) {
 			logger.error(`LLMToolDelegateTasks: Error adding files to conversation: ${(error as Error).message}`);
 
-			throw createError(ErrorType.FileHandling, `Error adding files to conversation: ${(error as Error).message}`, {
-				name: 'request-files',
-				filePath: projectEditor.projectRoot,
-				operation: 'request-files',
-			});
+			throw createError(
+				ErrorType.FileHandling,
+				`Error adding files to conversation: ${(error as Error).message}`,
+				{
+					name: 'request-files',
+					filePath: projectEditor.projectRoot,
+					operation: 'request-files',
+				},
+			);
 		}
 	}
 

@@ -153,7 +153,7 @@ class OrchestratorController {
 				message: (error as Error).message,
 				code: (error as Error).name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
 				// Include any additional error properties if available
-				details: (error as unknown as {details:unknown}).details || {},
+				details: (error as unknown as { details: unknown }).details || {},
 			}
 			: {
 				message: String(error),
@@ -345,7 +345,9 @@ class OrchestratorController {
 
 			return conversation;
 		} catch (error) {
-			logger.warn(`OrchestratorController: Failed to load conversation ${conversationId}: ${(error as Error).message}`);
+			logger.warn(
+				`OrchestratorController: Failed to load conversation ${conversationId}: ${(error as Error).message}`,
+			);
 			logger.error(`OrchestratorController: Error details:`, error);
 			logger.debug(`OrchestratorController: Stack trace:`, (error as Error).stack);
 			return null;
@@ -860,7 +862,9 @@ class OrchestratorController {
 							// You can use thinkingContent here as needed, e.g., add it to a separate array or log it
 						} catch (error) {
 							logger.warn(
-								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${(error as Error).message}`,
+								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${
+									(error as Error).message
+								}`,
 							);
 							toolResponses.push(`Error with ${toolUse.toolName}: ${(error as Error).message}`);
 						}
@@ -895,7 +899,9 @@ class OrchestratorController {
 					break;
 				}
 			} catch (error) {
-				logger.error(`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`);
+				logger.error(
+					`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`,
+				);
 				if (loopTurnCount === maxTurns - 1) {
 					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 				}

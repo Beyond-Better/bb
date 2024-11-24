@@ -207,7 +207,9 @@ class LLMConversationInteraction extends LLMInteraction {
 							? fileMetadata.lastModified.toISOString()
 							: new Date(fileMetadata.lastModified).toISOString();
 					} catch (error) {
-						logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`);
+						logger.warn(
+							`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`,
+						);
 						return new Date().toISOString(); // Fallback to current date
 					}
 				})(),
@@ -313,12 +315,16 @@ class LLMConversationInteraction extends LLMInteraction {
 			//logger.info(`ConversationInteraction: Error getting File from project ${filePath} (${revisionId}`, error);
 			if (error instanceof Deno.errors.NotFound) {
 				logger.info(
-					`ConversationInteraction: File not found: ${filePath} (${revisionId}) - ${(error as Error).message}`,
+					`ConversationInteraction: File not found: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return '';
 			} else if (error instanceof Deno.errors.PermissionDenied) {
 				logger.info(
-					`ConversationInteraction: Permission denied: ${filePath} (${revisionId}) - ${(error as Error).message}`,
+					`ConversationInteraction: Permission denied: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return '';
 			} else {
@@ -340,7 +346,9 @@ class LLMConversationInteraction extends LLMInteraction {
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound || isFileHandlingError(error)) {
 				logger.info(
-					`ConversationInteraction: getFileRevision - File not found: ${filePath} (${revisionId}) - ${(error as Error).message}`,
+					`ConversationInteraction: getFileRevision - File not found: ${filePath} (${revisionId}) - ${
+						(error as Error).message
+					}`,
 				);
 				return null;
 				// } else if (error instanceof Deno.errors.PermissionDenied) {
@@ -401,7 +409,9 @@ class LLMConversationInteraction extends LLMInteraction {
 						? fileMetadata.lastModified.toISOString()
 						: new Date(fileMetadata.lastModified).toISOString();
 				} catch (error) {
-					logger.warn(`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`);
+					logger.warn(
+						`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`,
+					);
 					return new Date().toISOString(); // Fallback to current date
 				}
 			})();
@@ -522,7 +532,9 @@ class LLMConversationInteraction extends LLMInteraction {
 									: new Date(fileMetadata.lastModified).toISOString();
 							} catch (error) {
 								logger.warn(
-									`Failed to convert lastModified to ISO string for ${filePath}: ${(error as Error).message}`,
+									`Failed to convert lastModified to ISO string for ${filePath}: ${
+										(error as Error).message
+									}`,
 								);
 								return new Date().toISOString(); // Fallback to current date
 							}

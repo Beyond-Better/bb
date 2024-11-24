@@ -116,7 +116,9 @@ class LLMToolManager {
 							}
 						} catch (error) {
 							logger.error(
-								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${(error as Error).message}`,
+								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${
+									(error as Error).message
+								}`,
 							);
 						}
 					}
@@ -278,7 +280,8 @@ class LLMToolManager {
 		} catch (error) {
 			logger.error(`llmToolManager: Error executing tool ${toolUse.toolName}: ${(error as Error).message}`);
 
-			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, (error as Error).message, true) || '';
+			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, (error as Error).message, true) ||
+				'';
 
 			// Update tool usage stats
 			interaction.updateToolStats(toolUse.toolName, false);
