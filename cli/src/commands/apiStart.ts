@@ -52,7 +52,7 @@ export const apiStart = new Command()
 			const maxAttempts = 5;
 			const delayMs = 250;
 
-			delay(delayMs * 2);
+			await delay(delayMs * 2);
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 				const apiStatus = await getApiStatus(startDir);
 
@@ -76,7 +76,7 @@ export const apiStart = new Command()
 					console.error(colors.yellow(`API status check [${attempt}/${maxAttempts}]: ${apiStatus.error}`));
 				}
 
-				delay(delayMs * attempt);
+				await delay(delayMs * attempt);
 			}
 
 			if (!apiRunning) {
