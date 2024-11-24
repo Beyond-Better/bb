@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.7a] - 2024-11-24
+
+### Changed
+
+- Updated Github actions to use Deno v2
+
+
 ## [0.3.7] - 2024-11-24
 
 ### Changed
