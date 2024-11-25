@@ -97,9 +97,16 @@ export class StatusQueue {
 		}
 	}
 
-	reset() {
+	reset(finalStatus?: StatusMessage) {
 		this.queue = [];
 		this.currentStatus = null;
 		this.lastUpdateTime = 0;
+
+		// If a final status is provided, update immediately
+		if (finalStatus) {
+			this.lastUpdateTime = Date.now();
+			this.currentStatus = finalStatus;
+			this.updateCallback(finalStatus);
+		}
 	}
 }

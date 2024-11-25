@@ -281,8 +281,8 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 						isLoading: false,
 					},
 				};
-				// Add idle state to status queue with max sequence to ensure it's last
-				statusQueue.addMessage({
+				// Clear queue and force immediate IDLE status
+				statusQueue.reset({
 					status: ApiStatus.IDLE,
 					timestamp: Date.now(),
 					statementCount: data.logEntryData.conversationStats.statementCount,
