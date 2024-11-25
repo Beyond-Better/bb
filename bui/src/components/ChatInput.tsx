@@ -76,20 +76,40 @@ export function ChatInput({
 
 	// Determine status message and type
 	const getStatusInfo = () => {
-		// Handle connection and loading states first
+		// Check critical states first
 		if (!status.isReady) {
 			return {
 				message: 'Connecting to server...',
+				type: 'warning' as const,
 				visible: true,
 				status: ApiStatus.IDLE,
 			};
 		}
 
-		// Handle API status states
+		if (status.isLoading) {
+			return {
+				message: 'Sending message...',
+				type: 'info' as const,
+				visible: true,
+				status: ApiStatus.API_BUSY,
+			};
+		}
+
+		if (disabled) {
+			return {
+				message: 'Chat is currently unavailable',
+				type: 'error' as const,
+				visible: true,
+				status: ApiStatus.ERROR,
+			};
+		}
+
+		// Then handle specific API states
 		switch (status.apiStatus) {
 			case ApiStatus.LLM_PROCESSING:
 				return {
 					message: 'Claude is thinking...',
+					type: 'info' as const,
 					status: status.apiStatus,
 					visible: true,
 					action: onCancelProcessing
@@ -100,6 +120,7 @@ export function ChatInput({
 						}
 						: undefined,
 				};
+
 			case ApiStatus.TOOL_HANDLING:
 				return {
 					message: `Using tool: ${status.toolName || 'unknown'}`,
@@ -114,6 +135,7 @@ export function ChatInput({
 						}
 						: undefined,
 				};
+
 			case ApiStatus.API_BUSY:
 				return {
 					message: 'API is processing...',
@@ -121,13 +143,27 @@ export function ChatInput({
 					visible: true,
 					status: status.apiStatus,
 				};
+
 			case ApiStatus.ERROR:
 				return {
 					message: 'An error occurred',
+					type: 'error' as const,
 					visible: true,
 					status: status.apiStatus,
 				};
+
+			case ApiStatus.IDLE:
+				// Explicitly handle IDLE state
+				return {
+					message: '',
+					type: 'info' as const,
+					visible: false,
+					status: ApiStatus.IDLE,
+				};
+
 			default:
+				// Handle any future status types
+				console.warn('Unknown API status:', status.apiStatus);
 				return {
 					message: '',
 					type: 'info' as const,
@@ -135,46 +171,6 @@ export function ChatInput({
 					status: ApiStatus.IDLE,
 				};
 		}
-		if (isProcessing(status)) {
-			return {
-				message: 'Statement in progress...',
-				type: 'info' as const,
-				visible: true,
-				action: onCancelProcessing
-					? {
-						label: 'Stop',
-						onClick: onCancelProcessing,
-						variant: 'danger',
-					}
-					: undefined,
-			};
-		}
-		if (!status.isReady) {
-			return {
-				message: 'Connecting to server...',
-				type: 'warning' as const,
-				visible: true,
-			};
-		}
-		if (status.isLoading) {
-			return {
-				message: 'Sending message...',
-				type: 'info' as const,
-				visible: true,
-			};
-		}
-		if (disabled) {
-			return {
-				message: 'Chat is currently unavailable',
-				type: 'error' as const,
-				visible: true,
-			};
-		}
-		return {
-			message: '',
-			type: 'info' as const,
-			visible: false,
-		};
 	};
 
 	const statusInfo = getStatusInfo();

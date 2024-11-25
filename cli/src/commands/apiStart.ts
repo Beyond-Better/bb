@@ -49,7 +49,7 @@ export const apiStart = new Command()
 
 			// Check if the API is running with enhanced status checking
 			let apiRunning = false;
-			const maxAttempts = 5;
+			const maxAttempts = 10;
 			const delayMs = 250;
 
 			await delay(delayMs * 2);

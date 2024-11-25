@@ -250,7 +250,8 @@ export class ConfigManager {
 
 			return globalConfig;
 		} catch (error) {
-			console.error('Error loading global config (using default global config): ', error);
+			//console.debug('Error loading global config (using default global config): ', error);
+			//console.error('Error loading global config (using default global config)');
 			return this.defaultGlobalConfig;
 		}
 	}

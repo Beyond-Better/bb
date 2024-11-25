@@ -158,7 +158,7 @@ export async function addToSystemTrustStore(): Promise<void> {
 	console.log(`Adding CA certificate to ${os} system trust store...`);
 
 	const globalDir = await getGlobalConfigDir();
-	const certPath = join(globalDir, 'caRoot.pem');
+	const certPath = join(globalDir, 'rootCA.pem');
 	try {
 		if (!await exists(certPath)) {
 			throw new Error(`CA certificate does not exist: ${certPath}`);

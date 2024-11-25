@@ -96,8 +96,8 @@ This shows:
 
 ### Trust Store Backup
 Important trust store files to back up:
-1. CA certificate (caRoot.pem)
-2. CA private key (caRoot-key.pem)
+1. CA certificate (rootCA.pem)
+2. CA private key (rootCA-key.pem)
 3. Trust store configuration
 
 ### Trust Level Management

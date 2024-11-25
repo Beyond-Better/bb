@@ -1,3 +1,5 @@
+import { delay } from '@std/async';
+
 import { logger } from 'shared/logger.ts';
 import {
 	type ApiStatusCheck,
@@ -110,7 +112,7 @@ export async function startApiServer(
 	const process = command.spawn();
 
 	// Wait a short time to ensure the process has started
-	await new Promise((resolve) => setTimeout(resolve, 500));
+	await delay(500);
 
 	const pid = process.pid;
 	await savePid(startDir, pid);
