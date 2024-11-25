@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.7b] - 2024-11-24
+
+### Changed
+
+- must await
+
+
 ## [0.3.7a] - 2024-11-24
 
 ### Changed
