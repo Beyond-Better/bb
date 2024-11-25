@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.8] - 2024-11-25
+
+### Changed
+
+- Fixed status handling to force immediate IDLE status after conversation answer, preventing stuck progress indicators
+
+
 ## [0.3.7b] - 2024-11-24
 
 ### Changed
