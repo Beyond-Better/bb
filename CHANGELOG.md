@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.9] - 2024-11-25
+
+### Changed
+
+- fixed name of ca cert when adding to root trust store
+- extended wait time for API start
+- added IDLE status to progress handler switch
+
+
 ## [0.3.8] - 2024-11-25
 
 ### Changed
