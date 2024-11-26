@@ -4,9 +4,8 @@ import {
 	ConversationEntry,
 	ConversationId,
 	ConversationLogEntry,
-	ConversationMetrics,
 	ConversationResponse,
-	ConversationTokenUsage,
+	ConversationStats,
 	TokenUsage,
 } from 'shared/types.ts';
 
@@ -31,10 +30,10 @@ interface WebSocketResponse {
 	data: {
 		logEntry?: ConversationLogEntry;
 		conversationTitle?: string;
-		tokenUsageConversation?: ConversationTokenUsage;
 		tokenUsageTurn?: TokenUsage;
 		tokenUsageStatement?: TokenUsage;
-		conversationStats?: ConversationMetrics;
+		tokenUsageConversation?: TokenUsage;
+		conversationStats?: ConversationStats;
 		error?: string;
 	};
 }
@@ -335,10 +334,20 @@ export class WebSocketManager {
 					conversationTitle: '',
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
+					tokenUsageTurn: msgData.data.tokenUsageTurn || {
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
+					},
+					tokenUsageStatement: msgData.data.tokenUsageStatement || {
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
+					},
 					tokenUsageConversation: msgData.data.tokenUsageConversation || {
-						totalTokensTotal: 0,
-						inputTokensTotal: 0,
-						outputTokensTotal: 0,
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
 					},
 					conversationStats: msgData.data.conversationStats || {
 						statementCount: 0,
@@ -349,29 +358,9 @@ export class WebSocketManager {
 				};
 
 				if (msgType === 'continue') {
-					return {
-						...baseEntry,
-						tokenUsageTurn: msgData.data.tokenUsageTurn || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageStatement: msgData.data.tokenUsageStatement || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-					} as ConversationContinue;
+					return baseEntry as ConversationContinue;
 				} else {
-					return {
-						...baseEntry,
-						tokenUsageStatement: msgData.data.tokenUsageStatement || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageTurn: msgData.data.tokenUsageTurn,
-					} as ConversationResponse;
+					return baseEntry as ConversationResponse;
 				}
 			};
 

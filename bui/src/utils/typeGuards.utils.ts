@@ -3,7 +3,6 @@ import type {
 	ConversationEntry,
 	ConversationResponse,
 	ConversationStart,
-	ConversationTokenUsage,
 	TokenUsage,
 } from 'shared/types.ts';
 
@@ -43,16 +42,5 @@ export function getDefaultTokenUsage(): TokenUsage {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
-	};
-}
-
-/**
- * Get default conversation token usage
- */
-export function getDefaultConversationTokenUsage(): ConversationTokenUsage {
-	return {
-		inputTokensTotal: 0,
-		outputTokensTotal: 0,
-		totalTokensTotal: 0,
 	};
 }

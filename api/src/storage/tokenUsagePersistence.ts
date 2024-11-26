@@ -247,7 +247,7 @@ export class TokenUsagePersistence {
 	 * Writes a token usage record to the appropriate file based on type.
 	 * Validates the record before writing.
 	 */
-	async writeUsage(record: TokenUsageRecord, type: 'conversation' | 'chat'): Promise<void> {
+	async writeUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
 		// Validate type parameter matches record type
 		if (record.type !== type) {
 			throw new TokenUsageValidationError(

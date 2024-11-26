@@ -2,12 +2,12 @@ import { ConfigManager, type WizardAnswers } from 'shared/configManager.ts';
 import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
-import ProjectEditor from 'api/editor/projectEditor.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
 import ProjectEditorManager from '../../src/editor/projectEditorManager.ts';
-import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import LLMChatInteraction from '../../src/llms/interactions/chatInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
-import type { ConversationMetrics } from 'shared/types.ts';
+import type { ConversationStats } from 'shared/types.ts';
 
 export async function setupTestProject(): Promise<string> {
 	const testProjectRoot = Deno.makeTempDirSync();
@@ -85,7 +85,7 @@ export async function withTestProject<T>(
 	}
 }
 
-export function incrementConversationStats(conversationStats: ConversationMetrics): ConversationMetrics {
+export function incrementConversationStats(conversationStats: ConversationStats): ConversationStats {
 	return {
 		statementCount: conversationStats.statementCount++,
 		statementTurnCount: conversationStats.statementTurnCount++,

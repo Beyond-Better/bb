@@ -35,7 +35,7 @@ export const formatToolResult = (resultContent: ConversationLogEntryContentToolR
 					? (
 						<div>
 							<p>
-								<strong>✅ BB has moved these files to ${data.destination}:</strong>
+								<strong>✅ BB has moved these files to: {data.destination}</strong>
 							</p>
 							<p>
 								<ul>{data.filesMoved.map((file) => <li>{file}</li>)}</ul>

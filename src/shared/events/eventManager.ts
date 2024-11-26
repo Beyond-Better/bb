@@ -5,10 +5,10 @@ import {
 	ConversationDeleted,
 	ConversationId,
 	ConversationLogEntryType,
-	ConversationMetrics,
 	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
+	ConversationStats,
 } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -40,7 +40,7 @@ export type EventMap = {
 		conversationError: {
 			conversationId: ConversationId;
 			conversationTitle: string;
-			conversationStats: ConversationMetrics;
+			conversationStats: ConversationStats;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'

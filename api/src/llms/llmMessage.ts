@@ -5,7 +5,7 @@ import type {
 	LLMProviderMessageResponseType,
 	LLMTokenUsage,
 } from 'api/types.ts';
-import type { ConversationMetrics } from 'shared/types.ts';
+import type { ConversationStats } from 'shared/types.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
 export interface LLMMessageContentPartTextBlock {
@@ -100,7 +100,7 @@ class LLMMessage {
 	constructor(
 		public role: 'user' | 'assistant' | 'system' | 'tool', // system and tool are only for openai
 		public content: LLMMessageContentParts,
-		stats: ConversationMetrics,
+		stats: ConversationStats,
 		public tool_call_id?: string,
 		public providerResponse?: LLMMessageProviderResponse,
 		id?: string,
@@ -118,7 +118,7 @@ class LLMMessage {
 		}
 	}
 
-	public get conversationStats(): ConversationMetrics {
+	public get conversationStats(): ConversationStats {
 		return {
 			statementCount: this._statementCount,
 			statementTurnCount: this._statementTurnCount,
@@ -126,7 +126,7 @@ class LLMMessage {
 		};
 	}
 
-	public set conversationStats(stats: ConversationMetrics) {
+	public set conversationStats(stats: ConversationStats) {
 		this._statementCount = stats.statementCount ?? 1;
 		this._statementTurnCount = stats.statementTurnCount ?? 1;
 		this._conversationTurnCount = stats.conversationTurnCount ?? 1;

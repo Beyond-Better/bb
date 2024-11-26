@@ -9,7 +9,7 @@ import type {
 	ConversationId,
 	ConversationMetadata,
 	ConversationMetrics,
-	ConversationTokenUsage,
+	ConversationStats,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
@@ -157,7 +157,7 @@ class ConversationPersistence {
 		}
 	}
 
-	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat'): Promise<void> {
+	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
 		await this.ensureInitialized();
 		await this.tokenUsagePersistence.writeUsage(record, type);
 	}
@@ -176,6 +176,8 @@ class ConversationPersistence {
 			const metadata: ConversationMetadata = {
 				id: conversation.id,
 				title: conversation.title,
+				conversationStats: conversation.conversationStats,
+				conversationMetrics: conversation.conversationMetrics,
 				llmProviderName: conversation.llmProviderName,
 				model: conversation.model,
 				createdAt: new Date().toISOString(),
@@ -192,11 +194,9 @@ class ConversationPersistence {
 				temperature: conversation.temperature,
 				maxTokens: conversation.maxTokens,
 
-				conversationStats: {
-					statementTurnCount: conversation.statementTurnCount,
-					conversationTurnCount: conversation.conversationTurnCount,
-					statementCount: conversation.statementCount,
-				},
+				conversationStats: conversation.conversationStats,
+				conversationMetrics: conversation.conversationMetrics,
+
 				tokenUsageTurn: conversation.tokenUsageTurn,
 				tokenUsageStatement: conversation.tokenUsageStatement,
 				tokenUsageConversation: conversation.tokenUsageConversation,
@@ -241,13 +241,13 @@ class ConversationPersistence {
 			logger.info(`ConversationPersistence: Saved filesMetadata for conversation: ${conversation.id}`);
 
 			// Save objectives and resources
-			const stats = conversation.getConversationStats();
-			if (stats.objectives) {
-				await this.saveObjectives(stats.objectives);
+			const metrics = conversation.conversationMetrics;
+			if (metrics.objectives) {
+				await this.saveObjectives(metrics.objectives);
 				logger.info(`ConversationPersistence: Saved objectives for conversation: ${conversation.id}`);
 			}
-			if (stats.resources) {
-				await this.saveResources(stats.resources);
+			if (metrics.resources) {
+				await this.saveResources(metrics.resources);
 				logger.info(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
 			}
 		} catch (error) {
@@ -276,6 +276,9 @@ class ConversationPersistence {
 			conversation.maxTokens = metadata.maxTokens;
 			conversation.temperature = metadata.temperature;
 
+			conversation.conversationStats = metadata.conversationStats;
+			//conversation.conversationMetrics = metadata.conversationMetrics;
+
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
 			conversation.tokenUsageTurn = metadata.tokenUsageTurn || ConversationPersistence.defaultTokenUsage();
@@ -284,9 +287,9 @@ class ConversationPersistence {
 			conversation.tokenUsageConversation = metadata.tokenUsageConversation ||
 				ConversationPersistence.defaultConversationTokenUsage();
 
-			conversation.statementTurnCount = metadata.conversationStats.statementTurnCount;
-			conversation.conversationTurnCount = metadata.conversationStats.conversationTurnCount;
-			conversation.statementCount = metadata.conversationStats.statementCount;
+			conversation.statementTurnCount = metadata.conversationMetrics?.statementTurnCount || 0;
+			conversation.conversationTurnCount = metadata.conversationMetrics?.conversationTurnCount || 0;
+			conversation.statementCount = metadata.conversationMetrics?.statementCount || 0;
 
 			// Load objectives if they exist
 			try {
@@ -370,8 +373,9 @@ class ConversationPersistence {
 
 	private async updateConversationsMetadata(
 		conversation: ConversationMetadata & {
-			conversationStats?: ConversationMetrics;
-			tokenUsageConversation?: ConversationTokenUsage;
+			conversationStats?: ConversationStats;
+			conversationMetrics?: ConversationMetrics;
+			tokenUsageConversation?: TokenUsage;
 		},
 	): Promise<void> {
 		await this.ensureInitialized();
@@ -391,14 +395,20 @@ class ConversationPersistence {
 			conversations[index] = {
 				...conversations[index],
 				...conversation,
-				conversationStats: conversation.conversationStats || ConversationPersistence.defaultConversationStats(),
+				conversationStats: conversation.conversationStats ||
+					ConversationPersistence.defaultConversationStats(),
+				conversationMetrics: conversation.conversationMetrics ||
+					ConversationPersistence.defaultConversationMetrics(),
 				tokenUsageConversation: conversation.tokenUsageConversation ||
 					ConversationPersistence.defaultConversationTokenUsage(),
 			};
 		} else {
 			conversations.push({
 				...conversation,
-				conversationStats: conversation.conversationStats || ConversationPersistence.defaultConversationStats(),
+				conversationStats: conversation.conversationStats ||
+					ConversationPersistence.defaultConversationStats(),
+				conversationMetrics: conversation.conversationMetrics ||
+					ConversationPersistence.defaultConversationMetrics(),
 				tokenUsageConversation: conversation.tokenUsageConversation ||
 					ConversationPersistence.defaultConversationTokenUsage(),
 			});
@@ -500,18 +510,31 @@ class ConversationPersistence {
 		return ConversationPersistence.defaultMetadata();
 	}
 
-	static defaultConversationStats(): ConversationMetrics {
+	static defaultConversationStats(): ConversationStats {
 		return {
 			statementCount: 0,
 			statementTurnCount: 0,
 			conversationTurnCount: 0,
 		};
 	}
-	static defaultConversationTokenUsage(): ConversationTokenUsage {
+	static defaultConversationMetrics(): ConversationMetrics {
 		return {
-			inputTokensTotal: 0,
-			outputTokensTotal: 0,
-			totalTokensTotal: 0,
+			statementCount: 0,
+			statementTurnCount: 0,
+			conversationTurnCount: 0,
+			objectives: { conversation: '', statement: [], timestamp: '' },
+			resources: { accessed: new Set(), modified: new Set(), active: new Set() },
+			toolUsage: {
+				currentToolSet: '',
+				toolStats: new Map(),
+			},
+		};
+	}
+	static defaultConversationTokenUsage(): TokenUsage {
+		return {
+			inputTokens: 0,
+			outputTokens: 0,
+			totalTokens: 0,
 		};
 	}
 	static defaultTokenUsage(): TokenUsage {
@@ -543,6 +566,7 @@ class ConversationPersistence {
 			tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
 
 			conversationStats: ConversationPersistence.defaultConversationStats(),
+			conversationMetrics: ConversationPersistence.defaultConversationMetrics(),
 			//tools: [],
 		};
 		return metadata;

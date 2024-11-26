@@ -84,7 +84,7 @@ export class ConfigManager {
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				await ensureDir(globalConfigDir);
-// 				const defaultConfig = stripIndent`
+				// const defaultConfig = stripIndent`
 				const defaultConfig = `
 # BB Configuration File
 

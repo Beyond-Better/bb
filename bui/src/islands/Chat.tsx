@@ -8,12 +8,7 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useChatState } from '../hooks/useChatState.ts';
 import type { ChatConfig, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
-import {
-	getDefaultConversationTokenUsage,
-	getDefaultTokenUsage,
-	hasLogEntry,
-	isConversationStart,
-} from '../utils/typeGuards.utils.ts';
+import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
@@ -23,13 +18,7 @@ import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationHeader } from '../components/ConversationHeader.tsx';
 import { ConversationMetadata } from '../components/ConversationMetadata.tsx';
 import { ToolBar } from '../components/ToolBar.tsx';
-import type {
-	Conversation,
-	ConversationEntry,
-	ConversationLogEntry,
-	ConversationTokenUsage,
-	TokenUsage,
-} from 'shared/types.ts';
+import type { Conversation, ConversationEntry, ConversationLogEntry, TokenUsage } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 
 // Helper functions for URL parameters
@@ -410,7 +399,10 @@ export default function Chat(): JSX.Element {
 				status={chatState.value.status}
 				conversationCount={chatState.value.conversations.length}
 				totalTokens={chatState.value.conversations.reduce(
-					(total, conv) => total + (conv.tokenUsageConversation?.totalTokensTotal ?? 0),
+					(total, conv) =>
+						total +
+						(conv.tokenUsageConversation?.totalTokens ?? conv.tokenUsageConversation?.totalTokensTotal ??
+							0),
 					0,
 				)}
 				cacheStatus={chatState.value.status.cacheStatus}
