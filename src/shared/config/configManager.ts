@@ -84,54 +84,55 @@ export class ConfigManager {
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				await ensureDir(globalConfigDir);
-				const defaultConfig = stripIndent`
-                    # BB Configuration File
-                    
-                    repoInfo: 
-                      tokenLimit: 1024
+// 				const defaultConfig = stripIndent`
+				const defaultConfig = `
+# BB Configuration File
 
-                    api:
-                      # Your Anthropic API key. Uncomment and replace with your actual key.
-                      # anthropicApiKey: "your-anthropic-api-key-here"
-                    
-                      # Your OpenAI API key. Uncomment and replace with your actual key if using OpenAI.
-                      # openaiApiKey: "your-openai-api-key-here"
+repoInfo: 
+  tokenLimit: 1024
 
-                      # Your VoyageAI API key. Uncomment and replace with your actual key if using VoyageAI.
-                      # voyageaiApiKey: "your-voyageai-api-key-here"
-                    
-                      # The environment the application is running in. Options: local, remote
-                      environment: "local"
-                    
-                      # The hostname for the API to listen on
-                      apiHostname: localhost
-                    
-                      # The port number for the API to listen on
-                      apiPort: 3000
+api:
+  # Your Anthropic API key. Uncomment and replace with your actual key.
+  # anthropicApiKey: "your-anthropic-api-key-here"
 
-                      # Whether the API listens with TLS
-                      apiUseTls: true
-                    
-                      # Set to true to ignore the LLM request cache (useful for development)
-                      ignoreLLMRequestCache: false
-                    
-                      # Set to true to enable prompt caching (default: true)
-                      usePromptCaching: true
-                    
-                      # Add any shared configuration options here
-                      logLevel: info
+  # Your OpenAI API key. Uncomment and replace with your actual key if using OpenAI.
+  # openaiApiKey: "your-openai-api-key-here"
 
-					  # Tool-specific congiguration
-					  toolConfigs: {}
+  # Your VoyageAI API key. Uncomment and replace with your actual key if using VoyageAI.
+  # voyageaiApiKey: "your-voyageai-api-key-here"
 
-					  # Directory for user-created tools
-					  userToolDirectories: 
-						- ./tools
+  # The environment the application is running in. Options: local, remote
+  environment: "local"
 
-                    # Add any CLI-specific configuration options here
-                    cli: {}
+  # The hostname for the API to listen on
+  apiHostname: localhost
 
-                    `;
+  # The port number for the API to listen on
+  apiPort: 3000
+
+  # Whether the API listens with TLS
+  apiUseTls: true
+
+  # Set to true to ignore the LLM request cache (useful for development)
+  ignoreLLMRequestCache: false
+
+  # Set to true to enable prompt caching (default: true)
+  usePromptCaching: true
+
+  # Add any shared configuration options here
+  logLevel: info
+
+  # Tool-specific congiguration
+  toolConfigs: {}
+
+  # Directory for user-created tools
+  userToolDirectories: 
+    - ./tools
+
+# Add any CLI-specific configuration options here
+cli: {}
+
+`;
 				await Deno.writeTextFile(globalConfigPath, defaultConfig);
 			} else {
 				throw error;
