@@ -37,6 +37,8 @@ export default class ApiClient {
 			await readFromBbDir(startDir, fullConfig.api.tlsRootCaFile || 'rootCA.pem') ||
 			await readFromGlobalConfigDir(fullConfig.api.tlsRootCaFile || 'rootCA.pem') || '';
 
+		Deno.env.set('DENO_TLS_CA_STORE', 'system');
+
 		logger.debug(`APIClient: client created with baseUrl: ${baseUrl}, wsUrl: ${wsUrl}`);
 		return new ApiClient(baseUrl, wsUrl, rootCert);
 	}

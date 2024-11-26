@@ -22,7 +22,7 @@ for TARGET in "${TARGETS[@]}"; do
     # Build CLI
     echo "Building CLI..."
     cd cli
-    deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target $TARGET --output ../$BUILD_DIR/bb-$TARGET src/main.ts
+    deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --unstable-kv --target $TARGET --output ../$BUILD_DIR/bb-$TARGET src/main.ts
     cd ..
 
     # Build API

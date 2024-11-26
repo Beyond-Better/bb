@@ -2,7 +2,7 @@
 
 import { parseArgs } from '@std/cli';
 import { walk } from '@std/fs';
-import { join } from '@std/path';
+//import { join } from '@std/path';
 
 const TOOLS_DIR = './src/llms/tools';
 const MAIN_FILE = 'src/main.ts';
@@ -59,7 +59,7 @@ const compileProcess = new Deno.Command('deno', {
 	args: [
 		'compile',
 		'-A',
-		'--unstable',
+		'--unstable-kv',
 		...(args.target ? ['--target', args.target] : []),
 		'--output',
 		outputFile,
