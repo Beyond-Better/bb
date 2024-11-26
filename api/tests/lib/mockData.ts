@@ -2,10 +2,12 @@ import type { TokenUsageRecord } from 'shared/types.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 
 export function createMockTokenUsageRecord(
-	role: 'user' | 'assistant' | 'system' = 'assistant',
-	type: 'conversation' | 'chat' = 'conversation',
+	role: 'user' | 'assistant' | 'system' | 'tool' = 'assistant',
+	type: 'conversation' | 'chat' | 'base' = 'conversation',
 	options: {
 		messageId?: string;
+		statementCount?: number;
+		statementTurnCount?: number;
 		inputTokens?: number;
 		outputTokens?: number;
 		cacheCreationInputTokens?: number;
@@ -25,6 +27,9 @@ export function createMockTokenUsageRecord(
 	return {
 		messageId: options.messageId ?? crypto.randomUUID(),
 		timestamp: options.timestamp ?? new Date().toISOString(),
+		statementCount: options.statementCount ?? 1,
+		statementTurnCount: options.statementTurnCount ?? 1,
+		model: 'cluade',
 		role,
 		type,
 		rawUsage: {
@@ -59,17 +64,17 @@ export function createMockTokenUsageRecordSequence(
 	const records: TokenUsageRecord[] = [];
 	const baseTime = options.baseTimestamp ? new Date(options.baseTimestamp) : new Date();
 
+	let statementTurnCount = 0;
 	for (let i = 0; i < count; i++) {
 		const messageId = options.startMessageId ? `${options.startMessageId}-${i + 1}` : crypto.randomUUID();
-
 		const timestamp = new Date(baseTime.getTime() + (i * 1000)).toISOString();
-
 		const role = options.alternateRoles ? (i % 2 === 0 ? 'assistant' : 'user') : 'assistant';
+		statementTurnCount++;
 
 		records.push(createMockTokenUsageRecord(
 			role,
 			options.type ?? 'conversation',
-			{ messageId, timestamp },
+			{ messageId, timestamp, statementTurnCount },
 		));
 	}
 

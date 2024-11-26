@@ -2,7 +2,7 @@ import { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import type { ConversationEntry, ConversationLogEntry } from 'shared/types.ts';
-import { getDefaultConversationTokenUsage, getDefaultTokenUsage, hasLogEntry } from '../utils/typeGuards.utils.ts';
+import { getDefaultTokenUsage, hasLogEntry } from '../utils/typeGuards.utils.ts';
 import { marked } from 'marked';
 import hljs from 'highlight';
 import { MessageEntryTool } from './MessageEntryTool.tsx';
@@ -94,7 +94,7 @@ export function MessageEntry({
 		(hasLogEntry(logEntryData) ? logEntryData.logEntry.entryType : 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
 	const tokenUsageTurn = 'tokenUsageTurn' in logEntryData ? logEntryData.tokenUsageTurn : getDefaultTokenUsage();
-	const tokenUsageConversation = logEntryData.tokenUsageConversation || getDefaultConversationTokenUsage();
+	const tokenUsageConversation = logEntryData.tokenUsageConversation || getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
 		? messageIcons[entryType as keyof typeof messageIcons]
@@ -155,7 +155,7 @@ export function MessageEntry({
 					index === 0 ? '💭  <small>*thinking...*</small>' + line : line
 				).join('\n');
 				// Wrap in a styled div and parse markdown
-				return '\n<div class=" border-l-4 border-blue-300 dark:border-blue-700 rounded-r p-4 my-1 prose dark:prose-invert max-w-none ">\n' +
+				return '\n<div class=" border-l-4 border-blue-300 dark:border-blue-700 rounded-r pt-1 pb-2 px-4 my-1 prose dark:prose-invert max-w-none ">\n' +
 					marked.parse(processedLines) +
 					'</div>\n';
 			});
@@ -278,11 +278,31 @@ export function MessageEntry({
 						{new Date(logEntryData.timestamp).toLocaleString()}
 					</div>
 					<div className='flex space-x-4'>
-						<span>
-							Turn: {tokenUsageTurn?.totalTokens ?? 0}
+						<span title='Input/Output tokens for this turn'>
+							Turn: {tokenUsageTurn?.inputTokens ?? 0}↑/{tokenUsageTurn?.outputTokens ?? 0}↓
 						</span>
-						<span>
-							Total: {tokenUsageConversation.totalTokensTotal}
+						<span title='Total tokens for this turn'>
+							({tokenUsageTurn?.totalTokens ?? 0})
+						</span>
+						{(tokenUsageTurn?.cacheCreationInputTokens || tokenUsageTurn?.cacheReadInputTokens) && (
+							<span
+								className='border-l border-gray-300 dark:border-gray-600 pl-4'
+								title='Cache tokens (creation/read)'
+							>
+								Cache:{' '}
+								{tokenUsageTurn.cacheCreationInputTokens ?? 0}c/{tokenUsageTurn.cacheReadInputTokens ??
+									0}r
+							</span>
+						)}
+						<span
+							className='border-l border-gray-300 dark:border-gray-600 pl-4'
+							title='Total conversation tokens (input/output)'
+						>
+							Total:{' '}
+							{tokenUsageConversation.inputTokens || 0}↑/{tokenUsageConversation.outputTokens || 0}↓
+						</span>
+						<span title='Total conversation tokens'>
+							({tokenUsageConversation.totalTokens || 0})
 						</span>
 					</div>
 				</div>

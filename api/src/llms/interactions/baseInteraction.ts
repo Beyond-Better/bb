@@ -1,11 +1,13 @@
-import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+//import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+//import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+//import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
 	CacheImpact,
 	ConversationId,
 	ConversationMetrics,
-	ConversationTokenUsage,
+	ConversationStats,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
@@ -36,18 +38,25 @@ class LLMInteraction {
 	public title: string = '';
 	public createdAt: Date = new Date();
 	public updatedAt: Date = new Date();
+	protected _interactionType: 'base' | 'chat' | 'conversation';
+
 	private _totalProviderRequests: number = 0;
 	// count of turns for most recent statement
 	protected _statementTurnCount: number = 0;
-	// count of turns for all statement
+	// count of turns for all statements (whole conversation)
 	protected _conversationTurnCount: number = 0;
 	// count of statements
 	protected _statementCount: number = 0;
-	// token usage for most recent statement
+	// token usage for most recent turn
 	protected _tokenUsageTurn: TokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
 	// token usage for most recent statement
 	protected _tokenUsageStatement: TokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
 	// token usage for for all statements
+	protected _tokenUsageInteraction: TokenUsage = {
+		totalTokens: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+	};
 	// Task-oriented metrics
 	protected _objectives: ObjectivesData;
 	protected _resources: ResourceMetrics = {
@@ -57,12 +66,6 @@ class LLMInteraction {
 	};
 	protected _toolStats: Map<string, ToolStats> = new Map();
 	protected _currentToolSet?: string;
-
-	protected _tokenUsageInteraction: ConversationTokenUsage = {
-		totalTokensTotal: 0,
-		inputTokensTotal: 0,
-		outputTokensTotal: 0,
-	};
 
 	// [TODO] change llm to protected attribute and create a getter for other classes to call
 	public llm: LLM;
@@ -82,6 +85,7 @@ class LLMInteraction {
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		this.id = conversationId ?? generateConversationId();
 		this.llm = llm;
+		this._interactionType = 'base';
 		// Ensure objectives are properly initialized
 		this._objectives = {
 			conversation: undefined,
@@ -96,10 +100,10 @@ class LLMInteraction {
 			const logEntryHandler = async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,
-				conversationStats: ConversationMetrics,
+				conversationStats: ConversationStats,
 				tokenUsageTurn: TokenUsage,
 				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: ConversationTokenUsage,
+				tokenUsageConversation: TokenUsage,
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
@@ -112,7 +116,7 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor).init();
+			this.conversationPersistence = await new ConversationPersistence(parentId ?? this.id, projectEditor).init();
 			this.conversationLogger = await new ConversationLogger(projectRoot, parentId ?? this.id, logEntryHandler)
 				.init();
 			this.fullConfig = projectEditor.fullConfig;
@@ -123,14 +127,18 @@ class LLMInteraction {
 		return this;
 	}
 
-	public get conversationStats(): ConversationMetrics {
+	public get interactionType(): 'chat' | 'conversation' | 'base' {
+		return this._interactionType;
+	}
+
+	public get conversationStats(): ConversationStats {
 		return {
 			statementCount: this._statementCount,
 			statementTurnCount: this._statementTurnCount,
 			conversationTurnCount: this._conversationTurnCount,
 		};
 	}
-	public set conversationStats(stats: ConversationMetrics) {
+	public set conversationStats(stats: ConversationStats) {
 		this._statementCount = stats.statementCount;
 		this._statementTurnCount = stats.statementTurnCount;
 		this._conversationTurnCount = stats.conversationTurnCount;
@@ -179,31 +187,31 @@ class LLMInteraction {
 		this._tokenUsageStatement = tokenUsage;
 	}
 
-	public get tokenUsageInteraction(): ConversationTokenUsage {
+	public get tokenUsageInteraction(): TokenUsage {
 		return this._tokenUsageInteraction;
 	}
-	public set tokenUsageInteraction(tokenUsage: ConversationTokenUsage) {
+	public set tokenUsageInteraction(tokenUsage: TokenUsage) {
 		this._tokenUsageInteraction = tokenUsage;
 	}
 
 	public get inputTokensTotal(): number {
-		return this._tokenUsageInteraction.inputTokensTotal;
+		return this._tokenUsageInteraction.inputTokens;
 	}
 
 	public outputTokensTotal(): number {
-		return this._tokenUsageInteraction.outputTokensTotal;
+		return this._tokenUsageInteraction.outputTokens;
 	}
 
 	public get totalTokensTotal(): number {
-		return this._tokenUsageInteraction.totalTokensTotal;
+		return this._tokenUsageInteraction.totalTokens;
 	}
 
 	protected calculateDifferentialUsage(
 		tokenUsage: TokenUsage,
-		role: 'user' | 'assistant' | 'system',
 	): TokenUsageDifferential {
+		const lastMessage = this.getLastMessage();
 		// For assistant messages, use output tokens directly
-		if (role === 'assistant') {
+		if (lastMessage && lastMessage.role === 'assistant') {
 			return {
 				inputTokens: 0, // Assistant doesn't add to input differential
 				outputTokens: tokenUsage.outputTokens,
@@ -242,35 +250,90 @@ class LLMInteraction {
 
 	protected createTokenUsageRecord(
 		tokenUsage: TokenUsage,
-		role: 'user' | 'assistant' | 'system',
-		type: 'conversation' | 'chat',
+		model: string,
 	): TokenUsageRecord {
+		const lastMessage = this.getLastMessage();
 		return {
 			messageId: this.getLastMessageId(),
+			statementCount: this.statementCount,
+			statementTurnCount: this.statementTurnCount,
 			timestamp: new Date().toISOString(),
-			role,
-			type,
+			model,
+			role: lastMessage.role,
+			type: this.interactionType,
 			rawUsage: tokenUsage,
-			differentialUsage: this.calculateDifferentialUsage(tokenUsage, role),
+			differentialUsage: this.calculateDifferentialUsage(tokenUsage),
 			cacheImpact: this.calculateCacheImpact(tokenUsage),
 		};
 	}
 
-	public async updateTotals(
-		tokenUsage: TokenUsage,
-		role: 'user' | 'assistant' | 'system' = 'assistant',
-	): Promise<void> {
-		// Record token usage in new format
-		const record = this.createTokenUsageRecord(tokenUsage, role, 'conversation');
-		await this.conversationPersistence.writeTokenUsage(record, 'conversation');
+	public async updateTotals({
+		usage: tokenUsage,
+		model,
+	}: { usage: TokenUsage; model: string }): Promise<void> {
+		if (tokenUsage.cacheCreationInputTokens === undefined) tokenUsage.cacheCreationInputTokens = 0;
+		if (tokenUsage.cacheReadInputTokens === undefined) tokenUsage.cacheReadInputTokens = 0;
+		if (
+			tokenUsage.inputTokens > 0 ||
+			tokenUsage.outputTokens > 0 ||
+			tokenUsage.cacheCreationInputTokens > 0 ||
+			tokenUsage.cacheReadInputTokens > 0
+		) {
+			// Record token usage with interactionType
+			const usageRecord = this.createTokenUsageRecord(tokenUsage, model);
+			await this.conversationPersistence.writeTokenUsage(usageRecord, this.interactionType);
+		}
 
-		// Update existing tracking
-		this._tokenUsageInteraction.totalTokensTotal += tokenUsage.totalTokens;
-		this._tokenUsageInteraction.inputTokensTotal += tokenUsage.inputTokens;
-		this._tokenUsageInteraction.outputTokensTotal += tokenUsage.outputTokens;
-		this._tokenUsageStatement = tokenUsage;
-		this._statementTurnCount++;
-		this._conversationTurnCount++;
+		if (this.conversationTurnCount === 0) {
+			this.tokenUsageInteraction.totalTokens = 0;
+			this.tokenUsageInteraction.inputTokens = 0;
+			this.tokenUsageInteraction.outputTokens = 0;
+			this.tokenUsageInteraction.cacheCreationInputTokens = 0;
+			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+		}
+		if (this.statementTurnCount === 0) {
+			this.tokenUsageStatement.totalTokens = 0;
+			this.tokenUsageStatement.inputTokens = 0;
+			this.tokenUsageStatement.outputTokens = 0;
+			this.tokenUsageStatement.cacheCreationInputTokens = 0;
+			this.tokenUsageStatement.cacheReadInputTokens = 0;
+		}
+
+		if (this.tokenUsageInteraction.cacheCreationInputTokens === undefined) {
+			this.tokenUsageInteraction.cacheCreationInputTokens = 0;
+		}
+		if (this.tokenUsageInteraction.cacheReadInputTokens === undefined) {
+			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+		}
+		if (this.tokenUsageStatement.cacheCreationInputTokens === undefined) {
+			this.tokenUsageStatement.cacheCreationInputTokens = 0;
+		}
+		if (this.tokenUsageStatement.cacheReadInputTokens === undefined) {
+			this.tokenUsageStatement.cacheReadInputTokens = 0;
+		}
+
+		this.tokenUsageInteraction.totalTokens += tokenUsage.totalTokens;
+		this.tokenUsageInteraction.inputTokens += tokenUsage.inputTokens;
+		this.tokenUsageInteraction.outputTokens += tokenUsage.outputTokens;
+		this.tokenUsageInteraction.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
+		this.tokenUsageInteraction.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+
+		this.tokenUsageStatement.totalTokens += tokenUsage.totalTokens;
+		this.tokenUsageStatement.inputTokens += tokenUsage.inputTokens;
+		this.tokenUsageStatement.outputTokens += tokenUsage.outputTokens;
+		this.tokenUsageStatement.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
+		this.tokenUsageStatement.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+
+		this.tokenUsageTurn = tokenUsage;
+
+		logger.error('LLMInteraction: updateTotals - ', {
+			tokenUsageInteraction: this.tokenUsageInteraction,
+			tokenUsageStatement: this.tokenUsageStatement,
+			tokenUsageTurn: this.tokenUsageTurn,
+		});
+
+		this.statementTurnCount++;
+		this.conversationTurnCount++;
 	}
 
 	public updateToolStats(toolName: string, success: boolean): void {
@@ -325,11 +388,11 @@ class LLMInteraction {
 		return this._objectives;
 	}
 
-	public getConversationStats(): ConversationMetrics {
+	public get conversationMetrics(): ConversationMetrics {
 		return {
-			statementTurnCount: this._statementTurnCount,
-			conversationTurnCount: this._conversationTurnCount,
-			statementCount: this._statementCount,
+			statementTurnCount: this.statementTurnCount,
+			conversationTurnCount: this.conversationTurnCount,
+			statementCount: this.statementCount,
 
 			// New task-oriented metrics
 			objectives: this._objectives
@@ -485,7 +548,7 @@ class LLMInteraction {
 		message: {
 			role: 'user' | 'assistant' | 'system' | 'tool';
 			content: LLMMessageContentParts;
-			conversationStats: ConversationMetrics;
+			conversationStats: ConversationStats;
 			id?: string;
 			tool_call_id?: string;
 			providerResponse?: LLMMessageProviderResponse;
@@ -520,6 +583,10 @@ class LLMInteraction {
 		return this.messages.slice(-1)[0];
 	}
 
+	public getLastTwoMessages(): LLMMessage[] {
+		return this.messages.slice(-2);
+	}
+
 	/**
 	 * Returns the most recent message from the assistant in the conversation.
 	 * This is more reliable than getLastMessage() when specifically needing an assistant message,
@@ -529,6 +596,21 @@ class LLMInteraction {
 		// Search backwards through messages to find the last assistant message
 		for (let i = this.messages.length - 1; i >= 0; i--) {
 			if (this.messages[i].role === 'assistant') {
+				return this.messages[i];
+			}
+		}
+		return undefined;
+	}
+
+	/**
+	 * Returns the most recent message from the user in the conversation.
+	 * This is more reliable than getLastMessage() when specifically needing an assistant message,
+	 * as the last message could be from the user or a tool result.
+	 */
+	public getPreviousUserMessage(): LLMMessage | undefined {
+		// Search backwards through messages to find the last assistant message
+		for (let i = this.messages.length - 1; i >= 0; i--) {
+			if (this.messages[i].role === 'user') {
 				return this.messages[i];
 			}
 		}
@@ -625,23 +707,6 @@ class LLMInteraction {
 
 	clearTools(): void {
 		this.tools.clear();
-	}
-
-	// speakWithLLM is a lower-level call, to handle tool use/results loop and auxillary messages
-	// the caller is responsible for adding to conversationLogger
-	async speakWithLLM(
-		prompt: string,
-		speakOptions?: LLMSpeakWithOptions,
-	): Promise<LLMSpeakWithResponse> {
-		if (!speakOptions) {
-			speakOptions = {} as LLMSpeakWithOptions;
-		}
-
-		this.addMessageForUserRole({ type: 'text', text: prompt });
-
-		const response = await this.llm.speakWithRetry(this, speakOptions);
-
-		return response;
 	}
 }
 

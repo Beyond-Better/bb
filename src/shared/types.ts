@@ -17,11 +17,15 @@ export type VectorId = string;
 export interface ConversationMetadata {
 	//startDir: string;
 	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
-	conversationStats?: ConversationMetrics;
-	tokenUsageConversation?: ConversationTokenUsage;
 	id: ConversationId;
 	title: string;
+
+	conversationStats: ConversationStats;
+	conversationMetrics?: ConversationMetrics;
+	tokenUsageConversation?: TokenUsage;
+
 	llmProviderName: string;
+
 	model: string;
 	createdAt: string;
 	updatedAt: string;
@@ -40,9 +44,9 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
-	tokenUsageConversation: ConversationTokenUsage;
+	tokenUsageConversation: TokenUsage;
 
-	conversationStats: ConversationMetrics;
+	conversationMetrics: ConversationMetrics;
 
 	//tools?: Array<{ name: string; description: string }>;
 }
@@ -54,10 +58,11 @@ export interface Conversation {
 
 	logEntries: ConversationLogEntry[];
 
-	conversationStats?: ConversationMetrics;
+	conversationStats: ConversationStats;
+	conversationMetrics?: ConversationMetrics;
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
-	tokenUsageConversation: ConversationTokenUsage;
+	tokenUsageConversation: TokenUsage;
 
 	//tools?: Array<{ name: string; description: string }>;
 	model: string;
@@ -87,6 +92,7 @@ export interface TokenUsage {
 	inputTokens: number;
 	outputTokens: number;
 	totalTokens: number;
+	totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
 }
@@ -105,9 +111,12 @@ export interface CacheImpact {
 
 export interface TokenUsageRecord {
 	messageId: string; // Links to message in messages.jsonl
+	statementCount: number; // Links to log entry
+	statementTurnCount: number; // Links to log entry
 	timestamp: string; // ISO timestamp
-	role: 'user' | 'assistant' | 'system'; // Message role
-	type: 'conversation' | 'chat'; // Interaction type
+	role: 'user' | 'assistant' | 'tool' | 'system'; // Message role
+	type: 'conversation' | 'chat' | 'base'; // Interaction type
+	model: string;
 
 	// Raw usage from LLM
 	rawUsage: TokenUsage;
@@ -144,12 +153,12 @@ export interface TokenUsageAnalysis {
 	};
 }
 
-export interface ConversationTokenUsage {
-	inputTokensTotal: number;
-	outputTokensTotal: number;
-	totalTokensTotal: number;
-	//usageHistory?: Array<TokenUsage>
-}
+// export interface ConversationTokenUsage {
+// 	inputTokens: number;export interface ObjectivesData {
+// 	outputTokens: number;	conversation?: string; // Overall conversation goal
+// 	totalTokens: number;	statement: string[]; // Array of statement goals, one per statement
+// 	//usageHistory?: Array<TokenUsage>	timestamp: string; // When the objective was set
+// }}
 
 export interface ObjectivesData {
 	conversation?: string; // Overall conversation goal
@@ -173,12 +182,14 @@ export interface ToolStats {
 	};
 }
 
-export interface ConversationMetrics {
+export interface ConversationStats {
 	statementCount: number;
 	statementTurnCount: number;
 	conversationTurnCount: number;
 	providerRequestCount?: number;
+}
 
+export interface ConversationMetrics extends ConversationStats {
 	// New task-oriented metrics
 	objectives?: ObjectivesData;
 	resources?: ResourceMetrics;
@@ -195,8 +206,8 @@ export interface ConversationStart {
 	conversationTitle: string;
 	timestamp: string;
 	tokenUsageStatement?: TokenUsage;
-	tokenUsageConversation: ConversationTokenUsage;
-	conversationStats: ConversationMetrics; // for resuming a conversation
+	tokenUsageConversation: TokenUsage;
+	conversationStats: ConversationStats; // for resuming a conversation
 	conversationHistory: ConversationEntry[];
 	formattedContent?: string;
 }
@@ -208,8 +219,8 @@ export interface ConversationContinue {
 	logEntry: ConversationLogEntry;
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
-	tokenUsageConversation: ConversationTokenUsage;
-	conversationStats: ConversationMetrics;
+	tokenUsageConversation: TokenUsage;
+	conversationStats: ConversationStats;
 	formattedContent?: string;
 }
 
@@ -217,8 +228,8 @@ export interface ConversationNew {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	timestamp: string;
-	tokenUsageConversation: ConversationTokenUsage;
-	conversationStats: ConversationMetrics;
+	tokenUsageConversation: TokenUsage;
+	conversationStats: ConversationStats;
 }
 
 export interface ConversationDeleted {
@@ -231,10 +242,10 @@ export interface ConversationResponse {
 	conversationTitle: string;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
-	tokenUsageTurn?: TokenUsage;
+	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
-	tokenUsageConversation: ConversationTokenUsage;
-	conversationStats: ConversationMetrics;
+	tokenUsageConversation: TokenUsage;
+	conversationStats: ConversationStats;
 	formattedContent?: string;
 }
 

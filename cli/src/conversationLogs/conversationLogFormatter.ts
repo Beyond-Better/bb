@@ -7,7 +7,7 @@ import { colors } from 'cliffy/ansi/mod.ts';
 
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import type { ConversationId, ConversationLogEntryType, ConversationMetrics, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, ConversationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
 import { ConfigManager } from 'shared/configManager.ts';
 
 // [TODO] this needs to be projectConfig (or fullConfig), which means startDir needs to get passed in
@@ -122,7 +122,7 @@ export default class ConversationLogFormatter {
 		return new Date().toISOString();
 	}
 
-	private static isStatsAndUsageEmpty(stats: ConversationMetrics, usage: TokenUsage): boolean {
+	private static isStatsAndUsageEmpty(stats: ConversationStats, usage: TokenUsage): boolean {
 		return (
 			!stats ||
 			(stats.statementCount === 0 && stats.statementTurnCount === 0 && stats.conversationTurnCount === 0) ||
@@ -136,7 +136,7 @@ export default class ConversationLogFormatter {
 		timestamp: string,
 		//logEntry: ConversationLogEntry,
 		content: string,
-		conversationStats: ConversationMetrics,
+		conversationStats: ConversationStats,
 		tokenUsage: TokenUsage,
 		toolName?: string,
 	): Promise<string> {
@@ -202,7 +202,7 @@ export default class ConversationLogFormatter {
 		if (typeof header !== 'undefined' && typeof messageLines !== 'undefined') {
 			const [typeString, timestamp] = header.replace('## ', '').split(' [');
 			// need to parse out the conversationStats and tokenUsage
-			const conversationStats: ConversationMetrics = {
+			const conversationStats: ConversationStats = {
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,

@@ -5,7 +5,7 @@ import { renderToString } from 'preact-render-to-string';
 
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
-import type { ConversationId, ConversationMetrics, ConversationTokenUsage, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, ConversationStats, TokenUsage } from 'shared/types.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
@@ -67,10 +67,10 @@ export default class ConversationLogger {
 		private logEntryHandler: (
 			timestamp: string,
 			logEntry: ConversationLogEntry,
-			conversationStats: ConversationMetrics,
+			conversationStats: ConversationStats,
 			tokenUsageTurn: TokenUsage,
 			tokenUsageStatement: TokenUsage,
-			tokenUsageConversation: ConversationTokenUsage,
+			tokenUsageConversation: TokenUsage,
 		) => Promise<void>,
 	) {}
 
@@ -131,7 +131,7 @@ export default class ConversationLogger {
 	private async logEntry(
 		messageId: string,
 		logEntry: ConversationLogEntry,
-		conversationStats: ConversationMetrics = { statementCount: 0, statementTurnCount: 0, conversationTurnCount: 0 },
+		conversationStats: ConversationStats = { statementCount: 0, statementTurnCount: 0, conversationTurnCount: 0 },
 		tokenUsageTurn: TokenUsage = {
 			inputTokens: 0,
 			outputTokens: 0,
@@ -142,10 +142,10 @@ export default class ConversationLogger {
 			outputTokens: 0,
 			totalTokens: 0,
 		},
-		tokenUsageConversation: ConversationTokenUsage = {
-			inputTokensTotal: 0,
-			outputTokensTotal: 0,
-			totalTokensTotal: 0,
+		tokenUsageConversation: TokenUsage = {
+			inputTokens: 0,
+			outputTokens: 0,
+			totalTokens: 0,
 		},
 	) {
 		const timestamp = this.getTimestamp();
@@ -194,17 +194,17 @@ export default class ConversationLogger {
 		}
 	}
 
-	async logUserMessage(messageId: string, message: string, conversationStats?: ConversationMetrics) {
+	async logUserMessage(messageId: string, message: string, conversationStats: ConversationStats) {
 		await this.logEntry(messageId, { entryType: 'user', content: message }, conversationStats);
 	}
 
 	async logAssistantMessage(
 		messageId: string,
 		message: string,
-		conversationStats?: ConversationMetrics,
-		tokenUsageTurn?: TokenUsage,
-		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: ConversationTokenUsage,
+		conversationStats: ConversationStats,
+		tokenUsageTurn: TokenUsage,
+		tokenUsageStatement: TokenUsage,
+		tokenUsageConversation: TokenUsage,
 	) {
 		await this.logEntry(
 			messageId,
@@ -219,28 +219,36 @@ export default class ConversationLogger {
 	async logAnswerMessage(
 		messageId: string,
 		answer: string,
-		conversationStats?: ConversationMetrics,
-		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: ConversationTokenUsage,
+		conversationStats: ConversationStats,
+		tokenUsageTurn: TokenUsage,
+		tokenUsageStatement: TokenUsage,
+		tokenUsageConversation: TokenUsage,
 	) {
 		await this.logEntry(
 			messageId,
 			{ entryType: 'answer', content: answer },
 			conversationStats,
-			{ // tokenUsageTurn
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-			},
+			tokenUsageTurn,
 			tokenUsageStatement,
 			tokenUsageConversation,
 		);
 	}
 
-	async logAuxiliaryMessage(messageId: string, message: string) {
+	async logAuxiliaryMessage(
+		messageId: string,
+		message: string,
+		conversationStats?: ConversationStats,
+		tokenUsageTurn?: TokenUsage,
+		tokenUsageStatement?: TokenUsage,
+		tokenUsageConversation?: TokenUsage,
+	) {
 		await this.logEntry(
 			messageId,
 			{ entryType: 'auxiliary', content: message },
+			conversationStats,
+			tokenUsageTurn,
+			tokenUsageStatement,
+			tokenUsageConversation,
 		);
 	}
 
@@ -248,10 +256,10 @@ export default class ConversationLogger {
 		messageId: string,
 		toolName: string,
 		toolInput: LLMToolInputSchema,
-		conversationStats?: ConversationMetrics,
-		tokenUsageTurn?: TokenUsage,
-		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: ConversationTokenUsage,
+		conversationStats: ConversationStats,
+		tokenUsageTurn: TokenUsage,
+		tokenUsageStatement: TokenUsage,
+		tokenUsageConversation: TokenUsage,
 	) {
 		try {
 			await this.logEntry(
@@ -296,10 +304,10 @@ export default class ConversationLogger {
 	async createRawEntry(
 		timestamp: string,
 		logEntry: ConversationLogEntry,
-		_conversationStats: ConversationMetrics,
+		_conversationStats: ConversationStats,
 		_tokenUsage: TokenUsage,
 		_tokenUsageStatement?: TokenUsage,
-		_tokenUsageConversation?: ConversationTokenUsage,
+		_tokenUsageConversation?: TokenUsage,
 	): Promise<string> {
 		// [TODO] add token usage to header line
 		const formattedContent = await this.logEntryFormatterManager.formatLogEntry(
@@ -320,10 +328,10 @@ export default class ConversationLogger {
 	async createRawEntryWithSeparator(
 		timestamp: string,
 		logEntry: ConversationLogEntry,
-		conversationStats: ConversationMetrics,
+		conversationStats: ConversationStats,
 		tokenUsage: TokenUsage,
 		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: ConversationTokenUsage,
+		tokenUsageConversation?: TokenUsage,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
 			timestamp,

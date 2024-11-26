@@ -265,6 +265,10 @@ class LLM {
 		return llmSpeakWithResponse;
 	}
 
+	// called by
+	//  - chatInteraction.chat
+	//  - conversationInteraction.converse
+	//  - conversationInteraction.relayToolResult
 	public async speakWithRetry(
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
@@ -274,7 +278,6 @@ class LLM {
 		let retries = 0;
 		let failReason = '';
 		let totalProviderRequests = 0;
-		const totalTokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 		let llmSpeakWithResponse: LLMSpeakWithResponse | null = null;
 
 		while (retries < maxRetries) {
@@ -284,9 +287,7 @@ class LLM {
 				llmSpeakWithResponse = await this.speakWithPlus(interaction, retrySpeakOptions);
 				//logger.debug(`provider[${this.llmProviderName}] speakWithRetry-llmSpeakWithResponse`, llmSpeakWithResponse );
 
-				totalTokenUsage.inputTokens += llmSpeakWithResponse.messageResponse.usage.inputTokens;
-				totalTokenUsage.outputTokens += llmSpeakWithResponse.messageResponse.usage.outputTokens;
-				totalTokenUsage.totalTokens += llmSpeakWithResponse.messageResponse.usage.totalTokens;
+				interaction.updateTotals(llmSpeakWithResponse.messageResponse);
 
 				const validationFailedReason = this.validateResponse(
 					llmSpeakWithResponse.messageResponse,
@@ -316,8 +317,6 @@ class LLM {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 		}
 
-		//interaction.updateTotals(totalTokenUsage, totalProviderRequests);
-		interaction.updateTotals(totalTokenUsage);
 		//await interaction.save(); // Persist the interaction even if all retries failed
 
 		if (llmSpeakWithResponse) {

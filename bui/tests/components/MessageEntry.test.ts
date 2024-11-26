@@ -1,4 +1,4 @@
-import { assertEquals } from 'std/testing/asserts.ts';
+import { assertEquals } from 'std/testing/asserts';
 import { MessageEntry } from '../../src/components/MessageEntry.tsx';
 import { render } from '@testing-library/preact';
 
@@ -9,8 +9,17 @@ const mockEntry = {
 		timestamp: new Date().toISOString(),
 	},
 	timestamp: new Date().toISOString(),
+	tokenUsageTurn: {
+		inputTokens: 30,
+		outputTokens: 70,
+		totalTokens: 100,
+		cacheCreationInputTokens: 20,
+		cacheReadInputTokens: 10,
+	},
 	tokenUsageConversation: {
-		totalTokensTotal: 100,
+		inputTokensTotal: 300,
+		outputTokensTotal: 700,
+		totalTokensTotal: 1000,
 	},
 };
 
@@ -26,8 +35,15 @@ const mockToolEntry = {
 		timestamp: new Date().toISOString(),
 	},
 	timestamp: new Date().toISOString(),
+	tokenUsageTurn: {
+		inputTokens: 40,
+		outputTokens: 60,
+		totalTokens: 100,
+	},
 	tokenUsageConversation: {
-		totalTokensTotal: 100,
+		inputTokensTotal: 400,
+		outputTokensTotal: 600,
+		totalTokensTotal: 1000,
 	},
 };
 
@@ -87,6 +103,83 @@ Deno.test('MessageEntry renders code blocks with syntax highlighting', () => {
 		codeBlock !== null,
 		true,
 		'Should render highlighted code block',
+	);
+});
+
+Deno.test('MessageEntry displays token usage information correctly', () => {
+	const { container } = render(
+		<MessageEntry
+			entry={mockEntry}
+			index={0}
+			onCopy={() => {}}
+		/>,
+	);
+
+	// Check turn token display
+	const turnTokens = container.querySelector('span[title="Input/Output tokens for this turn"]');
+	assertEquals(
+		turnTokens?.textContent?.trim(),
+		'Turn: 30↑/70↓',
+		'Should show correct turn input/output tokens',
+	);
+
+	// Check turn total display
+	const turnTotal = container.querySelector('span[title="Total tokens for this turn"]');
+	assertEquals(
+		turnTotal?.textContent?.trim(),
+		'(100)',
+		'Should show correct turn total tokens',
+	);
+
+	// Check conversation token display
+	const totalTokens = container.querySelector('span[title="Total conversation tokens (input/output)"]');
+	assertEquals(
+		totalTokens?.textContent?.trim(),
+		'Total: 300↑/700↓',
+		'Should show correct total input/output tokens',
+	);
+
+	// Check conversation total display
+	const conversationTotal = container.querySelector('span[title="Total conversation tokens"]');
+	assertEquals(
+		conversationTotal?.textContent?.trim(),
+		'(1000)',
+		'Should show correct conversation total tokens',
+	);
+
+	// Check cache token display
+	const cacheTokens = container.querySelector('span[title="Cache tokens (creation/read)"]');
+	assertEquals(
+		cacheTokens?.textContent?.trim(),
+		'Cache: 20c/10r',
+		'Should show correct cache tokens',
+	);
+});
+
+Deno.test('MessageEntry handles missing cache tokens correctly', () => {
+	const entryWithoutCache = {
+		...mockEntry,
+		tokenUsageTurn: {
+			inputTokens: 30,
+			outputTokens: 70,
+			totalTokens: 100,
+		},
+	};
+
+	const { container } = render(
+		<MessageEntry
+			entry={entryWithoutCache}
+			index={0}
+			onCopy={() => {}}
+		/>,
+	);
+
+	// Verify cache section is not present
+	const cacheTokens = container.querySelector('span[title="Cache tokens (creation/read)"]');
+	assertEquals(
+		cacheTokens,
+		null,
+		'Should not show cache tokens when not present',
 	);
 });
 

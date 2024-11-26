@@ -14,7 +14,7 @@ import type {
 	//LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { ConversationMetrics } from 'shared/types.ts';
+import type { ConversationStats } from 'shared/types.ts';
 
 import { makeChatInteractionStub, makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
@@ -104,7 +104,7 @@ Deno.test({
 			// 	statementCount: 0,
 			// 	statementTurnCount: 0,
 			// 	conversationTurnCount: 0,
-			// } as ConversationMetrics;
+			// } as ConversationStats;
 
 			// Create test messages
 			const testMessages = [] as LLMMessage[];
@@ -196,7 +196,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -311,7 +311,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -426,7 +426,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -530,7 +530,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -634,7 +634,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -736,7 +736,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -829,7 +829,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages that will trigger truncation
 			const testMessages = [
@@ -1122,7 +1122,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with file operations
 			const testMessages = [
@@ -1311,7 +1311,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [{
@@ -1443,7 +1443,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [{
@@ -1564,7 +1564,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [{
@@ -1685,7 +1685,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with an interrupted tool sequence
 			const testMessages = [
@@ -2107,7 +2107,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with complex project context
 			const testMessages = [
@@ -2303,7 +2303,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -2448,7 +2448,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with tool use as last message
 			const testMessages = [
@@ -2618,7 +2618,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with exactly 1000 tokens total
 			const testMessages = [
@@ -2752,7 +2752,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with complex tool sequence
 			const testMessages = [
@@ -2909,7 +2909,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with tool uses
 			const testMessages = [
@@ -3399,7 +3399,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with broken alternation
 			const testMessages = [
@@ -3518,7 +3518,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [
@@ -3638,7 +3638,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages with high token counts
 			const testMessages = [
@@ -3771,7 +3771,7 @@ Deno.test({
 				statementCount: 0,
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
-			} as ConversationMetrics;
+			} as ConversationStats;
 
 			// Create test messages
 			const testMessages = [

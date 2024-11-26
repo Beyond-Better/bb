@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.3.11] - 2024-11-26
+
+### Changed
+
+- normalized token usage, conversation stats vs metrics;
+- fixed token calcs for statement and conversation
+- extract tool thinking with every turn
+- all usage tokens sent to bui
+- fixed indents for new global config file
+
+
 ## [0.3.10] - 2024-11-26
 
 ### Changed

@@ -2,24 +2,7 @@ import { join } from '@std/path';
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type {
-	ConversationId,
-	//ConversationMetrics,
-	ConversationTokenUsage,
-	FileMetadata,
-	//TokenUsage,
-} from 'shared/types.ts';
-
-export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
-
-export interface BBFileMetadata {
-	path: string;
-	type: 'text' | 'image';
-	size: number;
-	last_modified: string;
-	revision: string;
-	mime_type?: string;
-}
+import type { ConversationId, FileMetadata, TokenUsage } from 'shared/types.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -41,6 +24,17 @@ import { logger } from 'shared/logger.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
 import { ResourceManager } from '../resourceManager.ts';
 //import { GitUtils } from 'shared/git.ts';
+
+export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
+
+export interface BBFileMetadata {
+	path: string;
+	type: 'text' | 'image';
+	size: number;
+	last_modified: string;
+	revision: string;
+	mime_type?: string;
+}
 
 export type { FileMetadata };
 export interface ProjectInfo {
@@ -95,6 +89,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 		this._maxHydratedMessagesPerFile = value;
 	}
+
 	private resourceManager: ResourceManager;
 	private toolUsageStats: ToolUsageStats = {
 		toolCounts: new Map(),
@@ -107,15 +102,16 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		super(llm, conversationId);
+		this._interactionType = 'conversation';
 		this.resourceManager = new ResourceManager();
 	}
 
 	// these methods are really just convenience aliases for tokenUsageInteraction
-	public get tokenUsageConversation(): ConversationTokenUsage {
-		return this._tokenUsageInteraction;
+	public get tokenUsageConversation(): TokenUsage {
+		return this.tokenUsageInteraction;
 	}
-	public set tokenUsageConversation(tokenUsage: ConversationTokenUsage) {
-		this._tokenUsageInteraction = tokenUsage;
+	public set tokenUsageConversation(tokenUsage: TokenUsage) {
+		this.tokenUsageInteraction = tokenUsage;
 	}
 
 	public override async prepareSytemPrompt(baseSystem: string): Promise<string> {
@@ -776,7 +772,31 @@ class LLMConversationInteraction extends LLMInteraction {
 		this.systemPromptFiles = [];
 	}
 
-	// converse is called for first turn in a statement; subsequent turns call speakWithLLM
+	// relayToolResult is a lower-level call, to handle tool use/results loop
+	// the caller is responsible for adding to conversationLogger
+	async relayToolResult(
+		prompt: string,
+		speakOptions?: LLMSpeakWithOptions,
+	): Promise<LLMSpeakWithResponse> {
+		if (!speakOptions) {
+			speakOptions = {} as LLMSpeakWithOptions;
+		}
+
+		this.addMessageForUserRole({ type: 'text', text: prompt });
+
+		logger.debug(`BaseInteraction: relayToolResult - calling llm.speakWithRetry`);
+		const response = await this.llm.speakWithRetry(this, speakOptions);
+
+		// // these are set in updateTotals
+		// this.statementTurnCount++;
+		// this.conversationTurnCount++;
+
+		// logToolUse and logToolResult are in orchestratorController
+
+		return response;
+	}
+
+	// converse is called for first turn in a statement; subsequent turns call relayToolResult
 	public async converse(
 		prompt: string,
 		speakOptions?: LLMSpeakWithOptions,
@@ -786,18 +806,18 @@ class LLMConversationInteraction extends LLMInteraction {
 			speakOptions = {} as LLMSpeakWithOptions;
 		}
 
+		/*
 		if (this._statementCount === 0) {
 			// This is the first statement in the conversation
-			/*
 			this.currentCommit = await this.getCurrentGitCommit();
 			if (this.currentCommit) {
 				prompt = `Current Git commit: ${this.currentCommit}\n\n${prompt}`;
 			}
-			 */
 		}
-		this._statementTurnCount++;
+		 */
 
 		// Check if the last message has a 'tool_use' content part
+		// it means the tool use/results loop was interrupted
 		const lastMessage = this.getLastMessage();
 		if (
 			lastMessage && lastMessage.role === 'assistant' &&
@@ -822,38 +842,19 @@ class LLMConversationInteraction extends LLMInteraction {
 		this.conversationLogger.logUserMessage(
 			messageId,
 			prompt,
-			this.getConversationStats(),
+			this.conversationStats,
 		);
 
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
-		// Update token usage tracking with appropriate role
-		await this.updateTotals(response.messageResponse.usage, 'assistant');
+		this.statementCount++;
+		this.statementTurnCount = 0;
+		// // these are set in updateTotals
+		// this.statementTurnCount++;
+		// this.conversationTurnCount++;
 
-		// Record token usage for user message if available
-		if (response?.messageResponse?.usage) {
-			await this.updateTotals(response.messageResponse.usage, 'user');
-		}
-
-		// // Update totals once per turn
-		// //this.updateTotals(response.messageResponse.usage, 1); // Assuming 1 provider request per converse call
-		// this.updateTotals(response.messageResponse.usage); // Assuming 1 provider request per converse call
-
-		// // moving logAssistantMessage to orchestratorController
-		// //const msg = extractTextFromContent(response.messageResponse.answerContent);
-		// const msg = response.messageResponse.answer;
-		// const conversationStats: ConversationMetrics = this.getConversationStats();
-		// const tokenUsageMessage: TokenUsage = response.messageResponse.usage;
-		//
-		// this.conversationLogger.logAssistantMessage(
-		// 	this.getLastMessageId(),
-		// 	msg,
-		// 	conversationStats,
-		// 	tokenUsageMessage,
-		// 	this._tokenUsageStatement,
-		// 	this._tokenUsageInteraction,
-		// );
+		// logAssistantMessage is in orchestratorController
 
 		this._statementCount++;
 

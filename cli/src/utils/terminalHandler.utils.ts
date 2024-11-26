@@ -22,7 +22,7 @@ import type {
 	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
-	ConversationTokenUsage,
+	TokenUsage,
 } from 'shared/types.ts';
 //import { logger } from 'shared/logger.ts';
 
@@ -523,10 +523,10 @@ export class TerminalHandler {
 		const isNewConversation = !options.id;
 		const { conversationId, conversationStats, conversationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
-		const tokenUsageConversation: ConversationTokenUsage = {
-			inputTokensTotal: response.tokenUsageStatement.inputTokens,
-			outputTokensTotal: response.tokenUsageStatement.outputTokens,
-			totalTokensTotal: response.tokenUsageStatement.totalTokens,
+		const tokenUsageConversation: TokenUsage = {
+			inputTokens: response.tokenUsageStatement.inputTokens,
+			outputTokens: response.tokenUsageStatement.outputTokens,
+			totalTokens: response.tokenUsageStatement.totalTokens,
 		};
 
 		if (options.json) {
@@ -582,21 +582,21 @@ export class TerminalHandler {
 			console.log(
 				palette.secondary('│') +
 					palette.error(
-						` ${symbols.arrowDown} Input Tokens: ${tokenUsageConversation?.inputTokensTotal}`.padEnd(55),
+						` ${symbols.arrowDown} Input Tokens: ${tokenUsageConversation?.inputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.success(
-						` ${symbols.arrowUp} Output Tokens: ${tokenUsageConversation?.outputTokensTotal}`.padEnd(55),
+						` ${symbols.arrowUp} Output Tokens: ${tokenUsageConversation?.outputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.primary(
-						` ${symbols.radioOn} Total Tokens: ${tokenUsageConversation?.totalTokensTotal}`.padEnd(55),
+						` ${symbols.radioOn} Total Tokens: ${tokenUsageConversation?.totalTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);

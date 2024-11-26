@@ -32,13 +32,13 @@ export function ConversationMetadata({ logEntries, conversationId, title }: Conv
 			{tokenUsage && (
 				<div className='flex items-center space-x-3'>
 					<div>
-						<span className='text-gray-400'>Input:</span> {tokenUsage.inputTokensTotal.toLocaleString()}
+						<span className='text-gray-400'>Input:</span> {tokenUsage.inputTokens?.toLocaleString() || 0}
 					</div>
 					<div>
-						<span className='text-gray-400'>Output:</span> {tokenUsage.outputTokensTotal.toLocaleString()}
+						<span className='text-gray-400'>Output:</span> {tokenUsage.outputTokens?.toLocaleString() || 0}
 					</div>
 					<div>
-						<span className='text-gray-400'>Total:</span> {tokenUsage.totalTokensTotal.toLocaleString()}
+						<span className='text-gray-400'>Total:</span> {tokenUsage.totalTokens?.toLocaleString() || 0}
 					</div>
 				</div>
 			)}
