@@ -1,48 +1,105 @@
 /** @jsxImportSource preact */
-import type { JSX } from 'preact';
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolRewriteFileInput, LLMToolRewriteFileResult } from './types.ts';
+import { logger } from 'shared/logger.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { filePath, content, createIfMissing, allowEmptyContent, expectedLineCount } = toolInput as {
-		filePath: string;
-		content: string;
-		createIfMissing: boolean;
-		allowEmptyContent: boolean;
-		expectedLineCount: number;
-	};
+export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	const { filePath, content, createIfMissing, allowEmptyContent, expectedLineCount } =
+		toolInput as LLMToolRewriteFileInput;
 	const contentPreview = content.length > 100 ? content.slice(0, 100) + '...' : content;
-	return (
-		<div className='tool-use'>
-			<p>
-				<strong>Rewriting file:</strong> {filePath}
-			</p>
-			<p>
-				<strong>Expected line count:</strong> <span style='color: #DAA520;'>{expectedLineCount}</span>
-			</p>
-			<p>
-				<strong>Create if missing:</strong>{' '}
-				<span style='color: #DAA520;'>{createIfMissing ? 'Yes' : 'No'}</span>
-			</p>
-			<p>
-				<strong>Allow empty content:</strong>{' '}
-				<span style='color: #DAA520;'>{allowEmptyContent ? 'Yes' : 'No'}</span>
-			</p>
-			<p>
-				<strong>New content:</strong>
-			</p>
-			<pre style='background-color: #f0f0f0; padding: 10px; white-space: pre-wrap;'>{contentPreview}</pre>
-		</div>
+
+	const formattedContent = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('File:')}{' '}
+					{LLMTool.TOOL_TAGS_BROWSER.content.filename(filePath)}
+				</>,
+			)}
+			{LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Expected line count:')}{' '}
+					{LLMTool.TOOL_TAGS_BROWSER.content.number(expectedLineCount)}
+				</>,
+			)}
+			{LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Create if missing:')}{' '}
+					{LLMTool.TOOL_TAGS_BROWSER.content.boolean(createIfMissing ?? true)}
+				</>,
+			)}
+			{LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Allow empty content:')}{' '}
+					{LLMTool.TOOL_TAGS_BROWSER.content.boolean(allowEmptyContent ?? false)}
+				</>,
+			)}
+			{LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('New content:')}
+					{LLMTool.TOOL_TAGS_BROWSER.base.pre(contentPreview)}
+				</>,
+				`${LLMTool.TOOL_STYLES_BROWSER.base.container} ${LLMTool.TOOL_STYLES_BROWSER.content.code}`,
+			)}
+		</>,
+		LLMTool.TOOL_STYLES_BROWSER.base.container,
 	);
+
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Rewrite File'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`Rewriting ${filePath}`),
+		content: formattedContent,
+		preview: `Rewriting ${filePath} (${expectedLineCount} lines)`,
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbResponse } = resultContent;
-	return (
-		<div className='tool-result'>
-			<p>
-				<strong>{bbResponse}</strong>
-			</p>
-		</div>
-	);
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
+	const { bbResponse } = resultContent as LLMToolRewriteFileResult;
+
+	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
+		const { filePath, lineCount, isNewFile, lineCountError } = bbResponse.data;
+		const operation = isNewFile ? 'Created' : 'Modified';
+
+		const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			<>
+				{LLMTool.TOOL_TAGS_BROWSER.base.container(
+					<>
+						{LLMTool.TOOL_TAGS_BROWSER.base.label(`✅ File ${operation.toLowerCase()} successfully:`)}
+						<div>
+							{LLMTool.TOOL_TAGS_BROWSER.content.filename(filePath)} ({lineCount} lines)
+						</div>
+					</>,
+				)}
+				{lineCountError && LLMTool.TOOL_TAGS_BROWSER.base.container(
+					LLMTool.TOOL_TAGS_BROWSER.base.label(lineCountError),
+					`${LLMTool.TOOL_STYLES_BROWSER.base.container} ${LLMTool.TOOL_STYLES_BROWSER.status.warning}`,
+				)}
+			</>,
+			`${LLMTool.TOOL_STYLES_BROWSER.base.container} ${LLMTool.TOOL_STYLES_BROWSER.status.success}`,
+		);
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Rewrite File'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`${operation} ${filePath}`),
+			content,
+			preview: `${operation} file with ${lineCount} lines`,
+		};
+	} else {
+		logger.error('LLMToolRewriteFile: Unexpected bbResponse format:', bbResponse);
+		const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			LLMTool.TOOL_TAGS_BROWSER.base.label(String(bbResponse)),
+			`${LLMTool.TOOL_STYLES_BROWSER.base.container} ${LLMTool.TOOL_STYLES_BROWSER.status.error}`,
+		);
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Rewrite File'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('failed'),
+			content,
+			preview: 'Operation failed',
+		};
+	}
 };

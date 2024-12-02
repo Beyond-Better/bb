@@ -1,27 +1,25 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolConfig, LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
-} from './formatter.browser.tsx';
-import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
-} from './formatter.console.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { LLMToolMultiModelQueryConfig, LLMToolMultiModelQueryInput, ModelProvider } from './types.ts';
 import { logger } from 'shared/logger.ts';
+
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
+} from './formatter.browser.tsx';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
+} from './formatter.console.ts';
 
 import { AnthropicProvider } from './providers/anthropic.ts';
 import { OpenAIProvider } from './providers/openai.ts';
 import { GeminiProvider } from './providers/gemini.ts';
-
-export interface ModelProvider {
-	query(model: string, prompt: string): Promise<string>;
-}
 
 const MODELS = [
 	//anthropic
@@ -39,6 +37,7 @@ const MODELS = [
 	'gemini-pro',
 	//'gemini-pro-vision',
 ];
+
 const MODELS_PROVIDERS = {
 	//anthropic
 	'claude-3-5-sonnet-20241022': 'anthropic',
@@ -56,26 +55,14 @@ const MODELS_PROVIDERS = {
 	//'gemini-pro-vision': 'gemini',
 } as Record<string, string>;
 
-interface LLMToolMultiModelQueryConfig extends LLMToolConfig {
-	openaiApiKey?: string;
-	anthropicApiKey?: string;
-	geminiApiKey?: string;
-	models?: string[];
-}
-
 export default class LLMToolMultiModelQuery extends LLMTool {
 	public providers: Record<string, ModelProvider> = {};
 	private models: Array<string>;
 
 	constructor(name: string, description: string, toolConfig: LLMToolMultiModelQueryConfig) {
-		super(
-			name,
-			description,
-			toolConfig,
-		);
+		super(name, description, toolConfig);
 
 		this.models = toolConfig.models || MODELS;
-
 		this.description = `${description}. Available models: ${this.models.join(', ')}`;
 
 		if (toolConfig.anthropicApiKey) this.providers.anthropic = new AnthropicProvider(toolConfig.anthropicApiKey);
@@ -149,15 +136,20 @@ Responses will be returned separately for each model, preserving their exact out
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -165,10 +157,10 @@ Responses will be returned separately for each model, preserving their exact out
 		toolUse: LLMAnswerToolUse,
 		_projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { query, models } = toolInput as { query: string; models: string[] };
+		const { toolInput } = toolUse;
+		const { query, models } = toolInput as LLMToolMultiModelQueryInput;
 
-		logger.info(`LLMToolMultiModelQuery: input`, toolInput);
+		logger.info('LLMToolMultiModelQuery: input', toolInput);
 
 		try {
 			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];

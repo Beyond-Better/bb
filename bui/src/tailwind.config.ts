@@ -3,45 +3,47 @@ import typography from '@tailwindcss/typography';
 
 export default {
 	content: [
+		// BUI components and routes
 		'{routes,islands,components}/**/*.{ts,tsx}',
+
+		// API formatters that generate HTML with Tailwind classes
+		// These files need to be included so Tailwind can detect utility classes
+		// used in dynamically generated HTML from the API
+		'../../api/src/logEntries/formatters.browser.tsx',
+		'../../api/src/llms/llmToolTags.tsx',
+		'../../api/src/llms/tools/*.tool/formatter.browser.tsx',
 	],
 	safelist: [
-		// Message backgrounds
-		'bg-blue-50',
-		'bg-green-50',
-		'bg-yellow-50',
-		'bg-purple-50',
-		'bg-red-50',
-		// Message borders
-		'border-blue-200',
-		'border-green-200',
-		'border-yellow-200',
-		'border-purple-200',
-		'border-red-200',
-		// Header backgrounds
-		'bg-blue-100',
-		'bg-green-100',
-		'bg-yellow-100',
-		'bg-purple-100',
-		'bg-red-100',
-		// Header text colors
-		'text-blue-700',
-		'text-green-700',
-		'text-yellow-700',
-		'text-purple-700',
-		'text-red-700',
-		// Dots
-		'bg-blue-500',
-		'bg-green-500',
-		'bg-yellow-500',
-		'bg-purple-500',
-		'bg-red-500',
+		// BB Tool Classes
+		'bb-log-entry-title',
+		'bb-log-entry-toolname',
+		'bb-log-entry-subtitle',
+		'bb-tool-use',
+		'bb-tool-result',
 	],
 	theme: {
 		fontFamily: {
 			sans: ['Inter', 'ui-sans-serif'],
 		},
 		extend: {
+			// BB Tool Classes
+			components: {
+				'.bb-log-entry-title': {
+					'@apply text-lg font-semibold flex items-center gap-2': {},
+				},
+				'.bb-log-entry-toolname': {
+					'@apply text-base font-normal text-gray-600': {},
+				},
+				'.bb-log-entry-subtitle': {
+					'@apply text-sm text-gray-500': {},
+				},
+				'.bb-tool-use': {
+					'@apply p-4 rounded-lg border bg-white': {},
+				},
+				'.bb-tool-result': {
+					'@apply p-4 rounded-lg border bg-white': {},
+				},
+			},
 			fontSize: {
 				'xs': '0.6rem',
 				'sm': '0.7rem',

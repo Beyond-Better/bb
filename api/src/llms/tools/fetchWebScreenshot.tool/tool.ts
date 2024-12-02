@@ -1,13 +1,13 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
@@ -16,6 +16,7 @@ import FetchManager from 'shared/fetchManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { encodeBase64 } from '@std/encoding';
 import { logger } from 'shared/logger.ts';
+import type { LLMToolFetchWebScreenshotInput, LLMToolFetchWebScreenshotResultData } from './types.ts';
 
 export default class LLMToolFetchWebScreenshot extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -65,15 +66,20 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -81,7 +87,7 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		_projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { url } = toolUse.toolInput as { url: string };
+		const { url } = toolUse.toolInput as LLMToolFetchWebScreenshotInput;
 		try {
 			const fetchManager = await new FetchManager().init();
 			const screenshotUint8Array: Uint8Array = await fetchManager.fetchScreenshot(url);
@@ -97,17 +103,17 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 				},
 			} as LLMMessageContentPartImageBlock];
 
+			const resultData: LLMToolFetchWebScreenshotResultData = {
+				url,
+				//mediaType: 'image/png',
+				//source: screenshotBase64,
+			};
+
 			return {
 				toolResults: toolResultContentPart,
 				toolResponse: `Successfully captured screenshot of ${url}`,
-				// bbResponse:
-				// 	`I've captured a screenshot of ${url}. The image data is available as a base64-encoded string.`,
 				bbResponse: {
-					data: {
-						url,
-						//mediaType: 'image/png',
-						//source: screenshotBase64,
-					},
+					data: resultData,
 				},
 			};
 		} catch (error) {

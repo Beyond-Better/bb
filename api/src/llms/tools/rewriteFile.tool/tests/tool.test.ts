@@ -14,6 +14,34 @@ import { FileHandlingError } from 'api/errors/error.ts';
 
 const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete file content with no omissions or placeholders';
 
+// Type guard function
+function isRunCommandResponse(
+	response: unknown,
+): response is {
+	data: {
+		filePath: string;
+		lineCount: number;
+		isNewFile: boolean;
+		lineCountError: string | undefined;
+	};
+} {
+	return (
+		typeof response === 'object' &&
+		response !== null &&
+		'data' in response &&
+		typeof (response as any).data === 'object' &&
+		'filePath' in (response as any).data &&
+		typeof (response as any).data.filePath === 'string' &&
+		'lineCount' in (response as any).data &&
+		typeof (response as any).data.lineCount === 'number' &&
+		'isNewFile' in (response as any).data &&
+		typeof (response as any).data.isNewFile === 'boolean' &&
+		'lineCountError' in (response as any).data &&
+		(typeof (response as any).data.lineCountError === 'string' ||
+			typeof (response as any).data.lineCountError === 'undefined')
+	);
+}
+
 // Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
@@ -59,8 +87,38 @@ Deno.test({
 				// console.log('rewrite existing file - toolResponse:', result.toolResponse);
 				// console.log('rewrite existing file - toolResults:', result.toolResults);
 
-				assert(isString(result.bbResponse), 'bbResponse should be a string');
-				assertStringIncludes(result.bbResponse, 'BB rewrote file test.txt with new contents (1 lines)');
+				assert(
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
+				);
+				assert(
+					isRunCommandResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
+				);
+
+				if (isRunCommandResponse(result.bbResponse)) {
+					assertEquals(
+						result.bbResponse.data.filePath,
+						'test.txt',
+						'Test response filePath should be "test.txt"',
+					);
+					assertEquals(
+						result.bbResponse.data.lineCount,
+						1,
+						'Test response lineCount should be 1',
+					);
+
+					assertEquals(result.bbResponse.data.isNewFile, false, 'Test response isNewFile should be false');
+
+					assertEquals(
+						result.bbResponse.data.lineCountError,
+						undefined,
+						'Test response assertEquals should be undefined',
+					);
+				} else {
+					assert(false, 'bbResponse does not have the expected structure for Tool');
+				}
+
 				assertStringIncludes(result.toolResponse, 'Rewrote test.txt with 1 lines of content');
 				if (isString(result.toolResults)) {
 					assertStringIncludes(result.toolResults, 'File test.txt rewritten with new contents (1 lines)');
@@ -113,9 +171,42 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
+				// console.log('create new file - bbResponse:', result.bbResponse);
+				// console.log('create new file - toolResponse:', result.toolResponse);
+				// console.log('create new file - toolResults:', result.toolResults);
 
-				assert(isString(result.bbResponse), 'bbResponse should be a string');
-				assertStringIncludes(result.bbResponse, 'BB created file new-test.txt with new contents (1 lines)');
+				assert(
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
+				);
+				assert(
+					isRunCommandResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
+				);
+
+				if (isRunCommandResponse(result.bbResponse)) {
+					assertEquals(
+						result.bbResponse.data.filePath,
+						testFile,
+						'Test response filePath should be "new-test.txt"',
+					);
+					assertEquals(
+						result.bbResponse.data.lineCount,
+						1,
+						'Test response lineCount should be 1',
+					);
+
+					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+
+					assertEquals(
+						result.bbResponse.data.lineCountError,
+						undefined,
+						'Test response assertEquals should be undefined',
+					);
+				} else {
+					assert(false, 'bbResponse does not have the expected structure for Tool');
+				}
+
 				assertStringIncludes(result.toolResponse, 'Created new-test.txt with 1 lines of content');
 				if (isString(result.toolResults)) {
 					assertStringIncludes(result.toolResults, 'File new-test.txt created with new contents (1 lines)');
@@ -214,8 +305,41 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				assert(isString(result.bbResponse), 'bbResponse should be a string');
-				assertStringIncludes(result.bbResponse, 'BB created file empty.txt with new contents (0 lines)');
+				// console.log('empty file handling - bbResponse:', result.bbResponse);
+				// console.log('empty file handling - toolResponse:', result.toolResponse);
+				// console.log('empty file handling - toolResults:', result.toolResults);
+
+				assert(
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
+				);
+				assert(
+					isRunCommandResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
+				);
+
+				if (isRunCommandResponse(result.bbResponse)) {
+					assertEquals(
+						result.bbResponse.data.filePath,
+						testFile,
+						'Test response filePath should be "empty.txt"',
+					);
+					assertEquals(
+						result.bbResponse.data.lineCount,
+						0,
+						'Test response lineCount should be 0',
+					);
+
+					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+
+					assertEquals(
+						result.bbResponse.data.lineCountError,
+						undefined,
+						'Test response assertEquals should be undefined',
+					);
+				} else {
+					assert(false, 'bbResponse does not have the expected structure for Tool');
+				}
 
 				// Test single empty line (should be treated same as empty file)
 				const toolUse2: LLMAnswerToolUse = {
@@ -232,8 +356,41 @@ Deno.test({
 				};
 
 				const result2 = await tool.runTool(interaction, toolUse2, projectEditor);
-				assert(isString(result2.bbResponse), 'bbResponse should be a string');
-				assertStringIncludes(result2.bbResponse, 'BB rewrote file empty.txt with new contents (0 lines)');
+				//console.log('empty file handling-2 - bbResponse:', result2.bbResponse);
+				//console.log('empty file handling-2 - toolResponse:', result2.toolResponse);
+				//console.log('empty file handling-2 - toolResults:', result2.toolResults);
+
+				assert(
+					result2.bbResponse && typeof result2.bbResponse === 'object',
+					'bbResponse should be an object',
+				);
+				assert(
+					isRunCommandResponse(result2.bbResponse),
+					'bbResponse should have the correct structure for Tool',
+				);
+
+				if (isRunCommandResponse(result2.bbResponse)) {
+					assertEquals(
+						result2.bbResponse.data.filePath,
+						testFile,
+						'Test response filePath should be "empty.txt"',
+					);
+					assertEquals(
+						result2.bbResponse.data.lineCount,
+						0,
+						'Test response lineCount should be 0',
+					);
+
+					assertEquals(result2.bbResponse.data.isNewFile, false, 'Test response isNewFile should be false');
+
+					assertEquals(
+						result2.bbResponse.data.lineCountError,
+						undefined,
+						'Test response assertEquals should be undefined',
+					);
+				} else {
+					assert(false, 'bbResponse does not have the expected structure for Tool');
+				}
 
 				// Test empty content rejection when allowEmptyContent is false
 				const toolUse3: LLMAnswerToolUse = {
@@ -300,11 +457,38 @@ Deno.test({
 				// console.log('line count mismatch - toolResponse:', result.toolResponse);
 				// console.log('line count mismatch - toolResults:', result.toolResults);
 
-				assert(isString(result.bbResponse), 'bbResponse should be a string');
-				assertStringIncludes(
-					result.bbResponse,
-					'BB created file test.txt with new contents (3 lines).\nLine count mismatch. Content has 3 lines but expected 5 lines.',
+				assert(
+					result.bbResponse && typeof result.bbResponse === 'object',
+					'bbResponse should be an object',
 				);
+				assert(
+					isRunCommandResponse(result.bbResponse),
+					'bbResponse should have the correct structure for Tool',
+				);
+
+				if (isRunCommandResponse(result.bbResponse)) {
+					assertEquals(
+						result.bbResponse.data.filePath,
+						testFile,
+						'Test response filePath should be "empty.txt"',
+					);
+					assertEquals(
+						result.bbResponse.data.lineCount,
+						3,
+						'Test response lineCount should be 3',
+					);
+
+					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+
+					assertEquals(
+						result.bbResponse.data.lineCountError,
+						'Line count mismatch. Content has 3 lines but expected 5 lines.',
+						'Test response lineCountError should be Line count mismatch',
+					);
+				} else {
+					assert(false, 'bbResponse does not have the expected structure for Tool');
+				}
+
 				assertStringIncludes(result.toolResponse, 'Created test.txt with 3 lines of content');
 				if (isString(result.toolResults)) {
 					assertStringIncludes(result.toolResults, 'File test.txt created with new contents (3 lines)');
@@ -319,7 +503,8 @@ Deno.test({
 	sanitizeResources: false,
 	sanitizeOps: false,
 });
-/*  // TODO Either LLM or the tool is having trouble counting lines in real usage, so line count checks in tool have been changed to warnings rather than throwing errors.
+/*
+    // TODO Either LLM or the tool is having trouble counting lines in real usage, so line count checks in tool have been changed to warnings rather than throwing errors.
     // Either use this test for throwing exception, or test above for warning string
 Deno.test({
 	name: 'Rewrite File Tool - line count mismatch',

@@ -163,9 +163,12 @@ export async function restartApiServer(
 	apiUseTls?: boolean,
 	apiLogLevel?: string,
 	apiLogFile?: string,
-): Promise<void> {
+): Promise<{ pid: number; apiLogFilePath: string; listen: string }> {
 	await stopApiServer(startDir);
-	await startApiServer(startDir, apiHostname, apiPort, apiUseTls, apiLogLevel, apiLogFile);
+
+	await delay(1000);
+
+	return await startApiServer(startDir, apiHostname, apiPort, apiUseTls, apiLogLevel, apiLogFile);
 }
 
 export async function followApiLogs(apiLogFilePath: string, startDir: string): Promise<void> {

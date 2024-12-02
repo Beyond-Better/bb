@@ -1,11 +1,22 @@
 //import type { ConversationStats, TokenUsage } from 'shared/types.ts';
-import type { LLMToolFormatterDestination, LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { LLMToolFormatterDestination, LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type { JSX } from 'preact';
+//import { renderToString } from 'preact-render-to-string';
 import LLMToolManager from '../llms/llmToolManager.ts';
 import type { ConversationLogEntry, ConversationLogEntryContent, ConversationLogEntryType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { FullConfigSchema } from 'shared/configSchema.ts';
-import { escape as escapeHtmlEntities } from '@std/html';
+import type { AuxiliaryChatContent, LogEntryFormattedResult, LogEntryTitleData } from './types.ts';
+import {
+	formatLogEntryContent as formatLogEntryContentForConsole,
+	formatLogEntryPreview as formatLogEntryPreviewForConsole,
+	formatLogEntryTitle as formatLogEntryTitleForConsole,
+} from './formatters.console.ts';
+import {
+	formatLogEntryContent as formatLogEntryContentForBrowser,
+	formatLogEntryPreview as formatLogEntryPreviewForBrowser,
+	formatLogEntryTitle as formatLogEntryTitleForBrowser,
+} from './formatters.browser.tsx';
 
 export default class LogEntryFormatterManager {
 	private toolManager!: LLMToolManager;
@@ -23,31 +34,113 @@ export default class LogEntryFormatterManager {
 	async formatLogEntry(
 		destination: LLMToolFormatterDestination,
 		logEntry: ConversationLogEntry,
-		options?: any,
-	): Promise<string | JSX.Element> {
+		options?: unknown,
+	): Promise<LogEntryFormattedResult> {
+		let formatted: LogEntryFormattedResult;
+		//logger.info(`LogEntryFormatterManager: formatLogEntry:`, logEntry);
 		switch (logEntry.entryType as ConversationLogEntryType) {
 			case 'user':
+				formatted = destination === 'console'
+					? this.formatLogEntryBasicConsole(logEntry, this.fullConfig.myPersonsName || 'User')
+					: this.formatLogEntryBasicBrowser(logEntry, this.fullConfig.myPersonsName || 'User');
+				break;
 			case 'assistant':
+				formatted = destination === 'console'
+					? this.formatLogEntryBasicConsole(logEntry, this.fullConfig.myAssistantsName || 'Assistant')
+					: this.formatLogEntryBasicBrowser(logEntry, this.fullConfig.myAssistantsName || 'Assistant');
+				break;
 			case 'answer':
+				formatted = destination === 'console'
+					? this.formatLogEntryBasicConsole(
+						logEntry,
+						`Answer from ${this.fullConfig.myAssistantsName || 'Assistant'}`,
+					)
+					: this.formatLogEntryBasicBrowser(
+						logEntry,
+						`Answer from ${this.fullConfig.myAssistantsName || 'Assistant'}`,
+					);
+				break;
 			case 'auxiliary':
-			case 'error':
-				return this.formatBasicEntry(destination, logEntry, options);
+				formatted = destination === 'console'
+					? this.formatAuxiliaryConsole(logEntry)
+					: this.formatAuxiliaryBrowser(logEntry);
+				break;
 			case 'tool_use':
 			case 'tool_result':
 				if (!logEntry.toolName) {
 					throw new Error('Tool name is required for tool formatters');
 				}
-				return await this.formatToolEntry(destination, logEntry, options);
+				formatted = await this.formatLogEntryTool(destination, logEntry, options);
+				break;
+			case 'error':
+				formatted = destination === 'console'
+					? this.formatLogEntryBasicConsole(logEntry, 'Error')
+					: this.formatLogEntryBasicBrowser(logEntry, 'Error');
+				break;
 			default:
 				throw new Error(`Unknown log entry type: ${logEntry.entryType}`);
 		}
+		//logger.info(`LogEntryFormatterManager: formatLogEntry:`, JSON.stringify(formatted));
+		return formatted;
 	}
 
-	private async formatToolEntry(
+	private formatLogEntryBasicConsole(logEntry: ConversationLogEntry, title: string): LogEntryFormattedResult {
+		return {
+			title: this.formatLogEntryTitleConsole({ title }),
+			content: this.formatLogEntryContentConsole(logEntry),
+			preview: this.formatLogEntryPreviewConsole(logEntry),
+		};
+	}
+
+	private formatLogEntryBasicBrowser(logEntry: ConversationLogEntry, title: string): LogEntryFormattedResult {
+		return {
+			title: this.formatLogEntryTitleBrowser({ title }),
+			content: this.formatLogEntryContentBrowser(logEntry),
+			preview: this.formatLogEntryPreviewBrowser(logEntry),
+		};
+	}
+
+	private formatAuxiliaryConsole(logEntry: ConversationLogEntry): LogEntryFormattedResult {
+		const content: ConversationLogEntryContent = logEntry.content;
+		if (typeof content === 'object' && 'purpose' in content) {
+			const auxContent = content as AuxiliaryChatContent;
+			return {
+				title: this.formatLogEntryTitleConsole({ title: auxContent.purpose }),
+				content: this.formatLogEntryContentConsole({ content: auxContent.message } as ConversationLogEntry),
+				preview: this.formatLogEntryPreviewConsole({ content: auxContent.message } as ConversationLogEntry),
+			};
+		}
+		// Fallback for string content
+		return {
+			title: 'Auxiliary',
+			content: this.formatLogEntryContentConsole(logEntry),
+			preview: this.formatLogEntryPreviewConsole(logEntry),
+		};
+	}
+
+	private formatAuxiliaryBrowser(logEntry: ConversationLogEntry): LogEntryFormattedResult {
+		const content: ConversationLogEntryContent = logEntry.content;
+		if (typeof content === 'object' && 'purpose' in content) {
+			const auxContent = content as AuxiliaryChatContent;
+			return {
+				title: this.formatLogEntryTitleBrowser({ title: auxContent.purpose }),
+				content: this.formatLogEntryContentBrowser({ content: auxContent.message } as ConversationLogEntry),
+				preview: this.formatLogEntryPreviewBrowser({ content: auxContent.message } as ConversationLogEntry),
+			};
+		}
+		// Fallback for string content
+		return {
+			title: 'Auxiliary',
+			content: this.formatLogEntryContentBrowser(logEntry),
+			preview: this.getContentPreview(logEntry.content),
+		};
+	}
+
+	private async formatLogEntryTool(
 		destination: LLMToolFormatterDestination,
 		logEntry: ConversationLogEntry,
-		_options: any,
-	): Promise<string | JSX.Element> {
+		_options: unknown,
+	): Promise<LogEntryFormattedResult> {
 		if (!logEntry.toolName) throw new Error(`Tool name not provided in log entry: ${logEntry.toolName}`);
 		const tool = await this.toolManager.getTool(logEntry.toolName);
 		//logger.error(`LogEntryFormatterManager: Got tool ${logEntry.toolName}:`, tool);
@@ -57,9 +150,15 @@ export default class LogEntryFormatterManager {
 
 		try {
 			if (logEntry.entryType === 'tool_use') {
-				return tool.formatToolUse(logEntry.content as LLMToolInputSchema, destination);
+				return tool.formatLogEntryToolUse(logEntry.content as LLMToolInputSchema, destination);
+				// const toolUse = tool.formatLogEntryToolUse(logEntry.content as LLMToolInputSchema, destination);
+				// logger.error(`LogEntryFormatterManager: toolUse ${logEntry.toolName}:`, renderToString(toolUse.content as JSX.Element));
+				// return toolUse;
 			} else {
-				return tool.formatToolResult(logEntry.content as ConversationLogEntryContent, destination);
+				return tool.formatLogEntryToolResult(logEntry.content as ConversationLogEntryContent, destination);
+				//const toolResult =  tool.formatLogEntryToolResult(logEntry.content as ConversationLogEntryContent, destination);
+				//logger.error(`LogEntryFormatterManager: toolResult ${logEntry.toolName}:`, renderToString(toolResult.content as JSX.Element));
+				//return toolResult;
 			}
 		} catch (error) {
 			logger.error(
@@ -67,94 +166,53 @@ export default class LogEntryFormatterManager {
 					(error as Error).message
 				}`,
 			);
-			return `Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}`;
+			return {
+				title: 'Error',
+				content: `Error formatting ${logEntry.entryType} for tool ${logEntry.toolName}`,
+				preview: '',
+			};
 		}
 	}
 
-	private formatBasicEntry(
-		destination: LLMToolFormatterDestination,
-		logEntry: ConversationLogEntry,
-		options?: unknown,
-	): string {
-		return destination === 'console'
-			? this.formatBasicEntryConsole(logEntry, options)
-			: this.formatBasicEntryBrowser(logEntry, options);
+	private formatLogEntryTitleConsole(titleData: LogEntryTitleData): string {
+		return formatLogEntryTitleForConsole(titleData);
 	}
 
-	private formatBasicEntryConsole(logEntry: ConversationLogEntry, _options: unknown): string {
-		// const { content, metadata } = entry;
-		// const formattedMetadata = this.formatMetadataConsole(
-		// 	metadata?.conversationStats,
-		// 	metadata?.tokenUsageTurn,
-		// 	metadata?.tokenUsageStatement,
-		// 	metadata?.tokenUsageConversation,
-		// );
-		// return `${formattedContent}\n${formattedMetadata}`;
-		const contentArray = this.formatContent(logEntry.content);
-		return contentArray
-			.map((item) => {
-				if (item.type === 'text') {
-					return item.content;
-				} else if (item.type === 'image') {
-					return '[Embedded Image]';
-				}
-				return '';
-			})
-			.join('\n');
+	private formatLogEntryContentConsole(logEntry: ConversationLogEntry): string {
+		return formatLogEntryContentForConsole(logEntry);
 	}
 
-	private formatBasicEntryBrowser(logEntry: ConversationLogEntry, _options: unknown): string {
-		// const { content, metadata } = entry;
-		// const formattedMetadata = this.formatMetadataBrowser(
-		// 	metadata?.conversationStats,
-		// 	metadata?.tokenUsageTurn,
-		// 	metadata?.tokenUsageStatement,
-		// 	metadata?.tokenUsageConversation,
-		// );
-		// return `${formattedContent}${formattedMetadata}`;
-
-		//logger.info('LogEntryFormatterManager: formatBasicEntryBrowser - ', logEntry);
-		const contentArray = this.formatContent(logEntry.content);
-		const formattedContent = contentArray
-			.map((item) => {
-				if (item.type === 'text') {
-					return `<div>${escapeHtmlEntities(item.content)}</div>`;
-				} else if (item.type === 'image') {
-					const source = JSON.parse(item.content);
-					return `<img src="data:${source.media_type};base64,${source.data}" alt="Embedded Image" />`;
-				}
-				return '';
-			})
-			.join('');
-		return `<div class="${logEntry.entryType}-message">${formattedContent}</div>`;
+	private formatLogEntryPreviewConsole(logEntry: ConversationLogEntry): string {
+		const logEntryContent: ConversationLogEntryContent = logEntry.content;
+		return formatLogEntryPreviewForConsole(this.getContentPreview(logEntryContent));
 	}
 
-	private formatContent(
-		content: string | LLMToolInputSchema | LLMToolRunResultContent,
-	): Array<{ type: string; content: string }> {
+	private formatLogEntryTitleBrowser(titleData: LogEntryTitleData): string | JSX.Element {
+		return formatLogEntryTitleForBrowser(titleData);
+	}
+
+	private formatLogEntryContentBrowser(logEntry: ConversationLogEntry): string | JSX.Element {
+		return formatLogEntryContentForBrowser(logEntry);
+	}
+
+	private formatLogEntryPreviewBrowser(logEntry: ConversationLogEntry): string | JSX.Element {
+		const logEntryContent: ConversationLogEntryContent = logEntry.content;
+		return formatLogEntryPreviewForBrowser(this.getContentPreview(logEntryContent));
+	}
+
+	private getContentPreview(content: ConversationLogEntryContent): string {
 		if (typeof content === 'string') {
-			return this.formatContentString(content).map((line) => ({ type: 'text', content: line }));
-		} else if (Array.isArray(content)) {
-			return content.flatMap((part) => {
-				if (part.type === 'text' && part.text) {
-					return this.formatContentString(part.text).map((line) => ({ type: 'text', content: line }));
-				} else if (part.type === 'image' && part.source) {
-					return [{ type: 'image', content: JSON.stringify(part.source) }];
-				} else if (part.type === 'tool_result' && Array.isArray(part.content)) {
-					return this.formatContent(part.content);
-				}
-				return [];
-			});
+			// Remove any XML-style tags and trim
+			const cleaned = content.replace(/<[^>]+>/g, '').trim();
+			// Take first 50 characters, try to end at a word boundary
+			if (cleaned.length <= 250) return cleaned;
+			const truncated = cleaned.substring(0, 250);
+			const lastSpace = truncated.lastIndexOf(' ');
+			return lastSpace > 30 ? truncated.substring(0, lastSpace) : truncated;
+			//return lastSpace > 30 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
 		}
-		return [];
-	}
-
-	private formatContentString(content: string): string[] {
-		return content
-			.replace(/<bb>.*?<\/bb>/gs, '')
-			.split('\n')
-			.map((line) => line.trim());
-		//.filter((line) => line.length > 0);
+		// For non-string content, return a generic preview
+		return '[Complex content]';
 	}
 
 	/*

@@ -1,6 +1,7 @@
 {
 	"lock": false,
 	"tasks": {
+		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
 		"cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable -A -",
 		"manifest": "deno task cli manifest $(pwd)/src",

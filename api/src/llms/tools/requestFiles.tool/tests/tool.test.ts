@@ -1,12 +1,13 @@
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
-import LLMToolRequestFiles from '../tool.ts';
+//import type LLMToolRequestFiles from '../tool.ts';
+//import { isRequestFilesResponse } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
-// Type guard function
-function isRequestFilesResponse(
+// Type guard for response validation
+export function isRequestFilesResponse(
 	response: unknown,
 ): response is {
 	data: {

@@ -1,4 +1,4 @@
-import type { ModelProvider } from '../tool.ts';
+import type { ModelProvider } from '../types.ts';
 import OpenAI from 'openai';
 import { logger } from 'shared/logger.ts';
 

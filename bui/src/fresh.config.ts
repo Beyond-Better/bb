@@ -85,5 +85,12 @@ export default defineConfig({
 			...highlightStyles,
 		},
 	],
+	// build: {
+	// 	esbuild: {
+	// 		loader: {
+	// 			'.wasm': 'file',
+	// 		},
+	// 	},
+	// },
 	...listenOpts,
 });

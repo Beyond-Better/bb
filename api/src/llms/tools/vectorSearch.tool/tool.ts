@@ -1,22 +1,21 @@
-import type { JSX } from 'preact';
-
-import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
-} from './formatter.browser.tsx';
-import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
-} from './formatter.console.ts';
-import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+//import type { JSX } from 'preact';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-//import type ProjectEditor from 'api/editor/projectEditor.ts';
-//import { isPathWithinProject } from 'api/utils/fileHandling.ts';
-import { createError, ErrorType } from 'api/utils/error.ts';
 import type { VectorSearchErrorOptions } from 'api/errors/error.ts';
+import type { LLMToolVectorSearchInput } from './types.ts';
+
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
+} from './formatter.browser.tsx';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
+} from './formatter.console.ts';
+import LLMTool from 'api/llms/llmTool.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
 import { searchEmbeddings } from '../../../utils/embedding.utils.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -34,35 +33,39 @@ export default class LLMToolVectorSearch extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
 		_interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 	): Promise<LLMToolRunResult> {
-		const { toolUseId: _toolUseId, toolInput } = toolUse;
+		const input = toolUse.toolInput as LLMToolVectorSearchInput;
+		const { query } = input;
 
-		const { query } = toolInput as { query: string };
 		try {
 			const vectorSearchResults = await searchEmbeddings(query);
-
-			const toolResults = vectorSearchResults;
-			const toolResponse = '';
-			const bbResponse =
-				`BB has completed vector search for query: "${query}". ${vectorSearchResults.length} results found.\n${vectorSearchResults}`;
+			const toolResults = vectorSearchResults.join('\n');
+			const toolResponse = `Found ${vectorSearchResults.length} matching embeddings`;
+			const bbResponse = `BB found ${vectorSearchResults.length} matches for query: "${query}"`;
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`LLMToolVectorSearch: Error performing vector search: ${(error as Error).message}`);
+
 			throw createError(ErrorType.VectorSearch, `Error performing vector search: ${(error as Error).message}`, {
 				name: 'vector-search',
 				query,

@@ -1,13 +1,18 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolConfig, LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type {
+	LLMToolConfig,
+	LLMToolInputSchema,
+	LLMToolLogEntryFormattedResult,
+	LLMToolRunResult,
+} from 'api/llms/llmTool.ts';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
@@ -16,6 +21,7 @@ import FetchManager from 'shared/fetchManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { logger } from 'shared/logger.ts';
 import { type DOMConfig, extractTextFromHtml, validateHtml } from '../../../utils/dom.utils.ts';
+import type { LLMToolFetchWebPageInput, LLMToolFetchWebPageResultData } from './types.ts';
 
 interface LLMToolFetchWebPageConfig extends LLMToolConfig {
 	domConfig?: DOMConfig;
@@ -76,15 +82,20 @@ export default class LLMToolFetchWebPage extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -92,7 +103,7 @@ export default class LLMToolFetchWebPage extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		_projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { url } = toolUse.toolInput as { url: string };
+		const { url } = toolUse.toolInput as LLMToolFetchWebPageInput;
 		try {
 			const fetchManager = await new FetchManager().init();
 			const html: string = await fetchManager.fetchPage(url);
@@ -106,18 +117,20 @@ export default class LLMToolFetchWebPage extends LLMTool {
 			// Extract clean text content
 			const text = await extractTextFromHtml(html, this.domConfig);
 
+			const resultData: LLMToolFetchWebPageResultData = {
+				url,
+				html,
+				title: validation.title,
+				length: validation.length,
+			};
+
 			return {
 				toolResults: text,
 				toolResponse: `Successfully fetched and cleaned content from ${url}${
 					validation.title ? ` (${validation.title})` : ''
 				}`,
 				bbResponse: {
-					data: {
-						url,
-						html,
-						title: validation.title,
-						length: validation.length,
-					},
+					data: resultData,
 				},
 			};
 		} catch (error) {

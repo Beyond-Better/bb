@@ -1,14 +1,15 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
+import type { LLMToolApplyPatchInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
@@ -79,15 +80,20 @@ Notes:
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -98,7 +104,7 @@ Notes:
 		const patchedFiles: string[] = [];
 		const patchContents: string[] = [];
 		const { toolInput } = toolUse;
-		const { filePath, patch } = toolInput as { filePath?: string; patch: string };
+		const { filePath, patch } = toolInput as LLMToolApplyPatchInput;
 
 		const parsedPatch = diff.parsePatch(patch);
 		const modifiedFiles: string[] = [];
@@ -183,12 +189,14 @@ Notes:
 					type: 'text',
 					text: `✅ Patch applied successfully to ${modifiedFiles.length + newFiles.length} file(s)`,
 				},
-				...modifiedFiles.map((
-					file,
-				) => ({ type: 'text', text: `📝 Modified: ${file}` } as LLMMessageContentPartTextBlock)),
-				...newFiles.map((
-					file,
-				) => ({ type: 'text', text: `📄 Created: ${file}` } as LLMMessageContentPartTextBlock)),
+				...modifiedFiles.map((file) => ({
+					type: 'text',
+					text: `📝 Modified: ${file}`,
+				} as LLMMessageContentPartTextBlock)),
+				...newFiles.map((file) => ({
+					type: 'text',
+					text: `📄 Created: ${file}`,
+				} as LLMMessageContentPartTextBlock)),
 			];
 
 			const toolResults = toolResultContentParts;

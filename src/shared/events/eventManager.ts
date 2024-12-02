@@ -10,6 +10,7 @@ import {
 	ConversationStart,
 	ConversationStats,
 } from 'shared/types.ts';
+import { VersionInfo } from '../types/version.types.ts';
 import { logger } from 'shared/logger.ts';
 
 export type EventMap = {
@@ -17,7 +18,7 @@ export type EventMap = {
 		conversationNew: ConversationNew;
 		conversationDeleted: ConversationDeleted;
 		speakWith: { conversationId: ConversationId; startDir: string; prompt: string };
-		conversationReady: ConversationStart;
+		conversationReady: ConversationStart & { versionInfo: VersionInfo };
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		conversationCancelled: { conversationId: ConversationId; message: string };
@@ -54,7 +55,7 @@ export type EventMap = {
 		conversationNew: ConversationNew;
 		conversationWaitForReady: { conversationId: ConversationId };
 		conversationWaitForAnswer: { conversationId: ConversationId };
-		conversationReady: ConversationStart;
+		conversationReady: ConversationStart & { versionInfo: VersionInfo };
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		websocketReconnected: { conversationId: ConversationId };
@@ -140,10 +141,6 @@ class EventManager extends EventTarget {
 		const listenerWeakMap = this.listenerMap.get(listenerKey)!;
 
 		const wrappedListener = ((e: TypedEvent<EventPayload<T, E>>) => {
-			//logger.info(
-			//	`EventManager: Handling event ${event} for conversation ${conversationId}`,
-			//	e.detail.conversationId,
-			//);
 			if (
 				!conversationId ||
 				(e.detail && typeof e.detail === 'object' && 'conversationId' in e.detail &&
@@ -166,10 +163,6 @@ class EventManager extends EventTarget {
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
 		conversationId?: ConversationId,
 	): void {
-		//logger.info(
-		//	`EventManager: Attempting to remove listener for event: ${event}, conversationId: ${conversationId}`,
-		//);
-
 		const listenerKey = this.getListenerKey(event, conversationId);
 		const listenerWeakMap = this.listenerMap.get(listenerKey);
 		if (listenerWeakMap) {
@@ -200,8 +193,6 @@ class EventManager extends EventTarget {
 		event: E,
 		payload: EventPayloadMap[T][E],
 	): boolean {
-		//logger.info(`EventManager: Emitting event ${event}`, payload);
-		//logger.info(`EventManager: Number of listeners for ${event}:`, this.listenerCount(event));
 		return this.dispatchEvent(new TypedEvent(payload, event));
 	}
 

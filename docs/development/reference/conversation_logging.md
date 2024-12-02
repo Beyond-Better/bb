@@ -84,10 +84,10 @@ export function createFormatterRouter(toolManager: LLMToolManager, formatterMana
         return;
       }
       formatterCode = `
-        export function formatToolUse(input, format) {
+        export function formatLogEntryToolUse(input, format) {
           return ${tool.formatters.useInput.toString()}(input, format);
         }
-        export function formatToolResult(result, format) {
+        export function formatLogEntryToolResult(result, format) {
           return ${tool.formatters.useResult.toString()}(result, format);
         }
       `;
@@ -126,8 +126,8 @@ The CLI and BUI use a dynamic loader to import formatting functions:
 
 export class DynamicFormatter {
   private formatters = new Map<string, {
-    formatToolUse?: (input: any, format: string) => string;
-    formatToolResult?: (result: any, format: string) => string;
+    formatLogEntryToolUse?: (input: any, format: string) => string;
+    formatLogEntryToolResult?: (result: any, format: string) => string;
     formatLogEntry?: (entry: any, format: string) => string;
   }>();
 
@@ -165,8 +165,8 @@ async function displayLogEntry(entry: LogEntry) {
     const toolFormatter = await formatter.getFormatter('tool', entry.toolName);
     if (toolFormatter) {
       formatted = entry.type === "tool_use"
-        ? toolFormatter.formatToolUse(entry.content, "console")
-        : toolFormatter.formatToolResult(entry.content, "console");
+        ? toolFormatter.formatLogEntryToolUse(entry.content, "console")
+        : toolFormatter.formatLogEntryToolResult(entry.content, "console");
     } else {
       console.error(`Unable to format ${entry.type} for tool ${entry.toolName}`);
       return;

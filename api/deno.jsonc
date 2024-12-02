@@ -3,6 +3,7 @@
 	"version": "0.3.11",
 	"exports": "./src/main.ts",
 	"tasks": {
+		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"start": "deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"dev": "deno run --watch --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"debug": "LOG_LEVEL=debug deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",

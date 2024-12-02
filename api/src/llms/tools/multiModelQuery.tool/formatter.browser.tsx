@@ -1,90 +1,94 @@
 /** @jsxImportSource preact */
-import { Fragment, JSX } from 'preact';
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+//import type { JSX } from 'preact';
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolMultiModelQueryInput, LLMToolMultiModelQueryResult } from './types.ts';
 import { logger } from 'shared/logger.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { query, models } = toolInput as { query: string; models: string[] };
-	//logger.info('LLMToolMultiModelQuery: formatToolUse', { query, models });
-	return (
-		<div className='tool-use'>
-			<p>
-				<strong>Querying multiple models:</strong>
-			</p>
-			<p>Query: {query}</p>
-			<p>Models: {models.join(', ')}</p>
-		</div>
+export const formatLogEntryToolUse = (
+	toolInput: LLMToolInputSchema,
+): LLMToolLogEntryFormattedResult => {
+	const { query, models } = toolInput as LLMToolMultiModelQueryInput;
+
+	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{LLMTool.TOOL_TAGS_BROWSER.base.label('Query:')} {query}
+			<div className='mt-2'>
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Models:')}{'  '}{LLMTool.TOOL_TAGS_BROWSER.base.list(models)}
+			</div>
+		</>,
 	);
+
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Multi Model Query'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`Querying ${models.length} models`),
+		content,
+		preview: `Querying ${models.length} models with prompt`,
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as {
-			querySuccess: Array<{ modelIdentifier: string; answer: string }>;
-			queryError: Array<{ modelIdentifier: string; error: string }>;
-		};
-		return (
-			<div className='tool-result'>
-				{data.querySuccess.length > 0
-					? (
-						<div>
-							<p>
-								<strong>✅ BB has queried models:</strong>
-							</p>
-							<p>
-								<ul>
-									{data.querySuccess.map((query, index) => (
-										<Fragment key={index}>
-											{index > 0 && <hr />}
-											<li>
-												<p>
-													<strong>Model:</strong> {query.modelIdentifier}
-												</p>
-												<div>{query.answer}</div>
-											</li>
-										</Fragment>
-									))}
-								</ul>
-							</p>
-						</div>
-					)
-					: ''}
-				{data.queryError.length > 0
-					? (
-						<div>
-							<p>
-								<strong>⚠️ BB failed to query models:</strong>
-							</p>
-							<p>
-								<ul>
-									{data.queryError.map((query, index) => (
-										<Fragment key={index}>
-											{index > 0 && <hr />}
-											<li>
-												<p>
-													<strong>Model:</strong> {query.modelIdentifier}
-												</p>
-												<div>{query.error}</div>
-											</li>
-										</Fragment>
-									))}
-								</ul>
-							</p>
-						</div>
-					)
-					: ''}
-			</div>
+		const { data } = bbResponse as LLMToolMultiModelQueryResult['bbResponse'];
+
+		const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			<>
+				{data.querySuccess.length > 0 && (
+					<div>
+						{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Successful Queries')}
+						{data.querySuccess.map((query, index) => (
+							<div key={index} className='mt-4'>
+								{LLMTool.TOOL_TAGS_BROWSER.base.label('Model:')}{'  '}
+								{LLMTool.TOOL_TAGS_BROWSER.content.toolName(query.modelIdentifier)}
+								<div className='mt-2 p-4 bg-gray-50 rounded-lg'>
+									{LLMTool.TOOL_TAGS_BROWSER.base.pre(query.answer)}
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+				{data.queryError.length > 0 && (
+					<div className='mt-4'>
+						{LLMTool.TOOL_TAGS_BROWSER.content.status('failed', 'Failed Queries')}
+						{data.queryError.map((query, index) => (
+							<div key={index} className='mt-4'>
+								{LLMTool.TOOL_TAGS_BROWSER.base.label('Model:')}{'  '}
+								{LLMTool.TOOL_TAGS_BROWSER.content.toolName(query.modelIdentifier)}
+								<div className='mt-2 p-4 bg-red-50 rounded-lg text-red-700'>
+									{query.error}
+								</div>
+							</div>
+						))}
+					</div>
+				)}
+			</>,
 		);
+
+		const successCount = data.querySuccess.length;
+		const errorCount = data.queryError.length;
+		const subtitle = `${successCount} successful, ${errorCount} failed`;
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Multi Model Query'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(subtitle),
+			content,
+			preview: `${successCount} models queried, ${errorCount} failed`,
+		};
 	} else {
 		logger.error('LLMToolMultiModelQuery: Unexpected bbResponse format:', bbResponse);
-		return (
-			<div className='tool-result'>
-				<p>
-					<strong>{bbResponse}</strong>
-				</p>
-			</div>
-		);
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Multi Model Query'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Error'),
+			content: LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<div className='text-red-700'>
+					Unexpected response format
+				</div>,
+			),
+			preview: 'Error: Invalid response format',
+		};
 	}
 };

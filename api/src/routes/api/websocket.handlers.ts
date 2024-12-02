@@ -5,6 +5,7 @@ import { logger } from 'shared/logger.ts';
 import type { ConversationId } from 'shared/types.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
+import { getVersionInfo } from 'shared/version.ts';
 
 class WebSocketHandler {
 	private listeners: Map<
@@ -90,8 +91,6 @@ class WebSocketHandler {
 	) {
 		try {
 			const { task, statement, startDir, options } = message;
-			//this.connections.set(ws, conversationId);
-			//logger.info('WebSocketHandler: handleMessage', message);
 			logger.info(`WebSocketHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 
 			const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
@@ -118,18 +117,18 @@ class WebSocketHandler {
 						error: 'Start directory is required for greeting',
 						code: 'START_DIR_REQUIRED',
 					});
-
 					return;
 				}
 
 				try {
-					//logger.info('WebSocketHandler: Emitting projectEditor:conversationReady event');
+					const versionInfo = await getVersionInfo();
 					this.eventManager.emit('projectEditor:conversationReady', {
 						conversationId: conversationId,
 						conversationTitle: projectEditor.orchestratorController.primaryInteraction.title,
 						conversationStats: {
 							statementCount: projectEditor.orchestratorController.statementCount,
 						},
+						versionInfo,
 					});
 				} catch (error) {
 					logger.error(
@@ -146,9 +145,6 @@ class WebSocketHandler {
 			} else if (task === 'converse') {
 				try {
 					await projectEditor?.handleStatement(statement, conversationId, options);
-
-					//const result = await projectEditor?.handleStatement(statement, conversationId);
-					//logger.debug(`handleStatement result: ${JSON.stringify(result)}`);
 				} catch (error) {
 					logger.error(
 						`WebSocketHandler: Error handling statement for conversationId ${conversationId}:`,
@@ -285,7 +281,6 @@ class WebSocketHandler {
 
 	// Method to send messages back to the client
 	private sendMessage = (ws: WebSocket, type: string, data: unknown) => {
-		//logger.debug(`WebSocketHandler: Sending message: type=${type}, data=${JSON.stringify(data)}`);
 		logger.info(`WebSocketHandler: Sending message of type: ${type}`);
 		if (type === 'conversationError') logger.info(`WebSocketHandler: error:`, data);
 		ws.send(JSON.stringify({ type, data }));
@@ -312,7 +307,6 @@ export const websocketConversation = (ctx: Context) => {
 		const ws = ctx.upgrade();
 		wsHandler.handleConnection(ws, conversationId);
 		ctx.response.status = 200;
-		//ctx.response.body = { status: 'CONNECTED' };
 	} catch (error) {
 		logger.error(`WebSocketHandler: Error in websocketConversation: ${(error as Error).message}`, error);
 		ctx.response.status = 500;

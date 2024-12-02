@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Set default destination directory
-DEST_DIR="${1:-/usr/local/bin}"
+# DEST_DIR="${1:-/usr/local/bin}"
+DEST_DIR="${1:-${HOME}/.bb/bin}"
 
 deno task build
 

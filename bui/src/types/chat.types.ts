@@ -1,16 +1,17 @@
-import { ApiClient } from '../utils/apiClient.utils.ts';
+import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { ApiStatus, Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { VersionInfo } from 'shared/types/version.ts';
 
 export type CacheStatus = 'active' | 'expiring' | 'inactive';
 
-export function isProcessing(status: Status): boolean {
+export function isProcessing(status: ChatStatus): boolean {
 	return status.apiStatus === ApiStatus.LLM_PROCESSING ||
 		status.apiStatus === ApiStatus.TOOL_HANDLING ||
 		status.apiStatus === ApiStatus.API_BUSY;
 }
 
-export interface Status {
+export interface ChatStatus {
 	cacheStatus: CacheStatus;
 	lastApiCallTime: number | null; // Timestamp of last API call
 	isConnecting: boolean; // WebSocket connection in progress
@@ -26,8 +27,9 @@ export interface ChatState {
 	wsManager: WebSocketManager | null;
 	logEntries: ConversationEntry[];
 	conversations: ConversationMetadata[];
-	status: Status;
+	status: ChatStatus;
 	error: string | null;
+	versionInfo?: VersionInfo;
 }
 
 export interface ChatConfig {

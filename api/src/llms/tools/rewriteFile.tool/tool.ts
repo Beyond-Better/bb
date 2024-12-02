@@ -1,15 +1,15 @@
-import type { JSX } from 'preact';
-
+//import type { JSX } from 'preact';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
+import type { LLMToolRewriteFileInput } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
@@ -114,15 +114,20 @@ export default class LLMToolRewriteFile extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -130,7 +135,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolUseId: _toolUseId, toolInput } = toolUse;
+		const { toolInput } = toolUse;
 		const {
 			filePath,
 			content,
@@ -138,14 +143,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 			allowEmptyContent = false,
 			acknowledgement,
 			expectedLineCount,
-		} = toolInput as {
-			filePath: string;
-			content: string;
-			createIfMissing?: boolean;
-			allowEmptyContent?: boolean;
-			acknowledgement: string;
-			expectedLineCount: number;
-		};
+		} = toolInput as LLMToolRewriteFileInput;
 
 		// Validate acknowledgment string
 		if (!validateAcknowledgment(acknowledgement)) {
@@ -245,13 +243,24 @@ export default class LLMToolRewriteFile extends LLMTool {
 			const toolResponse = `${
 				isNewFile ? 'Created' : 'Rewrote'
 			} ${filePath} with ${actualLineCount} lines of content`;
-			const bbResponse = `BB ${
-				isNewFile ? 'created' : 'rewrote'
-			} file ${filePath} with new contents (${actualLineCount} lines).${
-				lineCountErrorMessage ? `\n${lineCountErrorMessage}` : ''
-			}`;
+			// const bbResponse = `BB ${
+			// 	isNewFile ? 'created' : 'rewrote'
+			// } file ${filePath} with new contents (${actualLineCount} lines).${
+			// 	lineCountErrorMessage ? `\n${lineCountErrorMessage}` : ''
+			// }`;
 
-			return { toolResults, toolResponse, bbResponse };
+			return {
+				toolResults,
+				toolResponse,
+				bbResponse: {
+					data: {
+						filePath,
+						lineCount: actualLineCount,
+						isNewFile,
+						lineCountError: lineCountErrorMessage || undefined,
+					},
+				},
+			};
 		} catch (error) {
 			if ((error as Error).name === 'rewrite-file') {
 				throw error;

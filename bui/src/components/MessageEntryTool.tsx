@@ -26,7 +26,7 @@ export function MessageEntryTool({
 }: MessageEntryToolProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
-	const [apiFormattedContent, setApiFormattedContent] = useState<string | null>(null);
+	const [formatted, setFormatted] = useState<LogEntryFormatResponse | null>(null);
 
 	// Format content using API if available
 	useEffect(() => {
@@ -35,11 +35,12 @@ export function MessageEntryTool({
 		const fetchFormatting = async () => {
 			setIsLoading(true);
 			try {
-				const response = await apiClient.post<LogEntryFormatResponse>(
-					`/api/v1/format_log_entry/browser/${logEntry.entryType}`,
-					{ logEntry, startDir },
+				const response = await apiClient.formatLogEntry(
+					logEntry.entryType,
+					logEntry,
+					startDir,
 				);
-				setApiFormattedContent(response?.formattedContent ?? null);
+				setFormatted(response);
 			} catch (error) {
 				console.error('Error formatting tool message:', error);
 			} finally {
@@ -63,7 +64,7 @@ export function MessageEntryTool({
 
 	return (
 		<>
-			<div className='tool-message bg-gray-50 border border-gray-200 rounded-lg overflow-hidden'>
+			<div className='bb-tool-message bg-gray-50 border border-gray-200 rounded-lg overflow-hidden'>
 				{/* Loading state */}
 				{isLoading && (
 					<div className='flex items-center justify-center py-4'>
@@ -75,11 +76,10 @@ export function MessageEntryTool({
 				{/* API formatted content or fallback */}
 				{!isLoading && (
 					<div className='overflow-x-auto'>
-						{apiFormattedContent
+						{formatted?.formattedResult?.content
 							? (
 								<div
-									className='prose max-w-none py-1 px-4'
-									dangerouslySetInnerHTML={{ __html: apiFormattedContent }}
+									dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
 								/>
 							)
 							: (
@@ -94,7 +94,7 @@ export function MessageEntryTool({
 				)}
 
 				{/* Show parameters and results sections only when using JSON fallback */}
-				{!apiFormattedContent && (
+				{!formatted?.formattedResult?.content && !isLoading && (
 					<>
 						{content.parameters && (
 							<div className='px-2 py-2 bg-gray-100 border-t border-gray-200 text-sm'>

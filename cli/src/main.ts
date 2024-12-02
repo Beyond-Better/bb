@@ -11,6 +11,8 @@ import { conversationList } from './commands/conversationList.ts';
 import { viewLogs } from './commands/viewLogs.ts';
 import { config as configCommand } from './commands/config.ts';
 import { secure } from './commands/secure.ts';
+import { upgrade } from './commands/upgrade.ts';
+import { migrate } from './commands/migrate.ts';
 //import { logger } from 'shared/logger.ts';
 
 const globalConfig = await ConfigManager.globalConfig();
@@ -36,7 +38,9 @@ const cli = new Command()
 	.command('status', apiStatus)
 	.command('restart', apiRestart)
 	.command('config', configCommand)
-	.command('secure', secure);
+	.command('secure', secure)
+	.command('upgrade', upgrade)
+	.command('migrate', migrate);
 
 export const main = async () => {
 	await cli.parse(Deno.args);

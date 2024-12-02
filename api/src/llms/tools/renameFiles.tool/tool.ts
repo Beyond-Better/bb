@@ -1,17 +1,16 @@
-import type { JSX } from 'preact';
-
 import { dirname, join } from '@std/path';
 import { exists } from '@std/fs';
 
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolRenameFilesInput, LLMToolRenameFilesResult } from './types.ts';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -19,12 +18,6 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
-
-interface RenameFilesParams {
-	operations: Array<{ source: string; destination: string }>;
-	createMissingDirectories?: boolean;
-	overwrite?: boolean;
-}
 
 export default class LLMToolRenameFiles extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -96,15 +89,20 @@ export default class LLMToolRenameFiles extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -113,10 +111,11 @@ export default class LLMToolRenameFiles extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { operations, overwrite = false, createMissingDirectories = false } = toolInput as RenameFilesParams;
+		const { operations, overwrite = false, createMissingDirectories = false } =
+			toolInput as LLMToolRenameFilesInput;
 
 		try {
-			const toolResultContentParts = [];
+			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
 			const renamedSuccess: Array<{ source: string; destination: string }> = [];
 			const renamedError: Array<{ source: string; destination: string; error: string }> = [];
 			let noFilesRenamed = true;
@@ -127,8 +126,8 @@ export default class LLMToolRenameFiles extends LLMTool {
 					!isPathWithinProject(projectEditor.projectRoot, destination)
 				) {
 					toolResultContentParts.push({
-						'type': 'text',
-						'text':
+						type: 'text',
+						text:
 							`Error renaming file ${source}: Source or destination path is outside the project directory`,
 					} as LLMMessageContentPartTextBlock);
 					renamedError.push({
@@ -145,8 +144,8 @@ export default class LLMToolRenameFiles extends LLMTool {
 					// Check if destination exists
 					if ((await exists(fullDestPath)) && !overwrite) {
 						toolResultContentParts.push({
-							'type': 'text',
-							'text': `Destination ${destination} already exists and overwrite is false`,
+							type: 'text',
+							text: `Destination ${destination} already exists and overwrite is false`,
 						} as LLMMessageContentPartTextBlock);
 						renamedError.push({
 							source,
@@ -165,15 +164,15 @@ export default class LLMToolRenameFiles extends LLMTool {
 					await Deno.rename(fullSourcePath, fullDestPath);
 
 					toolResultContentParts.push({
-						'type': 'text',
-						'text': `File/Directory renamed: ${source} -> ${destination}`,
+						type: 'text',
+						text: `File/Directory renamed: ${source} -> ${destination}`,
 					} as LLMMessageContentPartTextBlock);
 					renamedSuccess.push({ source, destination });
 					noFilesRenamed = false;
 				} catch (error) {
 					toolResultContentParts.push({
-						'type': 'text',
-						'text': `${source}: ${(error as Error).message}`,
+						type: 'text',
+						text: `${source}: ${(error as Error).message}`,
 					} as LLMMessageContentPartTextBlock);
 					renamedError.push({ source, destination, error: (error as Error).message });
 				}
@@ -207,7 +206,7 @@ export default class LLMToolRenameFiles extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (noFilesRenamed ? 'No files renamed\n' : '') + toolResponses.join('\n\n');
-			const bbResponse = {
+			const bbResponse: LLMToolRenameFilesResult['bbResponse'] = {
 				data: {
 					filesRenamed: renamedSuccess,
 					filesError: renamedError,

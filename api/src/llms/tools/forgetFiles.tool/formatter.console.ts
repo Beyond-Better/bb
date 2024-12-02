@@ -1,17 +1,77 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import type { LLMToolForgetFilesInput, LLMToolForgetFilesResult } from './types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { stripIndents } from 'common-tags';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
-	const { fileNames } = toolInput as { fileNames: string[] };
-	return stripIndents`
-    ${colors.bold('Forgetting files:')}
-    ${fileNames.map((fileName) => colors.cyan(fileName)).join('\n')}
-  `;
-};
+export function formatLogEntryToolUse(
+	toolInput: LLMToolInputSchema,
+): LLMToolLogEntryFormattedResult {
+	const { files } = toolInput as LLMToolForgetFilesInput;
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbResponse } = resultContent;
-	return `${colors.cyan(`${bbResponse}`)}`;
-};
+	const content = stripIndents`
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Files to forget:')}
+        ${
+		files.map((file) =>
+			`  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.filePath)} ` +
+			`${LLMTool.TOOL_STYLES_CONSOLE.base.label('(Revision:')} ` +
+			`${file.revision})`
+		).join('\n')
+	}
+    `;
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Forget Files'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+			`Forgetting ${files.length} file${files.length === 1 ? '' : 's'}`,
+		),
+		content,
+		preview: `Forgetting ${files.length} file${files.length === 1 ? '' : 's'}`,
+	};
+}
+
+export function formatLogEntryToolResult(
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult {
+	const { bbResponse, filesSuccess = [], filesError = [] } = resultContent as unknown as LLMToolForgetFilesResult;
+
+	const successContent = filesSuccess.length > 0
+		? stripIndents`
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Successfully removed:')}
+        ${
+			filesSuccess.map((file) =>
+				`  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.filePath)} ` +
+				`${LLMTool.TOOL_STYLES_CONSOLE.base.label('(Revision:')} ` +
+				`${file.revision})`
+			).join('\n')
+		}
+    `
+		: '';
+
+	const errorContent = filesError.length > 0
+		? stripIndents`
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Failed to remove:')}
+        ${
+			filesError.map((file) =>
+				`  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.filePath)} ` +
+				`${LLMTool.TOOL_STYLES_CONSOLE.base.label('(Revision:')} ` +
+				`${file.revision}): ` +
+				`${LLMTool.TOOL_STYLES_CONSOLE.status.error(file.error)}`
+			).join('\n')
+		}
+    `
+		: '';
+
+	const content = [successContent, errorContent].filter(Boolean).join('\n\n');
+
+	const totalFiles = filesSuccess.length + filesError.length;
+	const successCount = filesSuccess.length;
+	const subtitle = `${successCount} of ${totalFiles} file${totalFiles === 1 ? '' : 's'} removed`;
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Forget Files'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(subtitle),
+		content,
+		preview: bbResponse,
+	};
+}

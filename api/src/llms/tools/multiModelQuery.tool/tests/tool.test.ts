@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertStringIncludes, stub } from 'api/tests/deps.ts';
-import MultiModelQueryTool from '../tool.ts';
-import type { ModelProvider } from '../tool.ts';
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type MultiModelQueryTool from '../tool.ts';
+import type { ModelProvider } from '../types.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
 // Mock API responses

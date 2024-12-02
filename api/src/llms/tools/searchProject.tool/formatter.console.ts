@@ -1,44 +1,75 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
-//import type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolSearchProjectInput } from './types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { getContentFromToolResult } from 'api/utils/llms.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
-	const { contentPattern, caseSensitive, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } = toolInput as {
-		contentPattern?: string;
-		caseSensitive?: boolean;
-		filePattern?: string;
-		dateAfter?: string;
-		dateBefore?: string;
-		sizeMin?: number;
-		sizeMax?: number;
-	};
-	return stripIndents`
-    ${colors.bold('Project Search Parameters:')}
-    ${
-		contentPattern
-			? `${colors.cyan('Content pattern:')} ${contentPattern}, , ${
-				caseSensitive ? 'case-sensitive' : 'case-insensitive'
-			}`
-			: ''
+export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	const input = toolInput as LLMToolSearchProjectInput;
+	const { contentPattern, caseSensitive, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } = input;
+
+	const criteria = [];
+	if (contentPattern) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content pattern:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.regex(contentPattern)}, 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.boolean(caseSensitive ?? false, 'case-sensitive/case-insensitive')}`);
 	}
-    ${filePattern ? `${colors.cyan('File pattern:')} ${filePattern}` : ''}
-    ${dateAfter ? `${colors.cyan('Modified after:')} ${dateAfter}` : ''}
-    ${dateBefore ? `${colors.cyan('Modified before:')} ${dateBefore}` : ''}
-    ${sizeMin ? `${colors.cyan('Minimum size:')} ${sizeMin.toString()} bytes` : ''}
-    ${sizeMax ? `${colors.cyan('Maximum size:')} ${sizeMax.toString()} bytes` : ''}
-  `.trim();
+	if (filePattern) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('File pattern:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(filePattern)}`);
+	}
+	if (dateAfter) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Modified after:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.date(dateAfter)}`);
+	}
+	if (dateBefore) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Modified before:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.date(dateBefore)}`);
+	}
+	if (sizeMin !== undefined) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Minimum size:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.size(sizeMin)}`);
+	}
+	if (sizeMax !== undefined) {
+		criteria.push(stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Maximum size:')} 
+            ${LLMTool.TOOL_STYLES_CONSOLE.content.size(sizeMax)}`);
+	}
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Search Project'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Searching project files...'),
+		content: stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Search Parameters')}
+            ${criteria.map((c) => LLMTool.TOOL_STYLES_CONSOLE.base.listItem(c)).join('\n')}`,
+		preview: 'Searching project files with specified criteria',
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
-	const fileList = lines.slice(2, -1).join('\n');
-	return stripIndents`				
-		${colors.cyan(`${bbResponse}:`)}
+	const fileList = lines.slice(2, -1);
 
-		${fileList}
-	`;
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Search Project'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(String(bbResponse)),
+		content: stripIndents`
+            ${
+			fileList.map((file) =>
+				LLMTool.TOOL_STYLES_CONSOLE.base.listItem(
+					LLMTool.TOOL_STYLES_CONSOLE.content.filename(file),
+				)
+			).join('\n')
+		}`,
+		preview: `Found ${fileList.length} files`,
+	};
 };

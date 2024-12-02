@@ -1,6 +1,6 @@
 import { render } from "@testing-library/preact";
 import { CertificateStatusIndicator } from "../src/components/CertificateStatusIndicator.tsx";
-import { describe, it } from "std/testing/bdd.ts";
+import { describe, it } from "@std/testing/bdd";
 import { expect } from "chai";
 
 describe("CertificateStatusIndicator", () => {

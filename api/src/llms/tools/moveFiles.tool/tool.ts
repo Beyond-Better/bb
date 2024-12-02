@@ -1,32 +1,26 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 import { basename, join } from '@std/path';
 import { exists } from '@std/fs';
 
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
-} from './formatter.browser.tsx';
-import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
-} from './formatter.console.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
-import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
 import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
-
-interface MoveFilesParams {
-	sources: string[];
-	destination: string;
-	overwrite?: boolean;
-	createMissingDirectories?: boolean;
-}
+import type { LLMToolMoveFilesInput } from './types.ts';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
+} from './formatter.browser.tsx';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
+} from './formatter.console.ts';
 
 export default class LLMToolMoveFiles extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -96,15 +90,20 @@ export default class LLMToolMoveFiles extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -114,7 +113,7 @@ export default class LLMToolMoveFiles extends LLMTool {
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
 		const { sources, destination, overwrite = false, createMissingDirectories = false } =
-			toolInput as MoveFilesParams;
+			toolInput as LLMToolMoveFilesInput;
 
 		try {
 			// Validate paths

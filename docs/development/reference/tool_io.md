@@ -4,7 +4,7 @@ This document describes the technical implementation of tool I/O in BB. For LLM-
 
 ## Tool Input
 
-The `inputSchema` defines the structure of "tool use". The schema is the input provided by the LLM when running a tool. It's passed to `runTool` as `toolUse`. It's passed to `formatToolUse` as `toolInput`. The 'tool use' data received from the LLM will always be validated against `inputSchema`. 
+The `inputSchema` defines the structure of "tool use". The schema is the input provided by the LLM when running a tool. It's passed to `runTool` as `toolUse`. It's passed to `formatLogEntryToolUse` as `toolInput`. The 'tool use' data received from the LLM will always be validated against `inputSchema`. 
 
 ## Tool Results
 
@@ -14,7 +14,7 @@ This is the output from running the tool. There are three data components:
 - `toolResponse` [optional] - the textual response describing the results of the tool run
 - `bbResponse` - the textual response describing what BB has done while running the tool. 
 
-The `toolResults` are given back to the LLM for further handling, as well as passed to the `formatToolResult` method for display to the user in the current conversation. The `toolResults` need to be suitable for adding to conversation message (eg. `LLMToolRunResultContent`). 
+The `toolResults` are given back to the LLM for further handling, as well as passed to the `formatLogEntryToolResult` method for display to the user in the current conversation. The `toolResults` need to be suitable for adding to conversation message (eg. `LLMToolRunResultContent`). 
 
 Returning a string is most common; the string can be serialised data such as JSON or XML. Return `LLMMessageContentParts` array if there are multiple components that should be passed to the LLM separately, eg if the `inputSchema` provided an array of operations for the tool run. Return `LLMMessageContentPart` if the content part is 'complex' such as an image block. 
 
