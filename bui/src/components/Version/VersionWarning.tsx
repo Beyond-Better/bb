@@ -109,7 +109,14 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 								)
 								: (
 									<p className='px-2 py-1.5 text-sm text-yellow-800'>
-										Please contact your administrator to update the BB server.
+										<a
+											href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
+											target='_blank'
+											rel='noopener noreferrer'
+											className='rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
+										>
+											View Upgrade Guide
+										</a>
 									</p>
 								)}
 						</div>
