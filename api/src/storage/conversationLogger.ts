@@ -6,6 +6,7 @@ import { renderToString } from 'preact-render-to-string';
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 import type { ConversationId, ConversationStats, TokenUsage } from 'shared/types.ts';
+import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManager } from 'shared/configManager.ts';
@@ -30,7 +31,11 @@ export interface ConversationLogEntryContentToolResult {
 	bbResponse: LLMToolRunBbResponse;
 }
 
-export type ConversationLogEntryContent = string | LLMToolInputSchema | ConversationLogEntryContentToolResult;
+export type ConversationLogEntryContent =
+	| string
+	| AuxiliaryChatContent
+	| LLMToolInputSchema
+	| ConversationLogEntryContentToolResult;
 
 export interface ConversationLogEntry {
 	entryType: ConversationLogEntryType;
@@ -236,7 +241,7 @@ export default class ConversationLogger {
 
 	async logAuxiliaryMessage(
 		messageId: string,
-		message: string,
+		message: string | AuxiliaryChatContent,
 		conversationStats?: ConversationStats,
 		tokenUsageTurn?: TokenUsage,
 		tokenUsageStatement?: TokenUsage,
@@ -319,7 +324,7 @@ export default class ConversationLogger {
 		// Convert JSX to HTML string if necessary
 		const rawEntryContent = typeof formattedContent === 'string'
 			? formattedContent
-			: renderToString(formattedContent as JSX.Element);
+			: renderToString(formattedContent.content as JSX.Element);
 
 		const label = ConversationLogger.entryTypeLabels[logEntry.entryType] || 'Unknown';
 		return `## ${label} [${timestamp}]\n${rawEntryContent.trim()}`;

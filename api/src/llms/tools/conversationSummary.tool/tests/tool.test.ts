@@ -3,7 +3,7 @@ import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 
 import type LLMToolConversationSummary from '../tool.ts';
-import type { LLMToolConversationBbResponseData } from '../tool.ts';
+import type { LLMToolConversationSummaryResult } from '../types.ts';
 import type {
 	LLMAnswerToolUse,
 	//LLMMessageContentPart,
@@ -170,7 +170,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.originalTokenCount === 0, 'Empty conversation should have 0 tokens');
 				assert(data.originalMessageCount === 0, 'Empty conversation should have 0 messages');
@@ -285,7 +285,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.originalTokenCount === 200000, 'Should handle large token count');
 				assert(data.newTokenCount <= 128000, 'Should truncate to maxTokensToKeep');
@@ -400,7 +400,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.originalTokenCount === 1500, 'Should handle minimum token scenario');
 				assert(data.newTokenCount <= 1000, 'Should truncate to minimum tokens');
@@ -505,7 +505,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.requestSource === 'user', 'bbResponse data should show user request source');
 			} finally {
@@ -609,7 +609,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -711,7 +711,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -1233,7 +1233,7 @@ Deno.test({
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
 				// Verify truncation occurred
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assert(data.originalTokenCount === 4000, 'Original token count should be 4000');
 				assert(data.newTokenCount <= 2000, 'New token count should be <= 2000');
 
@@ -1386,7 +1386,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				// Verify summary content quality
 				assert(data.summary.includes('### Files Referenced'), 'Short summary missing Files Referenced');
@@ -1527,7 +1527,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.summary.includes('### Files Referenced'), 'Medium summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Medium summary missing Tools Used');
@@ -1651,7 +1651,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				assert(data.summary.includes('### Files Referenced'), 'Long summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Long summary missing Tools Used');
@@ -1856,7 +1856,7 @@ Deno.test({
 				}
 
 				// Verify token counts
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assert(
 					data.originalTokenCount === 2500,
 					`Expected original token count 2500, got ${data.originalTokenCount}`,
@@ -2047,7 +2047,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assertEquals(data.originalTokenCount, 40, 'Original token count should be 40');
 				assertEquals(data.summaryLength, 'medium', 'Summary length should be medium');
 				assert(data.summary.includes('## Removed Conversation Context'), 'Summary should have correct header');
@@ -2246,7 +2246,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assertEquals(data.summaryLength, 'long', 'Summary length should be long');
 
 				// Verify all required sections for long summary
@@ -2534,7 +2534,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				// Get final messages
 				const messages = interaction.getMessages();
@@ -2701,7 +2701,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				// const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				// Verify we kept at least one complete message pair
 				const messages = interaction.getMessages();
@@ -2859,7 +2859,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				// const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 
 				// Verify messages are properly truncated
 				const messages = interaction.getMessages();
@@ -3029,7 +3029,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 3000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 
@@ -3590,7 +3590,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assertEquals(data.summaryLength, 'short', 'Summary length should be short');
 
 				// Verify required sections for short summary
@@ -3734,7 +3734,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationBbResponseData;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 2000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 

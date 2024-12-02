@@ -1,4 +1,7 @@
+import type { JSX } from 'preact';
+
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { DisplaySuggestion } from '../types/suggestions.types.ts';
 
 export interface ApiStatus {
 	status: string;
@@ -37,8 +40,31 @@ export interface ConversationListResponse {
 	conversations: ConversationMetadata[];
 }
 
+export interface FileSuggestionsResponse {
+	suggestions: Array<{
+		path: string;
+		isDirectory: boolean;
+		size?: number;
+		modified?: string;
+	}>;
+	hasMore: boolean;
+}
+
 export interface LogEntryFormatResponse {
-	formattedContent: string;
+	formattedResult: {
+		title: string | JSX.Element;
+		subtitle?: string | JSX.Element;
+		content: string | JSX.Element;
+		preview: string | JSX.Element;
+	};
+}
+
+export interface ApiUpgradeResponse {
+	success: boolean;
+	currentVersion: string;
+	latestVersion: string;
+	needsUpdate: boolean; // We just updated
+	needsSudo: boolean;
 }
 
 export class ApiClient {
@@ -136,6 +162,20 @@ export class ApiClient {
 		});
 		if (!response.ok) return null;
 		return response.text();
+	}
+
+	async suggestFiles(partialPath: string, startDir: string): Promise<FileSuggestionsResponse | null> {
+		return this.post<FileSuggestionsResponse>(
+			'/api/v1/files/suggest',
+			{ partialPath, startDir },
+		);
+	}
+
+	async upgradeApi(): Promise<ApiUpgradeResponse | null> {
+		return this.post<ApiUpgradeResponse>(
+			'/api/v1/upgrade',
+			{},
+		);
 	}
 
 	async formatLogEntry(entryType: string, logEntry: any, startDir: string): Promise<LogEntryFormatResponse | null> {

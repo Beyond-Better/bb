@@ -1,23 +1,21 @@
-import type { JSX } from 'preact';
-
+//import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
-} from './formatter.browser.tsx';
-import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
-} from './formatter.console.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-//import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-//import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolForgetFilesInput } from './types.ts';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
+} from './formatter.browser.tsx';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
+} from './formatter.console.ts';
 
 export default class LLMToolForgetFiles extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -63,15 +61,20 @@ export default class LLMToolForgetFiles extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -79,13 +82,7 @@ export default class LLMToolForgetFiles extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolInput } = toolUse;
-		const { files } = toolInput as {
-			files: Array<{
-				filePath: string;
-				revision: string;
-			}>;
-		};
+		const { files } = toolUse.toolInput as LLMToolForgetFilesInput;
 
 		try {
 			const toolResultContentParts = [];

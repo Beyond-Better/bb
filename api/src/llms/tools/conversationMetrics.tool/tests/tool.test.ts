@@ -1,8 +1,8 @@
 import { assert, assertEquals } from 'api/tests/deps.ts';
 import { stripAnsiCode } from '@std/fmt/colors';
 
-import LLMToolConversationMetrics from '../tool.ts';
-import type { LLMToolConversationMetricsData } from '../tool.ts';
+import type LLMToolConversationMetrics from '../tool.ts';
+import type { LLMToolConversationMetricsResult } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMToolRunBbResponseData } from 'api/llms/llmTool.ts';
@@ -80,7 +80,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
 				//console.log('metrics:', metrics);
 
 				// Message counts
@@ -173,7 +173,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -227,7 +227,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 0, 'Total turns should be 0');
@@ -305,7 +305,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -378,7 +378,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsData;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 2, 'Total turns should be 2');

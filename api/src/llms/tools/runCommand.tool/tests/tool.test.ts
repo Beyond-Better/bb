@@ -3,7 +3,7 @@ import { join } from '@std/path';
 import { stripIndents } from 'common-tags';
 import { stripAnsiCode } from '@std/fmt/colors';
 
-import LLMToolRunCommand from '../tool.ts';
+import type LLMToolRunCommand from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
@@ -358,22 +358,46 @@ Deno.test({
 			};
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			//console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
-			//console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
-			//console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);
+			// console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
+			// console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
+			// console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assert(
+				isRunCommandResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
+			);
 
-			if (isString(result.bbResponse)) {
+			if (isRunCommandResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.code, -1, 'Test response code should be -1');
+				assertEquals(
+					result.bbResponse.data.command,
+					'echo',
+					'Test response command should be "echo"',
+				);
+				assertEquals(
+					result.bbResponse.data.stderrContainsError,
+					true,
+					'Test response stderrContainsError should be true',
+				);
+
+				const stdout = stripAnsi(result.bbResponse.data.stdout);
+				assertEquals(stdout, '', 'Test response stdout should be blank');
+
+				const stderr = stripAnsi(result.bbResponse.data.stderr);
 				assertStringIncludes(
-					result.bbResponse,
-					`BB won't run unapproved commands: echo`,
+					stderr,
+					'Command not in allowed list',
+					'Test response stderr should include BB error',
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have the expected structure for Tool');
 			}
 
-			assertStringIncludes(result.toolResponse, 'Command not allowed: echo');
+			assertStringIncludes(result.toolResponse, "Command 'echo' not in allowed list");
 			assertStringIncludes(stripAnsiCode(result.toolResults as string), 'Command not allowed: echo');
 		});
 	},

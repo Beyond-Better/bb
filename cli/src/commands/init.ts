@@ -69,7 +69,7 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 			name: 'useTls',
 			message: 'Enable secure HTTPS connection?',
 			type: Confirm,
-			default: true,
+			default: false,
 			hint: 'Recommended for security',
 		},
 		{

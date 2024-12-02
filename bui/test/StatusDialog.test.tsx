@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/preact';
 import { StatusDialog } from '../src/components/Status/StatusDialog.tsx';
-import { describe, it, beforeEach } from 'std/testing/bdd.ts';
+import { describe, it, beforeEach } from '@std/testing/bdd';
 import { expect } from 'chai';
 
 describe('StatusDialog', () => {

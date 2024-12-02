@@ -12,7 +12,10 @@ import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils
 import { MessageEntry } from '../components/MessageEntry.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
+import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
+//import { VersionDisplay } from '../components/Version/VersionDisplay.tsx';
+import { useVersion } from '../hooks/useVersion.ts';
 
 import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationHeader } from '../components/ConversationHeader.tsx';
@@ -20,6 +23,8 @@ import { ConversationMetadata } from '../components/ConversationMetadata.tsx';
 import { ToolBar } from '../components/ToolBar.tsx';
 import type { Conversation, ConversationEntry, ConversationLogEntry, TokenUsage } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
+import { REQUIRED_API_VERSION } from '../config/version.ts';
+import { VersionWarning } from '../components/Version/VersionWarning.tsx';
 
 // Helper functions for URL parameters
 const getHashParams = () => {
@@ -78,11 +83,19 @@ const getWsUrl = (hostname: string, port: string, useTls: boolean): string => {
 };
 
 export default function Chat(): JSX.Element {
+	// Initialize version checking
+	const { checkVersionCompatibility } = useVersion();
+	useEffect(() => {
+		checkVersionCompatibility(REQUIRED_API_VERSION); // Set minimum required version
+	}, []);
+
 	// State management
 	const [startDir, setStartDir] = useState(getStartDir);
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
+	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+	const [unreadCount, setUnreadCount] = useState(0);
 	interface ChatInputRef {
 		textarea: HTMLTextAreaElement;
 		adjustHeight: () => void;
@@ -123,6 +136,7 @@ export default function Chat(): JSX.Element {
 	};
 
 	const [chatState, handlers] = useChatState(config);
+	const { versionState } = useVersion();
 
 	// Update cache status every 30 seconds
 	useEffect(() => {
@@ -296,14 +310,36 @@ export default function Chat(): JSX.Element {
 		return () => window.removeEventListener('popstate', handlePopState);
 	}, [chatState.value.conversationId]);
 
+	// Handle scroll behavior
 	useEffect(() => {
-		if (messagesEndRef.current) {
-			messagesEndRef.current.scrollTo({
-				top: messagesEndRef.current.scrollHeight,
+		if (!messagesEndRef.current) return;
+
+		const messagesContainer = messagesEndRef.current;
+
+		const handleScroll = () => {
+			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+			// Consider user at bottom if within 10 pixels of bottom
+			const isAtBottom = scrollHeight - (scrollTop + clientHeight) <= 10;
+			setShouldAutoScroll(isAtBottom);
+		};
+
+		// Add scroll event listener
+		messagesContainer.addEventListener('scroll', handleScroll);
+
+		// Auto-scroll only if shouldAutoScroll is true
+		if (shouldAutoScroll) {
+			messagesContainer.scrollTo({
+				top: messagesContainer.scrollHeight,
 				behavior: 'smooth',
 			});
+			setUnreadCount(0); // Reset unread count when scrolling to bottom
+		} else {
+			// Increment unread count when new messages arrive and not at bottom
+			setUnreadCount((prev) => prev + 1);
 		}
-	}, [chatState.value.logEntries]);
+
+		return () => messagesContainer.removeEventListener('scroll', handleScroll);
+	}, [chatState.value.logEntries, shouldAutoScroll]);
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
@@ -406,6 +442,7 @@ export default function Chat(): JSX.Element {
 					0,
 				)}
 				cacheStatus={chatState.value.status.cacheStatus}
+				apiClient={chatState.value.apiClient!}
 			/>
 
 			{/* Main content */}
@@ -455,6 +492,7 @@ export default function Chat(): JSX.Element {
 								)?.title}
 							/>
 						</div>
+
 						<ToolBar
 							onSendMessage={async (message) => {
 								await handlers.sendConverse(message);
@@ -467,10 +505,44 @@ export default function Chat(): JSX.Element {
 					</div>
 
 					{/* Messages */}
-					<div className='flex-1 overflow-hidden relative flex flex-col'>
+					<div className='flex-1 relative overflow-hidden'>
+						{!shouldAutoScroll && (
+							<button
+								onClick={() => {
+									if (messagesEndRef.current) {
+										messagesEndRef.current.scrollTo({
+											top: messagesEndRef.current.scrollHeight,
+											behavior: 'smooth',
+										});
+										setShouldAutoScroll(true);
+										setUnreadCount(0);
+									}
+								}}
+								className='absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all transform hover:scale-105'
+								title='Scroll to bottom'
+							>
+								{unreadCount > 0 && (
+									<span className='px-1.5 py-0.5 text-xs bg-white text-blue-500 rounded-full'>
+										{unreadCount}
+									</span>
+								)}
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									className='h-5 w-5'
+									viewBox='0 0 20 20'
+									fill='currentColor'
+								>
+									<path
+										fillRule='evenodd'
+										d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
+										clipRule='evenodd'
+									/>
+								</svg>
+							</button>
+						)}
 						<div
 							ref={messagesEndRef}
-							className='flex-1 overflow-y-auto px-6 py-8 space-y-6 min-h-0 min-w-0'
+							className='h-full overflow-y-auto px-6 py-8 space-y-6'
 						>
 							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
 								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
@@ -510,6 +582,8 @@ export default function Chat(): JSX.Element {
 					<div className='border-t border-gray-200 flex-shrink-0 bg-white'>
 						<ChatInput
 							value={input}
+							apiClient={chatState.value.apiClient!}
+							startDir={startDir}
 							textareaRef={chatInputRef}
 							onChange={(value) => {
 								if (!chatState.value.status.isReady) return;
@@ -534,6 +608,9 @@ export default function Chat(): JSX.Element {
 					onClose={() => setShowToast(false)}
 				/>
 			)}
+
+			{/* VersionWarning display - currently being displayed via VersionDisplay in ConversationHeader */}
+			{/* versionState.value.versionCompatibility && !versionState.value.versionCompatibility.compatible && ( <VersionWarning apiClient={chatState.value.apiClient} /> ) */}
 
 			{/* Error display */}
 			<AnimatedNotification

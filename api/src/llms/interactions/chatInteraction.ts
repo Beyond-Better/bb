@@ -3,6 +3,7 @@ import type LLM from '../providers/baseLLM.ts';
 import { AnthropicModel } from 'api/types.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { ConversationId } from 'shared/types.ts';
+import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
@@ -43,17 +44,22 @@ class LLMChatInteraction extends LLMInteraction {
 		//logger.debug(`chat - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
 		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });
 
-		this.conversationLogger.logAuxiliaryMessage(messageId, prompt);
+		//this.conversationLogger.logAuxiliaryMessage(messageId, prompt);
 
-		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry`);
+		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
 		//const msg = extractTextFromContent(response.messageResponse.answerContent);
-		const msg = response.messageResponse.answer;
+		//const msg = `<prompt>${prompt}</prompt>\n${response.messageResponse.answer}`;
+		const auxiliaryContent: AuxiliaryChatContent = {
+			prompt,
+			message: response.messageResponse.answer,
+			purpose: this.title,
+		};
 
 		this.conversationLogger.logAuxiliaryMessage(
 			this.getLastMessageId(),
-			msg,
+			auxiliaryContent,
 			this.conversationStats,
 			this.tokenUsageTurn,
 			this.tokenUsageStatement,

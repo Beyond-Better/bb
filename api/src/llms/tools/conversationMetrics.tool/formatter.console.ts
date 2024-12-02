@@ -1,133 +1,193 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationMetricsData, TokenMetrics } from './tool.ts';
+import type { LLMToolConversationMetricsResult } from './types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
 
-export const formatToolUse = (_toolInput: LLMToolInputSchema): string => {
-	return stripIndents`
-    ${colors.bold('Calculating Conversation Metrics')}
-    Analyzing turns, message types, and token usage...
-  `.trim();
+export const formatLogEntryToolUse = (_toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Conversation Metrics'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Calculating conversation metrics...'),
+		content: stripIndents`
+            Analyzing turns, message types, and token usage...
+        `.trim(),
+		preview: 'Analyzing conversation metrics',
+	};
 };
 
-function formatChatMetrics(chatMetrics: TokenMetrics): string {
+function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResult['tokens']): string {
 	if (chatMetrics.totalUsage.total === 0) {
 		return '- No auxiliary chat activity';
 	}
 
 	return stripIndents`
-${colors.cyan('Total Usage:')}
-  Input: ${chatMetrics.totalUsage.input}
-  Output: ${chatMetrics.totalUsage.output}
-  Total: ${chatMetrics.totalUsage.total}
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Total Usage:')}
+        Input: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.totalUsage.input)} tokens
+        Output: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.totalUsage.output)} tokens
+        Total: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.totalUsage.total)} tokens
 
-${colors.cyan('Cache Impact:')}
-  Total Savings: ${chatMetrics.cacheImpact.totalSavings}
-  Savings Percentage: ${chatMetrics.cacheImpact.savingsPercentage.toFixed(2)}%
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Cache Impact:')}
+        Potential Cost: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.potentialCost)} tokens
+        Actual Cost: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.actualCost)} tokens
+        Total Savings: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.totalSavings)} tokens
+        Efficiency: ${LLMTool.TOOL_STYLES_CONSOLE.content.percentage(chatMetrics.cacheImpact.savingsPercentage)} saved
 
-${colors.cyan('By Role:')}
-  User: ${chatMetrics.byRole.user}
-  Assistant: ${chatMetrics.byRole.assistant}
-  System: ${chatMetrics.byRole.system}
-  `.trim();
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('By Role:')}
+        User: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.byRole.user)} tokens
+        Assistant: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.byRole.assistant)} tokens
+        System: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.byRole.system)} tokens
+    `.trim();
 }
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const metrics = bbResponse.data as LLMToolConversationMetricsData;
-		return stripIndents`
-${colors.bold('Conversation Metrics Summary')}
+		const metrics = bbResponse.data as LLMToolConversationMetricsResult;
+		const content = stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Basic Statistics:')}
+            Total Turns: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)}
+            Message Types:
+              User: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.messageTypes.user)}
+              Assistant: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.messageTypes.assistant)}
+              Tool: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.messageTypes.tool)}
+              System: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.messageTypes.system)}
+            Active Files: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.activeFiles)}
+            Unique Tools: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.uniqueToolsUsed)}
+            Duration: ${LLMTool.TOOL_STYLES_CONSOLE.content.duration(metrics.timing.totalDuration)}
+            Start Time: ${LLMTool.TOOL_STYLES_CONSOLE.content.timeAgo(metrics.summary.startTime)}
 
-${colors.bold('Basic Statistics:')}
-${colors.cyan('Total Turns:')} ${metrics.summary.totalTurns}
-${colors.cyan('Message Types:')}
-  User: ${metrics.summary.messageTypes.user}
-  Assistant: ${metrics.summary.messageTypes.assistant}
-  Tool: ${metrics.summary.messageTypes.tool}
-  System: ${metrics.summary.messageTypes.system}
-${colors.cyan('Active Files:')} ${metrics.summary.activeFiles}
-${colors.cyan('Unique Tools Used:')} ${metrics.summary.uniqueToolsUsed}
-${colors.cyan('Duration:')} ${(metrics.timing.totalDuration / 1000 / 60).toFixed(2)} minutes
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Token Usage:')}
+            Total Usage:
+              Input: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.totalUsage.input)} tokens
+              Output: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.totalUsage.output)} tokens
+              Total: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.totalUsage.total)} tokens
 
-${colors.bold('Main Conversation Token Usage:')}
-${colors.cyan('Total Usage:')}
-  Input: ${metrics.tokens.totalUsage.input}
-  Output: ${metrics.tokens.totalUsage.output}
-  Total: ${metrics.tokens.totalUsage.total}
+            Differential Usage:
+              Input: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.differentialUsage.input)} tokens
+              Output: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.differentialUsage.output)} tokens
+              Total: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.differentialUsage.total)} tokens
 
-${colors.cyan('Differential Usage:')}
-  Input: ${metrics.tokens.differentialUsage.input}
-  Output: ${metrics.tokens.differentialUsage.output}
-  Total: ${metrics.tokens.differentialUsage.total}
+            Cache Impact:
+              Potential Cost: ${
+			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.potentialCost)
+		} tokens
+              Actual Cost: ${
+			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.actualCost)
+		} tokens
+              Total Savings: ${
+			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.totalSavings)
+		} tokens
+              Efficiency: ${
+			LLMTool.TOOL_STYLES_CONSOLE.content.percentage(metrics.tokens.cacheImpact.savingsPercentage)
+		} saved
 
-${colors.cyan('Cache Impact:')}
-  Potential Cost: ${metrics.tokens.cacheImpact.potentialCost}
-  Actual Cost: ${metrics.tokens.cacheImpact.actualCost}
-  Total Savings: ${metrics.tokens.cacheImpact.totalSavings}
-  Savings Percentage: ${metrics.tokens.cacheImpact.savingsPercentage.toFixed(2)}%
+            By Role:
+              User: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.byRole.user)} tokens
+              Assistant: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.byRole.assistant)} tokens
+              Tool: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.byRole.tool)} tokens
+              System: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.byRole.system)} tokens
 
-${colors.cyan('By Role:')}
-  User: ${metrics.tokens.byRole.user}
-  Assistant: ${metrics.tokens.byRole.assistant}
-  System: ${metrics.tokens.byRole.system}
-
-${colors.bold('Chat Token Usage:')}
-${metrics.chatTokens ? formatChatMetrics(metrics.chatTokens) : '- No auxiliary chat activity'}
-${colors.cyan('Average per Turn:')} ${metrics.tokens.averagePerTurn.toFixed(1)}
-${colors.cyan('By Role:')}
-  User: ${metrics.tokens.byRole.user}
-  Assistant: ${metrics.tokens.byRole.assistant}
-  Tool: ${metrics.tokens.byRole.tool}
-  System: ${metrics.tokens.byRole.system}
-
-${colors.bold('Tool Performance:')}
-${colors.cyan('Most Used Tools:')}
-${
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Tool Performance:')}
+            Most Used Tools:
+            ${
 			metrics.tools.usage
 				.sort((a, b) => b.uses - a.uses)
 				.slice(0, 3)
 				.map((tool) =>
-					`  ${tool.name}: ${tool.uses} uses (${(tool.successes / tool.uses * 100).toFixed(1)}% success)`
+					`  ${LLMTool.TOOL_STYLES_CONSOLE.content.toolName(tool.name)}: ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.counts(tool.uses)
+					} uses (${
+						LLMTool.TOOL_STYLES_CONSOLE.content.percentage(tool.successes / tool.uses * 100)
+					} success rate)`
 				)
 				.join('\n')
 		}
 
-${
+            ${
 			metrics.tools.sequences.length > 0
-				? `${colors.cyan('Common Tool Sequences:')}
-${
+				? `
+            Common Tool Sequences:
+            ${
 					metrics.tools.sequences
 						.slice(0, 2)
-						.map((seq) => `  ${seq.tools.join(' → ')} (${seq.occurrences}x)`)
+						.map((seq) =>
+							`  ${seq.tools.map((t) => LLMTool.TOOL_STYLES_CONSOLE.content.toolName(t)).join(' → ')} (${
+								LLMTool.TOOL_STYLES_CONSOLE.content.counts(seq.occurrences)
+							} times)`
+						)
 						.join('\n')
 				}`
 				: ''
 		}
 
-${colors.bold('File Operations:')}
-${colors.cyan('Most Accessed:')}
-${
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('File Operations:')}
+            Most Accessed Files:
+            ${
 			metrics.files.mostAccessed
 				.slice(0, 3)
-				.map((file) => `  ${file}`)
+				.map((file) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file)}`)
 				.join('\n')
 		}
+            ${
+			metrics.files.metrics.length > 0
+				? `
+            File Statistics:
+            ${
+					metrics.files.metrics
+						.slice(0, 3)
+						.map((file) =>
+							`  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.path)}: ` +
+							`${
+								LLMTool.TOOL_STYLES_CONSOLE.content.counts(
+									file.operations.added + file.operations.modified + file.operations.removed,
+								)
+							} operations ` +
+							`(${LLMTool.TOOL_STYLES_CONSOLE.content.counts(file.operations.added)} added, ` +
+							`${LLMTool.TOOL_STYLES_CONSOLE.content.counts(file.operations.modified)} modified, ` +
+							`${LLMTool.TOOL_STYLES_CONSOLE.content.counts(file.operations.removed)} removed)`
+						)
+						.join('\n')
+				}`
+				: ''
+		}
 
-${colors.bold('Quality Metrics:')}
-${colors.cyan('Error Rate:')} ${(metrics.quality.errorRate * 100).toFixed(1)}%
-${colors.cyan('Tool Success Rate:')} ${(metrics.quality.averageToolSuccess * 100).toFixed(1)}%
-${colors.cyan('Retries:')} ${metrics.quality.retryCount}
-${colors.cyan('User Corrections:')} ${metrics.quality.userCorrections}
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Quality Metrics:')}
+            Error Rate: ${LLMTool.TOOL_STYLES_CONSOLE.content.percentage(metrics.quality.errorRate * 100)}
+            Tool Success Rate: ${
+			LLMTool.TOOL_STYLES_CONSOLE.content.percentage(metrics.quality.averageToolSuccess * 100)
+		}
+            Retries: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.quality.retryCount)} attempts
+            User Corrections: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.quality.userCorrections)} corrections
 
-${colors.bold('Timing:')}
-${colors.cyan('Start Time:')} ${new Date(metrics.summary.startTime).toLocaleString()}
-${colors.cyan('Last Update:')} ${new Date(metrics.summary.lastUpdateTime).toLocaleString()}
-  `;
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Timing:')}
+            Last Update: ${LLMTool.TOOL_STYLES_CONSOLE.content.timeAgo(metrics.summary.lastUpdateTime)}
+
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Chat Token Usage:')}
+            ${metrics.chatTokens ? formatChatMetrics(metrics.chatTokens) : '- No auxiliary chat activity'}
+        `;
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Conversation Metrics'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)} turns analyzed over ${
+					LLMTool.TOOL_STYLES_CONSOLE.content.duration(metrics.timing.totalDuration)
+				}`,
+			),
+			content,
+			preview: `Analyzed ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)} turns using ${
+				LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.uniqueToolsUsed)
+			} unique tools`,
+		};
 	} else {
 		logger.error('LLMToolConversationMetrics: Unexpected bbResponse format:', bbResponse);
-		return bbResponse;
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Error', 'Conversation Metrics'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Failed to process metrics'),
+			content: bbResponse,
+			preview: 'Error processing metrics',
+		};
 	}
 };

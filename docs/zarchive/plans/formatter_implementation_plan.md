@@ -56,7 +56,7 @@ Example:
 import { VNode } from 'preact';
 import { LLMToolInputSchema, LLMToolRunResultContent } from '../llmTool.ts';
 
-export const formatToolUse = (input: LLMToolInputSchema): VNode => {
+export const formatLogEntryToolUse = (input: LLMToolInputSchema): VNode => {
   return {
     type: 'div',
     props: {
@@ -88,7 +88,7 @@ export const formatToolUse = (input: LLMToolInputSchema): VNode => {
   };
 };
 
-// ... similar structure for formatToolResult
+// ... similar structure for formatLogEntryToolResult
 ```
 
 Pros:
@@ -110,7 +110,7 @@ After careful consideration, Option B (Formatting Directory) has been chosen for
 2. For each tool, create two formatter files:
    - `<toolName>.browser.tsx` for browser formatting
    - `<toolName>.console.ts` for console formatting
-3. Implement formatting functions in each file, using the existing `formatToolUse` and `formatToolResult` methods as a base.
+3. Implement formatting functions in each file, using the existing `formatLogEntryToolUse` and `formatLogEntryToolResult` methods as a base.
 4. Update the main tool files to remove formatting logic, keeping only the core functionality.
 5. Update the `LogEntryFormatterManager` to use the new formatter files.
 6. Update `logEntryFormatter.handlers.ts` to serve the correct formatter based on the client request.

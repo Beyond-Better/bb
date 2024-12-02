@@ -17,7 +17,7 @@ These instructions guide the process of creating and updating formatter files fo
      import { JSX } from 'preact';
      import { LLMToolInputSchema, LLMToolRunResultContent, LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
      ```
-   - Implement `formatToolUse` and `formatToolResult` functions.
+   - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions.
    - Return JSX elements for formatted output.
    - Reuse existing formatting logic from the main tool file.
 
@@ -28,12 +28,12 @@ These instructions guide the process of creating and updating formatter files fo
      import { colors } from 'cliffy/ansi/colors.ts';
      import { stripIndents } from 'common-tags';
      ```
-   - Implement `formatToolUse` and `formatToolResult` functions.
+   - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions.
    - Return strings for formatted output.
    - Reuse existing formatting logic from the main tool file.
 
 4. Update Main Tool File
-   - Remove existing formatting logic (`formatToolUse` and `formatToolResult` methods).
+   - Remove existing formatting logic (`formatLogEntryToolUse` and `formatLogEntryToolResult` methods).
    - Ensure the `fileName` property is correctly set in the constructor.
 
 5. Error Handling
@@ -76,7 +76,7 @@ import { JSX } from 'preact';
 import { LLMToolInputSchema, LLMToolRunResultContent, LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
 import { getContentFromToolResult } from 'api/utils/llms.utils.ts';
 
-export const formatToolUse = (
+export const formatLogEntryToolUse = (
   toolInput: LLMToolInputSchema,
   format: LLMToolFormatterDestination = 'browser'
 ): JSX.Element => {
@@ -88,7 +88,7 @@ export const formatToolUse = (
   );
 };
 
-export const formatToolResult = (
+export const formatLogEntryToolResult = (
   resultContent: ConversationLogEntryContentToolResult,
   format: LLMToolFormatterDestination = 'browser'
 ): JSX.Element => {
@@ -108,7 +108,7 @@ import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
 import { getContentFromToolResult } from 'api/utils/llms.utils.ts';
 
-export const formatToolUse = (
+export const formatLogEntryToolUse = (
   toolInput: LLMToolInputSchema,
   format: LLMToolFormatterDestination = 'console'
 ): string => {
@@ -119,7 +119,7 @@ export const formatToolUse = (
   `;
 };
 
-export const formatToolResult = (
+export const formatLogEntryToolResult = (
   resultContent: ConversationLogEntryContentToolResult,
   format: LLMToolFormatterDestination = 'console'
 ): string => {

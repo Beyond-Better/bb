@@ -1,23 +1,23 @@
-import type { JSX } from 'preact';
-
-import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
-} from './formatter.browser.tsx';
-import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
-} from './formatter.console.ts';
-import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+//import type { JSX } from 'preact';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { LLMToolSearchProjectInput } from './types.ts';
+
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
+} from './formatter.browser.tsx';
+import {
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
+} from './formatter.console.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { searchFilesContent, searchFilesMetadata } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
-
 import { stripIndents } from 'common-tags';
 
 export default class LLMToolSearchProject extends LLMTool {
@@ -74,15 +74,20 @@ Leave empty to search only by file name, date, or size.`,
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -90,28 +95,17 @@ Leave empty to search only by file name, date, or size.`,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolInput } = toolUse;
-		const { contentPattern, caseSensitive = false, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } =
-			toolInput as {
-				contentPattern?: string;
-				caseSensitive?: boolean;
-				filePattern?: string;
-				dateAfter?: string;
-				dateBefore?: string;
-				sizeMin?: number;
-				sizeMax?: number;
-			};
+		const input = toolUse.toolInput as LLMToolSearchProjectInput;
+		const { contentPattern, caseSensitive = false, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } = input;
 		// caseSensitive controls the regex flag
 		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions#advanced_searching_with_flags
 
 		try {
-			let files: string[] = [];
-			let errorMessage: string | null = null;
+			let result;
 			logger.warn(
-				`LLMToolSearchProject: runTool - Search in ${projectEditor.projectRoot}: ${JSON.stringify(toolInput)}`,
+				`LLMToolSearchProject: runTool - Search in ${projectEditor.projectRoot}: ${JSON.stringify(input)}`,
 			);
 
-			let result;
 			if (contentPattern) {
 				// searchContent or searchContentInFiles
 				result = await searchFilesContent(projectEditor.projectRoot, contentPattern, caseSensitive, {
@@ -131,9 +125,8 @@ Leave empty to search only by file name, date, or size.`,
 					sizeMax,
 				});
 			}
-			files = result.files;
-			errorMessage = result.errorMessage;
 
+			const { files, errorMessage } = result;
 			const searchCriteria = [
 				contentPattern && `content pattern "${contentPattern}"`,
 				// only include case sensitivity details if content pattern was supplied
@@ -146,21 +139,11 @@ Leave empty to search only by file name, date, or size.`,
 			].filter(Boolean).join(', ');
 
 			const toolResults = stripIndents`
-				${
-				errorMessage
-					? `Error: ${errorMessage}
-				
-				`
-					: ''
-			}${files.length} files match the search criteria: ${searchCriteria}${
-				files.length > 0
-					? `
-				<files>
-				${files.join('\n')}
-				</files>`
-					: ''
-			}
-			`;
+                ${errorMessage ? `Error: ${errorMessage}\n\n` : ''}
+                ${files.length} files match the search criteria: ${searchCriteria}
+                ${files.length > 0 ? `\n<files>\n${files.join('\n')}\n</files>` : ''}
+            `;
+
 			const toolResponse = `Found ${files.length} files matching the search criteria: ${searchCriteria}`;
 			const bbResponse = `BB found ${files.length} files matching the search criteria: ${searchCriteria}`;
 

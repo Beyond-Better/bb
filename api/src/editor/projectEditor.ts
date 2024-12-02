@@ -1,7 +1,8 @@
 import { join } from '@std/path';
 import { getContentType } from 'api/utils/contentTypes.ts';
 
-import { existsWithinProject, generateFileListing, isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { existsWithinProject, isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { generateFileListing } from 'api/utils/projectListing.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type { FileMetadata } from 'shared/types.ts';

@@ -1,63 +1,81 @@
 /** @jsxImportSource preact */
-import type { JSX } from 'preact';
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+//import type { JSX } from 'preact';
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolRequestFilesInput, LLMToolRequestFilesResult } from './types.ts';
 import { logger } from 'shared/logger.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { fileNames } = toolInput as { fileNames: string[] };
-	return (
-		<div className='tool-use'>
-			<p>
-				<strong>Requesting files:</strong>
-			</p>
-			<ul>
-				{fileNames.map((fileName, index) => <li key={index}>{fileName}</li>)}
-			</ul>
-		</div>
+export const formatLogEntryToolUse = (
+	toolInput: LLMToolInputSchema,
+): LLMToolLogEntryFormattedResult => {
+	const { fileNames } = toolInput as LLMToolRequestFilesInput;
+
+	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{LLMTool.TOOL_TAGS_BROWSER.content.status('running', 'Files Requested')}
+			{LLMTool.TOOL_TAGS_BROWSER.base.list(
+				fileNames.map((fileName) => LLMTool.TOOL_TAGS_BROWSER.content.filename(fileName)),
+			)}
+		</>,
 	);
+
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Request Files'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`${fileNames.length} files`),
+		content,
+		preview: `Requesting ${fileNames.length} file${fileNames.length === 1 ? '' : 's'}`,
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
+
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as { filesAdded: string[]; filesError: string[] };
-		return (
-			<div className='tool-result'>
-				{data.filesAdded.length > 0
-					? (
-						<div>
-							<p>
-								<strong>✅ BB has added these files to the conversation:</strong>
-							</p>
-							<p>
-								<ul>{data.filesAdded.map((file) => <li>{file}</li>)}</ul>
-							</p>
-						</div>
-					)
-					: ''}
-				{data.filesError.length > 0
-					? (
-						<div>
-							<p>
-								<strong>⚠️ BB failed to add these files to the conversation:</strong>
-							</p>
-							<p>
-								<ul>{data.filesError.map((file) => <li>{file}</li>)}</ul>
-							</p>
-						</div>
-					)
-					: ''}
-			</div>
+		const { data } = bbResponse as LLMToolRequestFilesResult['bbResponse'];
+
+		const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			<>
+				{data.filesAdded.length > 0 && (
+					<div>
+						{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Files Added')}
+						{LLMTool.TOOL_TAGS_BROWSER.base.list(
+							data.filesAdded.map((file) => LLMTool.TOOL_TAGS_BROWSER.content.filename(file)),
+						)}
+					</div>
+				)}
+				{data.filesError.length > 0 && (
+					<div>
+						{LLMTool.TOOL_TAGS_BROWSER.content.status('failed', 'Failed to Add')}
+						{LLMTool.TOOL_TAGS_BROWSER.base.list(
+							data.filesError.map((file) => LLMTool.TOOL_TAGS_BROWSER.content.filename(file)),
+						)}
+					</div>
+				)}
+			</>,
 		);
+
+		const addedCount = data.filesAdded.length;
+		const errorCount = data.filesError.length;
+		const subtitle = `${addedCount} added${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Request Files'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(subtitle),
+			content,
+			preview: addedCount > 0 ? `Added ${addedCount} file${addedCount === 1 ? '' : 's'}` : 'No files added',
+		};
 	} else {
 		logger.error('LLMToolRequestFiles: Unexpected bbResponse format:', bbResponse);
-		return (
-			<div className='tool-result'>
-				<p>
-					<strong>{bbResponse}</strong>
-				</p>
-			</div>
-		);
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Request Files'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Error'),
+			content: LLMTool.TOOL_TAGS_BROWSER.base.container(
+				LLMTool.TOOL_TAGS_BROWSER.content.status('failed', String(bbResponse)),
+			),
+			preview: 'Error requesting files',
+		};
 	}
 };

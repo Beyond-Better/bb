@@ -5,51 +5,11 @@ import { exists, walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
 import globToRegExp from 'npm:glob-to-regexp';
 //import { globToRegExp } from '@std/path';
-import { countTokens } from 'anthropic-tokenizer';
-import { contentType } from '@std/media-types';
 
-import { ConfigManager } from 'shared/configManager.ts';
+//import type { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-
-export const FILE_LISTING_TIERS = [
-	{ depth: Infinity, includeMetadata: true },
-	{ depth: Infinity, includeMetadata: false },
-	{ depth: 5, includeMetadata: false },
-	{ depth: 3, includeMetadata: false },
-	{ depth: 2, includeMetadata: false },
-	{ depth: 1, includeMetadata: false },
-];
-
-export async function generateFileListing(projectRoot: string): Promise<{ listing: string; tier: number } | null> {
-	const projectConfig = await ConfigManager.projectConfig(projectRoot);
-	const repoInfoConfig = projectConfig.repoInfo;
-	const tokenLimit = repoInfoConfig?.tokenLimit || 1024;
-
-	const excludeOptions = await getExcludeOptions(projectRoot);
-	logger.debug(`FileHandlingUtil: Exclude options for file listing: ${JSON.stringify(excludeOptions)}`);
-
-	let tierIdx = 0;
-	for (const tier of FILE_LISTING_TIERS) {
-		tierIdx++;
-		logger.debug(`FileHandlingUtil: Generating file listing for tier: ${JSON.stringify(tier)}`);
-		const listing = await generateFileListingTier(projectRoot, excludeOptions, tier.depth, tier.includeMetadata);
-		const tokenCount = countTokens(listing);
-		logger.info(
-			`FileHandlingUtil: Created file listing for tier ${tierIdx} using ${tokenCount} tokens - depth: ${tier.depth} - includeMetadata: ${tier.includeMetadata}`,
-		);
-		if (tokenCount <= tokenLimit) {
-			logger.info(`FileHandlingUtil: File listing generated successfully within token limit (${tokenLimit})`);
-			return { listing, tier: tierIdx };
-		}
-	}
-
-	logger.error(
-		`FileHandlingUtil: Failed to generate file listing within token limit (${tokenLimit}) after all tiers`,
-	);
-	return null;
-}
 
 function createMatchRegexPatterns(matchPattern: string, projectRoot: string): RegExp[] {
 	// Split the pattern by '|' to handle multiple patterns
@@ -89,7 +49,7 @@ function createMatchRegexPatterns(matchPattern: string, projectRoot: string): Re
 	});
 }
 
-function createExcludeRegexPatterns(excludePatterns: string[]): RegExp[] {
+export function createExcludeRegexPatterns(excludePatterns: string[], projectRoot: string): RegExp[] {
 	return excludePatterns.flatMap((pattern) => {
 		// Handle negation patterns
 		if (pattern.startsWith('!')) {
@@ -114,43 +74,18 @@ function createExcludeRegexPatterns(excludePatterns: string[]): RegExp[] {
 			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
 				singlePattern = `**/${singlePattern}`;
 			}
+			// Prepend projectRoot to the pattern
+			const fullPattern = join(projectRoot, singlePattern);
+			// logger.info(
+			// 	`FileHandlingUtil: createExcludeRegexPatterns - creating regex from file pattern: ${fullPattern}`,
+			// );
 
-			return globToRegExp(singlePattern, { extended: true, globstar: true });
+			return globToRegExp(fullPattern, { extended: true, globstar: true });
 		});
 	});
 }
 
-async function generateFileListingTier(
-	projectRoot: string,
-	excludePatterns: string[],
-	maxDepth: number,
-	includeMetadata: boolean,
-): Promise<string> {
-	const listing = [];
-	const excludeOptionsRegex = createExcludeRegexPatterns(excludePatterns);
-	const walkOptions: WalkOptions = {
-		maxDepth,
-		includeDirs: false,
-		includeSymlinks: false,
-		//followSymlinks: false,
-		skip: excludeOptionsRegex,
-	};
-
-	for await (const entry of walk(projectRoot, walkOptions)) {
-		const relativePath = relative(projectRoot, entry.path);
-
-		if (includeMetadata) {
-			const stat = await Deno.stat(entry.path);
-			const mimeType = contentType(entry.name) || 'application/octet-stream';
-			listing.push(`${relativePath} (${mimeType}, ${stat.size} bytes, modified: ${stat.mtime?.toISOString()})`);
-		} else {
-			listing.push(relativePath);
-		}
-	}
-	return listing.sort().join('\n');
-}
-
-async function getExcludeOptions(projectRoot: string): Promise<string[]> {
+export async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	const excludeFiles = [
 		join(projectRoot, 'tags.ignore'),
 		join(projectRoot, '.gitignore'),
@@ -279,7 +214,7 @@ export async function searchFilesContent(
 		const filesToProcess = [];
 
 		const excludeOptions = await getExcludeOptions(projectRoot);
-		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, projectRoot);
 		const walkOptions: WalkOptions = {
 			includeDirs: false,
 			skip: excludeOptionsRegex,
@@ -639,7 +574,7 @@ export async function searchFilesMetadata(
 		const matchingFiles: string[] = [];
 
 		const excludeOptions = await getExcludeOptions(projectRoot);
-		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, projectRoot);
 		const walkOptions: WalkOptions = {
 			includeDirs: false,
 			skip: excludeOptionsRegex,
@@ -690,7 +625,7 @@ export async function searchFilesMetadata(
 			if (searchFileOptions.sizeMin !== undefined && stat.size < searchFileOptions.sizeMin) continue;
 			if (searchFileOptions.sizeMax !== undefined && stat.size > searchFileOptions.sizeMax) continue;
 
-			logger.info(`FileHandlingUtil: File ${relativePath} matches all criteria`);
+			//logger.info(`FileHandlingUtil: File ${relativePath} matches all criteria`);
 			matchingFiles.push(relativePath);
 		}
 

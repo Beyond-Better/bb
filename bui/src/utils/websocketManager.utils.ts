@@ -8,13 +8,68 @@ import {
 	ConversationStats,
 	TokenUsage,
 } from 'shared/types.ts';
+import type { VersionInfo } from 'shared/types/version.ts';
 
 interface WebSocketMessage {
 	conversationId: string;
 	startDir: string;
-	task: 'greeting' | 'converse';
+	task: 'greeting' | 'converse' | 'cancel';
 	statement: string;
 }
+
+/*
+interface WebSocketResponseBase {
+	type: string;
+	data: Record<string, unknown>;
+}
+
+interface ConversationReadyResponse extends WebSocketResponseBase {
+	type: 'conversationReady';
+	data: {
+		conversationId: string;
+		conversationTitle: string;
+		conversationStats: ConversationStats;
+		versionInfo?: VersionInfo;
+	};
+}
+
+interface ConversationNewResponse extends WebSocketResponseBase {
+	type: 'conversationNew';
+	data: {
+		conversationId: string;
+		conversationTitle: string;
+		tokenUsageConversation: TokenUsage;
+		conversationStats: ConversationStats;
+		timestamp: string;
+	};
+}
+
+interface ConversationDeletedResponse extends WebSocketResponseBase {
+	type: 'conversationDeleted';
+	data: {
+		conversationId: string;
+		timestamp: string;
+	};
+}
+
+interface ConversationContinueResponse extends WebSocketResponseBase {
+	type: 'conversationContinue';
+	data: ConversationContinue;
+}
+
+interface ConversationAnswerResponse extends WebSocketResponseBase {
+	type: 'conversationAnswer';
+	data: ConversationResponse;
+}
+
+interface ConversationErrorResponse extends WebSocketResponseBase {
+	type: 'conversationError';
+	data: {
+		error: string;
+		code?: string;
+	};
+}
+ */
 
 interface WebSocketResponse {
 	type:
@@ -35,6 +90,7 @@ interface WebSocketResponse {
 		tokenUsageConversation?: TokenUsage;
 		conversationStats?: ConversationStats;
 		error?: string;
+		versionInfo?: string;
 	};
 }
 
@@ -55,7 +111,8 @@ type EventType =
 	| 'clearError'
 	| 'cancelled'
 	| 'progressStatus'
-	| 'promptCacheTimer';
+	| 'promptCacheTimer'
+	| 'versionInfo';
 
 export class WebSocketManager {
 	private socket: WebSocket | null = null;
@@ -391,6 +448,19 @@ export class WebSocketManager {
 						this.emit('readyChange', true);
 						this.emit('statusChange', true);
 						this.emit('clearError');
+
+						const versionInfo = msg.data.versionInfo ?? {
+							version: '0.0.0',
+							installLocation: 'system', // Default assumption
+							canAutoUpdate: false,
+						};
+						this.emit('versionInfo', versionInfo);
+
+						// // Forward the message with version info
+						// this.emit('message', {
+						// 	msgType: 'conversationReady',
+						// 	logEntryData: msg.data,
+						// });
 
 						// Start health check after conversation is ready
 						this.startHealthCheck();

@@ -2,8 +2,8 @@ import { assert, assertEquals, assertRejects, assertStringIncludes } from 'api/t
 import { join } from '@std/path';
 //import { existsSync } from '@std/fs';
 
-import LLMToolSearchAndReplace from '../tool.ts';
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+//import LLMToolSearchAndReplace from '../tool.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
 	createTestInteraction,

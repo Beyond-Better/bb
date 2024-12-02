@@ -1,4 +1,4 @@
-import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
+import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 //import type { ObjectivesData } from 'shared/types.ts';
 import { stripIndents } from 'common-tags';
 //import { logger } from 'shared/logger.ts';
@@ -6,7 +6,10 @@ import { stripIndents } from 'common-tags';
 export async function generateConversationTitle(chat: LLMChatInteraction, prompt: string): Promise<string> {
 	const titlePrompt = stripIndents`
         Create a very short title (max 5 words) for a conversation based on the following prompt:
-        "${prompt.substring(0, 1500)}${prompt.length > 1500 ? '...' : ''}"
+
+        <prompt>
+        ${prompt.substring(0, 5000)}${prompt.length > 5000 ? '...' : ''}
+        </prompt>
         
         Respond with the title only, no additional text.`;
 	const response = await chat.chat(titlePrompt);
@@ -32,13 +35,19 @@ export async function generateStatementObjective(
 		if (previousObjective) {
 			// For simple responses or instructions about objectives, maintain the previous objective
 			const msg = `Continue the current task based on the previous objective: ${previousObjective}`;
-			chat.conversationLogger.logAuxiliaryMessage(chat.getLastMessageId(), `Using previous objective:\n${msg}`);
+			chat.conversationLogger.logAuxiliaryMessage(chat.getLastMessageId(), {
+				message: `Using previous objective:\n${msg}`,
+				purpose: 'Using previous context for Objective',
+			});
 			return msg;
 		} else {
 			// Otherwise, create a context-gathering objective
 			const neededContext = objective.substring('NEED_CONTEXT:'.length).trim();
 			const msg = `Gather context about ${neededContext} to proceed with the task`;
-			chat.conversationLogger.logAuxiliaryMessage(chat.getLastMessageId(), msg);
+			chat.conversationLogger.logAuxiliaryMessage(chat.getLastMessageId(), {
+				message: msg,
+				purpose: 'Need more context for Objective',
+			});
 			return msg;
 		}
 	}

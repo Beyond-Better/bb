@@ -1,0 +1,20 @@
+import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+//import type { LLMMessageContentParts } from 'api/llms/llmMessage.ts';
+
+export interface LLMToolFetchWebScreenshotInput {
+	url: string;
+}
+
+export interface LLMToolFetchWebScreenshotResultData {
+	url: string;
+	mediaType?: string;
+	source?: string;
+}
+
+export interface LLMToolFetchWebScreenshotResult {
+	toolResult: LLMToolRunResultContent;
+	toolResponse: string;
+	bbResponse: {
+		data: LLMToolFetchWebScreenshotResultData;
+	};
+}

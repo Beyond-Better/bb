@@ -35,6 +35,9 @@
 		"preact/": "https://esm.sh/preact@10.22.0/",
 		"@preact/signals": "https://esm.sh/*@preact/signals@1.2.2",
 		"@preact/signals-core": "https://esm.sh/*@preact/signals-core@1.5.1",
+		"@testing-library/preact": "https://esm.sh/@testing-library/preact@3.2.3",
+		"chai": "https://esm.sh/chai@4.3.4",
+		"expect": "https://esm.sh/expect@29.7.0",
 		"$std/": "https://deno.land/std@0.216.0/",
 		"preact-render-to-string": "https://esm.sh/preact-render-to-string@6.5.10",
 		"tailwindcss": "npm:tailwindcss@3.4.1",
@@ -74,6 +77,8 @@
 		"api/errors/error.ts": "./api/src/errors/error.ts",
 		"api/utils/contentTypes.ts": "./api/src/utils/contentTypes.utils.ts",
 		"api/utils/fileHandling.ts": "./api/src/utils/fileHandling.utils.ts",
+		"api/utils/fileSuggestions.ts": "./api/src/utils/fileSuggestions.utils.ts",
+		"api/utils/projectListing.ts": "./api/src/utils/projectListing.utils.ts",
 		"api/utils/error.ts": "./api/src/utils/error.utils.ts",
 		"api/utils/llms.ts": "./api/src/utils/llms.utils.ts",
 		"api/llms/llmMessage.ts": "./api/src/llms/llmMessage.ts",
@@ -81,6 +86,7 @@
 		"api/llms/baseInteraction.ts": "./api/src/llms/interactions/baseInteraction.ts",
 		"api/llms/chatInteraction.ts": "./api/src/llms/interactions/chatInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
+		"api/logEntries/types.ts": "./api/src/logEntries/types.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
 		"api/storage/conversationLogger.ts": "./api/src/storage/conversationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",
@@ -93,6 +99,7 @@
 		"cli/conversationLogFormatter.ts": "./cli/src/conversationLogs/conversationLogFormatter.ts",
 
 		"shared/types.ts": "./src/shared/types.ts",
+		"shared/types/version.ts": "./src/shared/types/version.types.ts",
 		"shared/logger.ts": "./src/shared/utils/logger.utils.ts",
 		"shared/logViewer.ts": "./src/shared/utils/logViewer.utils.ts",
 		"shared/conversationManagement.ts": "./src/shared/utils/conversationManagement.utils.ts",
@@ -103,6 +110,12 @@
 		"shared/git.ts": "./src/shared/utils/git.utils.ts",
 		"shared/configManager.ts": "./src/shared/config/configManager.ts",
 		"shared/configSchema.ts": "./src/shared/config/configSchema.ts",
-		"shared/dynamicFormatter.ts": "./src/shared/utils/dynamicFormatter.ts"
+		"shared/dynamicFormatter.ts": "./src/shared/utils/dynamicFormatter.ts",
+		"shared/install.ts": "./src/shared/utils/install.utils.ts",
+		"shared/upgrade.ts": "./src/shared/utils/upgrade.utils.ts",
+		"shared/process.ts": "./src/shared/utils/process.utils.ts",
+		"shared/version.ts": "./src/shared/utils/version.ts",
+
+		"version.ts": "./version.ts"
 	}
 }

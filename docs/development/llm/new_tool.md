@@ -22,7 +22,7 @@ This document serves as a guide for creating new tools in the BB project. It inc
 
 6. **Implement the Tool**: Use the gathered information to implement the tool in `tool.ts`, following the structure and style of the reference tool as closely as possible. Only modify what is necessary for the new functionality.
 
-7. **Implement Formatters**: Implement the `formatToolUse` and `formatToolResult` functions in both formatter files.
+7. **Implement Formatters**: Implement the `formatLogEntryToolUse` and `formatLogEntryToolResult` functions in both formatter files.
 
 8. **Error Handling and Input Validation**: Implement robust error handling and input validation.
 
@@ -85,33 +85,33 @@ Create two separate formatter files for each tool:
 
 1. Browser Formatter (`formatter.browser.tsx`):
    - Import necessary types from `api/llms/llmTool.ts` and `api/llms/llmMessage.ts`.
-   - Implement `formatToolUse` and `formatToolResult` functions that return JSX elements.
+   - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions that return JSX elements.
 
 2. Console Formatter (`formatter.console.ts`):
    - Import necessary types from `api/llms/llmTool.ts` and `api/llms/llmMessage.ts`.
    - Import `colors` from `cliffy/ansi/colors.ts` and `stripIndents` from `common-tags`.
-   - Implement `formatToolUse` and `formatToolResult` functions that return strings.
+   - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions that return strings.
 
 ### Main Tool File
 In the main tool file (`tool.ts`):
 
 - Import the formatter functions from both formatter files.
-- Implement `formatToolUse` and `formatToolResult` methods to use the appropriate formatter based on the format parameter.
+- Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` methods to use the appropriate formatter based on the format parameter.
 
 Example:
 
 ```typescript
-import { formatToolUse as formatToolUseBrowser, formatToolResult as formatToolResultBrowser } from './formatter.browser.tsx';
-import { formatToolUse as formatToolUseConsole, formatToolResult as formatToolResultConsole } from './formatter.console.ts';
+import { formatLogEntryToolUse as formatLogEntryToolUseBrowser, formatLogEntryToolResult as formatLogEntryToolResultBrowser } from './formatter.browser.tsx';
+import { formatLogEntryToolUse as formatLogEntryToolUseConsole, formatLogEntryToolResult as formatLogEntryToolResultConsole } from './formatter.console.ts';
 
 // ...
 
-formatToolUse = (toolInput: LLMToolInputSchema, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
-    return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+formatLogEntryToolUse = (toolInput: LLMToolInputSchema, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
+    return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 };
 
-formatToolResult = (resultContent: ConversationLogEntryContentToolResult, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
-    return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+formatLogEntryToolResult = (resultContent: ConversationLogEntryContentToolResult, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
+    return format === 'console' ? formatLogEntryToolResultConsole(resultContent) : formatLogEntryToolResultBrowser(resultContent);
 };
 ```
 

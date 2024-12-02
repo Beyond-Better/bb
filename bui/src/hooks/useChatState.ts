@@ -2,12 +2,14 @@ import { useEffect } from 'preact/hooks';
 import { Signal, signal } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
+import { useVersion } from './useVersion.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
+import type { VersionInfo } from 'shared/types/version.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
 import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
 
@@ -176,6 +178,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		if (!chatState.value.wsManager) return;
 
 		const wsManager = chatState.value.wsManager;
+		const { setVersionInfo } = useVersion();
 		// Create StatusQueue instance
 		const statusQueue = new StatusQueue((status) => {
 			if (!mounted) return;
@@ -291,6 +294,17 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			}
 		};
 
+		const handleVersionInfo = (versionInfo: VersionInfo) => {
+			if (!mounted) return;
+			// Update local state
+			chatState.value = {
+				...chatState.value,
+				versionInfo,
+			};
+			// Update version context
+			setVersionInfo(versionInfo);
+		};
+
 		const handleCancelled = () => {
 			if (!mounted) return;
 			chatState.value = {
@@ -372,6 +386,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		wsManager.on('clearError', handleClearError);
 		wsManager.on('progressStatus', handleProgressStatus);
 		wsManager.on('promptCacheTimer', handlePromptCacheTimer);
+		wsManager.on('versionInfo', handleVersionInfo);
 
 		return () => {
 			mounted = false;
@@ -383,6 +398,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			wsManager.off('clearError', handleClearError);
 			wsManager.off('progressStatus', handleProgressStatus);
 			wsManager.off('promptCacheTimer', handlePromptCacheTimer);
+			wsManager.off('versionInfo', handleVersionInfo);
 			statusQueue.reset();
 		};
 	}, [chatState.value.wsManager]);

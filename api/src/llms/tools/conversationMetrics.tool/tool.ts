@@ -1,104 +1,28 @@
-import type { JSX } from 'preact';
-
+//import type { JSX } from 'preact';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type {
-	LLMAnswerToolUse,
-	LLMMessageContentPartTextBlock,
-	//LLMMessageContentParts,
-	//LLMMessageContentPart
-} from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { TokenUsageAnalysis } from 'shared/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
-
-export interface ToolMetrics {
-	name: string;
-	uses: number;
-	successes: number;
-	failures: number;
-	averageResponseTime: number;
-}
-
-export interface FileMetrics {
-	path: string;
-	operations: {
-		added: number;
-		modified: number;
-		removed: number;
-	};
-	lastOperation: string;
-	currentStatus: string;
-}
-
-export interface TokenMetrics extends TokenUsageAnalysis {
-	// Legacy metrics maintained for compatibility
-
-	total: number;
-	byTurn: Array<{
-		turn: number;
-		tokens: number;
-		role: string;
-	}>;
-	averagePerTurn: number;
-}
-
-export interface TimeMetrics {
-	totalDuration: number;
-	averageResponseTime: number;
-	byTurn: Array<{
-		turn: number;
-		duration: number;
-	}>;
-}
-
-export interface LLMToolConversationMetricsData {
-	summary: {
-		totalTurns: number;
-		messageTypes: {
-			user: number;
-			assistant: number;
-			tool: number;
-			system: number;
-		};
-		activeFiles: number;
-		uniqueToolsUsed: number;
-		startTime: string;
-		lastUpdateTime: string;
-	};
-	tokens: TokenMetrics;
-	chatTokens?: TokenMetrics;
-	timing: TimeMetrics;
-	tools: {
-		usage: ToolMetrics[];
-		sequences: Array<{
-			tools: string[];
-			occurrences: number;
-		}>;
-	};
-	files: {
-		metrics: FileMetrics[];
-		mostAccessed: string[];
-	};
-	quality: {
-		errorRate: number;
-		retryCount: number;
-		userCorrections: number;
-		averageToolSuccess: number;
-	};
-}
+import type {
+	LLMToolConversationMetricsInput,
+	LLMToolConversationMetricsResponse,
+	LLMToolConversationMetricsResult,
+	LLMToolFileMetrics,
+	LLMToolToolMetrics,
+} from './types.ts';
 
 export default class LLMToolConversationMetrics extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -142,15 +66,20 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -167,15 +96,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 				includeQuality = true,
 				startTurn,
 				endTurn,
-			} = toolUse.toolInput as {
-				includeTools?: boolean;
-				includeFiles?: boolean;
-				includeTokens?: boolean;
-				includeTiming?: boolean;
-				includeQuality?: boolean;
-				startTurn?: number;
-				endTurn?: number;
-			};
+			} = toolUse.toolInput as LLMToolConversationMetricsInput;
 
 			const messages = interaction.getMessages();
 			const filteredMessages = startTurn || endTurn ? messages.slice((startTurn || 1) - 1, endTurn) : messages;
@@ -188,13 +109,10 @@ export default class LLMToolConversationMetrics extends LLMTool {
 				includeQuality,
 			});
 
-			// Format metrics for display
-			const formattedMetrics = this.formatMetrics(metrics);
-
-			const toolResults = formattedMetrics;
+			const toolResults = this.formatMetrics(metrics);
 			const toolResponse =
 				`Analyzed ${metrics.summary.totalTurns} conversation turns with ${metrics.summary.uniqueToolsUsed} unique tools used. Unless specifically asked to perform additional analysis or tasks, no further action is needed.`;
-			const bbResponse = {
+			const bbResponse: LLMToolConversationMetricsResponse = {
 				data: metrics,
 			};
 
@@ -226,8 +144,8 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			includeTiming: boolean;
 			includeQuality: boolean;
 		},
-	): Promise<LLMToolConversationMetricsData> {
-		const metrics: LLMToolConversationMetricsData = {
+	): Promise<LLMToolConversationMetricsResult> {
+		const metrics: LLMToolConversationMetricsResult = {
 			summary: {
 				totalTurns: messages.length,
 				messageTypes: {
@@ -296,10 +214,10 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		const toolSequences = new Map<string, number>();
 
 		// Track file operations
-		const fileOps = new Map<string, FileMetrics>();
+		const fileOps = new Map<string, LLMToolFileMetrics>();
 
 		// Track tool usage
-		const toolUsage = new Map<string, ToolMetrics>();
+		const toolUsage = new Map<string, LLMToolToolMetrics>();
 
 		let lastTimestamp: string | null = null;
 		let errorCount = 0;
@@ -317,47 +235,33 @@ export default class LLMToolConversationMetrics extends LLMTool {
 
 				// Add chat metrics if available
 				if (tokenAnalysis.chat.totalUsage.total > 0) {
-					// Chat interactions don't use tools, so tool count is always 0
-					const chatByRole = {
-						...tokenAnalysis.chat.byRole,
-						tool: 0,
-					};
 					metrics.chatTokens = {
 						// TokenUsageAnalysis fields
 						totalUsage: tokenAnalysis.chat.totalUsage,
 						differentialUsage: tokenAnalysis.chat.differentialUsage,
 						cacheImpact: tokenAnalysis.chat.cacheImpact,
-						byRole: chatByRole,
-						// Legacy metrics
+						byRole: {
+							...tokenAnalysis.chat.byRole,
+							tool: 0, // Chat interactions don't use tools
+						},
 						total: tokenAnalysis.chat.totalUsage.total,
 						byTurn: [],
 						averagePerTurn: 0,
 					};
 				}
-				if (tokenAnalysis.chat.totalUsage.total > 0) {
-					metrics.chatTokens = {
-						...tokenAnalysis.chat,
-						// Legacy metrics maintained for compatibility
-						total: tokenAnalysis.chat.totalUsage.total,
-						byRole: tokenAnalysis.chat.byRole,
-						byTurn: [],
-						averagePerTurn: 0,
-					};
-				}
+
 				// Calculate total tool usage from toolStats
 				const toolTotal = Array.from(toolUsage.values())
 					.reduce((sum, tool) => sum + tool.uses, 0);
 
-				const conversationByRole = {
-					...tokenAnalysis.conversation.byRole,
-					tool: toolTotal, // Set tool usage from actual tool metrics
-				};
 				metrics.tokens = {
-					// TokenUsageAnalysis fields
 					totalUsage: tokenAnalysis.conversation.totalUsage,
 					differentialUsage: tokenAnalysis.conversation.differentialUsage,
 					cacheImpact: tokenAnalysis.conversation.cacheImpact,
-					byRole: conversationByRole,
+					byRole: {
+						...tokenAnalysis.conversation.byRole,
+						tool: toolTotal, // Set tool usage from actual tool metrics
+					},
 					// Legacy metrics
 					total: tokenAnalysis.conversation.totalUsage.total,
 					byTurn: metrics.tokens.byTurn,
@@ -377,6 +281,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 					});
 				}
 			}
+
 			// Timing metrics
 			if (options.includeTiming && message.timestamp && lastTimestamp) {
 				const duration = new Date(message.timestamp).getTime() - new Date(lastTimestamp).getTime();
@@ -549,7 +454,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		return corrections;
 	}
 
-	private formatMetrics(metrics: LLMToolConversationMetricsData): string {
+	private formatMetrics(metrics: LLMToolConversationMetricsResult): string {
 		return `Conversation Metrics Summary:
 
 Basic Statistics:

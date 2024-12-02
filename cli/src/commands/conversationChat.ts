@@ -80,10 +80,10 @@ export const conversationChat = new Command()
 			const processStatus = await checkApiStatus(projectRoot);
 			if (!processStatus.apiResponds) {
 				if (processStatus.pidExists) {
-					console.log('API process exists but is not responding. Attempting restart...');
+					console.log('BB server process exists but is not responding. Attempting restart...');
 					await stopApiServer(projectRoot);
 				} else {
-					console.log('API is not running. Starting it now...');
+					console.log('BB server is not running. Starting it now...');
 				}
 
 				const { pid: _pid, apiLogFilePath: _apiLogFilePath, listen: _listen } = await startApiServer(
@@ -109,16 +109,18 @@ export const conversationChat = new Command()
 					// Provide detailed status information
 					if (processStatus.pidExists && !processStatus.apiResponds) {
 						console.error(colors.yellow(
-							`API process exists but is not responding [${attempt}/${maxAttempts}]. PID: ${processStatus.pid}`,
+							`BB server process exists but is not responding [${attempt}/${maxAttempts}]. PID: ${processStatus.pid}`,
 						));
 					} else if (!processStatus.pidExists) {
 						console.error(colors.yellow(
-							`API process not found [${attempt}/${maxAttempts}]. Starting up...`,
+							`BB server process not found [${attempt}/${maxAttempts}]. Starting up...`,
 						));
 					}
 
 					if (status.error) {
-						console.error(colors.yellow(`API status check [${attempt}/${maxAttempts}]: ${status.error}`));
+						console.error(
+							colors.yellow(`BB server status check [${attempt}/${maxAttempts}]: ${status.error}`),
+						);
 					}
 
 					await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
@@ -127,15 +129,15 @@ export const conversationChat = new Command()
 					const finalStatus = await checkApiStatus(startDir);
 					if (finalStatus.pidExists && !finalStatus.apiResponds) {
 						throw new Error(
-							`API process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
+							`BB server process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
 						);
 					} else {
-						throw new Error('Failed to start the API server: ' + (finalStatus.error || 'unknown error'));
+						throw new Error('Failed to start the BB server: ' + (finalStatus.error || 'unknown error'));
 					}
 				} else {
 					apiStartedByUs = true;
 					const finalStatus = await checkApiStatus(startDir);
-					console.log(colors.bold.green(`API started successfully (PID: ${finalStatus.pid}).`));
+					console.log(colors.bold.green(`BB server started successfully (PID: ${finalStatus.pid}).`));
 				}
 			}
 
@@ -189,7 +191,7 @@ export const conversationChat = new Command()
 						null,
 						2,
 					));
-					logger.error(`API request failed: ${response.status} ${response.statusText}`);
+					logger.error(`BB server request failed: ${response.status} ${response.statusText}`);
 					logger.error(`Error body: ${errorBody}`);
 				}
 			} else {

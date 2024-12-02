@@ -267,10 +267,12 @@ class LLMInteraction {
 		};
 	}
 
-	public async updateTotals({
+	public updateTotals({
 		usage: tokenUsage,
 		model,
-	}: { usage: TokenUsage; model: string }): Promise<void> {
+	}: { usage: TokenUsage; model: string }): void {
+		//logger.info(`BaseInteraction - token usage`, tokenUsage);
+
 		if (tokenUsage.cacheCreationInputTokens === undefined) tokenUsage.cacheCreationInputTokens = 0;
 		if (tokenUsage.cacheReadInputTokens === undefined) tokenUsage.cacheReadInputTokens = 0;
 		if (
@@ -281,7 +283,9 @@ class LLMInteraction {
 		) {
 			// Record token usage with interactionType
 			const usageRecord = this.createTokenUsageRecord(tokenUsage, model);
-			await this.conversationPersistence.writeTokenUsage(usageRecord, this.interactionType);
+			this.conversationPersistence.writeTokenUsage(usageRecord, this.interactionType).then(() =>
+				logger.debug('BaseInteraction - token usage written to JSON log', tokenUsage)
+			);
 		}
 
 		if (this.conversationTurnCount === 0) {

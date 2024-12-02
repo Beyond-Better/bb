@@ -1,51 +1,67 @@
 /** @jsxImportSource preact */
-import type { JSX } from 'preact';
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { getContentFromToolResult } from 'api/utils/llms.ts';
 import { logger } from 'shared/logger.ts';
+import type { LLMToolFetchWebPageInput, LLMToolFetchWebPageResult } from './types.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { url } = toolInput as { url: string };
-	return (
-		<div className='tool-use'>
-			<p>
-				<strong>Fetching web page:</strong> <a href={url} target='_blank' rel='noopener noreferrer'>{url}</a>
-			</p>
-		</div>
+export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	const { url } = toolInput as LLMToolFetchWebPageInput;
+	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{LLMTool.TOOL_TAGS_BROWSER.base.label('Fetching web page:')} {LLMTool.TOOL_TAGS_BROWSER.content.url(url)}
+		</>,
 	);
+
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Fetch Web Page'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Fetching URL'),
+		content,
+		preview: `Fetching ${url}`,
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { toolResult, bbResponse } = resultContent;
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
+	const { toolResult, bbResponse } = resultContent as LLMToolFetchWebPageResult;
+
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const { url, html: _html } = bbResponse.data as { url: string; html: string };
+		const { url } = bbResponse.data;
 		const content = getContentFromToolResult(toolResult);
 		const contentPreview = content.length > 500 ? content.slice(0, 500) + '...' : content;
-		return (
-			<div className='tool-result'>
+
+		const contentElement = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			<>
 				<p>
-					<strong>
-						BB has fetched web page content from {url}.
-					</strong>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('BB has fetched web page content from')}{' '}
+					{LLMTool.TOOL_TAGS_BROWSER.content.url(url)}
 				</p>
-				<pre style='background-color: #f0f0f0; padding: 10px; white-space: pre-wrap;'>{contentPreview}</pre>
-			</div>
+				{LLMTool.TOOL_TAGS_BROWSER.base.pre(contentPreview)}
+			</>,
 		);
-		/* // the rendered html is missing stylesheets and more so doesn't look right, so just use text of contentPreview
-				<div
-					style='background-color: #f0f0f0; padding: 10px'
-					dangerouslySetInnerHTML={{ __html: html }}
-				/>
-		 */
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Fetch Web Page'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Content retrieved'),
+			content: contentElement,
+			preview: `Retrieved content from ${url}`,
+		};
 	} else {
 		logger.error('LLMToolFetchWebPage: Unexpected bbResponse format:', bbResponse);
-		return (
-			<div className='tool-result'>
-				<p>
-					<strong>{bbResponse}</strong>
-				</p>
-			</div>
+		const errorContent = LLMTool.TOOL_TAGS_BROWSER.base.container(
+			<p>
+				{LLMTool.TOOL_TAGS_BROWSER.base.label(String(bbResponse))}
+			</p>,
+			LLMTool.TOOL_STYLES_BROWSER.status.error,
 		);
+
+		return {
+			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Fetch Web Page'),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('failed'),
+			content: errorContent,
+			preview: 'Operation failed',
+		};
 	}
 };

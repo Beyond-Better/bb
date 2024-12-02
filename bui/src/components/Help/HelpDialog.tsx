@@ -2,6 +2,9 @@ import { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { StatusDialog } from '../Status/StatusDialog.tsx';
 import { CertificateStatusIndicator } from '../CertificateStatusIndicator.tsx';
+import { VersionInfo } from '../Version/VersionInfo.tsx';
+import { VersionWarning } from '../Version/VersionWarning.tsx';
+import { useVersion } from '../../hooks/useVersion.ts';
 import type { ApiClient } from '../../utils/apiClient.utils.ts';
 import { useFocusTrap } from '../../hooks/useFocusTrap.ts';
 import { useFadeTransition, useTransition } from '../../hooks/useTransition.ts';
@@ -19,6 +22,7 @@ interface HelpSection {
 
 export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 	const [showStatus, setShowStatus] = useState(false);
+	const { versionInfo, versionCompatibility } = useVersion();
 
 	const focusTrapRef = useFocusTrap({
 		enabled: visible,
@@ -57,24 +61,6 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 					</div>
 					<div className='flex justify-between items-center'>
 						<span className='text-gray-600'>Send message</span>
-						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
-							Enter
-						</kbd>
-					</div>
-					<div className='flex justify-between items-center'>
-						<span className='text-gray-600'>New line in message box</span>
-						<div className='flex items-center space-x-1'>
-							<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
-								Ctrl
-							</kbd>
-							<span aria-hidden='true'>+</span>
-							<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
-								Enter
-							</kbd>
-						</div>
-					</div>
-					<div className='flex justify-between items-center'>
-						<span className='text-gray-600'>Alternative new line</span>
 						<div className='flex items-center space-x-1'>
 							<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
 								Shift
@@ -84,6 +70,12 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 								Enter
 							</kbd>
 						</div>
+					</div>
+					<div className='flex justify-between items-center'>
+						<span className='text-gray-600'>New line in message box</span>
+						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
+							Enter
+						</kbd>
 					</div>
 					<div className='flex justify-between items-center'>
 						<span className='text-gray-600'>Expand/collapse message in history</span>
@@ -107,6 +99,80 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 						<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
 							Esc
 						</kbd>
+					</div>
+				</div>
+			),
+		},
+		{
+			title: 'Auto-Complete - File Suggestions',
+			content: (
+				<div className='space-y-3'>
+					<p className='text-gray-600'>
+						BB provides intelligent file suggestions to help you quickly reference project files. There are
+						two ways to trigger suggestions:
+					</p>
+					<div className='space-y-2'>
+						<h4 className='font-medium text-gray-700'>Trigger Methods:</h4>
+						<ul className='list-disc list-inside space-y-2 text-gray-600'>
+							<li>
+								<span className='font-medium'>Slash Trigger (/)</span>{' '}
+								- Type a forward slash to show suggestions. Continue typing to refine the list in
+								real-time.
+							</li>
+							<li>
+								<span className='font-medium'>Tab Trigger</span>{' '}
+								- Press Tab at any point to show suggestions. Works with empty input or after typing a
+								partial path. Continue typing to refine suggestions.
+							</li>
+						</ul>
+
+						<h4 className='font-medium text-gray-700 mt-3'>Advanced Features:</h4>
+						<ul className='list-disc list-inside space-y-2 text-gray-600'>
+							<li>
+								<span className='font-medium'>Wildcards</span> - Use * to match any characters:
+								<ul className='list-inside ml-6 mt-1'>
+									<li>"*.ts" - All TypeScript files</li>
+									<li>"test/*" - All files in test directory</li>
+									<li>"src/**/*.tsx" - All TSX files in src and subdirectories</li>
+								</ul>
+							</li>
+							<li>
+								<span className='font-medium'>Directory Navigation</span>{' '}
+								- Both files and directories can be selected. Directories are indicated with a trailing
+								slash (/).
+							</li>
+						</ul>
+
+						<h4 className='font-medium text-gray-700 mt-3'>Navigation & Selection:</h4>
+						<ul className='list-disc list-inside space-y-2 text-gray-600'>
+							<li>
+								<span className='font-medium'>Keyboard Navigation</span>:
+								<ul className='list-inside ml-6 mt-1'>
+									<li>↑/↓ Arrow keys to move through suggestions</li>
+									<li>Enter to select highlighted suggestion</li>
+									<li>Escape to close suggestions</li>
+								</ul>
+							</li>
+							<li>
+								<span className='font-medium'>Suggestion Details</span> - Each suggestion shows:
+								<ul className='list-inside ml-6 mt-1'>
+									<li>File/directory name</li>
+									<li>Parent directory path in parentheses</li>
+									<li>Trailing slash (/) for directories</li>
+								</ul>
+							</li>
+						</ul>
+
+						<h4 className='font-medium text-gray-700 mt-3'>Best Practices:</h4>
+						<ul className='list-disc list-inside space-y-2 text-gray-600'>
+							<li>
+								When referencing multiple files, list each one on a new line for better readability and
+								LLM processing
+							</li>
+							<li>Use Tab completion to quickly navigate deep directory structures</li>
+							<li>Combine wildcards with partial paths to find specific file types in subdirectories</li>
+							<li>Press Escape to close the suggestions list without making a selection</li>
+						</ul>
 					</div>
 				</div>
 			),
@@ -232,8 +298,8 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 						The colored indicator shows the status of Anthropic's prompt cache. When active (green), Claude
 						can reuse context from recent interactions at a 90% discount in token costs. The cache
 						automatically expires after 5 minutes of inactivity, at which point Claude will need to
-						reprocess the full context at standard token rates. This is handled automatically by the API and
-						requires no user action.
+						reprocess the full context at standard token rates. This is handled automatically by the BB
+						server and requires no user action.
 						<ul className='list-disc list-inside mt-2 ml-4'>
 							<li>Green - Cache active (90% token discount)</li>
 							<li>Yellow - Cache expiring soon</li>
@@ -334,6 +400,17 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 							</dd>
 						</div>
 					</dl>
+				</div>
+			),
+		},
+		{
+			title: 'Version Information',
+			content: (
+				<div className='space-y-4'>
+					{versionInfo && <VersionInfo versionInfo={versionInfo} />}
+					{versionCompatibility && !versionCompatibility.compatible && (
+						<VersionWarning apiClient={apiClient} />
+					)}
 				</div>
 			),
 		},

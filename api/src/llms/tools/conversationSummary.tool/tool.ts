@@ -1,16 +1,16 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 //import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type {
 	LLMAnswerToolUse,
@@ -32,63 +32,12 @@ import { extractTextFromContent } from 'api/utils/llms.ts';
 // [TODO] Add restore functionality for conversation backups to support undo operations
 // [TODO] Allow selective message removal by messageId for more granular conversation management
 
-export interface ConversationSummarySection {
-	files: Array<{
-		path: string;
-		revision: string;
-		operations: string[];
-	}>;
-	tools: Array<{
-		name: string;
-		uses: number;
-		keyResults: string[];
-	}>;
-	decisions: string[];
-	requirements: string[];
-	externalReferences: Array<{
-		url: string;
-		context: string;
-	}>;
-	codeChanges: Array<{
-		description: string;
-		files: string[];
-	}>;
-	projectContext: string[];
-}
-
-export interface ConversationSummaryMetadata {
-	messageRange: {
-		start: { id: string; timestamp: string };
-		end: { id: string; timestamp: string };
-	};
-	originalTokenCount: number;
-	summaryTokenCount: number;
-	model: string;
-	fallbackUsed?: boolean;
-}
-
-export interface LLMToolConversationSummaryData {
-	summary: string;
-	keptMessages: LLMMessage[];
-	originalTokenCount: number;
-	newTokenCount: number;
-	originalMessageCount: number;
-	summaryLength: 'short' | 'medium' | 'long';
-	metadata: ConversationSummaryMetadata;
-}
-
-export interface LLMToolConversationBbResponseData {
-	summary: string;
-	maxTokensToKeep: number;
-	summaryLength: 'short' | 'medium' | 'long';
-	requestSource: 'tool' | 'user';
-	originalTokenCount: number;
-	newTokenCount: number;
-	originalMessageCount: number;
-	metadata: ConversationSummaryMetadata;
-	keptMessageCount: number;
-	removedMessageCount: number;
-}
+import type {
+	LLMToolConversationSummaryData,
+	//LLMToolConversationSummarySection,
+	LLMToolConversationSummaryMetadata,
+	LLMToolConversationSummaryResponse,
+} from './types.ts';
 
 export default class LLMToolConversationSummary extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -122,15 +71,20 @@ export default class LLMToolConversationSummary extends LLMTool {
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -239,7 +193,7 @@ A summary of the removed messages has been added to the start of the conversatio
 					maxTokensToKeep,
 					summaryLength,
 					requestSource,
-				} as LLMToolConversationBbResponseData,
+				} as LLMToolConversationSummaryResponse['data'],
 			};
 
 			return { toolResults, toolResponse, bbResponse };
@@ -374,7 +328,7 @@ A summary of the removed messages has been added to the start of the conversatio
 				}
 			}
 			// Create metadata
-			const metadata: ConversationSummaryMetadata = {
+			const metadata: LLMToolConversationSummaryMetadata = {
 				messageRange: {
 					start: {
 						id: messages[0]?.id || '',
@@ -987,7 +941,7 @@ Ensure your summary accurately captures all important context from the removed m
 			);
 			const chat = await projectEditor.orchestratorController.createChatInteraction(
 				interaction.id,
-				'Generate conversation summary',
+				'Generate conversation summary and truncate',
 			);
 			const response = await chat.chat(summaryPrompt);
 			//const answer = response.messageResponse.answer || 'no answer from LLM';
@@ -1103,7 +1057,11 @@ Ensure your summary accurately captures all important context from the removed m
 			// Update the conversation log
 			await interaction.conversationLogger.logAuxiliaryMessage(
 				`truncate-${timestamp}`,
-				`Conversation truncated to ${finalKeptMessages.length} messages. ${finalRemovedMessages.length} messages summarized.`,
+				{
+					message:
+						`Conversation truncated to ${finalKeptMessages.length} messages. ${finalRemovedMessages.length} messages summarized.`,
+					purpose: 'Conversation Summary',
+				},
 			);
 
 			return { keptMessages: finalKeptMessages, summary, providerResponse: response.messageResponse };

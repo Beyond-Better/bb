@@ -1,35 +1,71 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
+import type { LLMToolApplyPatchInput, LLMToolApplyPatchResult } from './types.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
-	const { filePath, patch } = toolInput as { filePath?: string; patch: string };
-	return stripIndents`
-    ${filePath ? `${colors.bold('File to patch:')} ${colors.cyan(filePath)}` : colors.bold('Multi-file patch')}
+export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	const { filePath, patch } = toolInput as LLMToolApplyPatchInput;
+	const content = stripIndents`
+    ${
+		filePath
+			? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('File to patch:')} ${
+				LLMTool.TOOL_STYLES_CONSOLE.content.filename(filePath)
+			}`
+			: LLMTool.TOOL_STYLES_CONSOLE.base.label('Multi-file patch')
+	}
     
-    ${colors.bold('Patch:')}
-    ${colors.yellow(patch)}
+    ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Patch:')}
+    ${LLMTool.TOOL_STYLES_CONSOLE.content.code(patch)}
   `;
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Apply Patch'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(filePath ? 'Single file' : 'Multi-file'),
+		content,
+		preview: filePath ? `Patching ${filePath}` : 'Applying multi-file patch',
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
-	const { bbResponse } = resultContent;
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
+	const { bbResponse } = resultContent as LLMToolApplyPatchResult;
+
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const { modifiedFiles, newFiles } = bbResponse.data as { modifiedFiles: string[]; newFiles: string[] };
-		return [
-			`✅ Patch applied successfully to ${modifiedFiles.length + newFiles.length} file(s):`,
-			`${
-				modifiedFiles.length > 0
-					? modifiedFiles.map((file) => colors.cyan(`📝 Modified: ${file}`)).join('\n')
-					: ''
-			}`,
-			`${newFiles.length > 0 ? newFiles.map((file) => colors.cyan(`📄 Created: ${file}`)).join('\n') : ''}
-		`,
-		].join('\n\n');
+		const { modifiedFiles, newFiles } = bbResponse.data;
+		const totalFiles = modifiedFiles.length + newFiles.length;
+
+		const content = stripIndents`
+      ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`✅ Patch applied successfully to ${totalFiles} file(s):`)}
+      
+      ${
+			modifiedFiles.length > 0
+				? modifiedFiles.map((file) => `📝 Modified: ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file)}`)
+					.join('\n')
+				: ''
+		}
+      ${
+			newFiles.length > 0
+				? newFiles.map((file) => `📄 Created: ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file)}`).join('\n')
+				: ''
+		}
+    `;
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Apply Patch'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`${totalFiles} files updated`),
+			content,
+			preview: `Modified ${modifiedFiles.length} files, created ${newFiles.length} files`,
+		};
 	} else {
 		logger.error('LLMToolApplyPatch: Unexpected bbResponse format:', bbResponse);
-		return bbResponse;
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Apply Patch'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('failed'),
+			content: LLMTool.TOOL_STYLES_CONSOLE.status.error(String(bbResponse)),
+			preview: 'Operation failed',
+		};
 	}
 };

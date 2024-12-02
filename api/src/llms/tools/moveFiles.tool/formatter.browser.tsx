@@ -1,70 +1,85 @@
 /** @jsxImportSource preact */
-import type { JSX } from 'preact';
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
-import type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
+//import type { JSX } from 'preact';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import { logger } from 'shared/logger.ts';
+import type { LLMToolMoveFilesInput, LLMToolMoveFilesResult } from './types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): JSX.Element => {
-	const { sources, destination, overwrite, createMissingDirectories } = toolInput as {
-		sources: string[];
-		destination: string;
-		createMissingDirectories?: boolean;
-		overwrite?: boolean;
-	};
-	return (
-		<div className='tool-use'>
-			<p>Moving the following files/directories:</p>
-			<ul>
-				{sources.map((source: string, index: number) => <li key={index}>{source}</li>)}
-			</ul>
-			<p>To destination: {destination}</p>
-			<p>Overwrite: {overwrite ? 'Yes' : 'No'}</p>
-			<p>Create Missing Directories: {createMissingDirectories ? 'Yes' : 'No'}</p>
-		</div>
+export function formatLogEntryToolUse(
+	toolInput: LLMToolInputSchema,
+): LLMToolLogEntryFormattedResult {
+	const { sources, destination, overwrite, createMissingDirectories } = toolInput as LLMToolMoveFilesInput;
+
+	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{LLMTool.TOOL_TAGS_BROWSER.base.label('Moving files/directories:')}
+			{LLMTool.TOOL_TAGS_BROWSER.base.list(
+				sources.map((source) => LLMTool.TOOL_TAGS_BROWSER.content.filename(source)),
+			)}
+			{LLMTool.TOOL_TAGS_BROWSER.base.label('To destination:')}{'  '}
+			{LLMTool.TOOL_TAGS_BROWSER.content.directory(destination)}
+			<div>
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Overwrite:')}{'  '}
+				{LLMTool.TOOL_TAGS_BROWSER.content.boolean(!!overwrite, 'enabled/disabled')}
+			</div>
+			<div>
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Create Missing Directories:')}{'  '}
+				{LLMTool.TOOL_TAGS_BROWSER.content.boolean(!!createMissingDirectories, 'enabled/disabled')}
+			</div>
+		</>,
 	);
-};
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): JSX.Element => {
-	const { bbResponse } = resultContent;
-	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as { filesMoved: string[]; filesError: string[]; destination: string };
-		return (
-			<div className='tool-result'>
-				{data.filesMoved.length > 0
-					? (
-						<div>
-							<p>
-								<strong>✅ BB has moved these files to: {data.destination}</strong>
-							</p>
-							<p>
-								<ul>{data.filesMoved.map((file) => <li>{file}</li>)}</ul>
-							</p>
-						</div>
-					)
-					: ''}
-				{data.filesError.length > 0
-					? (
-						<div>
-							<p>
-								<strong>⚠️ BB failed to move these files to ${data.destination}:</strong>
-							</p>
-							<p>
-								<ul>{data.filesError.map((file) => <li>{file}</li>)}</ul>
-							</p>
-						</div>
-					)
-					: ''}
-			</div>
-		);
-	} else {
-		logger.error('LLMToolMoveFiles: Unexpected bbResponse format:', bbResponse);
-		return (
-			<div className='tool-result'>
-				<p>
-					<strong>{bbResponse}</strong>
-				</p>
-			</div>
-		);
-	}
-};
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Move Files'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(
+			`Moving ${sources.length} file${sources.length === 1 ? '' : 's'}`,
+		),
+		content,
+		preview: `Moving ${sources.length} file${sources.length === 1 ? '' : 's'} to ${destination}`,
+	};
+}
+
+export function formatLogEntryToolResult(
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult {
+	const { bbResponse } = resultContent as unknown as LLMToolMoveFilesResult;
+	const { data } = bbResponse;
+
+	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+		<>
+			{data.filesMoved.length > 0 && (
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Files moved successfully:')}
+					{LLMTool.TOOL_TAGS_BROWSER.base.list(
+						data.filesMoved.map((file) => (
+							<>
+								{LLMTool.TOOL_TAGS_BROWSER.content.filename(file)}
+								{' → '}
+								{LLMTool.TOOL_TAGS_BROWSER.content.directory(data.destination)}
+							</>
+						)),
+					)}
+				</>
+			)}
+			{data.filesError.length > 0 && (
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.content.status('failed', 'Failed to move files:')}
+					{LLMTool.TOOL_TAGS_BROWSER.base.list(
+						data.filesError.map((file) => LLMTool.TOOL_TAGS_BROWSER.content.filename(file)),
+					)}
+				</>
+			)}
+		</>,
+	);
+
+	const totalFiles = data.filesMoved.length + data.filesError.length;
+	const successCount = data.filesMoved.length;
+	const subtitle = `${successCount} of ${totalFiles} file${totalFiles === 1 ? '' : 's'} moved to ${data.destination}`;
+
+	return {
+		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Move Files'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(subtitle),
+		content,
+		preview: `Moved ${successCount} of ${totalFiles} file${totalFiles === 1 ? '' : 's'}`,
+	};
+}

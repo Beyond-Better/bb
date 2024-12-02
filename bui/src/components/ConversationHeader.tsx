@@ -1,19 +1,23 @@
 import { JSX } from 'preact';
-import { Status } from '../types/chat.types.ts';
+import { ChatStatus } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
 import type { ConversationEntry } from 'shared/types.ts';
+import type { VersionInfo } from 'shared/types/version.ts';
+import { VersionDisplay } from '../components/Version/VersionDisplay.tsx';
+import type { ApiClient } from '../utils/apiClient.utils.ts';
 
 interface ConversationHeaderProps {
 	cacheStatus: 'active' | 'expiring' | 'inactive';
 	startDir: string;
 	onStartDirChange: (dir: string) => void;
 	onClearConversation: () => void;
-	status: Status;
+	status: ChatStatus;
 	conversationCount: number;
 	totalTokens: number;
 	projectType?: 'git' | 'local';
 	createdAt?: string;
+	apiClient: ApiClient;
 }
 
 export function ConversationHeader({
@@ -26,10 +30,11 @@ export function ConversationHeader({
 	totalTokens,
 	projectType,
 	createdAt,
+	apiClient,
 }: ConversationHeaderProps): JSX.Element {
 	return (
-		<header className='bg-[#1B2333] text-white py-2 px-4 shadow-lg'>
-			<div className='max-w-7xl mx-auto flex justify-between items-center gap-8 px-4'>
+		<header className='bg-[#1B2333] text-white py-2 pl-4 pr-0 shadow-lg'>
+			<div className='max-w-7xl ml-auto mr-4 flex justify-between items-center gap-8 pl-4 pr-1'>
 				<div className='flex items-center gap-3 flex-1'>
 					{/* Logo */}
 					<div className='flex items-center gap-2'>
@@ -122,6 +127,7 @@ export function ConversationHeader({
 							</span>
 						</div>
 					</div>
+					<VersionDisplay showWarning={true} apiClient={apiClient} />
 				</div>
 			</div>
 		</header>

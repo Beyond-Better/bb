@@ -1,20 +1,20 @@
-import type { JSX } from 'preact';
+//import type { JSX } from 'preact';
 
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import {
-	formatToolResult as formatToolResultBrowser,
-	formatToolUse as formatToolUseBrowser,
+	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
+	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
 } from './formatter.browser.tsx';
 import {
-	formatToolResult as formatToolResultConsole,
-	formatToolUse as formatToolUseConsole,
+	formatLogEntryToolResult as formatLogEntryToolResultConsole,
+	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
+import type { LLMToolRequestFilesInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-//import type { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 
 export default class LLMToolRequestFiles extends LLMTool {
@@ -64,15 +64,20 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 		};
 	}
 
-	formatToolUse(toolInput: LLMToolInputSchema, format: 'console' | 'browser'): string | JSX.Element {
-		return format === 'console' ? formatToolUseConsole(toolInput) : formatToolUseBrowser(toolInput);
+	formatLogEntryToolUse(
+		toolInput: LLMToolInputSchema,
+		format: 'console' | 'browser',
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 	}
 
-	formatToolResult(
+	formatLogEntryToolResult(
 		resultContent: ConversationLogEntryContentToolResult,
 		format: 'console' | 'browser',
-	): string | JSX.Element {
-		return format === 'console' ? formatToolResultConsole(resultContent) : formatToolResultBrowser(resultContent);
+	): LLMToolLogEntryFormattedResult {
+		return format === 'console'
+			? formatLogEntryToolResultConsole(resultContent)
+			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
 	async runTool(
@@ -81,12 +86,12 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { fileNames } = toolInput as { fileNames: string[] };
+		const { fileNames } = toolInput as LLMToolRequestFilesInput;
 
 		try {
 			const filesAdded = await projectEditor.prepareFilesForConversation(fileNames);
 
-			const toolResultContentParts = [];
+			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
 			const filesSuccess: Array<{ name: string }> = [];
 			const filesError: Array<{ name: string; error: string }> = [];
 			let allFilesFailed = true;
@@ -96,7 +101,7 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 					toolResultContentParts.push({
 						'type': 'text',
 						'text': `Error adding file ${fileToAdd.fileName}: ${fileToAdd.metadata.error}`,
-					} as LLMMessageContentPartTextBlock);
+					});
 					filesError.push({
 						name: fileToAdd.fileName,
 						error: fileToAdd.metadata.error,
@@ -105,13 +110,12 @@ Note: If you don't know the exact paths, use search_project tool first.`,
 					toolResultContentParts.push({
 						'type': 'text',
 						'text': `File added: ${fileToAdd.fileName}`,
-					} as LLMMessageContentPartTextBlock);
+					});
 					filesSuccess.push({ name: fileToAdd.fileName });
 					allFilesFailed = false;
 				}
 			}
 
-			//const bbResponses = [];
 			const toolResponses = [];
 			if (filesSuccess.length > 0) {
 				toolResponses.push(

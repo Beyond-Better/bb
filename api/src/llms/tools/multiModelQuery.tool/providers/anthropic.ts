@@ -1,4 +1,4 @@
-import type { ModelProvider } from '../tool.ts';
+import type { ModelProvider } from '../types.ts';
 import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
 import { logger } from 'shared/logger.ts';

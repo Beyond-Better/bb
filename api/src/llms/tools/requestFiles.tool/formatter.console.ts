@@ -1,42 +1,70 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import LLMTool from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolRequestFilesInput, LLMToolRequestFilesResult } from './types.ts';
 import { logger } from 'shared/logger.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
-	const { fileNames } = toolInput as { fileNames: string[] };
-	return stripIndents`
-    ${colors.bold('Requesting files:')}
-    ${fileNames.map((fileName) => colors.cyan(fileName)).join('\n')}
-  `;
+export const formatLogEntryToolUse = (
+	toolInput: LLMToolInputSchema,
+): LLMToolLogEntryFormattedResult => {
+	const { fileNames } = toolInput as LLMToolRequestFilesInput;
+
+	const content = stripIndents`
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Requesting files:')}
+        ${fileNames.map((fileName) => LLMTool.TOOL_STYLES_CONSOLE.content.filename(fileName)).join('\n')}
+    `;
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Request Files'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`${fileNames.length} files`),
+		content,
+		preview: `Requesting ${fileNames.length} file${fileNames.length === 1 ? '' : 's'}`,
+	};
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
+
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as { filesAdded: string[]; filesError: string[] };
-		return [
-			`${
-				data.filesAdded.length > 0
-					? (
-						colors.bold('✅ BB has added these files to the conversation:\n') +
-						data.filesAdded.map((file) => colors.cyan(`- ${file}`)).join('\n')
-					)
-					: ''
-			}`,
-			`${
-				data.filesError.length > 0
-					? (
-						colors.bold('⚠️ BB failed to add these files to the conversation:\n') +
-						data.filesError.map((file) => colors.cyan(`- ${file}`)).join('\n')
-					)
-					: ''
-			}
-		`,
-		].join('\n\n');
+		const { data } = bbResponse as LLMToolRequestFilesResult['bbResponse'];
+
+		const contentParts = [];
+
+		if (data.filesAdded.length > 0) {
+			contentParts.push(stripIndents`
+                ${LLMTool.TOOL_STYLES_CONSOLE.content.status.completed('Files Added:')}
+                ${data.filesAdded.map((file) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file)}`).join('\n')}
+            `);
+		}
+
+		if (data.filesError.length > 0) {
+			contentParts.push(stripIndents`
+                ${LLMTool.TOOL_STYLES_CONSOLE.content.status.failed('Failed to Add:')}
+                ${data.filesError.map((file) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file)}`).join('\n')}
+            `);
+		}
+
+		const content = contentParts.join('\n\n');
+		const addedCount = data.filesAdded.length;
+		const errorCount = data.filesError.length;
+		const subtitle = `${addedCount} added${errorCount > 0 ? `, ${errorCount} failed` : ''}`;
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Request Files'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(subtitle),
+			content,
+			preview: addedCount > 0 ? `Added ${addedCount} file${addedCount === 1 ? '' : 's'}` : 'No files added',
+		};
 	} else {
 		logger.error('LLMToolRequestFiles: Unexpected bbResponse format:', bbResponse);
-		return bbResponse;
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Request Files'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Error'),
+			content: LLMTool.TOOL_STYLES_CONSOLE.content.status.failed(String(bbResponse)),
+			preview: 'Error requesting files',
+		};
 	}
 };

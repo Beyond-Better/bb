@@ -1,53 +1,91 @@
-import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { LLMToolRenameFilesInput, LLMToolRenameFilesResult } from './types.ts';
+import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
 import { stripIndents } from 'common-tags';
 
-export const formatToolUse = (toolInput: LLMToolInputSchema): string => {
-	const { operations, createMissingDirectories, overwrite } = toolInput as {
-		operations: Array<{ source: string; destination: string }>;
-		overwrite?: boolean;
-		createMissingDirectories?: boolean;
+export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
+	const { operations, createMissingDirectories, overwrite } = toolInput as LLMToolRenameFilesInput;
+
+	const content = stripIndents`
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Files to rename:')}
+        ${
+		operations.map((op) =>
+			`${LLMTool.TOOL_STYLES_CONSOLE.content.filename(op.source)} → ${
+				LLMTool.TOOL_STYLES_CONSOLE.content.filename(op.destination)
+			}`
+		).join('\n')
+	}
+
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Options:')}
+        Overwrite: ${LLMTool.TOOL_STYLES_CONSOLE.content.boolean(!!overwrite, 'enabled/disabled')}
+        Create Missing Directories: ${
+		LLMTool.TOOL_STYLES_CONSOLE.content.boolean(!!createMissingDirectories, 'enabled/disabled')
+	}
+    `;
+
+	return {
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Rename Files'),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`${operations.length} operations`),
+		content,
+		preview: `Renaming ${operations.length} file${operations.length === 1 ? '' : 's'}`,
 	};
-	return stripIndents`
-    ${colors.bold('Renaming files/directories:')}
-    ${operations.map((op) => `${colors.cyan(op.source)} -> ${colors.cyan(op.destination)}`).join('\n')}
-    Overwrite: ${overwrite ? colors.green('Yes') : colors.red('No')}
-    Create Missing Directories: ${createMissingDirectories ? colors.green('Yes') : colors.red('No')}
-  `;
 };
 
-export const formatToolResult = (resultContent: ConversationLogEntryContentToolResult): string => {
+export const formatLogEntryToolResult = (
+	resultContent: ConversationLogEntryContentToolResult,
+): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
+
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as {
-			filesRenamed: Array<{ source: string; destination: string }>;
-			filesError: Array<{ source: string; destination: string }>;
+		const { data } = bbResponse as LLMToolRenameFilesResult['bbResponse'];
+		const { filesRenamed, filesError } = data;
+
+		const successContent = filesRenamed.length > 0
+			? stripIndents`
+                ${LLMTool.TOOL_STYLES_CONSOLE.content.status.completed('Files renamed successfully:')}
+                ${
+				filesRenamed.map((file) =>
+					`${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.source)} → ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.destination)
+					}`
+				).join('\n')
+			}`
+			: '';
+
+		const errorContent = filesError.length > 0
+			? stripIndents`
+                ${LLMTool.TOOL_STYLES_CONSOLE.content.status.failed('Failed to rename:')}
+                ${
+				filesError.map((file) =>
+					`${LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.source)} → ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.filename(file.destination)
+					}` +
+					(file.error ? `\n${LLMTool.TOOL_STYLES_CONSOLE.status.error(file.error)}` : '')
+				).join('\n\n')
+			}`
+			: '';
+
+		const content = [successContent, errorContent].filter(Boolean).join('\n\n');
+		const totalFiles = filesRenamed.length + filesError.length;
+		const successCount = filesRenamed.length;
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Rename Files'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`${successCount}/${totalFiles} files renamed successfully`,
+			),
+			content,
+			preview: `${successCount} of ${totalFiles} files renamed`,
 		};
-		return [
-			`${
-				data.filesRenamed.length > 0
-					? (
-						colors.bold('✅ BB has renamed these files:\n') +
-						data.filesRenamed.map((file) => colors.cyan(`- ${file.source} -> ${file.destination}`)).join(
-							'\n',
-						)
-					)
-					: ''
-			}`,
-			`${
-				data.filesError.length > 0
-					? (
-						colors.bold('⚠️ BB failed to renaqme these files:\n') +
-						data.filesError.map((file) => colors.cyan(`- ${file.source} -> ${file.destination}`)).join('\n')
-					)
-					: ''
-			}
-		`,
-		].join('\n\n');
 	} else {
 		logger.error('LLMToolRenameFiles: Unexpected bbResponse format:', bbResponse);
-		return bbResponse;
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Rename Files'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Error'),
+			content: LLMTool.TOOL_STYLES_CONSOLE.status.error(String(bbResponse)),
+			preview: 'Error renaming files',
+		};
 	}
 };
