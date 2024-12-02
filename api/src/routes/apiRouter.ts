@@ -13,6 +13,7 @@ import { getStatus } from './api/status.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { setupProject } from './api/project.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
+import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
 
 const apiRouter = new Router();
 
@@ -89,7 +90,97 @@ apiRouter
 	 *                   type: string
 	 *                   example: 'Failed to download latest version'
 	 */
-	.post('/v1/upgrade', upgradeApi);
+	.post('/v1/upgrade', upgradeApi)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/check:
+	 *   get:
+	 *     summary: Run system diagnostic checks
+	 *     description: Performs a series of diagnostic checks on the BB system
+	 *     responses:
+	 *       200:
+	 *         description: Diagnostic results
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 results:
+	 *                   type: array
+	 *                   items:
+	 *                     type: object
+	 *                     properties:
+	 *                       category:
+	 *                         type: string
+	 *                         example: 'config'
+	 *                       status:
+	 *                         type: string
+	 *                         enum: ['ok', 'warning', 'error']
+	 *                       message:
+	 *                         type: string
+	 *                       details:
+	 *                         type: string
+	 *                       fix:
+	 *                         type: object
+	 *                         properties:
+	 *                           description:
+	 *                             type: string
+	 *                           command:
+	 *                             type: string
+	 *                           apiEndpoint:
+	 *                             type: string
+	 *                 summary:
+	 *                   type: object
+	 *                   properties:
+	 *                     total:
+	 *                       type: number
+	 *                     errors:
+	 *                       type: number
+	 *                     warnings:
+	 *                       type: number
+	 *                     ok:
+	 *                       type: number
+	 */
+	.get('/v1/doctor/check', checkHandler)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/report:
+	 *   get:
+	 *     summary: Generate diagnostic report
+	 *     description: Generates a comprehensive diagnostic report
+	 *     responses:
+	 *       200:
+	 *         description: Diagnostic report (as downloadable file)
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 */
+	.get('/v1/doctor/report', reportHandler)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/fix/{type}:
+	 *   post:
+	 *     summary: Apply a specific fix
+	 *     description: Applies a fix for a specific diagnostic issue
+	 *     parameters:
+	 *       - name: type
+	 *         in: path
+	 *         required: true
+	 *         schema:
+	 *           type: string
+	 *     responses:
+	 *       200:
+	 *         description: Fix applied successfully
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 message:
+	 *                   type: string
+	 */
+	.post('/v1/doctor/fix/:type', applyFixHandler);
 
 /*
 	// NOT IMPLEMENTED

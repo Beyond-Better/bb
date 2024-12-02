@@ -37,8 +37,14 @@ const inputMaxScrollHeight = 350;
 
 // Helper function to check if we should show suggestions
 const shouldShowSuggestions = (text: string, forceShow: boolean = false): boolean => {
-	// Show suggestions if forced by tab or if there's a path separator
-	return forceShow || text.includes('/') || text.includes('\\') || text.startsWith('.');
+	// Don't show suggestions if text contains spaces
+	if (text.includes(' ')) return false;
+
+	// Show suggestions if forced by tab
+	if (forceShow) return true;
+
+	// Show suggestions only if text starts with / or \
+	return text.startsWith('/') || text.startsWith('\\');
 };
 
 export function ChatInput({
@@ -184,7 +190,13 @@ export function ChatInput({
 	}, []);
 
 	const handleInput = (e: Event) => {
+		// Handle space key to close suggestions
 		const target = e.target as HTMLTextAreaElement;
+		if (target.value.endsWith(' ')) {
+			setIsShowingSuggestions(false);
+			setTabState(TabState.INITIAL);
+			setSelectedIndex(-1);
+		}
 		const newValue = target.value;
 		const newPosition = target.selectionStart;
 		console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
@@ -214,13 +226,14 @@ export function ChatInput({
 		});
 
 		// Check if we should show suggestions
-		if (currentText.includes('../') || currentText.includes('..\\')) {
-			// Disable suggestions for relative paths
-			console.debug('ChatInput: Relative path detected, hiding suggestions');
+		if (currentText.includes('../') || currentText.includes('..\\') || currentText.includes(' ')) {
+			// Disable suggestions for relative paths or when space is typed
+			console.debug('ChatInput: Relative path or space detected, hiding suggestions');
 			setIsShowingSuggestions(false);
 			setTabState(TabState.INITIAL);
-		} else if (shouldShowSuggestions(currentText) || tabState === TabState.SUGGESTIONS) {
-			// Show suggestions if we have a path separator or already showing suggestions
+			setSelectedIndex(-1);
+		} else if (shouldShowSuggestions(currentText)) {
+			// Show suggestions only if text starts with / or \ (checked in shouldShowSuggestions)
 			if (tabState === TabState.INITIAL) {
 				setTabState(TabState.SUGGESTIONS);
 			}
@@ -228,16 +241,18 @@ export function ChatInput({
 			let searchPath = currentText;
 			if (currentText.endsWith('/') || currentText.endsWith('\\')) {
 				console.debug('ChatInput: Directory path detected, showing contents');
-			} else if (!currentText && tabState === TabState.SUGGESTIONS) {
-				// If backspaced to empty while suggestions are showing, use root
-				searchPath = '/';
 			}
 			console.debug('ChatInput: Updating suggestions for', { searchPath, currentText, tabState });
-			debouncedFetchSuggestions(searchPath, true);
-		} else if (!currentText) {
-			// Hide suggestions if no text
+			debouncedFetchSuggestions(searchPath, false);
+		} else if (tabState === TabState.SUGGESTIONS && !currentText) {
+			// If backspaced to empty while suggestions are showing, use root
+			console.debug('ChatInput: Empty input in suggestions mode, showing root');
+			debouncedFetchSuggestions('/', true);
+		} else {
+			// Hide suggestions in all other cases
 			setIsShowingSuggestions(false);
 			setTabState(TabState.INITIAL);
+			setSelectedIndex(-1);
 		}
 	};
 
@@ -379,7 +394,23 @@ export function ChatInput({
 			}
 		}
 
-		if (e.key === 'Enter' && e.shiftKey && !disabled && !status.isLoading && !isProcessing(status)) {
+		// Two ways to send a message:
+		// 1. Primary method: Cmd/Ctrl + Enter (standard across platforms)
+		// 2. Power user method: NumpadEnter (numeric keypad Enter key)
+		//
+		// Note about NumpadEnter:
+		// - Only triggered by the Enter key on numeric keypad
+		// - Regular Enter/Return key reports as 'Enter', not 'NumpadEnter'
+		// - Keyboards without numeric keypad won't generate NumpadEnter events
+		// - Safe to use without modifier keys as it won't conflict with regular Enter
+		if (
+			(
+				// Standard Cmd/Ctrl + Enter combination
+				(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ||
+				// Power user method: NumpadEnter (no modifier required)
+				(e.code === 'NumpadEnter')
+			) && !disabled && !status.isLoading && !isProcessing(status)
+		) {
 			e.preventDefault();
 			onSend();
 		}
@@ -570,7 +601,7 @@ export function ChatInput({
 						  ${isProcessing(status) ? 'border-blue-200 bg-white' : ''}`}
 						placeholder={isProcessing(status)
 							? 'Type your message... (Statement in progress)'
-							: 'Type your message... (Enter for new line, Shift + Enter to send, Tab for file suggestions)'}
+							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
 						rows={1}
 						maxLength={maxLength}
 						disabled={disabled}

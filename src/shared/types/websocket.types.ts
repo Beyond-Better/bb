@@ -9,7 +9,6 @@ import type {
 	ConversationStats,
 	TokenUsage,
 } from '../types.ts';
-import type { VersionInfo } from './version.types.ts';
 
 export interface WebSocketMessage {
 	conversationId: string;
@@ -25,9 +24,7 @@ export interface WebSocketResponseBase {
 
 export interface ConversationReadyResponse extends WebSocketResponseBase {
 	type: 'conversationReady';
-	data: ConversationStart & {
-		versionInfo: VersionInfo;
-	};
+	data: ConversationStart;
 }
 
 export interface ConversationNewResponse extends WebSocketResponseBase {

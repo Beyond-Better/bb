@@ -91,24 +91,6 @@ export function ConversationHeader({
 
 				{/* Status Indicators */}
 				<div className='flex items-center space-x-4 text-sm shrink-0 border-l border-gray-600 pl-4'>
-					{/* Connection Status */}
-					<span
-						className={`flex items-center ${
-							status.isReady ? 'text-green-400' : status.isConnecting ? 'text-yellow-400' : 'text-red-400'
-						}`}
-					>
-						<span
-							className={`w-2 h-2 rounded-full mr-2 ${
-								status.isReady ? 'bg-green-400' : status.isConnecting ? 'bg-yellow-400' : 'bg-red-400'
-							}`}
-						/>
-						{status.isReady
-							? (status.apiStatus === ApiStatus.IDLE ? 'Connected' : 'Working')
-							: status.isConnecting
-							? 'Connecting'
-							: 'Disconnected'}
-					</span>
-
 					{/* Cache Status */}
 					<div className='flex items-center space-x-2'>
 						<CacheStatusIndicator status={cacheStatus} />
@@ -127,6 +109,25 @@ export function ConversationHeader({
 							</span>
 						</div>
 					</div>
+
+					{/* Connection Status */}
+					<span
+						className={`flex items-center ${
+							status.isReady ? 'text-green-400' : status.isConnecting ? 'text-yellow-400' : 'text-red-400'
+						}`}
+					>
+						<span
+							className={`w-2 h-2 rounded-full mr-2 ${
+								status.isReady ? 'bg-green-400' : status.isConnecting ? 'bg-yellow-400' : 'bg-red-400'
+							}`}
+						/>
+						{status.isReady
+							? (status.apiStatus === ApiStatus.IDLE ? 'Connected' : 'Working')
+							: status.isConnecting
+							? 'Connecting'
+							: 'Disconnected'}
+					</span>
+
 					<VersionDisplay showWarning={true} apiClient={apiClient} />
 				</div>
 			</div>
