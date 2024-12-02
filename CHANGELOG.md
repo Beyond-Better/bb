@@ -7,17 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- added file listing autocomplete
-- added version display in BUI, and check and warning for minimum API version
-- added API auto-upgrade
-- added API endpoint to initiate upgrade from BUI
-- added 'migrate' CLI command to change from system to user-installed binaries
-- added 'upgrade' CLI command to upgrade to latest version of `bb` and `bb-api`
-- standardised log entry formatting with subtitle and preview components
-- combined prompt/answer auxiliary log entries
-- added common formatting functions and styles for tools
-- improved log entry metadata display
-- disabled auto-scroll if not at bottom of the page - added scroll to bottom button
 
 
 ## [0.4.0] - 2024-12-02
