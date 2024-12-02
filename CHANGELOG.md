@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+
+## [0.4.1] - 2024-12-02
+
+### Changed
+
+- messages sent with cmd/meta-return; new lines with return
+
+### Fixes
+
+- scroll indicator shows correct unread count
+- auto-scrolling disabled when page is not at end
+- file suggestion triggers are less keen
+
+### Added
+
+- support for bb doctor
 
 
 ## [0.4.0] - 2024-12-02

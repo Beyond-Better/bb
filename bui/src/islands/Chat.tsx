@@ -95,7 +95,7 @@ export default function Chat(): JSX.Element {
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-	const [unreadCount, setUnreadCount] = useState(0);
+
 	interface ChatInputRef {
 		textarea: HTMLTextAreaElement;
 		adjustHeight: () => void;
@@ -135,7 +135,7 @@ export default function Chat(): JSX.Element {
 		onOpen: () => console.log('ChatIsland: WebSocket opened'),
 	};
 
-	const [chatState, handlers] = useChatState(config);
+	const [chatState, handlers, scrollIndicatorState] = useChatState(config);
 	const { versionState } = useVersion();
 
 	// Update cache status every 30 seconds
@@ -318,24 +318,39 @@ export default function Chat(): JSX.Element {
 
 		const handleScroll = () => {
 			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-			// Consider user at bottom if within 10 pixels of bottom
-			const isAtBottom = scrollHeight - (scrollTop + clientHeight) <= 10;
-			setShouldAutoScroll(isAtBottom);
+			// Consider user at bottom if within 50 pixels of bottom
+			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+			const isAtBottom = distanceFromBottom <= 50;
+
+			// Only log if something is changing
+			if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
+				console.log('ChatIsland: Scroll state:', {
+					distanceFromBottom,
+					isAtBottom,
+					shouldAutoScroll,
+					scrollIndicator: scrollIndicatorState.value,
+				});
+			}
+
+			// Always update scroll indicator UI based on current scroll position
+			handlers.updateScrollVisibility(isAtBottom);
+
+			// Update auto-scroll behavior only when it changes
+			if (shouldAutoScroll !== isAtBottom) {
+				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
+				setShouldAutoScroll(isAtBottom);
+			}
 		};
 
 		// Add scroll event listener
 		messagesContainer.addEventListener('scroll', handleScroll);
 
-		// Auto-scroll only if shouldAutoScroll is true
+		// Auto-scroll only if at bottom
 		if (shouldAutoScroll) {
 			messagesContainer.scrollTo({
 				top: messagesContainer.scrollHeight,
 				behavior: 'smooth',
 			});
-			setUnreadCount(0); // Reset unread count when scrolling to bottom
-		} else {
-			// Increment unread count when new messages arrive and not at bottom
-			setUnreadCount((prev) => prev + 1);
 		}
 
 		return () => messagesContainer.removeEventListener('scroll', handleScroll);
@@ -345,15 +360,11 @@ export default function Chat(): JSX.Element {
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 
-		if (messagesEndRef.current && isProcessing(chatState.value.status)) {
-			messagesEndRef.current.scrollTo({
-				top: messagesEndRef.current.scrollHeight,
-				behavior: 'smooth',
-			});
-		}
+		// Don't force scroll during processing - respect user's scroll position
 
 		const handleVisibilityChange = () => {
 			if (document.visibilityState === 'hidden' && isProcessing(chatState.value.status)) {
+				console.log('ChatIsland: Page hidden while processing');
 				setToastMessage('Statement in progress in background');
 				setShowToast(true);
 			}
@@ -409,6 +420,11 @@ export default function Chat(): JSX.Element {
 			if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
 		};
 	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.error]);
+
+	// console.log('ChatIsland: Indicator state:', {
+	// 	shouldAutoScroll,
+	// 	scrollIndicator: scrollIndicatorState.value,
+	// });
 
 	const conversationListState = computed<ConversationListState>(() => ({
 		conversations: chatState.value.conversations,
@@ -506,7 +522,7 @@ export default function Chat(): JSX.Element {
 
 					{/* Messages */}
 					<div className='flex-1 relative overflow-hidden'>
-						{!shouldAutoScroll && (
+						{scrollIndicatorState.value.isVisible && (
 							<button
 								onClick={() => {
 									if (messagesEndRef.current) {
@@ -515,17 +531,28 @@ export default function Chat(): JSX.Element {
 											behavior: 'smooth',
 										});
 										setShouldAutoScroll(true);
-										setUnreadCount(0);
+										handlers.updateScrollVisibility(true);
 									}
 								}}
-								className='absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-all transform hover:scale-105'
+								className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
+									scrollIndicatorState.value.isAnswerMessage
+										? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
+										: 'bg-blue-500 hover:bg-blue-600'
+								} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
 								title='Scroll to bottom'
 							>
-								{unreadCount > 0 && (
-									<span className='px-1.5 py-0.5 text-xs bg-white text-blue-500 rounded-full'>
-										{unreadCount}
+								{scrollIndicatorState.value.unreadCount > 0 && (
+									<span
+										className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
+											scrollIndicatorState.value.isAnswerMessage
+												? 'text-green-500'
+												: 'text-blue-500'
+										} rounded-full`}
+									>
+										{scrollIndicatorState.value.unreadCount}
 									</span>
 								)}
+
 								<svg
 									xmlns='http://www.w3.org/2000/svg'
 									className='h-5 w-5'

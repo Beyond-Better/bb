@@ -83,6 +83,7 @@
 		"api/utils/llms.ts": "./api/src/utils/llms.utils.ts",
 		"api/llms/llmMessage.ts": "./api/src/llms/llmMessage.ts",
 		"api/llms/llmTool.ts": "./api/src/llms/llmTool.ts",
+		"api/llms/interactionManager.ts": "./api/src/llms/interactions/interactionManager.ts",
 		"api/llms/baseInteraction.ts": "./api/src/llms/interactions/baseInteraction.ts",
 		"api/llms/chatInteraction.ts": "./api/src/llms/interactions/chatInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
@@ -115,6 +116,9 @@
 		"shared/upgrade.ts": "./src/shared/utils/upgrade.utils.ts",
 		"shared/process.ts": "./src/shared/utils/process.utils.ts",
 		"shared/version.ts": "./src/shared/utils/version.ts",
+
+		"shared/doctor/types.ts": "./src/shared/doctor/types.ts",
+		"shared/doctor/doctorService.ts": "./src/shared/doctor/doctorService.ts",
 
 		"version.ts": "./version.ts"
 	}

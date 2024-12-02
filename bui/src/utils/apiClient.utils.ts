@@ -59,6 +59,30 @@ export interface LogEntryFormatResponse {
 	};
 }
 
+export interface DiagnosticResult {
+	category: 'config' | 'tls' | 'resources' | 'permissions' | 'api';
+	status: 'ok' | 'warning' | 'error';
+	message: string;
+	details?: string;
+	fix?: {
+		description: string;
+		command?: string;
+		apiEndpoint?: string;
+		requiresElevated?: boolean;
+		requiresRestart?: boolean;
+	};
+}
+
+export interface DiagnosticResponse {
+	results: DiagnosticResult[];
+	summary: {
+		total: number;
+		errors: number;
+		warnings: number;
+		ok: number;
+	};
+}
+
 export interface ApiUpgradeResponse {
 	success: boolean;
 	currentVersion: string;
@@ -169,6 +193,20 @@ export class ApiClient {
 			'/api/v1/files/suggest',
 			{ partialPath, startDir },
 		);
+	}
+
+	async getDiagnostics(): Promise<DiagnosticResponse | null> {
+		return this.get<DiagnosticResponse>('/api/v1/doctor/check');
+	}
+
+	async getDiagnosticReport(): Promise<Blob | null> {
+		const response = await fetch(`${this.apiUrl}/api/v1/doctor/report`);
+		if (!response.ok) return null;
+		return response.blob();
+	}
+
+	async applyDiagnosticFix(fixEndpoint: string): Promise<{ message: string } | null> {
+		return this.post<{ message: string }>(fixEndpoint, {});
 	}
 
 	async upgradeApi(): Promise<ApiUpgradeResponse | null> {

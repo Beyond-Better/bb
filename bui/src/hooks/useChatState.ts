@@ -9,9 +9,9 @@ import { isProcessing } from '../types/chat.types.ts';
 import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
-import type { VersionInfo } from 'shared/types/version.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
 import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
+import type { VersionInfo } from 'shared/types/version.ts';
 
 import { generateConversationId } from 'shared/conversationManagement.ts';
 
@@ -19,6 +19,18 @@ interface InitializationResult {
 	apiClient: ApiClient;
 	wsManager: WebSocketManager;
 }
+
+interface ScrollIndicatorState {
+	isVisible: boolean;
+	unreadCount: number;
+	isAnswerMessage: boolean;
+}
+
+const scrollIndicatorState = signal<ScrollIndicatorState>({
+	isVisible: false,
+	unreadCount: 0,
+	isAnswerMessage: false,
+});
 
 export async function initializeChat(
 	config: ChatConfig,
@@ -62,7 +74,7 @@ const initialState: ChatState = {
 
 const chatState = signal<ChatState>(initialState);
 
-export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandlers] {
+export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandlers, Signal<ScrollIndicatorState>] {
 	// Initialize chat
 	useEffect(() => {
 		console.log('useChatState: got useEffect for config initialize');
@@ -275,6 +287,13 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				logEntries: [...chatState.value.logEntries, data.logEntryData],
 			};
 
+			if (scrollIndicatorState.value.isVisible) {
+				scrollIndicatorState.value = {
+					...scrollIndicatorState.value,
+					unreadCount: scrollIndicatorState.value.unreadCount + 1,
+				};
+			}
+
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				chatState.value = {
@@ -284,6 +303,13 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 						isLoading: false,
 					},
 				};
+				// Handle scroll indicator for answer messages
+				if (scrollIndicatorState.value.isVisible) {
+					scrollIndicatorState.value = {
+						...scrollIndicatorState.value,
+						isAnswerMessage: true,
+					};
+				}
 				// Clear queue and force immediate IDLE status
 				statusQueue.reset({
 					status: ApiStatus.IDLE,
@@ -405,6 +431,17 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 
 	// Message and conversation handlers
 	const handlers: ChatHandlers = {
+		// Scroll indicator handlers
+		updateScrollVisibility: (isAtBottom: boolean) => {
+			scrollIndicatorState.value = {
+				...scrollIndicatorState.value,
+				isVisible: !isAtBottom,
+				// Reset counts when scrolled to bottom
+				unreadCount: isAtBottom ? 0 : scrollIndicatorState.value.unreadCount,
+				isAnswerMessage: isAtBottom ? false : scrollIndicatorState.value.isAnswerMessage,
+			};
+		},
+
 		updateCacheStatus: () => {
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value = {
@@ -431,6 +468,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				status: { ...chatState.value.status, cacheStatus: newStatus },
 			};
 		},
+
 		sendConverse: async (message: string) => {
 			if (!chatState.value.wsManager) {
 				console.error('sendConverse: wsManager is null');
@@ -546,5 +584,5 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		},
 	};
 
-	return [chatState, handlers];
+	return [chatState, handlers, scrollIndicatorState];
 }

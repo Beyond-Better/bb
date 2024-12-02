@@ -13,6 +13,7 @@ import { config as configCommand } from './commands/config.ts';
 import { secure } from './commands/secure.ts';
 import { upgrade } from './commands/upgrade.ts';
 import { migrate } from './commands/migrate.ts';
+import { doctor } from './commands/doctor.ts';
 //import { logger } from 'shared/logger.ts';
 
 const globalConfig = await ConfigManager.globalConfig();
@@ -40,7 +41,8 @@ const cli = new Command()
 	.command('config', configCommand)
 	.command('secure', secure)
 	.command('upgrade', upgrade)
-	.command('migrate', migrate);
+	.command('migrate', migrate)
+	.command('doctor', doctor);
 
 export const main = async () => {
 	await cli.parse(Deno.args);

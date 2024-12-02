@@ -63,7 +63,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 						<span className='text-gray-600'>Send message</span>
 						<div className='flex items-center space-x-1'>
 							<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>
-								Shift
+								Cmd/Ctrl
 							</kbd>
 							<span aria-hidden='true'>+</span>
 							<kbd className='px-2 py-1 bg-gray-100 border border-gray-300 rounded text-sm shadow-sm'>

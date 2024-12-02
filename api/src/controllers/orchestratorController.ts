@@ -45,6 +45,7 @@ import { generateConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 import type { FullConfigSchema } from 'shared/configManager.ts';
+import { getVersionInfo } from 'shared/version.ts';
 
 function getConversationObjective(objectives?: ObjectivesData): string | undefined {
 	if (!objectives) return undefined;
@@ -800,6 +801,7 @@ class OrchestratorController {
 		// this.conversationTurnCount++;
 		// this.statementCount++;
 
+		const versionInfo = await getVersionInfo();
 		const conversationReady: ConversationStart & {
 			conversationStats: ConversationStats;
 			conversationHistory: ConversationEntry[];
@@ -814,6 +816,7 @@ class OrchestratorController {
 			},
 			tokenUsageConversation: this.tokenUsageInteraction,
 			conversationHistory: [], //this.getConversationHistory(interaction),
+			versionInfo,
 		};
 		this.eventManager.emit(
 			'projectEditor:conversationReady',

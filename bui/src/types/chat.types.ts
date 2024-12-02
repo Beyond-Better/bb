@@ -51,6 +51,7 @@ export interface ChatHandlers {
 	//startNewConversation: () => Promise<void>;
 	clearConversation: () => Promise<void>;
 	cancelProcessing: () => Promise<void>;
+	updateScrollVisibility: (isAtBottom: boolean) => void; // Update scroll indicator visibility and state
 }
 
 export interface ConversationListState {

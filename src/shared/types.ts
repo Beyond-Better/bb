@@ -2,6 +2,7 @@ import type { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/typ
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import type { VersionInfo } from './types/version.types.ts';
 
 export type {
 	ConversationLogEntry,
@@ -210,6 +211,7 @@ export interface ConversationStart {
 	conversationStats: ConversationStats; // for resuming a conversation
 	conversationHistory: ConversationEntry[];
 	formattedContent?: string;
+	versionInfo: VersionInfo;
 }
 
 export interface ConversationContinue {

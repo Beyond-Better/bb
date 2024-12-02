@@ -1,5 +1,22 @@
 import { walk } from '@std/fs';
 
+// Standard commit/change types for consistent changelog entries:
+//
+// Added: New features or capabilities
+// Changed: Changes in existing functionality
+// Deprecated: Soon-to-be removed features
+// Removed: Removed features
+// Fixed: Bug fixes
+// Security: Security vulnerability fixes
+//
+// Common prefixes for commit messages:
+// add: New feature or capability
+// change/update: Modified existing functionality
+// deprecate: Mark as deprecated
+// remove: Remove feature or capability
+// fix: Bug fix
+// security: Security-related change
+
 const updateVersion = async (newVersion: string) => {
 	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc'];
 
@@ -24,7 +41,7 @@ const updateVersion = async (newVersion: string) => {
 	for await (const entry of walk('.', { exts: ['.ts', '.rb'] })) {
 		if (entry.isFile) {
 			let content = await Deno.readTextFile(entry.path);
-			content = content.replace(/VERSION\s*=\s*["'][\d.]+["']/, `VERSION = "${newVersion}"`);
+			content = content.replace(/^\s*(?<!API_|MINIMUM_)VERSION\s*=\s*["'][\d.]+["']\s*;?\s*$/m, `VERSION = "${newVersion}"`);
 			await Deno.writeTextFile(entry.path, content);
 		}
 	}
@@ -36,76 +53,31 @@ const updateChangelog = async (newVersion: string) => {
 	const changelogPath = 'CHANGELOG.md';
 	const changelog = await Deno.readTextFile(changelogPath);
 
-	// Get commit messages since last tag
-	const command = new Deno.Command('git', {
-		args: ['log', '$(git describe --tags --abbrev=0)..HEAD', '--pretty=format:%s'],
-		stdout: 'piped',
-	});
-	const { stdout } = await command.output();
-	const commitMessages = new TextDecoder().decode(stdout).split('\n');
-
-	// Categorize commit messages
-	const categories = {
-		Added: [],
-		Changed: [],
-		Deprecated: [],
-		Removed: [],
-		Fixed: [],
-		Security: [],
-	};
-
-	commitMessages.forEach((msg) => {
-		if (msg.toLowerCase().startsWith('add')) {
-			categories.Added.push(msg);
-		} else if (msg.toLowerCase().startsWith('change') || msg.toLowerCase().startsWith('update')) {
-			categories.Changed.push(msg);
-		} else if (msg.toLowerCase().startsWith('deprecate')) {
-			categories.Deprecated.push(msg);
-		} else if (msg.toLowerCase().startsWith('remove')) {
-			categories.Removed.push(msg);
-		} else if (msg.toLowerCase().startsWith('fix')) {
-			categories.Fixed.push(msg);
-		} else if (msg.toLowerCase().includes('security')) {
-			categories.Security.push(msg);
-		} else {
-			categories.Changed.push(msg);
-		}
-	});
-
-	// Create new changelog entry
-	let newEntry = `\n\n## [${newVersion}] - ${new Date().toISOString().split('T')[0]}\n`;
-
-	for (const [category, messages] of Object.entries(categories)) {
-		if (messages.length > 0) {
-			newEntry += `\n### ${category}\n`;
-			messages.forEach((msg) => {
-				if (msg) newEntry += `- ${msg.charAt(0).toUpperCase() + msg.slice(1)}\n`;
-			});
-		}
-	}
-
-	// If there are no changes, add a placeholder message
-	if (newEntry === `\n## [${newVersion}] - ${new Date().toISOString().split('T')[0]}\n`) {
-		newEntry += '\n### Changed\n- No significant changes in this version\n';
-	}
-
-	const unreleasedRegex = /## \[Unreleased\]\n(?:### \w+\n(?:- .*\n)*\n?)*/;
+	// Extract current [Unreleased] content
+	const unreleasedRegex = /## \[Unreleased\]\n([\s\S]*?)(?=\n## \[|$)/;
 	const unreleasedMatch = changelog.match(unreleasedRegex);
+	const unreleasedContent = unreleasedMatch ? unreleasedMatch[1].trim() : '';
 
+	// Create new version entry with the unreleased content
+	const newEntry = `\n\n## [${newVersion}] - ${new Date().toISOString().split('T')[0]}\n${unreleasedContent ? '\n' + unreleasedContent : '\n### Changed\n- No significant changes in this version'}`;
+
+	// Update the changelog
+	let updatedChangelog;
 	if (unreleasedMatch) {
-		const updatedChangelog = changelog.replace(
+		// Replace the existing [Unreleased] section with a new empty one and add the new version
+		updatedChangelog = changelog.replace(
 			unreleasedRegex,
-			`## [Unreleased]\n\n${newEntry}`,
+			`## [Unreleased]\n\n### Added\n\n\n### Changed\n\n\n### Fixed\n\n${newEntry}\n\n`,
 		);
-		await Deno.writeTextFile(changelogPath, updatedChangelog);
 	} else {
-		const updatedChangelog = changelog.replace(
+		// Create a new [Unreleased] section if none exists
+		updatedChangelog = changelog.replace(
 			'# Changelog',
-			`# Changelog\n\n## [Unreleased]\n\n${newEntry}`,
+			`# Changelog\n\n## [Unreleased]\n\n### Added\n\n\n### Changed\n\n\n### Fixed\n\n\n${newEntry}`,
 		);
-		await Deno.writeTextFile(changelogPath, updatedChangelog);
 	}
 
+	await Deno.writeTextFile(changelogPath, updatedChangelog);
 	console.log(`Updated CHANGELOG.md with version ${newVersion}`);
 };
 
