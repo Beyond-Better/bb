@@ -4,7 +4,7 @@ This guide explains how to upgrade BB to the latest version and manage your inst
 
 ## Quick Start
 
-If you're running BB v0.40.0 or later:
+If you're running BB v0.4.0 or later:
 1. Open the BB browser interface (BUI)
 2. Click the "Update Now" button when prompted
 3. Follow the on-screen instructions
