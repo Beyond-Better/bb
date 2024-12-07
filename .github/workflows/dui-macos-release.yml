@@ -1,0 +1,183 @@
+name: "DUI macOS Release"
+
+on:
+  push:
+    branches: ["main","release-build-testing"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '0.0.0'
+
+jobs:
+  build-macos:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: "aarch64-apple-darwin"
+            arch: "aarch64"
+            name: "Apple Silicon"
+          - target: "x86_64-apple-darwin"
+            arch: "x86_64"
+            name: "Intel"
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './dui/src-tauri -> target'
+
+      - name: Install frontend dependencies
+        run: |
+          cd dui
+          deno task build
+
+      - name: Build DUI (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: './dui'
+          args: --target ${{ matrix.target }}
+
+      # Verify build artifacts exist
+      - name: Verify build artifacts
+        id: verify_artifacts
+        run: |
+          DMG_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | wc -l)
+          APP_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | wc -l)
+          if [ "$DMG_COUNT" -eq 0 ] || [ "$APP_COUNT" -eq 0 ]; then
+            echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
+            exit 1
+          fi
+          echo "Found $DMG_COUNT .dmg and $APP_COUNT .app files"
+
+      # Upload artifacts for both architectures
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dui-macos-${{ matrix.arch }}
+          path: |
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+
+  # Create release with all artifacts
+  release:
+    needs: build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from config
+        id: get_version
+        run: |
+          CONFIG_VERSION=$(cat dui/src-tauri/tauri.conf.json | jq -r .version)
+          echo "CONFIG_VERSION=$CONFIG_VERSION" >> $GITHUB_OUTPUT
+          
+          # If triggered by workflow_dispatch, verify version matches
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "$CONFIG_VERSION" != "${{ github.event.inputs.version }}" ]]; then
+              echo "::error::Version mismatch: $CONFIG_VERSION (config) != ${{ github.event.inputs.version }} (input)"
+              exit 1
+            fi
+          fi
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: dui-v${{ steps.get_version.outputs.CONFIG_VERSION }}
+          release_name: "Beyond Better DUI v${{ steps.get_version.outputs.CONFIG_VERSION }}"
+          body: |
+            Beyond Better DUI v${{ steps.get_version.outputs.CONFIG_VERSION }}
+            
+            This release includes:
+            - macOS .app bundles:
+              * Apple Silicon (M1/M2) version
+              * Intel version
+            - macOS disk images (.dmg):
+              * Apple Silicon (M1/M2) version
+              * Intel version
+            
+            Installation:
+            1. Download the appropriate version for your Mac
+            2. Open the .dmg file
+            3. Drag the Beyond Better app to your Applications folder
+          draft: true
+          prerelease: false
+
+      - name: Upload Release Assets
+        run: |
+          # Function to handle upload with retry
+          upload_asset() {
+            local file="$1"
+            local attempt=1
+            local max_attempts=3
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Uploading $file (attempt $attempt of $max_attempts)"
+              if gh release upload "dui-v${{ steps.get_version.outputs.CONFIG_VERSION }}" "$file"; then
+                return 0
+              fi
+              attempt=$((attempt + 1))
+              if [ $attempt -le $max_attempts ]; then
+                echo "Retrying in 5 seconds..."
+                sleep 5
+              fi
+            done
+            
+            echo "::error::Failed to upload $file after $max_attempts attempts"
+            return 1
+          }
+
+          for arch in x86_64 aarch64; do
+            case $arch in
+              "x86_64") arch_name="intel" ;;
+              "aarch64") arch_name="apple-silicon" ;;
+            esac
+            
+            cd "dui-macos-$arch"
+            
+            # Upload DMG files
+            for f in *.dmg; do
+              if [ -f "$f" ]; then
+                new_name="BB-dui-${{ steps.get_version.outputs.CONFIG_VERSION }}-macos-$arch_name.dmg"
+                cp "$f" "../$new_name"
+                upload_asset "../$new_name"
+              fi
+            done
+            
+            # Create and upload app archive
+            for app in *.app; do
+              if [ -d "$app" ]; then
+                new_name="BB-dui-${{ steps.get_version.outputs.CONFIG_VERSION }}-macos-$arch_name.app.tar.gz"
+                tar -czf "../$new_name" "$app"
+                upload_asset "../$new_name"
+              fi
+            done
+            
+            cd ..
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

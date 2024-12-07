@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Allow reading/writing to user-selected files and directories -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    
+    <!-- Allow network client access -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    
+    <!-- Allow network server access (for bb-api) -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+    
+    <!-- Allow reading downloads (for binary downloads) -->
+    <key>com.apple.security.files.downloads.read-write</key>
+    <true/>
+    
+    <!-- Allow executing user-selected binaries (bb and bb-api) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    
+    <!-- Allow running JIT-compiled code -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    
+    <!-- Allow running dylibs -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    
+    <!-- Allow opening URLs in default browser -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+</dict>
+</plist>
