@@ -67,6 +67,7 @@
 		"@std/streams": "jsr:@std/streams@^1.0.8",
 		"@std/testing/bdd": "jsr:@std/testing@^1.0.5/bdd",
 		"@std/testing/mock": "jsr:@std/testing@^1.0.5/mock",
+		"@std/toml": "jsr:@std/toml@^1.0.2",
 		"@std/ulid": "jsr:@std/ulid@^1.0.0",
 		"@std/uuid": "jsr:@std/uuid@^1.0.4",
 		"@std/yaml": "jsr:@std/yaml@^1.0.5",
