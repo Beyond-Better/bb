@@ -23,7 +23,7 @@ fn greet(name: &str) -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Initialize the logger with timestamp
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
         .init();
 

@@ -26,7 +26,7 @@ pub async fn test_read_config() -> Result<String, String> {
 #[tauri::command]
 pub async fn get_global_config() -> Result<GlobalConfig, String> {
     // Set log level to Debug
-    log::set_max_level(LevelFilter::Debug);
+    //log::set_max_level(LevelFilter::Debug);
     //info!("Setting log level to Debug");
     // Get config directory path
     let config_dir = get_global_config_dir().map_err(|e| {
@@ -116,7 +116,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
 #[tauri::command]
 pub async fn set_global_config_value(key: String, value: String) -> Result<(), String> {
     // Ensure debug logging is enabled
-    log::set_max_level(LevelFilter::Debug);
+    //log::set_max_level(LevelFilter::Debug);
     //info!("set_global_config_value called - Key: {}", key);
     info!("Setting config value - Key: {}, Value: {}", key, if key.contains("api_key") || key.contains("llmKeys") {
         "[REDACTED]".to_string()
