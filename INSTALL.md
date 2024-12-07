@@ -87,7 +87,7 @@ For advanced users who prefer manual installation:
 2. Download the appropriate package for your operating system and architecture:
    - For macOS: `bb-x86_64-apple-darwin.tar.gz` or `bb-aarch64-apple-darwin.tar.gz`
    - For Linux: `bb-x86_64-unknown-linux-gnu.tar.gz` or `bb-aarch64-unknown-linux-gnu.tar.gz`
-   - For Windows: `bb-x86_64-pc-windows-msvc.zip`
+   - For Windows: `bb-x86_64-pc-windows-msvc.zip` (for manual installation only)
 3. Extract the downloaded package:
    - For .tar.gz files (Linux and macOS):
      ```
@@ -101,7 +101,7 @@ For advanced users who prefer manual installation:
      sudo ./install.sh
      ```
    - For Windows:
-     Run `install.bat` as administrator
+     Move the executables to a directory in your PATH
 
 ### Option 3: Manual Installation from Source
 
@@ -133,10 +133,10 @@ After installation, navigate to the project directory where you want to use BB a
 bb init
 ```
 
-On Windows:
+On Windows, the commands work without the `.exe` extension:
 
 ```
-bb.exe init
+bb init
 ```
 
 This will create a `.bb/config.yaml` file in your project directory and generate the necessary TLS certificates for secure operation. If `mkcert` or `openssl` is not available, you will receive an error message with instructions on how to install them.
@@ -172,11 +172,11 @@ bb --help
 bb-api --help
 ```
 
-On Windows:
+On Windows, the commands work without the `.exe` extension:
 
 ```
-bb.exe --help
-bb-api.exe --help
+bb --help
+bb-api --help
 ```
 
 These commands should display the help information for BB and its API.
