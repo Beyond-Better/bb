@@ -191,7 +191,7 @@ describe('ConfigManagerV2', () => {
 			// assertExists(versionChange);
 			// assertEquals(versionChange.from, '1.0.0');
 			// assertEquals(versionChange.to, '2.0.0');
-// 
+			//
 			// // Check port change
 			// const portChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
 			// 	c.path.join('.') === 'api.port'
@@ -199,7 +199,7 @@ describe('ConfigManagerV2', () => {
 			// assertExists(portChange);
 			// assertEquals(portChange.from, 3162);
 			// assertEquals(portChange.to, 3162);
-// 
+			//
 			// // Check hostname change
 			// const hostnameChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
 			// 	c.path.join('.') === 'api.hostname'
@@ -253,7 +253,7 @@ describe('ConfigManagerV2', () => {
 			// assertExists(versionChange);
 			// assertEquals(versionChange.from, '1.0.0');
 			// assertEquals(versionChange.to, '2.0.0');
-// 
+			//
 			// // Check port change
 			// const portChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
 			// 	c.path.join('.') === 'settings.api.port'
@@ -261,7 +261,7 @@ describe('ConfigManagerV2', () => {
 			// assertExists(portChange);
 			// assertEquals(portChange.from, 3162);
 			// assertEquals(portChange.to, 3162);
-// 
+			//
 			// const hostnameChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
 			// 	c.path.join('.') === 'settings.api.hostname'
 			// );

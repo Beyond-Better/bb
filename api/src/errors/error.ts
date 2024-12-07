@@ -163,7 +163,6 @@ export const isProjectHandlingError = (value: unknown): value is ProjectHandling
 	return value instanceof ProjectHandlingError;
 };
 
-
 export interface FileHandlingErrorOptions extends ErrorOptions {
 	filePath: string;
 	operation:

@@ -101,7 +101,7 @@ export const certificateFileExists = async (certFileName: string = 'localhost.pe
 	//console.debug(`${YELLOW}Checking for certificate file '${certFileName}'${NC}`);
 	const globalCertFile = join(globalDir, certFileName);
 	const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-	projectId = await getProjectId(projectRoot);
+	const projectId = await getProjectId(projectRoot);
 	const bbCertFile = join(await getBbDir(projectId), certFileName) || '';
 	//console.debug(`${YELLOW}Need to find either '${globalCertFile}' or '${bbCertFile}'${NC}`);
 	return (bbCertFile ? await exists(bbCertFile) : false) || await exists(globalCertFile);

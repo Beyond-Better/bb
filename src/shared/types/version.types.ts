@@ -1,4 +1,4 @@
-import { VERSION, REQUIRED_API_VERSION } from 'version.ts';
+import { REQUIRED_API_VERSION, VERSION } from 'version.ts';
 
 export type InstallLocationType = 'user' | 'system';
 

@@ -800,7 +800,11 @@ dui:
 			}
 		} catch (error) {
 			if (!(error instanceof Deno.errors.NotFound)) {
-				console.error(`ConfigManager: getProjectId - Error locating .bb directory in ${projectRoot}: ${(error as Error).message}`);
+				console.error(
+					`ConfigManager: getProjectId - Error locating .bb directory in ${projectRoot}: ${
+						(error as Error).message
+					}`,
+				);
 				throw error;
 			}
 			//console.warn(`ConfigManager: getProjectId - No .bb directory in ${projectRoot}: ${(error as Error).message}`);
@@ -907,7 +911,9 @@ dui:
 		}
 
 		if (version === '1.0.0') {
-			return type === 'global' ? this.migrateGlobalConfigV1toV2(config as GlobalConfigV1) : this.migrateProjectConfigV1toV2(config as ProjectConfigV1);
+			return type === 'global'
+				? this.migrateGlobalConfigV1toV2(config as GlobalConfigV1)
+				: this.migrateProjectConfigV1toV2(config as ProjectConfigV1);
 		}
 
 		throw new Error(`Unsupported config version: ${version}`);
@@ -1076,134 +1082,136 @@ dui:
 	 * @param newConfig - The new configuration
 	 * @returns Array of changes with paths and values
 	 * @internal
-	 */ 
-// 	private calculateChanges(
-// 		oldConfig: GlobalConfigV1 | ProjectConfigV1,
-// 		newConfig: GlobalConfig | ProjectConfig,
-// 	): Array<{ path: string[]; from: unknown; to: unknown }> {
-// 		const changes: Array<{ path: string[]; from: unknown; to: unknown }> = [];
-// 
-// 		// Track version changes
-// 		const oldVersion = this.determineConfigVersion(oldConfig);
-// 		const newVersion = this.determineConfigVersion(newConfig);
-// 		if (oldVersion !== newVersion) {
-// 			changes.push({
-// 				path: ['version'],
-// 				from: oldVersion,
-// 				to: newVersion,
-// 			});
-// 		}
-// 
-// 		const oldC = oldConfig as GlobalConfigV1 | ProjectConfigV1; //Record<string, unknown>;
-// 		const newC = newConfig as GlobalConfig | ProjectConfig; //Record<string, unknown>;
-// 
-// 		// Special handling for v1 to v2 migrations
-// 		if (oldVersion === '1.0.0' && newVersion === '2.0.0') {
-// 			// Track API changes
-// 			if (oldC.api && typeof oldC.api === 'object') {
-// 				const oldApi = oldC.api as Record<string, unknown>;
-// 				const isProject = this.isProjectConfig(newConfig);
-// 				const basePath = isProject ? ['settings', 'api'] : ['api'];
-// 
-// 				// Track port changes
-// 				if ('apiPort' in oldApi) {
-// 					changes.push({
-// 						path: [...basePath, 'port'],
-// 						from: oldApi.apiPort,
-// 						to: isProject
-// 							? ((newC.settings as Record<string, unknown>)?.api as Record<string, unknown>)?.port
-// 							: (newC.api as Record<string, unknown>)?.port,
-// 					});
-// 				}
-// 
-// 				// Track hostname changes
-// 				if ('apiHostname' in oldApi) {
-// 					changes.push({
-// 						path: [...basePath, 'hostname'],
-// 						from: oldApi.apiHostname,
-// 						to: isProject
-// 							? ((newC.settings as Record<string, unknown>)?.api as Record<string, unknown>)?.hostname
-// 							: (newC.api as Record<string, unknown>)?.hostname,
-// 					});
-// 				}
-// 			}
-// 		}
-// 
-// 		// Compare remaining object structures
-// 		function compareObjects(oldObj: any, newObj: any, path: string[] = []): void {
-// 			// Handle null/undefined
-// 			if (oldObj === newObj) return;
-// 			if (oldObj === null || oldObj === undefined || newObj === null || newObj === undefined) {
-// 				changes.push({ path, from: oldObj, to: newObj });
-// 				return;
-// 			}
-// 
-// 			// Handle different types
-// 			if (typeof oldObj !== typeof newObj) {
-// 				changes.push({ path, from: oldObj, to: newObj });
-// 				return;
-// 			}
-// 
-// 			// Handle arrays
-// 			if (Array.isArray(oldObj) && Array.isArray(newObj)) {
-// 				// Skip array comparison if lengths match and values are primitive
-// 				if (
-// 					oldObj.length === newObj.length &&
-// 					oldObj.every((v) => typeof v !== 'object') &&
-// 					newObj.every((v) => typeof v !== 'object')
-// 				) {
-// 					if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
-// 						changes.push({ path, from: oldObj, to: newObj });
-// 					}
-// 					return;
-// 				}
-// 				if (oldObj.length !== newObj.length) {
-// 					changes.push({ path, from: oldObj, to: newObj });
-// 					return;
-// 				}
-// 				for (let i = 0; i < oldObj.length; i++) {
-// 					compareObjects(oldObj[i], newObj[i], [...path, i.toString()]);
-// 				}
-// 				return;
-// 			}
-// 
-// 			// Handle objects
-// 			if (typeof oldObj === 'object' && typeof newObj === 'object') {
-// 				const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
-// 				for (const key of allKeys) {
-// 					if (!(key in oldObj)) {
-// 						changes.push({ path: [...path, key], from: undefined, to: newObj[key] });
-// 					} else if (!(key in newObj)) {
-// 						changes.push({ path: [...path, key], from: oldObj[key], to: undefined });
-// 					} else {
-// 						compareObjects(oldObj[key], newObj[key], [...path, key]);
-// 					}
-// 				}
-// 				return;
-// 			}
-// 
-// 			// Handle primitives
-// 			if (
-// 				oldObj !== newObj &&
-// 				(typeof oldObj !== 'object' || typeof newObj !== 'object')
-// 			) {
-// 				changes.push({ path, from: oldObj, to: newObj });
-// 			}
-// 		}
-// 
-// 		// Compare remaining object structures
-// 		compareObjects(oldConfig, newConfig);
-// 		return changes;
-// 	}
+	 */
+	// 	private calculateChanges(
+	// 		oldConfig: GlobalConfigV1 | ProjectConfigV1,
+	// 		newConfig: GlobalConfig | ProjectConfig,
+	// 	): Array<{ path: string[]; from: unknown; to: unknown }> {
+	// 		const changes: Array<{ path: string[]; from: unknown; to: unknown }> = [];
+	//
+	// 		// Track version changes
+	// 		const oldVersion = this.determineConfigVersion(oldConfig);
+	// 		const newVersion = this.determineConfigVersion(newConfig);
+	// 		if (oldVersion !== newVersion) {
+	// 			changes.push({
+	// 				path: ['version'],
+	// 				from: oldVersion,
+	// 				to: newVersion,
+	// 			});
+	// 		}
+	//
+	// 		const oldC = oldConfig as GlobalConfigV1 | ProjectConfigV1; //Record<string, unknown>;
+	// 		const newC = newConfig as GlobalConfig | ProjectConfig; //Record<string, unknown>;
+	//
+	// 		// Special handling for v1 to v2 migrations
+	// 		if (oldVersion === '1.0.0' && newVersion === '2.0.0') {
+	// 			// Track API changes
+	// 			if (oldC.api && typeof oldC.api === 'object') {
+	// 				const oldApi = oldC.api as Record<string, unknown>;
+	// 				const isProject = this.isProjectConfig(newConfig);
+	// 				const basePath = isProject ? ['settings', 'api'] : ['api'];
+	//
+	// 				// Track port changes
+	// 				if ('apiPort' in oldApi) {
+	// 					changes.push({
+	// 						path: [...basePath, 'port'],
+	// 						from: oldApi.apiPort,
+	// 						to: isProject
+	// 							? ((newC.settings as Record<string, unknown>)?.api as Record<string, unknown>)?.port
+	// 							: (newC.api as Record<string, unknown>)?.port,
+	// 					});
+	// 				}
+	//
+	// 				// Track hostname changes
+	// 				if ('apiHostname' in oldApi) {
+	// 					changes.push({
+	// 						path: [...basePath, 'hostname'],
+	// 						from: oldApi.apiHostname,
+	// 						to: isProject
+	// 							? ((newC.settings as Record<string, unknown>)?.api as Record<string, unknown>)?.hostname
+	// 							: (newC.api as Record<string, unknown>)?.hostname,
+	// 					});
+	// 				}
+	// 			}
+	// 		}
+	//
+	// 		// Compare remaining object structures
+	// 		function compareObjects(oldObj: any, newObj: any, path: string[] = []): void {
+	// 			// Handle null/undefined
+	// 			if (oldObj === newObj) return;
+	// 			if (oldObj === null || oldObj === undefined || newObj === null || newObj === undefined) {
+	// 				changes.push({ path, from: oldObj, to: newObj });
+	// 				return;
+	// 			}
+	//
+	// 			// Handle different types
+	// 			if (typeof oldObj !== typeof newObj) {
+	// 				changes.push({ path, from: oldObj, to: newObj });
+	// 				return;
+	// 			}
+	//
+	// 			// Handle arrays
+	// 			if (Array.isArray(oldObj) && Array.isArray(newObj)) {
+	// 				// Skip array comparison if lengths match and values are primitive
+	// 				if (
+	// 					oldObj.length === newObj.length &&
+	// 					oldObj.every((v) => typeof v !== 'object') &&
+	// 					newObj.every((v) => typeof v !== 'object')
+	// 				) {
+	// 					if (JSON.stringify(oldObj) !== JSON.stringify(newObj)) {
+	// 						changes.push({ path, from: oldObj, to: newObj });
+	// 					}
+	// 					return;
+	// 				}
+	// 				if (oldObj.length !== newObj.length) {
+	// 					changes.push({ path, from: oldObj, to: newObj });
+	// 					return;
+	// 				}
+	// 				for (let i = 0; i < oldObj.length; i++) {
+	// 					compareObjects(oldObj[i], newObj[i], [...path, i.toString()]);
+	// 				}
+	// 				return;
+	// 			}
+	//
+	// 			// Handle objects
+	// 			if (typeof oldObj === 'object' && typeof newObj === 'object') {
+	// 				const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
+	// 				for (const key of allKeys) {
+	// 					if (!(key in oldObj)) {
+	// 						changes.push({ path: [...path, key], from: undefined, to: newObj[key] });
+	// 					} else if (!(key in newObj)) {
+	// 						changes.push({ path: [...path, key], from: oldObj[key], to: undefined });
+	// 					} else {
+	// 						compareObjects(oldObj[key], newObj[key], [...path, key]);
+	// 					}
+	// 				}
+	// 				return;
+	// 			}
+	//
+	// 			// Handle primitives
+	// 			if (
+	// 				oldObj !== newObj &&
+	// 				(typeof oldObj !== 'object' || typeof newObj !== 'object')
+	// 			) {
+	// 				changes.push({ path, from: oldObj, to: newObj });
+	// 			}
+	// 		}
+	//
+	// 		// Compare remaining object structures
+	// 		compareObjects(oldConfig, newConfig);
+	// 		return changes;
+	// 	}
 
 	private isGlobalConfig(config: unknown): boolean {
 		if (typeof config !== 'object' || config === null) return false;
 		const c = config as Record<string, unknown>;
 		// For v1 configs, check for API or BUI settings
 		//if (c.version === '1.0.0') {
-		if (!('projectId' in c) && !('project' in c) &&
-				(('api' in c) || ('bui' in c) || ('cli' in c))) return  true;
-		
+		if (
+			!('projectId' in c) && !('project' in c) &&
+			(('api' in c) || ('bui' in c) || ('cli' in c))
+		) return true;
+
 		// For v2 configs, check for required components
 		return c.version === '2.0.0' &&
 			!('projectId' in c) &&
@@ -1216,7 +1224,7 @@ dui:
 		// For v1 configs, check for project section
 		//if (c.version === '1.0.0') {
 		if ('project' in c && typeof c.project === 'object' && c.project !== null) return true;
-		
+
 		// For v2 configs, check for required fields
 		return c.version === '2.0.0' &&
 			'projectId' in c &&
@@ -1599,7 +1607,7 @@ dui:
 		}
 
 		if (Array.isArray(obj)) {
-			return obj.map(item => this.removeUndefined(item)) as T;
+			return obj.map((item) => this.removeUndefined(item)) as T;
 		}
 
 		const result: Record<string, unknown> = {};
@@ -1623,7 +1631,7 @@ export function mergeGlobalIntoProjectConfig(
 		setMergeStrategy: 'combine',
 		mapMergeStrategy: 'combine',
 	};
-	
+
 	projectConfig.settings.api = deepMerge.withOptions(options, globalConfig.api, projectConfig.settings.api);
 	projectConfig.settings.bui = deepMerge.withOptions(options, globalConfig.bui, projectConfig.settings.bui);
 	projectConfig.settings.cli = deepMerge.withOptions(options, globalConfig.cli, projectConfig.settings.cli);

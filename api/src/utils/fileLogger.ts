@@ -1,19 +1,19 @@
-import { dirname } from "@std/path";
+import { dirname } from '@std/path';
 
-const APP_NAME = "BeyondBetter";
+const APP_NAME = 'BeyondBetter';
 
 // Get the appropriate log directory based on the platform
 function getLogDir(): string {
-	if (Deno.build.os === "darwin") {
-		const homeDir = Deno.env.get("HOME");
+	if (Deno.build.os === 'darwin') {
+		const homeDir = Deno.env.get('HOME');
 		if (!homeDir) {
-			throw new Error("HOME environment variable not set");
+			throw new Error('HOME environment variable not set');
 		}
 		return `${homeDir}/Library/Logs/${APP_NAME}`;
-	} else if (Deno.build.os === "windows") {
-		const programData = Deno.env.get("ProgramData");
+	} else if (Deno.build.os === 'windows') {
+		const programData = Deno.env.get('ProgramData');
 		if (!programData) {
-			throw new Error("ProgramData environment variable not set");
+			throw new Error('ProgramData environment variable not set');
 		}
 		return `${programData}\\${APP_NAME}\\logs`;
 	} else {
@@ -37,7 +37,7 @@ async function ensureLogDir(logFile: string): Promise<void> {
 // Redirect console.log and console.error to the api log file
 export const apiFileLogger = async (apiLogFile: string) => {
 	// If apiLogFile is not absolute, make it relative to the standard log directory
-	const logPath = apiLogFile.startsWith("/") || apiLogFile.includes(":\\")
+	const logPath = apiLogFile.startsWith('/') || apiLogFile.includes(':\\')
 		? apiLogFile
 		: `${getLogDir()}/${apiLogFile}`;
 
