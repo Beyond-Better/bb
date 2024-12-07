@@ -34,12 +34,7 @@
       },
       "wix": {
         "language": "en-US",
-        "installMode": "both",
-        "enableElevatedUpdate": true,
-        "shortcut": {
-          "startMenu": true,
-          "desktop": false
-        }
+        "enableElevatedUpdateTask": true
       }
     },
     "macOS": {
