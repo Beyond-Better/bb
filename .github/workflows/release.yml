@@ -211,41 +211,17 @@ jobs:
             fi
           fi
 
-      # Create platform-specific directories for artifacts
-      - name: Create artifact directories
-        shell: bash
-        run: |
-          echo "Source directory contents:"
-          ls -R dui/src-tauri/target/${{ matrix.target }}/release/bundle/
-
-          mkdir -p artifacts/dmg artifacts/app artifacts/appimage artifacts/msi artifacts/nsis
-          if [[ "${{ matrix.platform }}" == "macos" ]]; then
-            echo "Copying macOS artifacts..."
-            cp -v dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg artifacts/dmg/ || echo "No DMG files found"
-            cp -rv dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app artifacts/app/ || echo "No APP files found"
-          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
-            echo "Copying Linux artifacts..."
-            cp -v dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage artifacts/appimage/ || echo "No AppImage files found"
-          elif [[ "${{ matrix.platform }}" == "windows" ]]; then
-            echo "Copying Windows artifacts..."
-            cp -v dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi artifacts/msi/ || echo "No MSI files found"
-            cp -v dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe artifacts/nsis/ || echo "No NSIS files found"
-          fi
-
-          echo "Artifact directory contents:"
-          ls -R artifacts/
-
       # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dui-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            artifacts/dmg/*
-            artifacts/app/*
-            artifacts/appimage/*
-            artifacts/msi/*
-            artifacts/nsis/*
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
+            dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
 
       # Verify uploaded artifacts
       - name: List uploaded artifacts
