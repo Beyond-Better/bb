@@ -139,13 +139,22 @@ jobs:
       - name: Verify build artifacts
         id: verify_artifacts
         run: |
-          DMG_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | wc -l)
-          APP_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | wc -l)
-          if [ "$DMG_COUNT" -eq 0 ] || [ "$APP_COUNT" -eq 0 ]; then
-            echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
-            exit 1
+          if [ "${{ matrix.platform }}" = "macos" ]; then
+            DMG_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | wc -l)
+            APP_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | wc -l)
+            if [ "$DMG_COUNT" -eq 0 ] || [ "$APP_COUNT" -eq 0 ]; then
+              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
+              exit 1
+            fi
+            echo "Found $DMG_COUNT .dmg and $APP_COUNT .app files"
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            APPIMAGE_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage -name "*.AppImage" | wc -l)
+            if [ "$APPIMAGE_COUNT" -eq 0 ]; then
+              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
+              exit 1
+            fi
+            echo "Found $APPIMAGE_COUNT .AppImage files"
           fi
-          echo "Found $DMG_COUNT .dmg and $APP_COUNT .app files"
 
       # Upload artifacts for both architectures
       - name: Upload artifacts
@@ -153,8 +162,11 @@ jobs:
         with:
           name: dui-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
+            # macOS artifacts
+            ${{ matrix.platform == 'macos' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg' || '' }}
+            ${{ matrix.platform == 'macos' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app' || '' }}
+            # Linux artifacts
+            ${{ matrix.platform == 'linux' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage' || '' }}
 
   release:
     needs: [build-binaries, build-dui-macos]
