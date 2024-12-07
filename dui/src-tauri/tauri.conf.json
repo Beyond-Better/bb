@@ -32,7 +32,10 @@
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
-      }
+      },
+      "category": "Utility",
+      "shortDescription": "Beyond Better Desktop User Interface",
+      "longDescription": "Desktop User Interface for Beyond Better, providing a modern interface for managing BB tools and configurations."
     },
     "windows": {
       "webviewInstallMode": {
