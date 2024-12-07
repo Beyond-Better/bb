@@ -385,7 +385,7 @@ jobs:
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
               echo "Processing DMG files:"
-              for f in *.dmg; do
+              for f in artifacts/dmg/*.dmg; do
                 if [ -f "$f" ]; then
                   echo "Found DMG file: $f"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
@@ -398,7 +398,7 @@ jobs:
               
               # Create and upload app archive
               echo "Processing .app bundles:"
-              for app in *.app; do
+              for app in artifacts/app/*.app; do
                 if [ -d "$app" ]; then
                   echo "Found app bundle: $app"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
@@ -411,7 +411,7 @@ jobs:
             elif [ "$platform" = "linux" ]; then
               # Upload AppImage files
               echo "Processing AppImage files:"
-              for f in *.AppImage; do
+              for f in artifacts/appimage/*.AppImage; do
                 if [ -f "$f" ]; then
                   echo "Found AppImage file: $f"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
@@ -424,7 +424,7 @@ jobs:
             elif [ "$platform" = "windows" ]; then
               # Upload MSI files
               echo "Processing MSI files:"
-              for f in *.msi; do
+              for f in artifacts/msi/*.msi; do
                 if [ -f "$f" ]; then
                   echo "Found MSI file: $f"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
@@ -437,7 +437,7 @@ jobs:
               
               # Upload NSIS installer
               echo "Processing NSIS files:"
-              for f in *.exe; do
+              for f in artifacts/nsis/*.exe; do
                 if [ -f "$f" ]; then
                   echo "Found NSIS file: $f"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
