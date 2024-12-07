@@ -411,67 +411,57 @@ jobs:
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
               echo "Processing DMG files:"
-              for f in artifacts/dmg/*.dmg; do
-                if [ -f "$f" ]; then
-                  echo "Found DMG file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
-                  echo "Creating renamed copy: $new_name"
-                  cp "$f" "../$new_name"
-                  echo "Attempting upload of $new_name"
-                  upload_asset "../$new_name"
-                fi
+              find "$artifact_dir/dmg" -name "*.dmg" -print0 | while IFS= read -r -d '' f; do
+                echo "Found DMG file: $f"
+                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
+                echo "Creating renamed copy: $new_name"
+                cp "$f" "../$new_name"
+                echo "Attempting upload of $new_name"
+                upload_asset "../$new_name"
               done
               
               # Create and upload app archive
               echo "Processing .app bundles:"
-              for app in artifacts/app/*.app; do
-                if [ -d "$app" ]; then
-                  echo "Found app bundle: $app"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
-                  echo "Creating archive: $new_name"
-                  tar -czf "../$new_name" "$app"
-                  echo "Attempting upload of $new_name"
-                  upload_asset "../$new_name"
-                fi
+              find "$artifact_dir/app" -name "*.app" -print0 | while IFS= read -r -d '' app; do
+                echo "Found app bundle: $app"
+                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
+                echo "Creating archive: $new_name"
+                tar -czf "../$new_name" "$app"
+                echo "Attempting upload of $new_name"
+                upload_asset "../$new_name"
               done
             elif [ "$platform" = "linux" ]; then
               # Upload AppImage files
               echo "Processing AppImage files:"
-              for f in artifacts/appimage/*.AppImage; do
-                if [ -f "$f" ]; then
-                  echo "Found AppImage file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
-                  echo "Creating renamed copy: $new_name"
-                  cp "$f" "../$new_name"
-                  echo "Attempting upload of $new_name"
-                  upload_asset "../$new_name"
-                fi
+              find "$artifact_dir/appimage" -name "*.AppImage" -print0 | while IFS= read -r -d '' f; do
+                echo "Found AppImage file: $f"
+                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
+                echo "Creating renamed copy: $new_name"
+                cp "$f" "../$new_name"
+                echo "Attempting upload of $new_name"
+                upload_asset "../$new_name"
               done
             elif [ "$platform" = "windows" ]; then
               # Upload MSI files
               echo "Processing MSI files:"
-              for f in artifacts/msi/*.msi; do
-                if [ -f "$f" ]; then
-                  echo "Found MSI file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
-                  echo "Creating renamed copy: $new_name"
-                  cp "$f" "../$new_name"
-                  echo "Attempting upload of $new_name"
-                  upload_asset "../$new_name"
-                fi
+              find "$artifact_dir/msi" -name "*.msi" -print0 | while IFS= read -r -d '' f; do
+                echo "Found MSI file: $f"
+                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
+                echo "Creating renamed copy: $new_name"
+                cp "$f" "../$new_name"
+                echo "Attempting upload of $new_name"
+                upload_asset "../$new_name"
               done
               
               # Upload NSIS installer
               echo "Processing NSIS files:"
-              for f in artifacts/nsis/*.exe; do
-                if [ -f "$f" ]; then
-                  echo "Found NSIS file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
-                  echo "Creating renamed copy: $new_name"
-                  cp "$f" "../$new_name"
-                  echo "Attempting upload of $new_name"
-                  upload_asset "../$new_name"
-                fi
+              find "$artifact_dir/nsis" -name "*.exe" -print0 | while IFS= read -r -d '' f; do
+                echo "Found NSIS file: $f"
+                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
+                echo "Creating renamed copy: $new_name"
+                cp "$f" "../$new_name"
+                echo "Attempting upload of $new_name"
+                upload_asset "../$new_name"
               done
             fi
             
