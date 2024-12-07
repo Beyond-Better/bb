@@ -24,15 +24,6 @@ export function Header({
 					</div>
 				</div>
 
-				<div className='flex items-center space-x-4'>
-					<button
-						onClick={() => onNavigate('/settings')}
-						className='text-sm px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors'
-					>
-						Settings
-					</button>
-				</div>
-
 				<div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
 					<VersionDisplay />
 				</div>

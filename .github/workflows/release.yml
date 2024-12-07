@@ -285,7 +285,7 @@ jobs:
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
-            ${{ github.event.head_commit.message }}
+            ${{ github.event.pull_request.body || 'No release notes provided.' }}
           draft: false
           prerelease: false
 
@@ -369,14 +369,10 @@ jobs:
                 arch_name="x64" ;;
             esac
             
-            cd "$artifact_dir"
-            echo "Contents of $artifact_dir:"
-            ls -la
-            
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
               echo "Processing DMG files:"
-              find "$artifact_dir" -name "*.dmg" -print0 | while IFS= read -r -d '' f; do
+              find . -name "*.dmg" -print0 | while IFS= read -r -d '' f; do
                 echo "Found DMG file: $f"
                 new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
                 echo "Creating renamed copy: $new_name"
@@ -387,7 +383,7 @@ jobs:
               
               # Create and upload app archive
               echo "Processing .app bundles:"
-              find "$artifact_dir" -name "*.app" -print0 | while IFS= read -r -d '' app; do
+              find . -name "*.app" -print0 | while IFS= read -r -d '' app; do
                 echo "Found app bundle: $app"
                 new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
                 echo "Creating archive: $new_name"
@@ -398,7 +394,7 @@ jobs:
             elif [ "$platform" = "linux" ]; then
               # Upload AppImage files
               echo "Processing AppImage files:"
-              find "$artifact_dir" -name "*.AppImage" -print0 | while IFS= read -r -d '' f; do
+              find . -name "*.AppImage" -print0 | while IFS= read -r -d '' f; do
                 echo "Found AppImage file: $f"
                 new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
                 echo "Creating renamed copy: $new_name"
@@ -409,7 +405,7 @@ jobs:
             elif [ "$platform" = "windows" ]; then
               # Upload MSI files
               echo "Processing MSI files:"
-              find "$artifact_dir" -name "*.msi" -print0 | while IFS= read -r -d '' f; do
+              find . -name "*.msi" -print0 | while IFS= read -r -d '' f; do
                 echo "Found MSI file: $f"
                 new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
                 echo "Creating renamed copy: $new_name"
@@ -420,7 +416,7 @@ jobs:
               
               # Upload NSIS installer
               echo "Processing NSIS files:"
-              find "$artifact_dir" -name "*.exe" -print0 | while IFS= read -r -d '' f; do
+              find . -name "*.exe" -print0 | while IFS= read -r -d '' f; do
                 echo "Found NSIS file: $f"
                 new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
                 echo "Creating renamed copy: $new_name"

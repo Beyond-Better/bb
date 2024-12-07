@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added binary version display to DUI header
+  - Shows installed BB API version
+  - Shows "not installed" placeholder when binary is missing
+  - Uses Tauri's Command API to safely check binary version
+
 
 ### Changed
 
