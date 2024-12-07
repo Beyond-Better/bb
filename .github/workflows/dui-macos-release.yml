@@ -2,7 +2,7 @@ name: DUI macOS Release
 
 on:
   push:
-    branches: ["main","release-build-testing"]
+    branches: ["main", "release-build-testing"]
   workflow_dispatch:
     inputs:
       version:
