@@ -373,6 +373,7 @@ jobs:
             
             cd "$artifact_dir"
             echo "Contents of $artifact_dir:"
+            ls -la
             
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
