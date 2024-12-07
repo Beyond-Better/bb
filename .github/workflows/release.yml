@@ -196,7 +196,7 @@ jobs:
             ${{ matrix.platform == 'windows' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe' || '' }}
 
   release:
-    needs: [build-binaries, build-dui-macos]
+    needs: [build-binaries, build-dui]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
