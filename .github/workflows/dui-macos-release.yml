@@ -89,10 +89,6 @@ jobs:
       - name: Get version from config
         id: get_version
         run: |
-          # Authenticate gh CLI
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-          gh auth status
-
           echo "CONFIG_VERSION=$(cat dui/src-tauri/tauri.conf.json | jq -r .version)" >> $GITHUB_OUTPUT
           
           # If triggered by workflow_dispatch, verify version matches
@@ -134,10 +130,6 @@ jobs:
 
       - name: Upload Release Assets
         run: |
-          # Authenticate gh CLI
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-          gh auth status
-          
           # Debug: List files and directories
           echo "Current directory contents:"
           ls -la
