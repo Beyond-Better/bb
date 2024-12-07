@@ -1,48 +1,69 @@
-# macOS Release Process
+# macOS DUI Release Process
 
-This document describes the process for building and releasing the Beyond Better DUI for macOS.
+This document describes the macOS-specific aspects of building and releasing the Beyond Better DUI. For the complete release process, see [release_process.md](./release_process.md).
 
 ## Overview
 
-The DUI (Desktop User Interface) is built using Tauri and supports both Intel (x86_64) and Apple Silicon (aarch64) architectures. The release process is automated through GitHub Actions.
-
-## Release Assets
-
-Each release includes:
-- `.app` bundles (archived as `.tar.gz`)
-  * Intel (x86_64) version
-  * Apple Silicon (aarch64) version
-- `.dmg` disk images
-  * Intel (x86_64) version
-  * Apple Silicon (aarch64) version
+The macOS DUI is built using Tauri and supports both Intel (x86_64) and Apple Silicon (aarch64) architectures. The build process is integrated into the main release workflow.
 
 ## Build Configuration
 
-The build configuration is defined in `dui/src-tauri/tauri.conf.json` and includes:
-- DMG installer window layout
-- Minimum macOS version (10.13)
-- Required entitlements
-- Icon configurations
+### Tauri Configuration
+The build configuration is defined in `dui/src-tauri/tauri.conf.json`:
+```json
+{
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "dmg": {
+        "windowSize": {
+          "width": 660,
+          "height": 400
+        },
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        }
+      }
+    }
+  }
+}
+```
 
-## Release Process
+### Entitlements
+Located in `dui/src-tauri/macos/entitlements.plist`:
+- File system access for ~/.bb/bin
+- Network access for API
+- Binary execution permissions
+- URL handling capabilities
 
-### Automated Release (GitHub Actions)
+## Build Process
 
-1. Trigger a release by either:
-   - Pushing to the `release` branch
-   - Using the "DUI macOS Release" workflow manually with a version number
+The macOS build process:
+1. Builds frontend assets using Deno
+2. Compiles Rust code for both architectures
+3. Creates .app bundles
+4. Packages .dmg installers
 
-2. The workflow will:
-   - Build for both Intel and Apple Silicon
-   - Create `.app` bundles and `.dmg` installers
-   - Create a draft release
-   - Upload all assets with architecture-specific names
+### Build Artifacts
+For each architecture (Intel and Apple Silicon):
+- .app bundle (archived as .tar.gz)
+- .dmg installer
+- Debug symbols (future)
 
-### Manual Release Steps
+## Testing
 
-If needed, you can build locally using:
+### Local Testing
 ```bash
 cd dui
+
 # For Intel Macs
 deno task tauri build --target x86_64-apple-darwin
 
@@ -50,46 +71,44 @@ deno task tauri build --target x86_64-apple-darwin
 deno task tauri build --target aarch64-apple-darwin
 ```
 
-## Asset Naming Convention
-
-Release assets follow this naming pattern:
-- `BB-dui-{version}-macos-intel.dmg`
-- `BB-dui-{version}-macos-intel.app.tar.gz`
-- `BB-dui-{version}-macos-apple-silicon.dmg`
-- `BB-dui-{version}-macos-apple-silicon.app.tar.gz`
-
-## Version Management
-
-- The version number is managed in `dui/src-tauri/tauri.conf.json`
-- When using manual workflow triggers, the input version must match the config
-- Git tags are created in the format `dui-v{version}`
-
-## Requirements
-
-### Build Environment
-- macOS machine (for local builds)
-- Xcode Command Line Tools
-- Rust with appropriate targets
-- Deno
-
-### Signing and Notarization
-- Apple Developer account (for future signing implementation)
-- Developer certificate
-- App-specific password for notarization
+### Installation Testing
+1. Download appropriate .dmg
+2. Mount and verify installer window
+3. Test drag-and-drop installation
+4. Launch application
+5. Verify binary installation process
+6. Test core functionality
 
 ## Future Enhancements
 
 1. Code Signing
-   - Implementation pending Apple Developer account
-   - Will require additional workflow secrets
-   - Will enable notarization
+   - Apple Developer account required
+   - Signing certificate setup
+   - Entitlements validation
 
 2. Notarization
-   - To be implemented after signing
    - Required for distribution outside App Store
-   - Will add additional build time
+   - Automated notarization process
+   - Stapling notarization ticket
 
 3. App Store Distribution
-   - Future consideration
-   - Will require additional configuration
-   - Separate distribution process
+   - Additional requirements
+   - Modified entitlements
+   - Store-specific assets
+
+## Troubleshooting
+
+### Build Issues
+- Check Rust toolchain for target architecture
+- Verify Tauri dependencies
+- Review entitlements configuration
+
+### Installation Issues
+- Verify DMG contents
+- Check permissions
+- Review system requirements
+
+### Runtime Issues
+- Check entitlements
+- Verify binary permissions
+- Review log files
