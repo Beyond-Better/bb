@@ -27,6 +27,7 @@
       "app",
       "dmg",
       "msi",
+      "nsis",
       "appimage"
     ],
     "category": "Utility",
