@@ -63,43 +63,30 @@ When launching BB for the first time, you may see security warnings because the 
 1. Navigate to your project directory
 2. Run `bb stop`
 
-### Certificate Management
+## Optional: TLS Configuration
 
-BB includes built-in certificate management for secure HTTPS connections:
+By default, BB runs without TLS for simplicity. If you want to enable HTTPS:
 
-1. View Certificate Status:
+1. View Current Status:
    ```cmd
-   bb.exe secure status
+   bb secure status
    ```
-   This shows:
-   - TLS status (enabled/disabled)
-   - Certificate details and validity
-   - Trust store status
-   - Browser compatibility info
+   Shows TLS status and certificate details if enabled
 
-2. Enable TLS (recommended):
+2. Enable TLS:
    ```cmd
-   bb.exe secure on
+   bb secure on
    ```
-   This will:
-   - Generate necessary certificates
-   - Add the CA to Windows trust store
-   - Update BB configuration
-   Note: You may see a User Account Control (UAC) prompt to allow trust store updates.
+   Note: You'll see a User Account Control (UAC) prompt to allow trust store updates
 
-3. Disable TLS (not recommended):
-   ```cmd
-   bb.exe secure off
-   ```
-
-4. View Certificates in Windows:
+3. View Certificates (after enabling):
    - Press Windows+R
    - Type `certmgr.msc` and press Enter
    - Expand "Trusted Root Certification Authorities"
    - Click "Certificates"
    - Look for "Beyond Better CA"
 
-## Using BB
+For more details, see the [Certificate Management Guide](../security/certificates.md).
 
 ### Command Line Usage
 
