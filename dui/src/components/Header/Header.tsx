@@ -5,11 +5,13 @@ import { VersionDisplay } from '../Version/VersionDisplay';
 interface HeaderProps {
 	serverStatus: ApiStatus;
 	isConnected: boolean;
+	onNavigate: (path: string) => void;
 }
 
 export function Header({
 	serverStatus,
 	isConnected,
+	onNavigate,
 }: HeaderProps): JSX.Element {
 	return (
 		<header className='bg-[#1B2333] text-white py-2 pl-4 pr-0 shadow-lg'>
@@ -20,16 +22,21 @@ export function Header({
 						<img src='/assets/bb-logo.png' alt='BB Logo' className='h-6 w-6' />
 						<h1 className='text-lg font-bold leading-none tracking-tight'>Beyond Better</h1>
 					</div>
-					{
-						/* <div className='text-sm shrink-0 border-l border-gray-600 pl-4'>
-							<div className='font-semibold'>Server Status</div>
-						   </div> */
-					}
+				</div>
+
+				<div className='flex items-center space-x-4'>
+					<button
+						onClick={() => onNavigate('/settings')}
+						className='text-sm px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors'
+					>
+						Settings
+					</button>
 				</div>
 
 				<div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
 					<VersionDisplay />
 				</div>
+
 				{/* Status Indicators */}
 				<div className='flex items-center space-x-4 text-sm shrink-0 border-l border-gray-600 pl-4'>
 					{/* Server Status */}

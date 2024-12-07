@@ -1,3 +1,6 @@
+use env_logger;
+use log::debug;
+
 // Make modules available within the crate
 pub mod api;
 pub mod config;  // Make config module public
@@ -9,6 +12,7 @@ pub use config::{read_global_config, get_api_config, GlobalConfig, ApiConfig};
 pub use commands::api_status::check_api_status;
 pub use commands::version::{get_binary_version, get_version_info, check_version_compatibility};
 pub use commands::upgrade::{perform_install, perform_upgrade};
+pub use commands::config::{get_global_config, set_global_config_value, test_read_config};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -18,6 +22,13 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Initialize the logger with timestamp
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+        .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
+        .init();
+
+    debug!("Starting Beyond Better DUI application");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
@@ -30,7 +41,10 @@ pub fn run() {
             get_version_info,
             check_version_compatibility,
             perform_install,
-            perform_upgrade
+            perform_upgrade,
+            get_global_config,
+            set_global_config_value,
+            test_read_config
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
