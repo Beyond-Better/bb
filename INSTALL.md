@@ -31,7 +31,40 @@ See the [Certificate Management Guide](docs/user/security/certificates.md) for a
 
 ## Installation Methods
 
-### Option 1: One-Line Installation Script (macOS and Linux)
+### Recommended: GUI Installers
+
+#### macOS Installation
+1. Download the appropriate .dmg file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - For Apple Silicon (M1/M2): Download `BB-dui-{version}-macos-apple-silicon.dmg`
+   - For Intel Macs: Download `BB-dui-{version}-macos-intel.dmg`
+2. Open the downloaded .dmg file
+3. Drag the Beyond Better app to your Applications folder
+4. When first launching the app:
+   - Right-click the app and select 'Open', or
+   - Go to System Settings > Privacy & Security and click 'Open Anyway'
+   - This security approval is only needed once, as the app is currently unsigned
+
+#### Windows Installation
+1. Download the appropriate installer from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - Recommended: `BB-dui-{version}-windows-x64.msi` (MSI installer)
+   - Alternative: `BB-dui-{version}-windows-x64-setup.exe` (NSIS installer)
+2. Run the downloaded installer
+3. Follow the installation wizard
+4. When first launching the app, you may see a SmartScreen warning:
+   - Click 'More info'
+   - Click 'Run anyway'
+   - This security approval is only needed once, as the app is currently unsigned
+
+#### Linux Installation
+1. Download the AppImage file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - `BB-dui-{version}-linux-x64.AppImage`
+2. Make the AppImage executable:
+   ```bash
+   chmod +x BB-dui-*.AppImage
+   ```
+3. Run the AppImage
+
+### Alternative: One-Line Installation Script (macOS and Linux)
 
 For macOS and Linux users, the easiest way to install BB is using our one-line installation script:
 
@@ -167,36 +200,13 @@ bb-api.exe --help
 
 These commands should display the help information for BB and its API.
 
-## BB Manager
 
-After installation, you can use the BB Manager to easily manage multiple BB projects:
-
-### Windows
-Run `bb-manager.bat` from the installation directory or use the desktop shortcut.
-
-### macOS
-Open `BB Manager.applescript` from the installation directory.
-
-### Linux
-Run `bb-manager.sh` from the installation directory.
-
-BB Manager allows you to:
-- List, add, and remove BB projects
-- Run BB commands (init, start, stop) for specific projects
-- Automatically set the correct working directory for each project
 
 ## Usage
 
 After installation, you can start using BB in the following ways:
 
-1. Using BB Manager (Recommended):
-   - Windows: Run `bb-manager.bat`
-   - macOS: Open `BB Manager.applescript`
-   - Linux: Run `bb-manager.sh`
-
-   Use the BB Manager to add projects, initialize them, and start/stop BB for specific projects.
-
-2. Browser Interface:
+1. Browser Interface:
    To launch the API and open a browser window to start using BB, run:
    ```
    bb start
