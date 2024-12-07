@@ -163,6 +163,19 @@ jobs:
           projectPath: './dui'
           args: --target ${{ matrix.target }}
 
+      # Debug: Show build output
+      - name: Show build output
+        shell: bash
+        run: |
+          echo "Build output directory contents:"
+          ls -R dui/src-tauri/target/${{ matrix.target }}/release/bundle/
+          echo "\nSearching for build artifacts:"
+          echo "DMG files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.dmg"
+          echo "APP bundles:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.app"
+          echo "AppImage files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.AppImage"
+          echo "MSI files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.msi"
+          echo "EXE files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.exe"
+
       # Verify build artifacts exist
       - name: Verify build artifacts
         id: verify_artifacts
