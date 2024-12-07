@@ -264,40 +264,65 @@ jobs:
           done
 
           # Upload DUI artifacts
-          for arch in x86_64 aarch64; do
-            echo "Processing DUI architecture: $arch"
-            case $arch in
-              "x86_64") arch_name="intel" ;;
-              "aarch64") arch_name="apple-silicon" ;;
+          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64"; do
+            echo "Processing DUI platform/arch: $platform_arch"
+            platform="${platform_arch%%-*}"
+            arch="${platform_arch#*-}"
+            
+            case "$platform_arch" in
+              "macos-x86_64") 
+                platform_name="macos"
+                arch_name="intel" ;;
+              "macos-aarch64")
+                platform_name="macos"
+                arch_name="apple-silicon" ;;
+              "linux-x86_64")
+                platform_name="linux"
+                arch_name="x64" ;;
             esac
             
-            cd "dui-macos-$arch"
+            cd "dui-$platform-$arch"
             
-            # Upload DMG files
-            echo "Processing DMG files:"
-            for f in *.dmg; do
-              if [ -f "$f" ]; then
-                echo "Found DMG file: $f"
-                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-macos-$arch_name.dmg"
-                echo "Creating renamed copy: $new_name"
-                cp "$f" "../$new_name"
-                echo "Attempting upload of $new_name"
-                upload_asset "../$new_name"
-              fi
-            done
-            
-            # Create and upload app archive
-            echo "Processing .app bundles:"
-            for app in *.app; do
-              if [ -d "$app" ]; then
-                echo "Found app bundle: $app"
-                new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-macos-$arch_name.app.tar.gz"
-                echo "Creating archive: $new_name"
-                tar -czf "../$new_name" "$app"
-                echo "Attempting upload of $new_name"
-                upload_asset "../$new_name"
-              fi
-            done
+            if [ "$platform" = "macos" ]; then
+              # Upload DMG files
+              echo "Processing DMG files:"
+              for f in *.dmg; do
+                if [ -f "$f" ]; then
+                  echo "Found DMG file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "../$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "../$new_name"
+                fi
+              done
+              
+              # Create and upload app archive
+              echo "Processing .app bundles:"
+              for app in *.app; do
+                if [ -d "$app" ]; then
+                  echo "Found app bundle: $app"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
+                  echo "Creating archive: $new_name"
+                  tar -czf "../$new_name" "$app"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "../$new_name"
+                fi
+              done
+            elif [ "$platform" = "linux" ]; then
+              # Upload AppImage files
+              echo "Processing AppImage files:"
+              for f in *.AppImage; do
+                if [ -f "$f" ]; then
+                  echo "Found AppImage file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "../$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "../$new_name"
+                fi
+              done
+            fi
             
             cd ..
           done
