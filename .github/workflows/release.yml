@@ -211,20 +211,27 @@ jobs:
             fi
           fi
 
-      # Upload artifacts for both architectures
+      # Create platform-specific directories for artifacts
+      - name: Create artifact directories
+        shell: bash
+        run: |
+          mkdir -p artifacts/dmg artifacts/app artifacts/appimage artifacts/msi artifacts/nsis
+          if [[ "${{ matrix.platform }}" == "macos" ]]; then
+            cp dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg artifacts/dmg/
+            cp -r dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app artifacts/app/
+          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
+            cp dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage artifacts/appimage/
+          elif [[ "${{ matrix.platform }}" == "windows" ]]; then
+            cp dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi artifacts/msi/
+            cp dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe artifacts/nsis/
+          fi
+
+      # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dui-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            # macOS artifacts
-            ${{ matrix.platform == 'macos' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg' || '' }}
-            ${{ matrix.platform == 'macos' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app' || '' }}
-            # Linux artifacts
-            ${{ matrix.platform == 'linux' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage' || '' }}
-            # Windows artifacts
-            ${{ matrix.platform == 'windows' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi' || '' }}
-            ${{ matrix.platform == 'windows' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe' || '' }}
+          path: artifacts/**/*
 
   release:
     needs: [build-binaries, build-dui]
