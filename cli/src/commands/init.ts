@@ -249,7 +249,8 @@ export const init = new Command()
 
 			// Verify that API key is set either in user config or project config
 			const finalGlobalConfig = await configManager.getGlobalConfig();
-			const finalProjectConfig = await configManager.getProjectConfig(projectRoot);
+			const projectId = await getProjectId(projectRoot);
+			const finalProjectConfig = await configManager.getProjectConfig(projectId);
 
 			if (!finalGlobalConfig.api?.llmKeys?.anthropic && !finalProjectConfig.settings.api?.llmKeys?.anthropic) {
 				throw new Error(

@@ -1098,7 +1098,7 @@ class OrchestratorController {
 		}
 
 		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectRoot);
+		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
 		if (projectConfig.type === 'git') {
 			await stageAndCommitAfterChanging(
 				interaction,

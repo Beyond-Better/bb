@@ -65,7 +65,9 @@ export const config = new Command()
 				config = await configManager.getGlobalConfig();
 				console.log(colors.bold('Global configuration:'));
 			} else if (project) {
-				config = await configManager.getProjectConfig(Deno.cwd());
+				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(projectRoot);
+				config = await configManager.getProjectConfig(projectId);
 				console.log(colors.bold('Project configuration:'));
 			} else {
 				config = await configManager.getRedactedGlobalConfig();
@@ -89,16 +91,16 @@ export const config = new Command()
 			}
 
 			let value: unknown;
+			const configManager = await ConfigManagerV2.getInstance();
 			if (global) {
-				const configManager = await ConfigManagerV2.getInstance();
 				const config = await configManager.getGlobalConfig();
 				value = await getConfigValue(key, config);
 			} else if (project) {
-				const configManager = await ConfigManagerV2.getInstance();
-				const config = await configManager.getProjectConfig(Deno.cwd());
+				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(projectRoot);
+				const config = await configManager.getProjectConfig(projectId);
 				value = await getConfigValue(key, config);
 			} else {
-				const configManager = await ConfigManagerV2.getInstance();
 				const config = await configManager.getGlobalConfig();
 				value = await getConfigValue(key, config);
 			}
