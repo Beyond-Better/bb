@@ -241,7 +241,14 @@ jobs:
         shell: bash
         run: |
           echo "Uploaded artifacts for ${{ matrix.platform }}-${{ matrix.arch }}:"
-          find artifacts -type f -ls
+          echo "Build directory contents:"
+          ls -R dui/src-tauri/target/${{ matrix.target }}/release/bundle/
+          echo "\nSearching for uploaded artifacts:"
+          echo "DMG files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.dmg" || true
+          echo "APP bundles:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.app" || true
+          echo "AppImage files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.AppImage" || true
+          echo "MSI files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.msi" || true
+          echo "EXE files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.exe" || true
 
   release:
     needs: [build-binaries, build-dui]
