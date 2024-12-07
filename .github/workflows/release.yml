@@ -97,6 +97,12 @@ jobs:
             arch: "x86_64"
             name: "Linux x64"
             platform: "linux"
+          # Windows builds
+          - os: windows-latest
+            target: "x86_64-pc-windows-msvc"
+            arch: "x86_64"
+            name: "Windows x64"
+            platform: "windows"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +127,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Windows dependencies
+        if: matrix.platform == 'windows'
+        run: |
+          # Install WiX Toolset
+          $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip"
+          $wixZip = "$env:TEMP\wix.zip"
+          Invoke-WebRequest -Uri $wixUrl -OutFile $wixZip
+          Expand-Archive -Path $wixZip -DestinationPath "$env:TEMP\wix" -Force
+          echo "$env:TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install frontend dependencies
         run: |
@@ -167,6 +183,9 @@ jobs:
             ${{ matrix.platform == 'macos' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app' || '' }}
             # Linux artifacts
             ${{ matrix.platform == 'linux' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage' || '' }}
+            # Windows artifacts
+            ${{ matrix.platform == 'windows' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi' || '' }}
+            ${{ matrix.platform == 'windows' && 'dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe' || '' }}
 
   release:
     needs: [build-binaries, build-dui-macos]
