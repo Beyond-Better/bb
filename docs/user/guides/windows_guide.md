@@ -47,26 +47,21 @@ When launching BB for the first time, you may see security warnings because the 
 
 ### Initializing a Project
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `init` as the command.
-5. Follow the prompts to configure your project.
+1. Open Command Prompt
+2. Navigate to your project directory
+3. Run `bb init`
+4. Follow the prompts to configure your project
 
 ### Starting BB
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `start` as the command.
-5. BB will start and open in your default web browser.
+1. Navigate to your project directory
+2. Run `bb start`
+3. BB will start and open in your default web browser
 
 ### Stopping BB
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `stop` as the command.
+1. Navigate to your project directory
+2. Run `bb stop`
 
 ### Certificate Management
 
