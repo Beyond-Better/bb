@@ -126,7 +126,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf libsoup-3.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
 
       - name: Install Windows dependencies
         if: matrix.platform == 'windows'
@@ -154,26 +154,27 @@ jobs:
       # Verify build artifacts exist
       - name: Verify build artifacts
         id: verify_artifacts
+        shell: bash
         run: |
-          if [ "${{ matrix.platform }}" = "macos" ]; then
+          if [[ "${{ matrix.platform }}" == "macos" ]]; then
             DMG_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | wc -l)
             APP_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | wc -l)
-            if [ "$DMG_COUNT" -eq 0 ] || [ "$APP_COUNT" -eq 0 ]; then
+            if [[ "$DMG_COUNT" -eq 0 ]] || [[ "$APP_COUNT" -eq 0 ]]; then
               echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
               exit 1
             fi
             echo "Found $DMG_COUNT .dmg and $APP_COUNT .app files"
-          elif [ "${{ matrix.platform }}" = "linux" ]; then
+          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
             APPIMAGE_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage -name "*.AppImage" | wc -l)
-            if [ "$APPIMAGE_COUNT" -eq 0 ]; then
+            if [[ "$APPIMAGE_COUNT" -eq 0 ]]; then
               echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
               exit 1
             fi
             echo "Found $APPIMAGE_COUNT .AppImage files"
-          elif [ "${{ matrix.platform }}" = "windows" ]; then
+          elif [[ "${{ matrix.platform }}" == "windows" ]]; then
             MSI_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi -name "*.msi" | wc -l)
             NSIS_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*.exe" | wc -l)
-            if [ "$MSI_COUNT" -eq 0 ] || [ "$NSIS_COUNT" -eq 0 ]; then
+            if [[ "$MSI_COUNT" -eq 0 ]] || [[ "$NSIS_COUNT" -eq 0 ]]; then
               echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
               exit 1
             fi
