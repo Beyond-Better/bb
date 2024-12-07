@@ -251,8 +251,19 @@ jobs:
 
       - name: List downloaded artifacts
         run: |
-          echo "Downloaded artifacts:"
+          echo "Current directory: $PWD"
+          echo "Directory contents:"
+          ls -la
+          echo "\nFull directory tree:"
+          tree .
+          echo "\nDetailed file listing:"
           find . -type f -ls
+          echo "\nSearching for specific file types:"
+          echo "DMG files:" && find . -name "*.dmg"
+          echo "APP bundles:" && find . -name "*.app"
+          echo "AppImage files:" && find . -name "*.AppImage"
+          echo "MSI files:" && find . -name "*.msi"
+          echo "EXE files:" && find . -name "*.exe"
 
       - name: Create Release
         id: create_release
