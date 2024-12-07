@@ -89,10 +89,6 @@ jobs:
       - name: Get version from config
         id: get_version
         run: |
-          # Authenticate gh CLI
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-          gh auth status
-
           echo "CONFIG_VERSION=$(cat dui/src-tauri/tauri.conf.json | jq -r .version)" >> $GITHUB_OUTPUT
           
           # If triggered by workflow_dispatch, verify version matches
@@ -134,10 +130,6 @@ jobs:
 
       - name: Upload Release Assets
         run: |
-          # Authenticate gh CLI
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-          gh auth status
-          
           # Debug: List files and directories
           echo "Current directory contents:"
           ls -la
@@ -169,7 +161,8 @@ jobs:
           find . -type f -ls
 
           for arch in x86_64 aarch64; do
-            echo "\nProcessing architecture: $arch"
+            echo ""
+            echo "Processing architecture: $arch"
             case $arch in
               "x86_64") arch_name="intel" ;;
               "aarch64") arch_name="apple-silicon" ;;
@@ -177,11 +170,14 @@ jobs:
             
             cd "dui-macos-$arch"
             
-            echo "\nListing contents of dui-macos-$arch:"
+            echo ""
+            echo "Listing contents of dui-macos-$arch:"
             ls -la
+            ls -la dmg macos
             
             # Upload DMG files
-            echo "\nProcessing DMG files:"
+            cd dmg
+            echo "Processing DMG files:"
             for f in *.dmg; do
               if [ -f "$f" ]; then
                 echo "Found DMG file: $f"
@@ -192,9 +188,11 @@ jobs:
                 upload_asset "../$new_name"
               fi
             done
+            cd ..
             
             # Create and upload app archive
-            echo "\nProcessing .app bundles:"
+            cd macos
+            echo "Processing .app bundles:"
             for app in *.app; do
               if [ -d "$app" ]; then
                 echo "Found app bundle: $app"
@@ -205,6 +203,7 @@ jobs:
                 upload_asset "../$new_name"
               fi
             done
+            cd ..
             
             cd ..
           done
