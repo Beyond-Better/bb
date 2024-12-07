@@ -15,20 +15,6 @@ Before using BB, ensure you have the following:
 
 Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of BB.
 
-Note: BB automatically handles TLS certificate generation and management. During initialization or when enabling TLS, BB will:
-1. Create a local Certificate Authority (CA)
-2. Create a server certificate signed by that CA
-3. Add the CA to your system's trust store (requires your computer's login password)
-
-See the [Certificate Management Guide](docs/user/security/certificates.md) for more details.
-
-For technical users: BB provides several options for TLS configuration:
-- Automatic certificate management (default)
-- Custom certificates via file paths or inline PEM content
-- TLS can be managed using the `bb secure` command
-
-See the [Certificate Management Guide](docs/user/security/certificates.md) for advanced configuration options.
-
 ## Installation Methods
 
 ### Recommended: GUI Installers
@@ -186,6 +172,30 @@ These commands should display the help information for BB and its API.
 ## Usage
 
 After installation, you can start using BB in the following ways:
+
+## Optional: TLS Configuration
+
+By default, BB runs without TLS for simplicity. However, you can enable TLS for additional security:
+
+### Automatic Certificate Management
+To enable TLS with automatic certificate management:
+```bash
+bb secure on
+```
+This will:
+1. Create a local Certificate Authority (CA)
+2. Create a server certificate signed by that CA
+3. Add the CA to your system's trust store (requires your computer's login password)
+
+### Advanced TLS Options
+For technical users, BB provides several TLS configuration options:
+- Custom certificates via file paths or inline PEM content
+- Manual certificate management
+- Trust store configuration
+
+See the [Certificate Management Guide](docs/user/security/certificates.md) for detailed configuration options.
+
+## Using BB
 
 1. Browser Interface:
    To launch the API and open a browser window to start using BB, run:
