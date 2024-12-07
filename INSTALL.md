@@ -79,26 +79,7 @@ This script will:
 
 Note: You may be prompted for your password to install the binaries in `/usr/local/bin`. This is necessary to make BB accessible system-wide.
 
-### Option 2: Windows Installer
-
-For Windows users, we provide an MSI installer for easy installation:
-
-1. Go to the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
-2. Download the `bb-installer.msi` file.
-3. Double-click the downloaded file to run the installer.
-4. Follow the on-screen instructions to complete the installation.
-
-The installer will place two batch files on your desktop:
-- `bb_init.bat`: Use this to initialize BB in your project directory.
-- `bb_start.bat`: Use this to start BB and open the browser interface.
-
-To use BB:
-1. Navigate to your project directory in File Explorer.
-2. Copy the `bb_init.bat` file into your project directory.
-3. Double-click `bb_init.bat` to initialize BB for your project.
-4. Use `bb_start.bat` to start BB whenever you want to work on your project.
-
-### Option 3: Manual Installation from Release Packages
+### Option 2: Manual Installation from Release Packages
 
 For advanced users who prefer manual installation:
 
@@ -122,7 +103,7 @@ For advanced users who prefer manual installation:
    - For Windows:
      Run `install.bat` as administrator
 
-### Option 4: Manual Installation from Source
+### Option 3: Manual Installation from Source
 
 For developers or those who want to build from source:
 
