@@ -113,21 +113,23 @@ You can also use BB directly from the command line:
 1. Open Command Prompt.
 2. Navigate to your project directory.
 3. Run the following commands as needed:
-   - `bb.exe init` to initialize a new project
-   - `bb.exe start` to start BB and open the browser interface
-   - `bb.exe chat` to start BB and use the command-line interface
-   - `bb.exe stop` to stop the BB server
+   - `bb init` to initialize a new project
+   - `bb start` to start BB and open the browser interface
+   - `bb chat` to start BB and use the command-line interface
+   - `bb stop` to stop the BB server
+
+Note: The commands above work without the `.exe` extension as long as the installation directory is in your PATH.
 
 ## Troubleshooting
 
 If you encounter any issues:
 
-1. Check the chat logs: `bb.exe logs`
-2. Check the API logs: `bb.exe logs --api`
+1. Check the chat logs: `bb logs`
+2. Check the API logs: `bb logs --api`
 3. Ensure you're running Command Prompt as an administrator for certain operations.
 4. Verify that your Anthropic API key is correctly set in the `.bb/config.yaml` file.
-5. Check certificate status: `bb.exe secure status`
-6. Try re-enabling TLS: `bb.exe secure on`
+5. Check certificate status: `bb secure status`
+6. Try re-enabling TLS: `bb secure on`
 7. Verify certificate in Windows trust store:
    - Press Windows+R
    - Type `certmgr.msc` and press Enter
