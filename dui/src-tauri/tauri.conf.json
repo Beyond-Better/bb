@@ -25,8 +25,23 @@
     "active": true,
     "targets": [
       "app",
-      "dmg"
+      "dmg",
+      "msi"
     ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "wix": {
+        "language": "en-US",
+        "installMode": "both",
+        "enableElevatedUpdate": true,
+        "shortcut": {
+          "startMenu": true,
+          "desktop": false
+        }
+      }
+    },
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
