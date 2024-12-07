@@ -184,13 +184,31 @@ jobs:
             fi
             echo "Found $APPIMAGE_COUNT .AppImage files"
           elif [[ "${{ matrix.platform }}" == "windows" ]]; then
-            MSI_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi -name "*.msi" | wc -l)
-            NSIS_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*.exe" | wc -l)
-            if [[ "$MSI_COUNT" -eq 0 ]] || [[ "$NSIS_COUNT" -eq 0 ]]; then
-              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
+            # Check MSI artifacts
+            if [ -d "dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi" ]; then
+              MSI_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi -name "*.msi" | wc -l)
+              if [[ "$MSI_COUNT" -eq 0 ]]; then
+                echo "::error::No MSI files found in bundle/msi directory"
+                exit 1
+              fi
+              echo "Found $MSI_COUNT .msi files"
+            else
+              echo "::error::MSI bundle directory not found"
               exit 1
             fi
-            echo "Found $MSI_COUNT .msi and $NSIS_COUNT .exe files"
+
+            # Check NSIS artifacts
+            if [ -d "dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis" ]; then
+              NSIS_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*.exe" | wc -l)
+              if [[ "$NSIS_COUNT" -eq 0 ]]; then
+                echo "::error::No NSIS files found in bundle/nsis directory"
+                exit 1
+              fi
+              echo "Found $NSIS_COUNT .exe files"
+            else
+              echo "::error::NSIS bundle directory not found"
+              exit 1
+            fi
           fi
 
       # Upload artifacts for both architectures
