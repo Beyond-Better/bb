@@ -35,6 +35,12 @@
       "wix": {
         "language": "en-US",
         "enableElevatedUpdateTask": true
+      },
+      "nsis": {
+        "installMode": "both",
+        "displayLanguageSelector": false,
+        "startMenuFolder": "Beyond Better",
+        "shortcutName": "Beyond Better"
       }
     },
     "macOS": {
