@@ -1,4 +1,4 @@
-import { Context } from '@oak/oak';
+import type { Context } from '@oak/oak';
 
 export const getLogs = async (ctx: Context) => {
 	// Get conversation logs

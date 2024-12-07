@@ -1,38 +1,83 @@
-# Installing BBai
+# Installing BB (Beyond Better)
 
-BBai _(pronounced b-b-aye)_ is an AI-powered assistant for text-based projects. This guide will walk you through the installation process.
+BB (Beyond Better) is an AI-powered assistant for text-based projects. This guide will walk you through the installation process.
 
 ## System Requirements
 
-BBai can run on any system that supports Deno. While it has been primarily tested on macOS, it should work on other platforms as well.
+BB can run on macOS, Linux, and Windows systems.
 
 ## Prerequisites
 
-Before using BBai, ensure you have the following:
+Before using BB, ensure you have the following:
 
 1. An Anthropic API key (Note: This is different from your Anthropic chat console login. You can create an API key at https://console.anthropic.com/settings/keys)
 2. [Git](https://git-scm.com/) (latest stable version, recommended but optional)
-3. [ctags](https://github.com/universal-ctags/ctags) (optional, enhances project understanding)
 
-For manual installation from source, you'll also need:
+Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of BB.
 
-4. [Deno](https://deno.com/) (latest stable version)
+Note: BB automatically handles TLS certificate generation and management. During initialization or when enabling TLS, BB will:
+1. Create a local Certificate Authority (CA)
+2. Create a server certificate signed by that CA
+3. Add the CA to your system's trust store (requires your computer's login password)
 
-Git and ctags can be easily installed using package managers like Homebrew on macOS or apt on Linux. While Git is optional, it's highly recommended for optimal use of BBai.
+See the [Certificate Management Guide](docs/user/security/certificates.md) for more details.
+
+For technical users: BB provides several options for TLS configuration:
+- Automatic certificate management (default)
+- Custom certificates via file paths or inline PEM content
+- TLS can be managed using the `bb secure` command
+
+See the [Certificate Management Guide](docs/user/security/certificates.md) for advanced configuration options.
 
 ## Installation Methods
 
-### Option 1: Installing from Release Packages (Recommended)
+### Option 1: One-Line Installation Script (macOS and Linux)
 
-1. Go to the [BBai Releases page](https://github.com/BBai-Tips/bbai/releases) on GitHub.
+For macOS and Linux users, the easiest way to install BB is using our one-line installation script:
+
+```sh
+curl -sSL https://raw.githubusercontent.com/Beyond-Better/bb/main/install.sh | sh
+```
+
+This script will:
+1. Detect your system's architecture and OS
+2. Download the latest version of BB
+3. Install both `bb` and `bb-api` binaries to `/usr/local/bin`
+
+Note: You may be prompted for your password to install the binaries in `/usr/local/bin`. This is necessary to make BB accessible system-wide.
+
+### Option 2: Windows Installer
+
+For Windows users, we provide an MSI installer for easy installation:
+
+1. Go to the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
+2. Download the `bb-installer.msi` file.
+3. Double-click the downloaded file to run the installer.
+4. Follow the on-screen instructions to complete the installation.
+
+The installer will place two batch files on your desktop:
+- `bb_init.bat`: Use this to initialize BB in your project directory.
+- `bb_start.bat`: Use this to start BB and open the browser interface.
+
+To use BB:
+1. Navigate to your project directory in File Explorer.
+2. Copy the `bb_init.bat` file into your project directory.
+3. Double-click `bb_init.bat` to initialize BB for your project.
+4. Use `bb_start.bat` to start BB whenever you want to work on your project.
+
+### Option 3: Manual Installation from Release Packages
+
+For advanced users who prefer manual installation:
+
+1. Go to the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
 2. Download the appropriate package for your operating system and architecture:
-   - For Linux: `bbai-x86_64-unknown-linux-gnu.tar.gz` or `bbai-aarch64-unknown-linux-gnu.tar.gz`
-   - For macOS: `bbai-x86_64-apple-darwin.tar.gz` or `bbai-aarch64-apple-darwin.tar.gz`
-   - For Windows: `bbai-x86_64-pc-windows-msvc.zip`
+   - For macOS: `bb-x86_64-apple-darwin.tar.gz` or `bb-aarch64-apple-darwin.tar.gz`
+   - For Linux: `bb-x86_64-unknown-linux-gnu.tar.gz` or `bb-aarch64-unknown-linux-gnu.tar.gz`
+   - For Windows: `bb-x86_64-pc-windows-msvc.zip`
 3. Extract the downloaded package:
    - For .tar.gz files (Linux and macOS):
      ```
-     tar -xzf bbai-<your-platform>.tar.gz
+     tar -xzf bb-<your-platform>.tar.gz
      ```
    - For .zip files (Windows):
      Extract using your preferred zip tool or the built-in Windows explorer.
@@ -44,41 +89,47 @@ Git and ctags can be easily installed using package managers like Homebrew on ma
    - For Windows:
      Run `install.bat` as administrator
 
-### Option 2: Manual Installation from Source
+### Option 4: Manual Installation from Source
 
-1. Clone the BBai repository:
-   ```
-   git clone https://github.com/BBai-Tips/bbai.git
-   cd bbai
-   ```
+For developers or those who want to build from source:
 
-2. Build the project:
+1. Ensure you have [Deno](https://deno.com/) (latest stable version) installed.
+2. Clone the BB repository:
+   ```
+   git clone https://github.com/Beyond-Better/bb.git
+   cd bb
+   ```
+3. Build the project:
    ```
    deno task build
    ```
-
-3. Move the built executables to a directory in your PATH:
+4. Move the built executables to a directory in your PATH:
    - For Linux and macOS:
      ```
-     sudo mv ./build/bbai ./build/bbai-api /usr/local/bin/
+     sudo mv ./build/bb ./build/bb-api /usr/local/bin/
      ```
    - For Windows:
-     Move `bbai.exe` and `bbai-api.exe` to a directory in your PATH, such as `C:\Windows\System32\`
-
+     Move `bb.exe` and `bb-api.exe` to a directory in your PATH, such as `C:\Windows\System32\`
 
 ## Configuration
 
-After installation, navigate to the project directory where you want to use BBai and run:
+After installation, navigate to the project directory where you want to use BB and run:
 
 ```
-bbai init
+bb init
 ```
 
-This will create a `.bbai/config.yaml` file in your project directory.
+On Windows:
+
+```
+bb.exe init
+```
+
+This will create a `.bb/config.yaml` file in your project directory and generate the necessary TLS certificates for secure operation. If `mkcert` or `openssl` is not available, you will receive an error message with instructions on how to install them.
 
 ## Setting Up Your Anthropic API Key
 
-To use BBai, you'll need an Anthropic API key. This is different from your Anthropic chat console login. Here's how to set it up:
+To use BB, you'll need an Anthropic API key. This is different from your Anthropic chat console login. Here's how to set it up:
 
 1. Obtain an API key:
    - Go to the [Anthropic API Console](https://console.anthropic.com/settings/keys)
@@ -86,80 +137,120 @@ To use BBai, you'll need an Anthropic API key. This is different from your Anthr
    - Click on 'Create Key' to generate a new API key
    - Copy the API key (make sure to save it securely, as you won't be able to view it again)
 
-2. Set up BBai and add your API key:
+2. Set up BB and add your API key:
    - Run the following command in your project directory:
      ```
-     bbai init
+     bb init
      ```
    - Follow the prompt wizard, which will ask for your API key and other configuration options
-   - The wizard will automatically add your API key to the `.bbai/config.yaml` file
+   - The wizard will automatically add your API key to the `.bb/config.yaml` file
 
-Alternatively, if you prefer to manually edit the config file, you can add the API key to your `.bbai/config.yaml` file directly.
+Alternatively, if you prefer to manually edit the config file, you can add the API key to your `.bb/config.yaml` file directly.
 
 Remember to keep your API key confidential and never share it publicly.
 
 ## Verifying Installation
 
-To verify that BBai has been installed correctly, run:
+To verify that BB has been installed correctly, run:
 
 ```
-bbai --help
-bbai-api --help
+bb --help
+bb-api --help
 ```
 
-These commands should display the help information for BBai and its API.
+On Windows:
+
+```
+bb.exe --help
+bb-api.exe --help
+```
+
+These commands should display the help information for BB and its API.
+
+## BB Manager
+
+After installation, you can use the BB Manager to easily manage multiple BB projects:
+
+### Windows
+Run `bb-manager.bat` from the installation directory or use the desktop shortcut.
+
+### macOS
+Open `BB Manager.applescript` from the installation directory.
+
+### Linux
+Run `bb-manager.sh` from the installation directory.
+
+BB Manager allows you to:
+- List, add, and remove BB projects
+- Run BB commands (init, start, stop) for specific projects
+- Automatically set the correct working directory for each project
 
 ## Usage
 
-After installation, you can start using BBai in two main ways:
+After installation, you can start using BB in the following ways:
 
-1. Browser Interface:
-   To launch the API and open a browser window to start using BBai, run:
-   ```
-   bbai start
-   ```
-   This will start the BBai API server and open your default web browser to the BBai interface.
+1. Using BB Manager (Recommended):
+   - Windows: Run `bb-manager.bat`
+   - macOS: Open `BB Manager.applescript`
+   - Linux: Run `bb-manager.sh`
 
-2. Command Line Interface:
-   To launch the API and start the CLI for BBai, run:
-   ```
-   bbai chat
-   ```
-   This will start the BBai API server and initiate a chat session in your terminal.
+   Use the BB Manager to add projects, initialize them, and start/stop BB for specific projects.
 
-Both methods provide access to BBai's features, allowing you to interact with your projects and leverage BBai's capabilities.
+2. Browser Interface:
+   To launch the API and open a browser window to start using BB, run:
+   ```
+   bb start
+   ```
+   This will start the BB API server and open your default web browser to the BB interface.
+
+3. Command Line Interface:
+   To launch the API and start the CLI for BB, run:
+   ```
+   bb chat
+   ```
+   This will start the BB API server and initiate a chat session in your terminal.
+
+4. Direct Commands:
+   You can also use BB directly from the command line:
+   ```
+   bb init   # Initialize BB in the current directory
+   bb start  # Start the BB API and open the browser interface
+   bb stop   # Stop the BB API server
+   ```
+
+All these methods provide access to BB's features, allowing you to interact with your projects and leverage BB's capabilities. The BB Manager is particularly useful for managing multiple projects efficiently.
 
 ## Troubleshooting
 
 If you encounter any issues during installation or use:
 
-1. Check the chat logs: `bbai logs`
-2. Check the API logs: `bbai logs --api`
-3. Inspect the JSON files under `.bbai/data/conversations` for more detailed information
+1. Check the chat logs: `bb logs`
+2. Check the API logs: `bb logs --api`
+3. Inspect the JSON files under `.bb/data/conversations` for more detailed information
 
-As BBai is still in beta, please take necessary precautions when using it with important projects. If you encounter any problems, please create an issue on the [BBai GitHub repository](https://github.com/BBai-Tips/bbai).
+As BB is still in beta, please take necessary precautions when using it with important projects. If you encounter any problems, please create an issue on the [BB GitHub repository](https://github.com/Beyond-Better/bb).
 
 ## Getting Help
 
 For more information or if you need assistance, please refer to the following resources:
 
-- [BBai GitHub Repository](https://github.com/BBai-Tips/bbai)
+- [BB GitHub Repository](https://github.com/Beyond-Better/bb)
 - [CLI Documentation](docs/CLI.md)
 - [API Documentation](docs/API.md)
 - [Contributing Guidelines](docs/CONTRIBUTING.md)
 - [Code of Conduct](docs/CODE_OF_CONDUCT.md)
 - [Security Policy](docs/SECURITY.md)
-- [File Handling Guidelines](docs/FILE_HANDLING.md)
+- [File Handling Guidelines](docs/development/reference/file_handling.md)
 - [Project Conventions](CONVENTIONS.md)
 
-### Using BBai
+### Using BB
 
-After installation, we recommend familiarizing yourself with BBai's features:
+After installation, we recommend familiarizing yourself with BB's features:
 
-1. **CLI Usage**: The [CLI Documentation](docs/CLI.md) provides a comprehensive guide on using BBai from the command line. It covers all available commands, their options, and usage examples.
+1. **CLI Usage**: The [CLI Documentation](docs/CLI.md) provides a comprehensive guide on using BB from the command line. It covers all available commands, their options, and usage examples.
 
-2. **API Integration**: If you're interested in integrating BBai into your own tools or workflows, check out the [API Documentation](docs/API.md). It details all available endpoints, request/response formats, and authentication requirements.
+2. **API Integration**: If you're interested in integrating BB into your own tools or workflows, check out the [API Documentation](docs/API.md). It details all available endpoints, request/response formats, and authentication requirements.
 
-These resources will help you get started with BBai and make the most of its capabilities.
+These resources will help you get started with BB and make the most of its capabilities.
 
-Remember, BBai is in active development, and your feedback is valuable in improving the tool. Happy coding with BBai!
+Remember, BB is in active development, and your feedback is valuable in improving the tool. Happy coding with BB (Beyond Better)!

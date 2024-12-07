@@ -1,64 +1,226 @@
-import type ProjectEditor from '../editor/projectEditor.ts';
-import type LLMConversationInteraction from './interactions/conversationInteraction.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-import LLMToolRequestFiles from './tools/requestFilesTool.ts';
-import LLMToolForgetFiles from './tools/forgetFilesTool.ts';
-import LLMToolSearchProject from './tools/searchProjectTool.ts';
-import LLMToolRunCommand from './tools/runCommandTool.ts';
-import LLMToolFetchWebPage from './tools/fetchWebPageTool.ts';
-import LLMToolFetchWebScreenshot from './tools/fetchWebScreenshotTool.ts';
-import LLMToolApplyPatch from './tools/applyPatchTool.ts';
-import LLMToolSearchAndReplace from './tools/searchAndReplaceTool.ts';
-import LLMToolRewriteFile from './tools/rewriteFileTool.ts';
+import type { LLMToolRunBbResponse, LLMToolRunResultContent, LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
 
-import { createError, ErrorType } from '../utils/error.utils.ts';
-import type { LLMValidationErrorOptions } from '../errors/error.ts';
-//import { getContentFromToolResult } from '../utils/llms.utils.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
+import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 
-export type LLMToolManagerToolSetType = 'coding' | 'research' | 'creative';
+import { compare as compareVersions, parse as parseVersion } from '@std/semver';
+import { isAbsolute, join } from '@std/path';
+import { exists } from '@std/fs';
+
+import { CORE_TOOLS } from './tools_manifest.ts';
+
+export interface ToolUsageStats {
+	toolCounts: Map<string, number>; // Track usage count per tool
+	toolResults: Map<string, { // Track success/failure per tool
+		success: number;
+		failure: number;
+	}>;
+	lastToolUse: string; // Name of last tool used
+	lastToolSuccess: boolean; // Success status of last tool
+}
+
+export interface ToolMetadata {
+	name: string;
+	version: string;
+	author: string;
+	license: string;
+	description: string;
+	path?: string; // is set by code, not part of manifest
+	toolSets?: string | string[]; //defaults to 'core'
+	category?: string | string[];
+	enabled?: boolean; //defaults to true
+	mutates?: boolean; //defaults to true
+	error?: string;
+	config?: unknown;
+	examples?: Array<{ description: string; input: unknown }>;
+}
+
+export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creative';
 
 class LLMToolManager {
-	private tools: Map<string, LLMTool> = new Map();
-	public toolSet: LLMToolManagerToolSetType = 'coding';
+	private toolMetadata: Map<string, ToolMetadata> = new Map();
+	private loadedTools: Map<string, LLMTool> = new Map();
+	private projectConfig: ProjectConfig;
+	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 
-	constructor(toolSet?: LLMToolManagerToolSetType) {
-		if (toolSet) {
-			this.toolSet = toolSet;
+	constructor(
+		projectConfig: ProjectConfig,
+		toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[] = 'core',
+	) {
+		this.projectConfig = projectConfig;
+		this.toolSet = toolSet;
+	}
+
+	async init() {
+		await this.loadToolMetadata(this.projectConfig.settings.api?.userToolDirectories || []);
+
+		return this;
+	}
+
+	private async loadToolMetadata(directories: string[]) {
+		for (const coreTool of CORE_TOOLS) {
+			const toolNamePath = join('tools', coreTool.toolNamePath);
+			coreTool.metadata.path = toolNamePath;
+			logger.debug(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
+			this.toolMetadata.set(coreTool.metadata.name, coreTool.metadata);
 		}
-		this.registerDefaultTools();
+
+		for (const directory of directories) {
+			logger.debug(`LLMToolManager: Checking ${directory} for tools`);
+			try {
+				if (!await exists(directory)) {
+					logger.debug(`LLMToolManager: Skipping ${directory} as it is does not exist`);
+					continue;
+				}
+				const directoryInfo = await Deno.stat(directory);
+				if (!directoryInfo.isDirectory) {
+					logger.debug(`LLMToolManager: Skipping ${directory} as it is not a directory`);
+					continue;
+				}
+
+				for await (const entry of Deno.readDir(directory)) {
+					if (entry.isDirectory && entry.name.endsWith('.tool')) {
+						try {
+							const toolPath = join(directory, entry.name);
+							const metadataInfoPath = join(toolPath, 'info.json');
+							const metadata: ToolMetadata = JSON.parse(await Deno.readTextFile(metadataInfoPath));
+							metadata.path = toolPath;
+
+							if (this.isToolInSet(metadata)) {
+								logger.debug(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
+								if (this.toolMetadata.has(metadata.name)) {
+									const existingMetadata = this.toolMetadata.get(metadata.name)!;
+									if (this.shouldReplaceExistingTool(existingMetadata, metadata)) {
+										this.toolMetadata.set(metadata.name, metadata);
+									} else {
+										logger.warn(
+											`LLMToolManager: Tool ${metadata.name} has already been loaded and shouldn't be replaced`,
+										);
+									}
+								} else {
+									this.toolMetadata.set(metadata.name, metadata);
+								}
+							} else {
+								logger.warn(
+									`LLMToolManager: Tool ${entry.name} is not in tool set ${
+										Array.isArray(this.toolSet) ? this.toolSet.join(', ') : this.toolSet
+									}`,
+								);
+							}
+						} catch (error) {
+							logger.error(
+								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${
+									(error as Error).message
+								}`,
+							);
+						}
+					}
+				}
+			} catch (error) {
+				logger.error(`LLMToolManager: Error processing directory ${directory}: ${(error as Error).message}`);
+			}
+		}
 	}
 
-	private registerDefaultTools(): void {
-		this.registerTool(new LLMToolRequestFiles());
-		this.registerTool(new LLMToolForgetFiles());
-		this.registerTool(new LLMToolSearchProject());
-		this.registerTool(new LLMToolRewriteFile());
-		this.registerTool(new LLMToolSearchAndReplace());
-		this.registerTool(new LLMToolApplyPatch());
-		this.registerTool(new LLMToolRunCommand());
-		this.registerTool(new LLMToolFetchWebPage());
-		this.registerTool(new LLMToolFetchWebScreenshot());
+	private isToolInSet(metadata: ToolMetadata): boolean {
+		const metadataSets = metadata.toolSets
+			? (Array.isArray(metadata.toolSets) ? metadata.toolSets : [metadata.toolSets])
+			: ['core'];
+		const requestedSets = Array.isArray(this.toolSet) ? this.toolSet : [this.toolSet];
+		return metadataSets.some((set) => requestedSets.includes(set as LLMToolManagerToolSetType));
 	}
 
-	registerTool(tool: LLMTool): void {
-		this.tools.set(tool.name, tool);
+	private isToolEnabled(metadata: ToolMetadata): boolean {
+		// enabled may not be set in metadata, so default to true
+		return metadata.enabled !== false;
 	}
 
-	getTool(name: string): LLMTool | undefined {
-		return this.tools.get(name);
+	private shouldReplaceExistingTool(existing: ToolMetadata, newMetadata: ToolMetadata): boolean {
+		// Prefer user-supplied tools
+		if (
+			(this.projectConfig.settings.api?.userToolDirectories || []).some((dir) =>
+				newMetadata.path!.startsWith(dir)
+			)
+		) {
+			if (compareVersions(parseVersion(existing.version), parseVersion(newMetadata.version)) > 0) {
+				logger.warn(
+					`LLMToolManager: User-supplied tool ${newMetadata.name} (${newMetadata.version}) is older than built-in tool (${existing.version})`,
+				);
+			}
+			return true;
+		}
+		return false;
+	}
+
+	async getTool(name: string): Promise<LLMTool | undefined> {
+		if (this.loadedTools.has(name)) {
+			//logger.info(`LLMToolManager: Returning cached ${name} tool`);
+			return this.loadedTools.get(name);
+		}
+
+		const metadata = this.toolMetadata.get(name);
+		if (!metadata) {
+			logger.warn(`LLMToolManager: Tool ${name} not found`);
+			return undefined;
+		}
+
+		if (!this.isToolEnabled(metadata)) {
+			logger.warn(`LLMToolManager: Tool ${name} is disabled`);
+			return undefined;
+		}
+
+		try {
+			const toolPath = isAbsolute(metadata.path!)
+				? join(metadata.path!, 'tool.ts')
+				: join('.', metadata.path!, 'tool.ts');
+			logger.debug(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
+			const module = await import(new URL(toolPath, import.meta.url).href);
+			const tool = await new module.default(
+				metadata.name,
+				metadata.description,
+				this.projectConfig.settings.api?.toolConfigs?.[name] || {},
+			).init();
+			logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
+			this.loadedTools.set(name, tool);
+			return tool;
+		} catch (error) {
+			logger.error(`LLMToolManager: Error loading tool ${name}: ${(error as Error).message}`);
+			metadata.error = (error as Error).message;
+			return undefined;
+		}
 	}
 
 	getToolFileName(name: string): string | undefined {
-		const tool = this.tools.get(name);
-		return tool ? tool.fileName : undefined;
+		const metadata = this.toolMetadata.get(name);
+		return metadata ? `${metadata.path}/tool.ts` : undefined;
 	}
 
-	getAllTools(): LLMTool[] {
-		return Array.from(this.tools.values());
+	async getAllTools(enabledOnly = true): Promise<LLMTool[]> {
+		const tools: LLMTool[] = [];
+		for (const metadata of this.toolMetadata.values()) {
+			if (enabledOnly && this.isToolEnabled(metadata)) {
+				const tool = await this.getTool(metadata.name);
+				if (tool) {
+					tools.push(tool);
+				}
+			}
+		}
+		return tools;
+	}
+
+	getAllToolsMetadata(): Map<string, ToolMetadata> {
+		return this.toolMetadata;
+	}
+
+	getToolMetadata(): ToolMetadata[] {
+		return Array.from(this.toolMetadata.values());
 	}
 
 	async handleToolUse(
@@ -69,14 +231,14 @@ class LLMToolManager {
 		{
 			messageId: string;
 			toolResults: LLMToolRunResultContent;
-			toolResponse: string;
-			bbaiResponse: string;
+			toolResponse: LLMToolRunToolResponse;
+			bbResponse: LLMToolRunBbResponse;
 			isError: boolean;
 		}
 	> {
-		const tool = this.tools.get(toolUse.toolName);
+		const tool = await this.getTool(toolUse.toolName);
 		if (!tool) {
-			logger.warn(`Unknown tool used: ${toolUse.toolName}`);
+			logger.warn(`llmToolManager: Unknown tool used: ${toolUse.toolName}`);
 			throw new Error(`Unknown tool used: ${toolUse.toolName}`);
 		}
 		try {
@@ -88,47 +250,51 @@ class LLMToolManager {
 				} as LLMValidationErrorOptions);
 			} else {
 				logger.info(
-					`handleToolUse - Tool ${toolUse.toolName} is already validated with results: ${toolUse.toolValidation.results}`,
+					`llmToolManager: handleToolUse - Tool ${toolUse.toolName} validated with results: ${toolUse.toolValidation.results}`,
 				);
 			}
 
-			const { toolResults, toolResponse, bbaiResponse, finalize } = await tool.runTool(
+			const { toolResults, toolResponse, bbResponse, finalizeCallback } = await tool.runTool(
 				interaction,
 				toolUse,
 				projectEditor,
 			);
 
-			const { messageId } = tool.finalizeToolUse(
-				interaction,
-				toolUse,
-				toolResults,
-				false,
-			);
+			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, toolResults, false) || '';
 
-			if (finalize) {
-				finalize(messageId);
+			if (finalizeCallback) {
+				logger.info(
+					`llmToolManager: handleToolUse - Tool ${toolUse.toolName} is being finalized for messageId: ${messageId}`,
+				);
+				finalizeCallback(messageId);
 			}
+
+			// Update tool usage stats
+			interaction.updateToolStats(toolUse.toolName, true);
+
+			// Resource tracking is now handled directly by tools using the interaction
 
 			return {
 				messageId,
 				toolResults,
 				toolResponse,
-				bbaiResponse,
+				bbResponse,
 				isError: false,
 			};
 		} catch (error) {
-			logger.error(`Error executing tool ${toolUse.toolName}: ${error.message}`);
-			const { messageId } = tool.finalizeToolUse(
-				interaction,
-				toolUse,
-				error.message,
-				true,
-			);
+			logger.error(`llmToolManager: Error executing tool ${toolUse.toolName}: ${(error as Error).message}`);
+
+			const messageId = interaction.addMessageForToolResult(toolUse.toolUseId, (error as Error).message, true) ||
+				'';
+
+			// Update tool usage stats
+			interaction.updateToolStats(toolUse.toolName, false);
+
 			return {
 				messageId,
 				toolResults: [],
-				toolResponse: `Error with ${toolUse.toolName}: ${error.message}`,
-				bbaiResponse: 'BBai could not run the tool',
+				toolResponse: `Error with ${toolUse.toolName}: ${(error as Error).message}`,
+				bbResponse: 'BB could not run the tool',
 				isError: true,
 			};
 		}

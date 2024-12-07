@@ -1,122 +1,204 @@
-# BBai CLI Documentation
+# BB CLI Documentation
 
-`bbai` is a command-line interface tool for interacting with the BBai API and managing AI-assisted conversations for various text-based projects.
+`bb` is a command-line interface tool for interacting with the BB API and managing AI-assisted conversations for various text-based projects.
 
 ## Installation
 
 For detailed installation instructions, please refer to the [INSTALL.md](../INSTALL.md) file.
 
+For Windows users, we provide an MSI installer and batch files for easy setup and usage. Please see our [Windows User Guide](user/guides/windows_guide.md) for more information.
+
 ## Usage
 
 ```
-bbai [command] [options]
+bb [command] [options]
 ```
+
+On Windows, use `bb.exe` instead of `bb` for all CLI commands.
+
+On Windows, you can also use the provided batch files:
+- `bb_init.bat`: Initialize BB in your project directory.
+- `bb_start.bat`: Start BB and open the browser interface.
 
 ## Available Commands
 
 ### General
 
-- `bbai --version`: Display the version of the BBai CLI tool.
-- `bbai --help`: Show help information for the BBai CLI tool.
+- `bb --version`: Display the version of the BB CLI tool.
+- `bb --help`: Show help information for the BB CLI tool.
 
 ### Project Initialization
 
-- `bbai init`: Initialize BBai in the current directory.
+- `bb init`: Initialize BB in the current directory.
+  - On Windows, you can also double-click `bb_init.bat` in your project directory.
 
 ### API Management
 
-- `bbai start`: Start the BBai API server.
+- `bb start`: Start the BB API server and open the browser interface.
+  - On Windows, you can also double-click `bb_start.bat` in your project directory.
   - Options:
     - `--log-level <level>`: Set the log level for the API server.
     - `--log-file <file>`: Specify a log file to write output.
-- `bbai stop`: Stop the BBai API server.
-- `bbai status`: Check the status of the BBai API server.
-  - Options:
-    - `--text`: Return plain text instead of JSON.
+- `bb stop`: Stop the BB API server.
+- `bb status`: Check the status of the BB API server.
 
 ### Conversation Management
 
-- `bbai chat` (alias: `c`): Start a new conversation or continue an existing one.
+- `bb chat` (alias: `c`): Start a new conversation or continue an existing one.
   - Options:
-    - `-p, --prompt <string>`: Prompt to start or continue the conversation.
+    - `-s, -p, --prompt <string>`: Prompt (or statement) to start or continue the conversation.
     - `-i, --id <string>`: Conversation ID to continue.
-    - `-m, --model <string>`: LLM model to use for the conversation.
-    - `--text`: Return plain text instead of JSON.
+    - `--json`: Return JSON instead of plain text.
+
+### Configuration Management
+
+- `bb secure`: Manage TLS security settings (see Security Management section)
+
+- `bb config`: View or update BB configuration.
+  - Commands:
+    - `view`: View configuration settings
+      - `--global`: Show only global configuration
+      - `--project`: Show only project configuration
+    - `get <key>`: Get a specific configuration value
+      - `--global`: Get from global configuration
+      - `--project`: Get from project configuration
+    - `set <key> <value>`: Set a configuration value (defaults to project config)
+      - `--global`: Set in global configuration
+      - `--project`: Set in project configuration
+  - Examples:
+    - View current configuration:
+      ```bash
+      bb config view
+      ```
+    - View global configuration:
+      ```bash
+      bb config view --global
+      ```
+    - Get a specific value:
+      ```bash
+      bb config get api.logLevel
+      bb config get --global api.apiPort
+      ```
+    - Set configuration values:
+      ```bash
+      # Set in project config (default)
+      bb config set api.logLevel debug
+      
+      # Set in global config
+      bb config set --global api.apiPort 3162
+      
+      # Set complex values (automatically parsed)
+      bb config set api.toolConfigs '{"tool1": {"enabled": true}}'
+      ```
+  - Notes:
+    - Nested keys use dot notation (e.g., 'api.logLevel')
+    - Values are automatically parsed as JSON when appropriate
+    - Project config is the default target for 'set' command
+    - Configuration changes take effect immediately
 
 ### File Management
 
-- `bbai add`: Add files to the conversation (not implemented).
-- `bbai remove`: Remove files from the conversation (not implemented).
-- `bbai list`: List files in the conversation (not implemented).
+- `bb add`: Add files to the conversation (not implemented).
+- `bb remove`: Remove files from the conversation (not implemented).
+- `bb list`: List files in the conversation (not implemented).
 
 ### Conversation Actions
 
-- `bbai clear`: Clear the current conversation (not implemented).
-- `bbai request`: Request changes from the LLM (not implemented).
-- `bbai undo`: Undo the last change (not implemented).
+- `bb clear`: Clear the current conversation (not implemented).
+- `bb request`: Request changes from the LLM (not implemented).
+- `bb undo`: Undo the last change (not implemented).
 
 ### Utility Commands
 
-- `bbai usage`: Show current token usage (not implemented).
-- `bbai run`: Run an arbitrary CLI command (not implemented).
-- `bbai load`: Load content from an external web site (not implemented).
-- `bbai logs`: View chat conversation logs (default).
+- `bb logs`: View chat conversation logs (default).
   - Options:
     - `-n, --lines <number>`: Number of lines to display (default: 20).
     - `-f, --follow`: Follow the log output in real-time with color-enabled display for chat conversations.
     - `--api`: Show logs for the API server instead of chat conversations.
     - `-i, --id <string>`: Conversation ID to view logs for.
+- `bb usage`: Show current token usage (not implemented).
 
-### Persistence
+### Security Management
 
-- `bbai persist`: Persist the current conversation to disk (not implemented).
-- `bbai resume`: Resume a persisted conversation (not implemented).
+- `bb secure`: Manage TLS security for BB API
+  - Commands:
+    - `on`: Enable TLS (recommended)
+      - Generates CA and server certificates
+      - Adds CA to system trust store
+      - Updates configuration
+    - `off`: Disable TLS (not recommended)
+      - Disables TLS in configuration
+      - Keeps certificates for future use
+    - `status`: Show detailed TLS status
+      - Certificate details and validity
+      - Trust store status
+      - Browser compatibility info
+      - Platform-specific guidance
+  - Examples:
+    ```bash
+    # Enable TLS (recommended)
+    bb secure on
+
+    # Check TLS status
+    bb secure status
+
+    # Disable TLS (not recommended)
+    bb secure off
+    ```
+  - Notes:
+    - TLS is enabled by default for security
+    - Certificates are automatically managed
+    - Your computer's login password may be required to update the trust store
+    - See [Certificate Management Guide](user/security/certificates.md) for details
 
 ## Examples
 
-1. Initialize BBai in your project:
+1. Initialize BB in your project:
    ```
-   bbai init
+   bb init
    ```
+   On Windows, double-click `bb_init.bat` in your project directory.
 
-2. Start the BBai API server:
+2. Start the BB API server and open the browser interface:
    ```
-   bbai start
+   bb start
    ```
+   On Windows, double-click `bb_start.bat` in your project directory.
 
 3. Start a new conversation:
    ```
-   bbai chat -p "Hello, I'd like to start a new project."
+   bb chat -p "Hello, I'd like to start a new project."
    ```
 
 4. Continue an existing conversation:
    ```
-   bbai chat -i <conversation-id> -p "Can you explain the last change?"
+   bb chat -i <conversation-id> -p "Can you explain the last change?"
    ```
 
 5. View chat conversation logs in real-time with color-enabled display:
    ```
-   bbai logs -f
+   bb logs -f -i <conversation-id>
    ```
 
 6. View API logs:
    ```
-   bbai logs --api
+   bb logs --api
    ```
 
 7. Check the status of the API server:
    ```
-   bbai status
+   bb status
    ```
 
 8. Stop the API server:
    ```
-   bbai stop
-   ```
-
-9. View API server logs:
-   ```
-   bbai logs --api
+   bb stop
    ```
 
 Note: Many commands are currently not implemented and will be added in future updates.
+
+## Windows-Specific Usage
+
+For detailed instructions on using BB on Windows, including how to use the provided batch files and the importance of project-specific usage, please refer to our [Windows User Guide](WINDOWS_GUIDE.md).
+
+Remember that the `init` and `start` commands (and their corresponding batch files) are project-specific. Always ensure you're in the correct project directory when running these commands or using the batch files.

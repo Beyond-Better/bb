@@ -1,1 +1,2 @@
-export const VERSION = "0.0.13e-beta";
+export const VERSION = "0.4.1";
+export const REQUIRED_API_VERSION = "0.4.1";

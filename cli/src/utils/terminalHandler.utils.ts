@@ -1,4 +1,6 @@
 import { Input } from 'cliffy/prompt/mod.ts';
+import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { ansi, colors, tty } from 'cliffy/ansi/mod.ts';
 //import { crayon } from 'https://deno.land/x/crayon@3.3.3/mod.ts';
 //import { handleInput, handleKeyboardControls, handleMouseControls, Tui } from 'https://deno.land/x/tui@2.1.11/mod.ts';
@@ -9,16 +11,18 @@ import { ansi, colors, tty } from 'cliffy/ansi/mod.ts';
 import Kia from 'kia-spinner';
 import { SPINNERS } from './terminalSpinners.ts';
 import ApiClient from 'cli/apiClient.ts';
-import ConversationLogFormatter from 'shared/conversationLogFormatter.ts';
+import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 //import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
-import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+//import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { getStatementHistory } from './statementHistory.utils.ts';
+import { getBbDir } from 'shared/dataDir.ts';
 import type {
 	ConversationContinue,
 	ConversationId,
+	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
-	ConversationTokenUsage,
+	TokenUsage,
 } from 'shared/types.ts';
 //import { logger } from 'shared/logger.ts';
 
@@ -46,19 +50,159 @@ export const palette = {
 	info: colors.magenta,
 };
 
+interface StatusMessage {
+	status: ApiStatus;
+	timestamp: number;
+	statementCount: number;
+	sequence: number;
+	metadata?: {
+		toolName?: string;
+		error?: string;
+	};
+}
+
 export class TerminalHandler {
-	private formatter: ConversationLogFormatter;
+	private formatter!: ConversationLogFormatter;
 	private history: string[] = [];
 	private spinner!: Spinner;
+	private currentStatus: StatusMessage | null = null;
+	private statusQueue: StatusMessage[] = [];
+	private lastStatusUpdateTime: number = 0;
+	private readonly minStatusDisplayTime: number = 500; // ms
+	private promptCacheStartTime: number | null = null;
+	private promptCacheDuration: number | null = null;
 	private statementInProgress: boolean = false;
-	private bbaiDir: string;
+	private projectId: string;
+	private bbDir!: string;
 	private apiClient!: ApiClient;
 
-	constructor(bbaiDir: string) {
-		this.formatter = new ConversationLogFormatter();
-		this.bbaiDir = bbaiDir;
-		this.spinner = this.createSpinner('BBai warming up...');
+	constructor(projectId: string) {
+		this.projectId = projectId;
+		this.spinner = this.createSpinner('BB warming up...');
+	}
+	private getStatusColor(status: ApiStatus): (s: string) => string {
+		switch (status) {
+			case ApiStatus.LLM_PROCESSING:
+				return palette.success; // green
+			case ApiStatus.TOOL_HANDLING:
+				return palette.warning; // yellow
+			case ApiStatus.API_BUSY:
+				return palette.secondary; // cyan
+			case ApiStatus.ERROR:
+				return palette.error; // red
+			default:
+				return palette.info; // magenta
+		}
+	}
+
+	private getStatusMessage(status: ApiStatus, metadata?: { toolName?: string; error?: string }): string {
+		switch (status) {
+			case ApiStatus.LLM_PROCESSING:
+				return 'Claude is thinking...';
+			case ApiStatus.TOOL_HANDLING:
+				return `Running tool: ${metadata?.toolName || 'unknown'}`;
+			case ApiStatus.API_BUSY:
+				return 'Processing request...';
+			case ApiStatus.ERROR:
+				return `Error: ${metadata?.error || 'Unknown error'}`;
+			default:
+				return 'Ready';
+		}
+	}
+
+	public handleProgressStatus(message: ProgressStatusMessage): void {
+		// Ignore messages from previous statements
+		if (this.currentStatus && message.statementCount < this.currentStatus.statementCount) {
+			return;
+		}
+
+		// Add to queue sorted by sequence number
+		this.statusQueue.push(message);
+		this.statusQueue.sort((a, b) => {
+			if (a.statementCount !== b.statementCount) {
+				return a.statementCount - b.statementCount;
+			}
+			return a.sequence - b.sequence;
+		});
+
+		this.processStatusQueue();
+	}
+
+	public handlePromptCacheTimer(message: PromptCacheTimerMessage): void {
+		this.promptCacheStartTime = message.startTimestamp;
+		this.promptCacheDuration = message.duration;
+	}
+
+	private processStatusQueue(): void {
+		const now = Date.now();
+		const timeSinceLastUpdate = now - this.lastStatusUpdateTime;
+
+		// If we haven't waited long enough since the last update, schedule a check
+		if (this.currentStatus && timeSinceLastUpdate < this.minStatusDisplayTime) {
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime - timeSinceLastUpdate);
+			return;
+		}
+
+		// If queue is empty, nothing to do
+		if (this.statusQueue.length === 0) return;
+
+		// Get the last message in the current batch (messages for the same statement)
+		const currentMessage = this.statusQueue[0];
+		const currentStatementCount = currentMessage.statementCount;
+		let lastMessageInBatch = currentMessage;
+		let batchSize = 1;
+
+		// Look ahead to find all messages in the same batch
+		for (let i = 1; i < this.statusQueue.length; i++) {
+			if (this.statusQueue[i].statementCount === currentStatementCount) {
+				lastMessageInBatch = this.statusQueue[i];
+				batchSize++;
+			} else {
+				break;
+			}
+		}
+
+		// If we have multiple messages in the batch and the last one is recent
+		if (batchSize > 1 && lastMessageInBatch.timestamp + (this.minStatusDisplayTime / 2) > now) {
+			// Wait a short time to see if more messages arrive
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime / 2);
+			return;
+		}
+
+		// Process the last message in the batch
+		this.currentStatus = lastMessageInBatch;
+		this.lastStatusUpdateTime = now;
+		// Remove all messages up to and including the one we're processing
+		this.statusQueue.splice(0, batchSize);
+
+		// Update the spinner with the new status
+		const statusColor = this.getStatusColor(lastMessageInBatch.status);
+		let statusMessage = statusColor(this.getStatusMessage(lastMessageInBatch.status, lastMessageInBatch.metadata));
+
+		// Show prompt cache timer if applicable
+		if (
+			lastMessageInBatch.status === ApiStatus.LLM_PROCESSING && this.promptCacheStartTime &&
+			this.promptCacheDuration
+		) {
+			const elapsed = now - this.promptCacheStartTime;
+			const remaining = Math.max(0, this.promptCacheDuration - elapsed);
+			if (remaining > 0) {
+				statusMessage += palette.info(` (Cache: ${Math.ceil(remaining / 1000)}s)`);
+			}
+		}
+		this.startSpinner(statusMessage);
+
+		// If there are more messages, schedule the next check
+		if (this.statusQueue.length > 0) {
+			setTimeout(() => this.processStatusQueue(), this.minStatusDisplayTime);
+		}
+	}
+
+	public async init(): Promise<TerminalHandler> {
+		this.bbDir = await getBbDir(this.projectId);
 		this.loadHistory();
+		this.formatter = await new ConversationLogFormatter().init();
+		return this;
 	}
 
 	public async initializeTerminal(): Promise<void> {
@@ -76,11 +220,11 @@ export class TerminalHandler {
 				//	preserveAspectRatio: true,
 				//}) + '  ' +
 				ansi.cursorTo(6, 2) +
-				colors.bold.blue.underline('BBai') + colors.bold.blue(' - Be Better with code and docs'),
-			//colors.bold.blue(ansi.link('BBai', 'https://bbai.tips')) +
+				colors.bold.blue.underline('BB') + colors.bold.blue(' - Beyond Better - with code and docs'),
+			//colors.bold.blue(ansi.link('BB', 'https://beyondbetter.dev')) +
 			//+ '\n',
 		);
-		this.apiClient = await ApiClient.create();
+		this.apiClient = await ApiClient.create(this.projectId);
 	}
 
 	/*
@@ -178,7 +322,7 @@ export class TerminalHandler {
 
 	private async loadHistory(): Promise<string[]> {
 		// TODO: Implement loading history from file or database
-		this.history = await getStatementHistory(this.bbaiDir);
+		this.history = await getStatementHistory(this.bbDir);
 		return this.history;
 	}
 
@@ -191,11 +335,11 @@ export class TerminalHandler {
 		console.log(palette.secondary(`╭${'─'.repeat(cols - 2)}╮`));
 	}
 
-	public displayConversationStart(
-		data: ConversationStart,
+	public async displayConversationStart(
+		data: ConversationStart | ConversationNew,
 		conversationId?: ConversationId,
 		expectingMoreInput: boolean = true,
-	): void {
+	): Promise<void> {
 		if (this.spinner) this.hideSpinner();
 		conversationId = data.conversationId;
 
@@ -205,6 +349,10 @@ export class TerminalHandler {
 		}
 
 		const { conversationTitle } = data;
+		if (!conversationTitle) {
+			console.log('Warning: No conversation title available');
+			return;
+		}
 		const statementCount = data.conversationStats?.statementCount || 1;
 		const shortTitle = conversationTitle ? conversationTitle.substring(0, 30) : '<pending>';
 
@@ -229,7 +377,7 @@ export class TerminalHandler {
 		console.log('');
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 
@@ -263,9 +411,7 @@ export class TerminalHandler {
 		try {
 			const formatterResponse = await this.apiClient.post(
 				`/api/v1/format_log_entry/console/${logEntry.entryType}`,
-				{
-					...logEntry,
-				},
+				{ logEntry, projectId: this.projectId },
 			);
 
 			if (!formatterResponse.ok) {
@@ -273,7 +419,7 @@ export class TerminalHandler {
 			} else {
 				const responseContent = await formatterResponse.json();
 				const formattedContent = responseContent.formattedContent;
-				const formattedEntry = this.formatter.formatLogEntry(
+				const formattedEntry = await this.formatter.formatLogEntry(
 					logEntry.entryType,
 					timestamp,
 					//this.highlightOutput(formattedContent),
@@ -288,46 +434,47 @@ export class TerminalHandler {
 				console.log(formattedEntry);
 			}
 		} catch (error) {
-			console.error(`Error formatting log entry: ${error.message}`);
+			console.error(`Error formatting log entry: ${(error as Error).message}`);
 			// Fallback to basic formatting
 			console.log(`${logEntry.entryType.toUpperCase()}: ${logEntry.content}`);
 		}
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 
-	public displayConversationAnswer(
+	public async displayConversationAnswer(
 		data: ConversationResponse,
 		conversationId?: ConversationId,
 		expectingMoreInput: boolean = false,
-	): void {
+	): Promise<void> {
 		//logger.debug(`displayConversationAnswer called with data: ${JSON.stringify(data)}`);
 		this.hideSpinner();
 		conversationId = data.conversationId;
 
-		if (!data.response) {
-			console.log('Entry has no response', data);
+		if (!data.logEntry) {
+			console.log('Entry has no logEntry', data);
 			return;
 		}
 
 		const {
 			conversationTitle,
-			conversationStats = { statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
+			conversationStats = data.conversationStats, //{ statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
 			tokenUsageStatement = {
-				inputTokens: data.response.usage.inputTokens,
-				outputTokens: data.response.usage.outputTokens,
-				totalTokens: data.response.usage.totalTokens,
+				inputTokens: data.tokenUsageStatement.inputTokens,
+				outputTokens: data.tokenUsageStatement.outputTokens,
+				totalTokens: data.tokenUsageStatement.totalTokens,
 			},
 		} = data;
 
 		const timestamp = ConversationLogFormatter.getTimestamp();
-		const contentPart = data.response.answerContent[0] as LLMMessageContentPartTextBlock;
-		const formattedEntry = this.formatter.formatLogEntry(
+		//const contentPart = data.response.answerContent[0] as LLMMessageContentPartTextBlock;
+		const answer = data.logEntry.content as string;
+		const formattedEntry = await this.formatter.formatLogEntry(
 			'assistant',
 			timestamp,
-			this.highlightOutput(contentPart.text),
+			this.highlightOutput(answer),
 			conversationStats,
 			tokenUsageStatement,
 		);
@@ -363,26 +510,26 @@ export class TerminalHandler {
 		console.log(summaryLine);
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is working...');
+			this.startSpinner('Claude is thinking...');
 		}
 	}
 
-	public displayConversationComplete(
+	public async displayConversationComplete(
 		response: ConversationResponse,
-		options: { id?: string; text?: boolean },
+		options: { id?: string; json?: boolean },
 		_expectingMoreInput: boolean = false,
-	): void {
+	): Promise<void> {
 		this.hideSpinner();
 		const isNewConversation = !options.id;
 		const { conversationId, conversationStats, conversationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
-		const tokenUsageConversation: ConversationTokenUsage = {
-			inputTokensTotal: response.response.usage.inputTokens,
-			outputTokensTotal: response.response.usage.outputTokens,
-			totalTokensTotal: response.response.usage.totalTokens,
+		const tokenUsageConversation: TokenUsage = {
+			inputTokens: response.tokenUsageStatement.inputTokens,
+			outputTokens: response.tokenUsageStatement.outputTokens,
+			totalTokens: response.tokenUsageStatement.totalTokens,
 		};
 
-		if (!options.text) {
+		if (options.json) {
 			console.log(JSON.stringify(
 				{
 					...response,
@@ -396,8 +543,9 @@ export class TerminalHandler {
 				2,
 			));
 		} else {
-			const contentPart = response.response.answerContent[0] as LLMMessageContentPartTextBlock;
-			console.log(this.highlightOutput(contentPart.text));
+			//const contentPart = response.response.answerContent[0] as LLMMessageContentPartTextBlock;
+			const answer = response.logEntry.content as string;
+			console.log(this.highlightOutput(answer));
 
 			console.log(palette.secondary('╭─────────────────────────────────────────────────────╮'));
 			console.log(
@@ -434,21 +582,21 @@ export class TerminalHandler {
 			console.log(
 				palette.secondary('│') +
 					palette.error(
-						` ${symbols.arrowDown} Input Tokens: ${tokenUsageConversation?.inputTokensTotal}`.padEnd(55),
+						` ${symbols.arrowDown} Input Tokens: ${tokenUsageConversation?.inputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.success(
-						` ${symbols.arrowUp} Output Tokens: ${tokenUsageConversation?.outputTokensTotal}`.padEnd(55),
+						` ${symbols.arrowUp} Output Tokens: ${tokenUsageConversation?.outputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.primary(
-						` ${symbols.radioOn} Total Tokens: ${tokenUsageConversation?.totalTokensTotal}`.padEnd(55),
+						` ${symbols.radioOn} Total Tokens: ${tokenUsageConversation?.totalTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
@@ -457,7 +605,7 @@ export class TerminalHandler {
 		}
 	}
 
-	public displayError(data: unknown): void {
+	public async displayError(data: unknown): Promise<void> {
 		let errorMessage: string;
 
 		if (typeof data === 'object' && data !== null && 'error' in data && typeof data.error === 'string') {

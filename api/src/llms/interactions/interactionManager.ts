@@ -1,13 +1,13 @@
-import LLMInteraction from './baseInteraction.ts';
-import LLMConversationInteraction from './conversationInteraction.ts';
-import LLM from '../providers/baseLLM.ts';
-import LLMChatInteraction from './chatInteraction.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type LLM from '../providers/baseLLM.ts';
+import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 //import { generateConversationId } from 'shared/conversationManagement.ts';
-import { ConversationId } from 'shared/types.ts';
+import type { ConversationId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 class InteractionManager {
-	private interactionResults: Map<string, any>;
+	private interactionResults: Map<string, unknown>;
 	private interactions: Map<string, LLMInteraction>;
 	private interactionHierarchy: Map<string, string>; // child ID to parent ID
 
@@ -31,7 +31,7 @@ class InteractionManager {
 		if (type === 'conversation') {
 			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init();
 		} else {
-			interaction = await new LLMChatInteraction(llmProvider, interactionId).init();
+			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentId);
 		}
 
 		this.interactions.set(interactionId, interaction);
@@ -116,11 +116,11 @@ class InteractionManager {
 		return descendants;
 	}
 
-	setInteractionResult(interactionId: string, result: any): void {
+	setInteractionResult(interactionId: string, result: unknown): void {
 		this.interactionResults.set(interactionId, result);
 	}
 
-	getInteractionResult(interactionId: string): any {
+	getInteractionResult(interactionId: string): unknown {
 		return this.interactionResults.get(interactionId);
 	}
 

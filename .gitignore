@@ -1,6 +1,6 @@
 .aider*
 .aider.tags.cache.v3/*
-.bbai/*
+.bb/*
 .BBEditLSPWorkspaceConfig.json
 build/*
 deployment/releases/*
@@ -9,3 +9,12 @@ tags
 tags.ignore
 
 */.DS_Store
+
+bui-orig*
+bui-rewrite*
+
+dui/node_modules
+dui/src-tauri/target/debug
+dui/.vite
+
+*/.bb/backups*

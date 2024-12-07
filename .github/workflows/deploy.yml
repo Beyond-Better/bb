@@ -1,0 +1,105 @@
+name: Deploy to Chat server
+
+on:
+  push:
+    branches:
+      - main # or your default branch name
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x # Use the latest Deno version
+
+      - name: Create .bb directory and config.yaml
+        run: |
+          mkdir -p .bb
+          cat << EOF > .bb/config.yaml
+          myPersonsName: bb
+          myAssistantsName: Claude
+          noBrowser: false
+          api:
+            environment: local
+            apiHostname: localhost
+            apiPort: 3000
+            apiUseTls: false
+            ignoreLLMRequestCache: false
+            usePromptCaching: true
+            logFile: api.log
+            logLevel: info
+            anthropicApiKey: >-
+              sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
+          bui:
+            environment: local
+            buiHostname: localhost
+            buiPort: 8000
+            buiUseTls: false
+          cli: {}
+          repoInfo:
+            ctagsAutoGenerate: false
+            tokenLimit: 1024
+          project:
+            name: bb
+            type: git
+          EOF
+
+      - name: Build site
+        run: |
+          cd bui/src/
+          deno task build
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+
+      - name: Deploy to Chat server
+        env:
+          HOST: site.beyondbetter.dev
+          USER: deploy
+          DEPLOY_PATH: "/var/www/chat.beyondbetter.dev/bb"
+          TEMP_DEPLOY_PATH: "/home/deploy/temp_deploy"
+        run: |
+          # Install rsync if not already installed
+          if ! command -v rsync &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y rsync
+          fi
+
+          ssh $USER@$HOST << EOF
+            # Create temporary directory for deployment
+            mkdir -p $TEMP_DEPLOY_PATH
+          EOF
+
+          # Deploy the built files to temporary directory
+          rsync -avz --delete ./ $USER@$HOST:$TEMP_DEPLOY_PATH/
+
+          ssh $USER@$HOST << EOF
+            # Create final directory for deployment
+            sudo /usr/bin/mkdir -p $DEPLOY_PATH
+            # Move files from temporary directory to final location
+            echo /usr/bin/rsync -avz --delete $TEMP_DEPLOY_PATH/ $DEPLOY_PATH/
+            sudo /usr/bin/rsync -avz --delete $TEMP_DEPLOY_PATH/ $DEPLOY_PATH/
+
+            # Set correct ownership and permissions
+            echo /bin/chown -R www-data:www-data $DEPLOY_PATH/
+            sudo /bin/chown -R www-data:www-data $DEPLOY_PATH/
+            echo /usr/bin/find $DEPLOY_PATH/ -type d -exec /bin/chmod 755 {} \;
+            sudo /usr/bin/find $DEPLOY_PATH/ -type d -exec /bin/chmod 755 {} \;
+            echo /usr/bin/find $DEPLOY_PATH/ -type f -exec /bin/chmod 644 {} \;
+            sudo /usr/bin/find $DEPLOY_PATH/ -type f -exec /bin/chmod 644 {} \;
+
+            # Clean up temporary directory
+            rm -rf $TEMP_DEPLOY_PATH
+
+            # Restart the service
+            sudo systemctl restart bb-bui.service
+          EOF

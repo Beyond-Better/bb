@@ -1,4 +1,4 @@
-import { Context, Next } from '@oak/oak';
+import type { Context, Next } from '@oak/oak';
 import { metricsService } from '../services/metrics.service.ts';
 import config from '../config/config.ts';
 

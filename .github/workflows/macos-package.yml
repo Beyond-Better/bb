@@ -1,0 +1,84 @@
+name: Build macOS Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '0.0.0'
+#   push:
+#     branches:
+#       - main
+#       - release-build-testing
+
+jobs:
+  build-macos-package:
+    runs-on: macos-latest
+    # We don't need a matrix strategy anymore as we're building both architectures in one job
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Deno
+      uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+      with:
+        deno-version: v2.x
+
+    - name: Build macOS binaries
+      run: |
+        chmod +x scripts/build_macos_binaries.sh
+        ./scripts/build_macos_binaries.sh
+
+    - name: Build macOS package
+      run: |
+        chmod +x scripts/build_macos_package.sh
+        ./scripts/build_macos_package.sh
+
+    - name: Upload macOS package
+      uses: actions/upload-artifact@v4
+      with:
+        name: BB-macOS-package
+        path: build/macos_package/BB-*.pkg
+
+  release:
+    needs: build-macos-package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        with:
+          deno-version: v2.x
+
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=$(deno eval 'import { VERSION } from "./version.ts"; console.log(VERSION);')" >> $GITHUB_OUTPUT
+
+      - name: Download macOS package
+        uses: actions/download-artifact@v4
+        with:
+          name: BB-macOS-package
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          release_name: Release v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/macos_package/BB-${{ steps.get_version.outputs.VERSION }}.pkg
+          asset_name: BB-${{ steps.get_version.outputs.VERSION }}-universal.pkg
+          asset_content_type: application/octet-stream

@@ -1,23 +1,49 @@
-# BBai API Documentation
+# BB API Documentation
 
-This document provides details about the endpoints available in the BBai API.
+This document provides details about the endpoints available in the BB API.
 
 ## Base URL
 
-All endpoints are relative to: `http://<hostname>:<port>/api/v1`
+All endpoints are relative to: `https://<hostname>:<port>/api/v1`
 
 ## Endpoints
 
 ### API Status
 - **GET** `/status`
-  - Check the status of the API.
-  - Response: 
+  - Check the status of the API and TLS configuration.
+  - Query Parameters:
+    - `projectId` (string, optional): Project ID for project-specific configuration
+  - Headers:
+    - `Accept`: Use `text/html` for HTML response, defaults to JSON
+  - Response (JSON): 
     ```json
     {
       "status": "OK",
-      "message": "API is running"
+      "message": "API is running",
+      "platform": "darwin|windows|linux",
+      "platformDisplay": "macOS|Windows|Linux",
+      "trustStoreLocation": "/path/to/trust/store",
+      "tls": {
+        "enabled": true,
+        "certType": "custom|self-signed",
+        "certPath": "path/to/cert.pem",
+        "certSource": "config|project|global",
+        "validFrom": "2024-01-01T00:00:00.000Z",
+        "validUntil": "2025-01-01T00:00:00.000Z",
+        "issuer": "Certificate issuer",
+        "subject": "Certificate subject",
+        "expiryStatus": "valid|expiring|expired"
+      },
+      "configType": "project|global",
+      "projectName": "optional project name"
     }
     ```
+  - HTML Response:
+    - Provides a user-friendly status page
+    - Shows detailed certificate information
+    - Includes platform-specific guidance
+    - Displays trust store status
+    - Provides troubleshooting help
 
 ### Conversation Management
 
@@ -30,14 +56,14 @@ All endpoints are relative to: `http://<hostname>:<port>/api/v1`
     - `startDate` (string, format: date): Filter conversations starting from this date
     - `endDate` (string, format: date): Filter conversations up to this date
     - `llmProviderName` (string): Filter conversations by LLM provider name
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: List of conversations with pagination details
 
 #### Get Conversation
 - **GET** `/conversation/:id`
   - Retrieve details of a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Conversation details including messages, LLM provider, and token usage
 
 #### Continue Conversation
@@ -47,7 +73,7 @@ All endpoints are relative to: `http://<hostname>:<port>/api/v1`
     ```json
     {
       "statement": "string",
-      "startDir": "string"
+      "projectId": "string"
     }
     ```
   - Response: LLM-generated response with conversation details
@@ -56,14 +82,14 @@ All endpoints are relative to: `http://<hostname>:<port>/api/v1`
 - **DELETE** `/conversation/:id`
   - Delete a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Deletion confirmation message
 
 #### Clear Conversation
 - **POST** `/conversation/:id/clear`
   - Clear the history of a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Confirmation message
 
 ### WebSocket Connection
@@ -74,7 +100,7 @@ All endpoints are relative to: `http://<hostname>:<port>/api/v1`
     {
       "task": "greeting" | "converse" | "cancel",
       "statement": "string",
-      "startDir": "string"
+      "projectId": "string"
     }
     ```
   - The server will emit events for conversation updates, including:
@@ -83,6 +109,31 @@ All endpoints are relative to: `http://<hostname>:<port>/api/v1`
     - `conversationAnswer`
     - `conversationError`
     - `conversationCancelled`
+
+## LLM Tools
+
+The BB API supports various LLM tools that can be used within conversations. Here are the available tools:
+
+### move_files
+
+Moves one or more files or directories to a new location within the project.
+
+**Parameters:**
+- `sources`: Array of strings representing the paths of files or directories to be moved.
+- `destination`: String representing the path of the destination directory.
+- `overwrite` (optional): Boolean indicating whether to overwrite existing files at the destination (default: false).
+
+**Example usage in a conversation:**
+```json
+{
+  "toolName": "move_files",
+  "toolInput": {
+    "sources": ["path/to/file1.txt", "path/to/directory"],
+    "destination": "path/to/new/location",
+    "overwrite": true
+  }
+}
+```
 
 ## Note on Unimplemented Features
 

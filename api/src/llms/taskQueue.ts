@@ -1,5 +1,5 @@
-import { Task } from 'api/types.ts';
-import { ErrorHandler } from './errorHandler.ts';
+import type { Task } from 'api/types.ts';
+import type { ErrorHandler } from './errorHandler.ts';
 import { logger } from 'shared/logger.ts';
 
 export class TaskQueue {
@@ -27,7 +27,7 @@ export class TaskQueue {
 			try {
 				await this.executeTask(task);
 			} catch (error) {
-				await this.errorHandler.handleError(error, task, 0);
+				await this.errorHandler.handleError(error as Error, task, 0);
 			}
 		}
 		this.running = false;

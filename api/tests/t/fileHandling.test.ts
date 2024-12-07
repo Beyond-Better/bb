@@ -1,8 +1,9 @@
-import { assert, assertEquals, assertStringIncludes } from '../deps.ts';
+import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { join } from '@std/path';
-import { generateFileListing, searchFilesContent, searchFilesMetadata } from '../../src/utils/fileHandling.utils.ts';
+//import { generateFileListing, searchFilesContent, searchFilesMetadata } from 'api/utils/fileHandling.ts';
+import { searchFilesMetadata } from 'api/utils/fileHandling.ts';
 //import { GitUtils } from 'shared/git.ts';
-import { withTestProject } from '../lib/testSetup.ts';
+import { withTestProject } from 'api/tests/testSetup.ts';
 
 async function setFileModificationTime(filePath: string, date: Date) {
 	await Deno.utime(filePath, date, date);
@@ -30,12 +31,12 @@ async function createTestFiles(testProjectRoot: string) {
 Deno.test({
 	name: 'searchFilesMetadata - find files based on date range',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
-				date_after: '2024-01-01',
-				date_before: '2026-01-01',
+				dateAfter: '2024-01-01',
+				dateBefore: '2026-01-01',
 			});
 			//console.log('Date-based search results:', result);
 			assertEquals(result.files.length, 3);
@@ -53,12 +54,12 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesMetadata - find files based on size criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
-				size_min: 5000,
-				size_max: 15000,
+				sizeMin: 5000,
+				sizeMax: 15000,
 			});
 			//console.log('Size-based search results:', result);
 			assertEquals(result.files.length, 1);
@@ -74,15 +75,15 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesMetadata - combine multiple criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
-				file_pattern: '*.txt',
-				date_after: '2022-01-01',
-				date_before: '2024-01-01',
-				size_min: 1,
-				size_max: 1000,
+				filePattern: '*.txt',
+				dateAfter: '2022-01-01',
+				dateBefore: '2024-01-01',
+				sizeMin: 1,
+				sizeMax: 1000,
 			});
 			console.log('Combined criteria search results:', result);
 			assertEquals(result.files.length, 2);
@@ -98,8 +99,8 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - empty directory',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const listing = await generateFileListing(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertEquals(listing, '');
 		});
 	},
@@ -110,12 +111,12 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - correct paths',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'content');
 			Deno.mkdirSync(join(testProjectRoot, 'subdir'));
 			Deno.writeTextFileSync(join(testProjectRoot, 'subdir', 'file2.txt'), 'content');
 
-			const listing = await generateFileListing(testProjectRoot);
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertStringIncludes(listing!, 'file1.txt');
 			assertStringIncludes(listing!, join('subdir', 'file2.txt'));
 		});
@@ -127,14 +128,14 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - exclude files based on .gitignore patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, '.gitignore'), '*.log\nnode_modules/');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'content');
 			Deno.writeTextFileSync(join(testProjectRoot, 'debug.log'), 'log content');
 			Deno.mkdirSync(join(testProjectRoot, 'node_modules'));
 			Deno.writeTextFileSync(join(testProjectRoot, 'node_modules', 'package.json'), '{}');
 
-			const listing = await generateFileListing(testProjectRoot);
+			const { listing } = await generateFileListing(testProjectRoot);
 			assertStringIncludes(listing!, 'file1.txt');
 			assertEquals(listing!.includes('debug.log'), false);
 			assertEquals(listing!.includes('node_modules'), false);
@@ -147,7 +148,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - find files matching the search pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file2.txt'), 'Goodbye, world!');
 
@@ -163,7 +164,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - return an empty array when no files match',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 
 			const result = await searchFilesContent(testProjectRoot, 'Nonexistent');
@@ -178,12 +179,12 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - respect file pattern when provided',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file2.md'), 'Hello, markdown!');
 
 			const result = await searchFilesContent(testProjectRoot, 'Hello', {
-				file_pattern: '*.md',
+				filePattern: '*.md',
 			});
 			assertEquals(result.files, ['./file2.md']);
 			assertEquals(result.errorMessage, null);
@@ -196,7 +197,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesContent - handle errors gracefully',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// This test simulates an error by searching in a non-existent directory
 			const nonExistentDir = join(testProjectRoot, 'nonexistent');
 			const result = await searchFilesContent(nonExistentDir, 'pattern');

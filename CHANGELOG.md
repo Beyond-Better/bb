@@ -7,6 +7,500 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added binary version display to DUI header
+  - Shows installed BB API version
+  - Shows "not installed" placeholder when binary is missing
+  - Uses Tauri's Command API to safely check binary version
+
+
+### Changed
+
+
+### Fixed
+
+
+## [0.4.1] - 2024-12-02
+
+### Changed
+
+- messages sent with cmd/meta-return; new lines with return
+
+### Fixes
+
+- scroll indicator shows correct unread count
+- auto-scrolling disabled when page is not at end
+- file suggestion triggers are less keen
+
+### Added
+
+- support for bb doctor
+
+
+## [0.4.0] - 2024-12-02
+
+### Changed
+
+- added file listing autocomplete
+- added version display in BUI, and check and warning for minimum API version
+- added API auto-upgrade
+- added API endpoint to initiate upgrade from BUI
+- added 'migrate' CLI command to change from system to user-installed binaries
+- added 'upgrade' CLI command to upgrade to latest version of `bb` and `bb-api`
+- standardised log entry formatting with subtitle and preview components
+- combined prompt/answer auxiliary log entries
+- added common formatting functions and styles for tools
+- improved log entry metadata display
+- disabled auto-scroll if not at bottom of the page - added scroll to bottom button
+
+
+## [0.3.11] - 2024-11-26
+
+### Changed
+
+- normalized token usage, conversation stats vs metrics;
+- fixed token calcs for statement and conversation
+- extract tool thinking with every turn
+- all usage tokens sent to bui
+- fixed indents for new global config file
+
+
+## [0.3.10] - 2024-11-26
+
+### Changed
+
+- fixed indentation for default global config file
+
+
+## [0.3.9] - 2024-11-25
+
+### Changed
+
+- fixed name of ca cert when adding to root trust store
+- extended wait time for API start
+- added IDLE status to progress handler switch
+
+
+## [0.3.8] - 2024-11-25
+
+### Changed
+
+- Fixed status handling to force immediate IDLE status after conversation answer, preventing stuck progress indicators
+
+
+## [0.3.7b] - 2024-11-24
+
+### Changed
+
+- must await
+
+
+## [0.3.7a] - 2024-11-24
+
+### Changed
+
+- Updated Github actions to use Deno v2
+
+
+## [0.3.7] - 2024-11-24
+
+### Changed
+
+- Upgraded to Deno v2
+- Fixed status queue processing to ensure IDLE status is always displayed after conversation answer
+- Fixed error loading global config
+- Documentation updates
+
+### Added
+
+- Improved TLS certificate management:
+  - Automatic certificate generation and trust store integration
+  - New `bb secure` command for certificate management
+  - Platform-specific trust store handling
+  - Removed external mkcert dependency
+
+- Enhanced security documentation:
+  - New certificate management guide
+  - Trust store documentation
+  - Security troubleshooting guide
+  - Platform-specific certificate handling
+  - Browser compatibility guidance
+
+- Improved status page:
+  - Enhanced certificate information display
+  - Trust store status
+  - Platform-specific guidance
+  - Browser warning solutions
+
+
+
+## [0.3.6] - 2024-11-23
+
+### Changed
+
+- Improved status handling in BUI and CLI to provide smoother transitions and more reliable idle state handling
+- Updated conversation_metrics and conversation_summary tools to provide clearer guidance about stopping after completion unless explicitly asked to continue
+
+
+## [0.3.5] - 2024-11-23
+
+### Changed
+
+- Fixed API startup failure recovery mechanism
+- Added graceful handling of tool cancellation states
+- Implemented error message propagation from LLM to BUI/CLI
+- Added distinct status indicators for Claude, API, or tool execution
+- Exposed prompt cache status via API websocket
+- Added support for multiple git repositories in subdirectories
+
+
+## [0.3.4] - 2024-11-20
+
+### Changed
+
+- fixed bug with missing data dir
+- fixed bug with symlinks in project listing
+
+
+## [0.3.3] - 2024-11-19
+
+### Changed
+
+- changed search_project tool to use Deno-native `walk` options for match and skip
+- updated tool description to clarify use of ** vs * in file patterns
+
+
+## [0.3.2] - 2024-11-18
+
+### Changed
+
+- improved websocket reconnection handling
+- improved conversation admin (adding and deleting)
+- improved notifications 
+- prompt caching indicator
+
+
+## [0.3.1] - 2024-11-17
+
+### Changed
+
+- added help dialog
+
+
+## [0.3.0a] - 2024-11-17
+
+### Changed
+
+- hotfix for broken input
+
+
+## [0.3.0] - 2024-11-17
+
+### Changed
+
+- made some changes to BUI
+
+
+## [0.2.6] - 2024-11-10
+
+### Changed
+
+- refactored handling (recording and reporting) of token usage
+- added tests for persistence layer
+- changed from adding files inside <bbFile> tags to using separate content part
+- changed handling of content extraction from LLM response
+- restructured contents of docs directory
+- improved parsing for file mime type
+
+
+## [0.2.5] - 2024-11-08
+
+### Changed
+
+- added 'conversation_summary' tool
+
+
+## [0.2.4] - 2024-11-06
+
+### Changed
+
+- set apiUseTls to false during project init if certs could not be created
+- fixed message hydration to keep last two versions of each file
+- changed prompt caching to add cache points of three most recent messages with hydrated files
+- removed "statement objective" on first statement, in favour of "conversation objective"
+- fixed statement counts in messages.jsonl
+
+
+## [0.2.3] - 2024-11-03
+
+### Changed
+
+- changed one-shot task to use text format as default; json format is cli arg
+- updated cli config sub-command to work with full, global, and project level configs
+- updated cli config sub-command to accept more updates
+- updated cli config sub-command to output in colour
+
+
+## [0.2.2] - 2024-10-30
+
+### Changed
+
+- task objectives to help Claude focus
+- tool tracking (progress)
+- fixed unwanted cache busting with updated project details
+- stopped creation of conversation storage for ephemeral chats
+
+
+## [0.2.1] - 2024-10-29
+
+### Changed
+
+- added config option and CLI arg for maxTurns
+
+
+## [0.2.0] - 2024-10-23
+
+### Changed
+
+- Full rewrite of tool descriptions (based on guidance from Anthropic's "computer use" tools)
+- Updated to latest Sonnet (WOW, I'm impressed)
+
+
+## [0.1.6] - 2024-10-22
+
+### Changed
+
+- changed search_project tool to accept compound file patterns eg. *.js|*.ts|*.json
+
+
+## [0.1.5e] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+## [0.1.5d] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+## [0.1.5c] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+## [0.1.5b] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+## [0.1.5a] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+
+## [0.1.5] - 2024-10-17
+
+### Changed
+
+- more fixes for Windows release
+
+
+## [0.1.4a] - 2024-10-17
+
+### Changed
+
+
+
+## [0.1.4] - 2024-10-17
+
+### Changed
+
+
+
+## [0.1.3a] - 2024-10-17
+
+### Changed
+
+- version bump to test github workflow releases
+
+
+## [0.1.3] - 2024-10-17
+
+### Changed
+
+- fix Github workflow actions
+
+
+## [0.1.2] - 2024-10-17
+
+### Changed
+
+- Added BB Manager convenience scripts 
+- changed location of .bat files
+- Updated system prompt, conscious thinking
+
+
+## [0.1.1] - 2024-10-16
+
+### Changed
+
+- always include LLM response in answer, regardless of 'thinking' text block
+
+
+## [0.1.0] - 2024-10-16
+
+### Changed
+
+- renamed BBai to Beyond Better
+- renamed cli tools
+- renamed all code references and deploy workflows
+
+
+## [0.0.26-beta] - 2024-10-14
+
+### Changed
+
+- normalized tool results and responses - better feedback to LLM and clearer output in conversation
+- New LLM tool: `conversation_metrics` for calculating the current turn and token counts, 
+  needed for the upcoming `conversation_summary` (& truncation) tool
+- improved handling for conversation log entries; loading saved conversations and conversation answers
+  have the same handling as normal entries during conversation
+
+
+## [0.0.25-beta] - 2024-10-10
+
+### Changed
+
+- added new tool MultiModelQuery
+- updated tests to load tools via tool manager
+- moved tool configs to user config 
+- args for tool constructors set from metatadata json
+
+
+## [0.0.24a-beta] - 2024-10-07
+
+### Changed
+
+- hotfix for compile target arg
+
+
+## [0.0.24-beta] - 2024-10-07
+
+### Changed
+
+- generate tools manifest file to facilitate loading from compiled binary
+- dynamically include tools at build compile time
+- update build scripts and release workflow to use compile script
+
+
+## [0.0.23-beta] - 2024-10-06
+
+### Changed
+
+- Overhaul of tool packaging and loading - each tool is self-contained for easier sharing
+- Improved conversation entry formatting, including inline images
+- Safely ignore cert warnings for localhost
+- New LLM tool: `move_files` for moving files and directories to a new directory within the project
+- New LLM tool: `rename_files` for renaming files and directories within the project
+
+
+## [0.0.22-beta] - 2024-10-04
+
+### Changed
+
+- Upgrade deps to use latest Astral (fix for fetch screenshot tool)
+
+
+## [0.0.21a-beta] - 2024-10-01
+
+### Changed
+
+- Hotfix for incorrect method name to create TLS cert
+
+
+## [0.0.21-beta] - 2024-10-01
+
+### Changed
+
+- Copy rootCA.pem for deno's fetch custom http client
+- Fix for check of existing certs
+- Silenced file missing exception
+
+
+## [0.0.20-beta] - 2024-10-01
+
+### Changed
+
+- Fix for nested array in tool results
+- Improved mime-type checking
+
+
+## [0.0.19-beta] - 2024-09-30
+
+### Changed
+
+- Added option for regex patterns to search and replace tool.
+
+
+## [0.0.18-beta] - 2024-09-29
+
+### Changed
+
+- Changed BUI to prefer StartDir from URL
+- Changed search project tool to default to case-insensitive and ignore git when searching
+
+
+## [0.0.17-beta] - 2024-09-28
+
+### Changed
+
+- Refactored search_project tool to use native stream reader with buffer and native regex, rather than external grep
+
+
+## [0.0.16-beta] - 2024-09-27
+
+### Changed
+
+- Fixed 'git not found' error when running init
+- Updated `bb` strings to `bb.exe` for Windows
+- Fixes for Windows compat
+- Added config option for API and BUI to listen with TLS
+- Updated CLI and BUI to initiate TLS connections if useTls is set
+- Added certificate generation to init process
+- Updated docs
+
+
+## [0.0.15-beta] - 2024-09-25
+
+### Changed
+
+- Refactored Split config handling; global, project, full
+- Added config for apiHostname
+- Changed BUI to also load apiHostname and startDir from URL
+- Fixes for init wizard
+- Added support for image files to request_files tool 
+- Added support for prompt caching to full message history
+- Easy install; Windows MSI and one-liner for macOS and Linux
+
+
+## [0.0.14a-beta] - 2024-09-14
+
+### Changed
+
+- Release builds for each platform
+- Updated docs for INSTALL and README
 
 
 ## [0.0.13-beta] - 2024-09-14
@@ -18,8 +512,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed BUI to also load apiHostname and startDir from URL
 - Fixes for init wizard
 - Changed tests to create configured project for each unit
-- Release builds for each platform
-- Updated docs for INSTALL and README
 
 
 ## [0.0.12b-beta] - 2024-09-08
@@ -40,7 +532,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Added wizard for `bbai init`; will re-use existing config values for defaults if present
+- Added wizard for `bb init`; will re-use existing config values for defaults if present
 - Changed git to be optional
 - Split config handling into global and project
 - Improved handling for API control (port number)
@@ -51,7 +543,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - BUI is not a hosted site (can still be run manually from localhost)
-- Running `bbai start` will open browser page for hosted BUI, with apiPort pointing to localhost API
+- Running `bb start` will open browser page for hosted BUI, with apiPort pointing to localhost API
 
 
 ## [0.0.10b-alpha] - 2024-09-03
@@ -85,7 +577,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added mock stubs to bypass calls to LLM during unit tests
 - Added web page fetch tool
 - Added web screenshot fetch tool
-- Reworked tool results, tool response, bbai response for better conversation logging
+- Reworked tool results, tool response, bb response for better conversation logging
 - Refactored finalize callback for tool runs
 - Cleaned up dangling event listeners 
 

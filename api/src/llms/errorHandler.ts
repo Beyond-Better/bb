@@ -1,4 +1,4 @@
-import { Task } from 'api/types.ts';
+import type { Task } from 'api/types.ts';
 import { logger } from 'shared/logger.ts';
 
 type ErrorStrategy = 'fail_fast' | 'continue_on_error' | 'retry';

@@ -2,7 +2,8 @@ import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from '../../editor/projectEditorManager.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
-import ConversationPersistence from '../../storage/conversationPersistence.ts';
+import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import ConversationLogger from 'api/storage/conversationLogger.ts';
 
 /**
  * @openapi
@@ -25,12 +26,12 @@ import ConversationPersistence from '../../storage/conversationPersistence.ts';
  *             type: object
  *             required:
  *               - statement
- *               - startDir
+ *               - projectId
  *             properties:
  *               statement:
  *                 type: string
  *                 description: The statement to continue the conversation
- *               startDir:
+ *               projectId:
  *                 type: string
  *                 description: The starting directory for the project
  *     responses:
@@ -45,28 +46,34 @@ import ConversationPersistence from '../../storage/conversationPersistence.ts';
 export const chatConversation = async (
 	{ params, request, response }: RouterContext<'/v1/conversation/:id', { id: string }>,
 ) => {
-	logger.debug('chatConversation called');
+	logger.debug('ConversationHandler: chatConversation called');
 
 	const { id: conversationId } = params;
 	try {
 		const body = await request.body.json();
-		const { statement, startDir } = body;
+		const { statement, projectId, maxTurns } = body;
 
 		logger.info(
-			`chatConversation for conversationId: ${conversationId}, Prompt: "${statement?.substring(0, 50)}..."`,
+			`ConversationHandler: chatConversation for conversationId: ${conversationId}, Prompt: "${
+				statement?.substring(0, 50)
+			}..."`,
 		);
 
 		if (!statement) {
-			logger.warn(`HandlerContinueConversation: Missing statement for conversationId: ${conversationId}`);
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: Missing statement for conversationId: ${conversationId}`,
+			);
 			response.status = 400;
 			response.body = { error: 'Missing statement' };
 			return;
 		}
 
-		if (!startDir) {
-			logger.warn(`HandlerContinueConversation: Missing startDir for conversationId: ${conversationId}`);
+		if (!projectId) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: Missing projectId for conversationId: ${conversationId}`,
+			);
 			response.status = 400;
-			response.body = { error: 'Missing startDir' };
+			response.body = { error: 'Missing projectId' };
 			return;
 		}
 
@@ -77,29 +84,35 @@ export const chatConversation = async (
 		}
 
 		logger.debug(
-			`HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using startDir: ${startDir}`,
+			`ConversationHandler: HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using projectId: ${projectId}`,
 		);
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
 
-		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId);
+		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId, {
+			maxTurns,
+		});
 
 		logger.debug(
-			`HandlerContinueConversation: Response received from handleStatement for conversationId: ${conversationId}`,
+			`ConversationHandler: HandlerContinueConversation: Response received from handleStatement for conversationId: ${conversationId}`,
 		);
 		response.status = 200;
 		response.body = {
 			conversationId: result.conversationId,
-			response: result.response,
-			messageMeta: result.messageMeta,
+			logEntry: result.logEntry,
 			conversationTitle: result.conversationTitle,
 			conversationStats: result.conversationStats,
 			tokenUsageStatement: result.tokenUsageStatement,
 			tokenUsageConversation: result.tokenUsageConversation,
 		};
 	} catch (error) {
-		logger.error(`Error in chatConversation for conversationId: ${conversationId}: ${error.message}`, error);
+		logger.error(
+			`ConversationHandler: Error in chatConversation for conversationId: ${conversationId}: ${
+				(error as Error).message
+			}`,
+			error,
+		);
 		response.status = 500;
-		response.body = { error: 'Failed to generate response', details: error.message };
+		response.body = { error: 'Failed to generate response', details: (error as Error).message };
 	}
 };
 
@@ -131,12 +144,10 @@ export const getConversation = async (
 	let orchestratorController;
 	try {
 		const conversationId = params.id as ConversationId;
-		const startDir = request.url.searchParams.get('startDir') || '';
+		const projectId = request.url.searchParams.get('projectId') || '';
 
-		logger.debug(`Creating projectEditorManager`);
-
-		logger.debug(`Creating ProjectEditor for dir: ${startDir}`);
-		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
+		logger.debug(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
+		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
 
 		orchestratorController = projectEditor.orchestratorController;
 		if (!orchestratorController) {
@@ -151,6 +162,8 @@ export const getConversation = async (
 			return;
 		}
 
+		const logEntries = await ConversationLogger.getLogEntries(projectId, conversationId);
+		//logger.info(`ConversationHandler: logEntries`, logEntries);
 		response.status = 200;
 		response.body = {
 			id: interaction.id,
@@ -162,7 +175,7 @@ export const getConversation = async (
 			temperature: interaction.temperature,
 			statementTurnCount: orchestratorController.statementTurnCount,
 			totalTokenUsage: orchestratorController.totalTokensTotal,
-			messages: interaction.getMessages(),
+			logEntries,
 			conversationStats: {
 				statementTurnCount: interaction.statementTurnCount,
 				conversationTurnCount: interaction.conversationTurnCount,
@@ -171,7 +184,7 @@ export const getConversation = async (
 			tokenUsageConversation: interaction.tokenUsageInteraction,
 		};
 	} catch (error) {
-		logger.error(`Error in getConversation: ${error.message}`);
+		logger.error(`ConversationHandler: Error in getConversation: ${(error as Error).message}`);
 		response.status = 404;
 		response.body = { error: 'Conversation not found' };
 	}
@@ -204,20 +217,20 @@ export const deleteConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		projectEditor.orchestratorController.interactionManager.removeInteraction(conversationId as ConversationId);
+		projectEditor.orchestratorController.deleteConversation(conversationId as ConversationId);
 
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} deleted` };
 	} catch (error) {
-		logger.error(`Error in deleteConversation: ${error.message}`);
+		logger.error(`ConversationHandler: Error in deleteConversation: ${(error as Error).message}`);
 		response.status = 500;
 		response.body = { error: 'Failed to delete conversation' };
 	}
@@ -268,7 +281,8 @@ export const deleteConversation = async (
 export const listConversations = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
-	const startDir = request.url.searchParams.get('startDir');
+	const projectId = request.url.searchParams.get('projectId');
+	//logger.info(`ConversationHandler: listConversations called with projectId: ${projectId}`);
 	try {
 		const params = request.url.searchParams;
 		const page = parseInt(params.get('page') || '1');
@@ -277,19 +291,20 @@ export const listConversations = async (
 		const endDate = params.get('endDate');
 		const llmProviderName = params.get('llmProviderName');
 
-		if (!startDir) {
+		if (!projectId) {
 			response.status = 400;
-			response.body = { error: 'Missing startDir parameter' };
+			response.body = { error: 'Missing projectId parameter' };
 			return;
 		}
 
+		//logger.info('ConversationHandler: Calling ConversationPersistence.listConversations');
 		const { conversations, totalCount } = await ConversationPersistence.listConversations({
 			page: page,
 			limit: limit,
 			startDate: startDate ? new Date(startDate) : undefined,
 			endDate: endDate ? new Date(endDate) : undefined,
 			llmProviderName: llmProviderName || undefined,
-			startDir: startDir,
+			projectId: projectId,
 		});
 
 		response.status = 200;
@@ -312,9 +327,10 @@ export const listConversations = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`Error in listConversations: ${error.message}`);
+		const errorMessage = (error as Error).message;
+		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage}`, error);
 		response.status = 500;
-		response.body = { error: 'Failed to list conversations' };
+		response.body = { error: 'Failed to list conversations', details: errorMessage };
 	}
 };
 
@@ -323,8 +339,8 @@ export const clearConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -345,7 +361,7 @@ export const clearConversation = async (
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} cleared` };
 	} catch (error) {
-		logger.error(`Error in clearConversation: ${error.message}`);
+		logger.error(`EConversationHandler: rror in clearConversation: ${(error as Error).message}`);
 		response.status = 500;
 		response.body = { error: 'Failed to clear conversation' };
 	}
@@ -357,8 +373,8 @@ export const undoConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -372,12 +388,12 @@ export const undoConversation = async (
 			return;
 		}
 
-		await interaction.revertLastPatch();
+		await interaction.revertLastChange();
 
 		response.status = 200;
 		response.body = { message: `Last change in conversation ${conversationId} undone` };
 	} catch (error) {
-		logger.error(`Error in undoConversation: ${error.message}`);
+		logger.error(`ConversationHandler: Error in undoConversation: ${error.message}`);
 		response.status = 500;
 		response.body = { error: 'Failed to undo last change in conversation' };
 	}

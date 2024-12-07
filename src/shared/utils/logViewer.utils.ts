@@ -1,7 +1,7 @@
 import { join } from '@std/path';
-import { getBbaiDir } from 'shared/dataDir.ts';
-import { ConfigManager } from 'shared/configManager.ts';
-import ConversationLogger from 'shared/conversationLogger.ts';
+import { getBbDir } from 'shared/dataDir.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import ConversationLogger from 'api/storage/conversationLogger.ts';
 
 export async function watchLogs(logFilePath: string, onNewContent: (content: string) => void) {
 	const watcher = Deno.watchFs(logFilePath);
@@ -57,9 +57,10 @@ export async function viewLastLines(logFilePath: string, lines: number): Promise
 	}
 }
 
-export async function getLogFilePath(startDir: string, isApiLog: boolean, conversationId?: string): Promise<string> {
-	const fullConfig = await ConfigManager.fullConfig(startDir);
+export async function getLogFilePath(projectId: string, isApiLog: boolean, conversationId?: string): Promise<string> {
+	const configManager = await ConfigManagerV2.getInstance();
+	const globalConfig = await configManager.getGlobalConfig();
 	return !isApiLog && conversationId
-		? await ConversationLogger.getLogFileRawPath(startDir, conversationId)
-		: join(await getBbaiDir(startDir), fullConfig.api?.logFile ?? 'api.log');
+		? await ConversationLogger.getLogFileRawPath(projectId, conversationId)
+		: join(await getBbDir(projectId), globalConfig.api.logFile ?? 'api.log');
 }

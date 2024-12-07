@@ -1,18 +1,21 @@
 import {
 	APIError,
-	CommandExecutionErrorOptions,
+	type CommandExecutionErrorOptions,
 	ErrorType,
 	ErrorTypes,
+	FileChangeError,
 	FileHandlingError,
+	FileMoveError,
 	FileNotFoundError,
-	FilePatchError,
 	FileReadError,
 	FileWriteError,
 	LLMError,
+	ProjectHandlingError,
 	RateLimitError,
+	ToolHandlingError,
 	ValidationError,
 	VectorSearchError,
-} from '../errors/error.ts';
+} from 'api/errors/error.ts';
 
 export { ErrorType };
 import type {
@@ -22,8 +25,10 @@ import type {
 	LLMErrorOptions,
 	LLMRateLimitErrorOptions,
 	LLMValidationErrorOptions,
+	ProjectHandlingErrorOptions,
+	ToolHandlingErrorOptions,
 	VectorSearchErrorOptions,
-} from '../errors/error.ts';
+} from 'api/errors/error.ts';
 
 export const createError = (
 	errorType: ErrorType,
@@ -34,7 +39,9 @@ export const createError = (
 		| LLMErrorOptions
 		| LLMRateLimitErrorOptions
 		| LLMValidationErrorOptions
+		| ProjectHandlingErrorOptions
 		| FileHandlingErrorOptions
+		| ToolHandlingErrorOptions
 		| VectorSearchErrorOptions
 		| CommandExecutionErrorOptions,
 ): Error => {
@@ -51,25 +58,31 @@ export const createError = (
 			return new RateLimitError(message, options as LLMRateLimitErrorOptions);
 		case ErrorType.LLMValidation:
 			return new ValidationError(message, options as LLMValidationErrorOptions);
-		case ErrorType.FileHandling:
+		case ErrorType.ProjectHandling:
+			return new ProjectHandlingError(message, options as ProjectHandlingErrorOptions);
+		case ErrorType.FileHandling: {
 			const fileOptions = options as FileHandlingErrorOptions;
 			switch (fileOptions.operation) {
-				case 'patch':
-					return new FilePatchError(message, fileOptions);
+				case 'change':
+					return new FileChangeError(message, fileOptions);
 				case 'read':
 					return fileOptions.filePath
 						? new FileNotFoundError(message, fileOptions)
 						: new FileReadError(message, fileOptions);
 				case 'write':
 					return new FileWriteError(message, fileOptions);
+				case 'move':
+					return new FileMoveError(message, fileOptions);
 				default:
 					return new FileHandlingError(message, fileOptions);
 			}
+		}
+		case ErrorType.ToolHandling:
+			return new ToolHandlingError(message, options as ToolHandlingErrorOptions);
 		case ErrorType.VectorSearch:
 			return new VectorSearchError(message, options as VectorSearchErrorOptions);
 		case ErrorType.CommandExecution:
 			return new Error(message); // You might want to create a specific CommandExecutionError class
-			return new VectorSearchError(message, options as VectorSearchErrorOptions);
 		default:
 			return new Error(`Unknown error type: ${errorType} - ${message}`);
 	}

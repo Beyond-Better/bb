@@ -1,0 +1,8 @@
+{
+	"name": "vector_search",
+	"description": "Performs vector search operations",
+	"enabled": false,
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT"
+}

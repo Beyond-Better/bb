@@ -1,17 +1,18 @@
-import LLMInteraction from '../llms/interactions/baseInteraction.ts';
-import { TokenUsage } from 'shared/types.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
+import type { TokenUsage } from 'shared/types.ts';
 
-import LLMTool from 'api/llms/llmTool.ts';
-export type { LLMToolInputSchema } from '../llms/llmTool.ts';
+import type LLMTool from 'api/llms/llmTool.ts';
+export type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
-import LLMMessage from 'api/llms/llmMessage.ts';
-import type { LLMAnswerToolUse, LLMMessageContentParts } from '../llms/llmMessage.ts';
-export type { LLMMessageContentPart, LLMMessageContentParts } from '../llms/llmMessage.ts';
+import type LLMMessage from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
+export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 export enum AnthropicModel {
 	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',
+	//CLAUDE_3_5_HAIKU = 'claude-3-haiku-20240307',
 	CLAUDE_3_SONNET = 'claude-3-sonnet-20240229',
-	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20240620',
+	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
 	CLAUDE_3_OPUS = 'claude-3-opus-20240229',
 }
 export const AnthropicModels = [
@@ -163,7 +164,7 @@ export interface LLMProviderMessageResponse {
 	providerMessageResponseMeta: LLMProviderMessageResponseMeta;
 	answerContent: LLMMessageContentParts;
 	fromCache: boolean;
-	answer?: string;
+	answer: string;
 	isTool: boolean;
 	toolsUsed?: Array<LLMAnswerToolUse>;
 	toolThinking?: string;
@@ -171,8 +172,9 @@ export interface LLMProviderMessageResponse {
 	createdAt?: Date;
 	updatedAt?: Date;
 }
+export type LLMProviderSystem = string | LLMMessageContentPart;
 export interface LLMProviderMessageMeta {
-	system: string;
+	system: LLMProviderSystem;
 }
 
 export type LLMValidateResponseCallback = (
@@ -227,6 +229,7 @@ export interface LLMSpeakWithResponse {
 
 export enum LLMCallbackType {
 	PROJECT_EDITOR = 'PROJECT_EDITOR',
+	PROJECT_ID = 'PROJECT_ID',
 	PROJECT_ROOT = 'PROJECT_ROOT',
 	PROJECT_INFO = 'PROJECT_INFO',
 	PROJECT_CONFIG = 'PROJECT_CONFIG',
@@ -236,7 +239,7 @@ export enum LLMCallbackType {
 	PREPARE_MESSAGES = 'PREPARE_MESSAGES',
 	PREPARE_TOOLS = 'PREPARE_TOOLS',
 }
-export type LLMCallbackResult<T> = T extends (...args: any[]) => Promise<infer R> ? R : T;
+export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };

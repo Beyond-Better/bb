@@ -1,6 +1,8 @@
-import { stub } from '../deps.ts';
+import { stub } from 'api/tests/deps.ts';
 import type ProjectEditor from '../../src/editor/projectEditor.ts';
 import type OrchestratorController from '../../src/controllers/orchestratorController.ts';
+import LLMChatInteraction from '../../src/llms/interactions/chatInteraction.ts';
+import { LLMSpeakWithResponse } from 'api/types.ts';
 //import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
 //import type { LLMSpeakWithResponse } from '../../src/types.ts';
 //import { ConversationId, ConversationResponse } from 'shared/types.ts';
@@ -13,10 +15,10 @@ import type OrchestratorController from '../../src/controllers/orchestratorContr
  *
  *  // Stub only the methods you need for a particular test
  *  stubMaker.generateConversationTitleStub(() => Promise.resolve('Test Title'));
- *  stubMaker.stageAndCommitAfterPatchingStub(() => Promise.resolve());
+ *  stubMaker.stageAndCommitAfterChangingStub(() => Promise.resolve());
  *
  *  // You can provide different implementations in different tests
- *  stubMaker.revertLastPatchStub(() => {
+ *  stubMaker.revertLastChangeStub(() => {
  *    // Custom implementation for this specific test
  *    return Promise.resolve();
  *  });
@@ -43,7 +45,7 @@ export function makeProjectEditorStub(projectEditor: ProjectEditor) {
 		tokenUsageStatement: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
 		tokenUsageConversation: { inputTokensTotal: 10, outputTokensTotal: 20, totalTokensTotal: 30 },
 	}));
- */
+	 */
 
 	return {
 		projectEditor,
@@ -59,12 +61,14 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 			return stub(orchestratorController, methodName, implementation as never);
 		};
 	};
+
 	const generateConversationTitleStub = createStub('generateConversationTitle');
-	//const stageAndCommitAfterPatchingStub = createStub('stageAndCommitAfterPatching');
-	const revertLastPatchStub = createStub('revertLastPatch');
-	const logPatchAndCommitStub = createStub('logPatchAndCommit');
+	//const stageAndCommitAfterChangingStub = createStub('stageAndCommitAfterChanging');
+	const revertLastChangeStub = createStub('revertLastChange');
+	const logChangeAndCommitStub = createStub('logChangeAndCommit');
 	const saveInitialConversationWithResponseStub = createStub('saveInitialConversationWithResponse');
 	const saveConversationAfterStatementStub = createStub('saveConversationAfterStatement');
+	const createChatInteractionStub = createStub('createChatInteraction');
 	/*
 	const initStub = stub(orchestratorController, 'init', async () => {});
 	const handleStatementStub = stub(orchestratorController, 'handleStatement', async (
@@ -116,16 +120,17 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 	);
 	const cleanupChildInteractionsStub = stub(orchestratorController, 'cleanupChildInteractions', async () => {});
 	const manageAgentTasksStub = stub(orchestratorController, 'manageAgentTasks', async () => {});
- */
+	 */
 
 	return {
 		orchestratorController,
 		generateConversationTitleStub,
-		//stageAndCommitAfterPatchingStub,
-		revertLastPatchStub,
-		logPatchAndCommitStub,
+		//stageAndCommitAfterChangingStub,
+		revertLastChangeStub,
+		logChangeAndCommitStub,
 		saveInitialConversationWithResponseStub,
 		saveConversationAfterStatementStub,
+		createChatInteractionStub,
 		//initStub,
 		//handleStatementStub,
 		//initializePrimaryInteractionStub,
@@ -135,5 +140,55 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 		//getInteractionResultStub,
 		//cleanupChildInteractionsStub,
 		//manageAgentTasksStub,
+	};
+}
+
+export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
+	const createStub = <T extends keyof LLMChatInteraction>(methodName: T) => {
+		return (implementation?: LLMChatInteraction[T]) => {
+			return stub(chatInteraction, methodName, implementation as never);
+		};
+	};
+
+	const conversationStatsStub = createStub('conversationStats');
+
+	// Implement chat stub that returns formatted summary response
+	const chatStub = (summaryText: string, usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 }) => {
+		return stub(
+			chatInteraction,
+			'chat',
+			async () =>
+				({
+					messageResponse: {
+						id: 'test-msg-id',
+						type: 'message',
+						role: 'assistant',
+						model: 'test-model',
+						fromCache: false,
+						timestamp: new Date().toISOString(),
+						answerContent: [{ type: 'text', text: summaryText }],
+						usage,
+						providerMessageResponseMeta: { status: 200, statusText: 'OK' },
+					},
+					messageMeta: { system: 'test system' },
+				}) as LLMSpeakWithResponse,
+		);
+	};
+
+	const chatErrorStub = (errorText: string) => {
+		return stub(
+			chatInteraction,
+			'chat',
+			async () => {
+				throw new Error(errorText);
+			},
+		);
+	};
+
+	return {
+		chatInteraction,
+		conversationStatsStub,
+		chatStub,
+		chatErrorStub,
 	};
 }

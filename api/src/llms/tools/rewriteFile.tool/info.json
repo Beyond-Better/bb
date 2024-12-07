@@ -1,0 +1,9 @@
+{
+	"name": "rewrite_file",
+	"description": "Completely replaces an existing file's contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like \"// Previous code remains...\"\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn't explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.",
+	"version": "1.0.0",
+	"category": "FileManipulation",
+	"author": "BB Team",
+	"license": "MIT",
+	"mutates": true
+}

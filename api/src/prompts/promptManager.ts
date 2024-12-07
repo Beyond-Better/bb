@@ -2,9 +2,10 @@ import { join } from '@std/path';
 import { exists } from '@std/fs';
 import { parse as parseYaml } from '@std/yaml';
 import { stripIndents } from 'common-tags';
-import { getBbaiDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
+import { getBbDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
 import * as defaultPrompts from './defaultPrompts.ts';
-import { ConfigManager, type FullConfigSchema } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 
 interface PromptMetadata {
@@ -20,21 +21,22 @@ interface Prompt {
 
 class PromptManager {
 	private userPromptsDir: string;
-	private fullConfig!: FullConfigSchema;
+	private projectConfig!: ProjectConfig;
 
 	constructor() {
 		this.userPromptsDir = '';
 	}
 
-	async init(projectRoot: string): Promise<PromptManager> {
-		const bbaiDir = await getBbaiDir(projectRoot);
-		this.userPromptsDir = join(bbaiDir, 'prompts');
-		this.fullConfig = await ConfigManager.fullConfig(projectRoot);
+	async init(projectId: string): Promise<PromptManager> {
+		const bbDir = await getBbDir(projectId);
+		this.userPromptsDir = join(bbDir, 'prompts');
+		const configManager = await ConfigManagerV2.getInstance();
+		this.projectConfig = await configManager.getProjectConfig(projectId);
 		return this;
 	}
 
 	public async loadGuidelines(): Promise<string | null> {
-		const guidelinesPath = this.fullConfig.project.llmGuidelinesFile;
+		const guidelinesPath = this.projectConfig.llmGuidelinesFile;
 		if (!guidelinesPath) {
 			return null;
 		}
@@ -43,7 +45,7 @@ class PromptManager {
 		return await readFileContent(resolvedPath);
 	}
 
-	async getPrompt(promptName: string, variables: Record<string, any> = {}): Promise<string> {
+	async getPrompt(promptName: string, variables: Record<string, unknown> = {}): Promise<string> {
 		const userPrompt = await this.loadUserPrompt(promptName);
 		const defaultPrompt = defaultPrompts[promptName as keyof typeof defaultPrompts];
 
@@ -78,7 +80,7 @@ class PromptManager {
 		};
 	}
 
-	applyTemplate(template: string, variables: Record<string, any>): string {
+	applyTemplate(template: string, variables: Record<string, unknown>): string {
 		return stripIndents(template).replace(
 			/\${(.*?)}/g,
 			(_, expr) => {

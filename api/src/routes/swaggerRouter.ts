@@ -1,15 +1,19 @@
 import type { Context } from '@oak/oak';
 import { Router } from '@oak/oak';
 import swaggerJsdoc from 'swagger-jsdoc';
-import { ConfigManager } from 'shared/configManager.ts';
+//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getVersionInfo } from 'shared/version.ts';
 
+// const configManager = await ConfigManagerV2.getInstance();
+// const globalConfig = await configManager.getGlobalConfig();
+const versionInfo = await getVersionInfo();
 const swaggerDefinition = {
 	openapi: '3.0.0',
 	info: {
-		title: 'BBai API',
-		version: (await ConfigManager.globalConfig()).version,
+		title: 'BB API',
+		version: versionInfo.version,
 		description:
-			`BBai (pronounced b-b-aye) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BBai is here to help you "be better" at every step.`,
+			`BB (Beyond Better) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you "be better" at every step.`,
 	},
 };
 
@@ -30,7 +34,7 @@ const swaggerSpec = swaggerJsdoc(options);
  * /api-docs/openapi.json:
  *   get:
  *     summary: Get OpenAPI specification
- *     description: Returns the OpenAPI specification for the bbai API in JSON format
+ *     description: Returns the OpenAPI specification for the BB API in JSON format
  *     responses:
  *       200:
  *         description: Successful response with OpenAPI specification
@@ -45,7 +49,7 @@ const swaggerSpec = swaggerJsdoc(options);
  * /api-docs/swagger.json:
  *   get:
  *     summary: Get Swagger specification
- *     description: Returns the Swagger specification for the bbai API in JSON format
+ *     description: Returns the Swagger specification for the BB API in JSON format
  *     responses:
  *       200:
  *         description: Successful response with Swagger specification

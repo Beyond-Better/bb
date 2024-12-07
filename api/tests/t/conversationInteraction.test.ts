@@ -1,11 +1,11 @@
-import { assertEquals, assertExists } from '../deps.ts';
+import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
-import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
-import LLMMessage, { LLMMessageContentPart, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
 import { LLMCallbackType } from 'api/types.ts';
-import { getProjectEditor, withTestProject } from '../lib/testSetup.ts';
+import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';
 
 // Mock LLM class
 class MockLLM {
@@ -17,9 +17,9 @@ class MockLLM {
 	}
 }
 
-async function setupTestEnvironment(projectRoot: string) {
+async function setupTestEnvironment(projectId: string, projectRoot: string) {
 	await GitUtils.initGit(projectRoot);
-	const projectEditor = await getProjectEditor(projectRoot);
+	const projectEditor = await getProjectEditor(projectId);
 	const mockLLM = new MockLLM();
 	const conversation = new LLMConversationInteraction(mockLLM as any, 'test-conversation-id');
 
@@ -36,24 +36,39 @@ async function setupTestEnvironment(projectRoot: string) {
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const { projectEditor: _projectEditor, conversation, projectRoot, testFiles } = await setupTestEnvironment(
+				testProjectId,
 				testProjectRoot,
 			);
 
 			// Create test messages
+			const conversationStats = {
+				statementCount: 0,
+				statementTurnCount: 0,
+				conversationTurnCount: 0,
+			};
 			const messages: LLMMessage[] = [
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg1',
 				),
-				new LLMMessage('assistant', [{ type: 'text', text: 'Acknowledged.' }], undefined, undefined, 'msg2'),
+				new LLMMessage(
+					'assistant',
+					[{ type: 'text', text: 'Acknowledged.' }],
+					incrementConversationStats(conversationStats),
+					undefined,
+					undefined,
+					'msg2',
+				),
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[1]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg3',
@@ -61,6 +76,7 @@ Deno.test({
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
+					incrementConversationStats(conversationStats),
 					undefined,
 					undefined,
 					'msg4',

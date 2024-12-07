@@ -1,7 +1,9 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
+//import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 import type { ConversationId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export default class WebsocketManager {
 	private cancellationRequested: boolean = false;
@@ -9,23 +11,25 @@ export default class WebsocketManager {
 	private MAX_RETRIES = 5;
 	private BASE_DELAY = 1000; // 1 second
 	private retryCount = 0;
-	private currentConversationId?: ConversationId;
+	private currentConversationId!: ConversationId;
+	private projectId!: string;
 
 	async setupWebsocket(
-		conversationId?: ConversationId,
-		startDir?: string,
+		conversationId: ConversationId,
+		projectId: string,
 		hostname?: string,
 		port?: number,
 	): Promise<void> {
 		this.currentConversationId = conversationId;
+		this.projectId = projectId;
 		const connectWebSocket = async (): Promise<WebSocket> => {
 			//console.log(`WebsocketManager: Connecting websocket for conversation: ${conversationId}`);
 			try {
-				const apiClient = await ApiClient.create(startDir, hostname, port);
+				const apiClient = await ApiClient.create(projectId, hostname, port);
 				// apiClient.connectWebSocket returns a promise, so we return that promise rather than awaiting
 				return apiClient.connectWebSocket(`/api/v1/ws/conversation/${conversationId}`);
 			} catch (error) {
-				await this.handleRetry(error);
+				await this.handleRetry(error as Error);
 				return connectWebSocket();
 			}
 		};
@@ -37,7 +41,7 @@ export default class WebsocketManager {
 		this.setupEventListeners();
 
 		//console.log(`WebsocketManager: Sending greeting for conversation: ${conversationId}`);
-		this.sendGreeting();
+		await this.sendGreeting();
 	}
 
 	private removeEventListeners(): void {
@@ -61,15 +65,15 @@ export default class WebsocketManager {
 		this.ws!.onclose = this.handleClose.bind(this);
 		this.ws!.onerror = this.handleError.bind(this);
 		this.ws!.onopen = this.handleOpen.bind(this);
-		// 		return new Promise<void>((resolve) => {
-		// 			this.ws!.onmessage = this.handleMessage.bind(this);
-		// 			this.ws!.onclose = this.handleClose.bind(this);
-		// 			this.ws!.onerror = this.handleError.bind(this);
-		// 			this.ws!.onopen = ((event: Event) => {
-		// 				this.handleOpen(event);
-		// 				resolve();
-		// 			}).bind(this);
-		// 		});
+		// return new Promise<void>((resolve) => {
+		// 	this.ws!.onmessage = this.handleMessage.bind(this);
+		// 	this.ws!.onclose = this.handleClose.bind(this);
+		// 	this.ws!.onerror = this.handleError.bind(this);
+		// 	this.ws!.onopen = ((event: Event) => {
+		// 		this.handleOpen(event);
+		// 		resolve();
+		// 	}).bind(this);
+		// });
 	}
 
 	private handleOpen(_event: Event): void {
@@ -82,13 +86,19 @@ export default class WebsocketManager {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.close();
 		}
-		this.setupWebsocket(conversationId);
+		this.setupWebsocket(conversationId, this.projectId);
 	}
 
 	private handleMessage(event: MessageEvent): void {
 		const msgData = JSON.parse(event.data);
 		//console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type}`);
 		switch (msgData.type) {
+			case 'conversationNew':
+				eventManager.emit(
+					'cli:conversationNew',
+					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationNew'],
+				);
+				break;
 			case 'conversationReady':
 				eventManager.emit(
 					'cli:conversationReady',
@@ -126,6 +136,18 @@ export default class WebsocketManager {
 					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationError'],
 				);
 				break;
+			case 'progressStatus':
+				eventManager.emit(
+					'cli:progressStatus',
+					{ ...msgData } as EventPayloadMap['cli']['cli:progressStatus'], //ProgressStatusMessage
+				);
+				break;
+			case 'promptCacheTimer':
+				eventManager.emit(
+					'cli:promptCacheTimer',
+					{ ...msgData } as EventPayloadMap['cli']['cli:promptCacheTimer'], //PromptCacheTimerMessage
+				);
+				break;
 			default:
 				console.error(`WebsocketManager: Received unknown message type: ${msgData.type}`);
 		}
@@ -134,7 +156,7 @@ export default class WebsocketManager {
 	private async handleClose(): Promise<void> {
 		this.removeEventListeners();
 		await this.handleRetry(new Error('WebSocket connection closed'));
-		await this.setupWebsocket(this.currentConversationId);
+		await this.setupWebsocket(this.currentConversationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
 			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
@@ -145,19 +167,21 @@ export default class WebsocketManager {
 		this.removeEventListeners();
 		const error = event instanceof ErrorEvent ? event.error : new Error('Unknown WebSocket error');
 		await this.handleRetry(error);
-		await this.setupWebsocket(this.currentConversationId);
+		await this.setupWebsocket(this.currentConversationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
 			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
-	private sendGreeting(): void {
+	private async sendGreeting(): Promise<void> {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+			const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+			const projectId = await getProjectId(projectRoot);
 			this.ws.send(
 				JSON.stringify({
 					conversationId: this.currentConversationId,
-					startDir: Deno.cwd(),
+					projectId: projectId,
 					task: 'greeting',
 					statement: '',
 				}),
@@ -188,7 +212,7 @@ export default class WebsocketManager {
 				this.cancellationRequested = false;
 				return;
 			} catch (error) {
-				if (error.message !== 'Timeout') throw error;
+				if ((error as Error).message !== 'Timeout') throw error;
 			}
 		}
 		this.cancellationRequested = false;

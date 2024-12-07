@@ -2,12 +2,18 @@ import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
+import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 import LLM from './baseLLM.ts';
-import LLMInteraction from '../interactions/baseInteraction.ts';
-import LLMMessage, { LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
-import LLMTool from 'api/llms/llmTool.ts';
-import { createError } from '../../utils/error.utils.ts';
-import { ErrorType, LLMErrorOptions } from '../../errors/error.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
+import type LLMMessage from 'api/llms/llmMessage.ts';
+import type {
+	LLMMessageContentPart,
+	LLMMessageContentParts,
+	LLMMessageContentPartTextBlock,
+} from 'api/llms/llmMessage.ts';
+import type LLMTool from 'api/llms/llmTool.ts';
+import { createError } from 'api/utils/error.ts';
+import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
 	LLMCallbacks,
@@ -15,8 +21,32 @@ import type {
 	LLMProviderMessageResponse,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-} from '../../types.ts';
+} from 'api/types.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
 
+type AnthropicBlockParam =
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+type AnthropicBlockParamOrString =
+	| string
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+type AnthropicBlockParamOrArray =
+	| string
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam
+	| Array<
+		| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
+		| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
+		| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
+		| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam
+	>;
 class AnthropicLLM extends LLM {
 	private anthropic!: Anthropic;
 
@@ -29,16 +59,250 @@ class AnthropicLLM extends LLM {
 
 	private initializeAnthropicClient() {
 		const clientOptions: ClientOptions = {
-			apiKey: this.fullConfig.api?.anthropicApiKey,
+			apiKey: this.projectConfig.settings.api?.llmKeys?.anthropic,
 		};
 		this.anthropic = new Anthropic(clientOptions);
 	}
 
-	private asProviderMessageType(messages: LLMMessage[]): Anthropic.MessageParam[] {
-		return messages.map((message) => ({
-			role: message.role,
-			content: message.content,
-		} as Anthropic.MessageParam));
+	// Helper function to check for file metadata blocks
+	private hasFileMetadata(text: string): boolean {
+		try {
+			return text.includes(BB_FILE_METADATA_DELIMITER);
+		} catch (_e) {
+			return false;
+		}
+	}
+
+	private logMessageDetails(messages: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[]): void {
+		logger.info('Message Details for LLM Request:');
+
+		const messagesWithCache: number[] = [];
+		const messagesWithFiles: number[] = [];
+
+		messages.forEach((message, index) => {
+			const contentParts: AnthropicBlockParamOrString[] = Array.isArray(message.content)
+				? message.content
+				: [message.content];
+			const summary: string[] = [];
+
+			const processContent = (part: AnthropicBlockParamOrString, depth: number = 0): void => {
+				const indent = '  '.repeat(depth);
+
+				if (typeof part === 'string') {
+					summary.push(`${indent}Content: plain text (no metadata or cache_control possible)`);
+					return;
+				}
+
+				// Log the type of this part
+				summary.push(`${indent}Type: ${part.type}`);
+
+				// For tool_result, process its nested content
+				if (part.type === 'tool_result' && Array.isArray(part.content)) {
+					summary.push(`${indent}Tool Use ID: ${part.tool_use_id || 'none'}`);
+					summary.push(`${indent}Is Error: ${part.is_error || false}`);
+
+					// Check if any nested content has file content
+					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPart) =>
+						nestedPart.type === 'text' &&
+						typeof nestedPart.text === 'string' &&
+						(this.hasFileMetadata(nestedPart.text) ||
+							(nestedPart.text.startsWith('Note: File') &&
+								nestedPart.text.includes('is up-to-date')))
+					);
+					if (fileContentParts.length > 0) {
+						summary.push(`${indent}Files in this tool_result:`);
+						fileContentParts.forEach((p: LLMMessageContentPart) => {
+							if (p.type === 'text' && typeof p.text === 'string') {
+								if (p.text.startsWith('Note: File')) {
+									const match = p.text.match(
+										/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
+									);
+									if (match) {
+										summary.push(
+											`${indent}  - ${match[1]} with revision ${match[2]} (current from turn ${
+												match[3]
+											} with revision ${match[4]})`,
+										);
+									}
+								} else if (this.hasFileMetadata(p.text)) {
+									try {
+										const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadata = JSON.parse(metadataText);
+										summary.push(
+											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
+										);
+										summary.push(`${indent}    Size: ${metadata.size} bytes`);
+										summary.push(`${indent}    Last Modified: ${metadata.last_modified}`);
+										if (metadata.mime_type) {
+											summary.push(`${indent}    MIME Type: ${metadata.mime_type}`);
+										}
+									} catch (e) {
+										summary.push(
+											`${indent}  - Error parsing file metadata: ${(e as Error).message}`,
+										);
+									}
+								}
+							} else {
+								logger.error(`content part is not type text: ${p.type}`);
+							}
+						});
+						messagesWithFiles.push(index + 1);
+					}
+
+					summary.push(`${indent}Nested Content:`);
+					part.content.forEach((nestedPart: AnthropicBlockParamOrString, nestedIndex: number) => {
+						summary.push(`${indent}  Content Part ${nestedIndex + 1}:`);
+						processContent(nestedPart, depth + 2);
+					});
+					return;
+				}
+
+				// Process text content
+				if ('text' in part && typeof part.text === 'string') {
+					const hasFileContent = this.hasFileMetadata(part.text);
+					const hasFileNote = part.text.startsWith('Note: File') &&
+						part.text.includes('content is up-to-date from turn');
+
+					if (hasFileContent) {
+						try {
+							const metadataText = part.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+							const metadata = JSON.parse(metadataText);
+							summary.push(
+								`${indent}File: ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
+							);
+							summary.push(`${indent}Size: ${metadata.size} bytes`);
+							summary.push(`${indent}Last Modified: ${metadata.last_modified}`);
+							if (metadata.mime_type) {
+								summary.push(`${indent}MIME Type: ${metadata.mime_type}`);
+							}
+						} catch (e) {
+							summary.push(`${indent}Error parsing file metadata: ${(e as Error).message}`);
+						}
+					} else if (hasFileNote) {
+						const match = part.text.match(
+							/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
+						);
+						if (match) {
+							summary.push(
+								`${indent}File: ${match[1]} with revision ${match[2]} (current from turn ${
+									match[3]
+								} with revision ${match[4]})`,
+							);
+						}
+					} else {
+						summary.push(`${indent}No file metadata found`);
+					}
+				}
+
+				// Check for cache_control
+				if (part && typeof part === 'object' && 'cache_control' in part) {
+					const cacheControl = (part as AnthropicBlockParam).cache_control;
+					summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
+					if (!messagesWithCache.includes(index + 1)) {
+						messagesWithCache.push(index + 1);
+					}
+				} else {
+					summary.push(`${indent}Has cache_control: no`);
+				}
+			};
+
+			summary.push(`\nMessage ${index + 1}:`);
+			summary.push(`Role: ${message.role}`);
+			summary.push(`Content Parts: ${contentParts.length}`);
+
+			contentParts.forEach((part, partIndex) => {
+				summary.push(`\n  Content Part ${partIndex + 1}:`);
+				processContent(part, 1);
+			});
+
+			logger.info(summary.join('\n'));
+		});
+
+		logger.info(`\nMessages with files: ${messagesWithFiles.join(', ')}`);
+		logger.info(`Messages with cache_control: ${messagesWithCache.join(', ')}`);
+	}
+
+	private asProviderMessageType(
+		messages: LLMMessage[],
+	): Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] {
+		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
+
+		// Find all messages that contain file additions with file metadata part
+		const fileAddedMessages = messages
+			.map((m, index) => ({ message: m, index }))
+			.filter(({ message }) =>
+				message.role === 'user' &&
+				Array.isArray(message.content) &&
+				message.content.some((block) => {
+					if (block.type === 'tool_result' && Array.isArray(block.content)) {
+						// Look for file metadata part (for text or image) or file update notes in the nested content
+						return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
+							this.hasFileMetadata(nestedPart.text))
+						);
+					}
+					return false;
+				})
+			);
+
+		// Get the last three such messages
+		const lastThreeFileAddedMessages = fileAddedMessages.slice(-3);
+		const lastThreeIndices = new Set(lastThreeFileAddedMessages.map((m) => m.index));
+
+		return messages.map((m, index) => {
+			const prevContent: AnthropicBlockParamOrArray = m.content as AnthropicBlockParamOrArray;
+			let content: AnthropicBlockParamOrArray;
+
+			// Add cache_control to the last content part of the last three file-added messages
+			if (m.role === 'user' && usePromptCaching && lastThreeIndices.has(index)) {
+				// Verify this message actually has a tool_result with file content
+				// const hasFileContent = Array.isArray(m.content) &&
+				// 	m.content.some((block) =>
+				// 		block.type === 'tool_result' &&
+				// 		Array.isArray(block.content) &&
+				// 		block.content.some((part) =>
+				// 			(part.type === 'text' &&
+				// 				typeof part.text === 'string' &&
+				// 				(this.hasFileMetadata(part.text) ||
+				// 					(part.text.startsWith('Note: File') &&
+				// 						part.text.includes('content is up-to-date')))) ||
+				// 			part.type === 'image'
+				// 		)
+				// 	);
+				const hasFileContent = Array.isArray(m.content) &&
+					m.content.some((block) =>
+						block.type === 'tool_result' &&
+						Array.isArray(block.content) &&
+						// we only need to check type === 'text' - images will have a corresponding metadata block
+						block.content.some((part) => (part.type === 'text' &&
+							this.hasFileMetadata(part.text))
+						)
+					);
+
+				if (hasFileContent) {
+					if (Array.isArray(prevContent)) {
+						content = [...prevContent];
+						const lastBlock = content[content.length - 1];
+						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					} else if (typeof prevContent === 'string') {
+						content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
+					} else {
+						content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					}
+				} else {
+					content = (Array.isArray(prevContent)
+						? prevContent
+						: [prevContent]) as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam[];
+				}
+			} else {
+				content = (Array.isArray(prevContent)
+					? prevContent
+					: [prevContent]) as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam[];
+			}
+			return {
+				role: m.role,
+				content: content,
+			} as Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam;
+		});
 	}
 
 	private asProviderToolType(tools: LLMTool[]): Anthropic.Beta.PromptCaching.PromptCachingBetaTool[] {
@@ -46,15 +310,16 @@ class AnthropicLLM extends LLM {
 		return tools.map((tool) => ({
 			name: tool.name,
 			description: tool.description,
-			input_schema: tool.input_schema,
+			input_schema: tool.inputSchema,
 		} as Anthropic.Tool));
 	}
 
-	async prepareMessageParams(
+	override async prepareMessageParams(
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<Anthropic.MessageCreateParams> {
 		//logger.debug('llms-anthropic-prepareMessageParams-systemPrompt', interaction.baseSystem);
+		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const systemPrompt = await this.invoke(
 			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
 			speakOptions?.system || interaction.baseSystem,
@@ -65,7 +330,7 @@ class AnthropicLLM extends LLM {
 				{
 					type: 'text',
 					text: systemPrompt,
-					cache_control: { type: 'ephemeral' },
+					...(usePromptCaching ? { cache_control: { type: 'ephemeral' } } : {}),
 				} as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam,
 			]
 			: '';
@@ -78,9 +343,10 @@ class AnthropicLLM extends LLM {
 				interaction.id,
 			),
 		);
-		if (tools.length > 0) {
-			tools[tools.length - 1].cache_control = { type: 'ephemeral' };
-		}
+		// system cache_control also includes tools
+		//if (tools.length > 0 && usePromptCaching) {
+		//	tools[tools.length - 1].cache_control = { type: 'ephemeral' };
+		//}
 
 		const messages = this.asProviderMessageType(
 			await this.invoke(
@@ -89,6 +355,8 @@ class AnthropicLLM extends LLM {
 				interaction.id,
 			),
 		);
+		// Log detailed message information
+		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
 			logger.error('maxTokens missing from both speakOptions and interaction');
@@ -103,8 +371,8 @@ class AnthropicLLM extends LLM {
 
 		const messageParams: Anthropic.Beta.PromptCaching.MessageCreateParams = {
 			messages,
-			tools,
 			system,
+			tools,
 			model,
 			max_tokens: maxTokens,
 			temperature,
@@ -122,7 +390,7 @@ class AnthropicLLM extends LLM {
 	 * @param speakOptions LLMSpeakWithOptions
 	 * @returns Promise<LLMProviderMessageResponse> The response from Anthropic or an error
 	 */
-	public async speakWith(
+	public override async speakWith(
 		messageParams: LLMProviderMessageRequest,
 	): Promise<LLMSpeakWithResponse> {
 		try {
@@ -139,8 +407,39 @@ class AnthropicLLM extends LLM {
 				).withResponse();
 
 			const anthropicMessage = anthropicMessageStream as Anthropic.Beta.PromptCaching.PromptCachingBetaMessage;
-			logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
+			//logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('llms-anthropic-anthropicResponse', anthropicResponse);
+
+			// Validate essential response properties
+			if (!anthropicMessage || !anthropicMessage.content) {
+				logger.error('Invalid Anthropic response - missing message or content:', { anthropicMessage });
+				throw createError(
+					ErrorType.LLM,
+					'Invalid response from Anthropic API: missing required properties',
+					{ provider: this.llmProviderName, model: messageParams.model } as LLMErrorOptions,
+				);
+			}
+
+			// Validate and normalize content to ensure it's a non-empty array
+			if (!Array.isArray(anthropicMessage.content)) {
+				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:', {
+					content: anthropicMessage.content,
+				});
+				// Convert to array if possible, or create error message
+				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
+					anthropicMessage.content = [anthropicMessage.content];
+				} else if (typeof anthropicMessage.content === 'string') {
+					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content }];
+				} else {
+					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM' }];
+				}
+			}
+
+			// Ensure content array is not empty
+			if (anthropicMessage.content.length === 0) {
+				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
+				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM' }];
+			}
 
 			const headers = anthropicResponse?.headers;
 
@@ -154,15 +453,21 @@ class AnthropicLLM extends LLM {
 			const tokensLimit = Number(headers.get('anthropic-ratelimit-tokens-limit'));
 			const tokensResetDate = new Date(headers.get('anthropic-ratelimit-tokens-reset') || '');
 
+			//logger.debug(`provider[${this.llmProviderName}] Creating message response from Anthropic message:`, {
+			//	messageType: anthropicMessage.type,
+			//	role: anthropicMessage.role,
+			//	contentLength: anthropicMessage.content.length,
+			//});
+
 			const messageResponse: LLMProviderMessageResponse = {
 				id: anthropicMessage.id,
 				type: anthropicMessage.type,
 				role: anthropicMessage.role,
 				model: anthropicMessage.model,
-				//system: messageParams.system,
 				fromCache: false,
 				timestamp: new Date().toISOString(),
 				answerContent: anthropicMessage.content as LLMMessageContentParts,
+				answer: extractTextFromContent(anthropicMessage.content as LLMMessageContentParts), // answer will get overridden in baseLLM - but this keeps type checking happy
 				isTool: anthropicMessage.stop_reason === 'tool_use',
 				messageStop: {
 					stopReason: anthropicMessage.stop_reason,
@@ -188,6 +493,11 @@ class AnthropicLLM extends LLM {
 					statusText: anthropicResponse.statusText,
 				},
 			};
+			logger.debug(`provider[${this.llmProviderName}] Created message response:`, {
+				id: messageResponse.id,
+				type: messageResponse.type,
+				contentLength: messageResponse.answerContent.length,
+			});
 			//logger.debug("llms-anthropic-messageResponse", messageResponse);
 
 			return { messageResponse, messageMeta: { system: messageParams.system } };
@@ -195,7 +505,7 @@ class AnthropicLLM extends LLM {
 			logger.error('Error calling Anthropic API', err);
 			throw createError(
 				ErrorType.LLM,
-				'Could not get response from Anthropic API.',
+				`Could not get response from Anthropic API: ${(err as Error).message}`,
 				{
 					model: messageParams.model,
 					provider: this.llmProviderName,
@@ -204,7 +514,7 @@ class AnthropicLLM extends LLM {
 		}
 	}
 
-	protected modifySpeakWithInteractionOptions(
+	protected override modifySpeakWithInteractionOptions(
 		interaction: LLMInteraction,
 		speakOptions: LLMSpeakWithOptions,
 		validationFailedReason: string,
@@ -241,7 +551,7 @@ class AnthropicLLM extends LLM {
 		}
 	}
 
-	protected checkStopReason(llmProviderMessageResponse: LLMProviderMessageResponse): void {
+	protected override checkStopReason(llmProviderMessageResponse: LLMProviderMessageResponse): void {
 		// Check if the response has a stop reason
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			// Perform special handling based on the stop reason

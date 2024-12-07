@@ -1,194 +1,368 @@
 import * as diff from 'diff';
 
-import type InteractionManager from '../llms/interactions/interactionManager.ts';
-import { interactionManager } from '../llms/interactions/interactionManager.ts';
-import type ProjectEditor from '../editor/projectEditor.ts';
-import type { ProjectInfo } from '../editor/projectEditor.ts';
+import type InteractionManager from 'api/llms/interactionManager.ts';
+import { interactionManager } from 'api/llms/interactionManager.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLM from '../llms/providers/baseLLM.ts';
 import LLMFactory from '../llms/llmProvider.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
-//import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-//import LLMToolManager, { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
+import type { LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
 import LLMToolManager from '../llms/llmToolManager.ts';
-import type LLMConversationInteraction from '../llms/interactions/conversationInteraction.ts';
-import type LLMChatInteraction from '../llms/interactions/chatInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import AgentController from './agentController.ts';
 import PromptManager from '../prompts/promptManager.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import ConversationPersistence from '../storage/conversationPersistence.ts';
+import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	ConversationEntry,
 	ConversationId,
-	ConversationMetrics,
+	ConversationLogEntry,
+	//ConversationMetrics,
 	ConversationResponse,
 	ConversationStart,
-	ConversationTokenUsage,
+	ConversationStats,
+	ObjectivesData,
 	TokenUsage,
 } from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import { readProjectFileContent } from '../utils/fileHandling.utils.ts';
-import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from '../types.ts';
-import type { ConversationLogEntry } from 'shared/conversationLogger.ts';
-import { generateConversationTitle } from '../utils/conversation.utils.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
+import { readProjectFileContent } from 'api/utils/fileHandling.ts';
+import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import {
+	generateConversationObjective,
+	generateConversationTitle,
+	generateStatementObjective,
+} from '../utils/conversation.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
-import { stageAndCommitAfterPatching } from '../utils/git.utils.ts';
-import { type FullConfigSchema } from 'shared/configManager.ts';
+import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
+import { getVersionInfo } from 'shared/version.ts';
+
+function getConversationObjective(objectives?: ObjectivesData): string | undefined {
+	if (!objectives) return undefined;
+	return objectives.conversation;
+}
+
+function getCurrentObjective(objectives?: ObjectivesData): string | undefined {
+	if (!objectives) return undefined;
+	if (!objectives.statement || objectives.statement.length === 0) return undefined;
+	// Return the last statement objective as the current one
+	return objectives.statement[objectives.statement.length - 1];
+}
+
+function formatToolObjectivesAndStats(
+	interaction: LLMConversationInteraction,
+	turnCount: number,
+	maxTurns: number,
+): string {
+	const metrics = interaction.conversationMetrics;
+	const parts = [`Turn ${turnCount}/${maxTurns}`];
+
+	// Add objectives if set
+	logger.debug('Raw objectives:', metrics.objectives);
+	const conversationObjective = getConversationObjective(metrics.objectives);
+	const currentObjective = getCurrentObjective(metrics.objectives);
+	logger.debug('Extracted objectives:', { conversationObjective, currentObjective });
+
+	// Add conversation objective if set
+	if (conversationObjective) {
+		parts.push(`Conversation Goal: ${conversationObjective}`);
+	}
+
+	// Add current objective if set
+	if (currentObjective) {
+		parts.push(`Current Objective: ${currentObjective}`);
+	}
+
+	// Add tool usage stats
+	const toolStats = metrics.toolUsage?.toolStats;
+	if (toolStats && toolStats.size > 0) {
+		const toolUsage = Array.from(toolStats.entries())
+			.map(([tool, stats]) => `${tool}(${stats.count}: ${stats.success}✓ ${stats.failure}✗)`).join(', ');
+		parts.push(`Tools Used: ${toolUsage}`);
+	}
+
+	// Add resource stats if any were accessed
+	if (metrics.resources && metrics.resources.accessed.size > 0) {
+		const resourceStats =
+			`Resources: ${metrics.resources.accessed.size} accessed, ${metrics.resources.modified.size} modified`;
+		parts.push(resourceStats);
+	}
+
+	return parts.join('\n');
+}
 
 class OrchestratorController {
-	private interactionStats: Map<ConversationId, ConversationMetrics> = new Map();
-	private interactionTokenUsage: Map<ConversationId, ConversationTokenUsage> = new Map();
+	private interactionStats: Map<ConversationId, ConversationStats> = new Map();
+	//private interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
+	private interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
 	private isCancelled: boolean = false;
+	//private currentStatus: ApiStatus = ApiStatus.IDLE;
+	private statusSequence: number = 0;
 	public interactionManager: InteractionManager;
 	public primaryInteractionId: ConversationId | null = null;
 	private agentControllers: Map<string, AgentController> = new Map();
-	public fullConfig!: FullConfigSchema;
+	public projectConfig!: ProjectConfig;
 	public promptManager!: PromptManager;
-	public toolManager: LLMToolManager;
+	public toolManager!: LLMToolManager;
 	public llmProvider: LLM;
 	public eventManager!: EventManager;
 	private projectEditorRef!: WeakRef<ProjectEditor>;
 	//private _providerRequestCount: number = 0;
-	// counts across all interactions
-	// count of turns for most recent statement in most recent interaction
-	private _statementTurnCount: number = 0;
-	// count of turns for all statements across all interactions
-	private _conversationTurnCount: number = 0;
-	// count of statements across all interactions
-	private _statementCount: number = 0;
-	// usage across all interactions
-	protected _tokenUsageTotals: ConversationTokenUsage = {
-		totalTokensTotal: 0,
-		inputTokensTotal: 0,
-		outputTokensTotal: 0,
-	};
+
+	// [TODO] Keep stats and counts simple
+	// these counts and token usage are not including chat interactions
+	// and currently we only have the primary interaction
+	// so I'm disabling these properties and delegating to counts from primaryInteraction
+	// when we have multiple interactions, we still probably don't need these since we can
+	// grab counts from all interactions as needed.
+	//
+	// // counts across all interactions
+	// // count of turns for most recent statement in most recent interaction
+	// private _statementTurnCount: number = 0;
+	// // count of turns for all statements across all interactions
+	// private _conversationTurnCount: number = 0;
+	// // count of statements across all interactions
+	// private _statementCount: number = 0;
+	// // usage across all interactions
+	// protected _tokenUsageConversation: TokenUsage = {
+	// 	totalTokens: 0,
+	// 	inputTokens: 0,
+	// 	outputTokens: 0,
+	// };
 
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this.projectEditorRef = new WeakRef(projectEditor);
 		this.interactionManager = interactionManager; //new InteractionManager();
 		this.llmProvider = LLMFactory.getProvider(this.getInteractionCallbacks());
-		this.toolManager = new LLMToolManager('coding'); // Assuming 'coding' is the default toolset
-		this.fullConfig = this.projectEditor.fullConfig;
 	}
 
 	async init(): Promise<OrchestratorController> {
+		const configManager = await ConfigManagerV2.getInstance();
+		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
 		this.eventManager = EventManager.getInstance();
-		this.promptManager = await new PromptManager().init(this.projectEditor.projectRoot);
-		//this.fullConfig = await ConfigManager.fullConfig(this.projectEditor.projectRoot);
+		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
 
 		return this;
 	}
 
-	get projectEditor(): ProjectEditor {
+	private handleLLMError(error: Error, interaction: LLMConversationInteraction): void {
+		// Extract useful information from the error if it's our custom error type
+		const errorDetails = error instanceof Error
+			? {
+				message: (error as Error).message,
+				code: (error as Error).name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
+				// Include any additional error properties if available
+				details: (error as unknown as { details: unknown }).details || {},
+			}
+			: {
+				message: String(error),
+				code: 'UNKNOWN_ERROR',
+			};
+
+		this.eventManager.emit(
+			'projectEditor:conversationError',
+			{
+				conversationId: interaction.id,
+				conversationTitle: interaction.title || '',
+				timestamp: new Date().toISOString(),
+				conversationStats: {
+					statementCount: this.statementCount,
+					statementTurnCount: this.statementTurnCount,
+					conversationTurnCount: this.conversationTurnCount,
+				},
+				error: errorDetails.message,
+				code: errorDetails.code,
+				details: errorDetails.details,
+			} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+		);
+
+		// Always log the full error for debugging
+		logger.error(`OrchestratorController: LLM communication error:`, error);
+	}
+
+	private emitStatus(status: ApiStatus, metadata?: { toolName?: string; error?: string }) {
+		if (!this.primaryInteractionId) {
+			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit status');
+			return;
+		}
+		//this.currentStatus = status;
+		this.statusSequence++;
+		this.eventManager.emit('projectEditor:progressStatus', {
+			type: 'progress_status',
+			conversationId: this.primaryInteractionId,
+			status,
+			timestamp: new Date().toISOString(),
+			statementCount: this.statementCount,
+			sequence: this.statusSequence,
+			metadata,
+		});
+		logger.warn(`OrchestratorController: Emitted progress_status: ${status}`);
+	}
+
+	private emitPromptCacheTimer() {
+		if (!this.primaryInteractionId) {
+			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit timer');
+			return;
+		}
+		this.eventManager.emit('projectEditor:promptCacheTimer', {
+			type: 'prompt_cache_timer',
+			conversationId: this.primaryInteractionId,
+			startTimestamp: Date.now(),
+			duration: 300000, // 5 minutes in milliseconds
+		});
+		logger.warn(`OrchestratorController: Emitted prompt_cache_timer`);
+	}
+
+	public get projectEditor(): ProjectEditor {
 		const projectEditor = this.projectEditorRef.deref();
 		if (!projectEditor) throw new Error('No projectEditor to deref from projectEditorRef');
 		return projectEditor;
 	}
 
-	get primaryInteraction(): LLMConversationInteraction {
+	public get primaryInteraction(): LLMConversationInteraction {
 		if (!this.primaryInteractionId) throw new Error('No primaryInteractionId set in orchestrator');
 		const primaryInteraction = this.interactionManager.getInteraction(this.primaryInteractionId);
 		if (!primaryInteraction) throw new Error('No primaryInteraction to get from interactionManager');
 		return primaryInteraction as LLMConversationInteraction;
 	}
-	get statementTurnCount(): number {
-		return this._statementTurnCount;
+
+	public get statementTurnCount(): number {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot get statementTurnCount.');
+		}
+		return primaryInteraction.statementTurnCount;
 	}
-	set statementTurnCount(count: number) {
-		this._statementTurnCount = count;
+	public set statementTurnCount(count: number) {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot set statementTurnCount.');
+		}
+		primaryInteraction.conversationTurnCount = count;
 	}
-	get conversationTurnCount(): number {
-		return this._conversationTurnCount;
+
+	public get conversationTurnCount(): number {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot get conversationTurnCount.');
+		}
+		return primaryInteraction.conversationTurnCount;
 	}
-	set conversationTurnCount(count: number) {
-		this._conversationTurnCount = count;
+	public set conversationTurnCount(count: number) {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot set conversationTurnCount.');
+		}
+		primaryInteraction.conversationTurnCount = count;
 	}
-	get statementCount(): number {
-		return this._statementCount;
+
+	public get statementCount(): number {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot get statementCount.');
+		}
+		return primaryInteraction.statementCount;
 	}
-	set statementCount(count: number) {
-		this._statementCount = count;
+	public set statementCount(count: number) {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot set statementCount.');
+		}
+		primaryInteraction.statementCount = count;
+	}
+
+	public get tokenUsageInteraction(): TokenUsage {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot get tokenUsageInteraction.');
+		}
+		return primaryInteraction.tokenUsageInteraction;
+	}
+	public set tokenUsageInteraction(tokenUsageInteraction: TokenUsage) {
+		const primaryInteraction = this.primaryInteraction;
+		if (!primaryInteraction) {
+			throw new Error('No active conversation. Cannot set tokenUsageInteraction.');
+		}
+		primaryInteraction.tokenUsageInteraction = tokenUsageInteraction;
 	}
 
 	public get inputTokensTotal(): number {
-		return this._tokenUsageTotals.inputTokensTotal;
+		return this.tokenUsageInteraction.inputTokens;
 	}
 
-	public outputTokensTotal(): number {
-		return this._tokenUsageTotals.outputTokensTotal;
+	public get outputTokensTotal(): number {
+		return this.tokenUsageInteraction.outputTokens;
 	}
 
 	public get totalTokensTotal(): number {
-		return this._tokenUsageTotals.totalTokensTotal;
+		return this.tokenUsageInteraction.totalTokens;
 	}
 
-	public getAllStats(): { [key: string]: ConversationMetrics } {
-		const allStats: { [key: string]: ConversationMetrics } = {};
+	public getAllStats(): { [key: string]: ConversationStats } {
+		const allStats: { [key: string]: ConversationStats } = {};
 		for (const [id, stats] of this.interactionStats) {
 			allStats[id] = stats;
 		}
 		return allStats;
 	}
-	public getAllTokenUsage(): { [key: string]: ConversationTokenUsage } {
-		const allTokenUsage: { [key: string]: ConversationTokenUsage } = {};
+	public getAllTokenUsage(): { [key: string]: TokenUsage } {
+		const allTokenUsage: { [key: string]: TokenUsage } = {};
 		for (const [id, usage] of this.interactionTokenUsage) {
 			allTokenUsage[id] = usage;
 		}
 		return allTokenUsage;
 	}
 
-	public get tokenUsageTotals(): ConversationTokenUsage {
-		return this._tokenUsageTotals;
-	}
-
-	/*
-	updateUsageTotals(tokenUsage: TokenUsage): void {
-		this._tokenUsageTotals.totalTokensTotal += tokenUsage.totalTokens;
-		this._tokenUsageTotals.inputTokensTotal += tokenUsage.inputTokens;
-		this._tokenUsageTotals.outputTokensTotal += tokenUsage.outputTokens;
-	}
- */
-
-	private updateStats(conversationId: ConversationId, interactionStats: ConversationMetrics): void {
+	private updateStats(conversationId: ConversationId, interactionStats: ConversationStats): void {
 		this.interactionStats.set(conversationId, interactionStats);
 		this.updateTotalStats();
 	}
 
 	private updateTotalStats(): void {
-		//this._providerRequestCount = 0;
-		this._statementTurnCount = 0;
-		this._conversationTurnCount = 0;
-		this._statementCount = 0;
-		//this._tokenUsageTotals = { totalTokensTotal: 0, inputTokensTotal: 0, outputTokensTotal: 0 };
-
-		for (const stats of this.interactionStats.values()) {
-			//this._providerRequestCount += stats.providerRequestCount;
-			this._statementTurnCount += stats.statementTurnCount;
-			this._conversationTurnCount += stats.conversationTurnCount;
-			this._statementCount += stats.statementCount;
-		}
-		//for (const usage of this.interactionTokenUsage.values()) {
-		//	this._tokenUsageTotals.totalTokensTotal += usage.totalTokensTotal;
-		//	this._tokenUsageTotals.inputTokensTotal += usage.inputTokensTotal;
-		//	this._tokenUsageTotals.outputTokensTotal += usage.outputTokensTotal;
-		//}
+		// See '[TODO] Keep stats and counts simple'
+		// this method is a no-op for now
+		//
+		// //this._providerRequestCount = 0;
+		// this.statementTurnCount = 0;
+		// this.conversationTurnCount = 0;
+		// this.statementCount = 0;
+		// //this._tokenUsageConversation = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
+		//
+		// for (const stats of this.interactionStats.values()) {
+		// 	//this._providerRequestCount += stats.providerRequestCount;
+		// 	this.statementTurnCount += stats.statementTurnCount;
+		// 	this.conversationTurnCount += stats.conversationTurnCount;
+		// 	this.statementCount += stats.statementCount;
+		// }
+		// //for (const usage of this.interactionTokenUsage.values()) {
+		// //	this._tokenUsageConversation.totalTokens += usage.totalTokens;
+		// //	this._tokenUsageConversation.inputTokens += usage.inputTokens;
+		// //	this._tokenUsageConversation.outputTokens += usage.outputTokens;
+		// //}
 	}
 
 	async initializePrimaryInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
+		this.primaryInteractionId = conversationId;
 		let interaction = await this.loadInteraction(conversationId);
 		if (!interaction) {
 			interaction = await this.createInteraction(conversationId);
 		}
-		this.primaryInteractionId = conversationId;
 		// [TODO] `createInteraction` calls interactionManager.createInteraction which adds it to manager
 		// so let `loadInteraction` handle interactionManager.addInteraction
 		//this.interactionManager.addInteraction(interaction);
-		this.addToolsToInteraction(interaction);
+		await this.addToolsToInteraction(interaction);
 		return interaction;
 	}
 
@@ -206,19 +380,21 @@ class OrchestratorController {
 
 			//const metadata = await persistence.getMetadata();
 
-			//this._providerRequestCount = conversation.providerRequestCount;
-			this._statementTurnCount = conversation.conversationStats.statementTurnCount;
-			this._conversationTurnCount = conversation.conversationStats.conversationTurnCount;
-			this._statementCount = conversation.conversationStats.statementCount;
-			this._tokenUsageTotals = conversation.tokenUsageConversation;
-
 			this.interactionManager.addInteraction(conversation);
+
+			//this._providerRequestCount = conversation.providerRequestCount;
+			this.statementTurnCount = conversation.conversationStats.statementTurnCount;
+			this.conversationTurnCount = conversation.conversationStats.conversationTurnCount;
+			this.statementCount = conversation.conversationStats.statementCount;
+			this.tokenUsageInteraction = conversation.tokenUsageInteraction;
 
 			return conversation;
 		} catch (error) {
-			logger.warn(`OrchestratorController: Failed to load conversation ${conversationId}: ${error.message}`);
+			logger.warn(
+				`OrchestratorController: Failed to load conversation ${conversationId}: ${(error as Error).message}`,
+			);
 			logger.error(`OrchestratorController: Error details:`, error);
-			logger.debug(`OrchestratorController: Stack trace:`, error.stack);
+			logger.debug(`OrchestratorController: Stack trace:`, (error as Error).stack);
 			return null;
 		}
 	}
@@ -232,7 +408,8 @@ class OrchestratorController {
 		);
 		const systemPrompt = await this.promptManager.getPrompt('system', {
 			userDefinedContent: 'You are an AI assistant helping with code and project management.',
-			fullConfig: this.projectEditor.fullConfig,
+			projectConfig: this.projectEditor.projectConfig,
+			interaction,
 		});
 		interaction.baseSystem = systemPrompt;
 		//logger.info(`OrchestratorController: set system prompt for: ${typeof interaction}`, interaction.baseSystem);
@@ -271,9 +448,12 @@ class OrchestratorController {
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.fullConfig.api?.environment === 'localdev') {
-				await persistence.saveSystemPrompt(currentResponse.messageMeta.system);
-				await persistence.saveProjectInfo(this.projectEditor.projectInfo);
+			if (this.projectConfig.settings.api?.environment === 'localdev') {
+				const system = Array.isArray(currentResponse.messageMeta.system)
+					? currentResponse.messageMeta.system[0].text
+					: currentResponse.messageMeta.system;
+				await persistence.dumpSystemPrompt(system);
+				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 
 			logger.info(`OrchestratorController: Saved conversation: ${interaction.id}`);
@@ -292,14 +472,17 @@ class OrchestratorController {
 
 			// Include the latest stats and usage in the saved conversation
 			//interaction.conversationStats = this.interactionStats.get(interaction.id),
-			//interaction.tokenUsageConversation = this.interactionTokenUsage.get(interaction.id),
+			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
 
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.fullConfig.api?.environment === 'localdev') {
-				await persistence.saveSystemPrompt(currentResponse.messageMeta.system);
-				await persistence.saveProjectInfo(this.projectEditor.projectInfo);
+			if (this.projectConfig.settings.api?.environment === 'localdev') {
+				const system = Array.isArray(currentResponse.messageMeta.system)
+					? currentResponse.messageMeta.system[0].text
+					: currentResponse.messageMeta.system;
+				await persistence.dumpSystemPrompt(system);
+				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 		} catch (error) {
 			logger.error(`OrchestratorController: Error persisting the conversation:`, error);
@@ -375,33 +558,51 @@ class OrchestratorController {
 	private getInteractionCallbacks(): LLMCallbacks {
 		return {
 			PROJECT_EDITOR: () => this.projectEditor,
+			PROJECT_ID: () => this.projectEditor.projectId,
 			PROJECT_ROOT: () => this.projectEditor.projectRoot,
 			PROJECT_INFO: () => this.projectEditor.projectInfo,
-			PROJECT_CONFIG: () => this.projectEditor.fullConfig,
+			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
 			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
 			LOG_ENTRY_HANDLER: async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,
-				conversationStats: ConversationMetrics,
+				conversationStats: ConversationStats,
 				tokenUsageTurn: TokenUsage,
 				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: ConversationTokenUsage,
+				tokenUsageConversation: TokenUsage,
 			): Promise<void> => {
-				const conversationContinue: ConversationContinue = {
-					timestamp,
-					conversationId: this.primaryInteraction.id,
-					conversationTitle: this.primaryInteraction.title,
-					logEntry,
-					conversationStats,
-					tokenUsageTurn: tokenUsageTurn,
-					tokenUsageStatement: tokenUsageStatement,
-					tokenUsageConversation: tokenUsageConversation,
-				};
-				this.eventManager.emit(
-					'projectEditor:conversationContinue',
-					conversationContinue as EventPayloadMap['projectEditor']['projectEditor:conversationContinue'],
-				);
+				if (logEntry.entryType === 'answer') {
+					const statementAnswer: ConversationResponse = {
+						timestamp,
+						conversationId: this.primaryInteraction.id,
+						conversationTitle: this.primaryInteraction.title,
+						logEntry,
+						conversationStats,
+						tokenUsageTurn,
+						tokenUsageStatement,
+						tokenUsageConversation,
+					};
+					this.eventManager.emit(
+						'projectEditor:conversationAnswer',
+						statementAnswer as EventPayloadMap['projectEditor']['projectEditor:conversationAnswer'],
+					);
+				} else {
+					const conversationContinue: ConversationContinue = {
+						timestamp,
+						conversationId: this.primaryInteraction.id,
+						conversationTitle: this.primaryInteraction.title,
+						logEntry,
+						conversationStats,
+						tokenUsageTurn,
+						tokenUsageStatement,
+						tokenUsageConversation,
+					};
+					this.eventManager.emit(
+						'projectEditor:conversationContinue',
+						conversationContinue as EventPayloadMap['projectEditor']['projectEditor:conversationContinue'],
+					);
+				}
 			},
 			PREPARE_SYSTEM_PROMPT: async (system: string, interactionId: string): Promise<string> => {
 				const interaction = this.interactionManager.getInteraction(interactionId);
@@ -431,8 +632,9 @@ class OrchestratorController {
 		return generateConversationTitle(chatInteraction, statement);
 	}
 
-	private addToolsToInteraction(interaction: LLMConversationInteraction): void {
-		const tools = this.toolManager.getAllTools();
+	private async addToolsToInteraction(interaction: LLMConversationInteraction): Promise<void> {
+		const tools = await this.toolManager.getAllTools();
+		//logger.debug(`OrchestratorController: Adding tools to interaction`, tools);
 		interaction.addTools(tools);
 	}
 
@@ -462,24 +664,25 @@ class OrchestratorController {
 	private async handleToolUse(
 		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
-		response: LLMProviderMessageResponse,
-	): Promise<{ bbaiResponse: string; toolResponse: string; thinkingContent: string }> {
+		_response: LLMProviderMessageResponse,
+	): Promise<{ toolResponse: LLMToolRunToolResponse }> {
 		logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`);
 		//logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`, response);
 		await interaction.conversationLogger.logToolUse(
+			interaction.getLastMessageId(),
 			toolUse.toolName,
 			toolUse.toolInput,
 			interaction.conversationStats,
 			interaction.tokenUsageTurn,
 			interaction.tokenUsageStatement,
-			interaction.tokenUsageConversation,
+			interaction.tokenUsageInteraction,
 		);
 
 		const {
-			messageId: _messageId,
+			messageId,
 			toolResults,
 			toolResponse,
-			bbaiResponse,
+			bbResponse,
 			isError,
 		} = await this.toolManager.handleToolUse(
 			interaction,
@@ -487,23 +690,32 @@ class OrchestratorController {
 			this.projectEditor,
 		);
 		if (isError) {
-			interaction.conversationLogger.logError(`Tool Output (${toolUse.toolName}): ${toolResponse}`);
+			interaction.conversationLogger.logError(messageId, `Tool Output (${toolUse.toolName}): ${toolResponse}`);
 		}
 
 		await interaction.conversationLogger.logToolResult(
+			messageId,
 			toolUse.toolName,
 			toolResults,
+			bbResponse,
 		);
 
-		// Extract thinking content from the response
-		const thinkingContent = this.extractThinkingContent(response);
-		//logger.error(`OrchestratorController: Extracted thinking for tool: ${toolUse.toolName}`, thinkingContent);
-
-		return { bbaiResponse, toolResponse, thinkingContent };
+		return { toolResponse };
 	}
 
-	async handleStatement(statement: string, conversationId: ConversationId): Promise<ConversationResponse> {
+	private resetStatus() {
+		this.statusSequence = 0;
+		this.emitStatus(ApiStatus.IDLE);
+	}
+
+	async handleStatement(
+		statement: string,
+		conversationId: ConversationId,
+		options: { maxTurns?: number } = {},
+	): Promise<ConversationResponse> {
 		this.isCancelled = false;
+		this.resetStatus();
+		this.emitStatus(ApiStatus.API_BUSY);
 		const interaction = this.interactionManager.getInteraction(conversationId) as LLMConversationInteraction;
 		if (!interaction) {
 			throw new Error(`No interaction found for ID: ${conversationId}`);
@@ -536,27 +748,77 @@ class OrchestratorController {
 
 		if (!interaction.title) {
 			interaction.title = await this.generateConversationTitle(statement, interaction.id);
+			// Emit new conversation event after title is generated
+			this.eventManager.emit(
+				'projectEditor:conversationNew',
+				{
+					conversationId: interaction.id,
+					conversationTitle: interaction.title,
+					timestamp: new Date().toISOString(),
+					tokenUsageConversation: this.tokenUsageInteraction,
+					conversationStats: interaction.conversationStats,
+				} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
+			);
 		}
+
+		// Get current conversation metrics to check objectives
+		const currentMetrics = interaction.conversationMetrics;
+
+		// Generate conversation objective if not set
+		if (!currentMetrics.objectives?.conversation) {
+			const conversationObjective = await generateConversationObjective(
+				await this.createChatInteraction(interaction.id, 'Generate conversation objective'),
+				statement,
+			);
+			interaction.setObjectives(conversationObjective);
+			logger.debug('Set conversation objective:', conversationObjective);
+		} else {
+			// Only create statement objective on subsequent statements; not the first one
+			// Generate statement objective with context from previous assistant response
+			const previousAssistantMessage = interaction.getPreviousAssistantMessage();
+			const previousResponse = previousAssistantMessage && Array.isArray(previousAssistantMessage.content) &&
+					previousAssistantMessage.content.length > 0
+				? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
+				: undefined;
+
+			const previousObjectives = interaction.getObjectives().statement || [];
+			const previousObjective = previousObjectives[previousObjectives.length - 1];
+			logger.info('Previous objective:', previousObjective);
+
+			const statementObjective = await generateStatementObjective(
+				await this.createChatInteraction(interaction.id, 'Generate statement objective'),
+				statement,
+				currentMetrics.objectives?.conversation,
+				previousResponse,
+				previousObjective,
+			);
+			interaction.setObjectives(undefined, statementObjective);
+			logger.debug('Set statement objective:', statementObjective);
+		}
+
 		await this.projectEditor.updateProjectInfo();
 
-		this._statementTurnCount = 0;
-		this._conversationTurnCount++;
-		this._statementCount++;
+		// // handled by `converse` in interaction
+		// this.statementTurnCount = 0;
+		// this.conversationTurnCount++;
+		// this.statementCount++;
 
+		const versionInfo = await getVersionInfo();
 		const conversationReady: ConversationStart & {
-			conversationStats: ConversationMetrics;
+			conversationStats: ConversationStats;
 			conversationHistory: ConversationEntry[];
 		} = {
 			conversationId: interaction.id,
 			conversationTitle: interaction.title,
 			timestamp: new Date().toISOString(),
 			conversationStats: {
-				statementCount: this._statementCount,
-				statementTurnCount: this._statementTurnCount,
-				conversationTurnCount: this._conversationTurnCount,
+				statementCount: this.statementCount,
+				statementTurnCount: this.statementTurnCount,
+				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageConversation: this.tokenUsageTotals,
+			tokenUsageConversation: this.tokenUsageInteraction,
 			conversationHistory: [], //this.getConversationHistory(interaction),
+			versionInfo,
 		};
 		this.eventManager.emit(
 			'projectEditor:conversationReady',
@@ -569,82 +831,115 @@ class OrchestratorController {
 		};
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = 25; // Maximum number of turns for the run loop
+		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 		try {
 			logger.info(
-				`OrchestratorController: Calling conversation.converse for turn ${this._statementTurnCount} with statement: "${
+				`OrchestratorController: Calling conversation.converse for turn ${this.statementTurnCount} with statement: "${
 					statement.substring(0, 50)
 				}..."`,
 			);
 
+			// START OF STATEMENT - REQUEST TO LLM
+			this.emitStatus(ApiStatus.LLM_PROCESSING);
+			this.emitPromptCacheTimer();
+
 			currentResponse = await interaction.converse(statement, speakOptions);
+
+			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
 			//logger.debug('OrchestratorController: LLM Response:', currentResponse);
 
 			// Update orchestrator's stats
-			this.updateStats(interaction.id, interaction.getConversationStats());
+			this.updateStats(interaction.id, interaction.conversationStats);
 		} catch (error) {
-			logger.error(`OrchestratorController: Error in LLM communication:`, error);
+			this.handleLLMError(error as Error, interaction);
 			throw error;
 		}
 
 		// Save the conversation immediately after the first response
 		logger.info(
-			`OrchestratorController: Saving conversation at beginning of statement: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
+			`OrchestratorController: Saving conversation at beginning of statement: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
 		);
 		await this.saveInitialConversationWithResponse(interaction, currentResponse);
 
 		let loopTurnCount = 0;
 
 		while (loopTurnCount < maxTurns && !this.isCancelled) {
-			logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}`);
+			logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
 			try {
 				// Handle tool calls and collect toolResponse
-				const bbaiResponses = [];
 				const toolResponses = [];
 				if (currentResponse.messageResponse.toolsUsed && currentResponse.messageResponse.toolsUsed.length > 0) {
+					// Extract text and thinking content from the response
+					const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
+					const thinkingContent = this.extractThinkingContent(currentResponse.messageResponse);
+					logger.debug(
+						`OrchestratorController: Text and Thinking content for tool use for turn ${this.statementTurnCount}:`,
+						{ textContent, thinkingContent },
+					);
+
+					// Only log assistant message if tools are being used
+					if (textContent) {
+						const conversationStats: ConversationStats = interaction.conversationStats;
+
+						interaction.conversationLogger.logAssistantMessage(
+							interaction.getLastMessageId(),
+							textContent,
+							conversationStats,
+							interaction.tokenUsageTurn,
+							interaction.tokenUsageStatement,
+							interaction.tokenUsageInteraction,
+						);
+					}
+
 					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
 						logger.info('OrchestratorController: Handling tool', toolUse);
 						try {
-							const { bbaiResponse, toolResponse, thinkingContent } = await this.handleToolUse(
+							this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
+
+							// logToolUse is called in handleToolUse
+							// logToolResult is called in handleToolUse
+							const { toolResponse } = await this.handleToolUse(
 								interaction,
 								toolUse,
 								currentResponse.messageResponse,
 							);
-							bbaiResponses.push(bbaiResponse);
+							//bbResponses.push(bbResponse);
 							toolResponses.push(toolResponse);
-							logger.debug(
-								`OrchestratorController: Thinking content for ${toolUse.toolName}:`,
-								thinkingContent,
-							);
-							// You can use thinkingContent here as needed, e.g., add it to a separate array or log it
+							// You can use textContent & thinkingContent here as needed, e.g., add it to a separate array or log it
 						} catch (error) {
 							logger.warn(
-								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${error.message}`,
+								`OrchestratorController: Error handling tool ${toolUse.toolName}: ${
+									(error as Error).message
+								}`,
 							);
-							toolResponses.push(`Error with ${toolUse.toolName}: ${error.message}`);
+							toolResponses.push(`Error with ${toolUse.toolName}: ${(error as Error).message}`);
 						}
 					}
 				}
-				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount} - handled all tools`);
+				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
 
 				loopTurnCount++;
-				const allBbaiResponses = bbaiResponses.join('\n');
-				const allToolRunsResonse = toolResponses.join('\n');
+
 				// If there's tool toolResponse, send it back to the LLM
-				if (allBbaiResponses || allToolRunsResonse) {
+				if (toolResponses.length > 0) {
 					try {
 						await this.projectEditor.updateProjectInfo();
 
-						statement =
-							`BBai Feedback:\n${allBbaiResponses}\nTool use feedback:\n${allToolRunsResonse}\nPlease continue the conversation.`;
+						statement = `Tool results feedback:\n${
+							formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
+						}\n${toolResponses.join('\n')}`;
 
-						currentResponse = await interaction.speakWithLLM(statement, speakOptions);
+						this.emitStatus(ApiStatus.LLM_PROCESSING);
+						this.emitPromptCacheTimer();
 
+						currentResponse = await interaction.relayToolResult(statement, speakOptions);
+
+						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
 					} catch (error) {
-						logger.error(`OrchestratorController: Error in LLM communication: ${error.message}`);
+						this.handleLLMError(error as Error, interaction);
 						throw error; // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
 					}
 				} else {
@@ -652,7 +947,9 @@ class OrchestratorController {
 					break;
 				}
 			} catch (error) {
-				logger.error(`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${error.message}`);
+				logger.error(
+					`OrchestratorController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`,
+				);
 				if (loopTurnCount === maxTurns - 1) {
 					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 				}
@@ -661,8 +958,9 @@ class OrchestratorController {
 					messageResponse: {
 						answerContent: [{
 							type: 'text',
-							text: `Error occurred: ${error.message}. Continuing conversation.`,
+							text: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
 						}],
+						answer: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
 					},
 					messageMeta: {},
 				} as LLMSpeakWithResponse;
@@ -677,86 +975,62 @@ class OrchestratorController {
 		} else if (loopTurnCount >= maxTurns) {
 			logger.warn(`OrchestratorController: Reached maximum number of turns (${maxTurns}) in conversation.`);
 		}
-		this._statementTurnCount = loopTurnCount;
-		this._conversationTurnCount += loopTurnCount;
+		// handled by `relayToolResult` in interaction
+		// this.statementTurnCount = loopTurnCount;
+		// this.conversationTurnCount += loopTurnCount;
 
 		// Final save of the entire conversation at the end of the loop
-		logger.info(
-			`OrchestratorController: Saving conversation at end of statement: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
+		logger.debug(
+			`OrchestratorController: Saving conversation at end of statement: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
 		);
+
 		await this.saveConversationAfterStatement(interaction, currentResponse);
+
 		logger.info(
-			`OrchestratorController: Final save of conversation: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
-		);
-		logger.info(
-			`OrchestratorController: Final save of conversation: ${interaction.id}[${this._statementCount}][${this._statementTurnCount}]`,
+			`OrchestratorController: Final save of conversation: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
 		);
 
-		/*
-		const getConversationStats = (interaction: LLMConversationInteraction) => ({
-			conversationId: interaction.id || '',
-			conversationTitle: interaction.title || '',
-			conversationStats: {
-				statementCount: this._statementCount,
-				statementTurnCount: this._statementTurnCount,
-				conversationTurnCount: this._conversationTurnCount,
-			},
-			tokenUsageConversation : currentResponse.messageResponse.usage || this.tokenUsageTotals,
-		});
-		 */
+		// Extract full answer text
+		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
+		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
-		let answer = '';
+		// Extract thinking content from answer using global regex
 		let assistantThinking = '';
-
-		if (
-			currentResponse.messageResponse.answerContent &&
-			Array.isArray(currentResponse.messageResponse.answerContent)
-		) {
-			for (const part of currentResponse.messageResponse.answerContent) {
-				if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-					const text = part.text;
-					const replyMatch = text.match(/<reply>(.*?)<\/reply>/s);
-					if (replyMatch) {
-						answer += replyMatch[1].trim() + '\n';
-					} else {
-						assistantThinking += text.trim() + '\n';
-					}
-				}
-			}
+		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
+		let match;
+		while ((match = thinkingRegex.exec(answer)) !== null) {
+			assistantThinking += match[1].trim() + '\n';
 		}
-
-		answer = answer.trim();
 		assistantThinking = assistantThinking.trim();
 
-		logger.debug(`OrchestratorController: Extracted answer: ${answer}`);
-		logger.debug(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
+		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);
+		//logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
 
 		const statementAnswer: ConversationResponse = {
-			response: currentResponse.messageResponse,
-			messageMeta: currentResponse.messageMeta,
+			logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },
 			conversationId: interaction.id,
 			conversationTitle: interaction.title,
 			timestamp: new Date().toISOString(),
 			conversationStats: {
-				statementCount: this._statementCount,
-				statementTurnCount: this._statementTurnCount,
-				conversationTurnCount: this._conversationTurnCount,
+				statementCount: this.statementCount,
+				statementTurnCount: this.statementTurnCount,
+				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageStatement: currentResponse.messageResponse.usage || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-			},
-			tokenUsageConversation: this.tokenUsageTotals,
-			answer,
-			assistantThinking,
+			tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
+			tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
+			tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
 		};
 
-		this.eventManager.emit(
-			'projectEditor:conversationAnswer',
-			statementAnswer as EventPayloadMap['projectEditor']['projectEditor:conversationAnswer'],
+		interaction.conversationLogger.logAnswerMessage(
+			interaction.getLastMessageId(),
+			answer,
+			statementAnswer.conversationStats,
+			statementAnswer.tokenUsageTurn,
+			statementAnswer.tokenUsageStatement,
+			statementAnswer.tokenUsageConversation,
 		);
 
+		this.resetStatus();
 		return statementAnswer;
 	}
 
@@ -791,73 +1065,128 @@ class OrchestratorController {
 				totalTokens: 0
 			},
 			tokenUsageConversation: message.tokenUsageConversation || {
-				inputTokensTotal: 0,
-				outputTokensTotal: 0,
-				totalTokensTotal: 0
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0
 			}
 		}));
 	}
 	 */
 
-	async logPatchAndCommit(interaction: LLMConversationInteraction, filePath: string, patch: string): Promise<void> {
-		this.projectEditor.patchedFiles.add(filePath);
-		this.projectEditor.patchContents.set(filePath, patch);
-		if (this.projectEditor.fullConfig.project.type === 'git') {
-			await stageAndCommitAfterPatching(
+	async logChangeAndCommit(
+		interaction: LLMConversationInteraction,
+		filePath: string | string[],
+		change: string | string[],
+	): Promise<void> {
+		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+
+		if (Array.isArray(filePath) && Array.isArray(change)) {
+			if (filePath.length !== change.length) {
+				throw new Error('filePath and change arrays must have the same length');
+			}
+			for (let i = 0; i < filePath.length; i++) {
+				this.projectEditor.changedFiles.add(filePath[i]);
+				this.projectEditor.changeContents.set(filePath[i], change[i]);
+				await persistence.logChange(filePath[i], change[i]);
+			}
+		} else if (typeof filePath === 'string' && typeof change === 'string') {
+			this.projectEditor.changedFiles.add(filePath);
+			this.projectEditor.changeContents.set(filePath, change);
+			await persistence.logChange(filePath, change);
+		} else {
+			throw new Error('filePath and change must both be strings or both be arrays');
+		}
+
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectRoot);
+		if (projectConfig.type === 'git') {
+			await stageAndCommitAfterChanging(
 				interaction,
 				this.projectEditor.projectRoot,
-				this.projectEditor.patchedFiles,
-				this.projectEditor.patchContents,
+				this.projectEditor.changedFiles,
+				this.projectEditor.changeContents,
 				this.projectEditor,
 			);
 		}
-		this.projectEditor.patchedFiles.clear();
-		this.projectEditor.patchContents.clear();
-		// Log the applied changes
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
-		await persistence.logPatch(filePath, patch);
+
+		this.projectEditor.changedFiles.clear();
+		this.projectEditor.changeContents.clear();
 	}
 
-	async revertLastPatch(): Promise<void> {
+	async deleteConversation(conversationId: ConversationId): Promise<void> {
+		logger.info(`OrchestratorController: Deleting conversation: ${conversationId}`);
+
+		try {
+			// Emit deletion event before cleanup
+			this.eventManager.emit(
+				'projectEditor:conversationDeleted',
+				{
+					conversationId,
+					timestamp: new Date().toISOString(),
+				} as EventPayloadMap['projectEditor']['projectEditor:conversationDeleted'],
+			);
+
+			// Clean up interaction
+			this.interactionManager.removeInteraction(conversationId);
+
+			// Clean up stats and usage tracking
+			this.interactionStats.delete(conversationId);
+			this.interactionTokenUsage.delete(conversationId);
+
+			// Update total stats
+			this.updateTotalStats();
+
+			// Clean up persistence
+			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
+			await persistence.deleteConversation();
+
+			logger.info(`OrchestratorController: Successfully deleted conversation: ${conversationId}`);
+		} catch (error) {
+			logger.error(`OrchestratorController: Error deleting conversation: ${conversationId}`, error);
+			throw error;
+		}
+	}
+
+	async revertLastChange(): Promise<void> {
 		const primaryInteraction = this.primaryInteraction;
 		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot revert patch.');
+			throw new Error('No active conversation. Cannot revert change.');
 		}
 
 		const persistence = await new ConversationPersistence(primaryInteraction.id, this.projectEditor).init();
-		const patchLog = await persistence.getPatchLog();
+		const changeLog = await persistence.getChangeLog();
 
-		if (patchLog.length === 0) {
-			throw new Error('No patches to revert.');
+		if (changeLog.length === 0) {
+			throw new Error('No changes to revert.');
 		}
 
-		const lastPatch = patchLog[patchLog.length - 1];
-		const { filePath, patch } = lastPatch;
+		const lastChange = changeLog[changeLog.length - 1];
+		const { filePath, change } = lastChange;
 
 		try {
 			const currentContent = await Deno.readTextFile(filePath);
 
-			// Create a reverse patch
-			const patchResult = diff.applyPatch(currentContent, patch);
-			if (typeof patchResult === 'boolean') {
-				throw new Error('Failed to apply original patch. Cannot create reverse patch.');
+			// Create a reverse change
+			const changeResult = diff.applyPatch(currentContent, change);
+			if (typeof changeResult === 'boolean') {
+				throw new Error('Failed to apply original change. Cannot create reverse change.');
 			}
-			const reversePatch = diff.createPatch(filePath, patchResult, currentContent);
+			const reverseChange = diff.createPatch(filePath, changeResult, currentContent);
 
-			// Apply the reverse patch
-			const revertedContent = diff.applyPatch(currentContent, reversePatch);
+			// Apply the reverse change
+			const revertedContent = diff.applyPatch(currentContent, reverseChange);
 
 			if (revertedContent === false) {
-				throw new Error('Failed to revert patch. The current file content may have changed.');
+				throw new Error('Failed to revert change. The current file content may have changed.');
 			}
 
 			await Deno.writeTextFile(filePath, revertedContent);
-			logger.info(`OrchestratorController: Last patch reverted for file: ${filePath}`);
+			logger.info(`OrchestratorController: Last change reverted for file: ${filePath}`);
 
-			// Remove the last patch from the log
-			await persistence.removeLastPatch();
+			// Remove the last change from the log
+			await persistence.removeLastChange();
 		} catch (error) {
-			logger.error(`Error reverting last patch: ${error.message}`);
+			logger.error(`Error reverting last change: ${(error as Error).message}`);
 			throw error;
 		}
 	}

@@ -1,6 +1,6 @@
-import { LLMProvider as LLMProviderEnum } from '../types.ts';
+import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { LLMCallbacks } from '../types.ts';
-import LLM from './providers/baseLLM.ts';
+import type LLM from './providers/baseLLM.ts';
 import AnthropicLLM from './providers/anthropicLLM.ts';
 //import OpenAILLM from './providers/openAILLM.ts';
 

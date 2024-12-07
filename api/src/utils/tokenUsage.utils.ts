@@ -1,4 +1,4 @@
-import { LLMProvider } from '../types.ts';
+import type { LLMProvider } from '../types.ts';
 import kv from './kv.utils.ts';
 import { logger } from 'shared/logger.ts';
 

@@ -1,6 +1,7 @@
 import { join } from '@std/path';
 import { exists } from '@std/fs';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { countTokens } from 'anthropic-tokenizer';
 //import { contentType } from '@std/media-types';
@@ -88,7 +89,7 @@ async function generateCtagsTier(
 		logger.info(`Created tags for ${tier} using ${tokenCount} tokens - args: ${TIERS[tier].args.join(' ')}`);
 		return tokenCount <= tokenLimit;
 	} catch (error) {
-		logger.error(`Error executing ctags command: ${error.message}`);
+		logger.error(`Error executing ctags command: ${(error as Error).message}`);
 		return false;
 	}
 }
@@ -97,7 +98,7 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	const excludeFiles = [
 		join(projectRoot, 'tags.ignore'),
 		join(projectRoot, '.gitignore'),
-		join(projectRoot, '.bbai', 'tags.ignore'),
+		join(projectRoot, '.bb', 'tags.ignore'),
 	];
 
 	const excludeOptions = [];
@@ -108,21 +109,24 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	}
 
 	if (excludeOptions.length === 0) {
-		excludeOptions.push('--exclude=.bbai/*');
+		excludeOptions.push('--exclude=.bb/*');
 	}
 
 	return excludeOptions;
 }
 
-export async function generateCtags(bbaiDir: string, projectRoot: string): Promise<string | null> {
-	const repoInfoConfig = (await ConfigManager.projectConfig(projectRoot)).repoInfo;
+export async function generateCtags(bbDir: string, projectId: string): Promise<string | null> {
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectConfig = await configManager.getProjectConfig(projectId);
+	const repoInfoConfig = projectConfig.repoInfo;
+	const projectRoot = await getProjectRootFromStartDir(bbDir);
 
 	if (repoInfoConfig?.ctagsAutoGenerate === false) {
 		logger.info('Ctags auto-generation is disabled');
 		return null;
 	}
 
-	const ctagsFilePath = repoInfoConfig?.ctagsFilePath ? repoInfoConfig.ctagsFilePath : join(bbaiDir, 'tags');
+	const ctagsFilePath = repoInfoConfig?.ctagsFilePath ? repoInfoConfig.ctagsFilePath : join(bbDir, 'tags');
 	const tokenLimit = repoInfoConfig?.tokenLimit || 1024;
 	logger.info(`Ctags using tags file: ${ctagsFilePath}, token limit: ${tokenLimit}`);
 
@@ -138,18 +142,20 @@ export async function generateCtags(bbaiDir: string, projectRoot: string): Promi
 	return null;
 }
 
-export async function readCtagsFile(bbaiDir: string): Promise<string | null> {
-	const repoInfoConfig = (await ConfigManager.projectConfig(bbaiDir)).repoInfo;
+export async function readCtagsFile(bbDir: string, projectId: string): Promise<string | null> {
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectConfig = await configManager.getProjectConfig(projectId);
+	const repoInfoConfig = projectConfig.repoInfo;
 
 	const ctagsFilePath = repoInfoConfig?.ctagsFilePath
-		? join(bbaiDir, repoInfoConfig.ctagsFilePath)
-		: join(bbaiDir, 'tags');
+		? join(bbDir, repoInfoConfig.ctagsFilePath)
+		: join(bbDir, 'tags');
 
 	if (await exists(ctagsFilePath)) {
 		try {
 			return await Deno.readTextFile(ctagsFilePath);
 		} catch (error) {
-			logger.error(`Error reading ctags file: ${error.message}`);
+			logger.error(`Error reading ctags file: ${(error as Error).message}`);
 		}
 	}
 

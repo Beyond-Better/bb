@@ -1,41 +1,57 @@
-# BBai - Your Intelligent Project Assistant
+# Beyond Better (BB) - Your Intelligent Project Assistant
+
+*Formerly known as [BBai](https://github.com/BBai-Tips/bbai)*
+
+## Beyond Better At … Everything You Do With Text
+
+Beyond Better (BB) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you go beyond better at every step.
+
+## Table of Contents
+
+- [Project Status: Beta](#project-status-beta)
+- [Why Beyond Better?](#why-beyond-better)
+  - [Key Features](#key-features)
+- [Who Can Benefit from Beyond Better?](#who-can-benefit-from-beyond-better)
+- [Use Cases](#use-cases)
+- [How Beyond Better Works](#how-beyond-better-works)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Documentation](#documentation)
+- [Why Choose Beyond Better?](#why-choose-beyond-better)
+- [Roadmap](#roadmap)
+- [Join the Beyond Better Community](#join-the-beyond-better-community)
+- [Project Links](#project-links)
 
 ## Project Status: Beta
 
-BBai is currently in beta stage of development. While we're excited about its potential, please be aware that you may encounter bugs or incomplete features. We're actively working on improvements and new functionalities.
+Beyond Better (BB) is currently in beta stage of development. While we're excited about its potential, please be aware that you may encounter bugs or incomplete features. We're actively working on improvements and new functionalities.
 
 **We're Seeking Testers and Contributors!**
-If you're interested in being part of the BBai journey, we'd love to hear from you. Whether you want to test the tool, contribute code, or share ideas, please reach out. Your input can help shape the future of BBai.
+If you're interested in being part of the Beyond Better journey, we'd love to hear from you. Whether you want to test the tool, contribute code, or share ideas, please reach out. Your input can help shape the future of BB.
 
 To get involved, please submit an issue, or contact me directly.
 
 ---
 
-## Be Better at ... Everything You Do with Text
+## Why Beyond Better?
 
-BBai _(pronounced b-b-aye)_ is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BBai is here to help you "be better" at every step.
-
-_(The name is also a respectful nod to [BBEdit](https://www.barebones.com/products/bbedit/index.html), my beloved text editor by Bare Bones Software)_
-
-
-## Why BBai?
-
-In a world where AI assistants are becoming commonplace, BBai stands out by offering a more comprehensive, project-wide approach to content creation and management. Born from the need for a more versatile and powerful tool than existing solutions, BBai brings the full potential of large language models (LLMs) directly to your projects.
+In a world where AI assistants are becoming commonplace, Beyond Better stands out by offering a more comprehensive, project-wide approach to content creation and management. Born from the need for a more versatile and powerful tool than existing solutions, Beyond Better (BB) brings the full potential of large language models (LLMs) directly to your projects.
 
 ### Key Features
 
-- **Universal Text Support**: From code to prose, BBai handles it all.
+- **Universal Text Support**: From code to prose, Beyond Better handles it all.
 - **First-Class Project Discussions**: Makes conversations about your project as important as the changes themselves.
 - **Conversation Management**: Handles multiple conversations simultaneously for complex projects.
 - **Intelligent Tools**: Employs LLM tools for clear, purpose-driven interactions.
-- **Web Page Fetching**: The `FetchWebPage` tool allows BBai to retrieve content from web pages, providing additional context and information for the LLM to reference during conversations.
-- **Web Page Screenshot**: The `FetchWebScreenshot` tool enables BBai to capture screenshots of web pages, allowing the LLM to analyze visual content when needed.
-- **Project-Wide Understanding**: Uses `ctags` for initial project comprehension, with plans for advanced techniques like RAG and embeddings in the future.
+- **Web Page Fetching**: The `FetchWebPage` tool allows Beyond Better to retrieve content from web pages, providing additional context and information for the LLM to reference during conversations.
+- **Web Page Screenshot**: The `FetchWebScreenshot` tool enables Beyond Better to capture screenshots of web pages, allowing the LLM to analyze visual content when needed.
+- **Project-Wide Understanding**: Uses project file listing for initial project comprehension, with plans for advanced techniques like RAG and embeddings in the future.
 - **Multiple Interface Options**: API, Browser User Interface (BUI), Command Line Interface (CLI), and future Desktop User Interface (DUI) for flexible usage.
 
-## Who Can Benefit from BBai?
+## Who Can Benefit from Beyond Better?
 
-BBai is designed for a wide range of professionals working with text, including but not limited to:
+Beyond Better (BB) is designed for a wide range of professionals working with text, including but not limited to:
 
 - Software Developers
 - Technical Writers
@@ -46,7 +62,7 @@ BBai is designed for a wide range of professionals working with text, including 
 
 ## Use Cases
 
-BBai excels in various scenarios:
+Beyond Better (BB) excels in various scenarios:
 
 - **Code Refactoring**: Analyze and improve code across an entire project.
 - **Documentation Updates**: Keep your docs in sync with code changes.
@@ -54,72 +70,110 @@ BBai excels in various scenarios:
 - **Project Analysis**: Get insights and summaries of large codebases or text projects.
 - **Learning and Exploration**: Discuss and understand complex projects with an AI assistant.
 
-## How BBai Works
+## How Beyond Better Works
 
-1. **Project Understanding**: BBai uses advanced techniques to comprehend your entire project.
+1. **Project Understanding**: Beyond Better uses advanced techniques to comprehend your entire project.
 2. **Intelligent Conversations**: Discuss your project, ask questions, and explore ideas with the AI.
 3. **Coherent Changes**: Make wide-ranging, consistent updates across your project with ease.
 4. **Review and Iterate**: Analyze changes, discuss further improvements, and refine your work.
 
 ## Getting Started
 
+### BB Manager
+
+BB Manager is a platform-specific tool designed to help you manage multiple BB projects efficiently:
+
+- **Windows**: `bb-manager.bat` - A batch script with a text-based menu interface.
+- **macOS**: `BB Manager.applescript` - An AppleScript application providing a native GUI.
+- **Linux**: `bb-manager.sh` - A shell script with a text-based menu interface.
+
+BB Manager allows you to:
+- List, add, and remove BB projects
+- Run BB commands (init, start, stop) for specific projects
+- Automatically set the correct working directory for each project
+
+To use BB Manager, run the appropriate file for your platform after installation.
+
 ### Prerequisites
 
-Before using BBai, ensure you have the following:
+Before using Beyond Better (BB), ensure you have the following:
 
 1. An Anthropic API key (Note: This is different from your Anthropic chat console login. You'll need to create an API key at https://console.anthropic.com/settings/keys)
-2. Git (latest stable version, recommended but optional)
-3. ctags (optional, enhances project understanding)
+2. [Git](https://git-scm.com/downloads) (latest stable version, recommended but optional)
 
-For manual installation from source, you'll also need:
+Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of Beyond Better.
 
-4. Deno (latest stable version)
+Beyond Better includes built-in TLS certificate management:
+- Automatic certificate generation and trust store integration
+- Secure HTTPS communication out of the box
+- Easy management with `bb secure` command
+- Platform-specific trust store handling
 
-Git and ctags can be easily installed using package managers like Homebrew on macOS or apt on Linux. While Git is optional, it's highly recommended for optimal use of BBai.
+See the [Certificate Management Guide](docs/user/security/certificates.md) for details.
 
 ### Installation
 
-BBai can be installed on various platforms. For detailed installation instructions, please refer to our [Installation Guide](INSTALL.md).
+Beyond Better can be installed on various platforms:
 
-#### Quick Start
+- **macOS and Linux**: Use our one-line installation script:
+  ```sh
+  curl -sSL https://raw.githubusercontent.com/Beyond-Better/bb/main/install.sh | sh
+  ```
 
-1. Download the appropriate release package for your platform from the [Releases page](https://github.com/BBai-Tips/bbai/releases).
-2. Extract the package contents.
-3. Run the installation script:
-   - On Unix-like systems (Linux, macOS): `sudo ./install.sh`
-   - On Windows: Run `install.bat` as administrator
+- **Windows**: Download and run the `bb-installer.msi` from our [Releases page](https://github.com/Beyond-Better/bb/releases). For detailed instructions, see our [Windows User Guide](docs/user/guides/windows_guide.md).
 
-After installation, you can start using BBai as follows:
+- **Manual Installation**: For advanced users, we provide options to install from release packages or build from source.
 
-1. Initialize BBai in your project directory:
+For detailed installation instructions, please refer to our [Installation Guide](INSTALL.md).
+
+After installation, you can start using Beyond Better as follows:
+
+1. Use BB Manager to add and manage your projects:
+   - Windows: Run `bb-manager.bat`
+   - macOS: Open `BB Manager.applescript`
+   - Linux: Run `bb-manager.sh`
+
+2. Use BB Manager to initialize a new project:
+   Select 'Run BB command' and choose 'init' for your project.
+
+3. Use BB Manager to start BB for a specific project:
+   Select 'Run BB command' and choose 'start' for your project.
+
+4. Alternatively, you can use BB directly from the command line:
    ```
-   bbai init
-   ```
-2. Start the BBai API and open the browser interface:
-   ```
-   bbai start
-   ```
-3. Or, start the BBai API and use the command-line interface:
-   ```
-   bbai chat
+   bb init   # Initialize BB in the current directory
+   bb start  # Start the BB API and open the browser interface
+   bb chat   # Start the BB API and use the command-line interface
    ```
 
-For more detailed instructions on installation, usage, and alternative methods, please see the [Installation Guide](INSTALL.md).
+On Windows, use `bb.exe` instead of `bb` when using the command line directly.
 
 ## Documentation
 
-For detailed information on how to use BBai, please refer to our documentation:
+For detailed information on how to use Beyond Better (BB), please refer to our documentation:
 
-- [API Documentation](docs/API.md): Explore the BBai API endpoints for integrating BBai into your workflows or building custom tools.
-- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for BBai.
-- [CLI Documentation](docs/CLI.md): Understand how to use the BBai Command Line Interface for various operations.
-- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface.
+### Core Documentation
+- [Understanding BB](docs/user/understanding-bb.md): Guide to working effectively with BB
+- [How BB Works](docs/user/how-bb-works.md): Technical deep dive into BB's operation
+- [Managing Conversations](docs/user/managing-conversations.md): Learn to manage conversations effectively
+- [Planning Templates](docs/user/planning/README.md): Templates for various project tasks
 
-These guides provide comprehensive information on BBai's features, usage patterns, and best practices to help you make the most of this powerful tool.
+### Security Documentation
+- [Certificates](docs/user/security/certificates.md): Certificate management guide
+- [Trust Store](docs/user/security/trust-store.md): Trust store configuration and management
+- [Security Troubleshooting](docs/user/security/troubleshooting.md): Security-related troubleshooting
 
-## Why Choose BBai?
+### Interface Documentation
+- [API Documentation](docs/API.md): Explore the Beyond Better API endpoints for integrating BB into your workflows or building custom tools
+- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for Beyond Better
+- [CLI Documentation](docs/CLI.md): Understand how to use the Beyond Better Command Line Interface for various operations
+- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface
 
-- **Holistic Approach**: Unlike auto-complete tools, BBai understands and reasons over your entire project.
+These guides provide comprehensive information on Beyond Better's features, usage patterns, and best practices to help you make the most of this powerful tool. For a complete overview of available documentation, see our [Documentation Index](docs/README.md).
+
+## Why Choose Beyond Better?
+
+- **Holistic Approach**: Unlike auto-complete tools, Beyond Better understands and reasons over your entire project.
 - **Versatility**: Works with any text-based project, not just code.
 - **Efficiency**: Streamlines the process of making large-scale, coherent changes.
 - **Learning Tool**: Enhances understanding of complex projects through AI-assisted exploration.
@@ -127,32 +181,62 @@ These guides provide comprehensive information on BBai's features, usage pattern
 
 ## Roadmap
 
-BBai is continuously evolving. Future plans include:
+Beyond Better (BB) is continuously evolving. Here's an overview of our planned features and approximate timelines:
+
+1. Short-term (Next 3-6 months):
 
 - Implementation of RAG and embedding capabilities for enhanced project understanding and comprehensive project visibility
+- Initial support for additional LLM providers
+
+2. Medium-term (6-12 months):
 - Agent Orchestrator: A powerful feature that allows the LLM to break down complex tasks into smaller chunks managed by sub-agents. This enables:
 	- Faster and more cost-effective processing for simple tasks using smaller models
 	- Reduced context window size and costs for multiple conversations
 	- Synchronous task completion for improved overall operation speed
-- Support for additional LLM providers
 - Expanded tool ecosystem for more specialized tasks
 
-## Join the BBai Community
+3. Long-term (Beyond 12 months):
+- Advanced integration with version control systems
+- Collaborative features for team-based projects
+- AI-driven project optimization suggestions
 
-BBai is more than just a tool; it's a growing community of professionals pushing the boundaries of what's possible with AI-assisted work. Whether you're a seasoned developer or a curious writer, BBai is here to help you be better at what you do.
+Please note that these timelines are approximate and subject to change based on development progress and community feedback.
 
-Start your journey with BBai today and transform the way you work with text!
+## Join the Beyond Better Community
 
-*BBai: Be Better at ... Everything You Do with Text*
+Beyond Better is more than just a tool; it's a growing community of professionals pushing the boundaries of what's possible with AI-assisted work. Whether you're a seasoned developer or a curious writer, BB is here to help you go beyond better at what you do.
+
+Start your journey with Beyond Better today and transform the way you work with text!
+
+*Beyond Better: Go Beyond Better at Everything You Do with Text*
+
+## Compatibility
+
+Beyond Better is designed to work on the following operating systems:
+- macOS (10.15 Catalina and later)
+- Linux (major distributions like Ubuntu, Fedora, CentOS)
+- Windows 10 and later
+
+It's compatible with projects using various programming languages and text-based formats.
+
+## Feedback and Support
+
+We value your input and are here to help you get the most out of Beyond Better:
+
+- For bug reports or feature requests, please [open an issue](https://github.com/Beyond-Better/bb/issues) on our GitHub repository.
+- For general questions or discussions, join our [community forum](https://github.com/Beyond-Better/bb/discussions).
+- For more immediate support, reach out to us via email at support@beyondbetter.dev.
+
+Your feedback is crucial in shaping the future of Beyond Better!
 
 ## Project Links
 
-- [BBai GitHub Repository](https://github.com/BBai-Tips/bbai)
+- [Beyond Better GitHub Repository](https://github.com/Beyond-Better/bb)
 - [Installation Guide](INSTALL.md)
 - [Contributing Guidelines](docs/CONTRIBUTING.md)
 - [Code of Conduct](docs/CODE_OF_CONDUCT.md)
 - [Security Policy](docs/SECURITY.md)
 - [API Documentation](docs/API.md)
 - [CLI Documentation](docs/CLI.md)
-- [File Handling Guidelines](docs/FILE_HANDLING.md)
+- [File Handling Guidelines](docs/development/reference/file_handling.md)
 - [Project Conventions](CONVENTIONS.md)

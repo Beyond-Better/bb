@@ -1,39 +1,55 @@
 import { Command } from 'cliffy/command/mod.ts';
+import { colors } from 'cliffy/ansi/colors.ts';
 import { TerminalHandler } from '../utils/terminalHandler.utils.ts';
 import { logger } from 'shared/logger.ts';
 import ApiClient from 'cli/apiClient.ts';
 import WebsocketManager from 'cli/websocketManager.ts';
-import type { ConversationContinue, ConversationId, ConversationResponse, ConversationStart } from 'shared/types.ts';
-import { isApiRunning } from '../utils/pid.utils.ts';
+import type {
+	ConversationContinue,
+	ConversationId,
+	ConversationResponse,
+	ConversationStart,
+	ProgressStatusMessage,
+	PromptCacheTimerMessage,
+} from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
+import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
-import { getBbaiDir, getProjectRoot } from 'shared/dataDir.ts';
+import { getBbDir, getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
-import { ConfigManager } from 'shared/configManager.ts';
-
-const startDir = Deno.cwd();
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 export const conversationChat = new Command()
 	.name('chat')
 	.description('Start a new conversation or continue an existing one')
-	.option('-s, --statement <string>', 'Statement (or question) to start or continue the conversation')
+	.option('-p, -s, --statement <string>', 'Statement (or question) to start or continue the conversation')
 	.option('-i, --id <string>', 'Conversation ID to continue (optional)')
 	.option('-m, --model <string>', 'LLM model to use for the conversation')
-	.option('--text', 'Return plain text instead of JSON')
+	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
+	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
-		let apiStartedByUs = false;
-		const fullConfig = await ConfigManager.fullConfig(startDir);
-		const bbaiDir = await getBbaiDir(startDir);
-		const projectRoot = await getProjectRoot(startDir);
+		const startDir = Deno.cwd();
+		const projectRoot = await getProjectRootFromStartDir(startDir);
+		const projectId = await getProjectId(projectRoot);
 
-		const apiHostname = fullConfig.api?.apiHostname || 'localhost';
-		const apiPort = fullConfig.api?.apiPort || 3000; // cast as string
-		const apiClient = await ApiClient.create(startDir, apiHostname, apiPort);
+		let apiStartedByUs = false;
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		const bbDir = await getBbDir(projectId);
+
+		const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
+		const apiPort = projectConfig.settings.api?.port || 3162; // cast as string
+		const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
+			? projectConfig.settings.api.tls.useTls
+			: true;
+		const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
 		const websocketManager = new WebsocketManager();
 
 		let terminalHandler: TerminalHandler | null = null;
 		let conversationId: ConversationId;
+		let conversationTitle: string | undefined;
 
 		const handleInterrupt = async () => {
 			if (terminalHandler && terminalHandler.isStatementInProgress()) {
@@ -64,39 +80,69 @@ export const conversationChat = new Command()
 		Deno.addSignalListener('SIGTERM', exit);
 
 		try {
-			// Check if API is running, start it if not
-			const apiRunning = await isApiRunning(projectRoot);
-			if (!apiRunning) {
-				apiStartedByUs = true;
+			// Check API status with enhanced checking
+			const processStatus = await checkApiStatus(projectRoot);
+			if (!processStatus.apiResponds) {
+				if (processStatus.pidExists) {
+					console.log('BB server process exists but is not responding. Attempting restart...');
+					await stopApiServer(projectRoot);
+				} else {
+					console.log('BB server is not running. Starting it now...');
+				}
 
-				console.log('API is not running. Starting it now...');
 				const { pid: _pid, apiLogFilePath: _apiLogFilePath, listen: _listen } = await startApiServer(
 					projectRoot,
 					apiHostname,
 					`${apiPort}`,
 				);
-				//console.debug(`API running - PID: ${pid} - Log: ${apiLogFilePath} - Listening on: ${listen}.`);
-
-				// Check if the API is running
+				// Check if the API is running with enhanced status checking
 				let apiRunning = false;
 				const maxAttempts = 5;
-				const delayMs = 1000;
+				const delayMs = 250;
 
 				await new Promise((resolve) => setTimeout(resolve, delayMs * 2));
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-					const status = await getApiStatus(startDir);
-					if (status.running) {
+					const processStatus = await checkApiStatus(projectId);
+					const status = await getApiStatus(projectId);
+
+					if (processStatus.apiResponds && status.running) {
 						apiRunning = true;
 						break;
 					}
+
+					// Provide detailed status information
+					if (processStatus.pidExists && !processStatus.apiResponds) {
+						console.error(colors.yellow(
+							`BB server process exists but is not responding [${attempt}/${maxAttempts}]. PID: ${processStatus.pid}`,
+						));
+					} else if (!processStatus.pidExists) {
+						console.error(colors.yellow(
+							`BB server process not found [${attempt}/${maxAttempts}]. Starting up...`,
+						));
+					}
+
+					if (status.error) {
+						console.error(
+							colors.yellow(`BB server status check [${attempt}/${maxAttempts}]: ${status.error}`),
+						);
+					}
+
 					await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
 				}
 				if (!apiRunning) {
-					console.error('Failed to start the API server after multiple attempts.');
-					exit(1);
+					const finalStatus = await checkApiStatus(projectId);
+					if (finalStatus.pidExists && !finalStatus.apiResponds) {
+						throw new Error(
+							`BB server process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
+						);
+					} else {
+						throw new Error('Failed to start the BB server: ' + (finalStatus.error || 'unknown error'));
+					}
+				} else {
+					apiStartedByUs = true;
+					const finalStatus = await checkApiStatus(projectId);
+					console.log(colors.bold.green(`BB server started successfully (PID: ${finalStatus.pid}).`));
 				}
-
-				console.log('API started successfully.');
 			}
 
 			conversationId = options.id || generateConversationId();
@@ -126,26 +172,18 @@ export const conversationChat = new Command()
 					statement = input.join('\n');
 				}
 				// we've got a statement now; either passed as cli arg or read from stdin
-				let response;
-				if (conversationId) {
-					response = await apiClient.post(`/api/v1/conversation/${conversationId}`, {
-						statement: statement,
-						//model: options.model,
-						startDir: startDir,
-					});
-				} else {
-					response = await apiClient.post('/api/v1/conversation', {
-						statement: statement,
-						//model: options.model,
-						startDir: startDir,
-					});
-				}
+				const response = await apiClient.post(`/api/v1/conversation/${conversationId}`, {
+					statement: statement,
+					//model: options.model,
+					projectId: projectId,
+					maxTurns: options.maxTurns,
+				});
 
 				if (response.ok) {
 					const data = await response.json();
 
-					terminalHandler = new TerminalHandler(bbaiDir);
-					terminalHandler.displayConversationComplete(data, options);
+					terminalHandler = await new TerminalHandler(projectId).init();
+					await terminalHandler.displayConversationComplete(data, options);
 				} else {
 					const errorBody = await response.text();
 					console.error(JSON.stringify(
@@ -157,11 +195,11 @@ export const conversationChat = new Command()
 						null,
 						2,
 					));
-					logger.error(`API request failed: ${response.status} ${response.statusText}`);
+					logger.error(`BB server request failed: ${response.status} ${response.statusText}`);
 					logger.error(`Error body: ${errorBody}`);
 				}
 			} else {
-				terminalHandler = new TerminalHandler(bbaiDir);
+				terminalHandler = await new TerminalHandler(projectId).init();
 				await terminalHandler.initializeTerminal();
 
 				// Spinner is now managed by terminalHandler
@@ -173,50 +211,128 @@ export const conversationChat = new Command()
 
 				// 				console.log(`Waiting for 2 mins.`);
 				// 	await new Promise((resolve) => setTimeout(resolve, 120000));
-				await websocketManager.setupWebsocket(conversationId, startDir, apiHostname, apiPort);
+				await websocketManager.setupWebsocket(conversationId, projectId, apiHostname, apiPort);
 
 				// Set up event listeners
 				let conversationChatDisplayed = false;
-				eventManager.on('cli:conversationReady', (data) => {
+
+				// Handle new conversation metadata
+				eventManager.on('cli:conversationNew', async (data) => {
+					conversationTitle = (data as ConversationStart).conversationTitle;
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationNew`,
+						);
+					}
+					await terminalHandler?.displayConversationStart(
+						data as ConversationStart,
+						conversationId,
+						true,
+					);
+					conversationChatDisplayed = true;
+				}, conversationId);
+
+				eventManager.on('cli:conversationReady', async (data) => {
+					// For existing conversations, get title from ready event
+					if (!conversationTitle) {
+						conversationTitle = (data as ConversationStart).conversationTitle;
+					}
+					// Only display start if we haven't received conversationNew
 					if (!conversationChatDisplayed) {
 						if (!terminalHandler) {
 							logger.error(
 								`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationReady`,
 							);
 						}
-						terminalHandler?.displayConversationStart(data as ConversationStart, conversationId, true);
+						await terminalHandler?.displayConversationStart(
+							data as ConversationStart,
+							conversationId,
+							true,
+						);
 						conversationChatDisplayed = true;
 					}
 				}, conversationId);
 
-				eventManager.on('cli:conversationContinue', (data) => {
+				eventManager.on('cli:conversationContinue', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
 							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationContinue`,
 						);
 					}
-					terminalHandler?.displayConversationContinue(data as ConversationContinue, conversationId, true);
+					// Use stored title if available
+					const messageData = {
+						...(data as ConversationContinue),
+						conversationTitle: conversationTitle || (data as ConversationContinue).conversationTitle ||
+							'<pending>',
+					} as ConversationContinue;
+					await terminalHandler?.displayConversationContinue(
+						messageData,
+						conversationId,
+						true,
+					);
 				}, conversationId);
 
-				eventManager.on('cli:conversationAnswer', (data) => {
+				eventManager.on('cli:conversationAnswer', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
 							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationAnswer`,
 						);
 					}
-					terminalHandler?.displayConversationAnswer(data as ConversationResponse, conversationId, false);
+					// Use stored title if available
+					const messageData = {
+						...(data as ConversationResponse),
+						conversationTitle: conversationTitle || (data as ConversationResponse).conversationTitle ||
+							'<pending>',
+					} as ConversationResponse;
+					await terminalHandler?.displayConversationAnswer(
+						messageData,
+						conversationId,
+						false,
+					);
+					// Set idle state after answer is displayed
+					terminalHandler?.handleProgressStatus({
+						type: 'progress_status',
+						status: ApiStatus.IDLE,
+						statementCount: messageData.conversationStats.statementCount,
+						sequence: Number.MAX_SAFE_INTEGER,
+						timestamp: Date.now(),
+					});
 				}, conversationId);
 
-				eventManager.on('cli:websocketReconnected', handleWebsocketReconnection);
-
-				eventManager.on('cli:conversationError', (data) => {
+				eventManager.on('cli:conversationError', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
 							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationError`,
 						);
 						return;
 					}
-					terminalHandler.displayError(data);
+					await terminalHandler.displayError(data);
+				}, conversationId);
+
+				eventManager.on('cli:websocketReconnected', handleWebsocketReconnection);
+
+				// Handle progress status updates
+				eventManager.on('cli:progressStatus', async (data) => {
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:progressStatus`,
+						);
+						return;
+					}
+					const message = data as ProgressStatusMessage;
+					terminalHandler.handleProgressStatus(message);
+				}, conversationId);
+
+				// Handle prompt cache timer updates
+				eventManager.on('cli:promptCacheTimer', async (data) => {
+					if (!terminalHandler) {
+						logger.error(
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:promptCacheTimer`,
+						);
+						return;
+					}
+					const message = data as PromptCacheTimerMessage;
+					terminalHandler.handlePromptCacheTimer(message);
 				}, conversationId);
 
 				await websocketManager.waitForReady(conversationId!);
@@ -240,25 +356,40 @@ export const conversationChat = new Command()
 
 					try {
 						//console.log(`Processing statement using conversationId: ${conversationId}`);
-						await processStatement(bbaiDir, websocketManager, terminalHandler, conversationId!, statement);
+						await processStatement(
+							projectId,
+							bbDir,
+							websocketManager,
+							terminalHandler,
+							conversationId!,
+							statement,
+							{
+								maxTurns: options.maxTurns,
+							},
+						);
 					} catch (error) {
-						logger.error(`Error in chat: ${error.message}`);
+						logger.error(`Error in chat: ${(error as Error).message}`);
 					}
 				}
 				await cleanup();
 				Deno.exit(0);
 			}
 		} catch (error) {
-			console.error(JSON.stringify(
-				{
-					error: 'Error in conversation',
-					message: error.message,
-				},
-				null,
-				2,
-			));
-			logger.error(`Unexpected error: ${error.message}`);
-			logger.error(`Stack trace: ${error.stack}`);
+			if ((error as Error).message.startsWith('Failed to start')) {
+				console.error(colors.bold.red((error as Error).message));
+				exit(1);
+			} else {
+				console.error(JSON.stringify(
+					{
+						error: 'Error in conversation',
+						message: (error as Error).message,
+					},
+					null,
+					2,
+				));
+				logger.error(`Unexpected error: ${(error as Error).message}`);
+				logger.error(`Stack trace: ${(error as Error).stack}`);
+			}
 		} finally {
 			await cleanup();
 		}
@@ -270,17 +401,21 @@ function handleWebsocketReconnection() {
 }
 
 const processStatement = async (
-	bbaiDir: string,
+	projectId: string,
+	bbDir: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,
 	conversationId: ConversationId,
 	statement: string,
+	options?: { maxTurns?: number },
 ): Promise<void> => {
-	await addToStatementHistory(bbaiDir, statement);
+	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
-	terminalHandler.startStatement('Claude is working...');
+	terminalHandler.startStatement('Claude is thinking...');
 	try {
-		websocketManager.ws?.send(JSON.stringify({ conversationId, startDir, task, statement }));
+		websocketManager.ws?.send(
+			JSON.stringify({ conversationId, projectId, task, statement, options: { maxTurns: options?.maxTurns } }),
+		);
 		await websocketManager.waitForAnswer(conversationId);
 	} finally {
 		terminalHandler.stopStatement('Claude is finished');

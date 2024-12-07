@@ -1,5 +1,5 @@
 import { createError } from '../utils/error.utils.ts';
-import { ConversationId } from 'shared/types.ts';
+import type { ConversationId } from 'shared/types.ts';
 
 export class ResourceLock {
 	private locks: Map<string, string>; // resourcePath -> interactionId

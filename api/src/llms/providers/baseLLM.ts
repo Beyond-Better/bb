@@ -10,15 +10,16 @@ import type {
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
 	LLMValidateResponseCallback,
-} from '../../types.ts';
-import type { LLMMessageContentPart } from '../llmMessage.ts';
+} from 'api/types.ts';
+import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
 //import LLMTool from '../llmTool.ts';
-import type { LLMToolInputSchema } from '../llmTool.ts';
-import LLMInteraction from '../interactions/baseInteraction.ts';
+import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
-import { type FullConfigSchema } from 'shared/configManager.ts';
-import { ErrorType, LLMErrorOptions } from '../../errors/error.ts';
-import { createError } from '../../utils/error.utils.ts';
+import { extractTextFromContent } from 'api/utils/llms.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+import { createError } from 'api/utils/error.ts';
 //import { metricsService } from '../../services/metrics.service.ts';
 import kv from '../../utils/kv.utils.ts';
 import { tokenUsageManager } from '../../utils/tokenUsage.utils.ts';
@@ -30,11 +31,11 @@ class LLM {
 	public maxSpeakRetries: number = 3;
 	public requestCacheExpiry: number = 3 * (1000 * 60 * 60 * 24); // 3 days in milliseconds
 	private callbacks: LLMCallbacks;
-	public fullConfig!: FullConfigSchema;
+	public projectConfig!: ProjectConfig;
 
 	constructor(callbacks: LLMCallbacks) {
 		this.callbacks = callbacks;
-		this.fullConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);
+		this.projectConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);
 	}
 
 	async invoke<K extends LLMCallbackType>(
@@ -98,10 +99,10 @@ class LLM {
 
 		let llmSpeakWithResponse!: LLMSpeakWithResponse;
 
-		const cacheKey = !this.fullConfig.api?.ignoreLLMRequestCache
+		const cacheKey = !(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)
 			? this.createRequestCacheKey(llmProviderMessageRequest)
 			: [];
-		if (!this.fullConfig.api?.ignoreLLMRequestCache) {
+		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
 			const cachedResponse = await kv.get<LLMSpeakWithResponse>(cacheKey);
 
 			if (cachedResponse && cachedResponse.value) {
@@ -158,11 +159,11 @@ class LLM {
 					// Handle any unexpected errors
 					throw createError(
 						ErrorType.LLM,
-						`Unexpected error calling LLM service: ${error.message}`,
+						`Unexpected error calling LLM service: ${(error as Error).message}`,
 						{
 							model: interaction.model,
 							provider: this.llmProviderName,
-							args: { reason: error },
+							args: { reason: (error as Error) },
 							conversationId: interaction.id,
 						} as LLMErrorOptions,
 					);
@@ -195,10 +196,54 @@ class LLM {
 			if (llmSpeakWithResponse.messageResponse.isTool) {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
 				this.extractToolUse(llmSpeakWithResponse.messageResponse);
+				llmSpeakWithResponse.messageResponse.answer = llmSpeakWithResponse.messageResponse.toolsUsed.map(
+					(toolUse) => toolUse.toolThinking,
+				).join('\n');
 			} else {
-				const answerPart = llmSpeakWithResponse.messageResponse.answerContent[0] as LLMMessageContentPart;
-				if ('text' in answerPart) {
-					llmSpeakWithResponse.messageResponse.answer = answerPart.text;
+				// Add logging and robust error handling for response processing
+				logger.info(`provider[${this.llmProviderName}] Processing non-tool response`);
+
+				if (!llmSpeakWithResponse.messageResponse.answerContent) {
+					logger.error(`provider[${this.llmProviderName}] answerContent is missing in response`);
+					throw createError(
+						ErrorType.LLM,
+						'Invalid response format: answerContent is missing',
+						{ provider: this.llmProviderName } as LLMErrorOptions,
+					);
+				}
+
+				// Process all answer parts and combine text content
+				try {
+					const combinedAnswer = extractTextFromContent(llmSpeakWithResponse.messageResponse.answerContent);
+					if (combinedAnswer) {
+						llmSpeakWithResponse.messageResponse.answer = combinedAnswer;
+						logger.info(
+							`provider[${this.llmProviderName}] Extracted combined text answer:`,
+							combinedAnswer.substring(0, 100) + '...',
+						);
+					} else {
+						llmSpeakWithResponse.messageResponse.answer =
+							'Error: No valid text content found in LLM response';
+						llmSpeakWithResponse.messageResponse.answerContent = [{
+							type: 'text',
+							text: llmSpeakWithResponse.messageResponse.answer,
+						}];
+						logger.warn(
+							`provider[${this.llmProviderName}] No valid text content found in any answer parts`,
+						);
+					}
+				} catch (error) {
+					logger.error(
+						`provider[${this.llmProviderName}] Error processing answer content: ${
+							(error as Error).message
+						}`,
+						error as Error,
+					);
+					llmSpeakWithResponse.messageResponse.answer = 'Error: Failed to process LLM response content';
+					llmSpeakWithResponse.messageResponse.answerContent = [{
+						type: 'text',
+						text: llmSpeakWithResponse.messageResponse.answer,
+					}];
 				}
 			}
 
@@ -211,7 +256,7 @@ class LLM {
 
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
-			if (!this.fullConfig.api?.ignoreLLMRequestCache) {
+			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
 				await kv.set(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}
@@ -220,6 +265,10 @@ class LLM {
 		return llmSpeakWithResponse;
 	}
 
+	// called by
+	//  - chatInteraction.chat
+	//  - conversationInteraction.converse
+	//  - conversationInteraction.relayToolResult
 	public async speakWithRetry(
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
@@ -229,7 +278,6 @@ class LLM {
 		let retries = 0;
 		let failReason = '';
 		let totalProviderRequests = 0;
-		const totalTokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 		let llmSpeakWithResponse: LLMSpeakWithResponse | null = null;
 
 		while (retries < maxRetries) {
@@ -239,9 +287,7 @@ class LLM {
 				llmSpeakWithResponse = await this.speakWithPlus(interaction, retrySpeakOptions);
 				//logger.debug(`provider[${this.llmProviderName}] speakWithRetry-llmSpeakWithResponse`, llmSpeakWithResponse );
 
-				totalTokenUsage.inputTokens += llmSpeakWithResponse.messageResponse.usage.inputTokens;
-				totalTokenUsage.outputTokens += llmSpeakWithResponse.messageResponse.usage.outputTokens;
-				totalTokenUsage.totalTokens += llmSpeakWithResponse.messageResponse.usage.totalTokens;
+				interaction.updateTotals(llmSpeakWithResponse.messageResponse);
 
 				const validationFailedReason = this.validateResponse(
 					llmSpeakWithResponse.messageResponse,
@@ -260,9 +306,9 @@ class LLM {
 			} catch (error) {
 				logger.error(
 					`provider[${this.llmProviderName}] speakWithRetry: Error calling speakWithPlus`,
-					error,
+					error as Error,
 				);
-				failReason = `caught error: ${error}`;
+				failReason = `caught error: ${(error as Error)}`;
 			}
 			logger.warn(
 				`provider[${this.llmProviderName}] Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,
@@ -271,8 +317,6 @@ class LLM {
 			await new Promise((resolve) => setTimeout(resolve, 1000));
 		}
 
-		//interaction.updateTotals(totalTokenUsage, totalProviderRequests);
-		interaction.updateTotals(totalTokenUsage);
 		//await interaction.save(); // Persist the interaction even if all retries failed
 
 		if (llmSpeakWithResponse) {
@@ -313,7 +357,7 @@ class LLM {
 						return `Tool exceeded max tokens`;
 					}
 
-					const inputSchema: LLMToolInputSchema = tool.input_schema;
+					const inputSchema: LLMToolInputSchema = tool.inputSchema;
 					const validate = ajv.compile(inputSchema);
 					const valid = validate(toolUse.toolInput);
 					//logger.error(`validateResponse - Tool is valid: ${toolUse.toolName}`);

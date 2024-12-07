@@ -1,0 +1,8 @@
+{
+	"name": "delegate_tasks",
+	"description": "Delegate specialized tasks to child interactions. Currently supports log entry summary tasks with configurable format (short/medium/long), token limits, and metadata inclusion options. Each task includes type, target, and optional configuration.",
+	"enabled": false,
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT"
+}

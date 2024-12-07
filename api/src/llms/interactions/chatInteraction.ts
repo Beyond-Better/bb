@@ -1,24 +1,29 @@
-import LLMInteraction from './baseInteraction.ts';
-import LLM from '../providers/baseLLM.ts';
-import { AnthropicModel, LLMMessageContentPart, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import { ConversationId } from 'shared/types.ts';
-import LLMMessage, { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
-import LLMTool from 'api/llms/llmTool.ts';
-//import { logger } from 'shared/logger.ts';
+import LLMInteraction from 'api/llms/baseInteraction.ts';
+import type LLM from '../providers/baseLLM.ts';
+import { AnthropicModel } from 'api/types.ts';
+import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import type { ConversationId } from 'shared/types.ts';
+import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
+import type LLMMessage from 'api/llms/llmMessage.ts';
+//import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import type LLMTool from 'api/llms/llmTool.ts';
+//import { extractTextFromContent } from 'api/utils/llms.ts';
+import { logger } from 'shared/logger.ts';
 
 class LLMChatInteraction extends LLMInteraction {
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		super(llm, conversationId);
+		this._interactionType = 'chat';
 	}
 
-	public async prepareSytemPrompt(system: string): Promise<string> {
+	public override async prepareSytemPrompt(system: string): Promise<string> {
 		//logger.info('ChatInteraction: Preparing system prompt for chat', system);
 		return new Promise((resolve) => resolve(system));
 	}
-	public async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
+	public override async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {
 		return new Promise((resolve) => resolve(messages));
 	}
-	public async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
+	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
 		return Array.from(tools.values());
 	}
 
@@ -35,16 +40,31 @@ class LLMChatInteraction extends LLMInteraction {
 		}
 
 		this._statementTurnCount++;
+
 		//logger.debug(`chat - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
-		this.addMessageForUserRole({ type: 'text', text: prompt });
-		this.conversationLogger.logAuxiliaryMessage(prompt);
+		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });
 
-		const response = await this.llm.speakWithPlus(this, speakOptions);
-		const contentPart: LLMMessageContentPart = response.messageResponse
-			.answerContent[0] as LLMMessageContentPartTextBlock;
-		const msg = contentPart.text;
+		//this.conversationLogger.logAuxiliaryMessage(messageId, prompt);
 
-		this.conversationLogger.logAuxiliaryMessage(msg);
+		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
+		const response = await this.llm.speakWithRetry(this, speakOptions);
+
+		//const msg = extractTextFromContent(response.messageResponse.answerContent);
+		//const msg = `<prompt>${prompt}</prompt>\n${response.messageResponse.answer}`;
+		const auxiliaryContent: AuxiliaryChatContent = {
+			prompt,
+			message: response.messageResponse.answer,
+			purpose: this.title,
+		};
+
+		this.conversationLogger.logAuxiliaryMessage(
+			this.getLastMessageId(),
+			auxiliaryContent,
+			this.conversationStats,
+			this.tokenUsageTurn,
+			this.tokenUsageStatement,
+			this.tokenUsageInteraction,
+		);
 
 		return response;
 	}

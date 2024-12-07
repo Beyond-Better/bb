@@ -1,6 +1,7 @@
 {
 	"lock": false,
 	"tasks": {
+		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
 		"cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable -A -",
 		"manifest": "deno task cli manifest $(pwd)/src",
@@ -9,6 +10,7 @@
 		"build": "deno run -A src/dev.ts build",
 		"preview": "deno run -A src/main.ts",
 		"update": "deno run -A -r https://fresh.deno.dev/update .",
+		"test": "deno test --allow-env --allow-net --allow-read --allow-run --allow-write --allow-import tests/",
 		"format": "deno fmt",
 		"check-format": "deno fmt --check",
 		"check-types": "deno check src/main.ts",
@@ -46,5 +48,5 @@
 			"src/fixtures/**/*.ts"
 		]
 	},
-	"version": "0.0.13e-beta"
+	"version": "0.4.1"
 }

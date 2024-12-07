@@ -1,0 +1,7 @@
+{
+	"name": "fetch_web_page",
+	"description": "Fetches the content of a specified web page. Returns the text content of HTML pages, stripping scripts and styles. For visual content, use fetch_web_screenshot instead. Some sites may block automated access or require authentication. Response size may be limited.",
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT"
+}

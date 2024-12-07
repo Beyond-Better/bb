@@ -1,31 +1,38 @@
-import { LLMProvider } from 'api/types.ts';
-import { ConversationId } from 'shared/types.ts';
+import type { LLMProvider } from 'api/types.ts';
+import type { ConversationId } from 'shared/types.ts';
 export type { ErrorObject as AjvErrorObject } from 'ajv';
 import { Status } from '@oak/oak';
 
 export enum ErrorType {
 	CommandExecution = 'CommandExecution',
+	Persistence = 'PersistenceError',
 	API = 'APIError',
 	LLM = 'LLMError',
 	LLMRateLimit = 'RateLimitError',
 	LLMValidation = 'ValidationError',
 	ToolHandling = 'ToolHandlingError',
+	ProjectHandling = 'ProjectHandlingError',
 	FileHandling = 'FileHandlingError',
 	VectorSearch = 'VectorSearchError',
+	TokenUsageValidation = 'TokenUsageValidationError',
 }
 export const ErrorTypes = [
 	ErrorType.API,
+	ErrorType.Persistence,
 	ErrorType.LLM,
 	ErrorType.LLMRateLimit,
 	ErrorType.LLMValidation,
 	ErrorType.ToolHandling,
+	ErrorType.ProjectHandling,
 	ErrorType.FileHandling,
 	ErrorType.VectorSearch,
+	ErrorType.TokenUsageValidation,
 ];
 
 export interface CommandExecutionErrorOptions extends ErrorOptions {
 	command: string;
 	args?: string[];
+	cwd?: string;
 }
 
 export interface ErrorOptions {
@@ -61,6 +68,12 @@ export interface LLMValidationErrorOptions extends LLMErrorOptions {
 	replacement_prompt?: string;
 }
 
+export interface TokenUsageValidationErrorOptions extends ErrorOptions {
+	field?: string;
+	value?: unknown;
+	constraint?: string;
+}
+
 export class APIError extends Error {
 	public status: Status;
 	constructor(
@@ -94,7 +107,7 @@ export const isLLMError = (value: unknown): value is LLMError => {
 export class RateLimitError extends LLMError {
 	constructor(
 		message: string,
-		public options?: LLMRateLimitErrorOptions,
+		public override options?: LLMRateLimitErrorOptions,
 	) {
 		super(message);
 		//this.type = ErrorType.LLMRateLimit;
@@ -107,7 +120,7 @@ export const isRateLimitError = (value: unknown): value is RateLimitError => {
 export class ValidationError extends LLMError {
 	constructor(
 		message: string,
-		public options?: LLMValidationErrorOptions,
+		public override options?: LLMValidationErrorOptions,
 	) {
 		super(message);
 		//this.type = ErrorType.LLMValidation;
@@ -117,6 +130,40 @@ export const isValidationError = (value: unknown): value is ValidationError => {
 	return value instanceof ValidationError;
 };
 
+export class TokenUsageValidationError extends Error {
+	constructor(
+		message: string,
+		public options: TokenUsageValidationErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.TokenUsageValidation;
+	}
+}
+
+export const isTokenUsageValidationError = (value: unknown): value is TokenUsageValidationError => {
+	return value instanceof TokenUsageValidationError;
+};
+
+export interface ProjectHandlingErrorOptions extends ErrorOptions {
+	projectId?: string;
+	projectRoot?: string;
+	projectType?: string;
+}
+
+export class ProjectHandlingError extends Error {
+	constructor(
+		message: string,
+		public options: ProjectHandlingErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.ProjectHandling;
+	}
+}
+export const isProjectHandlingError = (value: unknown): value is ProjectHandlingError => {
+	return value instanceof ProjectHandlingError;
+};
+
+
 export interface FileHandlingErrorOptions extends ErrorOptions {
 	filePath: string;
 	operation:
@@ -124,11 +171,12 @@ export interface FileHandlingErrorOptions extends ErrorOptions {
 		| 'write'
 		| 'delete'
 		| 'move'
-		| 'patch'
+		| 'change'
 		| 'search-project'
 		| 'apply-patch'
 		| 'search-replace'
 		| 'rewrite-file'
+		| 'move-file'
 		// these are not really filehandling (filesystem) - they only affect files in the conversation
 		| 'request-files'
 		| 'forget-files';
@@ -148,10 +196,10 @@ export const isFileHandlingError = (value: unknown): value is FileHandlingError 
 	return value instanceof FileHandlingError;
 };
 
-export class FilePatchError extends FileHandlingError {
+export class FileChangeError extends FileHandlingError {
 	constructor(message: string, options: FileHandlingErrorOptions) {
-		super(message, { ...options, operation: 'patch' });
-		this.name = 'FilePatchError';
+		super(message, { ...options, operation: 'change' });
+		this.name = 'FileChangeError';
 	}
 }
 
@@ -176,6 +224,13 @@ export class FileWriteError extends FileHandlingError {
 	}
 }
 
+export class FileMoveError extends FileHandlingError {
+	constructor(message: string, options: FileHandlingErrorOptions) {
+		super(message, { ...options, operation: 'move' });
+		this.name = 'FileMoveError';
+	}
+}
+
 export interface VectorSearchErrorOptions extends ErrorOptions {
 	query: string;
 	operation: 'index' | 'search' | 'delete';
@@ -193,4 +248,42 @@ export class VectorSearchError extends Error {
 
 export const isVectorSearchError = (value: unknown): value is VectorSearchError => {
 	return value instanceof VectorSearchError;
+};
+
+export interface ToolHandlingErrorOptions extends ErrorOptions {
+	toolName: string;
+	operation: 'tool-run' | 'tool-input' | 'formatting';
+}
+
+export class ToolHandlingError extends Error {
+	constructor(
+		message: string,
+		public options: ToolHandlingErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.ToolHandling;
+	}
+}
+
+export const isToolHandlingError = (value: unknown): value is ToolHandlingError => {
+	return value instanceof ToolHandlingError;
+};
+
+export interface PersistenceErrorOptions extends ErrorOptions {
+	filePath: string;
+	operation: 'read' | 'write' | 'append';
+}
+
+export class PersistenceError extends Error {
+	constructor(
+		message: string,
+		public options: PersistenceErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.Persistence;
+	}
+}
+
+export const isPersistenceError = (value: unknown): value is PersistenceError => {
+	return value instanceof PersistenceError;
 };

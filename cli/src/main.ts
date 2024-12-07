@@ -1,5 +1,5 @@
 import { Command } from 'cliffy/command/mod.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 import { init } from './commands/init.ts';
 import { apiStart } from './commands/apiStart.ts';
@@ -10,15 +10,24 @@ import { conversationChat } from './commands/conversationChat.ts';
 import { conversationList } from './commands/conversationList.ts';
 import { viewLogs } from './commands/viewLogs.ts';
 import { config as configCommand } from './commands/config.ts';
+import { secure } from './commands/secure.ts';
+import { upgrade } from './commands/upgrade.ts';
+import { migrate } from './commands/migrate.ts';
+import { doctor } from './commands/doctor.ts';
+import { getVersionInfo } from 'shared/version.ts';
 //import { logger } from 'shared/logger.ts';
 
-const globalConfig = await ConfigManager.globalConfig();
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
 //logger.debug('CLI Config:', globalConfig.cli);
 
+const versionInfo = await getVersionInfo();
+//logger.info('versionInfo:', versionInfo);
+
 const cli = new Command()
-	.name('bbai')
-	.version(globalConfig.version as string)
-	.description('CLI tool for BBai')
+	.name(globalConfig.bbExeName) // 'bb' or 'bb.exe'
+	.version(versionInfo.version as string)
+	.description('CLI tool for BB')
 	.command('init', init)
 	//
 	// conversation commands
@@ -34,7 +43,11 @@ const cli = new Command()
 	.command('stop', apiStop)
 	.command('status', apiStatus)
 	.command('restart', apiRestart)
-	.command('config', configCommand);
+	.command('config', configCommand)
+	.command('secure', secure)
+	.command('upgrade', upgrade)
+	.command('migrate', migrate)
+	.command('doctor', doctor);
 
 export const main = async () => {
 	await cli.parse(Deno.args);

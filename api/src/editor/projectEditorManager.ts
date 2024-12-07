@@ -1,10 +1,10 @@
-import ProjectEditor from './projectEditor.ts';
-import { ConversationId } from 'shared/types.ts';
+import ProjectEditor from 'api/editor/projectEditor.ts';
+import type { ConversationId } from 'shared/types.ts';
 
 class ProjectEditorManager {
 	private projectEditors: Map<string, ProjectEditor> = new Map();
 
-	async getOrCreateEditor(conversationId: ConversationId | undefined, startDir: string): Promise<ProjectEditor> {
+	async getOrCreateEditor(conversationId: ConversationId | undefined, projectId: string): Promise<ProjectEditor> {
 		if (conversationId && this.projectEditors.has(conversationId)) {
 			return this.projectEditors.get(conversationId)!;
 		}
@@ -13,7 +13,7 @@ class ProjectEditorManager {
 			throw new Error('ConversationId is required to create a new ProjectEditor');
 		}
 
-		const projectEditor = await new ProjectEditor(startDir).init();
+		const projectEditor = await new ProjectEditor(projectId).init();
 		this.projectEditors.set(conversationId, projectEditor);
 		await projectEditor.initConversation(conversationId);
 		return projectEditor;

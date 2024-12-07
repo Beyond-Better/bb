@@ -38,33 +38,176 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
-          deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bbai${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
+          deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bb${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
 
       - name: Build API for ${{ matrix.target }}
         run: |
           cd api
-          deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bbai-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
+          deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
 
       - name: Create install script (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
         run: |
           echo '#!/bin/sh' > build/install.sh
-          echo 'cp bbai /usr/local/bin/' >> build/install.sh
-          echo 'cp bbai-api /usr/local/bin/' >> build/install.sh
-          echo 'chmod +x /usr/local/bin/bbai /usr/local/bin/bbai-api' >> build/install.sh
-          chmod 755 build/install.sh
+          echo 'cp bb /usr/local/bin/' >> build/install.sh
+          echo 'cp bb-api /usr/local/bin/' >> build/install.sh
+          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api' >> build/install.sh
+          chmod +x build/install.sh
 
-      - name: Create install script (Windows)
+      - name: Create batch files (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
-          echo '@echo off' > build/install.bat
-          echo 'copy bbai.exe %USERPROFILE%\AppData\Local\Microsoft\WindowsApps\' >> build/install.bat
-          echo 'copy bbai-api.exe %USERPROFILE%\AppData\Local\Microsoft\WindowsApps\' >> build/install.bat
+          echo '@echo off' > build/bb_init.bat
+          echo 'setlocal' >> build/bb_init.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_init.bat
+          echo 'echo Initializing BB in the current directory...' >> build/bb_init.bat
+          echo '"%%SCRIPT_DIR%%bb.exe" init' >> build/bb_init.bat
+          echo 'echo.' >> build/bb_init.bat
+          echo 'echo Initialization complete. Press any key to exit.' >> build/bb_init.bat
+          echo 'pause >nul' >> build/bb_init.bat
+          echo 'endlocal' >> build/bb_init.bat
+
+          echo '@echo off' > build/bb_start.bat
+          echo 'setlocal' >> build/bb_start.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_start.bat
+          echo 'echo Starting BB...' >> build/bb_start.bat
+          echo 'start "" "%%SCRIPT_DIR%%bb.exe" start' >> build/bb_start.bat
+          echo 'echo.' >> build/bb_start.bat
+          echo 'echo BB has been started in your default web browser.' >> build/bb_start.bat
+          echo 'echo You can close this window.' >> build/bb_start.bat
+          echo 'endlocal' >> build/bb_start.bat
+
+          echo '@echo off' > build/bb_stop.bat
+          echo 'setlocal' >> build/bb_stop.bat
+          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_stop.bat
+          echo 'echo Stopping BB...' >> build/bb_stop.bat
+          echo 'start "" "%%SCRIPT_DIR%%bb.exe" stop' >> build/bb_stop.bat
+          echo 'echo.' >> build/bb_stop.bat
+          echo 'echo BB has been stopped.' >> build/bb_stop.bat
+          echo 'echo You can close this window.' >> build/bb_stop.bat
+          echo 'endlocal' >> build/bb_stop.bat
+
+      - name: Create MSI installer (Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          choco install wixtoolset -y
+          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
+          $env:PATH += ";$wixPath"
+
+          # Copy BB Manager files to the build directory for inclusion in archives
+          cp scripts/bb-manager.bat build/
+          
+          # Create a temporary directory for the installer files
+          mkdir installer_files
+          cp build/bb.exe installer_files/
+          cp build/bb-api.exe installer_files/
+          cp build/bb-manager.bat installer_files/
+          
+          # Convert LICENSE to RTF
+          # pandoc -s LICENSE -o installer_files/LICENSE.rtf || echo "Failed to convert LICENSE to RTF."
+          $licenseContent = Get-Content -Raw -Path LICENSE
+          $licenseContent = $licenseContent -replace '\\', '\\\\' -replace '{', '\\{' -replace '}', '\\}'
+          $rtfContent = "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}"
+          $rtfContent += "{\\f0\\fs20 $licenseContent}"
+          $rtfContent += "}"
+          Set-Content -Path installer_files/LICENSE.rtf -Value $rtfContent -Encoding UTF8
+
+          # Create a WiX source file
+          @"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+            <Product Id="*" Name="BB" Language="1033" Version="1.0.0.0" Manufacturer="Beyond-Better" UpgradeCode="12345678-1234-1234-1234-123456789012">
+              <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+              <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+              <MediaTemplate EmbedCab="yes" />
+              <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+              <UIRef Id="WixUI_InstallDir" />
+              <UIRef Id="WixUI_ErrorProgressText" />
+              <WixVariable Id="WixUILicenseRtf" Value="installer_files/LICENSE.rtf " />
+              <Feature Id="ProductFeature" Title="BB" Level="1">
+                <ComponentGroupRef Id="ProductComponents" />
+                <ComponentGroupRef Id="BBManager" />
+                <ComponentGroupRef Id="DesktopShortcuts" />
+              </Feature>
+            </Product>
+            <Fragment>
+              <Directory Id="TARGETDIR" Name="SourceDir">
+                <Directory Id="ProgramFilesFolder">
+                  <Directory Id="INSTALLFOLDER" Name="BB" />
+                </Directory>
+                <Directory Id="DesktopFolder" Name="Desktop" />
+              </Directory>
+            </Fragment>
+            <Fragment>
+              <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+                <Component Id="bb.exe" Guid="*">
+                  <File Id="bb.exe" Name="bb.exe" Source="installer_files\bb.exe" KeyPath="yes" />
+                </Component>
+                <Component Id="bb_api.exe" Guid="*">
+                  <File Id="bb_api.exe" Name="bb-api.exe" Source="installer_files\bb-api.exe" KeyPath="yes" />
+                </Component>
+              </ComponentGroup>
+              <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
+                <Component Id="bbmanager_bat" Guid="*">
+                  <File Id="bbmanager_bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
+                </Component>
+              </ComponentGroup>
+              <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+                <Component Id="BBManagerShortcut" Guid="*">
+                  <Shortcut Id="BBManagerShortcut" Name="BB Manager" Target="[INSTALLFOLDER]bb-manager.bat" WorkingDirectory="INSTALLFOLDER" />
+                  <RegistryValue Root="HKCU" Key="Software\Beyond-Better\BB" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+                </Component>
+              </ComponentGroup>
+            </Fragment>
+          </Wix>
+          "@ | Out-File -Encoding utf8 bb.wxs
+          
+          # Compile and link the installer
+          & "$wixPath\candle.exe" bb.wxs
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Candle.exe failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          
+          & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Light.exe failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+          
+          # Move the created MSI to the build directory
+          mv bb.msi build/bb-installer.msi
+
+      - name: Copy README and INSTALL
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp README.md build/README.txt
+            cp INSTALL.md build/INSTALL.txt
+          else
+            cp README.md INSTALL.md build/
+          fi
+
+      - name: Build BB Manager app
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p build
+          osacompile -o ./build/BB\ Manager.app ./scripts/BB\ Manager.applescript
+
+      - name: Copy BB Manager files
+        shell: bash
+        run: |
+          # Copy BB Manager files to the build directory for inclusion in archives
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp scripts/bb-manager.bat build/
+          else
+            cp scripts/bb-manager.sh build/
+          fi
 
       - name: Copy README and INSTALL
         shell: bash
@@ -79,7 +222,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bbai-${{ matrix.target }}
+          name: bb-${{ matrix.target }}
           path: build/*
 
   release:
@@ -92,7 +235,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
-          deno-version: v1.x
+          deno-version: v2.x
 
       - name: Get version
         id: get_version
@@ -121,20 +264,25 @@ jobs:
           set -e
           for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
             echo "Processing target: $target"
-            if [ ! -d "bbai-$target" ]; then
-              echo "Error: Directory bbai-$target not found"
+            if [ ! -d "bb-$target" ]; then
+              echo "Error: Directory bb-$target not found"
               continue
             fi
-            cd bbai-$target
-            zip -r ../bbai-$target-v${{ steps.get_version.outputs.VERSION }}.zip .
-            if [ "$target" != "x86_64-pc-windows-msvc" ]; then
-              chmod 755 install.sh bbai bbai-api
-              tar czf ../bbai-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz .
+            cd bb-$target
+            if [ "$target" = "x86_64-pc-windows-msvc" ]; then
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.sh"
+              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
+            elif [[ "$target" == *"apple-darwin" ]]; then
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "bb-manager.bat" -x "bb-manager.sh"
+              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="bb-manager.bat" --exclude="bb-manager.sh" .
+            else
+              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
+              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="BB Manager.app" --exclude="bb-manager.bat" .
             fi
             cd ..
-            gh release upload v${{ steps.get_version.outputs.VERSION }} bbai-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
+            gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
             if [ "$target" != "x86_64-pc-windows-msvc" ]; then
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bbai-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz || echo "Failed to upload tar.gz for $target"
+              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz || echo "Failed to upload tar.gz for $target"
             fi
           done
         env:
@@ -144,19 +292,19 @@ jobs:
 #       - name: Update Homebrew formula
 #         run: |
 #           # Download the archive
-#           curl -L -o bbai.tar.gz "https://github.com/BBai-Tips/bbai/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"
+#           curl -L -o bb.tar.gz "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"
 #           
 #           # Calculate SHA256
-#           SHA256=$(shasum -a 256 bbai.tar.gz | awk '{print $1}')
+#           SHA256=$(shasum -a 256 bb.tar.gz | awk '{print $1}')
 #           
 #           # Update the Homebrew formula
-#           sed -i 's/version ".*"/version "${{ steps.get_version.outputs.VERSION }}"/' deployment/homebrew/bbai.rb
-#           sed -i 's|url ".*"|url "https://github.com/BBai-Tips/bbai/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"|' deployment/homebrew/bbai.rb
-#           sed -i 's/sha256 ".*"/sha256 "'$SHA256'"/' deployment/homebrew/bbai.rb
+#           sed -i 's/version ".*"/version "${{ steps.get_version.outputs.VERSION }}"/' deployment/homebrew/bb.rb
+#           sed -i 's|url ".*"|url "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"|' deployment/homebrew/bb.rb
+#           sed -i 's/sha256 ".*"/sha256 "'$SHA256'"/' deployment/homebrew/bb.rb
 #           
 #           # Commit and push changes
 #           git config --local user.email "action@github.com"
 #           git config --local user.name "GitHub Action"
-#           git add deployment/homebrew/bbai.rb
+#           git add deployment/homebrew/bb.rb
 #           git commit -m "Update Homebrew formula to v${{ steps.get_version.outputs.VERSION }}"
 #           git push

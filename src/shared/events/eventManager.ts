@@ -1,25 +1,47 @@
-import type { ConversationLoggerEntryType } from 'shared/conversationLogger.ts';
 import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 import {
+	ApiStatus,
 	ConversationContinue,
+	ConversationDeleted,
 	ConversationId,
-	ConversationMetrics,
+	ConversationLogEntryType,
+	ConversationNew,
 	ConversationResponse,
 	ConversationStart,
+	ConversationStats,
 } from 'shared/types.ts';
+import { VersionInfo } from '../types/version.types.ts';
 import { logger } from 'shared/logger.ts';
 
 export type EventMap = {
 	projectEditor: {
-		speakWith: { conversationId: ConversationId; startDir: string; prompt: string };
-		conversationReady: ConversationStart;
+		conversationNew: ConversationNew;
+		conversationDeleted: ConversationDeleted;
+		speakWith: { conversationId: ConversationId; projectId: string; prompt: string };
+		conversationReady: ConversationStart & { versionInfo: VersionInfo };
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		conversationCancelled: { conversationId: ConversationId; message: string };
+		progressStatus: {
+			type: 'progress_status';
+			status: ApiStatus;
+			timestamp: string;
+			statementCount: number;
+			sequence: number;
+			metadata?: {
+				toolName?: string;
+				error?: string;
+			};
+		};
+		promptCacheTimer: {
+			type: 'prompt_cache_timer';
+			startTimestamp: number;
+			duration: number;
+		};
 		conversationError: {
 			conversationId: ConversationId;
 			conversationTitle: string;
-			conversationStats: ConversationMetrics;
+			conversationStats: ConversationStats;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'
@@ -30,12 +52,29 @@ export type EventMap = {
 		};
 	};
 	cli: {
+		conversationNew: ConversationNew;
 		conversationWaitForReady: { conversationId: ConversationId };
 		conversationWaitForAnswer: { conversationId: ConversationId };
-		conversationReady: ConversationStart;
+		conversationReady: ConversationStart & { versionInfo: VersionInfo };
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;
 		websocketReconnected: { conversationId: ConversationId };
+		progressStatus: {
+			type: 'progress_status';
+			status: ApiStatus;
+			timestamp: string;
+			statementCount: number;
+			sequence: number;
+			metadata?: {
+				toolName?: string;
+				error?: string;
+			};
+		};
+		promptCacheTimer: {
+			type: 'prompt_cache_timer';
+			startTimestamp: number;
+			duration: number;
+		};
 		conversationError: {
 			conversationId: ConversationId;
 			error: string;
@@ -102,10 +141,6 @@ class EventManager extends EventTarget {
 		const listenerWeakMap = this.listenerMap.get(listenerKey)!;
 
 		const wrappedListener = ((e: TypedEvent<EventPayload<T, E>>) => {
-			//logger.info(
-			//	`EventManager: Handling event ${event} for conversation ${conversationId}`,
-			//	e.detail.conversationId,
-			//);
 			if (
 				!conversationId ||
 				(e.detail && typeof e.detail === 'object' && 'conversationId' in e.detail &&
@@ -128,10 +163,6 @@ class EventManager extends EventTarget {
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
 		conversationId?: ConversationId,
 	): void {
-		//logger.info(
-		//	`EventManager: Attempting to remove listener for event: ${event}, conversationId: ${conversationId}`,
-		//);
-
 		const listenerKey = this.getListenerKey(event, conversationId);
 		const listenerWeakMap = this.listenerMap.get(listenerKey);
 		if (listenerWeakMap) {
@@ -162,8 +193,6 @@ class EventManager extends EventTarget {
 		event: E,
 		payload: EventPayloadMap[T][E],
 	): boolean {
-		//logger.info(`EventManager: Emitting event ${event}`, payload);
-		//logger.info(`EventManager: Number of listeners for ${event}:`, this.listenerCount(event));
 		return this.dispatchEvent(new TypedEvent(payload, event));
 	}
 

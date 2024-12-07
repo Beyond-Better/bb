@@ -1,10 +1,11 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { logger } from 'shared/logger.ts';
-//import { getBbaiDir } from 'shared/dataDir.ts';
+//import { getBbDir } from 'shared/dataDir.ts';
 import { getLogFilePath, viewLastLines, watchLogs } from 'shared/logViewer.ts';
 //import { join } from '@std/path';
 //import { ensureDir } from '@std/fs';
-import { displayFormattedLogs } from 'shared/conversationLogFormatter.ts';
+import { displayFormattedLogs } from 'cli/conversationLogFormatter.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export const viewLogs = new Command()
 	.name('logs')
@@ -19,7 +20,9 @@ export const viewLogs = new Command()
 			return;
 		}
 
-		const logFilePath = await getLogFilePath(Deno.cwd(), !!options.api, options.id);
+		const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+		const projectId = await getProjectId(projectRoot);
+		const logFilePath = await getLogFilePath(projectId, !!options.api, options.id);
 		console.log(`Viewing logs from: ${logFilePath}`);
 
 		try {
@@ -34,7 +37,7 @@ export const viewLogs = new Command()
 					// Use the ConversationLogFormatter for conversation logs
 					await displayFormattedLogs(
 						options.id,
-						(formattedEntry) => {
+						(formattedEntry: string) => {
 							console.log(formattedEntry);
 						},
 						true,
@@ -51,6 +54,6 @@ export const viewLogs = new Command()
 				console.log(lastLines);
 			}
 		} catch (error) {
-			console.error(JSON.stringify({ error: `Error reading log file: ${error.message}` }));
+			console.error(JSON.stringify({ error: `Error reading log file: ${(error as Error).message}` }));
 		}
 	});

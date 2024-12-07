@@ -1,14 +1,14 @@
-# BBai Project Conventions
+# BB Project Conventions
 
 ## Note to Users
 This document is primarily intended for the AI assistant to understand the project's conventions and guidelines. While you're welcome to read it, please be aware that changes to this file should only be made when explicitly instructed, as they directly affect how the AI interprets and works with the project.
 
 ## IMPORTANT NOTE FOR ASSISTANT
 
-Refer to `docs/LLM_INSTRUCTIONS.md` as needed for guidance on project-specific files and their purposes. This file (CONVENTIONS.md) will always be available in the chat context, but other files should be requested when their specific information is required.
+Refer to `docs/development/llm/llm_instructions.md` as needed for guidance on project-specific files and their purposes. This file (CONVENTIONS.md) will always be available in the chat context, but other files should be requested when their specific information is required.
 
 ## Project Overview
-BBai is a versatile project that provides REST API, CLI tools, and BUI browser interface to modify and enhance a wide range of text-based projects using LLM technology. BBai is designed to work with various text formats including, but not limited to:
+BB is a versatile project that provides REST API, CLI tools, and BUI browser interface to modify and enhance a wide range of text-based projects using LLM technology. BB is designed to work with various text formats including, but not limited to:
 
 - Programming code in any language
 - Prose and documentation
@@ -19,7 +19,7 @@ BBai is a versatile project that provides REST API, CLI tools, and BUI browser i
 - Configuration files
 - Data formats (JSON, YAML, etc.)
 
-It supports vector embeddings for code and text chunks from local repositories, implements RAG (Retrieval-Augmented Generation) for LLM, and provides LLM tools for requesting access to files for review or edit. This makes `bbai` a powerful assistant for any text-based project, whether it's software development, content creation, or data analysis.
+It supports vector embeddings for code and text chunks from local repositories, implements RAG (Retrieval-Augmented Generation) for LLM, and provides LLM tools for requesting access to files for review or edit. This makes `bb` a powerful assistant for any text-based project, whether it's software development, content creation, or data analysis.
 
 ## Technology Stack
 - Runtime: Deno with TypeScript (strict mode)
@@ -48,13 +48,13 @@ It supports vector embeddings for code and text chunks from local repositories, 
 
 ## Glossary of Terms
 
-- **Conversation**: An ongoing interaction between a user and the bbai system, which may include multiple statements and turns.
-- **Statement**: A single request or input from the user to the bbai system.
-- **Turn**: A single request-response cycle between bbai and the LLM.
-- **Session**: The entire duration of a user's interaction with bbai, which may include multiple conversations.
-- **Project**: The collection of files and resources that bbai is working with.
+- **Conversation**: An ongoing interaction between a user and the BB system, which may include multiple statements and turns.
+- **Statement**: A single request or input from the user to the BB system.
+- **Turn**: A single request-response cycle between BB and the LLM.
+- **Session**: The entire duration of a user's interaction with BB, which may include multiple conversations.
+- **Project**: The collection of files and resources that BB is working with.
 - **Tool**: A specific function or capability that the LLM can use to perform actions or retrieve information.
-- **Patch**: A set of changes to be applied to a file.
+- **Change**: A set of changes to be applied to a file.
 - **Commit**: A saved state of the project in the version control system.
 - **Embedding**: A numerical representation of text used for semantic search and comparison.
 - **Token**: The basic unit of text processing for the LLM, typically a word or part of a word.
@@ -85,24 +85,27 @@ Key API Endpoints:
 - Implements conversation logging and persistence
 
 ## Conversation Management
-- Log all conversations for review using `bbai logs` command
+- Log all conversations for review using `bb logs` command
 - Implement persistence mechanism for conversation state
 - Provide `resume` feature for API restarts
 - Store logs in human-readable format (e.g., Markdown or YAML)
 
 ## TypeScript and Import Conventions
 - Use `import_map.json` for both `api` and `cli` projects
+- Always check `import_map.json` for correct import paths
+- When suggesting imports, use the paths defined in `import_map.json`
+- Convert absolute paths to mapped paths where possible
 - Use bare specifiers for imports
 - Maintain separate builds for API and CLI
 - Use `src/shared/` for code shared between API and CLI
 
 ## Interface Structure and Conventions
 - Main CLI process in `cli/src/main.ts`
-- Include `bbai logs` command for viewing conversations
+- Include `bb logs` command for viewing conversations
 - Ensure cross-platform compatibility
 - Use descriptive names for CLI-specific components
 - Prefix CLI-specific types with `CLI`
-- The CLI tool is named `bbai` (lowercase)
+- The CLI tool is named `bb` (lowercase) (`bb.exe` for Windows)
 - The API server is referred to as 'api'
 - The Browser User Interface is referred to as 'bui'
 - The future Desktop User Interface will be referred to as 'dui'
@@ -136,8 +139,8 @@ Key API Endpoints:
 ## Security
 - Use environment variables for sensitive configuration
 - Sanitize and validate all data input
-- Restrict LLM access to files added to conversation by `bbai`
-- Prevent `bbai` from adding files outside the current git repo
+- Restrict LLM access to files added to conversation by `bb`
+- Prevent `bb` from adding files outside the current git repo
 - Always use `isPathWithinProject` to ensure file operations are restricted to the project directory
 - Implement proper error handling for network requests in data retrieval tools
 - Sanitize and validate command inputs to prevent injection attacks in system command tools
@@ -147,8 +150,8 @@ Key API Endpoints:
 - Use Hurl for API endpoint tests
 - Use JSDoc comments for code documentation
 - Use Swagger/OpenAPI comments for API endpoints
-- Create documentation site at https://bbai.tips
-- Refer to TESTING.md for comprehensive testing guidelines and current test coverage
+- Create documentation site at https://beyondbetter.dev
+- Refer to docs/development/llm/testing.md for comprehensive testing guidelines and current test coverage
 - Each tool should have its own test file in the `api/tests/t/llms/tools` directory
 - Tests should cover basic functionality, edge cases, and error scenarios
 - Use `Deno.test()` for creating test cases, with `sanitizeResources` and `sanitizeOps` set to `false`
@@ -161,7 +164,7 @@ Key API Endpoints:
 - Create LLM provider abstraction layer
 - Implement pipelines for common conversations
 - Use embeddings for vector similarity for code chunks
-- Refer to NEW_TOOL.md for guidelines on creating new AI tools
+- Refer to docs/development/llm/new_tool.md for guidelines on creating new AI tools
 - Implement robust error handling and input validation for all AI tools
 - Ensure proper integration of new tools with the LLMToolManager
 - Consider different types of tools (file manipulation, data retrieval, system command) and their specific requirements

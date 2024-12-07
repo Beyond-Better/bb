@@ -1,4 +1,4 @@
-import { Context } from '@oak/oak';
+import type { Context } from '@oak/oak';
 
 export const getTokenUsage = async (ctx: Context) => {
 	// Get current token usage
