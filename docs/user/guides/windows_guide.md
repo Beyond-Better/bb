@@ -6,7 +6,7 @@ This guide provides detailed instructions for installing and using Beyond Better
 
 1. [System Requirements](#system-requirements)
 2. [Installation](#installation)
-3. [BB Manager](#bb-manager)
+3. [First Launch](#first-launch)
 4. [Using BB](#using-bb)
 5. [Troubleshooting](#troubleshooting)
 
@@ -19,43 +19,29 @@ This guide provides detailed instructions for installing and using Beyond Better
 
 ## Installation
 
-1. Download the `bb-installer.msi` file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
-2. Double-click the downloaded file to run the installer.
-3. Follow the on-screen instructions to complete the installation.
-4. The installer will create a desktop shortcut for BB Manager.
+1. Download the appropriate installer from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - Recommended: `BB-dui-{version}-windows-x64.msi` (MSI installer)
+   - Alternative: `BB-dui-{version}-windows-x64-setup.exe` (NSIS installer)
+2. Double-click the downloaded file to run the installer
+3. If you see a User Account Control (UAC) prompt, click 'Yes' to allow installation
+4. Follow the installation wizard to complete the installation
 
-## BB Manager
+## First Launch
 
-BB Manager is a tool designed to help you manage multiple BB projects efficiently. It provides a text-based menu interface for common BB operations.
+When launching BB for the first time, you may see security warnings because the application is currently unsigned:
 
-### Starting BB Manager
+1. SmartScreen Warning:
+   - You'll see a message "Windows protected your PC"
+   - Click 'More info'
+   - Click 'Run anyway'
+   - This security approval is only needed once
 
-1. Double-click the "BB Manager" shortcut on your desktop, or
-2. Navigate to the BB installation directory and run `bb-manager.bat`
+2. WebView2 Installation:
+   - If you don't have Microsoft Edge WebView2 Runtime installed
+   - The installer will automatically download and install it
+   - This is required for BB's user interface
 
-### Using BB Manager
 
-BB Manager provides the following options:
-
-1. List projects
-2. Add project
-3. Remove project
-4. Run BB command
-5. Exit
-
-To select an option, enter the corresponding number and press Enter.
-
-### Managing Projects
-
-- To add a new project, choose option 2 and enter the full path of your project directory.
-- To remove a project, choose option 3 and select the project you want to remove.
-- To list all configured projects, choose option 1.
-
-### Running BB Commands
-
-1. Choose option 4 to run a BB command.
-2. Select the project you want to work with (if you have multiple projects configured).
-3. Enter the BB command you want to run (init, start, or stop).
 
 ## Using BB
 
@@ -118,7 +104,9 @@ BB includes built-in certificate management for secure HTTPS connections:
    - Click "Certificates"
    - Look for "Beyond Better CA"
 
-### Using BB from Command Line
+## Using BB
+
+### Command Line Usage
 
 You can also use BB directly from the command line:
 
