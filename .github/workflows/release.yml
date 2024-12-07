@@ -170,6 +170,14 @@ jobs:
               exit 1
             fi
             echo "Found $APPIMAGE_COUNT .AppImage files"
+          elif [ "${{ matrix.platform }}" = "windows" ]; then
+            MSI_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi -name "*.msi" | wc -l)
+            NSIS_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*.exe" | wc -l)
+            if [ "$MSI_COUNT" -eq 0 ] || [ "$NSIS_COUNT" -eq 0 ]; then
+              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
+              exit 1
+            fi
+            echo "Found $MSI_COUNT .msi and $NSIS_COUNT .exe files"
           fi
 
       # Upload artifacts for both architectures
@@ -283,7 +291,7 @@ jobs:
           done
 
           # Upload DUI artifacts
-          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64"; do
+          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64" "windows-x86_64"; do
             echo "Processing DUI platform/arch: $platform_arch"
             platform="${platform_arch%%-*}"
             arch="${platform_arch#*-}"
@@ -297,6 +305,9 @@ jobs:
                 arch_name="apple-silicon" ;;
               "linux-x86_64")
                 platform_name="linux"
+                arch_name="x64" ;;
+              "windows-x86_64")
+                platform_name="windows"
                 arch_name="x64" ;;
             esac
             
@@ -335,6 +346,32 @@ jobs:
                 if [ -f "$f" ]; then
                   echo "Found AppImage file: $f"
                   new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "../$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "../$new_name"
+                fi
+              done
+            elif [ "$platform" = "windows" ]; then
+              # Upload MSI files
+              echo "Processing MSI files:"
+              for f in *.msi; do
+                if [ -f "$f" ]; then
+                  echo "Found MSI file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "../$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "../$new_name"
+                fi
+              done
+              
+              # Upload NSIS installer
+              echo "Processing NSIS files:"
+              for f in *.exe; do
+                if [ -f "$f" ]; then
+                  echo "Found NSIS file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
                   echo "Creating renamed copy: $new_name"
                   cp "$f" "../$new_name"
                   echo "Attempting upload of $new_name"
