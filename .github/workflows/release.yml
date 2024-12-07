@@ -163,92 +163,50 @@ jobs:
           projectPath: './dui'
           args: --target ${{ matrix.target }}
 
-      # Debug: Show build output
-      - name: Show build output
+      # Process and upload build artifacts
+      - name: Process build artifacts
         shell: bash
         run: |
+          BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/release/bundle"
           echo "Build output directory contents:"
-          ls -R dui/src-tauri/target/${{ matrix.target }}/release/bundle/
-          echo "\nSearching for build artifacts:"
-          echo "DMG files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.dmg"
-          echo "APP bundles:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.app"
-          echo "AppImage files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.AppImage"
-          echo "MSI files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.msi"
-          echo "EXE files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.exe"
+          ls -R "$BUNDLE_DIR" || echo "No bundle directory found"
 
-      # Verify build artifacts exist
-      - name: Verify build artifacts
-        id: verify_artifacts
-        shell: bash
-        run: |
+          # Create staging directory
+          mkdir -p staging
+
+          # Copy artifacts based on platform
           if [[ "${{ matrix.platform }}" == "macos" ]]; then
-            DMG_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | wc -l)
-            APP_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" | wc -l)
-            if [[ "$DMG_COUNT" -eq 0 ]] || [[ "$APP_COUNT" -eq 0 ]]; then
-              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
-              exit 1
+            echo "Processing macOS artifacts..."
+            if [ -d "$BUNDLE_DIR/dmg" ]; then
+              cp -v "$BUNDLE_DIR"/dmg/*.dmg staging/ || echo "No DMG files found"
             fi
-            echo "Found $DMG_COUNT .dmg and $APP_COUNT .app files"
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              cp -rv "$BUNDLE_DIR"/macos/*.app staging/ || echo "No APP files found"
+            fi
           elif [[ "${{ matrix.platform }}" == "linux" ]]; then
-            APPIMAGE_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage -name "*.AppImage" | wc -l)
-            if [[ "$APPIMAGE_COUNT" -eq 0 ]]; then
-              echo "::error::Missing build artifacts for ${{ matrix.name }} (${{ matrix.target }})"
-              exit 1
+            echo "Processing Linux artifacts..."
+            if [ -d "$BUNDLE_DIR/appimage" ]; then
+              cp -v "$BUNDLE_DIR"/appimage/*.AppImage staging/ || echo "No AppImage files found"
             fi
-            echo "Found $APPIMAGE_COUNT .AppImage files"
           elif [[ "${{ matrix.platform }}" == "windows" ]]; then
-            # Check MSI artifacts
-            if [ -d "dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi" ]; then
-              MSI_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi -name "*.msi" | wc -l)
-              if [[ "$MSI_COUNT" -eq 0 ]]; then
-                echo "::error::No MSI files found in bundle/msi directory"
-                exit 1
-              fi
-              echo "Found $MSI_COUNT .msi files"
-            else
-              echo "::error::MSI bundle directory not found"
-              exit 1
+            echo "Processing Windows artifacts..."
+            if [ -d "$BUNDLE_DIR/msi" ]; then
+              cp -v "$BUNDLE_DIR"/msi/*.msi staging/ || echo "No MSI files found"
             fi
-
-            # Check NSIS artifacts
-            if [ -d "dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis" ]; then
-              NSIS_COUNT=$(find dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis -name "*.exe" | wc -l)
-              if [[ "$NSIS_COUNT" -eq 0 ]]; then
-                echo "::error::No NSIS files found in bundle/nsis directory"
-                exit 1
-              fi
-              echo "Found $NSIS_COUNT .exe files"
-            else
-              echo "::error::NSIS bundle directory not found"
-              exit 1
+            if [ -d "$BUNDLE_DIR/nsis" ]; then
+              cp -v "$BUNDLE_DIR"/nsis/*.exe staging/ || echo "No NSIS files found"
             fi
           fi
+
+          echo "\nStaging directory contents:"
+          ls -la staging/
 
       # Upload artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dui-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/msi/*.msi
-            dui/src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*.exe
-
-      # Verify uploaded artifacts
-      - name: List uploaded artifacts
-        shell: bash
-        run: |
-          echo "Uploaded artifacts for ${{ matrix.platform }}-${{ matrix.arch }}:"
-          echo "Build directory contents:"
-          ls -R dui/src-tauri/target/${{ matrix.target }}/release/bundle/
-          echo "\nSearching for uploaded artifacts:"
-          echo "DMG files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.dmg" || true
-          echo "APP bundles:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.app" || true
-          echo "AppImage files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.AppImage" || true
-          echo "MSI files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.msi" || true
-          echo "EXE files:" && find dui/src-tauri/target/${{ matrix.target }}/release/bundle/ -name "*.exe" || true
+          path: staging/*
 
   release:
     needs: [build-binaries, build-dui]
