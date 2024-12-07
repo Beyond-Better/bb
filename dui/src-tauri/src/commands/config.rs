@@ -2,7 +2,7 @@ use std::fs;
 use serde_yaml;
 use log::{debug, error, info};
 
-use log::LevelFilter;
+//use log::LevelFilter;
 use crate::config::{GlobalConfig, get_global_config_dir, read_global_config, LlmKeys};
 
 #[tauri::command]
@@ -53,7 +53,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
         },
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
-                debug!("Config file not found, using defaults");
+                info!("Config file not found, using defaults");
                 GlobalConfig::default()
             } else {
                 error!("Failed to read config file: {}", e);
