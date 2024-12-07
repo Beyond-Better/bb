@@ -226,16 +226,30 @@ jobs:
             Beyond Better v${{ steps.get_version.outputs.VERSION }}
 
             Installation Instructions:
-            1. Download the appropriate version for your system:
-               - macOS:
-                 * Apple Silicon (M1/M2): Download the apple-silicon.dmg
-                 * Intel: Download the intel.dmg
-               * Open the .dmg file
-               * Drag the Beyond Better app to your Applications folder
+
+            1. Download the appropriate installer for your system:
+
+               Windows:
+               - MSI installer (recommended): Download the .msi file
+               - EXE installer: Download the -setup.exe file
+               - Run the installer and follow the prompts
+
+               macOS:
+               - Apple Silicon (M1/M2): Download the apple-silicon.dmg
+               - Intel: Download the intel.dmg
+               - Open the .dmg file
+               - Drag the Beyond Better app to your Applications folder
+
+               Linux:
+               - Download the .AppImage file
+               - Make it executable: chmod +x BB-dui-*.AppImage
+               - Run the AppImage
 
             2. Binary Installation:
                - The DUI will automatically download and install the appropriate BB binaries on first run
                - For manual installation, download the appropriate binary archive for your system
+
+            Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
             ${{ github.event.head_commit.message }}
