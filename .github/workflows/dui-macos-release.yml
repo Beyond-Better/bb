@@ -1,4 +1,4 @@
-name: "DUI macOS Release"
+name: DUI macOS Release
 
 on:
   push:
