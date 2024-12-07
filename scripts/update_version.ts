@@ -1,4 +1,5 @@
 import { walk } from '@std/fs';
+import { parse as parseToml } from '@std/toml';
 
 // Standard commit/change types for consistent changelog entries:
 //
@@ -18,7 +19,7 @@ import { walk } from '@std/fs';
 // security: Security-related change
 
 const updateVersion = async (newVersion: string, minVersion: string) => {
-	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc'];
+	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc', 'dui/src-tauri/tauri.conf.json'];
 
 	for await (const file of files) {
 		const content = await Deno.readTextFile(file);
@@ -33,6 +34,21 @@ const updateVersion = async (newVersion: string, minVersion: string) => {
 		});
 		await formatCommand.output();
 	}
+
+	// Update Cargo.toml
+	const cargoPath = 'dui/src-tauri/Cargo.toml';
+	const cargoContent = await Deno.readTextFile(cargoPath);
+	const cargoToml = parseToml(cargoContent);
+	cargoToml.package.version = newVersion;
+	
+	// Format the TOML content maintaining the original structure
+	const formattedCargoContent = [
+		'[package]',
+		...Object.entries(cargoToml.package).map(([key, value]) => `${key} = ${JSON.stringify(value)}`),
+		'',
+		cargoContent.substring(cargoContent.indexOf('[lib]'))
+	].join('\n');
+	await Deno.writeTextFile(cargoPath, formattedCargoContent);
 
 	// Update version.ts
 	await Deno.writeTextFile('version.ts', `export const VERSION = "${newVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`);
