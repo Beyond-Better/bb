@@ -6,7 +6,7 @@ This document describes the unified release process for Beyond Better, including
 
 The release process is handled by a single GitHub Actions workflow that:
 1. Builds BB & BB-API binaries for all platforms
-2. Builds DUI for macOS (and in future, Windows and Linux)
+2. Builds DUI for all supported platforms (macOS, Windows, Linux)
 3. Creates a single GitHub release containing all assets
 
 ## Release Assets
@@ -27,8 +27,11 @@ Each release includes:
    - macOS
      * Intel (.dmg, .app.tar.gz)
      * Apple Silicon (.dmg, .app.tar.gz)
-   - Windows (future)
-   - Linux (future)
+   - Windows
+     * x64 (.msi installer)
+     * x64 (NSIS .exe installer)
+   - Linux
+     * x64 (.AppImage)
 
 ## Version Management
 
@@ -109,13 +112,15 @@ Each release includes:
 
 ## Future Enhancements
 
-1. Windows DUI:
-   - MSI installer build
-   - Integration with release workflow
+1. Code Signing:
+   - Windows code signing
+   - macOS code signing and notarization
+   - Linux package signing
 
-2. Linux DUI:
-   - AppImage/deb package builds
-   - Integration with release workflow
+2. Additional Linux Packages:
+   - Debian (.deb) packages
+   - RPM packages
+   - Repository setup
 
 3. Automated Testing:
    - Pre-release testing automation
