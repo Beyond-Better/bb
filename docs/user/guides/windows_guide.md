@@ -123,12 +123,7 @@ If you encounter any issues:
 2. Check the API logs: `bb logs --api`
 3. Ensure you're running Command Prompt as an administrator for certain operations.
 4. Verify that your Anthropic API key is correctly set in the `.bb/config.yaml` file.
-5. Check certificate status: `bb secure status`
-6. Try re-enabling TLS: `bb secure on`
-7. Verify certificate in Windows trust store:
-   - Press Windows+R
-   - Type `certmgr.msc` and press Enter
-   - Check "Trusted Root Certification Authorities" > "Certificates"
+5. If using TLS, verify status: `bb secure status`
 
 If problems persist, please create an issue on the [BB GitHub repository](https://github.com/Beyond-Better/bb) with details about the error and steps to reproduce it.
 
