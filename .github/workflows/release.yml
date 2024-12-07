@@ -344,6 +344,17 @@ jobs:
             echo "Processing DUI platform/arch: $platform_arch"
             platform="${platform_arch%%-*}"
             arch="${platform_arch#*-}"
+            artifact_dir="dui-${platform}-${arch}"
+            
+            echo "Checking artifact directory contents:"
+            ls -la
+            
+            if [ ! -d "$artifact_dir" ]; then
+              echo "::error::Artifact directory $artifact_dir not found"
+              echo "Available directories:"
+              ls -la
+              exit 1
+            fi
             
             case "$platform_arch" in
               "macos-x86_64") 
@@ -360,7 +371,8 @@ jobs:
                 arch_name="x64" ;;
             esac
             
-            cd "dui-$platform-$arch"
+            cd "$artifact_dir"
+            echo "Contents of $artifact_dir:"
             
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
