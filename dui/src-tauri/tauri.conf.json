@@ -26,8 +26,14 @@
     "targets": [
       "app",
       "dmg",
-      "msi"
+      "msi",
+      "appimage"
     ],
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
