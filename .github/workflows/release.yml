@@ -239,6 +239,10 @@ jobs:
                - Intel: Download the intel.dmg
                - Open the .dmg file
                - Drag the Beyond Better app to your Applications folder
+               - When first launching, you'll need to:
+                 * Right-click the app and select Open, or
+                 * Go to System Settings > Privacy & Security and click 'Open Anyway'
+               - This is only needed once, as the app is currently unsigned
 
                Linux:
                - Download the .AppImage file
