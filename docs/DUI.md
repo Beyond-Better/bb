@@ -1,56 +1,122 @@
-# BB Desktop User Interface (DUI) Documentation
+# BB Desktop User Interface (DUI)
 
 ## Overview
 
-The Desktop User Interface (DUI) for BB is a planned feature that will provide a native application experience for interacting with the BB system across multiple platforms. This document outlines the preliminary plans, potential features, and considerations for the future development of the DUI.
+The Desktop User Interface (DUI) for BB provides a native application experience for managing the BB API server and services. Built with Tauri and Preact, it offers a lightweight, secure, and performant solution for BB project management.
 
-## Planned Features
+## Features
 
+Primary Features:
+- BB API server management (start/stop)
+- Real-time log viewing
+- Project management
 - Cross-platform support (Windows, macOS, Linux)
-- Native UI elements for each supported platform
-- Offline capabilities with local data synchronization
-- Integrated terminal for CLI-like interactions
-- Advanced code and text editing features
-- Visual diff and merge tools
-- Project management and file system integration
-- Customizable workspace layouts
 
-## Potential Technologies
+Additional Features:
+- Dark/light theme support
+- Native notifications
+- Minimal resource usage
+- Optional system tray integration
 
-- Electron: For cross-platform desktop applications using web technologies
-- Tauri: A lighter alternative to Electron, using native webviews
-- Qt: For native, high-performance applications across platforms
-- .NET MAUI: For cross-platform development with C# (primarily for Windows and macOS)
+## Technology Stack
 
-## Development Considerations
+- [Tauri](https://tauri.app/) 2.1.1: Core framework for native desktop application
+- [Preact](https://preactjs.com/): Frontend UI library
+- [TypeScript](https://www.typescriptlang.org/): Type-safe development
+- [Rust](https://www.rust-lang.org/): Backend system integration
+- [Deno](https://deno.land/): Development runtime
 
-1. Choose a technology stack that balances cross-platform compatibility, performance, and development efficiency
-2. Design a modular architecture to share code between BUI and DUI where possible
-3. Implement platform-specific features and optimizations where necessary
-4. Ensure a consistent user experience across different operating systems while respecting platform-specific design guidelines
-5. Plan for efficient updates and distribution mechanisms
-6. Implement robust error handling and crash reporting
-7. Consider security implications of a desktop application, especially regarding file system access and execution of commands
+## Getting Started
 
-## Getting Started (Future)
+### Prerequisites
 
-[To be determined based on the chosen technology stack]
+1. Install Rust and Cargo:
+   - Windows: https://www.rust-lang.org/tools/install
+   - macOS/Linux: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-## Building and Deployment (Future)
+2. Install Deno:
+   - https://deno.land/manual/getting_started/installation
 
-[To be determined based on the chosen technology stack and target platforms]
+3. Install Tauri CLI:
+   ```bash
+   cargo install tauri-cli
+   ```
+
+### Development Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/bb.git
+   cd bb
+   ```
+
+2. Start development server:
+   ```bash
+   cd dui
+   deno install
+   deno task tauri dev
+   ```
+
+### Building for Production
+
+1. Build the application:
+   ```bash
+   cd dui
+   deno task tauri build
+   ```
+
+   The built application will be available in:
+   - Windows: `dui/src-tauri/target/release/bb-dui.exe`
+   - macOS: `dui/src-tauri/target/release/bundle/dmg/BB Manager.app`
+   - Linux: `dui/src-tauri/target/release/bundle/deb/bb-dui.deb`
+
+## Project Structure
+
+```
+dui/
+├── src-tauri/           # Rust backend
+│   ├── src/
+│   │   ├── main.rs      # Tauri application entry
+│   │   ├── api.rs       # BB API integration
+│   │   └── config.rs    # Configuration management
+│   ├── Cargo.toml       # Rust dependencies
+│   └── tauri.conf.json  # Tauri configuration
+├── src/                 # Frontend
+│   ├── main.tsx        # Preact entry point
+│   ├── app.tsx         # Main application component
+│   ├── components/     # UI components
+│   ├── hooks/          # Custom hooks
+│   └── types/          # TypeScript types
+└── deno.json           # Deno configuration
+```
+
+## Development Guidelines
+
+1. Code Style:
+   - Follow Rust style guide for backend code
+   - Use TypeScript best practices
+   - Follow Preact patterns and conventions
+
+2. Testing:
+   - Write unit tests for Rust backend
+   - Test Preact components
+   - Perform cross-platform testing
+
+3. Performance:
+   - Minimize main thread blocking
+   - Optimize resource usage
+   - Handle large log files efficiently
+
+4. Security:
+   - Follow Tauri security guidelines
+   - Validate all user inputs
+   - Handle sensitive data appropriately
 
 ## Contributing
 
-While the DUI is still in the planning phase, we welcome ideas and suggestions. Please refer to the [CONTRIBUTING.md](../CONTRIBUTING.md) file for general contribution guidelines and the interface-specific guidelines for DUI development.
+1. Read the [CONTRIBUTING.md](CONTRIBUTING.md) guidelines
+2. Fork the repository
+3. Create a feature branch
+4. Submit a pull request
 
-## Roadmap
-
-1. Finalize technology stack selection
-2. Create proof-of-concept application
-3. Develop core features (project management, editing, API integration)
-4. Implement platform-specific optimizations
-5. Beta testing across different platforms
-6. Official release and continuous improvement
-
-This documentation will be updated as the DUI planning and development progresses.
+For more detailed development information, see [docs/development/dui/README.md](development/dui/README.md).

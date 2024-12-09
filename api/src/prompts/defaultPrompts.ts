@@ -2,7 +2,8 @@ import { stripIndents } from 'common-tags';
 
 import { readFileContent, resolveFilePath } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
-import type { GlobalConfigSchema } from 'shared/configSchema.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { LLMCallbackType } from 'api/types.ts';
 
@@ -17,15 +18,29 @@ interface Prompt {
 	getContent: (variables: Record<string, unknown>) => Promise<string>;
 }
 
+type ContentVariables = {
+	userDefinedContent: string;
+	projectConfig: ProjectConfig;
+	interaction: LLMInteraction;
+};
+
 export const system: Prompt = {
 	metadata: {
 		name: 'System Prompt',
 		description: 'Default system prompt for BB',
 		version: '1.0.0',
 	},
-	getContent: async ({ userDefinedContent = '', fullConfig, interaction }) => {
+	getContent: async (variables: Record<string, unknown>) => {
+		const {
+			userDefinedContent = '',
+			projectConfig,
+			interaction,
+		} = variables as ContentVariables;
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
+
 		let guidelines;
-		const guidelinesPath = (fullConfig as GlobalConfigSchema).project.llmGuidelinesFile;
+		const guidelinesPath = projectConfig.llmGuidelinesFile;
 		if (guidelinesPath) {
 			try {
 				const resolvedPath = await resolveFilePath(guidelinesPath);
@@ -35,11 +50,11 @@ export const system: Prompt = {
 			}
 		}
 
-		const myPersonsName = (fullConfig as GlobalConfigSchema).myPersonsName;
-		const myAssistantsName = (fullConfig as GlobalConfigSchema).myAssistantsName;
-		const promptCachingEnabled = (fullConfig as GlobalConfigSchema).api?.usePromptCaching ?? true;
-		const projectRoot = await (interaction as LLMInteraction).llm.invoke(LLMCallbackType.PROJECT_ROOT);
-		const projectEditor = await (interaction as LLMInteraction).llm.invoke(LLMCallbackType.PROJECT_EDITOR);
+		const myPersonsName = globalConfig.myPersonsName;
+		const myAssistantsName = globalConfig.myAssistantsName;
+		const promptCachingEnabled = projectConfig.settings.api?.usePromptCaching ?? true;
+		const projectRoot = await interaction.llm.invoke(LLMCallbackType.PROJECT_ROOT);
+		const projectEditor = await interaction.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 		const projectDetailsComplete = projectEditor.projectInfo.tier <= 1; // FILE_LISTING_TIERS[0,1] are depth Infinity
 
 		return stripIndents`

@@ -5,7 +5,13 @@ import { createCA, createCert } from 'npm:mkcert';
 import * as crypto from 'node_crypto';
 //import { encodeBase64 } from '@std/encoding';
 
-import { getBbDir, getGlobalConfigDir, writeToGlobalConfigDir } from 'shared/dataDir.ts';
+import {
+	getBbDir,
+	getGlobalConfigDir,
+	getProjectId,
+	getProjectRootFromStartDir,
+	writeToGlobalConfigDir,
+} from 'shared/dataDir.ts';
 
 interface CertInfo {
 	isSelfSigned: boolean;
@@ -94,7 +100,9 @@ export async function isCertSelfSigned(certPem: string): Promise<boolean> {
 export const certificateFileExists = async (certFileName: string = 'localhost.pem') => {
 	//console.debug(`${YELLOW}Checking for certificate file '${certFileName}'${NC}`);
 	const globalCertFile = join(globalDir, certFileName);
-	const bbCertFile = join(await getBbDir(Deno.cwd()), certFileName) || '';
+	const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+	const projectId = await getProjectId(projectRoot);
+	const bbCertFile = join(await getBbDir(projectId), certFileName) || '';
 	//console.debug(`${YELLOW}Need to find either '${globalCertFile}' or '${bbCertFile}'${NC}`);
 	return (bbCertFile ? await exists(bbCertFile) : false) || await exists(globalCertFile);
 };

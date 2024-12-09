@@ -12,7 +12,7 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
 - **GET** `/status`
   - Check the status of the API and TLS configuration.
   - Query Parameters:
-    - `startDir` (string, optional): Project directory for project-specific configuration
+    - `projectId` (string, optional): Project ID for project-specific configuration
   - Headers:
     - `Accept`: Use `text/html` for HTML response, defaults to JSON
   - Response (JSON): 
@@ -56,14 +56,14 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
     - `startDate` (string, format: date): Filter conversations starting from this date
     - `endDate` (string, format: date): Filter conversations up to this date
     - `llmProviderName` (string): Filter conversations by LLM provider name
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: List of conversations with pagination details
 
 #### Get Conversation
 - **GET** `/conversation/:id`
   - Retrieve details of a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Conversation details including messages, LLM provider, and token usage
 
 #### Continue Conversation
@@ -73,7 +73,7 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
     ```json
     {
       "statement": "string",
-      "startDir": "string"
+      "projectId": "string"
     }
     ```
   - Response: LLM-generated response with conversation details
@@ -82,14 +82,14 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
 - **DELETE** `/conversation/:id`
   - Delete a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Deletion confirmation message
 
 #### Clear Conversation
 - **POST** `/conversation/:id/clear`
   - Clear the history of a specific conversation.
   - Query Parameters:
-    - `startDir` (string, required): The starting directory for the project
+    - `projectId` (string, required): The ID for the project
   - Response: Confirmation message
 
 ### WebSocket Connection
@@ -100,7 +100,7 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
     {
       "task": "greeting" | "converse" | "cancel",
       "statement": "string",
-      "startDir": "string"
+      "projectId": "string"
     }
     ```
   - The server will emit events for conversation updates, including:

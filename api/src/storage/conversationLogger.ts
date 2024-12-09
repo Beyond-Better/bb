@@ -9,7 +9,7 @@ import type { ConversationId, ConversationStats, TokenUsage } from 'shared/types
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type {
 	LLMToolFormatterDestination,
 	LLMToolInputSchema,
@@ -44,7 +44,8 @@ export interface ConversationLogEntry {
 	toolName?: string;
 }
 
-const globalConfig = await ConfigManager.globalConfig();
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
 
 export default class ConversationLogger {
 	private logFileRaw!: string;
@@ -67,7 +68,7 @@ export default class ConversationLogger {
 	private logEntryFormatterManager!: LogEntryFormatterManager;
 
 	constructor(
-		private startDir: string,
+		private projectId: string,
 		private conversationId: ConversationId,
 		private logEntryHandler: (
 			timestamp: string,
@@ -80,16 +81,16 @@ export default class ConversationLogger {
 	) {}
 
 	async init(): Promise<ConversationLogger> {
-		const fullConfig = await ConfigManager.fullConfig(this.startDir);
-		this.logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
+		const projectConfig = await configManager.getProjectConfig(this.projectId);
+		this.logEntryFormatterManager = await new LogEntryFormatterManager(projectConfig).init();
 
-		this.conversationLogsDir = await ConversationLogger.getLogFileDirPath(this.startDir, this.conversationId);
+		this.conversationLogsDir = await ConversationLogger.getLogFileDirPath(this.projectId, this.conversationId);
 
-		this.logFileRaw = await ConversationLogger.getLogFileRawPath(this.startDir, this.conversationId);
-		this.logFileJson = await ConversationLogger.getLogFileJsonPath(this.startDir, this.conversationId);
+		this.logFileRaw = await ConversationLogger.getLogFileRawPath(this.projectId, this.conversationId);
+		this.logFileJson = await ConversationLogger.getLogFileJsonPath(this.projectId, this.conversationId);
 
-		ConversationLogger.entryTypeLabels.user = fullConfig.myPersonsName || 'Person';
-		ConversationLogger.entryTypeLabels.assistant = fullConfig.myAssistantsName || 'Assistant';
+		ConversationLogger.entryTypeLabels.user = globalConfig.myPersonsName || 'Person';
+		ConversationLogger.entryTypeLabels.assistant = globalConfig.myAssistantsName || 'Assistant';
 
 		return this;
 	}
@@ -99,23 +100,23 @@ export default class ConversationLogger {
 		await ensureDir(this.conversationLogsDir);
 		this.ensuredDir = true;
 	}
-	static async getLogFileDirPath(startDir: string, conversationId: string): Promise<string> {
-		const bbDataDir = await getBbDataDir(startDir);
+	static async getLogFileDirPath(projectId: string, conversationId: string): Promise<string> {
+		const bbDataDir = await getBbDataDir(projectId);
 		const conversationLogsDir = join(bbDataDir, 'conversations', conversationId);
 		//await ensureDir(conversationLogsDir);
 		return conversationLogsDir;
 	}
-	static async getLogFileRawPath(startDir: string, conversationId: string): Promise<string> {
-		const conversationLogsDir = await ConversationLogger.getLogFileDirPath(startDir, conversationId);
+	static async getLogFileRawPath(projectId: string, conversationId: string): Promise<string> {
+		const conversationLogsDir = await ConversationLogger.getLogFileDirPath(projectId, conversationId);
 		return join(conversationLogsDir, 'conversation.log');
 	}
-	static async getLogFileJsonPath(startDir: string, conversationId: string): Promise<string> {
-		const conversationLogsDir = await ConversationLogger.getLogFileDirPath(startDir, conversationId);
+	static async getLogFileJsonPath(projectId: string, conversationId: string): Promise<string> {
+		const conversationLogsDir = await ConversationLogger.getLogFileDirPath(projectId, conversationId);
 		return join(conversationLogsDir, 'conversation.jsonl');
 	}
 
-	static async getLogEntries(startDir: string, conversationId: string): Promise<Array<ConversationLogEntry>> {
-		const conversationLogFile = await ConversationLogger.getLogFileJsonPath(startDir, conversationId);
+	static async getLogEntries(projectId: string, conversationId: string): Promise<Array<ConversationLogEntry>> {
+		const conversationLogFile = await ConversationLogger.getLogFileJsonPath(projectId, conversationId);
 		const content = await Deno.readTextFile(conversationLogFile);
 		return content.trim().split('\n').map((line) => JSON.parse(line));
 	}

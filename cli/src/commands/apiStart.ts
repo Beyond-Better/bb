@@ -2,8 +2,9 @@ import { Command } from 'cliffy/command/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { delay } from '@std/async';
 
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { followApiLogs, getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export const apiStart = new Command()
 	.name('start')
@@ -20,21 +21,38 @@ export const apiStart = new Command()
 			{ logLevel: apiLogLevel, logFile: apiLogFile, hostname, port, useTls, nobrowser: noBrowser, follow },
 		) => {
 			const startDir = Deno.cwd();
-			const fullConfig = await ConfigManager.fullConfig(startDir);
-			const apiHostname = `${hostname || fullConfig.api.apiHostname || 'localhost'}`;
-			const apiPort = `${port || fullConfig.api.apiPort || 3000}`; // cast as string
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			const projectId = await getProjectId(projectRoot);
+
+			const configManager = await ConfigManagerV2.getInstance();
+			const globalConfig = await configManager.getGlobalConfig();
+			const projectConfig = await configManager.getProjectConfig(projectId);
+			const apiHostname = `${hostname || projectConfig.settings.api?.hostname || 'localhost'}`;
+			const apiPort = `${port || projectConfig.settings.api?.port || 3162}`; // cast as string
 			const apiUseTls = typeof useTls !== 'undefined'
 				? !!useTls
-				: typeof fullConfig.api.apiUseTls !== 'undefined'
-				? fullConfig.api.apiUseTls
+				: typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
+				? projectConfig.settings.api.tls.useTls
 				: true;
+			// console.error(
+			// 	colors.yellow(`Use TLS - useTls: `),
+			// 	useTls,
+			// );
+			// console.error(
+			// 	colors.yellow(`Use TLS - project: `),
+			// 	projectConfig.settings.api?.tls?.useTls,
+			// );
+			// console.error(
+			// 	colors.yellow(`Use TLS - final: `),
+			// 	apiUseTls,
+			// );
 
 			const startNoBrowser = noBrowser ||
-				(typeof fullConfig.noBrowser !== 'undefined' ? fullConfig.noBrowser : false);
+				(typeof globalConfig.noBrowser !== 'undefined' ? globalConfig.noBrowser : false);
 
 			// Start the server
 			const { pid, apiLogFilePath } = await startApiServer(
-				startDir,
+				projectId,
 				apiHostname,
 				apiPort,
 				apiUseTls,
@@ -45,7 +63,7 @@ export const apiStart = new Command()
 
 			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
 				encodeURIComponent(apiHostname)
-			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&startDir=${encodeURIComponent(startDir)}`;
+			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&projectId=${encodeURIComponent(projectId)}`;
 
 			// Check if the API is running with enhanced status checking
 			let apiRunning = false;
@@ -54,7 +72,7 @@ export const apiStart = new Command()
 
 			await delay(delayMs * 2);
 			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-				const apiStatus = await getApiStatus(startDir);
+				const apiStatus = await getApiStatus(projectId);
 
 				if (apiStatus.processStatus?.apiResponds && apiStatus.running) {
 					apiRunning = true;
@@ -103,15 +121,15 @@ export const apiStart = new Command()
 			}
 
 			if (follow) {
-				await followApiLogs(apiLogFilePath, startDir);
-				await stopApiServer(startDir);
+				await followApiLogs(apiLogFilePath, projectId);
+				await stopApiServer(projectId);
 			} else {
 				console.log(`${colors.bold.blue.underline('BB API started successfully!')}`);
 
 				console.log(`\nAPI server started with PID: ${pid}`);
 				console.log(`Logs are being written to: ${colors.green(apiLogFilePath)}`);
 				console.log(`Chat URL: ${colors.bold.cyan(chatUrl)}`);
-				console.log(`Use ${colors.bold.green(`'${fullConfig.bbExeName} stop'`)} to stop the server.`);
+				console.log(`Use ${colors.bold.green(`'${globalConfig.bbExeName} stop'`)} to stop the server.`);
 				if (!startNoBrowser) console.log('\nAttempting to open the chat in your default browser...');
 				Deno.exit(0);
 			}

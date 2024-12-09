@@ -1,4 +1,5 @@
 import type LLMMessage from 'api/llms/llmMessage.ts';
+import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 
 export interface LLMToolConversationSummaryInput {
 	requestSource?: 'user' | 'tool';
@@ -51,17 +52,7 @@ export interface LLMToolConversationSummaryData {
 	metadata: LLMToolConversationSummaryMetadata;
 }
 
-export interface LLMToolConversationSummaryResult {
-	summary: string;
-	keptMessages: LLMMessage[];
-	originalTokenCount: number;
-	newTokenCount: number;
-	originalMessageCount: number;
-	summaryLength: 'short' | 'medium' | 'long';
-	metadata: LLMToolConversationSummaryMetadata;
-}
-
-export interface LLMToolConversationSummaryResult {
+export interface LLMToolConversationSummaryResultData {
 	summary: string;
 	maxTokensToKeep: number;
 	summaryLength: 'short' | 'medium' | 'long';
@@ -74,6 +65,11 @@ export interface LLMToolConversationSummaryResult {
 	removedMessageCount: number;
 }
 
-export interface LLMToolConversationSummaryResponse {
-	data: LLMToolConversationSummaryResult;
+export interface LLMToolConversationSummaryResponseData {
+	data: LLMToolConversationSummaryResultData;
+}
+
+export interface LLMToolConversationSummaryResult {
+	toolResult: LLMToolRunResultContent;
+	bbResponse: LLMToolConversationSummaryResponseData;
 }

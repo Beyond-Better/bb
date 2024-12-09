@@ -17,7 +17,7 @@ import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import type { FullConfigSchema } from 'shared/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
 //import { metricsService } from '../../services/metrics.service.ts';
@@ -31,11 +31,11 @@ class LLM {
 	public maxSpeakRetries: number = 3;
 	public requestCacheExpiry: number = 3 * (1000 * 60 * 60 * 24); // 3 days in milliseconds
 	private callbacks: LLMCallbacks;
-	public fullConfig!: FullConfigSchema;
+	public projectConfig!: ProjectConfig;
 
 	constructor(callbacks: LLMCallbacks) {
 		this.callbacks = callbacks;
-		this.fullConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);
+		this.projectConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);
 	}
 
 	async invoke<K extends LLMCallbackType>(
@@ -99,10 +99,10 @@ class LLM {
 
 		let llmSpeakWithResponse!: LLMSpeakWithResponse;
 
-		const cacheKey = !this.fullConfig.api?.ignoreLLMRequestCache
+		const cacheKey = !(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)
 			? this.createRequestCacheKey(llmProviderMessageRequest)
 			: [];
-		if (!this.fullConfig.api?.ignoreLLMRequestCache) {
+		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
 			const cachedResponse = await kv.get<LLMSpeakWithResponse>(cacheKey);
 
 			if (cachedResponse && cachedResponse.value) {
@@ -256,7 +256,7 @@ class LLM {
 
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
-			if (!this.fullConfig.api?.ignoreLLMRequestCache) {
+			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
 				await kv.set(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}

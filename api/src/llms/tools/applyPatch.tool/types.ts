@@ -5,14 +5,14 @@ export interface LLMToolApplyPatchInput {
 	patch: string;
 }
 
-export interface LLMToolApplyPatchResultData {
-	modifiedFiles: string[];
-	newFiles: string[];
+export interface LLMToolApplyPatchResponseData {
+	data: {
+		modifiedFiles: string[];
+		newFiles: string[];
+	};
 }
 
 export interface LLMToolApplyPatchResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: LLMToolApplyPatchResultData;
-	};
+	bbResponse: LLMToolApplyPatchResponseData;
 }

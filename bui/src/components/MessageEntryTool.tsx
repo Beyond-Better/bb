@@ -11,7 +11,7 @@ interface MessageEntryToolProps {
 	content: any;
 	onCopy?: (text: string) => void;
 	apiClient?: ApiClient;
-	startDir?: string;
+	projectId?: string;
 	logEntry?: ConversationLogEntry;
 }
 
@@ -21,7 +21,7 @@ export function MessageEntryTool({
 	content,
 	onCopy,
 	apiClient,
-	startDir,
+	projectId,
 	logEntry,
 }: MessageEntryToolProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
@@ -30,7 +30,7 @@ export function MessageEntryTool({
 
 	// Format content using API if available
 	useEffect(() => {
-		if (!apiClient || !startDir || !logEntry) return;
+		if (!apiClient || !projectId || !logEntry) return;
 
 		const fetchFormatting = async () => {
 			setIsLoading(true);
@@ -38,7 +38,7 @@ export function MessageEntryTool({
 				const response = await apiClient.formatLogEntry(
 					logEntry.entryType,
 					logEntry,
-					startDir,
+					projectId,
 				);
 				setFormatted(response);
 			} catch (error) {
@@ -49,7 +49,7 @@ export function MessageEntryTool({
 		};
 
 		fetchFormatting();
-	}, [apiClient, startDir, logEntry]);
+	}, [apiClient, projectId, logEntry]);
 
 	// Default JSON formatting as fallback
 	const formattedContent = JSON.stringify(content, null, 2);

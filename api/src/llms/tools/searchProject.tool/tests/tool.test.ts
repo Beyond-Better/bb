@@ -135,8 +135,8 @@ function isString(value: unknown): value is string {
 Deno.test({
 	name: 'SearchProjectTool - Basic content search functionality',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -198,8 +198,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search pattern spanning multiple buffers',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -259,8 +259,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Date-based search',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -335,8 +335,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - File-only search (metadata)',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -409,8 +409,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Combining all search criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -478,8 +478,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Edge case: empty file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -539,8 +539,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with file pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -600,8 +600,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with file size criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -661,8 +661,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with no results',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -709,8 +709,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Error handling for invalid search pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -763,8 +763,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with multiple criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -825,8 +825,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with bare filename',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -885,8 +885,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with specific content and file pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -960,8 +960,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with word boundary regex',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1005,8 +1005,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with email regex pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1049,8 +1049,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with URL regex pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1093,8 +1093,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with phone number regex pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1137,8 +1137,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with complex regex pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1181,8 +1181,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with regex using quantifiers - case-sensitive',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1229,8 +1229,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with regex using quantifiers - case-insensitive',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1277,8 +1277,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with regex using character classes',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1321,8 +1321,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with lookahead regex',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1365,8 +1365,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Search with negative lookahead regex',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1423,8 +1423,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Case-sensitive search',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1483,8 +1483,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - Case-insensitive search',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1540,8 +1540,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - complex pattern with multiple extensions',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFilesSimple(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1595,8 +1595,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - complex pattern with different directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFilesSimpleDir(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1650,8 +1650,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - deep directory traversal with Kubernetes files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFilesKubernetes(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1716,8 +1716,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - deep directory traversal with double-star pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFilesSearchProjectTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
@@ -1783,8 +1783,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchProjectTool - deep directory traversal with dual double-star pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestFilesSearchProjectTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);

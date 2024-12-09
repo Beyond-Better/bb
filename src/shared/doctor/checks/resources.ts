@@ -1,5 +1,5 @@
 import { DiagnosticResult } from '../types.ts';
-import { ConfigManager } from '../../configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from '../../logger.ts';
 import { join } from '@std/path';
 import { getGlobalConfigDir } from '../../dataDir.ts';
@@ -120,8 +120,9 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManager.getInstance();
-		const globalConfig = await configManager.loadGlobalConfig();
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
+
 		const globalDir = await getGlobalConfigDir();
 
 		// Check disk space

@@ -17,7 +17,7 @@ export type EventMap = {
 	projectEditor: {
 		conversationNew: ConversationNew;
 		conversationDeleted: ConversationDeleted;
-		speakWith: { conversationId: ConversationId; startDir: string; prompt: string };
+		speakWith: { conversationId: ConversationId; projectId: string; prompt: string };
 		conversationReady: ConversationStart & { versionInfo: VersionInfo };
 		conversationContinue: ConversationContinue;
 		conversationAnswer: ConversationResponse;

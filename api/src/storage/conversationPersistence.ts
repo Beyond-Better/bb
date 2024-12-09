@@ -19,15 +19,14 @@ import type {
 //import type { LLMProviderSystem } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-//import { ConfigManager } from 'shared/configManager.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 
-// Ensure ProjectInfo includes startDir
-type ExtendedProjectInfo = ProjectInfo & { startDir: string };
+// Ensure ProjectInfo includes projectId
+type ExtendedProjectInfo = ProjectInfo & { projectId: string };
 import { stripIndents } from 'common-tags';
 //import { encodeHex } from '@std/encoding';
 
@@ -56,6 +55,7 @@ class ConversationPersistence {
 	}
 
 	private async ensureInitialized(): Promise<void> {
+		logger.info(`ConversationPersistence: Ensuring Initialized`);
 		if (!this.initialized) {
 			await this.init();
 			this.initialized = true;
@@ -91,27 +91,111 @@ class ConversationPersistence {
 		return this;
 	}
 
+	// export interface ProjectHandlingErrorOptions extends ErrorOptions {
+	// 	project_id?: string;
+	// 	project_root?: string;
+	// 	project_type?: string;
+	// }
+
 	static async listConversations(options: {
 		page: number;
 		limit: number;
 		startDate?: Date;
 		endDate?: Date;
 		llmProviderName?: string;
-		startDir: string;
+		projectId: string;
 	}): Promise<{ conversations: ConversationMetadata[]; totalCount: number }> {
-		const projectRoot = await getProjectRoot(options.startDir);
-		const bbDataDir = join(projectRoot, '.bb', 'data');
-		await ensureDir(dirname(bbDataDir)); // Ensure parent directory exists
-		await ensureDir(bbDataDir);
-		const conversationsMetadataPath = join(bbDataDir, 'conversations.json');
-
-		if (!await exists(conversationsMetadataPath)) {
-			await Deno.writeTextFile(conversationsMetadataPath, JSON.stringify([]));
-			return { conversations: [], totalCount: 0 };
+		//logger.info(`ConversationPersistence: listConversations called with projectId: ${options.projectId}`);
+		let projectRoot;
+		try {
+			projectRoot = await getProjectRoot(options.projectId);
+			//logger.info(`ConversationPersistence: Project root resolved to: ${projectRoot}`);
+		} catch (error) {
+			logger.error(
+				`ConversationPersistence: Failed to get project root for projectId ${options.projectId}: ${
+					(error as Error).message
+				}`,
+			);
+			throw createError(
+				ErrorType.ProjectHandling,
+				`Failed to resolve project root: ${(error as Error).message}`,
+				{
+					projectId: options.projectId,
+				} as ProjectHandlingErrorOptions,
+			);
 		}
 
-		const content = await Deno.readTextFile(conversationsMetadataPath);
-		let conversations: ConversationMetadata[] = JSON.parse(content);
+		const bbDataDir = join(projectRoot, '.bb', 'data');
+		const conversationsMetadataPath = join(bbDataDir, 'conversations.json');
+
+		try {
+			//logger.info(`ConversationPersistence: Ensuring directories exist: ${dirname(bbDataDir)} and ${bbDataDir}`);
+			await ensureDir(dirname(bbDataDir)); // Ensure parent directory exists
+			await ensureDir(bbDataDir);
+		} catch (error) {
+			logger.error(`ConversationPersistence: Failed to create required directories: ${(error as Error).message}`);
+			throw createError(
+				ErrorType.FileHandling,
+				`Failed to create required directories: ${(error as Error).message}`,
+				{
+					filePath: bbDataDir,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		try {
+			if (!await exists(conversationsMetadataPath)) {
+				// logger.info(
+				// 	`ConversationPersistence: Creating new conversations.json file at ${conversationsMetadataPath}`,
+				// );
+				await Deno.writeTextFile(conversationsMetadataPath, JSON.stringify([]));
+				return { conversations: [], totalCount: 0 };
+			}
+		} catch (error) {
+			logger.error(`ConversationPersistence: Failed to create conversations.json: ${(error as Error).message}`);
+			throw createError(
+				ErrorType.FileHandling,
+				`Failed to create conversations.json: ${(error as Error).message}`,
+				{
+					filePath: conversationsMetadataPath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		let content: string;
+		try {
+			//logger.info(`ConversationPersistence: Reading conversations from ${conversationsMetadataPath}`);
+			content = await Deno.readTextFile(conversationsMetadataPath);
+		} catch (error) {
+			logger.error(`ConversationPersistence: Failed to read conversations.json: ${(error as Error).message}`);
+			throw createError(
+				ErrorType.FileHandling,
+				`Failed to read conversations.json: ${(error as Error).message}`,
+				{
+					filePath: conversationsMetadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		let conversations: ConversationMetadata[];
+		try {
+			conversations = JSON.parse(content);
+		} catch (error) {
+			logger.error(
+				`ConversationPersistence: Failed to parse conversations.json content: ${(error as Error).message}`,
+			);
+			throw createError(
+				ErrorType.FileHandling,
+				`Invalid JSON in conversations.json: ${(error as Error).message}`,
+				{
+					filePath: conversationsMetadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
+			);
+		}
 
 		// Apply filters
 		if (options.startDate) {
@@ -547,7 +631,7 @@ class ConversationPersistence {
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
 			version: 1, // default version for existing conversations
-			//startDir: this.projectEditor.projectInfo.startDir,
+			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
 			title: '',
 			llmProviderName: '',

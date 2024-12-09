@@ -1,5 +1,6 @@
 import { Command } from 'cliffy/command/mod.ts';
 import ApiClient from 'cli/apiClient.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export const requestChanges = new Command()
 	.name('request')
@@ -10,7 +11,9 @@ export const requestChanges = new Command()
 	.action(async (options) => {
 		try {
 			const startDir = Deno.cwd();
-			const apiClient = await ApiClient.create(startDir);
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			const projectId = await getProjectId(projectRoot);
+			const apiClient = await ApiClient.create(projectId);
 			const response = await apiClient.post('/api/v1/request-changes', {
 				prompt: options.prompt,
 				conversationId: options.id,

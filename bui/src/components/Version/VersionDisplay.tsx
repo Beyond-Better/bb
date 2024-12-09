@@ -11,10 +11,10 @@ interface VersionDisplayProps {
 }
 
 export function VersionDisplay({ className = '', showWarning = true, apiClient }: VersionDisplayProps): JSX.Element {
-	const { versionState } = useVersion();
+	const { versionState, versionInfo } = useVersion();
 	//console.log('versionState', versionState.value);
 
-	if (!versionState.value.versionInfo) return <></>;
+	if (!versionInfo) return <></>;
 
 	const versionCompatibility = versionState.value.versionCompatibility;
 	//console.log('VersionDisplay: versionCompatibility', versionCompatibility);
@@ -23,7 +23,7 @@ export function VersionDisplay({ className = '', showWarning = true, apiClient }
 		<div className={`relative ${className}`}>
 			<div className='flex items-center gap-2'>
 				<VersionStatusIndicator />
-				<CompactVersion version={versionState.value.versionInfo.version} />
+				<CompactVersion version={versionInfo.version} />
 			</div>
 
 			{showWarning && versionCompatibility && !versionCompatibility.compatible && (

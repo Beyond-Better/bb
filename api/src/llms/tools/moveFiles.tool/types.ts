@@ -7,13 +7,15 @@ export interface LLMToolMoveFilesInput {
 	createMissingDirectories?: boolean;
 }
 
+export interface LLMToolMoveFilesResponseData {
+	data: {
+		filesMoved: string[];
+		filesError: string[];
+		destination: string;
+	};
+}
+
 export interface LLMToolMoveFilesResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			filesMoved: string[];
-			filesError: string[];
-			destination: string;
-		};
-	};
+	bbResponse: LLMToolMoveFilesResponseData;
 }

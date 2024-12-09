@@ -3,6 +3,7 @@ import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
 //import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 import type { ConversationId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export default class WebsocketManager {
 	private cancellationRequested: boolean = false;
@@ -11,20 +12,20 @@ export default class WebsocketManager {
 	private BASE_DELAY = 1000; // 1 second
 	private retryCount = 0;
 	private currentConversationId!: ConversationId;
-	private startDir!: string;
+	private projectId!: string;
 
 	async setupWebsocket(
 		conversationId: ConversationId,
-		startDir: string,
+		projectId: string,
 		hostname?: string,
 		port?: number,
 	): Promise<void> {
 		this.currentConversationId = conversationId;
-		this.startDir = startDir;
+		this.projectId = projectId;
 		const connectWebSocket = async (): Promise<WebSocket> => {
 			//console.log(`WebsocketManager: Connecting websocket for conversation: ${conversationId}`);
 			try {
-				const apiClient = await ApiClient.create(startDir, hostname, port);
+				const apiClient = await ApiClient.create(projectId, hostname, port);
 				// apiClient.connectWebSocket returns a promise, so we return that promise rather than awaiting
 				return apiClient.connectWebSocket(`/api/v1/ws/conversation/${conversationId}`);
 			} catch (error) {
@@ -40,7 +41,7 @@ export default class WebsocketManager {
 		this.setupEventListeners();
 
 		//console.log(`WebsocketManager: Sending greeting for conversation: ${conversationId}`);
-		this.sendGreeting();
+		await this.sendGreeting();
 	}
 
 	private removeEventListeners(): void {
@@ -85,7 +86,7 @@ export default class WebsocketManager {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.close();
 		}
-		this.setupWebsocket(conversationId, this.startDir);
+		this.setupWebsocket(conversationId, this.projectId);
 	}
 
 	private handleMessage(event: MessageEvent): void {
@@ -155,7 +156,7 @@ export default class WebsocketManager {
 	private async handleClose(): Promise<void> {
 		this.removeEventListeners();
 		await this.handleRetry(new Error('WebSocket connection closed'));
-		await this.setupWebsocket(this.currentConversationId, this.startDir);
+		await this.setupWebsocket(this.currentConversationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
 			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
@@ -166,19 +167,21 @@ export default class WebsocketManager {
 		this.removeEventListeners();
 		const error = event instanceof ErrorEvent ? event.error : new Error('Unknown WebSocket error');
 		await this.handleRetry(error);
-		await this.setupWebsocket(this.currentConversationId, this.startDir);
+		await this.setupWebsocket(this.currentConversationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
 			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
-	private sendGreeting(): void {
+	private async sendGreeting(): Promise<void> {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+			const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+			const projectId = await getProjectId(projectRoot);
 			this.ws.send(
 				JSON.stringify({
 					conversationId: this.currentConversationId,
-					startDir: Deno.cwd(),
+					projectId: projectId,
 					task: 'greeting',
 					statement: '',
 				}),

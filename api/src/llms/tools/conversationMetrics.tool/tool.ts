@@ -18,8 +18,8 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
 	LLMToolConversationMetricsInput,
-	LLMToolConversationMetricsResponse,
-	LLMToolConversationMetricsResult,
+	LLMToolConversationMetricsResponseData,
+	LLMToolConversationMetricsResultData,
 	LLMToolFileMetrics,
 	LLMToolToolMetrics,
 } from './types.ts';
@@ -112,7 +112,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			const toolResults = this.formatMetrics(metrics);
 			const toolResponse =
 				`Analyzed ${metrics.summary.totalTurns} conversation turns with ${metrics.summary.uniqueToolsUsed} unique tools used. Unless specifically asked to perform additional analysis or tasks, no further action is needed.`;
-			const bbResponse: LLMToolConversationMetricsResponse = {
+			const bbResponse: LLMToolConversationMetricsResponseData = {
 				data: metrics,
 			};
 
@@ -144,8 +144,8 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			includeTiming: boolean;
 			includeQuality: boolean;
 		},
-	): Promise<LLMToolConversationMetricsResult> {
-		const metrics: LLMToolConversationMetricsResult = {
+	): Promise<LLMToolConversationMetricsResultData> {
+		const metrics: LLMToolConversationMetricsResultData = {
 			summary: {
 				totalTurns: messages.length,
 				messageTypes: {
@@ -454,7 +454,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		return corrections;
 	}
 
-	private formatMetrics(metrics: LLMToolConversationMetricsResult): string {
+	private formatMetrics(metrics: LLMToolConversationMetricsResultData): string {
 		return `Conversation Metrics Summary:
 
 Basic Statistics:

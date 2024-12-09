@@ -1,238 +1,130 @@
 # BUI State Management
 
-## Overview
+## Important Update
+This document has been superseded by the new dual-state architecture. Please refer to [State Management Separation](./state_management_separation.md) for the current architecture.
 
-Beyond Better's UI requires careful state management due to Fresh's island architecture. This document outlines the hybrid approach to state management, balancing local island state with global application needs.
+The information below is maintained for historical context and for understanding the evolution of the state management system.
 
-## State Categories
+## Historical Implementation
 
-### 1. Global State
-Required for:
+Beyond Better's UI previously used a single state management approach. This has been replaced by a dual-state architecture that separates application-level and chat-specific concerns.
+
+### Previous State Categories
+
+1. Global State (Now split between App and Chat states)
 - User authentication
 - Current project context
 - Feature flags/billing plan status
 - Global preferences
 
-Implementation:
-```typescript
-// Using Preact signals for reactivity
-import { signal } from '@preact/signals';
-
-export const userContext = signal({
-    authenticated: false,
-    preferences: {},
-    currentProject: null,
-    plan: 'free'
-});
-```
-
-### 2. Local Island State
-Specific to individual islands:
+2. Local Island State (Still relevant)
 - UI state
 - Form data
 - Temporary data
 - Island-specific settings
 
-Example from Chat.tsx:
-```typescript
-interface ChatState {
-    conversationId: string | null;
-    entries: ConversationEntry[];
-    isConnected: boolean;
-    isReady: boolean;
-    isWorking: boolean;
-    error: string | null;
-}
-```
-
-### 3. Shared Component State
-For reusable components:
+3. Shared Component State (Still relevant)
 - UI controls
 - Common widgets
 - Shared functionality
 
-## State Management Patterns
+## Migration to New Architecture
 
-### 1. Hook-based State Management
-```typescript
-function useChatState(config: ChatConfig) {
-    // Local state
-    const [state, setState] = useState<ChatState>(initialState);
-    
-    // Initialization
-    useEffect(() => {
-        // Setup and cleanup
-    }, []);
-    
-    // Event handlers
-    const handlers = {
-        sendConverse: async () => {},
-        clearConversation: () => {},
-    };
-    
-    return [state, handlers];
-}
-```
+### Current State Management
+The BUI now implements a dual-state architecture:
 
-### 2. Signal-based Reactivity
-```typescript
-// Shared state with signals
-const sharedState = signal({
-    theme: 'light',
-    language: 'en'
-});
+1. App State
+- Global application state
+- Connection status
+- Version information
+- Project management
 
-// Component usage
-function ThemeToggle() {
-    return (
-        <button onClick={() => sharedState.value.theme = 
-            sharedState.value.theme === 'light' ? 'dark' : 'light'}>
-            Toggle Theme
-        </button>
-    );
-}
-```
+2. Chat State
+- Chat-specific state
+- Conversation management
+- Tool execution
+- Message handling
 
-### 3. WebSocket State Management
-```typescript
-class WebSocketManager {
-    // Reactive state
-    public isConnected = signal<boolean>(false);
-    public isReady = signal<boolean>(false);
-    
-    // Event handling
-    private eventHandlers = new Map<EventType, Set<Function>>();
-    
-    // State updates
-    private handleStateChange(connected: boolean) {
-        this.isConnected.value = connected;
-        this.emit('statusChange', connected);
-    }
-}
-```
+For current implementation details, see:
+- [State Management Separation](./state_management_separation.md)
+- [Progress Summary](../progress_summary.md)
 
-## Fresh-specific Considerations
+### Key Changes
 
-### 1. Island Boundaries
-- Islands are isolated JavaScript contexts
-- No direct state sharing between islands
-- Must use signals or events for cross-island communication
+1. WebSocket Management
+- Separate connections for app and chat
+- Independent error handling
+- Isolated state updates
 
-### 2. State Initialization
-```typescript
-// In island component
-export default function SomeIsland() {
-    // Initialize on client side only
-    const params = IS_BROWSER ? 
-        new URLSearchParams(window.location.hash.slice(1)) : 
-        null;
-}
-```
+2. Component Integration
+- Components use appropriate state layer
+- Clear separation of concerns
+- Independent error handling
 
-### 3. State Persistence
-- Use localStorage for client-side persistence
-- Consider server-side state for critical data
-- Handle hydration carefully
-
-## State Sharing Strategies
-
-### 1. URL Parameters
-```typescript
-// Extract state from URL
-const getUrlParams = () => {
-    if (!IS_BROWSER) return null;
-    const hash = window.location.hash.slice(1);
-    return new URLSearchParams(hash);
-};
-```
-
-### 2. Local Storage
-```typescript
-// Persist state locally
-const [startDir, setStartDir] = useState(() => {
-    if (IS_BROWSER) {
-        return localStorage.getItem('startDir') || '.';
-    }
-    return '.';
-});
-```
-
-### 3. Event-based Communication
-```typescript
-// Event emitter pattern
-class StateManager {
-    private eventHandlers = new Map<string, Set<Function>>();
-    
-    on(event: string, handler: Function) {
-        if (!this.eventHandlers.has(event)) {
-            this.eventHandlers.set(event, new Set());
-        }
-        this.eventHandlers.get(event)!.add(handler);
-    }
-    
-    emit(event: string, data: any) {
-        this.eventHandlers.get(event)?.forEach(handler => handler(data));
-    }
-}
-```
+3. State Updates
+- Targeted state updates
+- Reduced coupling
+- Better error isolation
 
 ## Best Practices
 
+While some of these practices remain relevant, please refer to the new architecture documentation for current best practices:
+
 1. State Location
-   - Keep state close to where it's used
-   - Lift state only when necessary
-   - Use signals for shared state
-   - Consider state persistence needs
+- Keep state close to where it's used
+- Lift state only when necessary
+- Use signals for shared state
+- Consider state persistence needs
 
 2. State Updates
-   - Use immutable updates
-   - Batch related changes
-   - Handle side effects in useEffect
-   - Clean up subscriptions
+- Use immutable updates
+- Batch related changes
+- Handle side effects in useEffect
+- Clean up subscriptions
 
 3. Error Handling
-   - Track error states
-   - Provide recovery mechanisms
-   - Log state transitions
-   - Handle edge cases
+- Track error states
+- Provide recovery mechanisms
+- Log state transitions
+- Handle edge cases
 
 4. Performance
-   - Minimize state updates
-   - Use appropriate state granularity
-   - Consider memoization
-   - Profile state changes
-
-## Decision Tree
-
-When to use different state management approaches:
-
-1. Use Local State when:
-   - State is only used in one component
-   - No other components need the data
-   - State is temporary
-   - UI-specific state
-
-2. Use Signals when:
-   - State needs to be shared
-   - Multiple components need updates
-   - Cross-island communication
-   - Global settings
-
-3. Use URL Parameters when:
-   - State needs to be bookmarkable
-   - Sharing state between sessions
-   - Deep linking requirements
-   - Configuration state
-
-4. Use Local Storage when:
-   - State persistence between sessions
-   - User preferences
-   - Cache-like data
-   - Non-critical application state
+- Minimize state updates
+- Use appropriate state granularity
+- Consider memoization
+- Profile state changes
 
 ## Next Steps
 
-1. Implement global state management
-2. Add state persistence where needed
-3. Create shared component library
-4. Document state flow patterns
+The BUI is transitioning to the new state management architecture. Key tasks include:
+
+1. Implementation
+- Complete app state implementation
+- Add new WebSocket endpoint
+- Update component integration
+- Enhance error handling
+
+2. Migration
+- Move appropriate state to app level
+- Update component dependencies
+- Enhance error handling
+- Add new features
+
+3. Documentation
+- Update component docs
+- Add migration guides
+- Document new patterns
+- Provide examples
+
+## References
+
+1. Current Architecture
+- [State Management Separation](./state_management_separation.md)
+- [Progress Summary](../progress_summary.md)
+
+2. Implementation Details
+- [Home Page Implementation](../features/home_page.md)
+- [Component Patterns](./components.md)
+
+3. Testing
+- [Testing Strategy](../testing/strategy.md)

@@ -23,14 +23,14 @@ export function getTextPositions(text: string, cursorPos: number): TextPosition 
 	const beforeMatch = beforeCursor.match(/[^\s"'`]+$/); // Last word/path before cursor
 	const afterMatch = afterCursor.match(/^[^\s"'`]*/); // Rest of word/path after cursor
 
-	console.debug('TextHandling: getTextPositions analysis', {
-		text,
-		cursorPos,
-		beforeCursor,
-		afterCursor,
-		beforeMatch,
-		afterMatch,
-	});
+	// console.debug('TextHandling: getTextPositions analysis', {
+	// 	text,
+	// 	cursorPos,
+	// 	beforeCursor,
+	// 	afterCursor,
+	// 	beforeMatch,
+	// 	afterMatch,
+	// });
 
 	// No word at cursor
 	if (!beforeMatch && !afterMatch) {

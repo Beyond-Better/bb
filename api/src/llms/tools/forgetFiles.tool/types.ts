@@ -6,17 +6,22 @@ export interface LLMToolForgetFilesInput {
 		revision: string;
 	}>;
 }
+export interface LLMToolForgetFilesResponseData {
+	data: {
+		filesSuccess: Array<{
+			filePath: string;
+			revision: string;
+		}>;
+		filesError: Array<{
+			filePath: string;
+			revision: string;
+			error: string;
+		}>;
+	};
+}
 
 export interface LLMToolForgetFilesResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: string;
-	filesSuccess: Array<{
-		filePath: string;
-		revision: string;
-	}>;
-	filesError: Array<{
-		filePath: string;
-		revision: string;
-		error: string;
-	}>;
+	//bbResponse: string;
+	bbResponse: LLMToolForgetFilesResponseData;
 }

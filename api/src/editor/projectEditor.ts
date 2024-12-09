@@ -8,13 +8,14 @@ import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationIntera
 import type { FileMetadata } from 'shared/types.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 
-// Extend ProjectInfo to include startDir
+// Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {
-	startDir: string;
+	projectId: string;
 }
 import OrchestratorController from '../controllers/orchestratorController.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager, type FullConfigSchema } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import {
@@ -30,41 +31,42 @@ import EventManager from 'shared/eventManager.ts';
 class ProjectEditor {
 	//private fileRevisions: Map<string, string[]> = new Map();
 	public orchestratorController!: OrchestratorController;
-	public fullConfig!: FullConfigSchema;
+	public projectConfig!: ProjectConfig;
 	public eventManager!: EventManager;
-	public startDir: string;
+	public projectId: string;
 	public projectRoot: string;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
 	public changedFiles: Set<string> = new Set();
 	public changeContents: Map<string, string> = new Map();
 	private _projectInfo: ProjectInfo = {
-		startDir: '',
+		projectId: '',
 		type: 'empty',
 		content: '',
 		tier: null,
 	};
 
-	constructor(startDir: string) {
+	constructor(projectId: string) {
 		this.projectRoot = '.'; // init() will overwrite this
-		this.startDir = startDir;
-		this._projectInfo.startDir = startDir;
+		this.projectId = projectId;
+		this._projectInfo.projectId = projectId;
 	}
 
 	public async init(): Promise<ProjectEditor> {
 		try {
 			this.projectRoot = await this.getProjectRoot();
-			this.fullConfig = await ConfigManager.fullConfig(this.projectRoot);
+			const configManager = await ConfigManagerV2.getInstance();
+			this.projectConfig = await configManager.getProjectConfig(this.projectId);
 			logger.info(
-				`ProjectEditor config for ${this.fullConfig.api.apiHostname}:${this.fullConfig.api.apiPort}`,
+				`ProjectEditor config for ${this.projectConfig.settings.api?.hostname}:${this.projectConfig.settings.api?.port}`,
 			);
 			this.eventManager = EventManager.getInstance();
 			this.orchestratorController = await new OrchestratorController(this).init();
 
-			logger.info(`ProjectEditor initialized for ${this.startDir}`);
+			logger.info(`ProjectEditor initialized for ${this.projectId}`);
 		} catch (error) {
 			logger.error(
-				`Failed to initialize ProjectEditor in ${this.startDir}:`,
+				`Failed to initialize ProjectEditor in ${this.projectId}:`,
 				error,
 			);
 			throw error;
@@ -73,30 +75,31 @@ class ProjectEditor {
 	}
 
 	public async getProjectRoot(): Promise<string> {
-		return await getProjectRoot(this.startDir);
+		// logger.info(`ProjectEditor getProjectRoot for ${this.projectId}`);
+		return await getProjectRoot(this.projectId);
 	}
 
 	public async getBbDir(): Promise<string> {
-		return await getBbDir(this.startDir);
+		return await getBbDir(this.projectId);
 	}
 
 	public async getBbDataDir(): Promise<string> {
-		return await getBbDataDir(this.startDir);
+		return await getBbDataDir(this.projectId);
 	}
 
 	public async writeToBbDir(
 		filename: string,
 		content: string,
 	): Promise<void> {
-		return await writeToBbDir(this.startDir, filename, content);
+		return await writeToBbDir(this.projectId, filename, content);
 	}
 
 	public async readFromBbDir(filename: string): Promise<string | null> {
-		return await readFromBbDir(this.startDir, filename);
+		return await readFromBbDir(this.projectId, filename);
 	}
 
 	public async removeFromBbDir(filename: string): Promise<void> {
-		return await removeFromBbDir(this.startDir, filename);
+		return await removeFromBbDir(this.projectId, filename);
 	}
 
 	get projectInfo(): ProjectInfo {
@@ -104,18 +107,18 @@ class ProjectEditor {
 	}
 
 	set projectInfo(projectInfo: ProjectInfo) {
-		projectInfo.startDir = this.startDir;
+		projectInfo.projectId = this.projectId;
 		this._projectInfo = projectInfo;
 	}
 
 	public async updateProjectInfo(): Promise<void> {
 		// If prompt caching is enabled and we've already generated the file listing, skip regeneration
-		if (this.fullConfig.api.usePromptCaching && this.projectInfo.type === 'file-listing') {
+		if ((this.projectConfig.settings.api?.usePromptCaching ?? true) && this.projectInfo.type === 'file-listing') {
 			return;
 		}
 
 		const projectInfo: ProjectInfo = {
-			startDir: this.startDir,
+			projectId: this.projectId,
 			type: 'empty',
 			content: '',
 			tier: null,
@@ -128,7 +131,7 @@ class ProjectEditor {
 			projectInfo.content = fileListing.listing;
 			projectInfo.tier = fileListing.tier;
 			logger.info(
-				`ProjectEditor: Updated projectInfo for: ${this.startDir} using tier ${projectInfo.tier}`,
+				`ProjectEditor: Updated projectInfo for: ${this.projectId} using tier ${projectInfo.tier}`,
 			);
 		}
 

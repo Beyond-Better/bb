@@ -5,10 +5,25 @@
 import * as $_404 from './routes/_404.tsx';
 import * as $_app from './routes/_app.tsx';
 import * as $_middleware from './routes/_middleware.ts';
+import * as $chat_index from './routes/chat/index.tsx';
+import * as $chat_partial from './routes/chat/partial.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
+import * as $projects_index from './routes/projects/index.tsx';
+import * as $projects_partial from './routes/projects/partial.tsx';
+import * as $settings_index from './routes/settings/index.tsx';
+import * as $settings_partial from './routes/settings/partial.tsx';
+import * as $AppStateProvider from './islands/AppStateProvider.tsx';
 import * as $Chat from './islands/Chat.tsx';
-import * as $Counter from './islands/Counter.tsx';
+import * as $Navigation from './islands/Navigation.tsx';
+import * as $ProjectManager from './islands/ProjectManager.tsx';
+import * as $ProjectSelector from './islands/ProjectSelector.tsx';
+import * as $Settings from './islands/Settings.tsx';
+import * as $SideNav from './islands/SideNav.tsx';
+import * as $metadata_ProjectManagerMetadata from './islands/metadata/ProjectManagerMetadata.tsx';
+import * as $metadata_ProjectMetadata from './islands/metadata/ProjectMetadata.tsx';
+import * as $metadata_SettingsMetadata from './islands/metadata/SettingsMetadata.tsx';
+import * as $metadata_index from './islands/metadata/index.ts';
 import type { Manifest } from '$fresh/server.ts';
 
 const manifest = {
@@ -16,12 +31,27 @@ const manifest = {
 		'./routes/_404.tsx': $_404,
 		'./routes/_app.tsx': $_app,
 		'./routes/_middleware.ts': $_middleware,
+		'./routes/chat/index.tsx': $chat_index,
+		'./routes/chat/partial.tsx': $chat_partial,
 		'./routes/doctor.tsx': $doctor,
 		'./routes/index.tsx': $index,
+		'./routes/projects/index.tsx': $projects_index,
+		'./routes/projects/partial.tsx': $projects_partial,
+		'./routes/settings/index.tsx': $settings_index,
+		'./routes/settings/partial.tsx': $settings_partial,
 	},
 	islands: {
+		'./islands/AppStateProvider.tsx': $AppStateProvider,
 		'./islands/Chat.tsx': $Chat,
-		'./islands/Counter.tsx': $Counter,
+		'./islands/Navigation.tsx': $Navigation,
+		'./islands/ProjectManager.tsx': $ProjectManager,
+		'./islands/ProjectSelector.tsx': $ProjectSelector,
+		'./islands/Settings.tsx': $Settings,
+		'./islands/SideNav.tsx': $SideNav,
+		'./islands/metadata/ProjectManagerMetadata.tsx': $metadata_ProjectManagerMetadata,
+		'./islands/metadata/ProjectMetadata.tsx': $metadata_ProjectMetadata,
+		'./islands/metadata/SettingsMetadata.tsx': $metadata_SettingsMetadata,
+		'./islands/metadata/index.ts': $metadata_index,
 	},
 	baseUrl: import.meta.url,
 } satisfies Manifest;

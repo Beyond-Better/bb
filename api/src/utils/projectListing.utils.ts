@@ -5,8 +5,9 @@ import { contentType } from '@std/media-types';
 import { countTokens } from 'anthropic-tokenizer';
 
 import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHandling.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
+import { getProjectId } from 'shared/dataDir.ts';
 //import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 //import { createError, ErrorType } from 'api/utils/error.ts';
 
@@ -20,7 +21,9 @@ export const FILE_LISTING_TIERS = [
 ];
 
 export async function generateFileListing(projectRoot: string): Promise<{ listing: string; tier: number } | null> {
-	const projectConfig = await ConfigManager.projectConfig(projectRoot);
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectId = await getProjectId(projectRoot);
+	const projectConfig = await configManager.getProjectConfig(projectId);
 	const repoInfoConfig = projectConfig.repoInfo;
 	const tokenLimit = repoInfoConfig?.tokenLimit || 1024;
 

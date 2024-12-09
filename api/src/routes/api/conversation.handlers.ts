@@ -26,12 +26,12 @@ import ConversationLogger from 'api/storage/conversationLogger.ts';
  *             type: object
  *             required:
  *               - statement
- *               - startDir
+ *               - projectId
  *             properties:
  *               statement:
  *                 type: string
  *                 description: The statement to continue the conversation
- *               startDir:
+ *               projectId:
  *                 type: string
  *                 description: The starting directory for the project
  *     responses:
@@ -51,7 +51,7 @@ export const chatConversation = async (
 	const { id: conversationId } = params;
 	try {
 		const body = await request.body.json();
-		const { statement, startDir, maxTurns } = body;
+		const { statement, projectId, maxTurns } = body;
 
 		logger.info(
 			`ConversationHandler: chatConversation for conversationId: ${conversationId}, Prompt: "${
@@ -68,12 +68,12 @@ export const chatConversation = async (
 			return;
 		}
 
-		if (!startDir) {
+		if (!projectId) {
 			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: Missing startDir for conversationId: ${conversationId}`,
+				`ConversationHandler: HandlerContinueConversation: Missing projectId for conversationId: ${conversationId}`,
 			);
 			response.status = 400;
-			response.body = { error: 'Missing startDir' };
+			response.body = { error: 'Missing projectId' };
 			return;
 		}
 
@@ -84,9 +84,9 @@ export const chatConversation = async (
 		}
 
 		logger.debug(
-			`ConversationHandler: HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using startDir: ${startDir}`,
+			`ConversationHandler: HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using projectId: ${projectId}`,
 		);
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
 
 		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId, {
 			maxTurns,
@@ -144,10 +144,10 @@ export const getConversation = async (
 	let orchestratorController;
 	try {
 		const conversationId = params.id as ConversationId;
-		const startDir = request.url.searchParams.get('startDir') || '';
+		const projectId = request.url.searchParams.get('projectId') || '';
 
-		logger.debug(`ConversationHandler: Creating ProjectEditor for dir: ${startDir}`);
-		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, startDir);
+		logger.debug(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
+		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
 
 		orchestratorController = projectEditor.orchestratorController;
 		if (!orchestratorController) {
@@ -162,7 +162,7 @@ export const getConversation = async (
 			return;
 		}
 
-		const logEntries = await ConversationLogger.getLogEntries(startDir, conversationId);
+		const logEntries = await ConversationLogger.getLogEntries(projectId, conversationId);
 		//logger.info(`ConversationHandler: logEntries`, logEntries);
 		response.status = 200;
 		response.body = {
@@ -217,8 +217,8 @@ export const deleteConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -281,7 +281,8 @@ export const deleteConversation = async (
 export const listConversations = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
-	const startDir = request.url.searchParams.get('startDir');
+	const projectId = request.url.searchParams.get('projectId');
+	//logger.info(`ConversationHandler: listConversations called with projectId: ${projectId}`);
 	try {
 		const params = request.url.searchParams;
 		const page = parseInt(params.get('page') || '1');
@@ -290,19 +291,20 @@ export const listConversations = async (
 		const endDate = params.get('endDate');
 		const llmProviderName = params.get('llmProviderName');
 
-		if (!startDir) {
+		if (!projectId) {
 			response.status = 400;
-			response.body = { error: 'Missing startDir parameter' };
+			response.body = { error: 'Missing projectId parameter' };
 			return;
 		}
 
+		//logger.info('ConversationHandler: Calling ConversationPersistence.listConversations');
 		const { conversations, totalCount } = await ConversationPersistence.listConversations({
 			page: page,
 			limit: limit,
 			startDate: startDate ? new Date(startDate) : undefined,
 			endDate: endDate ? new Date(endDate) : undefined,
 			llmProviderName: llmProviderName || undefined,
-			startDir: startDir,
+			projectId: projectId,
 		});
 
 		response.status = 200;
@@ -325,9 +327,10 @@ export const listConversations = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in listConversations: ${(error as Error).message}`);
+		const errorMessage = (error as Error).message;
+		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage}`, error);
 		response.status = 500;
-		response.body = { error: 'Failed to list conversations' };
+		response.body = { error: 'Failed to list conversations', details: errorMessage };
 	}
 };
 
@@ -336,8 +339,8 @@ export const clearConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -370,8 +373,8 @@ export const undoConversation = async (
 ) => {
 	try {
 		const { id: conversationId } = params;
-		const startDir = request.url.searchParams.get('startDir') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, startDir);
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {

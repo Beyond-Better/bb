@@ -15,13 +15,11 @@ import type {
 import { ApiStatus } from 'shared/types.ts';
 import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
-import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
+import { getBbDir, getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
-import { ConfigManager } from 'shared/configManager.ts';
-
-const startDir = Deno.cwd();
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 export const conversationChat = new Command()
 	.name('chat')
@@ -32,15 +30,21 @@ export const conversationChat = new Command()
 	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
 	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
-		let apiStartedByUs = false;
-		const fullConfig = await ConfigManager.fullConfig(startDir);
-		const bbDir = await getBbDir(startDir);
-		const projectRoot = await getProjectRoot(startDir);
+		const startDir = Deno.cwd();
+		const projectRoot = await getProjectRootFromStartDir(startDir);
+		const projectId = await getProjectId(projectRoot);
 
-		const apiHostname = fullConfig.api?.apiHostname || 'localhost';
-		const apiPort = fullConfig.api?.apiPort || 3000; // cast as string
-		const apiUseTls = typeof fullConfig.api.apiUseTls !== 'undefined' ? fullConfig.api.apiUseTls : true;
-		const apiClient = await ApiClient.create(startDir, apiHostname, apiPort, apiUseTls);
+		let apiStartedByUs = false;
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		const bbDir = await getBbDir(projectId);
+
+		const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
+		const apiPort = projectConfig.settings.api?.port || 3162; // cast as string
+		const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
+			? projectConfig.settings.api.tls.useTls
+			: true;
+		const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
 		const websocketManager = new WebsocketManager();
 
 		let terminalHandler: TerminalHandler | null = null;
@@ -98,8 +102,8 @@ export const conversationChat = new Command()
 
 				await new Promise((resolve) => setTimeout(resolve, delayMs * 2));
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-					const processStatus = await checkApiStatus(startDir);
-					const status = await getApiStatus(startDir);
+					const processStatus = await checkApiStatus(projectId);
+					const status = await getApiStatus(projectId);
 
 					if (processStatus.apiResponds && status.running) {
 						apiRunning = true;
@@ -126,7 +130,7 @@ export const conversationChat = new Command()
 					await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
 				}
 				if (!apiRunning) {
-					const finalStatus = await checkApiStatus(startDir);
+					const finalStatus = await checkApiStatus(projectId);
 					if (finalStatus.pidExists && !finalStatus.apiResponds) {
 						throw new Error(
 							`BB server process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
@@ -136,7 +140,7 @@ export const conversationChat = new Command()
 					}
 				} else {
 					apiStartedByUs = true;
-					const finalStatus = await checkApiStatus(startDir);
+					const finalStatus = await checkApiStatus(projectId);
 					console.log(colors.bold.green(`BB server started successfully (PID: ${finalStatus.pid}).`));
 				}
 			}
@@ -171,14 +175,14 @@ export const conversationChat = new Command()
 				const response = await apiClient.post(`/api/v1/conversation/${conversationId}`, {
 					statement: statement,
 					//model: options.model,
-					startDir: startDir,
+					projectId: projectId,
 					maxTurns: options.maxTurns,
 				});
 
 				if (response.ok) {
 					const data = await response.json();
 
-					terminalHandler = await new TerminalHandler(startDir).init();
+					terminalHandler = await new TerminalHandler(projectId).init();
 					await terminalHandler.displayConversationComplete(data, options);
 				} else {
 					const errorBody = await response.text();
@@ -195,7 +199,7 @@ export const conversationChat = new Command()
 					logger.error(`Error body: ${errorBody}`);
 				}
 			} else {
-				terminalHandler = await new TerminalHandler(startDir).init();
+				terminalHandler = await new TerminalHandler(projectId).init();
 				await terminalHandler.initializeTerminal();
 
 				// Spinner is now managed by terminalHandler
@@ -207,7 +211,7 @@ export const conversationChat = new Command()
 
 				// 				console.log(`Waiting for 2 mins.`);
 				// 	await new Promise((resolve) => setTimeout(resolve, 120000));
-				await websocketManager.setupWebsocket(conversationId, startDir, apiHostname, apiPort);
+				await websocketManager.setupWebsocket(conversationId, projectId, apiHostname, apiPort);
 
 				// Set up event listeners
 				let conversationChatDisplayed = false;
@@ -352,9 +356,17 @@ export const conversationChat = new Command()
 
 					try {
 						//console.log(`Processing statement using conversationId: ${conversationId}`);
-						await processStatement(bbDir, websocketManager, terminalHandler, conversationId!, statement, {
-							maxTurns: options.maxTurns,
-						});
+						await processStatement(
+							projectId,
+							bbDir,
+							websocketManager,
+							terminalHandler,
+							conversationId!,
+							statement,
+							{
+								maxTurns: options.maxTurns,
+							},
+						);
 					} catch (error) {
 						logger.error(`Error in chat: ${(error as Error).message}`);
 					}
@@ -389,6 +401,7 @@ function handleWebsocketReconnection() {
 }
 
 const processStatement = async (
+	projectId: string,
 	bbDir: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,
@@ -401,7 +414,7 @@ const processStatement = async (
 	terminalHandler.startStatement('Claude is thinking...');
 	try {
 		websocketManager.ws?.send(
-			JSON.stringify({ conversationId, startDir, task, statement, options: { maxTurns: options?.maxTurns } }),
+			JSON.stringify({ conversationId, projectId, task, statement, options: { maxTurns: options?.maxTurns } }),
 		);
 		await websocketManager.waitForAnswer(conversationId);
 	} finally {

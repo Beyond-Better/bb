@@ -11,9 +11,11 @@ export interface LLMToolFetchWebPageResultData {
 	length: number;
 }
 
+export interface LLMToolFetchWebPageResponseData {
+	data: LLMToolFetchWebPageResultData;
+}
+
 export interface LLMToolFetchWebPageResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: LLMToolFetchWebPageResultData;
-	};
+	bbResponse: LLMToolFetchWebPageResponseData;
 }

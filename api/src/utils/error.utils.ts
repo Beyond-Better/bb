@@ -10,6 +10,7 @@ import {
 	FileReadError,
 	FileWriteError,
 	LLMError,
+	ProjectHandlingError,
 	RateLimitError,
 	ToolHandlingError,
 	ValidationError,
@@ -24,6 +25,7 @@ import type {
 	LLMErrorOptions,
 	LLMRateLimitErrorOptions,
 	LLMValidationErrorOptions,
+	ProjectHandlingErrorOptions,
 	ToolHandlingErrorOptions,
 	VectorSearchErrorOptions,
 } from 'api/errors/error.ts';
@@ -37,6 +39,7 @@ export const createError = (
 		| LLMErrorOptions
 		| LLMRateLimitErrorOptions
 		| LLMValidationErrorOptions
+		| ProjectHandlingErrorOptions
 		| FileHandlingErrorOptions
 		| ToolHandlingErrorOptions
 		| VectorSearchErrorOptions
@@ -55,6 +58,8 @@ export const createError = (
 			return new RateLimitError(message, options as LLMRateLimitErrorOptions);
 		case ErrorType.LLMValidation:
 			return new ValidationError(message, options as LLMValidationErrorOptions);
+		case ErrorType.ProjectHandling:
+			return new ProjectHandlingError(message, options as ProjectHandlingErrorOptions);
 		case ErrorType.FileHandling: {
 			const fileOptions = options as FileHandlingErrorOptions;
 			switch (fileOptions.operation) {

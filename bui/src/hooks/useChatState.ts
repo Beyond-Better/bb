@@ -41,7 +41,7 @@ export async function initializeChat(
 	// Create WebSocket manager last
 	const wsManager = createWebSocketManager({
 		url: config.wsUrl,
-		startDir: config.startDir,
+		projectId: config.projectId,
 		onMessage: config.onMessage,
 		onError: config.onError,
 		onClose: config.onClose,
@@ -54,35 +54,28 @@ export async function initializeChat(
 	};
 }
 
-const initialState: ChatState = {
-	conversationId: null,
-	apiClient: null,
-	wsManager: null,
-	conversations: [],
-	logEntries: [],
-	status: {
-		isConnecting: false,
-		isLoading: false,
-		isReady: false,
-		cacheStatus: 'inactive',
-		lastApiCallTime: null,
-		apiStatus: ApiStatus.IDLE,
-		toolName: undefined,
-	},
-	error: null,
-};
-
-const chatState = signal<ChatState>(initialState);
-
-export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandlers, Signal<ScrollIndicatorState>] {
+export function useChatState(
+	config: ChatConfig,
+	chatState: Signal<ChatState>,
+): [ChatHandlers, Signal<ScrollIndicatorState>] {
+	// console.log('useChatState: hook called with config', {
+	// 	projectId: config.projectId,
+	// 	existingWsManager: chatState.value.wsManager?.constructor.name,
+	// 	existingApiClient: chatState.value.apiClient?.constructor.name,
+	// });
 	// Initialize chat
 	useEffect(() => {
-		console.log('useChatState: got useEffect for config initialize');
+		console.log('useChatState: got useEffect for config initialize', config);
 
 		let mounted = true;
 		let currentWsManager: WebSocketManager | null = null;
 
 		async function initialize() {
+			console.log('useChatState: initialize called', {
+				mounted,
+				existingWsManager: chatState.value.wsManager?.constructor.name,
+				existingApiClient: chatState.value.apiClient?.constructor.name,
+			});
 			try {
 				// Set initial loading state
 				chatState.value = {
@@ -93,7 +86,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				const { apiClient, wsManager } = await initializeChat(config);
 
 				// Load conversation list before WebSocket setup
-				const conversationResponse = await apiClient.getConversations(config.startDir);
+				const conversationResponse = await apiClient.getConversations(config.projectId);
 				if (!conversationResponse) {
 					throw new Error('Failed to load conversations');
 				}
@@ -105,7 +98,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				const conversationId = urlConversationId || generateConversationId();
 
 				// Load conversation data first
-				const conversation = await apiClient.getConversation(conversationId, config.startDir);
+				const conversation = await apiClient.getConversation(conversationId, config.projectId);
 				const logEntries = conversation?.logEntries || [];
 
 				if (!mounted) {
@@ -177,20 +170,44 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		initialize();
 
 		return () => {
-			console.log('useChatState: cleanup');
+			console.log('useChatState: cleanup', {
+				currentWsManager: currentWsManager?.constructor.name,
+				existingWsManager: chatState.value.wsManager?.constructor.name,
+				mounted,
+			});
 			mounted = false;
 			if (currentWsManager) {
 				currentWsManager.disconnect();
+				// Reset chatState to initial state
+				chatState.value = {
+					...chatState.value,
+					wsManager: null,
+					apiClient: null,
+					status: {
+						isConnecting: false,
+						isLoading: false,
+						isReady: false,
+						cacheStatus: 'inactive',
+						lastApiCallTime: null,
+						apiStatus: ApiStatus.IDLE,
+						toolName: undefined,
+					},
+					error: null,
+				};
 			}
 		};
-	}, [config.apiUrl, config.wsUrl, config.startDir]);
+	}, [config.apiUrl, config.wsUrl, config.projectId]);
 
 	// WebSocket event handlers
 	useEffect(() => {
+		console.log('useChatState: WebSocket event handlers useEffect', {
+			hasWsManager: !!chatState.value.wsManager,
+			wsManagerType: chatState.value.wsManager?.constructor.name,
+		});
 		if (!chatState.value.wsManager) return;
 
 		const wsManager = chatState.value.wsManager;
-		const { setVersionInfo } = useVersion();
+		//const { setVersionInfo } = useVersion();
 		// Create StatusQueue instance
 		const statusQueue = new StatusQueue((status) => {
 			if (!mounted) return;
@@ -323,12 +340,12 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		const handleVersionInfo = (versionInfo: VersionInfo) => {
 			if (!mounted) return;
 			// Update local state
-			chatState.value = {
-				...chatState.value,
-				versionInfo,
-			};
+			//chatState.value = {
+			//	...chatState.value,
+			//	versionInfo,
+			//};
 			// Update version context
-			setVersionInfo(versionInfo);
+			//setVersionInfo(versionInfo);
 		};
 
 		const handleCancelled = () => {
@@ -406,8 +423,6 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		wsManager.on('readyChange', handleReadyChange);
 		wsManager.on('message', handleMessage);
 		wsManager.on('cancelled', handleCancelled);
-		wsManager.on('progressStatus', handleProgressStatus);
-		wsManager.on('promptCacheTimer', handlePromptCacheTimer);
 		wsManager.on('error', handleError);
 		wsManager.on('clearError', handleClearError);
 		wsManager.on('progressStatus', handleProgressStatus);
@@ -415,6 +430,10 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		wsManager.on('versionInfo', handleVersionInfo);
 
 		return () => {
+			console.log('useChatState: WebSocket event handlers cleanup', {
+				hasWsManager: !!chatState.value.wsManager,
+				wsManagerType: chatState.value.wsManager?.constructor.name,
+			});
 			mounted = false;
 			wsManager.off('statusChange', handleStatusChange);
 			wsManager.off('readyChange', handleReadyChange);
@@ -442,6 +461,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 			};
 		},
 
+		/*
 		updateCacheStatus: () => {
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value = {
@@ -468,6 +488,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 				status: { ...chatState.value.status, cacheStatus: newStatus },
 			};
 		},
+		 */
 
 		sendConverse: async (message: string) => {
 			if (!chatState.value.wsManager) {
@@ -522,7 +543,7 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 					console.error('selectConversation: apiClient is null before getConversation');
 					throw new Error('Chat API client was lost during conversation load');
 				}
-				const conversation = await chatState.value.apiClient.getConversation(id, config.startDir);
+				const conversation = await chatState.value.apiClient.getConversation(id, config.projectId);
 				console.log(`useChatState: selectConversation for ${id}: loaded`);
 
 				// Update conversation ID and logEntries
@@ -584,5 +605,6 @@ export function useChatState(config: ChatConfig): [Signal<ChatState>, ChatHandle
 		},
 	};
 
-	return [chatState, handlers, scrollIndicatorState];
+	//return [chatState, handlers, scrollIndicatorState];
+	return [handlers, scrollIndicatorState];
 }

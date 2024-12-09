@@ -3,36 +3,33 @@ import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 import { ensureFile, exists } from '@std/fs';
 
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import { createTestInteraction, getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolRenameFilesResponseData } from '../types.ts';
 
 // Type guard function
 function isRenameFilesResponse(
 	response: unknown,
-): response is {
-	data: {
-		filesRenamed: Array<{ source: string; destination: string }>;
-		filesError: Array<{ source: string; destination: string; error: string }>;
-	};
-} {
+): response is LLMToolRenameFilesResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'filesRenamed' in (response as any).data &&
-		Array.isArray((response as any).data.filesRenamed) &&
-		'filesError' in (response as any).data &&
-		Array.isArray((response as any).data.filesError)
+		data !== null &&
+		typeof data === 'object' &&
+		'filesRenamed' in data &&
+		Array.isArray(data.filesRenamed) &&
+		'filesError' in data &&
+		Array.isArray(data.filesError)
 	);
 }
 
 Deno.test({
 	name: 'RenameFilesTool - Rename single file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -123,8 +120,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Create missing directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -208,8 +205,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Fail to create missing directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -297,8 +294,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Rename multiple files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -404,8 +401,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Overwrite existing file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -495,8 +492,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Fail to overwrite without permission',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -596,8 +593,8 @@ Deno.test({
 Deno.test({
 	name: 'RenameFilesTool - Attempt to rename non-existent file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,

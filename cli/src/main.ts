@@ -1,5 +1,5 @@
 import { Command } from 'cliffy/command/mod.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 import { init } from './commands/init.ts';
 import { apiStart } from './commands/apiStart.ts';
@@ -14,14 +14,19 @@ import { secure } from './commands/secure.ts';
 import { upgrade } from './commands/upgrade.ts';
 import { migrate } from './commands/migrate.ts';
 import { doctor } from './commands/doctor.ts';
+import { getVersionInfo } from 'shared/version.ts';
 //import { logger } from 'shared/logger.ts';
 
-const globalConfig = await ConfigManager.globalConfig();
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
 //logger.debug('CLI Config:', globalConfig.cli);
+
+const versionInfo = await getVersionInfo();
+//logger.info('versionInfo:', versionInfo);
 
 const cli = new Command()
 	.name(globalConfig.bbExeName) // 'bb' or 'bb.exe'
-	.version(globalConfig.version as string)
+	.version(versionInfo.version as string)
 	.description('CLI tool for BB')
 	.command('init', init)
 	//

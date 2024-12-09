@@ -21,8 +21,8 @@ function isString(value: unknown): value is string {
 Deno.test({
 	name: 'SearchAndReplaceTool - Basic functionality',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -98,8 +98,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Multiple operations on new file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -182,8 +182,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Attempt to create file outside project root',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -228,8 +228,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Empty operations array',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -276,8 +276,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Unicode characters',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -351,8 +351,8 @@ Deno.test({
 Deno.test({
 	name: "SearchAndReplaceTool - Create new file if it doesn't exist",
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -431,8 +431,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - No changes when search string not found',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -481,8 +481,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Multiline search and replace',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -558,8 +558,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Replace with empty string',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -632,8 +632,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Case sensitive search (default)',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -706,8 +706,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Case insensitive search',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -783,8 +783,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Multiple non-overlapping replacements',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -862,8 +862,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Multiple replacements',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -940,8 +940,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Overlapping replacements',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1018,8 +1018,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Basic regex pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1095,8 +1095,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Regex pattern with capture groups',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1174,8 +1174,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Regex pattern with quantifiers',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1248,8 +1248,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Regex pattern with character classes',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1322,8 +1322,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Regex pattern with word boundaries',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1396,8 +1396,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Case-sensitive literal search with special regex characters',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1469,8 +1469,8 @@ Deno.test({
 Deno.test({
 	name: 'SearchAndReplaceTool - Case-insensitive literal search with special regex characters',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);

@@ -2,7 +2,7 @@ import { DiagnosticResult, DoctorReport, SystemResources } from './types.ts';
 import { checkConfig } from './checks/config.ts';
 import { checkTls } from './checks/tls.ts';
 import { generateReport } from './utils/report.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
 
 /**
@@ -19,7 +19,7 @@ export interface DiagnosticOptions {
  */
 export class DoctorService {
 	private results: DiagnosticResult[] = [];
-	private configManager!: ConfigManager;
+	private configManager!: ConfigManagerV2;
 
 	constructor() {
 		// ConfigManager instance will be initialized in init()
@@ -31,7 +31,7 @@ export class DoctorService {
 	 */
 	async init(): Promise<void> {
 		try {
-			this.configManager = await ConfigManager.getInstance();
+			this.configManager = await ConfigManagerV2.getInstance();
 		} catch (error) {
 			logger.error('Failed to initialize DoctorService:', error);
 			throw new Error('Failed to initialize DoctorService: ' + (error as Error).message);

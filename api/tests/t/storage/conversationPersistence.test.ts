@@ -27,9 +27,9 @@ import LLMMessage from 'api/llms/llmMessage.ts';
 Deno.test({
 	name: 'ConversationPersistence - Token usage integration initialization',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test setup
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Verify TokenUsagePersistence is initialized
@@ -46,8 +46,8 @@ Deno.test({
 		Deno.test({
 			name: 'ConversationPersistence - Token usage persistence across sessions',
 			fn: async () => {
-				await withTestProject(async (testProjectRoot) => {
-					const projectEditor = await getProjectEditor(testProjectRoot);
+				await withTestProject(async (testProjectId, testProjectRoot) => {
+					const projectEditor = await getProjectEditor(testProjectId);
 					const conversationId = 'persistence-test-conversation';
 
 					// First session
@@ -98,8 +98,8 @@ Deno.test({
 		Deno.test({
 			name: 'ConversationPersistence - Handle concurrent token usage writes',
 			fn: async () => {
-				await withTestProject(async (testProjectRoot) => {
-					const projectEditor = await getProjectEditor(testProjectRoot);
+				await withTestProject(async (testProjectId, testProjectRoot) => {
+					const projectEditor = await getProjectEditor(testProjectId);
 					const interaction = await createTestInteraction('concurrent-writes', projectEditor);
 
 					// Create records with same messageId but different content
@@ -155,9 +155,9 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Save conversation with token usage',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test setup
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Create test record using mock utility
@@ -210,9 +210,9 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Token usage analysis with history',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test setup
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Create sequence of records with alternating roles
@@ -269,9 +269,9 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Handle concurrent conversation saves',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test setup
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Create multiple records
@@ -339,9 +339,9 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Token usage with chat interactions',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test setup
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Create records for both conversation and chat

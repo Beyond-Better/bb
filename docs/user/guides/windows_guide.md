@@ -6,7 +6,7 @@ This guide provides detailed instructions for installing and using Beyond Better
 
 1. [System Requirements](#system-requirements)
 2. [Installation](#installation)
-3. [BB Manager](#bb-manager)
+3. [First Launch](#first-launch)
 4. [Using BB](#using-bb)
 5. [Troubleshooting](#troubleshooting)
 
@@ -19,131 +19,98 @@ This guide provides detailed instructions for installing and using Beyond Better
 
 ## Installation
 
-1. Download the `bb-installer.msi` file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
-2. Double-click the downloaded file to run the installer.
-3. Follow the on-screen instructions to complete the installation.
-4. The installer will create a desktop shortcut for BB Manager.
+1. Download the appropriate installer from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - Recommended: `BB-dui-{version}-windows-x64.msi` (MSI installer)
+   - Alternative: `BB-dui-{version}-windows-x64-setup.exe` (NSIS installer)
+2. Double-click the downloaded file to run the installer
+3. If you see a User Account Control (UAC) prompt, click 'Yes' to allow installation
+4. Follow the installation wizard to complete the installation
 
-## BB Manager
+## First Launch
 
-BB Manager is a tool designed to help you manage multiple BB projects efficiently. It provides a text-based menu interface for common BB operations.
+When launching BB for the first time, you may see security warnings because the application is currently unsigned:
 
-### Starting BB Manager
+1. SmartScreen Warning:
+   - You'll see a message "Windows protected your PC"
+   - Click 'More info'
+   - Click 'Run anyway'
+   - This security approval is only needed once
 
-1. Double-click the "BB Manager" shortcut on your desktop, or
-2. Navigate to the BB installation directory and run `bb-manager.bat`
+2. WebView2 Installation:
+   - If you don't have Microsoft Edge WebView2 Runtime installed
+   - The installer will automatically download and install it
+   - This is required for BB's user interface
 
-### Using BB Manager
 
-BB Manager provides the following options:
-
-1. List projects
-2. Add project
-3. Remove project
-4. Run BB command
-5. Exit
-
-To select an option, enter the corresponding number and press Enter.
-
-### Managing Projects
-
-- To add a new project, choose option 2 and enter the full path of your project directory.
-- To remove a project, choose option 3 and select the project you want to remove.
-- To list all configured projects, choose option 1.
-
-### Running BB Commands
-
-1. Choose option 4 to run a BB command.
-2. Select the project you want to work with (if you have multiple projects configured).
-3. Enter the BB command you want to run (init, start, or stop).
 
 ## Using BB
 
 ### Initializing a Project
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `init` as the command.
-5. Follow the prompts to configure your project.
+1. Open Command Prompt
+2. Navigate to your project directory
+3. Run `bb init`
+4. Follow the prompts to configure your project
 
 ### Starting BB
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `start` as the command.
-5. BB will start and open in your default web browser.
+1. Navigate to your project directory
+2. Run `bb start`
+3. BB will start and open in your default web browser
 
 ### Stopping BB
 
-1. Open BB Manager.
-2. Choose option 4 (Run BB command).
-3. Select your project directory.
-4. Enter `stop` as the command.
+1. Navigate to your project directory
+2. Run `bb stop`
 
-### Certificate Management
+## Optional: TLS Configuration
 
-BB includes built-in certificate management for secure HTTPS connections:
+By default, BB runs without TLS for simplicity. If you want to enable HTTPS:
 
-1. View Certificate Status:
+1. View Current Status:
    ```cmd
-   bb.exe secure status
+   bb secure status
    ```
-   This shows:
-   - TLS status (enabled/disabled)
-   - Certificate details and validity
-   - Trust store status
-   - Browser compatibility info
+   Shows TLS status and certificate details if enabled
 
-2. Enable TLS (recommended):
+2. Enable TLS:
    ```cmd
-   bb.exe secure on
+   bb secure on
    ```
-   This will:
-   - Generate necessary certificates
-   - Add the CA to Windows trust store
-   - Update BB configuration
-   Note: You may see a User Account Control (UAC) prompt to allow trust store updates.
+   Note: You'll see a User Account Control (UAC) prompt to allow trust store updates
 
-3. Disable TLS (not recommended):
-   ```cmd
-   bb.exe secure off
-   ```
-
-4. View Certificates in Windows:
+3. View Certificates (after enabling):
    - Press Windows+R
    - Type `certmgr.msc` and press Enter
    - Expand "Trusted Root Certification Authorities"
    - Click "Certificates"
    - Look for "Beyond Better CA"
 
-### Using BB from Command Line
+For more details, see the [Certificate Management Guide](../security/certificates.md).
+
+### Command Line Usage
 
 You can also use BB directly from the command line:
 
 1. Open Command Prompt.
 2. Navigate to your project directory.
 3. Run the following commands as needed:
-   - `bb.exe init` to initialize a new project
-   - `bb.exe start` to start BB and open the browser interface
-   - `bb.exe chat` to start BB and use the command-line interface
-   - `bb.exe stop` to stop the BB server
+   - `bb init` to initialize a new project
+   - `bb start` to start BB and open the browser interface
+   - `bb chat` to start BB and use the command-line interface
+   - `bb stop` to stop the BB server
+
+Note: The commands above work without the `.exe` extension as long as the installation directory is in your PATH.
 
 ## Troubleshooting
 
 If you encounter any issues:
 
-1. Check the chat logs: `bb.exe logs`
-2. Check the API logs: `bb.exe logs --api`
+1. Check the chat logs: `bb logs`
+2. Check the API logs: `bb logs --api`
 3. Ensure you're running Command Prompt as an administrator for certain operations.
 4. Verify that your Anthropic API key is correctly set in the `.bb/config.yaml` file.
-5. Check certificate status: `bb.exe secure status`
-6. Try re-enabling TLS: `bb.exe secure on`
-7. Verify certificate in Windows trust store:
-   - Press Windows+R
-   - Type `certmgr.msc` and press Enter
-   - Check "Trusted Root Certification Authorities" > "Certificates"
+5. If using TLS, verify status: `bb secure status`
 
 If problems persist, please create an issue on the [BB GitHub repository](https://github.com/Beyond-Better/bb) with details about the error and steps to reproduce it.
 

@@ -3,44 +3,41 @@ import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 import { ensureDir, ensureFile, exists } from '@std/fs';
 
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import { createTestInteraction, getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolMoveFilesResponseData } from '../types.ts';
 
 // Type guard function
 function isMoveFilesResponse(
 	response: unknown,
-): response is {
-	data: {
-		filesMoved: string[];
-		filesError: string[];
-		destination: string;
-	};
-} {
+): response is LLMToolMoveFilesResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'destination' in (response as any).data &&
-		typeof (response as any).data.destination === 'string' &&
-		'filesMoved' in (response as any).data &&
-		Array.isArray((response as any).data.filesMoved) &&
-		'filesError' in (response as any).data &&
-		Array.isArray((response as any).data.filesError)
+		data !== null &&
+		typeof data === 'object' &&
+		typeof data === 'object' &&
+		'destination' in data &&
+		typeof data.destination === 'string' &&
+		'filesMoved' in data &&
+		Array.isArray(data.filesMoved) &&
+		'filesError' in data &&
+		Array.isArray(data.filesError)
 	);
 }
 
-// Type guard to check if bbResponse is a string
-function isString(value: unknown): value is string {
-	return typeof value === 'string';
-}
+// // Type guard to check if bbResponse is a string
+// function isString(value: unknown): value is string {
+// 	return typeof value === 'string';
+// }
 
 Deno.test({
 	name: 'MoveFilesTool - Move single file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -133,8 +130,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Create missing directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -217,8 +214,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Fail to create missing directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -314,8 +311,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Move multiple files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -431,8 +428,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Move directory',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -543,8 +540,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Overwrite existing file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -649,8 +646,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Fail to overwrite without permission',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -755,8 +752,8 @@ Deno.test({
 Deno.test({
 	name: 'MoveFilesTool - Attempt to move non-existent file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,

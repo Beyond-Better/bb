@@ -1,21 +1,21 @@
 import { readFromBbDir, removeFromBbDir, writeToBbDir } from 'shared/dataDir.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { logger } from 'shared/logger.ts';
 
 const PID_FILE_NAME = 'api.pid';
 
-export async function savePid(startDir: string, pid: number): Promise<void> {
-	await writeToBbDir(startDir, PID_FILE_NAME, pid.toString());
+export async function savePid(projectId: string, pid: number): Promise<void> {
+	await writeToBbDir(projectId, PID_FILE_NAME, pid.toString());
 }
 
-export async function getPid(startDir: string): Promise<number | null> {
-	const pidString = await readFromBbDir(startDir, PID_FILE_NAME);
+export async function getPid(projectId: string): Promise<number | null> {
+	const pidString = await readFromBbDir(projectId, PID_FILE_NAME);
 	return pidString ? parseInt(pidString, 10) : null;
 }
 
-export async function removePid(startDir: string): Promise<void> {
-	await removeFromBbDir(startDir, PID_FILE_NAME);
+export async function removePid(projectId: string): Promise<void> {
+	await removeFromBbDir(projectId, PID_FILE_NAME);
 }
 
 export interface ApiStatusCheck {
@@ -26,7 +26,7 @@ export interface ApiStatusCheck {
 	error?: string;
 }
 
-export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> {
+export async function checkApiStatus(projectId: string): Promise<ApiStatusCheck> {
 	const status: ApiStatusCheck = {
 		pidExists: false,
 		processResponds: false,
@@ -34,7 +34,7 @@ export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> 
 	};
 
 	// Level 1: Check PID file
-	const pid = await getPid(startDir);
+	const pid = await getPid(projectId);
 	if (pid === null) {
 		status.error = 'No PID file found';
 		return status;
@@ -67,12 +67,15 @@ export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> 
 	// Level 3: Check if API endpoint responds
 	if (status.pidExists) {
 		try {
-			const fullConfig = await ConfigManager.fullConfig(startDir);
-			const apiHostname = fullConfig.api.apiHostname || 'localhost';
-			const apiPort = fullConfig.api.apiPort || 3000;
-			const apiUseTls = typeof fullConfig.api.apiUseTls !== 'undefined' ? fullConfig.api.apiUseTls : true;
+			const configManager = await ConfigManagerV2.getInstance();
+			const projectConfig = await configManager.getProjectConfig(projectId);
+			const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
+			const apiPort = projectConfig.settings.api?.port || 3162;
+			const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
+				? projectConfig.settings.api.tls.useTls
+				: true;
 
-			const apiClient = await ApiClient.create(startDir, apiHostname, apiPort, apiUseTls);
+			const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
 			const response = await apiClient.get('/api/v1/status');
 			status.apiResponds = response.ok;
 			status.processResponds = true;
@@ -84,27 +87,27 @@ export async function checkApiStatus(startDir: string): Promise<ApiStatusCheck> 
 	return status;
 }
 
-export async function reconcilePidState(startDir: string): Promise<void> {
-	const status = await checkApiStatus(startDir);
+export async function reconcilePidState(projectId: string): Promise<void> {
+	const status = await checkApiStatus(projectId);
 
-	if (!status.pidExists && await getPid(startDir) !== null) {
+	if (!status.pidExists && await getPid(projectId) !== null) {
 		// PID file exists but process doesn't - clean up
 		logger.warn('Removing stale PID file - process not found');
-		await removePid(startDir);
+		await removePid(projectId);
 	} else if (status.pidExists && !status.apiResponds) {
 		// Process exists but API doesn't respond - potential zombie
 		logger.warn('API process exists but is not responding. Consider restarting.');
-	} else if (status.apiResponds && await getPid(startDir) === null) {
+	} else if (status.apiResponds && await getPid(projectId) === null) {
 		// API responds but no PID file - recover state if possible
 		logger.warn('API is running but PID file is missing. State mismatch detected.');
 		if (status.pid) {
 			logger.info(`Recovering PID file with process ID: ${status.pid}`);
-			await savePid(startDir, status.pid);
+			await savePid(projectId, status.pid);
 		}
 	}
 }
 
-export async function isApiRunning(startDir: string): Promise<boolean> {
-	const status = await checkApiStatus(startDir);
+export async function isApiRunning(projectId: string): Promise<boolean> {
+	const status = await checkApiStatus(projectId);
 	return status.apiResponds;
 }

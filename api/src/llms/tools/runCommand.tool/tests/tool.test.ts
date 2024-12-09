@@ -3,46 +3,41 @@ import { join } from '@std/path';
 import { stripIndents } from 'common-tags';
 import { stripAnsiCode } from '@std/fmt/colors';
 
-import type LLMToolRunCommand from '../tool.ts';
+//import type LLMToolRunCommand from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolRunCommandResponseData } from '../types.ts';
 
 // Type guard function
 function isRunCommandResponse(
 	response: unknown,
-): response is {
-	data: {
-		code: number;
-		command: string;
-		stderrContainsError: boolean;
-		stdout: string;
-		stderr: string;
-	};
-} {
+): response is LLMToolRunCommandResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'code' in (response as any).data &&
-		typeof (response as any).data.code === 'number' &&
-		'command' in (response as any).data &&
-		typeof (response as any).data.command === 'string' &&
-		'stderrContainsError' in (response as any).data &&
-		typeof (response as any).data.stderrContainsError === 'boolean' &&
-		'stdout' in (response as any).data &&
-		typeof (response as any).data.stdout === 'string' &&
-		'stderr' in (response as any).data &&
-		typeof (response as any).data.stderr === 'string'
+		data !== null &&
+		typeof data === 'object' &&
+		'code' in data &&
+		typeof data.code === 'number' &&
+		'command' in data &&
+		typeof data.command === 'string' &&
+		'stderrContainsError' in data &&
+		typeof data.stderrContainsError === 'boolean' &&
+		'stdout' in data &&
+		typeof data.stdout === 'string' &&
+		'stderr' in data &&
+		typeof data.stderr === 'string'
 	);
 }
 
-// Type guard to check if bbResponse is a string
-function isString(value: unknown): value is string {
-	return typeof value === 'string';
-}
+// // Type guard to check if bbResponse is a string
+// function isString(value: unknown): value is string {
+// 	return typeof value === 'string';
+// }
 
 function stripAnsi(str: string): string {
+	// deno-lint-ignore no-control-regex
 	return str.replace(/\u001b\[\d+m/g, '');
 }
 
@@ -54,7 +49,7 @@ function createTestFiles(testProjectRoot: string) {
 	Deno.writeTextFileSync(
 		join(testProjectRoot, 'test_file.ts'),
 		stripIndents`
-			import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
+			import { assertEquals } from "jsr:@std/assert";
 			Deno.test("example test", () => {
 				const x = 1 + 2;
 				assertEquals(x, 3);
@@ -92,8 +87,8 @@ const toolConfig = {
 Deno.test({
 	name: 'RunCommandTool - Execute allowed command: deno task tool:check-types',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
@@ -167,8 +162,8 @@ Deno.test({
 Deno.test({
 	name: 'RunCommandTool - Execute allowed command: deno task tool:test',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
@@ -260,8 +255,8 @@ Deno.test({
 Deno.test({
 	name: 'RunCommandTool - Execute allowed command: deno task tool:format',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
@@ -339,8 +334,8 @@ Deno.test({
 Deno.test({
 	name: 'RunCommandTool - Execute not allowed command',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			createTestFiles(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);

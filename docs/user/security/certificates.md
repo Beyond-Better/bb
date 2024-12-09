@@ -31,7 +31,7 @@ bb secure status
 ```
 
 2. Browser:
-- Open the BB API status page at https://localhost:3000/api/v1/status
+- Open the BB API status page at https://localhost:3162/api/v1/status
 - View detailed certificate information and trust store status
 
 ### Certificate Locations

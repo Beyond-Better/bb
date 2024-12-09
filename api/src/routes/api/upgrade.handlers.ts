@@ -1,7 +1,7 @@
 import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { spawnDetached } from 'shared/process.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { ensureUserInstallLocation, getCurrentInstallLocation } from 'shared/install.ts';
 import { performUpgrade } from 'shared/upgrade.ts';
 
@@ -60,14 +60,16 @@ export async function upgradeApi(ctx: Context) {
 			logger.info(`Initiating API restart from directory: ${cwd}`);
 
 			// Get current API configuration
-			const config = await ConfigManager.fullConfig(cwd);
+			const configManager = await ConfigManagerV2.getInstance();
+			const globalConfig = await configManager.getGlobalConfig();
 			const {
-				apiHostname = 'localhost',
-				apiPort = 3000,
-				apiUseTls = true,
+				hostname: apiHostname = 'localhost',
+				port: apiPort = 3162,
+				tls,
 				logLevel,
 				logFile,
-			} = config.api;
+			} = globalConfig.api;
+			const apiUseTls = tls?.useTls ?? true;
 
 			// Construct restart command with current settings
 			const cmd = ['bb', 'restart'];

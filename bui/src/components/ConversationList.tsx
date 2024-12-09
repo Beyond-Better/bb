@@ -41,8 +41,8 @@ export function ConversationList({
 	//console.log(`ConversationList: conversationListState:`, conversationListState.value);
 
 	return (
-		<div className='w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden'>
-			<div className='p-4 border-b border-gray-200 flex-shrink-0 bg-gray-50'>
+		<div className='w-[30%] min-w-[20rem] bg-white border-r border-gray-200 flex flex-col min-h-0'>
+			<div className='p-4 border-b border-gray-200 flex-none bg-gray-50'>
 				<div className='flex items-center justify-between mb-4'>
 					<div className='flex items-center gap-2 text-gray-700'>
 						<svg
@@ -96,7 +96,7 @@ export function ConversationList({
 						)}
 				</button>
 			</div>
-			<div className='flex-1 overflow-y-auto px-2 py-2'>
+			<div className='flex-1 overflow-y-auto'>
 				{conversationListState.value.conversations.length === 0
 					? (
 						<div className='text-center text-gray-500 py-8'>
@@ -118,7 +118,7 @@ export function ConversationList({
 						</div>
 					)
 					: (
-						<ul className='space-y-2'>
+						<ul className='space-y-2 p-2'>
 							{conversationListState.value.conversations
 								.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 								.map((conv) => (

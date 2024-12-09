@@ -7,7 +7,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolForgetFilesInput } from './types.ts';
+import type { LLMToolForgetFilesInput, LLMToolForgetFilesResult } from './types.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
 	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
@@ -108,14 +108,14 @@ export default class LLMToolForgetFiles extends LLMTool {
 				}
 			}
 
-			const bbResponses = [];
+			// const bbResponses = [];
 			const toolResponses = [];
 			if (filesSuccess.length > 0) {
-				bbResponses.push(
-					`BB has removed these files from the conversation: ${
-						filesSuccess.map((f) => `${f.filePath} (Revision: ${f.revision})`).join(', ')
-					}`,
-				);
+				// bbResponses.push(
+				// 	`BB has removed these files from the conversation: ${
+				// 		filesSuccess.map((f) => `${f.filePath} (Revision: ${f.revision})`).join(', ')
+				// 	}`,
+				// );
 				toolResponses.push(
 					`Removed files from the conversation:\n${
 						filesSuccess.map((f) => `- ${f.filePath} (Revision: ${f.revision})`).join('\n')
@@ -123,11 +123,11 @@ export default class LLMToolForgetFiles extends LLMTool {
 				);
 			}
 			if (filesError.length > 0) {
-				bbResponses.push(
-					`BB failed to remove these files from the conversation:\n${
-						filesError.map((f) => `- ${f.filePath} (${f.revision}): ${f.error}`).join('\n')
-					}`,
-				);
+				// bbResponses.push(
+				// 	`BB failed to remove these files from the conversation:\n${
+				// 		filesError.map((f) => `- ${f.filePath} (${f.revision}): ${f.error}`).join('\n')
+				// 	}`,
+				// );
 				toolResponses.push(
 					`Failed to remove files from the conversation:\n${
 						filesError.map((f) => `- ${f.filePath} (${f.revision}): ${f.error}`).join('\n')
@@ -137,11 +137,13 @@ export default class LLMToolForgetFiles extends LLMTool {
 
 			const toolResults = toolResultContentParts;
 			const toolResponse = (allFilesFailed ? 'No files removed\n' : '') + toolResponses.join('\n\n');
-			const bbResponse = bbResponses.join('\n\n');
-			// const fileList = files.map((file) => file.filePath);
-			// const toolResults = `Marked the following files to be excluded from consideration: ${fileList.join(', ')}`;
-			// const toolResponse = `Marked ${files.length} file(s) to be excluded`;
-			// const bbResponse = `BB marked ${files.length} file(s) to be excluded from consideration`;
+			//const bbResponse = bbResponses.join('\n\n');
+			const bbResponse: LLMToolForgetFilesResult['bbResponse'] = {
+				data: {
+					filesSuccess,
+					filesError,
+				},
+			};
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {

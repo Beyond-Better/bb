@@ -1,6 +1,6 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationMetricsResult } from './types.ts';
+import type { LLMToolConversationMetricsResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
@@ -16,7 +16,7 @@ export const formatLogEntryToolUse = (_toolInput: LLMToolInputSchema): LLMToolLo
 	};
 };
 
-function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResult['tokens']): string {
+function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResultData['tokens']): string {
 	if (chatMetrics.totalUsage.total === 0) {
 		return '- No auxiliary chat activity';
 	}
@@ -45,7 +45,7 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const metrics = bbResponse.data as LLMToolConversationMetricsResult;
+		const metrics = bbResponse.data as LLMToolConversationMetricsResultData;
 		const content = stripIndents`
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Basic Statistics:')}
             Total Turns: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)}

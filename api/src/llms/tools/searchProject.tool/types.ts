@@ -8,11 +8,17 @@ export interface LLMToolSearchProjectInput {
 	sizeMax?: number;
 }
 
+export interface LLMToolSearchProjectResponseData {
+	data: {
+		files: string[];
+		errorMessage?: string;
+		searchCriteria: string;
+	};
+}
+
 export interface LLMToolSearchProjectResult {
 	toolResults: string;
 	toolResponse: string;
 	bbResponse: string;
-	files: string[];
-	errorMessage?: string;
-	searchCriteria: string;
+	// bbResponse: LLMToolSearchProject;
 }

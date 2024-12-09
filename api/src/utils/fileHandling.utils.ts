@@ -6,7 +6,6 @@ import type { WalkOptions } from '@std/fs';
 import globToRegExp from 'npm:glob-to-regexp';
 //import { globToRegExp } from '@std/path';
 
-//import type { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';

@@ -3,31 +3,31 @@ import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolFetchWebPageResponseData } from '../types.ts';
 
-interface FetchWebPageResponseData {
-	data: { url: string; html: string };
-}
 // Type guard function
 function isFetchWebPageResponse(
 	response: unknown,
-): response is FetchWebPageResponseData {
+): response is LLMToolFetchWebPageResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as FetchWebPageResponseData).data === 'object' &&
-		'url' in (response as FetchWebPageResponseData).data &&
-		typeof (response as FetchWebPageResponseData).data.url === 'string' &&
-		'html' in (response as FetchWebPageResponseData).data &&
-		typeof (response as FetchWebPageResponseData).data.html === 'string'
+		data !== null &&
+		typeof data === 'object' &&
+		typeof data === 'object' &&
+		'url' in data &&
+		typeof data.url === 'string' &&
+		'html' in data &&
+		typeof data.html === 'string'
 	);
 }
 
 Deno.test({
 	name: 'FetchWebPageTool - successful fetch',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('fetch_web_page');
@@ -81,8 +81,8 @@ Deno.test({
 Deno.test({
 	name: 'FetchWebPageTool - invalid URL',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('fetch_web_page');
@@ -112,8 +112,8 @@ Deno.test({
 Deno.test({
 	name: 'FetchWebPageTool - non-existent page',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('fetch_web_page');

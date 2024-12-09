@@ -16,7 +16,7 @@ export type ConversationId = string;
 export type VectorId = string;
 
 export interface ConversationMetadata {
-	//startDir: string;
+	//projectId: string;
 	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
 	id: ConversationId;
 	title: string;

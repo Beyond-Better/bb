@@ -55,7 +55,7 @@ const fetchConversations = async () => {
   if (!apiClient.value) return;
   setIsLoadingConversations(true);
   try {
-    const url = `/api/v1/conversation?startDir=${encodeURIComponent(startDir)}&limit=50`;
+    const url = `/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=50`;
     const response = await apiClient.value.get(url);
     if (response.ok) {
       const data = await response.json();
@@ -102,7 +102,7 @@ const loadConversation = async (id: string) => {
   if (!apiClient.value) return;
   setIsLoading(true);
   try {
-    const response = await apiClient.value.get(`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`);
+    const response = await apiClient.value.get(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`);
     if (response.ok) {
       const data = await response.json();
       const formattedMessages = await Promise.all(data.messages.map(formatLogEntry));

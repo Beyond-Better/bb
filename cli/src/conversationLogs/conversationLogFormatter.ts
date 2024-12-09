@@ -8,10 +8,10 @@ import { colors } from 'cliffy/ansi/mod.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
 import type { ConversationId, ConversationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
-// [TODO] this needs to be projectConfig (or fullConfig), which means startDir needs to get passed in
-const globalConfig = await ConfigManager.globalConfig();
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
 
 // Define theme colors.
 //const colorError = colors.bold.red;

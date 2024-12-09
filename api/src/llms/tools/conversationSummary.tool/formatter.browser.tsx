@@ -2,7 +2,7 @@
 //import type { JSX } from 'preact';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationSummaryInput, LLMToolConversationSummaryResult } from './types.ts';
+import type { LLMToolConversationSummaryInput, LLMToolConversationSummaryResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -39,7 +39,7 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as LLMToolConversationSummaryResult;
+		const data = bbResponse.data as LLMToolConversationSummaryResultData;
 
 		const content = (
 			<div className='bb-tool-result'>
@@ -52,8 +52,8 @@ export const formatLogEntryToolResult = (
 					<h4>Message Counts:</h4>
 					{LLMTool.TOOL_TAGS_BROWSER.base.list([
 						`Original: ${data.originalMessageCount}`,
-						`Kept: ${data.keptMessages?.length}`,
-						`Removed: ${data.originalMessageCount - data.keptMessages?.length}`,
+						`Kept: ${data.keptMessageCount}`,
+						`Removed: ${data.originalMessageCount - data.keptMessageCount}`,
 					])}
 
 					<h4>Token Counts:</h4>
@@ -77,10 +77,10 @@ export const formatLogEntryToolResult = (
 		return {
 			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Conversation Summary'),
 			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(
-				`${data.originalMessageCount - data.keptMessages.length} messages summarized`,
+				`${data.originalMessageCount - data.keptMessageCount} messages summarized`,
 			),
 			content: LLMTool.TOOL_TAGS_BROWSER.base.container(content),
-			preview: `Summarized ${data.originalMessageCount - data.keptMessages.length} messages`,
+			preview: `Summarized ${data.originalMessageCount - data.keptMessageCount} messages`,
 		};
 	} else {
 		logger.error('LLMToolConversationSummary: Unexpected bbResponse format:', bbResponse);

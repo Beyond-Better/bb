@@ -374,7 +374,7 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
         message: 'Missing required global config: api.apiPort',
         fix: {
           description: 'Set default API port',
-          command: 'bb config set --global api.apiPort 3000',
+          command: 'bb config set --global api.apiPort 3162',
           apiEndpoint: '/api/v1/config/fix/api-port'
         }
       });
@@ -389,8 +389,8 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
         message: 'Invalid API port number',
         details: 'Port must be between 1024 and 65535',
         fix: {
-          description: 'Reset to default port (3000)',
-          command: 'bb config set --global api.apiPort 3000',
+          description: 'Reset to default port (3162)',
+          command: 'bb config set --global api.apiPort 3162',
           apiEndpoint: '/api/v1/config/fix/api-port'
         }
       });

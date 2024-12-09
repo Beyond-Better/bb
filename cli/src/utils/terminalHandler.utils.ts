@@ -72,12 +72,12 @@ export class TerminalHandler {
 	private promptCacheStartTime: number | null = null;
 	private promptCacheDuration: number | null = null;
 	private statementInProgress: boolean = false;
-	private startDir: string;
+	private projectId: string;
 	private bbDir!: string;
 	private apiClient!: ApiClient;
 
-	constructor(startDir: string) {
-		this.startDir = startDir;
+	constructor(projectId: string) {
+		this.projectId = projectId;
 		this.spinner = this.createSpinner('BB warming up...');
 	}
 	private getStatusColor(status: ApiStatus): (s: string) => string {
@@ -199,7 +199,7 @@ export class TerminalHandler {
 	}
 
 	public async init(): Promise<TerminalHandler> {
-		this.bbDir = await getBbDir(this.startDir);
+		this.bbDir = await getBbDir(this.projectId);
 		this.loadHistory();
 		this.formatter = await new ConversationLogFormatter().init();
 		return this;
@@ -224,7 +224,7 @@ export class TerminalHandler {
 			//colors.bold.blue(ansi.link('BB', 'https://beyondbetter.dev')) +
 			//+ '\n',
 		);
-		this.apiClient = await ApiClient.create(this.startDir);
+		this.apiClient = await ApiClient.create(this.projectId);
 	}
 
 	/*
@@ -411,7 +411,7 @@ export class TerminalHandler {
 		try {
 			const formatterResponse = await this.apiClient.post(
 				`/api/v1/format_log_entry/console/${logEntry.entryType}`,
-				{ logEntry, startDir: this.startDir },
+				{ logEntry, projectId: this.projectId },
 			);
 
 			if (!formatterResponse.ok) {

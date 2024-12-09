@@ -1,8 +1,10 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectType } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 //import { join } from '@std/path';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 const formatValue = (value: unknown, indent = ''): string => {
 	const nextIndent = indent + '    ';
@@ -57,15 +59,18 @@ export const config = new Command()
 				Deno.exit(1);
 			}
 
+			const configManager = await ConfigManagerV2.getInstance();
 			let config: unknown;
 			if (global) {
-				config = await ConfigManager.globalConfig();
+				config = await configManager.getGlobalConfig();
 				console.log(colors.bold('Global configuration:'));
 			} else if (project) {
-				config = await ConfigManager.projectConfig(Deno.cwd());
+				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(projectRoot);
+				config = await configManager.getProjectConfig(projectId);
 				console.log(colors.bold('Project configuration:'));
 			} else {
-				config = await ConfigManager.redactedFullConfig(Deno.cwd());
+				config = await configManager.getRedactedGlobalConfig();
 				console.log(colors.bold('Current configuration:'));
 			}
 			console.log(formatValue(config));
@@ -86,14 +91,17 @@ export const config = new Command()
 			}
 
 			let value: unknown;
+			const configManager = await ConfigManagerV2.getInstance();
 			if (global) {
-				const config = await ConfigManager.globalConfig();
+				const config = await configManager.getGlobalConfig();
 				value = await getConfigValue(key, config);
 			} else if (project) {
-				const config = await ConfigManager.projectConfig(Deno.cwd());
+				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(projectRoot);
+				const config = await configManager.getProjectConfig(projectId);
 				value = await getConfigValue(key, config);
 			} else {
-				const config = await ConfigManager.redactedFullConfig(Deno.cwd());
+				const config = await configManager.getGlobalConfig();
 				value = await getConfigValue(key, config);
 			}
 
@@ -120,15 +128,21 @@ export const config = new Command()
 				Deno.exit(1);
 			}
 
-			const configManager = await ConfigManager.getInstance();
+			const configManager = await ConfigManagerV2.getInstance();
 			if (global) {
-				await configManager.setGlobalConfigValue(key, value);
+				await configManager.updateGlobalConfig({
+					[key]: value,
+				});
 				logger.info(
 					colors.green(`Global configuration updated: ${colors.yellow(key)} = ${formatValue(value)}`),
 				);
 			} else {
 				// Default to project config
-				await configManager.setProjectConfigValue(key, value, Deno.cwd());
+				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(projectRoot);
+				await configManager.updateProjectConfig(projectId, {
+					[key]: value,
+				});
 				logger.info(
 					colors.green(`Project configuration updated: ${colors.yellow(key)} = ${formatValue(value)}`),
 				);

@@ -1,0 +1,19 @@
+{
+  "tasks": {
+    "dev": "deno run -A --node-modules-dir npm:vite",
+    "build": "deno run -A --node-modules-dir npm:vite build",
+    "preview": "deno run -A --node-modules-dir npm:vite preview",
+    "tauri": "deno run -A npm:@tauri-apps/cli"
+  },
+  "imports": {
+    "ansi_up": "https://esm.sh/ansi_up",
+    "preact": "npm:preact",
+    "preact/": "npm:preact/",
+    "@preact/signals": "npm:@preact/signals",
+    "@preact/signals-core": "npm:@preact/signals-core",
+    "tailwindcss": "npm:tailwindcss",
+    "@tailwindcss/typography": "npm:@tailwindcss/typography",
+    "postcss": "npm:postcss",
+    "autoprefixer": "npm:autoprefixer"
+  }
+}

@@ -1,8 +1,7 @@
 import { compare, parse } from '@std/semver';
-import { VERSION } from 'version.ts';
+import { REQUIRED_API_VERSION, VERSION } from 'version.ts';
 import { VersionCompatibility, VersionInfo } from '../types/version.types.ts';
 import { canAutoUpdate, detectInstallLocation } from './installLocation.ts';
-import { ConfigManager } from 'shared/configManager.ts';
 
 /**
  * Gets the current version information including installation location and auto-update capability
@@ -14,13 +13,14 @@ export async function getVersionInfo(): Promise<VersionInfo> {
 
 	return {
 		version: VERSION,
+		minVersion: REQUIRED_API_VERSION,
 		installLocation,
 		canAutoUpdate: autoUpdatePossible,
 	};
 }
 
-export async function checkVersionCompatibility(requiredVersion: string): Promise<VersionCompatibility> {
-	const { version: currentVersion } = await getVersionInfo();
+export async function checkVersionCompatibility(): Promise<VersionCompatibility> {
+	const { version: currentVersion, minVersion: requiredVersion } = await getVersionInfo();
 
 	// Compare versions
 	const current = parse(currentVersion);
