@@ -85,7 +85,7 @@ On Windows, you can also use the provided batch files:
       bb config set api.logLevel debug
       
       # Set in global config
-      bb config set --global api.apiPort 3000
+      bb config set --global api.apiPort 3162
       
       # Set complex values (automatically parsed)
       bb config set api.toolConfigs '{"tool1": {"enabled": true}}'

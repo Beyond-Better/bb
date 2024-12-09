@@ -12,18 +12,20 @@ export interface LLMToolDelegateTasksInput {
 	}[];
 }
 
+export interface LLMToolDelegateTasksResponseData {
+	data: {
+		completedTasks: {
+			type: string;
+			target: string;
+			status: 'completed' | 'failed';
+			result?: string;
+			error?: string;
+		}[];
+		errorMessages?: string[];
+	};
+}
+
 export interface LLMToolDelegateTasksResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			completedTasks: {
-				type: string;
-				target: string;
-				status: 'completed' | 'failed';
-				result?: string;
-				error?: string;
-			}[];
-			errorMessages?: string[];
-		};
-	} & LLMToolRunBbResponse;
+	bbResponse: LLMToolDelegateTasksResponseData & LLMToolRunBbResponse;
 }

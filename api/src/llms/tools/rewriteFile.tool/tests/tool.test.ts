@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from 'api/tests/deps.ts';
 
 //import LLMToolRewriteFile from '../tool.ts';
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
 	createTestInteraction,
@@ -11,34 +11,30 @@ import {
 	withTestProject,
 } from 'api/tests/testSetup.ts';
 import { FileHandlingError } from 'api/errors/error.ts';
+import type { LLMToolRewriteFileResponseData } from '../types.ts';
 
 const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete file content with no omissions or placeholders';
 
 // Type guard function
 function isRunCommandResponse(
 	response: unknown,
-): response is {
-	data: {
-		filePath: string;
-		lineCount: number;
-		isNewFile: boolean;
-		lineCountError: string | undefined;
-	};
-} {
+): response is LLMToolRewriteFileResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'filePath' in (response as any).data &&
-		typeof (response as any).data.filePath === 'string' &&
-		'lineCount' in (response as any).data &&
-		typeof (response as any).data.lineCount === 'number' &&
-		'isNewFile' in (response as any).data &&
-		typeof (response as any).data.isNewFile === 'boolean' &&
-		'lineCountError' in (response as any).data &&
-		(typeof (response as any).data.lineCountError === 'string' ||
-			typeof (response as any).data.lineCountError === 'undefined')
+		data !== null &&
+		typeof data === 'object' &&
+		typeof data === 'object' &&
+		'filePath' in data &&
+		typeof data.filePath === 'string' &&
+		'lineCount' in data &&
+		typeof data.lineCount === 'number' &&
+		'isNewFile' in data &&
+		typeof data.isNewFile === 'boolean' &&
+		'lineCountError' in data &&
+		(typeof data.lineCountError === 'string' ||
+			typeof data.lineCountError === 'undefined')
 	);
 }
 
@@ -50,8 +46,8 @@ function isString(value: unknown): value is string {
 Deno.test({
 	name: 'Rewrite File Tool - rewrite existing file',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -140,8 +136,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - create new file',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -229,8 +225,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - invalid acknowledgement string',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -273,8 +269,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - empty file handling',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -425,8 +421,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - line count mismatch',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -509,8 +505,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - line count mismatch',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -554,8 +550,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - line count tolerance',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
@@ -651,8 +647,8 @@ Deno.test({
 Deno.test({
 	name: 'Rewrite File Tool - throw error for file outside project',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,

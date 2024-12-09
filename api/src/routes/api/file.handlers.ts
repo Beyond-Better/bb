@@ -39,7 +39,7 @@ export const suggestFiles = async (
 			return;
 		}
 
-		if (!options.startDir) {
+		if (!options.projectId) {
 			response.status = 400;
 			response.body = { error: 'Start directory is required' };
 			return;

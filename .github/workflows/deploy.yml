@@ -22,32 +22,32 @@ jobs:
         run: |
           mkdir -p .bb
           cat << EOF > .bb/config.yaml
+          version: 2.0.0
           myPersonsName: bb
           myAssistantsName: Claude
           noBrowser: false
+          bbExeName: bb
+          bbApiExeName: bb-api
           api:
             environment: local
-            apiHostname: localhost
-            apiPort: 3000
-            apiUseTls: false
+            hostname: localhost
+            port: 3162
             ignoreLLMRequestCache: false
             usePromptCaching: true
+            tls:
+              useTls: false
             logFile: api.log
             logLevel: info
-            anthropicApiKey: >-
-              sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
+            llmKeys:
+              anthropic: >-
+                sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
           bui:
             environment: local
-            buiHostname: localhost
-            buiPort: 8000
-            buiUseTls: false
+            hostname: localhost
+            port: 8000
+            tls:
+              useTls: false
           cli: {}
-          repoInfo:
-            ctagsAutoGenerate: false
-            tokenLimit: 1024
-          project:
-            name: bb
-            type: git
           EOF
 
       - name: Build site

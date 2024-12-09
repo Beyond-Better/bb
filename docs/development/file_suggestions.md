@@ -191,7 +191,7 @@ This document outlines the design and implementation plan for the file suggestio
      }
 
      try {
-       const response = await apiClient.suggestFiles(searchText, startDir);
+       const response = await apiClient.suggestFiles(searchText, projectId);
        if (!response) throw new Error('Failed to fetch suggestions');
 
        if (response.suggestions.length === 1) {
@@ -320,7 +320,7 @@ This document outlines the design and implementation plan for the file suggestio
    ```typescript
    interface FileSuggestionsOptions {
      partialPath: string;    // The partial path or pattern to match
-     startDir: string;       // Project root directory
+     projectId: string;       // Project ID
      limit?: number;         // default: 50
      caseSensitive?: boolean;  // default: false
      type?: 'all' | 'file' | 'directory';  // default: 'all'

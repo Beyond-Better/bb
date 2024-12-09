@@ -1,7 +1,8 @@
 import { DiagnosticResult } from '../types.ts';
-import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { GlobalConfigSchema } from 'shared/configSchema.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { GlobalConfig } from 'shared/config/v2/types.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 interface ConfigValidationRule {
 	path: string[]; // Config path (e.g., ['api', 'apiPort'])
@@ -29,9 +30,9 @@ const CONFIG_RULES: ConfigValidationRule[] = [
 			return true;
 		},
 		fix: {
-			description: 'Reset to default port (3000)',
-			value: 3000,
-			command: 'bb config set --global api.apiPort 3000',
+			description: 'Reset to default port (3162)',
+			value: 3162,
+			command: 'bb config set --global api.apiPort 3162',
 			apiEndpoint: '/api/v1/config/fix/api-port',
 		},
 	},
@@ -54,7 +55,7 @@ const CONFIG_RULES: ConfigValidationRule[] = [
 
 function validateConfigValue(
 	rule: ConfigValidationRule,
-	config: GlobalConfigSchema,
+	config: GlobalConfig,
 ): DiagnosticResult | null {
 	const pathStr = rule.path.join('.');
 
@@ -132,9 +133,12 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManager.getInstance();
-		const globalConfig = await configManager.loadGlobalConfig();
-		const projectConfig = await configManager.loadProjectConfig(Deno.cwd());
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
+
+		const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
+		const projectId = await getProjectId(projectRoot);
+		const projectConfig = await configManager.getProjectConfig(projectId);
 
 		// Check global config rules
 		for (const rule of CONFIG_RULES) {
@@ -146,7 +150,7 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 
 		// Add project-specific config checks here if needed
 		// For now, just verify we can load it
-		if (!projectConfig.project?.name || !projectConfig.project?.type) {
+		if (!projectConfig.name || !projectConfig.type) {
 			results.push({
 				category: 'config',
 				status: 'error',

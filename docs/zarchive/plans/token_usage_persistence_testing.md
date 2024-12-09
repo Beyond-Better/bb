@@ -32,9 +32,9 @@ import {
 Deno.test({
   name: 'TokenUsagePersistence - Basic write and read operations',
   fn: async () => {
-    await withTestProject(async (testProjectRoot) => {
+    await withTestProject(async (testProjectId, testProjectRoot) => {
       // Test setup using project structure
-      const projectEditor = await getProjectEditor(testProjectRoot);
+      const projectEditor = await getProjectEditor(testProjectId);
       const interaction = await createTestInteraction('test-conversation', projectEditor);
 
       // Test implementation
@@ -89,7 +89,7 @@ Location: `api/tests/t/storage/tokenUsagePersistence.test.ts`
 1. Basic Operations
 ```typescript
 Deno.test('TokenUsagePersistence - Basic write and read operations', async (t) => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should write and read conversation token usage', async () => {
       // Test implementation
     });
@@ -104,7 +104,7 @@ Deno.test('TokenUsagePersistence - Basic write and read operations', async (t) =
 2. Error Handling
 ```typescript
 Deno.test('TokenUsagePersistence - Error handling', async (t) => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should handle directory creation errors', async () => {
       // Test implementation
     });
@@ -119,7 +119,7 @@ Deno.test('TokenUsagePersistence - Error handling', async (t) => {
 3. Data Validation
 ```typescript
 Deno.test('TokenUsagePersistence - Data validation', async (t) => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should validate record structure', async () => {
       // Test implementation
     });
@@ -137,7 +137,7 @@ Location: `api/tests/t/storage/conversationPersistence.test.ts`
 1. Token Usage Integration
 ```typescript
 Deno.test('ConversationPersistence - Token usage integration', async (t) => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should initialize TokenUsagePersistence', async () => {
       // Test implementation
     });
@@ -152,7 +152,7 @@ Deno.test('ConversationPersistence - Token usage integration', async (t) => {
 2. Analysis Methods
 ```typescript
 Deno.test('ConversationPersistence - Token usage analysis', async (t) => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should analyze token usage', async () => {
       // Test implementation
     });

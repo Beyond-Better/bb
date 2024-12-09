@@ -15,23 +15,42 @@ Before using BB, ensure you have the following:
 
 Git can be easily installed using package managers like Homebrew on macOS, Chocolatey on Windows, or apt on Linux. While Git is optional, it's highly recommended for optimal use of BB.
 
-Note: BB automatically handles TLS certificate generation and management. During initialization or when enabling TLS, BB will:
-1. Create a local Certificate Authority (CA)
-2. Create a server certificate signed by that CA
-3. Add the CA to your system's trust store (requires your computer's login password)
-
-See the [Certificate Management Guide](docs/user/security/certificates.md) for more details.
-
-For technical users: BB provides several options for TLS configuration:
-- Automatic certificate management (default)
-- Custom certificates via file paths or inline PEM content
-- TLS can be managed using the `bb secure` command
-
-See the [Certificate Management Guide](docs/user/security/certificates.md) for advanced configuration options.
-
 ## Installation Methods
 
-### Option 1: One-Line Installation Script (macOS and Linux)
+### Recommended: GUI Installers
+
+#### macOS Installation
+1. Download the appropriate .dmg file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - For Apple Silicon (M1/M2): Download `BB-dui-{version}-macos-apple-silicon.dmg`
+   - For Intel Macs: Download `BB-dui-{version}-macos-intel.dmg`
+2. Open the downloaded .dmg file
+3. Drag the Beyond Better app to your Applications folder
+4. When first launching the app:
+   - Right-click the app and select 'Open', or
+   - Go to System Settings > Privacy & Security and click 'Open Anyway'
+   - This security approval is only needed once, as the app is currently unsigned
+
+#### Windows Installation
+1. Download the appropriate installer from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - Recommended: `BB-dui-{version}-windows-x64.msi` (MSI installer)
+   - Alternative: `BB-dui-{version}-windows-x64-setup.exe` (NSIS installer)
+2. Run the downloaded installer
+3. Follow the installation wizard
+4. When first launching the app, you may see a SmartScreen warning:
+   - Click 'More info'
+   - Click 'Run anyway'
+   - This security approval is only needed once, as the app is currently unsigned
+
+#### Linux Installation
+1. Download the AppImage file from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):
+   - `BB-dui-{version}-linux-x64.AppImage`
+2. Make the AppImage executable:
+   ```bash
+   chmod +x BB-dui-*.AppImage
+   ```
+3. Run the AppImage
+
+### Alternative: One-Line Installation Script (macOS and Linux)
 
 For macOS and Linux users, the easiest way to install BB is using our one-line installation script:
 
@@ -46,26 +65,7 @@ This script will:
 
 Note: You may be prompted for your password to install the binaries in `/usr/local/bin`. This is necessary to make BB accessible system-wide.
 
-### Option 2: Windows Installer
-
-For Windows users, we provide an MSI installer for easy installation:
-
-1. Go to the [BB Releases page](https://github.com/Beyond-Better/bb/releases) on GitHub.
-2. Download the `bb-installer.msi` file.
-3. Double-click the downloaded file to run the installer.
-4. Follow the on-screen instructions to complete the installation.
-
-The installer will place two batch files on your desktop:
-- `bb_init.bat`: Use this to initialize BB in your project directory.
-- `bb_start.bat`: Use this to start BB and open the browser interface.
-
-To use BB:
-1. Navigate to your project directory in File Explorer.
-2. Copy the `bb_init.bat` file into your project directory.
-3. Double-click `bb_init.bat` to initialize BB for your project.
-4. Use `bb_start.bat` to start BB whenever you want to work on your project.
-
-### Option 3: Manual Installation from Release Packages
+### Option 2: Manual Installation from Release Packages
 
 For advanced users who prefer manual installation:
 
@@ -73,7 +73,7 @@ For advanced users who prefer manual installation:
 2. Download the appropriate package for your operating system and architecture:
    - For macOS: `bb-x86_64-apple-darwin.tar.gz` or `bb-aarch64-apple-darwin.tar.gz`
    - For Linux: `bb-x86_64-unknown-linux-gnu.tar.gz` or `bb-aarch64-unknown-linux-gnu.tar.gz`
-   - For Windows: `bb-x86_64-pc-windows-msvc.zip`
+   - For Windows: `bb-x86_64-pc-windows-msvc.zip` (for manual installation only)
 3. Extract the downloaded package:
    - For .tar.gz files (Linux and macOS):
      ```
@@ -87,9 +87,9 @@ For advanced users who prefer manual installation:
      sudo ./install.sh
      ```
    - For Windows:
-     Run `install.bat` as administrator
+     Move the executables to a directory in your PATH
 
-### Option 4: Manual Installation from Source
+### Option 3: Manual Installation from Source
 
 For developers or those who want to build from source:
 
@@ -119,10 +119,10 @@ After installation, navigate to the project directory where you want to use BB a
 bb init
 ```
 
-On Windows:
+On Windows, the commands work without the `.exe` extension:
 
 ```
-bb.exe init
+bb init
 ```
 
 This will create a `.bb/config.yaml` file in your project directory and generate the necessary TLS certificates for secure operation. If `mkcert` or `openssl` is not available, you will receive an error message with instructions on how to install them.
@@ -158,45 +158,46 @@ bb --help
 bb-api --help
 ```
 
-On Windows:
+On Windows, the commands work without the `.exe` extension:
 
 ```
-bb.exe --help
-bb-api.exe --help
+bb --help
+bb-api --help
 ```
 
 These commands should display the help information for BB and its API.
 
-## BB Manager
 
-After installation, you can use the BB Manager to easily manage multiple BB projects:
-
-### Windows
-Run `bb-manager.bat` from the installation directory or use the desktop shortcut.
-
-### macOS
-Open `BB Manager.applescript` from the installation directory.
-
-### Linux
-Run `bb-manager.sh` from the installation directory.
-
-BB Manager allows you to:
-- List, add, and remove BB projects
-- Run BB commands (init, start, stop) for specific projects
-- Automatically set the correct working directory for each project
 
 ## Usage
 
 After installation, you can start using BB in the following ways:
 
-1. Using BB Manager (Recommended):
-   - Windows: Run `bb-manager.bat`
-   - macOS: Open `BB Manager.applescript`
-   - Linux: Run `bb-manager.sh`
+## Optional: TLS Configuration
 
-   Use the BB Manager to add projects, initialize them, and start/stop BB for specific projects.
+By default, BB runs without TLS for simplicity. However, you can enable TLS for additional security:
 
-2. Browser Interface:
+### Automatic Certificate Management
+To enable TLS with automatic certificate management:
+```bash
+bb secure on
+```
+This will:
+1. Create a local Certificate Authority (CA)
+2. Create a server certificate signed by that CA
+3. Add the CA to your system's trust store (requires your computer's login password)
+
+### Advanced TLS Options
+For technical users, BB provides several TLS configuration options:
+- Custom certificates via file paths or inline PEM content
+- Manual certificate management
+- Trust store configuration
+
+See the [Certificate Management Guide](docs/user/security/certificates.md) for detailed configuration options.
+
+## Using BB
+
+1. Browser Interface:
    To launch the API and open a browser window to start using BB, run:
    ```
    bb start

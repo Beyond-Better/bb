@@ -1,24 +1,37 @@
 import { defineConfig } from '$fresh/server.ts';
 import tailwind from '$fresh/plugins/tailwind.ts';
-import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
-// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
-const startDir = Deno.cwd();
-const fullConfig = await ConfigManager.fullConfig(startDir);
-const redactedFullConfig = await ConfigManager.redactedFullConfig(startDir);
-const { buiHostname, buiPort, buiUseTls } = fullConfig.bui;
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
+const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
+
+const environment = globalConfig.bui.environment || 'local';
+const hostname = globalConfig.bui.hostname || 'localhost';
+const port = globalConfig.bui.port || 8000;
+const useTls = globalConfig.bui.tls?.useTls ?? true;
 
 // it appears that Deno Fresh doesn't honour the `hostname` option - it's always 'localhost'
-let listenOpts: Deno.ListenOptions = { hostname: buiHostname, port: buiPort || 8000 };
+let listenOpts: Deno.ListenOptions = { hostname, port };
 
-if (buiUseTls) {
-	const cert = fullConfig.bui.tlsCertPem ||
-		await readFromBbDir(startDir, fullConfig.bui.tlsCertFile || 'localhost.pem') ||
-		await readFromGlobalConfigDir(fullConfig.bui.tlsCertFile || 'localhost.pem') || '';
-	const key = fullConfig.bui.tlsKeyPem ||
-		await readFromBbDir(startDir, fullConfig.bui.tlsKeyFile || 'localhost-key.pem') ||
-		await readFromGlobalConfigDir(fullConfig.bui.tlsKeyFile || 'localhost-key.pem') || '';
+if (useTls) {
+	// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
+	let projectId;
+	try {
+		const startDir = Deno.cwd();
+		const projectRoot = await getProjectRootFromStartDir(startDir);
+		projectId = await getProjectId(projectRoot);
+	} catch (error) {
+		projectId = null;
+	}
+
+	const cert = globalConfig.bui.tls.certPem ||
+		(projectId ? await readFromBbDir(projectId, globalConfig.bui.tls.certFile || 'localhost.pem') : false) ||
+		await readFromGlobalConfigDir(globalConfig.bui.tls.certFile || 'localhost.pem') || '';
+	const key = globalConfig.bui.tls.keyPem ||
+		(projectId ? await readFromBbDir(projectId, globalConfig.bui.tls.keyFile || 'localhost-key.pem') : false) ||
+		await readFromGlobalConfigDir(globalConfig.bui.tls.keyFile || 'localhost-key.pem') || '';
 
 	listenOpts = { ...listenOpts, secure: true, cert, key } as Deno.TcpListenOptions;
 }

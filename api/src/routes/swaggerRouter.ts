@@ -1,13 +1,17 @@
 import type { Context } from '@oak/oak';
 import { Router } from '@oak/oak';
 import swaggerJsdoc from 'swagger-jsdoc';
-import { ConfigManager } from 'shared/configManager.ts';
+//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getVersionInfo } from 'shared/version.ts';
 
+// const configManager = await ConfigManagerV2.getInstance();
+// const globalConfig = await configManager.getGlobalConfig();
+const versionInfo = await getVersionInfo();
 const swaggerDefinition = {
 	openapi: '3.0.0',
 	info: {
 		title: 'BB API',
-		version: (await ConfigManager.globalConfig()).version,
+		version: versionInfo.version,
 		description:
 			`BB (Beyond Better) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you "be better" at every step.`,
 	},

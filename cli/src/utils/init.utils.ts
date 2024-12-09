@@ -1,22 +1,21 @@
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 //import type { WizardAnswers } from 'shared/configManager.ts';
-//import { ConfigManager } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 
-export async function createBbDir(startDir: string): Promise<void> {
-	const bbDir = join(startDir, '.bb');
+export async function createBbDir(projectRoot: string): Promise<void> {
+	const bbDir = join(projectRoot, '.bb');
 	try {
 		await ensureDir(bbDir);
-		//logger.info(`Created .bb directory in ${startDir}`);
+		//logger.info(`Created .bb directory in ${projectRoot}`);
 	} catch (error) {
 		logger.error(`Failed to create .bb directory: ${(error as Error).message}`);
 		throw error;
 	}
 }
 
-export async function createBbIgnore(startDir: string): Promise<void> {
-	const bbIgnorePath = join(startDir, '.bb', 'ignore');
+export async function createBbIgnore(projectRoot: string): Promise<void> {
+	const bbIgnorePath = join(projectRoot, '.bb', 'ignore');
 	try {
 		const fileInfo = await Deno.stat(bbIgnorePath);
 		if (fileInfo.isFile) {
@@ -80,15 +79,16 @@ Thumbs.db
 }
 
 /*
-export async function createDefaultConfig(startDir: string, wizardAnswers: WizardAnswers): Promise<void> {
-	const configManager = await ConfigManager.getInstance();
-	await configManager.ensureUserConfig();
+export async function createDefaultConfig(projectRoot: string, wizardAnswers: WizardAnswers): Promise<void> {
+	const configManager = await ConfigManagerV2.getInstance();
+	// v2 handles config creation differently
+	// await configManager.ensureUserConfig();
 
 	const projectConfig = {
 		...wizardAnswers,
 	};
 
-	await configManager.ensureProjectConfig(startDir, projectConfig);
+	await configManager.createProject(projectConfig.name, projectConfig.type as ProjectType, projectRoot);
 	logger.info('Created default config files');
 }
  */

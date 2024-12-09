@@ -3,10 +3,10 @@ import { renderToString } from 'preact-render-to-string';
 import type { JSX } from 'preact';
 import type { LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryType } from 'shared/types.ts';
-import type { LogEntryFormattedResult } from '../../logEntries/types.ts';
+import type { LogEntryFormattedResult } from 'api/logEntries/types.ts';
 import LogEntryFormatterManager from '../../logEntries/logEntryFormatterManager.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 export const logEntryFormatter = async (
 	{ params, request, response }: RouterContext<
@@ -17,7 +17,7 @@ export const logEntryFormatter = async (
 	const { logEntryDestination, logEntryFormatterType } = params;
 
 	try {
-		const { logEntry, startDir } = await request.body.json();
+		const { logEntry, projectId } = await request.body.json();
 		// 		logger.info(
 		// 			`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
 		// 				logEntry.toolName || 'N/A'
@@ -25,8 +25,9 @@ export const logEntryFormatter = async (
 		// 			logEntry
 		// 		);
 
-		const fullConfig = await ConfigManager.fullConfig(startDir);
-		const logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		const logEntryFormatterManager = await new LogEntryFormatterManager(projectConfig).init();
 
 		if (!logEntry || !logEntry.entryType || !logEntry.content) {
 			response.status = 400;

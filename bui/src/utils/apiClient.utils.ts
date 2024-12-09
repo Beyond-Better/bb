@@ -148,30 +148,30 @@ export class ApiClient {
 	}
 
 	// Conversation Management Methods
-	async createConversation(id: string, startDir: string): Promise<ConversationResponse | null> {
+	async createConversation(id: string, projectId: string): Promise<ConversationResponse | null> {
 		return this.get<ConversationResponse>(
-			`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`,
+			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 		);
 	}
 
-	async getConversations(startDir: string, limit = 200): Promise<ConversationListResponse | null> {
+	async getConversations(projectId: string, limit = 200): Promise<ConversationListResponse | null> {
 		return this.get<ConversationListResponse>(
-			`/api/v1/conversation?startDir=${encodeURIComponent(startDir)}&limit=${limit}`,
+			`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
 		);
 	}
 
 	async getConversation(
 		id: string,
-		startDir: string,
+		projectId: string,
 	): Promise<(ConversationResponse & { logEntries: ConversationEntry[] }) | null> {
 		return this.get<ConversationResponse & { logEntries: ConversationEntry[] }>(
-			`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`,
+			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);
 	}
 
-	async deleteConversation(id: string, startDir: string): Promise<void> {
-		await this.delete(`/api/v1/conversation/${id}?startDir=${encodeURIComponent(startDir)}`, [404]);
+	async deleteConversation(id: string, projectId: string): Promise<void> {
+		await this.delete(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`, [404]);
 	}
 
 	async getStatus(): Promise<ApiStatus | null> {
@@ -188,10 +188,10 @@ export class ApiClient {
 		return response.text();
 	}
 
-	async suggestFiles(partialPath: string, startDir: string): Promise<FileSuggestionsResponse | null> {
+	async suggestFiles(partialPath: string, projectId: string): Promise<FileSuggestionsResponse | null> {
 		return this.post<FileSuggestionsResponse>(
 			'/api/v1/files/suggest',
-			{ partialPath, startDir },
+			{ partialPath, projectId },
 		);
 	}
 
@@ -216,10 +216,10 @@ export class ApiClient {
 		);
 	}
 
-	async formatLogEntry(entryType: string, logEntry: any, startDir: string): Promise<LogEntryFormatResponse | null> {
+	async formatLogEntry(entryType: string, logEntry: any, projectId: string): Promise<LogEntryFormatResponse | null> {
 		return this.post<LogEntryFormatResponse>(
 			`/api/v1/format_log_entry/browser/${entryType}`,
-			{ logEntry, startDir },
+			{ logEntry, projectId },
 		);
 	}
 }

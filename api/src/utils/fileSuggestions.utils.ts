@@ -4,6 +4,7 @@ import { relative } from '@std/path';
 import { createExcludeRegexPatterns, getExcludeOptions, isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 //import type { DisplaySuggestion } from '../../../bui/src/types/suggestions.types.ts';
+import { getProjectRoot } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 
 export interface PatternOptions {
@@ -13,7 +14,7 @@ export interface PatternOptions {
 
 export interface FileSuggestionsOptions {
 	partialPath: string;
-	startDir: string;
+	projectId: string;
 	limit?: number;
 	caseSensitive?: boolean;
 	type?: 'all' | 'file' | 'directory';
@@ -35,12 +36,13 @@ export interface FileSuggestionsResponse {
  * Main function to get file suggestions based on partial path
  */
 export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
-	const { partialPath, startDir, limit = 50, caseSensitive = false, type = 'all' } = options;
+	const { partialPath, projectId, limit = 50, caseSensitive = false, type = 'all' } = options;
 
-	// logger.info('SuggestionPatterns: Getting suggestions', { partialPath, startDir, limit, caseSensitive, type });
+	// logger.info('SuggestionPatterns: Getting suggestions', { partialPath, projectId, limit, caseSensitive, type });
+	const projectRoot = await getProjectRoot(projectId);
 
 	// Validate path is within project
-	if (!isPathWithinProject(startDir, partialPath)) {
+	if (!isPathWithinProject(projectRoot, partialPath)) {
 		throw createError(ErrorType.FileHandling, 'Path outside project directory');
 	}
 
@@ -49,8 +51,8 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 	// logger.info('SuggestionPatterns: Normalized search path', { searchPath });
 
 	// Get exclude patterns
-	const excludeOptions = await getExcludeOptions(startDir);
-	const excludePatterns = createExcludeRegexPatterns(excludeOptions, startDir);
+	const excludeOptions = await getExcludeOptions(projectRoot);
+	const excludePatterns = createExcludeRegexPatterns(excludeOptions, projectRoot);
 	// logger.debug('SuggestionPatterns: Using exclude patterns', excludePatterns.map((p) => p.toString()));
 
 	// Generate patterns for matching
@@ -82,9 +84,9 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 	let reachedLimit = false;
 
 	try {
-		//logger.debug('SuggestionPatterns: Starting file walk', { startDir });
+		//logger.debug('SuggestionPatterns: Starting file walk', { projectRoot });
 		for await (
-			const entry of walk(startDir, {
+			const entry of walk(projectRoot, {
 				includeDirs: true,
 				followSymlinks: false,
 				match: patterns,
@@ -99,7 +101,7 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 			}
 
 			const stat = await Deno.stat(entry.path);
-			const relativePath = relative(startDir, entry.path);
+			const relativePath = relative(projectRoot, entry.path);
 			// logger.debug('SuggestionPatterns: Testing path', {
 			// 	path: relativePath,
 			// 	matches: patterns.map((p) => ({ pattern: p.toString(), matches: p.test(relativePath) })),

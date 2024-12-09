@@ -81,7 +81,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 	api: {
 		environment: 'local',
 		apiHostname: 'localhost',
-		apiPort: 3000,
+		apiPort: 3162,
 		apiUseTls: true,
 		ignoreLLMRequestCache: false,
 		usePromptCaching: true,
@@ -119,7 +119,7 @@ export const defaultProjectConfig: ProjectConfigSchema = {
 	api: {
 		environment: 'local',
 		apiHostname: 'localhost',
-		apiPort: 3000,
+		apiPort: 3162,
 		apiUseTls: true,
 		ignoreLLMRequestCache: false,
 		usePromptCaching: true,

@@ -16,7 +16,7 @@ interface ChatInputRef {
 
 interface ChatInputProps {
 	apiClient: ApiClient;
-	startDir: string;
+	projectId: string;
 	onCancelProcessing?: () => void;
 	value: string;
 	onChange: (value: string) => void;
@@ -57,7 +57,7 @@ export function ChatInput({
 	disabled = false,
 	maxLength = inputMaxCharLength,
 	onCancelProcessing,
-	startDir,
+	projectId,
 }: ChatInputProps) {
 	const [suggestions, setSuggestions] = useState<DisplaySuggestion[]>([]);
 	const [isShowingSuggestions, setIsShowingSuggestions] = useState(false);
@@ -93,12 +93,12 @@ export function ChatInput({
 
 		// Always show suggestions if forced or if we have a path separator
 		const shouldShow = forceShow || shouldShowSuggestions(effectivePath);
-		console.debug('ChatInput: Checking if should show suggestions', {
-			effectivePath,
-			forceShow,
-			shouldShow,
-			tabState,
-		});
+		// console.debug('ChatInput: Checking if should show suggestions', {
+		// 	effectivePath,
+		// 	forceShow,
+		// 	shouldShow,
+		// 	tabState,
+		// });
 
 		if (!shouldShow) {
 			setSuggestions([]);
@@ -111,23 +111,23 @@ export function ChatInput({
 		setSuggestionsError(null);
 
 		try {
-			console.debug('ChatInput: Fetching suggestions', { effectivePath, startDir });
-			const response = await apiClient.suggestFiles(effectivePath, startDir);
+			// console.debug('ChatInput: Fetching suggestions', { effectivePath, projectId });
+			const response = await apiClient.suggestFiles(effectivePath, projectId);
 			if (!response) throw new Error('Failed to fetch suggestions');
-			console.debug('ChatInput: Got suggestions response', { searchPath, suggestions: response.suggestions });
+			// console.debug('ChatInput: Got suggestions response', { searchPath, suggestions: response.suggestions });
 
 			// Process suggestions into display format
 			const processedSuggestions = processSuggestions(response.suggestions);
-			console.debug('ChatInput: Processed suggestions', processedSuggestions);
+			// console.debug('ChatInput: Processed suggestions', processedSuggestions);
 
 			// Update suggestions list
-			console.debug('ChatInput: Setting suggestions', {
-				searchPath,
-				count: processedSuggestions.length,
-				tabState,
-				hasMore: response.hasMore,
-				forceShow,
-			});
+			// console.debug('ChatInput: Setting suggestions', {
+			// 	searchPath,
+			// 	count: processedSuggestions.length,
+			// 	tabState,
+			// 	hasMore: response.hasMore,
+			// 	forceShow,
+			// });
 			setSuggestions(processedSuggestions);
 			setIsShowingSuggestions(processedSuggestions.length > 0);
 		} catch (error) {
@@ -142,7 +142,7 @@ export function ChatInput({
 	};
 
 	const debouncedFetchSuggestions = (searchPath: string, forceShow: boolean = false) => {
-		console.debug('ChatInput: Debouncing suggestion fetch', { searchPath, forceShow, tabState });
+		// console.debug('ChatInput: Debouncing suggestion fetch', { searchPath, forceShow, tabState });
 		if (suggestionDebounceRef.current) {
 			window.clearTimeout(suggestionDebounceRef.current);
 		}
@@ -199,13 +199,13 @@ export function ChatInput({
 		}
 		const newValue = target.value;
 		const newPosition = target.selectionStart;
-		console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
+		// console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
 		setCursorPosition(newPosition);
 		onChange(newValue);
 
 		// Reset selection when typing
 		if (selectedIndex >= 0) {
-			console.debug('ChatInput: Clearing selection due to typing');
+			// console.debug('ChatInput: Clearing selection due to typing');
 			setSelectedIndex(-1);
 			// Keep suggestions visible but clear selection
 			if (tabState !== TabState.INITIAL) {
@@ -218,17 +218,17 @@ export function ChatInput({
 		// Get the full current word/path
 		const currentText = newValue.slice(pos.start, pos.end);
 
-		console.debug('ChatInput: Processing input', {
-			currentText,
-			tabState,
-			wordBoundaries: { start: pos.start, end: pos.end },
-			cursorPosition: newPosition,
-		});
+		// console.debug('ChatInput: Processing input', {
+		// 	currentText,
+		// 	tabState,
+		// 	wordBoundaries: { start: pos.start, end: pos.end },
+		// 	cursorPosition: newPosition,
+		// });
 
 		// Check if we should show suggestions
 		if (currentText.includes('../') || currentText.includes('..\\') || currentText.includes(' ')) {
 			// Disable suggestions for relative paths or when space is typed
-			console.debug('ChatInput: Relative path or space detected, hiding suggestions');
+			// console.debug('ChatInput: Relative path or space detected, hiding suggestions');
 			setIsShowingSuggestions(false);
 			setTabState(TabState.INITIAL);
 			setSelectedIndex(-1);
@@ -239,14 +239,14 @@ export function ChatInput({
 			}
 			// If we're in a directory, append a slash to show its contents
 			let searchPath = currentText;
-			if (currentText.endsWith('/') || currentText.endsWith('\\')) {
-				console.debug('ChatInput: Directory path detected, showing contents');
-			}
-			console.debug('ChatInput: Updating suggestions for', { searchPath, currentText, tabState });
+			// if (currentText.endsWith('/') || currentText.endsWith('\\')) {
+			// 	console.debug('ChatInput: Directory path detected, showing contents');
+			// }
+			// console.debug('ChatInput: Updating suggestions for', { searchPath, currentText, tabState });
 			debouncedFetchSuggestions(searchPath, false);
 		} else if (tabState === TabState.SUGGESTIONS && !currentText) {
 			// If backspaced to empty while suggestions are showing, use root
-			console.debug('ChatInput: Empty input in suggestions mode, showing root');
+			// console.debug('ChatInput: Empty input in suggestions mode, showing root');
 			debouncedFetchSuggestions('/', true);
 		} else {
 			// Hide suggestions in all other cases
@@ -257,38 +257,38 @@ export function ChatInput({
 	};
 
 	const handleKeyPress = async (e: KeyboardEvent) => {
-		console.debug('ChatInput: handleKeyPress', { key: e.key, altKey: e.altKey, tabState });
+		// console.debug('ChatInput: handleKeyPress', { key: e.key, altKey: e.altKey, tabState });
 		if (e.key === 'Tab') {
 			e.preventDefault(); // Prevent default tab behavior immediately
 
 			// Skip if alt is pressed
 			if (e.altKey) return;
 
-			// Log the current state
-			console.debug('ChatInput: Tab key detected', {
-				key: e.key,
-				altKey: e.altKey,
-				tabState,
-				selectedIndex,
-				hasSuggestions: suggestions.length > 0,
-				isShowingSuggestions,
-			});
+			// // Log the current state
+			// console.debug('ChatInput: Tab key detected', {
+			// 	key: e.key,
+			// 	altKey: e.altKey,
+			// 	tabState,
+			// 	selectedIndex,
+			// 	hasSuggestions: suggestions.length > 0,
+			// 	isShowingSuggestions,
+			// });
 
 			// Get current text at cursor
 			const pos = getTextPositions(value, cursorPosition);
 			const currentSearchText = value.slice(pos.start, pos.end);
-			console.debug('ChatInput: Tab pressed', { currentSearchText, tabState, suggestions });
+			// console.debug('ChatInput: Tab pressed', { currentSearchText, tabState, suggestions });
 
 			// Handle tab based on current state
 			switch (tabState) {
 				case TabState.INITIAL:
 					// First tab press - show suggestions
-					console.debug('ChatInput: Initial tab with text:', currentSearchText);
+					// console.debug('ChatInput: Initial tab with text:', currentSearchText);
 					setTabState(TabState.SUGGESTIONS);
 
 					// If we have text, use it as search, otherwise show root
 					const searchPath = currentSearchText || '/';
-					console.debug('ChatInput: Fetching suggestions for', searchPath);
+					// console.debug('ChatInput: Fetching suggestions for', searchPath);
 					await fetchSuggestions(searchPath, true);
 
 					// If we have suggestions and text, try to select best match
@@ -297,24 +297,24 @@ export function ChatInput({
 							s.display.toLowerCase().startsWith(currentSearchText.toLowerCase())
 						);
 						if (matchIndex >= 0) {
-							console.debug('ChatInput: Found matching suggestion:', suggestions[matchIndex]);
+							// console.debug('ChatInput: Found matching suggestion:', suggestions[matchIndex]);
 							setSelectedIndex(matchIndex);
 						}
 					}
 					break;
 
 				case TabState.SUGGESTIONS:
-					console.debug('ChatInput: Tab in SUGGESTIONS state', {
-						selectedIndex,
-						suggestionCount: suggestions.length,
-						selectedItem: selectedIndex >= 0 ? suggestions[selectedIndex] : null,
-						tabState,
-					});
+					// console.debug('ChatInput: Tab in SUGGESTIONS state', {
+					// 	selectedIndex,
+					// 	suggestionCount: suggestions.length,
+					// 	selectedItem: selectedIndex >= 0 ? suggestions[selectedIndex] : null,
+					// 	tabState,
+					// });
 
 					// If we have suggestions and a selected item, handle tab completion
 					if (suggestions.length > 0 && selectedIndex >= 0 && selectedIndex < suggestions.length) {
 						const selected = suggestions[selectedIndex];
-						console.debug('ChatInput: Tab completing selected item into search', selected);
+						// console.debug('ChatInput: Tab completing selected item into search', selected);
 
 						// Get current text positions
 						const pos = getTextPositions(value, cursorPosition);
@@ -336,7 +336,7 @@ export function ChatInput({
 
 					// No selection or no suggestions - select first item if available
 					if (suggestions.length > 0) {
-						console.debug('ChatInput: Selecting first suggestion');
+						// console.debug('ChatInput: Selecting first suggestion');
 						setSelectedIndex(0);
 					}
 					break;
@@ -352,7 +352,7 @@ export function ChatInput({
 					: selectedIndex <= 0
 					? suggestions.length - 1
 					: selectedIndex - 1;
-				console.debug(`ChatInput: ${e.key} pressed, selecting suggestion`, { newIndex, tabState });
+				// console.debug(`ChatInput: ${e.key} pressed, selecting suggestion`, { newIndex, tabState });
 				setSelectedIndex(newIndex);
 				setTabState(TabState.SUGGESTIONS);
 				return;
@@ -360,7 +360,7 @@ export function ChatInput({
 			if (e.key === 'ArrowUp') {
 				e.preventDefault();
 				const newIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
-				console.debug('ChatInput: Arrow up, selecting previous suggestion', { newIndex, tabState });
+				// console.debug('ChatInput: Arrow up, selecting previous suggestion', { newIndex, tabState });
 				setSelectedIndex(newIndex);
 				// Ensure we stay in SUGGESTIONS state
 				if (tabState !== TabState.SUGGESTIONS) {
@@ -371,7 +371,7 @@ export function ChatInput({
 			if (e.key === 'Enter' && selectedIndex >= 0) {
 				e.preventDefault();
 				const selected = suggestions[selectedIndex];
-				console.debug('ChatInput: Enter pressed on suggestion', selected);
+				// console.debug('ChatInput: Enter pressed on suggestion', selected);
 				if (selected.isDirectory) {
 					// For directories: complete and show contents
 					applySuggestion(selected, true, true);
@@ -387,7 +387,7 @@ export function ChatInput({
 			}
 			if (e.key === 'Escape') {
 				e.preventDefault();
-				console.debug('ChatInput: Escape pressed, hiding suggestions');
+				// console.debug('ChatInput: Escape pressed, hiding suggestions');
 				setIsShowingSuggestions(false);
 				setTabState(TabState.INITIAL);
 				return;
@@ -421,7 +421,7 @@ export function ChatInput({
 		keepOpen: boolean = false,
 		isNavigating: boolean = false,
 	) => {
-		console.debug('ChatInput: Applying suggestion', { suggestion, keepOpen, isNavigating, tabState });
+		// console.debug('ChatInput: Applying suggestion', { suggestion, keepOpen, isNavigating, tabState });
 		let newText: string;
 		if (isNavigating) {
 			// During navigation, just use the raw path
@@ -434,13 +434,13 @@ export function ChatInput({
 			// Calculate new cursor position after the inserted text
 			const newCursorPos = pos.beforeText.length + displayPath.length;
 
-			console.debug('ChatInput: Navigation text replacement', {
-				pos,
-				displayPath,
-				newText,
-				newCursorPos,
-				isDirectory: suggestion.isDirectory,
-			});
+			// console.debug('ChatInput: Navigation text replacement', {
+			// 	pos,
+			// 	displayPath,
+			// 	newText,
+			// 	newCursorPos,
+			// 	isDirectory: suggestion.isDirectory,
+			// });
 
 			// Update cursor position after React updates the input value
 			setTimeout(() => {
@@ -451,7 +451,7 @@ export function ChatInput({
 		} else {
 			// Final selection - use full formatting
 			const pos = getTextPositions(value, cursorPosition);
-			console.debug('ChatInput: Text positions for final selection', pos);
+			// console.debug('ChatInput: Text positions for final selection', pos);
 			newText = formatPathForInsertion(suggestion.path, pos);
 			// For final selection, place cursor at end of the line
 			setTimeout(() => {
@@ -463,7 +463,7 @@ export function ChatInput({
 				}
 			}, 0);
 		}
-		console.debug('ChatInput: Formatted text for insertion', { newText });
+		// console.debug('ChatInput: Formatted text for insertion', { newText });
 		onChange(newText);
 
 		if (!keepOpen) {
@@ -472,7 +472,7 @@ export function ChatInput({
 			setTabState(TabState.INITIAL);
 		} else if (suggestion.isDirectory) {
 			// For directories, immediately show their contents
-			console.debug('ChatInput: Showing directory contents');
+			// console.debug('ChatInput: Showing directory contents');
 			setSelectedIndex(-1);
 			setTabState(TabState.SUGGESTIONS);
 			// Use the full path to fetch directory contents
@@ -578,7 +578,7 @@ export function ChatInput({
 	const statusInfo = getStatusInfo();
 
 	return (
-		<div className='bg-white px-4 py-2'>
+		<div className='bg-white px-4 py-2 w-full'>
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}

@@ -10,11 +10,12 @@ export interface LLMToolFetchWebScreenshotResultData {
 	mediaType?: string;
 	source?: string;
 }
+export interface LLMToolFetchWebScreenshotResponseData {
+	data: LLMToolFetchWebScreenshotResultData;
+}
 
 export interface LLMToolFetchWebScreenshotResult {
 	toolResult: LLMToolRunResultContent;
 	toolResponse: string;
-	bbResponse: {
-		data: LLMToolFetchWebScreenshotResultData;
-	};
+	bbResponse: LLMToolFetchWebScreenshotResponseData;
 }

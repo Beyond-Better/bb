@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
 	createTestInteraction,
@@ -9,25 +9,22 @@ import {
 	getToolManager,
 	withTestProject,
 } from 'api/tests/testSetup.ts';
+import type { LLMToolApplyPatchResponseData } from '../types.ts';
 
 // Type guard function
 function isApplyPatchResponse(
 	response: unknown,
-): response is {
-	data: {
-		modifiedFiles: string[];
-		newFiles: string[];
-	};
-} {
+): response is LLMToolApplyPatchResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'modifiedFiles' in (response as any).data &&
-		Array.isArray((response as any).data.modifiedFiles) &&
-		'newFiles' in (response as any).data &&
-		Array.isArray((response as any).data.newFiles)
+		data !== null &&
+		typeof data === 'object' &&
+		'modifiedFiles' in data &&
+		Array.isArray(data.modifiedFiles) &&
+		'newFiles' in data &&
+		Array.isArray(data.newFiles)
 	);
 }
 
@@ -39,8 +36,8 @@ function isString(value: unknown): value is string {
 Deno.test({
 	name: 'ApplyPatchTool - Basic functionality',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -136,8 +133,8 @@ Deno.test({
 Deno.test({
 	name: 'ApplyPatchTool - Patch affecting multiple files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -251,8 +248,8 @@ Deno.test({
 Deno.test({
 	name: 'ApplyPatchTool - Complex patch with multiple changes',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -356,8 +353,8 @@ Deno.test({
 Deno.test({
 	name: 'ApplyPatchTool - Create new file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -448,8 +445,8 @@ Deno.test({
 Deno.test({
 	name: 'ApplyPatchTool - Attempt to patch file outside project root',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -525,8 +522,8 @@ Deno.test({
 Deno.test({
 	name: 'ApplyPatchTool - Patch fails to apply',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);

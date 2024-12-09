@@ -1,14 +1,14 @@
 import { DiagnosticResult } from '../types.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { GlobalConfigSchema } from 'shared/configSchema.ts';
+import type { GlobalConfig } from 'shared/config/v2/types.ts';
 import { certificateFileExists, getCertificateInfo, isCertSelfSigned } from '../../utils/tlsCerts.utils.ts';
 import { join } from '@std/path';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
 
 interface TlsCheckContext {
-	configManager: ConfigManager;
-	globalConfig: GlobalConfigSchema;
+	configManager: ConfigManagerV2;
+	globalConfig: GlobalConfig;
 	globalDir: string;
 }
 
@@ -145,8 +145,8 @@ export async function checkTls(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManager.getInstance();
-		const globalConfig = await configManager.loadGlobalConfig();
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
 		const globalDir = await getGlobalConfigDir();
 
 		const context: TlsCheckContext = {
@@ -156,7 +156,7 @@ export async function checkTls(): Promise<DiagnosticResult[]> {
 		};
 
 		// Check if TLS is enabled
-		const tlsEnabled = globalConfig.api?.apiUseTls;
+		const tlsEnabled = globalConfig.api?.tls;
 		if (!tlsEnabled) {
 			results.push({
 				category: 'tls',

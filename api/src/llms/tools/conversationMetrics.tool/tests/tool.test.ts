@@ -2,7 +2,7 @@ import { assert, assertEquals } from 'api/tests/deps.ts';
 import { stripAnsiCode } from '@std/fmt/colors';
 
 import type LLMToolConversationMetrics from '../tool.ts';
-import type { LLMToolConversationMetricsResult } from '../types.ts';
+import type { LLMToolConversationMetricsResultData } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMToolRunBbResponseData } from 'api/llms/llmTool.ts';
@@ -12,8 +12,8 @@ import { createMockMessageRecordSequence, createMockTokenUsageRecord } from 'api
 Deno.test({
 	name: 'ConversationMetricsTool - Basic functionality',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('conversation_metrics') as LLMToolConversationMetrics;
 			assert(tool, 'Failed to get ConversationMetricsTool');
@@ -80,7 +80,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResultData;
 				//console.log('metrics:', metrics);
 
 				// Message counts
@@ -107,8 +107,8 @@ Deno.test({
 Deno.test({
 	name: 'ConversationMetricsTool - Cache impact analysis',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('conversation_metrics') as LLMToolConversationMetrics;
 			assert(tool, 'Failed to get ConversationMetricsTool');
@@ -173,7 +173,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -201,8 +201,8 @@ Deno.test({
 Deno.test({
 	name: 'ConversationMetricsTool - Empty conversation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('conversation_metrics') as LLMToolConversationMetrics;
 			assert(tool, 'Failed to get ConversationMetricsTool');
@@ -227,7 +227,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 0, 'Total turns should be 0');
@@ -248,8 +248,8 @@ Deno.test({
 Deno.test({
 	name: 'ConversationMetricsTool - Single role conversation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('conversation_metrics') as LLMToolConversationMetrics;
 			assert(tool, 'Failed to get ConversationMetricsTool');
@@ -305,7 +305,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -326,8 +326,8 @@ Deno.test({
 Deno.test({
 	name: 'ConversationMetricsTool - Large token counts',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('conversation_metrics') as LLMToolConversationMetrics;
 			assert(tool, 'Failed to get ConversationMetricsTool');
@@ -378,7 +378,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolConversationMetricsResult;
+				const metrics = result.bbResponse.data as LLMToolConversationMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 2, 'Total turns should be 2');

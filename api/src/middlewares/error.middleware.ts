@@ -4,7 +4,7 @@ import type { Middleware } from '@oak/oak';
 import { isAPIError } from 'api/errors/error.ts';
 import type { APIError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 /**
  * Error Handler Middleware function
@@ -20,7 +20,8 @@ export const errorHandler: Middleware = async (
 	try {
 		await next();
 	} catch (err) {
-		const globalConfig = await ConfigManager.globalConfig();
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
 		if (isAPIError(err)) {
 			const error: APIError = err;
 			const message: string = error.message || 'An error occurred';

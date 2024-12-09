@@ -4,7 +4,8 @@ import { parse as parseYaml } from '@std/yaml';
 import { stripIndents } from 'common-tags';
 import { getBbDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
 import * as defaultPrompts from './defaultPrompts.ts';
-import { ConfigManager, type FullConfigSchema } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 
 interface PromptMetadata {
@@ -20,21 +21,22 @@ interface Prompt {
 
 class PromptManager {
 	private userPromptsDir: string;
-	private fullConfig!: FullConfigSchema;
+	private projectConfig!: ProjectConfig;
 
 	constructor() {
 		this.userPromptsDir = '';
 	}
 
-	async init(projectRoot: string): Promise<PromptManager> {
-		const bbDir = await getBbDir(projectRoot);
+	async init(projectId: string): Promise<PromptManager> {
+		const bbDir = await getBbDir(projectId);
 		this.userPromptsDir = join(bbDir, 'prompts');
-		this.fullConfig = await ConfigManager.fullConfig(projectRoot);
+		const configManager = await ConfigManagerV2.getInstance();
+		this.projectConfig = await configManager.getProjectConfig(projectId);
 		return this;
 	}
 
 	public async loadGuidelines(): Promise<string | null> {
-		const guidelinesPath = this.fullConfig.project.llmGuidelinesFile;
+		const guidelinesPath = this.projectConfig.llmGuidelinesFile;
 		if (!guidelinesPath) {
 			return null;
 		}

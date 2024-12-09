@@ -4,8 +4,9 @@ import { colors } from 'cliffy/ansi/colors.ts';
 import { logger } from 'shared/logger.ts';
 import { createBbDir, createBbIgnore } from '../utils/init.utils.ts';
 import { basename } from '@std/path';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 //import { GitUtils } from 'shared/git.ts';
-import type { ProjectType } from 'shared/configManager.ts';
+// Using ProjectType from v2 types
 
 interface WizardAnswers {
 	project: {
@@ -17,10 +18,11 @@ interface WizardAnswers {
 	myAssistantsName?: string;
 	useTls?: boolean;
 }
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectType } from 'shared/config/v2/types.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
-async function runWizard(startDir: string): Promise<WizardAnswers> {
+async function runWizard(projectRoot: string): Promise<WizardAnswers> {
 	// Show password notice if not on Windows
 	if (Deno.build.os !== 'windows') {
 		console.log(colors.bold('\nImportant Note about Security Setup:'));
@@ -33,16 +35,22 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 		console.log('\nThis is a one-time setup step to ensure secure communication.\n');
 	}
 
-	const configManager = await ConfigManager.getInstance();
-	const existingProjectConfig = await configManager.getExistingProjectConfig(startDir);
-	const globalConfig = await configManager.loadGlobalConfig();
+	const configManager = await ConfigManagerV2.getInstance();
+	// TODO: Handle project config retrieval in v2
+	const existingProjectConfig = {
+		project: { name: basename(projectRoot), type: 'local' as ProjectType },
+		myPersonsName: Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
+		myAssistantsName: 'Claude',
+		api: { anthropicApiKey: '' },
+	};
+	const globalConfig = await configManager.getGlobalConfig();
 
-	const defaultProjectName = existingProjectConfig.project?.name || basename(startDir);
-	const defaultPersonName = existingProjectConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') ||
+	const defaultProjectName = existingProjectConfig.project.name;
+	const defaultPersonName = existingProjectConfig.myPersonsName ||
 		'';
-	const defaultAssistantName = existingProjectConfig.myAssistantsName || 'Claude';
-	const existingApiKey = existingProjectConfig.api?.anthropicApiKey || '';
-	const isApiKeyRequired = !globalConfig.api?.anthropicApiKey;
+	const defaultAssistantName = existingProjectConfig.myAssistantsName;
+	const existingApiKey = existingProjectConfig.api.anthropicApiKey;
+	const isApiKeyRequired = !globalConfig.api.llmKeys?.anthropic;
 
 	const answers = await prompt([
 		{
@@ -103,12 +111,12 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 	]);
 
 	// Detect project type
-	const projectType = existingProjectConfig.project?.type || await detectProjectType(startDir);
+	const projectType = existingProjectConfig.project.type;
 
 	// Remove empty values
 	const filteredAnswers: WizardAnswers = {
 		project: {
-			name: answers.projectName?.trim() || startDir,
+			name: answers.projectName?.trim() || projectRoot,
 			type: projectType,
 		},
 	};
@@ -129,7 +137,7 @@ async function runWizard(startDir: string): Promise<WizardAnswers> {
 	return filteredAnswers;
 }
 
-async function detectProjectType(_startDir: string): Promise<ProjectType> {
+async function detectProjectType(_projectRoot: string): Promise<ProjectType> {
 	try {
 		const gitCheck = new Deno.Command('git', {
 			args: ['--version'],
@@ -144,7 +152,7 @@ async function detectProjectType(_startDir: string): Promise<ProjectType> {
 		return 'local';
 	}
 	// findGitRoot calls getGit which throws if git isn't installed, so just do the above manual check instead.
-	// const gitRoot = await GitUtils.findGitRoot(startDir);
+	// const gitRoot = await GitUtils.findGitRoot(projectRoot);
 	// return gitRoot ? 'git' : 'local';
 }
 
@@ -154,8 +162,8 @@ async function printProjectDetails(
 	wizardAnswers: WizardAnswers,
 	useTlsCert: boolean,
 ) {
-	const configManager = await ConfigManager.getInstance();
-	const globalConfig = await configManager.loadGlobalConfig();
+	const configManager = await ConfigManagerV2.getInstance();
+	const globalConfig = await configManager.getGlobalConfig();
 	console.log(`\n${colors.bold.blue.underline('BB Project Details:')}`);
 	console.log(`  ${colors.bold('Name:')} ${colors.green(projectName)}`);
 	console.log(`  ${colors.bold('Type:')} ${colors.green(projectType)}`);
@@ -219,37 +227,44 @@ export const init = new Command()
 	.description('Initialize BB in the current directory')
 	.action(async () => {
 		const startDir = Deno.cwd();
+		const projectRoot = await getProjectRootFromStartDir(startDir);
+		//const projectId = await getProjectId(projectRoot);
 
 		try {
-			await createBbDir(startDir);
+			await createBbDir(projectRoot);
 
-			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(startDir)}`);
+			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(projectRoot)}`);
 
 			// Run the wizard
-			const wizardAnswers = await runWizard(startDir);
+			const wizardAnswers = await runWizard(projectRoot);
 
 			// Create or update config with wizard answers and project info
-			const configManager = await ConfigManager.getInstance();
+			const configManager = await ConfigManagerV2.getInstance();
 			await configManager.ensureGlobalConfig();
-			await configManager.ensureProjectConfig(startDir, wizardAnswers);
+			await configManager.createProject(
+				wizardAnswers.project.name,
+				wizardAnswers.project.type as ProjectType,
+				projectRoot,
+			);
 
 			// Verify that API key is set either in user config or project config
-			const finalGlobalConfig = await configManager.loadGlobalConfig();
-			const finalProjectConfig = await configManager.getExistingProjectConfig(startDir);
+			const finalGlobalConfig = await configManager.getGlobalConfig();
+			const projectId = await getProjectId(projectRoot);
+			const finalProjectConfig = await configManager.getProjectConfig(projectId);
 
-			if (!finalGlobalConfig.api?.anthropicApiKey && !finalProjectConfig.api?.anthropicApiKey) {
+			if (!finalGlobalConfig.api?.llmKeys?.anthropic && !finalProjectConfig.settings.api?.llmKeys?.anthropic) {
 				throw new Error(
 					'Anthropic API key is required. Please set it in either user or project configuration.',
 				);
 			}
 
 			// Create .bb/ignore file
-			await createBbIgnore(startDir);
+			await createBbIgnore(projectRoot);
 
 			let useTlsCert = wizardAnswers.useTls ?? true;
-			const certFileName = finalGlobalConfig.api.tlsCertFile || 'localhost.pem';
+			const certFileName = finalGlobalConfig.api.tls?.certFile || 'localhost.pem';
 			if (useTlsCert && !await certificateFileExists(certFileName)) {
-				const domain = finalGlobalConfig.api.apiHostname || 'localhost';
+				const domain = finalGlobalConfig.api.hostname || 'localhost';
 				const validityDays = 365;
 				const certCreated = await generateCertificate(domain, validityDays);
 				if (!certCreated) {
@@ -258,7 +273,12 @@ export const init = new Command()
 							`${colors.yellow('TLS will be disabled for the API server.')}`,
 					);
 					// Continue without cert - we'll set apiUseTls to false
-					await configManager.setGlobalConfigValue('api.apiUseTls', 'false');
+					await configManager.updateGlobalConfig({
+						api: {
+							...finalGlobalConfig.api,
+							tls: { ...finalGlobalConfig.api.tls, useTls: false },
+						},
+					});
 					useTlsCert = false;
 
 					//console.log(`  ${colors.bold.read('No TLS certificate exists and could not be created.')}`);

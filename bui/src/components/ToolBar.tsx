@@ -17,11 +17,11 @@ interface ToolBarProps {
 	onSendMessage: (message: string) => Promise<void>;
 	chatInputRef: RefObject<ChatInputRef>;
 	disabled: boolean;
-	startDir: string;
+	projectId: string;
 	apiClient: ApiClient;
 }
 
-export function ToolBar({ onSendMessage, chatInputRef, disabled, startDir, apiClient }: ToolBarProps): JSX.Element {
+export function ToolBar({ onSendMessage, chatInputRef, disabled, projectId, apiClient }: ToolBarProps): JSX.Element {
 	const [showHelp, setShowHelp] = useState(false);
 	const [showStatus, setShowStatus] = useState(false);
 
@@ -121,7 +121,7 @@ export function ToolBar({ onSendMessage, chatInputRef, disabled, startDir, apiCl
 				<button
 					onClick={handleAddFilesTemplate}
 					disabled={disabled}
-					title={`Insert template for adding files (paths relative to ${startDir})`}
+					title={`Insert template for adding files`}
 					className='p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200'
 				>
 					<svg

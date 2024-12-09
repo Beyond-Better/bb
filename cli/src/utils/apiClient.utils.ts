@@ -1,4 +1,4 @@
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 
@@ -18,24 +18,25 @@ export default class ApiClient {
 	}
 
 	static async create(
-		startDir: string,
+		projectId: string,
 		hostname?: string,
 		port?: number,
 		useTls?: boolean,
 	): Promise<ApiClient> {
-		const fullConfig = await ConfigManager.fullConfig(startDir);
-		const apiHostname = hostname || fullConfig.api.apiHostname || 'localhost';
-		const apiPort = port || fullConfig.api.apiPort || 3000;
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		const apiHostname = hostname || projectConfig.settings.api?.hostname || 'localhost';
+		const apiPort = port || projectConfig.settings.api?.port || 3162;
 		const apiUseTls = typeof useTls !== 'undefined'
 			? useTls
-			: typeof fullConfig.api.apiUseTls !== 'undefined'
-			? fullConfig.api.apiUseTls
+			: typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
+			? projectConfig.settings.api.tls.useTls
 			: true;
 		const baseUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
 		const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}`;
-		const rootCert = fullConfig.api.tlsRootCaPem ||
-			await readFromBbDir(startDir, fullConfig.api.tlsRootCaFile || 'rootCA.pem') ||
-			await readFromGlobalConfigDir(fullConfig.api.tlsRootCaFile || 'rootCA.pem') || '';
+		const rootCert = projectConfig.settings.api?.tls?.rootCaPem ||
+			await readFromBbDir(projectId, projectConfig.settings.api?.tls?.rootCaFile || 'rootCA.pem') ||
+			await readFromGlobalConfigDir(projectConfig.settings.api?.tls?.rootCaFile || 'rootCA.pem') || '';
 
 		Deno.env.set('DENO_TLS_CA_STORE', 'system');
 

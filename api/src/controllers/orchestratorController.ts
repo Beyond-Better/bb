@@ -1,7 +1,12 @@
 import * as diff from 'diff';
 
-import type InteractionManager from '../llms/interactions/interactionManager.ts';
-import { interactionManager } from '../llms/interactions/interactionManager.ts';
+// Hard-coded conversation token limit (192k to leave room for 8k response)
+const CONVERSATION_TOKEN_LIMIT = 192000;
+//const CONVERSATION_TOKEN_LIMIT = 64000;
+
+
+import type InteractionManager from 'api/llms/interactionManager.ts';
+import { interactionManager } from 'api/llms/interactionManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLM from '../llms/providers/baseLLM.ts';
@@ -33,6 +38,8 @@ import type {
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
@@ -44,7 +51,6 @@ import {
 import { generateConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
-import type { FullConfigSchema } from 'shared/configManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 
 function getConversationObjective(objectives?: ObjectivesData): string | undefined {
@@ -111,7 +117,7 @@ class OrchestratorController {
 	public interactionManager: InteractionManager;
 	public primaryInteractionId: ConversationId | null = null;
 	private agentControllers: Map<string, AgentController> = new Map();
-	public fullConfig!: FullConfigSchema;
+	public projectConfig!: ProjectConfig;
 	public promptManager!: PromptManager;
 	public toolManager!: LLMToolManager;
 	public llmProvider: LLM;
@@ -144,14 +150,14 @@ class OrchestratorController {
 		this.projectEditorRef = new WeakRef(projectEditor);
 		this.interactionManager = interactionManager; //new InteractionManager();
 		this.llmProvider = LLMFactory.getProvider(this.getInteractionCallbacks());
-		this.fullConfig = this.projectEditor.fullConfig;
 	}
 
 	async init(): Promise<OrchestratorController> {
-		this.toolManager = await new LLMToolManager(this.fullConfig, 'core').init(); // Assuming 'core' is the default toolset
+		const configManager = await ConfigManagerV2.getInstance();
+		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
 		this.eventManager = EventManager.getInstance();
-		this.promptManager = await new PromptManager().init(this.projectEditor.projectRoot);
-		//this.fullConfig = await ConfigManager.fullConfig(this.projectEditor.projectRoot);
+		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
 
 		return this;
 	}
@@ -407,7 +413,7 @@ class OrchestratorController {
 		);
 		const systemPrompt = await this.promptManager.getPrompt('system', {
 			userDefinedContent: 'You are an AI assistant helping with code and project management.',
-			fullConfig: this.projectEditor.fullConfig,
+			projectConfig: this.projectEditor.projectConfig,
 			interaction,
 		});
 		interaction.baseSystem = systemPrompt;
@@ -447,7 +453,7 @@ class OrchestratorController {
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.fullConfig.api?.environment === 'localdev') {
+			if (this.projectConfig.settings.api?.environment === 'localdev') {
 				const system = Array.isArray(currentResponse.messageMeta.system)
 					? currentResponse.messageMeta.system[0].text
 					: currentResponse.messageMeta.system;
@@ -476,7 +482,7 @@ class OrchestratorController {
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.fullConfig.api?.environment === 'localdev') {
+			if (this.projectConfig.settings.api?.environment === 'localdev') {
 				const system = Array.isArray(currentResponse.messageMeta.system)
 					? currentResponse.messageMeta.system[0].text
 					: currentResponse.messageMeta.system;
@@ -557,9 +563,10 @@ class OrchestratorController {
 	private getInteractionCallbacks(): LLMCallbacks {
 		return {
 			PROJECT_EDITOR: () => this.projectEditor,
+			PROJECT_ID: () => this.projectEditor.projectId,
 			PROJECT_ROOT: () => this.projectEditor.projectRoot,
 			PROJECT_INFO: () => this.projectEditor.projectInfo,
-			PROJECT_CONFIG: () => this.projectEditor.fullConfig,
+			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
 			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
 			LOG_ENTRY_HANDLER: async (
@@ -662,7 +669,7 @@ class OrchestratorController {
 	private async handleToolUse(
 		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
-		response: LLMProviderMessageResponse,
+		_response: LLMProviderMessageResponse,
 	): Promise<{ toolResponse: LLMToolRunToolResponse }> {
 		logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`);
 		//logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`, response);
@@ -829,7 +836,7 @@ class OrchestratorController {
 		};
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = options.maxTurns ?? this.fullConfig.api.maxTurns ?? 25; // Maximum number of turns for the run loop
+		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 		try {
 			logger.info(
@@ -919,6 +926,63 @@ class OrchestratorController {
 				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
 
 				loopTurnCount++;
+
+				// Check total token usage including cache operations
+				const totalTurnTokens = interaction.tokenUsageTurn.totalTokens +
+					(interaction.tokenUsageTurn.cacheCreationInputTokens ?? 0) +
+					(interaction.tokenUsageTurn.cacheReadInputTokens ?? 0);
+				if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
+					logger.warn(
+						`OrchestratorController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
+						`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
+						`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
+						`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`
+					);
+
+					// Log auxiliary message about forced summary
+					const timestamp = new Date().toISOString();
+					await interaction.conversationLogger.logAuxiliaryMessage(
+						`force-summary-${timestamp}`,
+						{
+							message: `BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
+							purpose: 'Token Limit Enforcement',
+						}
+					);
+
+					// Manually construct tool use for conversation summary
+					const toolUse: LLMAnswerToolUse = {
+						toolName: 'conversation_summary',
+						toolInput: {
+							requestSource: 'tool',
+							// Calculate maxTokensToKeep:
+							// - Target keeping 75% of limit for conversation
+							// - Ensure minimum of 1000 tokens (tool requirement)
+							// - If limit is very low, warn but maintain minimum
+							maxTokensToKeep: (() => {
+								const targetTokens = Math.floor(CONVERSATION_TOKEN_LIMIT * 0.75);
+								if (targetTokens < 1000) {
+									logger.warn(
+										`OrchestratorController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
+										`Using minimum of 1000 tokens for conversation summary.`
+									);
+								}
+								return Math.max(1000, targetTokens);
+							})(),
+							summaryLength: 'long'
+						},
+						toolUseId: `force-summary-${Date.now()}`,
+						toolValidation: { validated: true, results: 'Tool input validation passed' }
+					};
+
+					// Handle the tool use directly without adding its response to toolResponses
+					await this.handleToolUse(interaction, toolUse, currentResponse.messageResponse);
+
+					// Only add summary note to toolResponses if there are already responses to process
+					// This avoids triggering another loop iteration if LLM was done
+					if (toolResponses.length > 0) {
+						toolResponses.push('\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.');
+					}
+				}
 
 				// If there's tool toolResponse, send it back to the LLM
 				if (toolResponses.length > 0) {
@@ -1095,7 +1159,9 @@ class OrchestratorController {
 			throw new Error('filePath and change must both be strings or both be arrays');
 		}
 
-		if (this.projectEditor.fullConfig.project.type === 'git') {
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
+		if (projectConfig.type === 'git') {
 			await stageAndCommitAfterChanging(
 				interaction,
 				this.projectEditor.projectRoot,

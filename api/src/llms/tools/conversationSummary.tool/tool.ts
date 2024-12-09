@@ -36,7 +36,7 @@ import type {
 	LLMToolConversationSummaryData,
 	//LLMToolConversationSummarySection,
 	LLMToolConversationSummaryMetadata,
-	LLMToolConversationSummaryResponse,
+	LLMToolConversationSummaryResponseData,
 } from './types.ts';
 
 export default class LLMToolConversationSummary extends LLMTool {
@@ -193,7 +193,7 @@ A summary of the removed messages has been added to the start of the conversatio
 					maxTokensToKeep,
 					summaryLength,
 					requestSource,
-				} as LLMToolConversationSummaryResponse['data'],
+				} as LLMToolConversationSummaryResponseData['data'],
 			};
 
 			return { toolResults, toolResponse, bbResponse };

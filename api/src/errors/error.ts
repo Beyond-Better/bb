@@ -11,6 +11,7 @@ export enum ErrorType {
 	LLMRateLimit = 'RateLimitError',
 	LLMValidation = 'ValidationError',
 	ToolHandling = 'ToolHandlingError',
+	ProjectHandling = 'ProjectHandlingError',
 	FileHandling = 'FileHandlingError',
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
@@ -22,6 +23,7 @@ export const ErrorTypes = [
 	ErrorType.LLMRateLimit,
 	ErrorType.LLMValidation,
 	ErrorType.ToolHandling,
+	ErrorType.ProjectHandling,
 	ErrorType.FileHandling,
 	ErrorType.VectorSearch,
 	ErrorType.TokenUsageValidation,
@@ -140,6 +142,25 @@ export class TokenUsageValidationError extends Error {
 
 export const isTokenUsageValidationError = (value: unknown): value is TokenUsageValidationError => {
 	return value instanceof TokenUsageValidationError;
+};
+
+export interface ProjectHandlingErrorOptions extends ErrorOptions {
+	projectId?: string;
+	projectRoot?: string;
+	projectType?: string;
+}
+
+export class ProjectHandlingError extends Error {
+	constructor(
+		message: string,
+		public options: ProjectHandlingErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.ProjectHandling;
+	}
+}
+export const isProjectHandlingError = (value: unknown): value is ProjectHandlingError => {
+	return value instanceof ProjectHandlingError;
 };
 
 export interface FileHandlingErrorOptions extends ErrorOptions {

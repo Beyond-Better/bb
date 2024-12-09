@@ -4,18 +4,44 @@ import oak_logger from 'oak_logger';
 import { parseArgs } from '@std/cli';
 import { oakCors } from 'cors';
 
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
 import router from './routes/routes.ts';
 import { logger } from 'shared/logger.ts';
 import type { BbState } from 'api/types.ts';
-import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from './utils/fileLogger.ts';
+import { getVersionInfo } from 'shared/version.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
-const startDir = Deno.cwd();
-const fullConfig = await ConfigManager.fullConfig(startDir);
-const redactedFullConfig = await ConfigManager.redactedFullConfig(startDir);
-const { environment, apiHostname, apiPort, apiUseTls } = fullConfig.api;
+
+let projectId;
+try {
+	const startDir = Deno.cwd();
+	const projectRoot = await getProjectRootFromStartDir(startDir);
+	projectId = await getProjectId(projectRoot);
+} catch (error) {
+	//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+	projectId = null;
+}
+
+const configManager = await ConfigManagerV2.getInstance();
+const globalConfig = await configManager.getGlobalConfig();
+const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
+
+let apiConfig: ApiConfig;
+
+if (projectId) {
+	const projectConfig = await configManager.getProjectConfig(projectId);
+	apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+} else {
+	apiConfig = globalConfig.api;
+}
+
+const environment = apiConfig.environment || 'local';
+const hostname = apiConfig.hostname || 'localhost';
+const port = apiConfig.port || 3162;
+const useTls = apiConfig.tls?.useTls ?? true;
 
 // Parse command line arguments
 const args = parseArgs(Deno.args, {
@@ -26,21 +52,22 @@ const args = parseArgs(Deno.args, {
 
 if (args.help) {
 	console.log(`
-Usage: ${fullConfig.bbApiExeName} [options]
+Usage: ${globalConfig.bbApiExeName} [options]
 
 Options:
   -h, --help                Show this help message
   -V, --version             Show version information
-  -H, --hostname <string>   Specify the hostname to run the API server (default: ${apiHostname})
-  -p, --port <number>       Specify the port to run the API server (default: ${apiPort})
-  -t, --use-tls <boolean>    Specify whether the API server should use TLS (default: ${apiUseTls})
+  -H, --hostname <string>   Specify the hostname to run the API server (default: ${hostname})
+  -p, --port <number>       Specify the port to run the API server (default: ${port})
+  -t, --use-tls <boolean>    Specify whether the API server should use TLS (default: ${useTls})
   -l, --log-file <file>     Specify a log file to write output
   `);
 	Deno.exit(0);
 }
 
 if (args.version) {
-	console.log(`BB API version ${fullConfig.version}`);
+	const versionInfo = await getVersionInfo();
+	console.log(`BB API version ${versionInfo.version}`);
 	Deno.exit(0);
 }
 
@@ -48,17 +75,17 @@ if (args.version) {
 const apiLogFile = args['log-file'];
 if (apiLogFile) await apiFileLogger(apiLogFile);
 
-const customHostname = args.hostname ? args.hostname : apiHostname;
-const customPort: number = args.port ? parseInt(args.port, 10) : apiPort as number;
+const customHostname = args.hostname ? args.hostname : hostname;
+const customPort: number = args.port ? parseInt(args.port, 10) : port;
 const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 	? (args['use-tls'] === 'true' ? true : false)
-	: !!apiUseTls;
+	: useTls;
 //console.debug(`BB API starting at ${customHostname}:${customPort}`);
 
 const app = new Application<BbState>();
 
 app.use(oak_logger.logger);
-if (environment === 'local') {
+if (apiConfig.logLevel === 'debug') {
 	app.use(oak_logger.responseTime);
 }
 
@@ -69,11 +96,12 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 app.addEventListener('listen', ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
-	logger.info(`Starting API with config:`, redactedFullConfig);
-	if (fullConfig.api?.ignoreLLMRequestCache) {
+	logger.info(`Starting API with config:`, globalRedactedConfig);
+	if (apiConfig.ignoreLLMRequestCache) {
 		logger.warn('Cache for LLM requests is disabled!');
 	}
 	logger.info(`Environment: ${environment}`);
+	logger.info(`Log level: ${apiConfig.logLevel}`);
 	logger.info(`Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
 });
 app.addEventListener('error', (evt: ErrorEvent) => {
@@ -83,12 +111,12 @@ app.addEventListener('error', (evt: ErrorEvent) => {
 if (import.meta.main) {
 	let listenOpts: ListenOptions = { hostname: customHostname, port: customPort };
 	if (customUseTls) {
-		const cert = fullConfig.api.tlsCertPem ||
-			await readFromBbDir(startDir, fullConfig.api.tlsCertFile || 'localhost.pem') ||
-			await readFromGlobalConfigDir(fullConfig.api.tlsCertFile || 'localhost.pem') || '';
-		const key = fullConfig.api.tlsKeyPem ||
-			await readFromBbDir(startDir, fullConfig.api.tlsKeyFile || 'localhost-key.pem') ||
-			await readFromGlobalConfigDir(fullConfig.api.tlsKeyFile || 'localhost-key.pem') || '';
+		const cert = apiConfig.tls.certPem ||
+			(projectId ? await readFromBbDir(projectId, apiConfig.tls.certFile || 'localhost.pem') : false) ||
+			await readFromGlobalConfigDir(apiConfig.tls.certFile || 'localhost.pem') || '';
+		const key = apiConfig.tls.keyPem ||
+			(projectId ? await readFromBbDir(projectId, apiConfig.tls.keyFile || 'localhost-key.pem') : false) ||
+			await readFromGlobalConfigDir(apiConfig.tls.keyFile || 'localhost-key.pem') || '';
 
 		listenOpts = { ...listenOpts, secure: true, cert, key } as ListenOptionsTls;
 	}

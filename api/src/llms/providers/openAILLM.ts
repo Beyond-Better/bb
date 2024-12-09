@@ -33,7 +33,7 @@ class OpenAILLM extends LLM {
 	}
 
 	private async initializeOpenAIClient() {
-		const apiKey = this.fullConfig.api?.openaiApiKey;
+		const apiKey = this.projectConfig.settings.api?.llmKeys?.openai;
 		if (!apiKey) {
 			throw new Error('OpenAI API key is not set');
 		}

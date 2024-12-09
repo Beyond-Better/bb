@@ -15,3 +15,6 @@ bui-rewrite*
 
 dui/node_modules
 dui/src-tauri/target/debug
+dui/.vite
+
+*/.bb/backups*

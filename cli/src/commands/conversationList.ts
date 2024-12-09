@@ -2,8 +2,9 @@ import { Command } from 'cliffy/command/mod.ts';
 import type { ConversationMetadata } from 'shared/types.ts';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 // import { createSpinner, startSpinner, stopSpinner } from '../utils/terminalHandler.utils.ts';
+import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 export const conversationList = new Command()
 	.description('List saved conversations')
@@ -16,10 +17,14 @@ export const conversationList = new Command()
 
 		try {
 			const startDir = resolve(directory);
-			const fullConfig = await ConfigManager.fullConfig(startDir);
-			const apiClient = await ApiClient.create(startDir);
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			const projectId = await getProjectId(projectRoot);
+			const configManager = await ConfigManagerV2.getInstance();
+			const globalConfig = await configManager.getGlobalConfig();
+			//const projectConfig = await configManager.getProjectConfig(projectId);
+			const apiClient = await ApiClient.create(projectId);
 			const response = await apiClient.get(
-				`/api/v1/conversation?startDir=${encodeURIComponent(startDir)}&page=${page}&limit=${limit}`,
+				`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`,
 			);
 			//stopSpinner(spinner);
 
@@ -49,21 +54,21 @@ export const conversationList = new Command()
 					console.log('\nPagination instructions:');
 					if (pagination.page < pagination.totalPages) {
 						console.log(
-							`To view the next page, use: ${fullConfig.bbExeName} conversation list --page ${
+							`To view the next page, use: ${globalConfig.bbExeName} conversation list --page ${
 								pagination.page + 1
 							} --limit ${limit}`,
 						);
 					}
 					if (pagination.page > 1) {
 						console.log(
-							`To view the previous page, use: ${fullConfig.bbExeName} conversation list --page ${
+							`To view the previous page, use: ${globalConfig.bbExeName} conversation list --page ${
 								pagination.page - 1
 							} --limit ${limit}`,
 						);
 					}
 					console.log(`Current items per page: ${limit}`);
 					console.log(`To change the number of items per page, use the --limit option. For example:`);
-					console.log(`${fullConfig.bbExeName} conversation list --page ${pagination.page} --limit 20`);
+					console.log(`${globalConfig.bbExeName} conversation list --page ${pagination.page} --limit 20`);
 				}
 			} else {
 				console.error('Failed to fetch saved conversations:', response.statusText);

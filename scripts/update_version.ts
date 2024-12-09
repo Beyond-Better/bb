@@ -1,4 +1,5 @@
 import { walk } from '@std/fs';
+import { parse as parseToml } from '@std/toml';
 
 // Standard commit/change types for consistent changelog entries:
 //
@@ -17,8 +18,8 @@ import { walk } from '@std/fs';
 // fix: Bug fix
 // security: Security-related change
 
-const updateVersion = async (newVersion: string) => {
-	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc'];
+const updateVersion = async (newVersion: string, minVersion: string) => {
+	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc', 'dui/src-tauri/tauri.conf.json'];
 
 	for await (const file of files) {
 		const content = await Deno.readTextFile(file);
@@ -34,8 +35,23 @@ const updateVersion = async (newVersion: string) => {
 		await formatCommand.output();
 	}
 
+	// Update Cargo.toml
+	const cargoPath = 'dui/src-tauri/Cargo.toml';
+	const cargoContent = await Deno.readTextFile(cargoPath);
+	const cargoToml = parseToml(cargoContent);
+	cargoToml.package.version = newVersion;
+	
+	// Format the TOML content maintaining the original structure
+	const formattedCargoContent = [
+		'[package]',
+		...Object.entries(cargoToml.package).map(([key, value]) => `${key} = ${JSON.stringify(value)}`),
+		'',
+		cargoContent.substring(cargoContent.indexOf('[lib]'))
+	].join('\n');
+	await Deno.writeTextFile(cargoPath, formattedCargoContent);
+
 	// Update version.ts
-	await Deno.writeTextFile('version.ts', `export const VERSION = "${newVersion}";`);
+	await Deno.writeTextFile('version.ts', `export const VERSION = "${newVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`);
 
 	// Update other files that might need the version
 	for await (const entry of walk('.', { exts: ['.ts', '.rb'] })) {
@@ -83,10 +99,11 @@ const updateChangelog = async (newVersion: string) => {
 
 if (import.meta.main) {
 	const newVersion = Deno.args[0];
+	const minVersion = Deno.args[1] || newVersion;
 	if (!newVersion) {
 		console.error('Please provide a new version number.');
 		Deno.exit(1);
 	}
-	updateVersion(newVersion);
+	updateVersion(newVersion, minVersion);
 	console.log('Version update complete. Please review the changes in CHANGELOG.md before committing.');
 }

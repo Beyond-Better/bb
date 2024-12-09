@@ -29,7 +29,7 @@ This document outlines the strategy for handling formatted log entries in the BU
    // Request body
    {
      logEntry: ConversationLogEntry;
-     startDir: string;
+     projectId: string;
    }
    ```
 

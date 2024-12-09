@@ -156,7 +156,7 @@ export class DynamicFormatter {
 
 import { DynamicFormatter } from "../utils/dynamicFormatter.ts";
 
-const formatter = new DynamicFormatter("https://localhost:3000/api");
+const formatter = new DynamicFormatter("https://localhost:3162/api");
 
 async function displayLogEntry(entry: LogEntry) {
   let formatted: string;

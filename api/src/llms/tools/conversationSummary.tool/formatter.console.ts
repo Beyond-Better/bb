@@ -1,6 +1,6 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationSummaryInput, LLMToolConversationSummaryResult } from './types.ts';
+import type { LLMToolConversationSummaryInput, LLMToolConversationSummaryResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
@@ -26,7 +26,7 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as LLMToolConversationSummaryResult;
+		const data = bbResponse.data as LLMToolConversationSummaryResultData;
 
 		const content = stripIndents`
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Summary (${data.summaryLength}):`)}
@@ -34,8 +34,8 @@ export const formatLogEntryToolResult = (
 
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Message Counts:')}
             Original: ${data.originalMessageCount}
-            Kept: ${data.keptMessages?.length}
-            Removed: ${data.originalMessageCount - data.keptMessages?.length}
+            Kept: ${data.keptMessageCount}
+            Removed: ${data.originalMessageCount - data.keptMessageCount}
 
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Token Counts:')}
             Original: ${data.originalTokenCount}
@@ -52,10 +52,10 @@ export const formatLogEntryToolResult = (
 		return {
 			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Conversation Summary'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
-				`${data.originalMessageCount - data.keptMessages.length} messages summarized`,
+				`${data.originalMessageCount - data.keptMessageCount} messages summarized`,
 			),
 			content,
-			preview: `Summarized ${data.originalMessageCount - data.keptMessages.length} messages`,
+			preview: `Summarized ${data.originalMessageCount - data.keptMessageCount} messages`,
 		};
 	} else {
 		logger.error('LLMToolConversationSummary: Unexpected bbResponse format:', bbResponse);

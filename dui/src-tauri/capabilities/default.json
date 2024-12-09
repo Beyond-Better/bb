@@ -1,0 +1,82 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "main-capability",
+	"description": "Capability for the main window",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"shell:allow-open",
+		{
+			"identifier": "fs:allow-open",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-stat",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-fstat",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-read",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-exists",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-read-text-file-lines",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-watch",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		},
+		{
+			"identifier": "fs:allow-unwatch",
+			"allow": [
+				{ "path": "$APPLOG/*" },
+				{ "path": "$APPDATA/bb/logs/*" },
+				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
+				{ "path": "/var/log/beyondbetter/*" }
+			]
+		}
+	]
+}

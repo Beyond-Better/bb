@@ -3,6 +3,7 @@ import type MultiModelQueryTool from '../tool.ts';
 import type { ModelProvider } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolMultiModelQueryResponseData } from '../types.ts';
 
 // Mock API responses
 const mockAnthropicResponse = 'This is a mock response from Anthropic.';
@@ -35,29 +36,25 @@ const toolConfig = {
 // Type guard function
 function isMultiModelQueryResponse(
 	response: unknown,
-): response is {
-	data: {
-		querySuccess: Array<{ modelIdentifier: string; answer: string }>;
-		queryError: Array<{ modelIdentifier: string; error: string }>;
-	};
-} {
+): response is LLMToolMultiModelQueryResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'querySuccess' in (response as any).data &&
-		Array.isArray((response as any).data.querySuccess) &&
-		'queryError' in (response as any).data &&
-		Array.isArray((response as any).data.queryError)
+		data !== null &&
+		typeof data === 'object' &&
+		'querySuccess' in data &&
+		Array.isArray(data.querySuccess) &&
+		'queryError' in data &&
+		Array.isArray(data.queryError)
 	);
 }
 
 Deno.test({
 	name: 'MultiModelQueryTool - successful query',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor, 'multi_model_query', toolConfig);
 			const tool = await toolManager.getTool('multi_model_query') as MultiModelQueryTool;
@@ -154,8 +151,8 @@ Deno.test({
 Deno.test({
 	name: 'MultiModelQueryTool - invalid provider',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor, 'multi_model_query', toolConfig);
 			const tool = await toolManager.getTool('multi_model_query') as MultiModelQueryTool;
@@ -250,8 +247,8 @@ Deno.test({
 Deno.test({
 	name: 'MultiModelQueryTool - API error handling',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor, 'multi_model_query', toolConfig);
 			const tool = await toolManager.getTool('multi_model_query') as MultiModelQueryTool;

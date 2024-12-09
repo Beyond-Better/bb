@@ -10,7 +10,7 @@ import { withTestProject } from 'api/tests/testSetup.ts';
 Deno.test({
 	name: 'API root endpoint returns correct message',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const originalCwd = Deno.cwd();
 			try {
 				Deno.chdir(testProjectRoot);
@@ -40,7 +40,7 @@ Deno.test({
 Deno.test({
 	name: 'API status endpoint returns OK',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const originalCwd = Deno.cwd();
 			try {
 				Deno.chdir(testProjectRoot);
@@ -68,7 +68,7 @@ Deno.test({
 
 /*
 Deno.test("Start conversation endpoint", async () => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     const { app } = await import('../../src/main.ts');
     const request = await superoak(app);
     const response = await request
@@ -104,7 +104,7 @@ Deno.test("Start conversation endpoint", async () => {
 });
 
 Deno.test("File operations in conversation", async () => {
-  await withTestProject(async (testProjectRoot) => {
+  await withTestProject(async (testProjectId, testProjectRoot) => {
     const { app } = await import('../../src/main.ts');
     const request = await superoak(app);
 

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { computed } from '@preact/signals';
+import { computed, Signal } from '@preact/signals';
 import { JSX } from 'preact';
 type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
-import type { ChatConfig, ConversationListState } from '../types/chat.types.ts';
+import { useAppState } from '../hooks/useAppState.ts';
+import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
@@ -14,83 +15,56 @@ import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
 import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
-//import { VersionDisplay } from '../components/Version/VersionDisplay.tsx';
 import { useVersion } from '../hooks/useVersion.ts';
 
 import { ChatInput } from '../components/ChatInput.tsx';
-import { ConversationHeader } from '../components/ConversationHeader.tsx';
-import { ConversationMetadata } from '../components/ConversationMetadata.tsx';
+// ConversationHeader has been deprecated in favor of ChatMetadata
+// ProjectMetadata is now handled in routes/chat/index.tsx
+import { ConversationInfo } from '../components/ConversationInfo.tsx';
+import { ApiStatus } from 'shared/types.ts';
 import { ToolBar } from '../components/ToolBar.tsx';
-import type { Conversation, ConversationEntry, ConversationLogEntry, TokenUsage } from 'shared/types.ts';
+import type {
+	Conversation,
+	ConversationEntry,
+	ConversationLogEntry,
+	ConversationMetadata,
+	TokenUsage,
+} from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { REQUIRED_API_VERSION } from '../config/version.ts';
 import { VersionWarning } from '../components/Version/VersionWarning.tsx';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
-const getHashParams = () => {
-	if (!IS_BROWSER) return null;
-	// console.log('Chat: URL parameters:', {
-	// 	hash: window.location.hash,
-	// 	params: params ? Object.fromEntries(params.entries()) : null,
-	// });
-	const hash = window.location.hash.slice(1);
-	return new URLSearchParams(hash);
-};
-
-const getQueryParams = () => {
-	if (!IS_BROWSER) return null;
-	return new URLSearchParams(window.location.search);
-};
-
-const getUrlParams = () => {
-	// For backward compatibility, return hash params
-	return getHashParams();
-};
-
 const getConversationId = () => {
-	const params = getQueryParams();
+	const params = new URLSearchParams(globalThis.location.search);
 	return params?.get('conversationId') || null;
 };
 
-const getApiHostname = () => {
+const getProjectId = () => {
 	const params = getUrlParams();
-	return params?.get('apiHostname') || 'localhost';
+	const projectIdFromHash = params?.get('projectId');
+	const projectIdFromStorage = IS_BROWSER ? localStorage.getItem('projectId') : null;
+	return projectIdFromHash || projectIdFromStorage || '.';
 };
 
-const getApiPort = () => {
-	const params = getUrlParams();
-	return params?.get('apiPort') || '3000';
-};
+interface ChatProps {
+	chatState: Signal<ChatState>;
+}
 
-const getApiUseTls = () => {
-	const params = getUrlParams();
-	return params?.get('apiUseTls') === 'true';
-};
-
-const getStartDir = () => {
-	const params = getUrlParams();
-	const startDirFromHash = params?.get('startDir');
-	const startDirFromStorage = IS_BROWSER ? localStorage.getItem('startDir') : null;
-	return startDirFromHash || startDirFromStorage || '.';
-};
-
-const getApiUrl = (hostname: string, port: string, useTls: boolean): string => {
-	return `${useTls ? 'https' : 'http'}://${hostname}:${port}`;
-};
-
-const getWsUrl = (hostname: string, port: string, useTls: boolean): string => {
-	return `${useTls ? 'wss' : 'ws'}://${hostname}:${port}/api/v1/ws`;
-};
-
-export default function Chat(): JSX.Element {
+export default function Chat({
+	chatState,
+}: ChatProps): JSX.Element {
+	//console.log('Chat: Component mounting');
 	// Initialize version checking
-	const { checkVersionCompatibility } = useVersion();
+	const { checkVersionCompatibility, versionCompatibility } = useVersion();
+	const appState = useAppState();
+
 	useEffect(() => {
-		checkVersionCompatibility(REQUIRED_API_VERSION); // Set minimum required version
+		checkVersionCompatibility(); // Set minimum required version
 	}, []);
 
 	// State management
-	const [startDir, setStartDir] = useState(getStartDir);
+	const [projectId, setProjectId] = useState(getProjectId);
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
@@ -127,7 +101,7 @@ export default function Chat(): JSX.Element {
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
-		startDir,
+		projectId,
 
 		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
@@ -135,14 +109,27 @@ export default function Chat(): JSX.Element {
 		onOpen: () => console.log('ChatIsland: WebSocket opened'),
 	};
 
-	const [chatState, handlers, scrollIndicatorState] = useChatState(config);
-	const { versionState } = useVersion();
+	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
+	const [handlers, scrollIndicatorState] = useChatState(config, chatState);
+
+	useEffect(() => {
+		console.log('Chat: Initial useEffect', { chatState: chatState.value });
+		if (!IS_BROWSER) return;
+
+		chatState.value.projectData = {
+			projectId,
+			type: 'git',
+			name: 'BB',
+		};
+	}, [projectId]);
 
 	// Update cache status every 30 seconds
 	useEffect(() => {
 		if (!IS_BROWSER) return;
+		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
+			console.log('Chat: status.lastApiCallTime effect - updateCacheStatus', chatState.value.status.lastApiCallTime);
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -167,10 +154,10 @@ export default function Chat(): JSX.Element {
 	}, [chatState.value.status.lastApiCallTime]);
 
 	// Utility functions
-	const updateStartDir = (newDir: string) => {
-		setStartDir(newDir);
+	const updateProjectId = (newDir: string) => {
+		setProjectId(newDir);
 		if (IS_BROWSER && newDir) {
-			localStorage.setItem('startDir', newDir);
+			localStorage.setItem('projectId', newDir);
 		}
 	};
 
@@ -229,21 +216,21 @@ export default function Chat(): JSX.Element {
 				throw new Error('Please wait for the current operation to complete');
 			}
 
-			await chatState.value.apiClient.deleteConversation(id, startDir);
+			await chatState.value.apiClient.deleteConversation(id, projectId);
 
 			// Update conversations list immediately
 			chatState.value = {
 				...chatState.value,
-				conversations: chatState.value.conversations.filter((conv) => conv.id !== id),
+				conversations: chatState.value.conversations.filter((conv: ConversationMetadata) => conv.id !== id),
 			};
 
 			// Handle currently selected conversation
 			if (id === chatState.value.conversationId) {
 				await handlers.clearConversation();
-				const url = new URL(window.location.href);
+				const url = new URL(globalThis.location.href);
 				url.searchParams.delete('conversationId');
-				const hash = window.location.hash;
-				window.history.pushState({}, '', url.pathname + url.search + hash);
+				const hash = globalThis.location.hash;
+				globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 			}
 		} catch (error) {
 			console.error('Failed to delete conversation:', error);
@@ -268,19 +255,19 @@ export default function Chat(): JSX.Element {
 		try {
 			await handlers.selectConversation(id);
 			// Update URL while preserving hash parameters
-			const url = new URL(window.location.href);
+			const url = new URL(globalThis.location.href);
 			url.searchParams.set('conversationId', id);
-			const hash = window.location.hash;
-			window.history.pushState({}, '', url.pathname + url.search + hash);
+			const hash = globalThis.location.hash;
+			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		} catch (error) {
 			console.error('Failed to switch conversation:', error);
 			setToastMessage('Failed to switch conversation');
 			setShowToast(true);
 			// Clear the conversation ID from URL on error
-			const url = new URL(window.location.href);
+			const url = new URL(globalThis.location.href);
 			url.searchParams.delete('conversationId');
-			const hash = window.location.hash;
-			window.history.pushState({}, '', url.pathname + url.search + hash);
+			const hash = globalThis.location.hash;
+			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		}
 	};
 
@@ -290,11 +277,12 @@ export default function Chat(): JSX.Element {
 		const handleCancelProcessing = () => {
 			handlers.cancelProcessing();
 		};
-		window.addEventListener('bb:cancel-processing', handleCancelProcessing);
-		return () => window.removeEventListener('bb:cancel-processing', handleCancelProcessing);
+		globalThis.addEventListener('bb:cancel-processing', handleCancelProcessing);
+		return () => globalThis.removeEventListener('bb:cancel-processing', handleCancelProcessing);
 	}, [handlers]);
 
 	useEffect(() => {
+		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		setInput('');
@@ -306,12 +294,13 @@ export default function Chat(): JSX.Element {
 			}
 		};
 
-		window.addEventListener('popstate', handlePopState);
-		return () => window.removeEventListener('popstate', handlePopState);
+		globalThis.addEventListener('popstate', handlePopState);
+		return () => globalThis.removeEventListener('popstate', handlePopState);
 	}, [chatState.value.conversationId]);
 
 	// Handle scroll behavior
 	useEffect(() => {
+		console.log('Chat: Scroll useEffect');
 		if (!messagesEndRef.current) return;
 
 		const messagesContainer = messagesEndRef.current;
@@ -358,6 +347,7 @@ export default function Chat(): JSX.Element {
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
+		console.log('Chat: Visibility useEffect');
 		if (!IS_BROWSER) return;
 
 		// Don't force scroll during processing - respect user's scroll position
@@ -378,15 +368,17 @@ export default function Chat(): JSX.Element {
 		};
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
-		window.addEventListener('beforeunload', handleBeforeUnload);
+		globalThis.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
+			console.log('Chat: Cleanup for useEffect');
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			window.removeEventListener('beforeunload', handleBeforeUnload);
+			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	}, [chatState.value.status.apiStatus]);
 
 	useEffect(() => {
+		console.log('Chat: Connection status useEffect');
 		let disconnectTimeoutId: number;
 		let reconnectTimeoutId: number;
 
@@ -421,11 +413,6 @@ export default function Chat(): JSX.Element {
 		};
 	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.error]);
 
-	// console.log('ChatIsland: Indicator state:', {
-	// 	shouldAutoScroll,
-	// 	scrollIndicator: scrollIndicatorState.value,
-	// });
-
 	const conversationListState = computed<ConversationListState>(() => ({
 		conversations: chatState.value.conversations,
 		selectedId: chatState.value.conversationId,
@@ -433,7 +420,7 @@ export default function Chat(): JSX.Element {
 	}));
 
 	return (
-		<div className='flex flex-col h-screen bg-gray-50 overflow-hidden'>
+		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
 				visible={chatState.value.status.isConnecting && !chatState.value.error}
@@ -444,25 +431,10 @@ export default function Chat(): JSX.Element {
 				</div>
 			</AnimatedNotification>
 
-			<ConversationHeader
-				startDir={startDir}
-				onStartDirChange={updateStartDir}
-				onClearConversation={handlers.clearConversation}
-				status={chatState.value.status}
-				conversationCount={chatState.value.conversations.length}
-				totalTokens={chatState.value.conversations.reduce(
-					(total, conv) =>
-						total +
-						(conv.tokenUsageConversation?.totalTokens ?? conv.tokenUsageConversation?.totalTokensTotal ??
-							0),
-					0,
-				)}
-				cacheStatus={chatState.value.status.cacheStatus}
-				apiClient={chatState.value.apiClient!}
-			/>
+			{/* ProjectMetadata is now handled in routes/chat/index.tsx */}
 
 			{/* Main content */}
-			<div className='flex-1 flex overflow-hidden'>
+			<div className='flex flex-1 min-h-0'>
 				{/* Conversation list */}
 				<ConversationList
 					conversationListState={conversationListState}
@@ -477,8 +449,8 @@ export default function Chat(): JSX.Element {
 				/>
 
 				{/* Chat area */}
-				<main className='flex-1 flex flex-col bg-white overflow-hidden'>
-					{/* Messages header */}
+				<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+					{/* ConversationInfo and ToolBar row */}
 					<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
 						<div className='flex items-center space-x-4'>
 							{/* Messages Icon */}
@@ -498,12 +470,10 @@ export default function Chat(): JSX.Element {
 									/>
 								</svg>
 							</div>
-
-							{/* Conversation Metadata */}
-							<ConversationMetadata
+							<ConversationInfo
 								logEntries={chatState.value.logEntries}
-								conversationId={chatState.value.conversationId}
-								title={chatState.value.conversations.find((c) =>
+								conversationId={chatState.value.conversationId || ''}
+								title={chatState.value.conversations.find((c: ConversationMetadata) =>
 									c.id === chatState.value.conversationId
 								)?.title}
 							/>
@@ -515,13 +485,13 @@ export default function Chat(): JSX.Element {
 							}}
 							chatInputRef={chatInputRef}
 							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
-							startDir={startDir}
+							projectId={projectId}
 							apiClient={chatState.value.apiClient!}
 						/>
 					</div>
 
 					{/* Messages */}
-					<div className='flex-1 relative overflow-hidden'>
+					<div className='flex-1 min-h-0 relative flex flex-col'>
 						{scrollIndicatorState.value.isVisible && (
 							<button
 								onClick={() => {
@@ -569,7 +539,8 @@ export default function Chat(): JSX.Element {
 						)}
 						<div
 							ref={messagesEndRef}
-							className='h-full overflow-y-auto px-6 py-8 space-y-6'
+							className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
+							style={{ maxWidth: '100%' }}
 						>
 							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
 								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
@@ -598,7 +569,7 @@ export default function Chat(): JSX.Element {
 										index={index}
 										onCopy={handleCopy}
 										apiClient={chatState.value.apiClient!}
-										startDir={startDir}
+										projectId={projectId}
 										conversationId={chatState.value.conversationId!}
 									/>
 								))}
@@ -606,11 +577,11 @@ export default function Chat(): JSX.Element {
 					</div>
 
 					{/* Input area */}
-					<div className='border-t border-gray-200 flex-shrink-0 bg-white'>
+					<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
 						<ChatInput
 							value={input}
 							apiClient={chatState.value.apiClient!}
-							startDir={startDir}
+							projectId={projectId}
 							textareaRef={chatInputRef}
 							onChange={(value) => {
 								if (!chatState.value.status.isReady) return;
@@ -636,8 +607,10 @@ export default function Chat(): JSX.Element {
 				/>
 			)}
 
-			{/* VersionWarning display - currently being displayed via VersionDisplay in ConversationHeader */}
-			{/* versionState.value.versionCompatibility && !versionState.value.versionCompatibility.compatible && ( <VersionWarning apiClient={chatState.value.apiClient} /> ) */}
+			{/* Version warning display */}
+			{versionCompatibility && !versionCompatibility.compatible && (
+				<VersionWarning apiClient={chatState.value.apiClient!} />
+			)}
 
 			{/* Error display */}
 			<AnimatedNotification

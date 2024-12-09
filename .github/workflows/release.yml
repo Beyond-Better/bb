@@ -13,10 +13,10 @@ on:
       - release-build-testing
 
 permissions:
-  contents: write   # This is required to create a release
+  contents: write
 
 jobs:
-  build:
+  build-binaries:
     strategy:
       matrix:
         include:
@@ -59,130 +59,6 @@ jobs:
           echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api' >> build/install.sh
           chmod +x build/install.sh
 
-      - name: Create batch files (Windows)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          echo '@echo off' > build/bb_init.bat
-          echo 'setlocal' >> build/bb_init.bat
-          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_init.bat
-          echo 'echo Initializing BB in the current directory...' >> build/bb_init.bat
-          echo '"%%SCRIPT_DIR%%bb.exe" init' >> build/bb_init.bat
-          echo 'echo.' >> build/bb_init.bat
-          echo 'echo Initialization complete. Press any key to exit.' >> build/bb_init.bat
-          echo 'pause >nul' >> build/bb_init.bat
-          echo 'endlocal' >> build/bb_init.bat
-
-          echo '@echo off' > build/bb_start.bat
-          echo 'setlocal' >> build/bb_start.bat
-          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_start.bat
-          echo 'echo Starting BB...' >> build/bb_start.bat
-          echo 'start "" "%%SCRIPT_DIR%%bb.exe" start' >> build/bb_start.bat
-          echo 'echo.' >> build/bb_start.bat
-          echo 'echo BB has been started in your default web browser.' >> build/bb_start.bat
-          echo 'echo You can close this window.' >> build/bb_start.bat
-          echo 'endlocal' >> build/bb_start.bat
-
-          echo '@echo off' > build/bb_stop.bat
-          echo 'setlocal' >> build/bb_stop.bat
-          echo 'set "SCRIPT_DIR=%~dp0"' >> build/bb_stop.bat
-          echo 'echo Stopping BB...' >> build/bb_stop.bat
-          echo 'start "" "%%SCRIPT_DIR%%bb.exe" stop' >> build/bb_stop.bat
-          echo 'echo.' >> build/bb_stop.bat
-          echo 'echo BB has been stopped.' >> build/bb_stop.bat
-          echo 'echo You can close this window.' >> build/bb_stop.bat
-          echo 'endlocal' >> build/bb_stop.bat
-
-      - name: Create MSI installer (Windows)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          choco install wixtoolset -y
-          $wixPath = "C:\Program Files (x86)\WiX Toolset v3.14\bin"
-          $env:PATH += ";$wixPath"
-
-          # Copy BB Manager files to the build directory for inclusion in archives
-          cp scripts/bb-manager.bat build/
-          
-          # Create a temporary directory for the installer files
-          mkdir installer_files
-          cp build/bb.exe installer_files/
-          cp build/bb-api.exe installer_files/
-          cp build/bb-manager.bat installer_files/
-          
-          # Convert LICENSE to RTF
-          # pandoc -s LICENSE -o installer_files/LICENSE.rtf || echo "Failed to convert LICENSE to RTF."
-          $licenseContent = Get-Content -Raw -Path LICENSE
-          $licenseContent = $licenseContent -replace '\\', '\\\\' -replace '{', '\\{' -replace '}', '\\}'
-          $rtfContent = "{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}}"
-          $rtfContent += "{\\f0\\fs20 $licenseContent}"
-          $rtfContent += "}"
-          Set-Content -Path installer_files/LICENSE.rtf -Value $rtfContent -Encoding UTF8
-
-          # Create a WiX source file
-          @"
-          <?xml version="1.0" encoding="UTF-8"?>
-          <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-            <Product Id="*" Name="BB" Language="1033" Version="1.0.0.0" Manufacturer="Beyond-Better" UpgradeCode="12345678-1234-1234-1234-123456789012">
-              <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
-              <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
-              <MediaTemplate EmbedCab="yes" />
-              <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-              <UIRef Id="WixUI_InstallDir" />
-              <UIRef Id="WixUI_ErrorProgressText" />
-              <WixVariable Id="WixUILicenseRtf" Value="installer_files/LICENSE.rtf " />
-              <Feature Id="ProductFeature" Title="BB" Level="1">
-                <ComponentGroupRef Id="ProductComponents" />
-                <ComponentGroupRef Id="BBManager" />
-                <ComponentGroupRef Id="DesktopShortcuts" />
-              </Feature>
-            </Product>
-            <Fragment>
-              <Directory Id="TARGETDIR" Name="SourceDir">
-                <Directory Id="ProgramFilesFolder">
-                  <Directory Id="INSTALLFOLDER" Name="BB" />
-                </Directory>
-                <Directory Id="DesktopFolder" Name="Desktop" />
-              </Directory>
-            </Fragment>
-            <Fragment>
-              <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-                <Component Id="bb.exe" Guid="*">
-                  <File Id="bb.exe" Name="bb.exe" Source="installer_files\bb.exe" KeyPath="yes" />
-                </Component>
-                <Component Id="bb_api.exe" Guid="*">
-                  <File Id="bb_api.exe" Name="bb-api.exe" Source="installer_files\bb-api.exe" KeyPath="yes" />
-                </Component>
-              </ComponentGroup>
-              <ComponentGroup Id="BBManager" Directory="INSTALLFOLDER">
-                <Component Id="bbmanager_bat" Guid="*">
-                  <File Id="bbmanager_bat" Name="bb-manager.bat" Source="installer_files\bb-manager.bat" KeyPath="yes" />
-                </Component>
-              </ComponentGroup>
-              <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
-                <Component Id="BBManagerShortcut" Guid="*">
-                  <Shortcut Id="BBManagerShortcut" Name="BB Manager" Target="[INSTALLFOLDER]bb-manager.bat" WorkingDirectory="INSTALLFOLDER" />
-                  <RegistryValue Root="HKCU" Key="Software\Beyond-Better\BB" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
-                </Component>
-              </ComponentGroup>
-            </Fragment>
-          </Wix>
-          "@ | Out-File -Encoding utf8 bb.wxs
-          
-          # Compile and link the installer
-          & "$wixPath\candle.exe" bb.wxs
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Candle.exe failed with exit code $LASTEXITCODE"
-            exit 1
-          }
-          
-          & "$wixPath\light.exe" -ext WixUIExtension bb.wixobj
-          if ($LASTEXITCODE -ne 0) {
-            Write-Error "Light.exe failed with exit code $LASTEXITCODE"
-            exit 1
-          }
-          
-          # Move the created MSI to the build directory
-          mv bb.msi build/bb-installer.msi
-
       - name: Copy README and INSTALL
         shell: bash
         run: |
@@ -193,30 +69,147 @@ jobs:
             cp README.md INSTALL.md build/
           fi
 
-      - name: Build BB Manager app
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p build
-          osacompile -o ./build/BB\ Manager.app ./scripts/BB\ Manager.applescript
-
-      - name: Copy BB Manager files
-        shell: bash
-        run: |
-          # Copy BB Manager files to the build directory for inclusion in archives
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp scripts/bb-manager.bat build/
-          else
-            cp scripts/bb-manager.sh build/
-          fi
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bb-${{ matrix.target }}
           path: build/*
 
+  build-dui:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS builds
+          - os: macos-latest
+            target: "aarch64-apple-darwin"
+            arch: "aarch64"
+            name: "Apple Silicon"
+            platform: "macos"
+          - os: macos-latest
+            target: "x86_64-apple-darwin"
+            arch: "x86_64"
+            name: "Intel"
+            platform: "macos"
+          # Linux builds
+          - os: ubuntu-latest
+            target: "x86_64-unknown-linux-gnu"
+            arch: "x86_64"
+            name: "Linux x64"
+            platform: "linux"
+          # Windows builds
+          - os: windows-latest
+            target: "x86_64-pc-windows-msvc"
+            arch: "x86_64"
+            name: "Windows x64"
+            platform: "windows"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v2.x
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './dui/src-tauri -> target'
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libsoup-3.0-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install Windows dependencies
+        if: matrix.platform == 'windows'
+        run: |
+          # Install WiX Toolset
+          $wixUrl = "https://github.com/wixtoolset/wix3/releases/download/wix3112rtm/wix311-binaries.zip"
+          $wixZip = "$env:TEMP\wix.zip"
+          Invoke-WebRequest -Uri $wixUrl -OutFile $wixZip
+          Expand-Archive -Path $wixZip -DestinationPath "$env:TEMP\wix" -Force
+          echo "$env:TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install frontend dependencies
+        run: |
+          cd dui
+          deno task build
+
+      - name: Build DUI (Tauri)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: './dui'
+          args: --target ${{ matrix.target }}
+
+      # Process and upload build artifacts
+      - name: Process build artifacts
+        shell: bash
+        run: |
+          BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/release/bundle"
+          echo "Build output directory contents:"
+          ls -R "$BUNDLE_DIR" || echo "No bundle directory found"
+
+          # Create staging directory
+          mkdir -p staging
+
+          # Copy artifacts based on platform
+          if [[ "${{ matrix.platform }}" == "macos" ]]; then
+            echo "Processing macOS artifacts..."
+            if [ -d "$BUNDLE_DIR/dmg" ]; then
+              cp -v "$BUNDLE_DIR"/dmg/*.dmg staging/ || echo "No DMG files found"
+            fi
+            if [ -d "$BUNDLE_DIR/macos" ]; then
+              cp -rv "$BUNDLE_DIR"/macos/*.app staging/ || echo "No APP files found"
+            fi
+          elif [[ "${{ matrix.platform }}" == "linux" ]]; then
+            echo "Processing Linux artifacts..."
+            if [ -d "$BUNDLE_DIR/appimage" ]; then
+              cp -v "$BUNDLE_DIR"/appimage/*.AppImage staging/ || echo "No AppImage files found"
+            fi
+          elif [[ "${{ matrix.platform }}" == "windows" ]]; then
+            echo "Processing Windows artifacts..."
+            if [ -d "$BUNDLE_DIR/msi" ]; then
+              cp -v "$BUNDLE_DIR"/msi/*.msi staging/ || echo "No MSI files found"
+            fi
+            if [ -d "$BUNDLE_DIR/nsis" ]; then
+              cp -v "$BUNDLE_DIR"/nsis/*.exe staging/ || echo "No NSIS files found"
+            fi
+          fi
+
+          echo "\nStaging directory contents:"
+          ls -la staging/
+
+      # Upload artifacts
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dui-${{ matrix.platform }}-${{ matrix.arch }}
+          path: staging/*
+
   release:
-    needs: build
+    needs: [build-binaries, build-dui]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -231,6 +224,25 @@ jobs:
         id: get_version
         run: echo "VERSION=$(deno eval 'import { VERSION } from "./version.ts"; console.log(VERSION);')" >> $GITHUB_OUTPUT
 
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Current directory: $PWD"
+          echo "Directory contents:"
+          ls -la
+          echo "\nFull directory tree:"
+          tree .
+          echo "\nDetailed file listing:"
+          find . -type f -ls
+          echo "\nSearching for specific file types:"
+          echo "DMG files:" && find . -name "*.dmg"
+          echo "APP bundles:" && find . -name "*.app"
+          echo "AppImage files:" && find . -name "*.AppImage"
+          echo "MSI files:" && find . -name "*.msi"
+          echo "EXE files:" && find . -name "*.exe"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -239,62 +251,197 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           release_name: Release v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Beyond Better v${{ steps.get_version.outputs.VERSION }}
+
+            Installation Instructions:
+
+            1. Download the appropriate installer for your system:
+
+               Windows:
+               - MSI installer (recommended): Download the .msi file
+               - EXE installer: Download the -setup.exe file
+               - Run the installer and follow the prompts
+
+               macOS:
+               - Apple Silicon (M1/M2): Download the apple-silicon.dmg
+               - Intel: Download the intel.dmg
+               - Open the .dmg file
+               - Drag the Beyond Better app to your Applications folder
+               - When first launching, you'll need to:
+                 * Right-click the app and select Open, or
+                 * Go to System Settings > Privacy & Security and click 'Open Anyway'
+               - This is only needed once, as the app is currently unsigned
+
+               Linux:
+               - Download the .AppImage file
+               - Make it executable: chmod +x BB-dui-*.AppImage
+               - Run the AppImage
+
+            2. Binary Installation:
+               - The DUI will automatically download and install the appropriate BB binaries on first run
+               - For manual installation, download the appropriate binary archive for your system
+
+            Note: On Windows, you may need to approve SmartScreen security prompts during first run.
+
+            Changes in this Release:
+            ${{ github.event.pull_request && github.event.pull_request.body || inputs.version && format('Version {0} release', inputs.version) || 'No release notes provided.' }}
           draft: false
           prerelease: false
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-
-#       - name: List directory contents
-#         run: ls -R
-#         shell: bash
-
       - name: Upload Release Assets
         run: |
-          set -e
+          # Debug: Show downloaded artifacts
+          echo "Current directory contents:"
+          ls -la
+          find . -type f -ls
+
+          # Function to handle upload with retry
+          upload_asset() {
+            local file="$1"
+            local attempt=1
+            local max_attempts=3
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Uploading $file (attempt $attempt of $max_attempts)"
+              if gh release upload "v${{ steps.get_version.outputs.VERSION }}" "$file"; then
+                return 0
+              fi
+              attempt=$((attempt + 1))
+              if [ $attempt -le $max_attempts ]; then
+                echo "Retrying in 5 seconds..."
+                sleep 5
+              fi
+            done
+            
+            echo "::error::Failed to upload $file after $max_attempts attempts"
+            return 1
+          }
+
+          # Upload binary artifacts
           for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
-            echo "Processing target: $target"
-            if [ ! -d "bb-$target" ]; then
-              echo "Error: Directory bb-$target not found"
-              continue
-            fi
-            cd bb-$target
+            echo "Processing binary target: $target"
+            cd "bb-$target"
+            
             if [ "$target" = "x86_64-pc-windows-msvc" ]; then
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.sh"
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-installer.msi || echo "Failed to upload MSI for $target"
-            elif [[ "$target" == *"apple-darwin" ]]; then
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "bb-manager.bat" -x "bb-manager.sh"
-              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="bb-manager.bat" --exclude="bb-manager.sh" .
+              zip -r "../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip" .
             else
-              zip -r ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip . -x "BB Manager.app" -x "bb-manager.bat"
-              tar czf ../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz --exclude="BB Manager.app" --exclude="bb-manager.bat" .
+              zip -r "../bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip" .
+              tar czf "../bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz" .
             fi
             cd ..
-            gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip || echo "Failed to upload ZIP for $target"
+            
+            upload_asset "bb-$target-v${{ steps.get_version.outputs.VERSION }}.zip"
             if [ "$target" != "x86_64-pc-windows-msvc" ]; then
-              gh release upload v${{ steps.get_version.outputs.VERSION }} bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz || echo "Failed to upload tar.gz for $target"
+              upload_asset "bb-$target-v${{ steps.get_version.outputs.VERSION }}.tar.gz"
+            fi
+          done
+
+          # Upload DUI artifacts
+          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64" "windows-x86_64"; do
+            echo "Processing DUI platform/arch: $platform_arch"
+            platform="${platform_arch%%-*}"
+            arch="${platform_arch#*-}"
+            
+            echo "Checking for DUI artifacts:"
+            ls -la "dui-${platform}-${arch}" || true
+            
+            case "$platform_arch" in
+              "macos-x86_64") 
+                platform_name="macos"
+                arch_name="intel" ;;
+              "macos-aarch64")
+                platform_name="macos"
+                arch_name="apple-silicon" ;;
+              "linux-x86_64")
+                platform_name="linux"
+                arch_name="x64" ;;
+              "windows-x86_64")
+                platform_name="windows"
+                arch_name="x64" ;;
+            esac
+            
+            case "$platform_arch" in
+              "macos-x86_64") 
+                platform_name="macos"
+                arch_name="intel" ;;
+              "macos-aarch64")
+                platform_name="macos"
+                arch_name="apple-silicon" ;;
+              "linux-x86_64")
+                platform_name="linux"
+                arch_name="x64" ;;
+              "windows-x86_64")
+                platform_name="windows"
+                arch_name="x64" ;;
+            esac
+
+            if [ "$platform" = "macos" ]; then
+              # Upload DMG files
+              echo "Processing DMG files:"
+              for f in "dui-${platform}-${arch}"/*.dmg; do
+                if [ -f "$f" ]; then
+                  echo "Found DMG file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "$new_name"
+                fi
+              done
+              
+              # Create and upload app archive
+              echo "Processing .app bundles:"
+              for app in "dui-${platform}-${arch}"/*.app; do
+                if [ -d "$app" ]; then
+                  echo "Found app bundle: $app"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
+                  echo "Creating archive: $new_name"
+                  tar -czf "$new_name" "$app"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "$new_name"
+                fi
+              done
+            elif [ "$platform" = "linux" ]; then
+              # Upload AppImage files
+              echo "Processing AppImage files:"
+              for f in "dui-${platform}-${arch}"/*.AppImage; do
+                if [ -f "$f" ]; then
+                  echo "Found AppImage file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "$new_name"
+                fi
+              done
+            elif [ "$platform" = "windows" ]; then
+              # Upload MSI files
+              echo "Processing MSI files:"
+              for f in "dui-${platform}-${arch}"/*.msi; do
+                if [ -f "$f" ]; then
+                  echo "Found MSI file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "$new_name"
+                fi
+              done
+              
+              # Upload NSIS installer
+              echo "Processing NSIS files:"
+              for f in "dui-${platform}-${arch}"/*.exe; do
+                if [[ "$f" == *"-setup.exe" ]]; then
+                  echo "Found NSIS file: $f"
+                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
+                  echo "Creating renamed copy: $new_name"
+                  cp "$f" "$new_name"
+                  echo "Attempting upload of $new_name"
+                  upload_asset "$new_name"
+                fi
+              done
             fi
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-## disabled until homebrew formula has been accepted
-#       - name: Update Homebrew formula
-#         run: |
-#           # Download the archive
-#           curl -L -o bb.tar.gz "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"
-#           
-#           # Calculate SHA256
-#           SHA256=$(shasum -a 256 bb.tar.gz | awk '{print $1}')
-#           
-#           # Update the Homebrew formula
-#           sed -i 's/version ".*"/version "${{ steps.get_version.outputs.VERSION }}"/' deployment/homebrew/bb.rb
-#           sed -i 's|url ".*"|url "https://github.com/Beyond-Better/bb/archive/v${{ steps.get_version.outputs.VERSION }}.tar.gz"|' deployment/homebrew/bb.rb
-#           sed -i 's/sha256 ".*"/sha256 "'$SHA256'"/' deployment/homebrew/bb.rb
-#           
-#           # Commit and push changes
-#           git config --local user.email "action@github.com"
-#           git config --local user.name "GitHub Action"
-#           git add deployment/homebrew/bb.rb
-#           git commit -m "Update Homebrew formula to v${{ steps.get_version.outputs.VERSION }}"
-#           git push

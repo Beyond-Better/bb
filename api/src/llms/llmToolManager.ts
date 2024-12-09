@@ -8,7 +8,7 @@ import type { LLMToolRunBbResponse, LLMToolRunResultContent, LLMToolRunToolRespo
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import type { FullConfigSchema } from 'shared/configManager.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 
 import { compare as compareVersions, parse as parseVersion } from '@std/semver';
 import { isAbsolute, join } from '@std/path';
@@ -47,19 +47,19 @@ export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creati
 class LLMToolManager {
 	private toolMetadata: Map<string, ToolMetadata> = new Map();
 	private loadedTools: Map<string, LLMTool> = new Map();
-	private fullConfig: FullConfigSchema;
+	private projectConfig: ProjectConfig;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 
 	constructor(
-		fullConfig: FullConfigSchema,
+		projectConfig: ProjectConfig,
 		toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[] = 'core',
 	) {
-		this.fullConfig = fullConfig;
+		this.projectConfig = projectConfig;
 		this.toolSet = toolSet;
 	}
 
 	async init() {
-		await this.loadToolMetadata(this.fullConfig.api.userToolDirectories);
+		await this.loadToolMetadata(this.projectConfig.settings.api?.userToolDirectories || []);
 
 		return this;
 	}
@@ -144,7 +144,11 @@ class LLMToolManager {
 
 	private shouldReplaceExistingTool(existing: ToolMetadata, newMetadata: ToolMetadata): boolean {
 		// Prefer user-supplied tools
-		if (this.fullConfig.api.userToolDirectories.some((dir) => newMetadata.path!.startsWith(dir))) {
+		if (
+			(this.projectConfig.settings.api?.userToolDirectories || []).some((dir) =>
+				newMetadata.path!.startsWith(dir)
+			)
+		) {
 			if (compareVersions(parseVersion(existing.version), parseVersion(newMetadata.version)) > 0) {
 				logger.warn(
 					`LLMToolManager: User-supplied tool ${newMetadata.name} (${newMetadata.version}) is older than built-in tool (${existing.version})`,
@@ -181,7 +185,7 @@ class LLMToolManager {
 			const tool = await new module.default(
 				metadata.name,
 				metadata.description,
-				this.fullConfig.api.toolConfigs[name] || {},
+				this.projectConfig.settings.api?.toolConfigs?.[name] || {},
 			).init();
 			logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
 			this.loadedTools.set(name, tool);

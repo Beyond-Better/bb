@@ -3,28 +3,28 @@ import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolFetchWebScreenshotResponseData } from '../types.ts';
 
-interface FetchWebScreenshotResponseData {
-	data: { url: string; html: string };
-}
 function isFetchWebScreenshotResponse(
 	response: unknown,
-): response is FetchWebScreenshotResponseData {
+): response is LLMToolFetchWebScreenshotResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as FetchWebScreenshotResponseData).data === 'object' &&
-		'url' in (response as FetchWebScreenshotResponseData).data &&
-		typeof (response as FetchWebScreenshotResponseData).data.url === 'string'
+		data !== null &&
+		typeof data === 'object' &&
+		typeof data === 'object' &&
+		'url' in data &&
+		typeof data.url === 'string'
 	);
 }
 
 Deno.test({
 	name: 'LLMToolFetchWebScreenshot - successful fetch',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('fetch_web_screenshot');
@@ -93,8 +93,8 @@ Deno.test({
 Deno.test({
 	name: 'LLMToolFetchWebScreenshot - invalid URL',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('fetch_web_screenshot');

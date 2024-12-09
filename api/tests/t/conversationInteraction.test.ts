@@ -17,9 +17,9 @@ class MockLLM {
 	}
 }
 
-async function setupTestEnvironment(projectRoot: string) {
+async function setupTestEnvironment(projectId: string, projectRoot: string) {
 	await GitUtils.initGit(projectRoot);
-	const projectEditor = await getProjectEditor(projectRoot);
+	const projectEditor = await getProjectEditor(projectId);
 	const mockLLM = new MockLLM();
 	const conversation = new LLMConversationInteraction(mockLLM as any, 'test-conversation-id');
 
@@ -36,8 +36,9 @@ async function setupTestEnvironment(projectRoot: string) {
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const { projectEditor: _projectEditor, conversation, projectRoot, testFiles } = await setupTestEnvironment(
+				testProjectId,
 				testProjectRoot,
 			);
 

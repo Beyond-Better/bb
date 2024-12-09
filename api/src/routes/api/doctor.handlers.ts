@@ -1,7 +1,7 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { DoctorService } from 'shared/doctor/doctorService.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 /**
  * Run diagnostic checks and return results
@@ -70,20 +70,32 @@ export async function applyFixHandler(
 	{ params, request: _request, response }: RouterContext<'/v1/doctor/fix/:type', { type: string }>,
 ) {
 	const { type: fixType } = params;
-	//const { startDir } = await request.body.json();
+	//const { projectId } = await request.body.json();
 
-	const configManager = await ConfigManager.getInstance();
+	const configManager = await ConfigManagerV2.getInstance();
 	try {
 		switch (fixType) {
 			case 'api-port': {
 				// Example fix implementation
-				//const fullConfig = await ConfigManager.fullConfig(startDir);
-				await configManager.setGlobalConfigValue('api.apiPort', '3000');
+				//const projectConfig = await ConfigManager.getProjectConfig(projectId);
+				const config = await configManager.getGlobalConfig();
+				await configManager.updateGlobalConfig({
+					api: {
+						...config.api,
+						port: 3162,
+					},
+				});
 				response.body = { message: 'API port reset to default' };
 				break;
 			}
 			case 'api-hostname': {
-				await configManager.setGlobalConfigValue('api.apiHostname', 'localhost');
+				const config = await configManager.getGlobalConfig();
+				await configManager.updateGlobalConfig({
+					api: {
+						...config.api,
+						hostname: 'localhost',
+					},
+				});
 				response.body = { message: 'API hostname reset to default' };
 				break;
 			}

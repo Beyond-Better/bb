@@ -1,6 +1,5 @@
 import { dirname, join } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
-import { ConfigManager } from 'shared/configManager.ts';
 
 export interface InstallLocation {
 	type: 'system' | 'user';

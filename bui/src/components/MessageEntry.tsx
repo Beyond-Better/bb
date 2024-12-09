@@ -20,7 +20,7 @@ interface MessageEntryProps {
 	index: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;
-	startDir: string;
+	projectId: string;
 	conversationId: string;
 }
 
@@ -36,7 +36,7 @@ export function MessageEntry({
 	index,
 	onCopy,
 	apiClient,
-	startDir,
+	projectId,
 	conversationId,
 }: MessageEntryProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
@@ -57,7 +57,7 @@ export function MessageEntry({
 				const response = await apiClient.formatLogEntry(
 					logEntryData.logEntry.entryType,
 					logEntryData.logEntry,
-					startDir,
+					projectId,
 				);
 				if (response) {
 					setFormatted(response);
@@ -68,7 +68,7 @@ export function MessageEntry({
 		};
 
 		fetchFormatted();
-	}, [logEntryData, apiClient, startDir]);
+	}, [logEntryData, apiClient, projectId]);
 
 	const handleCopy = (text: string) => {
 		onCopy(text);
@@ -130,7 +130,7 @@ export function MessageEntry({
 					content={logEntryData.logEntry.content}
 					onCopy={handleCopy}
 					apiClient={apiClient}
-					startDir={startDir}
+					projectId={projectId}
 					logEntry={logEntryData.logEntry}
 				/>
 			);
@@ -183,7 +183,7 @@ export function MessageEntry({
 	return (
 		<>
 			<div
-				className={`message-entry group rounded-lg mb-4 shadow-md border ${styles.border} ${styles.bg} overflow-hidden`}
+				className={`message-entry group rounded-lg mt-4 first:mt-0 shadow-md border ${styles.border} ${styles.bg} overflow-hidden`}
 				role='region'
 				aria-expanded={isExpanded}
 			>

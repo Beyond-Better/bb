@@ -16,6 +16,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.5.0] - 2024-12-09
+
+### Added
+
+- Multi-page design for browser interface
+- Automatic download of BB app
+- App to manage the BB Server
+  - Auto-install/upgrade of bb and bb-api
+  - Shows installed BB API version
+- Automatic conversation summary
+
+### Changed
+
+- Global and Project configs schema (v2)
+- Use projectId instead of startDir to identify projects
+- Moved prompt cache points to all user messages, not just request_file tool use
+
+### Fixed
+
+- Typeguards for tool results
+- Lots of display fixes for missing metadata and token usage
+
+
 ## [0.4.1] - 2024-12-02
 
 ### Changed

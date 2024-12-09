@@ -6,15 +6,17 @@ export interface LLMToolRunCommandInput {
 	cwd?: string;
 }
 
+export interface LLMToolRunCommandResponseData {
+	data: {
+		code: number;
+		command: string;
+		stderrContainsError: boolean;
+		stdout: string;
+		stderr: string;
+	};
+}
+
 export interface LLMToolRunCommandResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			code: number;
-			command: string;
-			stderrContainsError: boolean;
-			stdout: string;
-			stderr: string;
-		};
-	};
+	bbResponse: LLMToolRunCommandResponseData;
 }

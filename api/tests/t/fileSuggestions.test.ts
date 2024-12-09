@@ -1,7 +1,8 @@
-import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
+import { assert, assertEquals } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 import { type FileSuggestion, suggestFiles } from 'api/utils/fileSuggestions.ts';
 import { withTestProject } from 'api/tests/testSetup.ts';
+import { getProjectId } from 'shared/dataDir.ts';
 
 async function setFileModificationTime(filePath: string, date: Date) {
 	await Deno.utime(filePath, date, date);
@@ -44,7 +45,7 @@ async function createTestFiles(testProjectRoot: string) {
 
 // export interface FileSuggestionsOptions {
 //   partialPath: string;
-//   startDir: string;
+//   projectId: string;
 //   limit?: number;
 //   caseSensitive?: boolean;
 //   type?: 'all' | 'file' | 'directory';
@@ -63,12 +64,13 @@ async function createTestFiles(testProjectRoot: string) {
 Deno.test({
 	name: 'suggestFiles - Test markdown file patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test 'docs/*.md' pattern
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/*.md',
 			});
 			// console.log('docs/*.md pattern results:', result);
@@ -83,7 +85,7 @@ Deno.test({
 
 			// Test 'docs/**/*.md' pattern - recursive
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/**/*.md', // Find markdown files at any depth
 			});
 			//console.log('docs/**/*.md pattern results:', result);
@@ -111,7 +113,7 @@ Deno.test({
 
 			// Test 'docs/dev*/*.md' pattern
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/dev*/*.md',
 			});
 			//console.log('docs/dev*/*.md pattern results:', result);
@@ -139,12 +141,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test type filtering',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test directory-only
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/**',
 				type: 'directory',
 			});
@@ -155,7 +158,7 @@ Deno.test({
 
 			// Test file-only
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/**',
 				type: 'file',
 			});
@@ -172,19 +175,20 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test path separator handling',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test with forward slashes
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/development/*.md',
 			});
 			const forwardCount = result.suggestions.length;
 
 			// Test with backslashes
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs\\\\development\\\\*.md',
 			});
 			assertEquals(result.suggestions.length, forwardCount, 'Should handle both slash types');
@@ -197,12 +201,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test multiple extensions and complex patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test multiple extensions
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '**/*.test.ts.bak',
 			});
 			assert(
@@ -212,14 +217,14 @@ Deno.test({
 
 			// Test multiple wildcards
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '**/d*/*/*.md',
 			});
 			assert(result.suggestions.length > 0, 'Should match nested wildcards');
 
 			// // Test alternative patterns
 			// result = await suggestFiles({
-			// 	startDir: testProjectRoot,
+			// 	projectId,
 			// 	partialPath: 'docs/{README,guide}.md'
 			// });
 			// assert(result.suggestions.length > 0, 'Should handle brace expansion');
@@ -232,11 +237,12 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test special characters in paths',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/*chars*.md',
 			});
 			assert(
@@ -252,12 +258,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test limit handling',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test with small limit
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '**/*',
 				limit: 2,
 			});
@@ -272,12 +279,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test case sensitivity',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Case-sensitive search
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'DOCS/*.md',
 				caseSensitive: true,
 			});
@@ -285,7 +293,7 @@ Deno.test({
 
 			// Case-insensitive search (default)
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'DOCS/*.md',
 			});
 			assert(result.suggestions.length > 0, 'Case-insensitive search should find matches');
@@ -298,12 +306,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test hidden files and directories',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test hidden directory
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '.config/*',
 			});
 			assert(
@@ -313,7 +322,7 @@ Deno.test({
 
 			// Test hidden files
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '**/.hidden*',
 			});
 			assert(
@@ -329,12 +338,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test empty and invalid patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test empty pattern
 			let result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '/', // Use / to show root contents
 			});
 			// console.log('empty pattern results:', result);
@@ -349,7 +359,7 @@ Deno.test({
 
 			// Test invalid pattern with parent directory reference
 			result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: '../outside',
 			});
 			// console.log('invalid pattern results:', result);
@@ -365,12 +375,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test exact directory name "docs"',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test exact directory name 'docs'
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs',
 			});
 			// console.log('exact "docs" pattern results:', result);
@@ -424,12 +435,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test partial directory name "doc"',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test partial directory name 'doc'
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'doc',
 			});
 			// console.log('doc pattern results:', result);
@@ -483,11 +495,12 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test `docs/` pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/',
 			});
 			// console.log('docs/ pattern results:', result);
@@ -524,12 +537,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test `docs/d` pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test 'docs/d' pattern
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/d*',
 			});
 			// console.log('docs/d pattern results:', result);
@@ -579,12 +593,13 @@ Deno.test({
 Deno.test({
 	name: 'suggestFiles - Test `docs/development` pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
+			const projectId = await getProjectId(testProjectRoot);
 
 			// Test 'docs/development' pattern
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'docs/development/*',
 			});
 			// console.log('docs/development/* pattern results:', result);
@@ -611,11 +626,12 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - return an empty array when no files match',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
+			const projectId = await getProjectId(testProjectRoot);
 
 			const result = await suggestFiles({
-				startDir: testProjectRoot,
+				projectId,
 				partialPath: 'Nonexistent',
 			});
 			assertEquals(result.suggestions.length, 0, 'Should return no results for non-existent');

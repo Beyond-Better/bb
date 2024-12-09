@@ -1,8 +1,26 @@
 import { join } from '@std/path';
 
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
-import { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolForgetFilesResponseData } from '../types.ts';
+
+// Type guard function
+function isForgetFilesResponse(
+	response: unknown,
+): response is LLMToolForgetFilesResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
+	return (
+		data !== null &&
+		typeof data === 'object' &&
+		'filesSuccess' in data &&
+		Array.isArray(data.filesSuccess) &&
+		'filesError' in data &&
+		Array.isArray(data.filesError)
+	);
+}
 
 // Type guard to check if bbResponse is a string
 function isString(value: unknown): value is string {
@@ -12,8 +30,8 @@ function isString(value: unknown): value is string {
 Deno.test({
 	name: 'ForgetFilesTool - Forget existing files from conversation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('forget_files');
@@ -52,15 +70,17 @@ Deno.test({
 			// console.log('Forget existing files from conversation - toolResponse:', result.toolResponse);
 			// console.log('Forget existing files from conversation - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
-			if (isString(result.bbResponse)) {
-				assertStringIncludes(
-					result.bbResponse,
-					'BB has removed these files from the conversation',
-				);
-			} else {
-				assert(false, 'bbResponse is not a string as expected');
-			}
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assertEquals(typeof result.toolResponse, 'string');
+			assertEquals(typeof result.toolResults, 'object');
+
+			assert(
+				isForgetFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
+			);
 
 			assertStringIncludes(
 				result.toolResponse,
@@ -100,8 +120,8 @@ Deno.test({
 Deno.test({
 	name: 'ForgetFilesTool - Attempt to forget non-existent file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('forget_files');
@@ -123,15 +143,17 @@ Deno.test({
 			// console.log('Attempt to forget non-existent file - toolResponse:', result.toolResponse);
 			// console.log('Attempt to forget non-existent file - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
-			if (isString(result.bbResponse)) {
-				assertStringIncludes(
-					result.bbResponse,
-					'BB failed to remove these files from the conversation',
-				);
-			} else {
-				assert(false, 'bbResponse is not a string as expected');
-			}
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assertEquals(typeof result.toolResponse, 'string');
+			assertEquals(typeof result.toolResults, 'object');
+
+			assert(
+				isForgetFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
+			);
 
 			assertStringIncludes(
 				result.toolResponse,
@@ -163,8 +185,8 @@ Deno.test({
 Deno.test({
 	name: 'ForgetFilesTool - Forget mix of existing and non-existent files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('forget_files');
@@ -197,19 +219,16 @@ Deno.test({
 			// console.log('Forget mix of existing and non-existent files - toolResponse:', result.toolResponse);
 			// console.log('Forget mix of existing and non-existent files - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
-			if (isString(result.bbResponse)) {
-				assertStringIncludes(
-					result.bbResponse,
-					'BB has removed these files from the conversation: existing_file.txt (Revision: 1111-2222)',
-				);
-			} else {
-				assert(false, 'bbResponse is not a string as expected');
-			}
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assertEquals(typeof result.toolResponse, 'string');
+			assertEquals(typeof result.toolResults, 'object');
 
-			assertStringIncludes(
-				result.bbResponse,
-				'BB failed to remove these files from the conversation:\n- non_existent_file.txt (1111-2222): File is not in the conversation history',
+			assert(
+				isForgetFilesResponse(result.bbResponse),
+				'bbResponse should have the correct structure for Tool',
 			);
 
 			assertStringIncludes(result.toolResponse, 'Removed files from the conversation:\n- existing_file.txt');

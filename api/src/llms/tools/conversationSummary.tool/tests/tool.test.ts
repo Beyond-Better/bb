@@ -3,7 +3,7 @@ import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 
 import type LLMToolConversationSummary from '../tool.ts';
-import type { LLMToolConversationSummaryResult } from '../types.ts';
+import type { LLMToolConversationSummaryResultData } from '../types.ts';
 import type {
 	LLMAnswerToolUse,
 	//LLMMessageContentPart,
@@ -95,7 +95,7 @@ async function createTestMessages(
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Empty Messages',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -110,7 +110,7 @@ Deno.test({
 			const testMessages = [] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -170,7 +170,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.originalTokenCount === 0, 'Empty conversation should have 0 tokens');
 				assert(data.originalMessageCount === 0, 'Empty conversation should have 0 messages');
@@ -187,7 +187,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Very large token count',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -225,7 +225,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -285,7 +285,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.originalTokenCount === 200000, 'Should handle large token count');
 				assert(data.newTokenCount <= 128000, 'Should truncate to maxTokensToKeep');
@@ -302,7 +302,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Minimum allowed token count',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -340,7 +340,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -400,7 +400,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.originalTokenCount === 1500, 'Should handle minimum token scenario');
 				assert(data.newTokenCount <= 1000, 'Should truncate to minimum tokens');
@@ -417,7 +417,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - user',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -444,7 +444,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -505,7 +505,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.requestSource === 'user', 'bbResponse data should show user request source');
 			} finally {
@@ -521,7 +521,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - tool',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -548,7 +548,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -609,7 +609,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -625,7 +625,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - default',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -652,7 +652,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -711,7 +711,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -727,7 +727,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle invalid requestSource value',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -754,7 +754,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -820,7 +820,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify backup creation and truncation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -880,7 +880,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1113,7 +1113,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle file operations in summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1170,7 +1170,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1233,7 +1233,7 @@ Deno.test({
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
 				// Verify truncation occurred
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assert(data.originalTokenCount === 4000, 'Original token count should be 4000');
 				assert(data.newTokenCount <= 2000, 'New token count should be <= 2000');
 
@@ -1302,7 +1302,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - short summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1326,7 +1326,7 @@ Deno.test({
 			}] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1386,7 +1386,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				// Verify summary content quality
 				assert(data.summary.includes('### Files Referenced'), 'Short summary missing Files Referenced');
@@ -1434,7 +1434,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - medium summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1458,7 +1458,7 @@ Deno.test({
 			}] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1527,7 +1527,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.summary.includes('### Files Referenced'), 'Medium summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Medium summary missing Tools Used');
@@ -1555,7 +1555,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - long summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1579,7 +1579,7 @@ Deno.test({
 			}] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1651,7 +1651,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				assert(data.summary.includes('### Files Referenced'), 'Long summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Long summary missing Tools Used');
@@ -1676,7 +1676,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle interrupted tool sequence',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1729,7 +1729,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -1856,7 +1856,7 @@ Deno.test({
 				}
 
 				// Verify token counts
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assert(
 					data.originalTokenCount === 2500,
 					`Expected original token count 2500, got ${data.originalTokenCount}`,
@@ -1875,7 +1875,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Basic functionality - Generate summary without truncation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -1943,7 +1943,7 @@ Deno.test({
 			// 	console.log(`- ${entry.name}`);
 			// }
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2047,7 +2047,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assertEquals(data.originalTokenCount, 40, 'Original token count should be 40');
 				assertEquals(data.summaryLength, 'medium', 'Summary length should be medium');
 				assert(data.summary.includes('## Removed Conversation Context'), 'Summary should have correct header');
@@ -2098,7 +2098,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Generate long summary with complex context',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2158,7 +2158,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2246,7 +2246,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assertEquals(data.summaryLength, 'long', 'Summary length should be long');
 
 				// Verify all required sections for long summary
@@ -2294,7 +2294,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle invalid summary formats',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2321,7 +2321,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2439,7 +2439,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle tool use as last message',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2477,7 +2477,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2534,7 +2534,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				// Get final messages
 				const messages = interaction.getMessages();
@@ -2609,7 +2609,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle minimum token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2647,7 +2647,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2701,7 +2701,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				// const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				// Verify we kept at least one complete message pair
 				const messages = interaction.getMessages();
@@ -2743,7 +2743,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle complex tool sequences and token limits',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2803,7 +2803,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -2859,7 +2859,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				// const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 
 				// Verify messages are properly truncated
 				const messages = interaction.getMessages();
@@ -2900,7 +2900,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Truncate conversation with tool uses',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -2971,7 +2971,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3029,7 +3029,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 3000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 
@@ -3080,7 +3080,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle failed chat interaction',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3106,7 +3106,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3159,7 +3159,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Validate tool use/result pairing',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3224,7 +3224,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3301,7 +3301,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on missing required sections in summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3327,7 +3327,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3390,7 +3390,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on broken message alternation',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3433,7 +3433,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3509,7 +3509,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Generate short summary',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3536,7 +3536,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3590,7 +3590,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assertEquals(data.summaryLength, 'short', 'Summary length should be short');
 
 				// Verify required sections for short summary
@@ -3629,7 +3629,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Truncate conversation with token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3678,7 +3678,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -3734,7 +3734,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolConversationSummaryResult;
+				const data = result.bbResponse.data as LLMToolConversationSummaryResultData;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 2000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 
@@ -3762,7 +3762,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on invalid token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
 			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
@@ -3789,7 +3789,7 @@ Deno.test({
 			] as LLMMessage[];
 			await createTestMessages(conversationsDir, testMessages);
 
-			const projectEditor = await getProjectEditor(testProjectRoot);
+			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction(conversationId, projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);

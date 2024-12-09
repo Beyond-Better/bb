@@ -5,14 +5,16 @@ export interface LLMToolMultiModelQueryInput {
 	models: string[];
 }
 
+export interface LLMToolMultiModelQueryResponseData {
+	data: {
+		querySuccess: Array<{ modelIdentifier: string; answer: string }>;
+		queryError: Array<{ modelIdentifier: string; error: string }>;
+	};
+}
+
 export interface LLMToolMultiModelQueryResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			querySuccess: Array<{ modelIdentifier: string; answer: string }>;
-			queryError: Array<{ modelIdentifier: string; error: string }>;
-		};
-	};
+	bbResponse: LLMToolMultiModelQueryResponseData;
 }
 
 export interface ModelProvider {

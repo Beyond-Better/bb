@@ -1,4 +1,5 @@
-import { ConfigManager, type WizardAnswers } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import { WizardAnswers } from 'shared/config/v2/types.ts';
 import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
@@ -9,28 +10,32 @@ import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
 import type { ConversationStats } from 'shared/types.ts';
 
-export async function setupTestProject(): Promise<string> {
-	const testProjectRoot = Deno.makeTempDirSync();
+export async function setupTestProject(): Promise<{ projectRoot: string; projectId: string }> {
+	const projectRoot = Deno.makeTempDirSync();
 
-	const wizardAnswers: WizardAnswers = { project: { name: 'TestProject', type: 'local' } };
-	const configManager = await ConfigManager.getInstance();
+	//const wizardAnswers: WizardAnswers = { project: { name: 'TestProject', type: 'local' } };
+	const configManager = await ConfigManagerV2.getInstance();
 	await configManager.ensureGlobalConfig();
-	await configManager.ensureProjectConfig(testProjectRoot, wizardAnswers);
+	const projectId = await configManager.createProject('TestProject', 'local', projectRoot);
+	//console.log('setupTestProject', { projectRoot, projectId });
 
-	return testProjectRoot;
+	return { projectRoot, projectId };
 }
 
-export async function cleanupTestProject(testProjectRoot: string) {
+export async function cleanupTestProject(projectId: string, projectRoot: string) {
 	try {
-		await Deno.remove(testProjectRoot, { recursive: true });
+		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.deleteProject(projectId);
+		await Deno.remove(projectRoot, { recursive: true });
 	} catch (error) {
 		console.error(`Failed to clean up test directory: ${(error as Error).message}`);
 	}
 }
 
-export async function getProjectEditor(projectRoot: string): Promise<ProjectEditor> {
+export async function getProjectEditor(projectId: string): Promise<ProjectEditor> {
 	const projectEditorManager = new ProjectEditorManager();
-	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectRoot);
+	//console.log('getProjectEditor', { projectId });
+	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectId);
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 
@@ -42,9 +47,17 @@ export async function getToolManager(
 	toolName?: string,
 	toolConfig?: Record<string, unknown>,
 ): Promise<LLMToolManager> {
-	if (toolName && toolConfig) projectEditor.fullConfig.api.toolConfigs[toolName] = toolConfig;
+	if (toolName && toolConfig) {
+		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.setProjectConfigValue(
+			projectEditor.projectId,
+			`settings.api.toolConfigs.${toolName}`,
+			JSON.stringify(toolConfig),
+		);
+		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
+	}
 
-	const toolManager = await new LLMToolManager(projectEditor.fullConfig, 'core').init(); // Assuming 'core' is the default toolset
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
 
 	assert(toolManager, 'Failed to get LLMToolManager');
 
@@ -75,13 +88,13 @@ export async function createTestChatInteraction(
 }
 
 export async function withTestProject<T>(
-	testFn: (projectRoot: string) => Promise<T>,
+	testFn: (projectId: string, projectRoot: string) => Promise<T>,
 ): Promise<T> {
-	const testProjectRoot = await setupTestProject();
+	const { projectId, projectRoot } = await setupTestProject();
 	try {
-		return await testFn(testProjectRoot);
+		return await testFn(projectId, projectRoot);
 	} finally {
-		await cleanupTestProject(testProjectRoot);
+		await cleanupTestProject(projectId, projectRoot);
 	}
 }
 

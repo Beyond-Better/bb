@@ -5,33 +5,31 @@ import { join } from '@std/path';
 //import { isRequestFilesResponse } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import type { LLMToolRequestFilesResponseData } from '../types.ts';
 
 // Type guard for response validation
 export function isRequestFilesResponse(
 	response: unknown,
-): response is {
-	data: {
-		filesAdded: string[];
-		filesError: string[];
-	};
-} {
+): response is LLMToolRequestFilesResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
 	return (
-		typeof response === 'object' &&
-		response !== null &&
-		'data' in response &&
-		typeof (response as any).data === 'object' &&
-		'filesAdded' in (response as any).data &&
-		Array.isArray((response as any).data.filesAdded) &&
-		'filesError' in (response as any).data &&
-		Array.isArray((response as any).data.filesError)
+		data !== null &&
+		typeof data === 'object' &&
+		typeof data === 'object' &&
+		'filesAdded' in data &&
+		Array.isArray(data.filesAdded) &&
+		'filesError' in data &&
+		Array.isArray(data.filesError)
 	);
 }
 
 Deno.test({
 	name: 'RequestFilesTool - Request existing files',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('request_files');
@@ -143,8 +141,8 @@ Deno.test({
 Deno.test({
 	name: 'RequestFilesTool - Request non-existent file',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('request_files');
@@ -229,8 +227,8 @@ Deno.test({
 Deno.test({
 	name: 'RequestFilesTool - Request file outside project root',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
-			const projectEditor = await getProjectEditor(testProjectRoot);
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('request_files');

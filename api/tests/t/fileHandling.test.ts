@@ -31,7 +31,7 @@ async function createTestFiles(testProjectRoot: string) {
 Deno.test({
 	name: 'searchFilesMetadata - find files based on date range',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
@@ -54,7 +54,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesMetadata - find files based on size criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
@@ -75,7 +75,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesMetadata - combine multiple criteria',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			await createTestFiles(testProjectRoot);
 
 			const result = await searchFilesMetadata(testProjectRoot, {
@@ -99,7 +99,7 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - empty directory',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const { listing } = await generateFileListing(testProjectRoot);
 			assertEquals(listing, '');
 		});
@@ -111,7 +111,7 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - correct paths',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'content');
 			Deno.mkdirSync(join(testProjectRoot, 'subdir'));
 			Deno.writeTextFileSync(join(testProjectRoot, 'subdir', 'file2.txt'), 'content');
@@ -128,7 +128,7 @@ Deno.test({
 Deno.test({
 	name: 'generateFileListing - exclude files based on .gitignore patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, '.gitignore'), '*.log\nnode_modules/');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'content');
 			Deno.writeTextFileSync(join(testProjectRoot, 'debug.log'), 'log content');
@@ -148,7 +148,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - find files matching the search pattern',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file2.txt'), 'Goodbye, world!');
 
@@ -164,7 +164,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - return an empty array when no files match',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 
 			const result = await searchFilesContent(testProjectRoot, 'Nonexistent');
@@ -179,7 +179,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFiles - respect file pattern when provided',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 			Deno.writeTextFileSync(join(testProjectRoot, 'file2.md'), 'Hello, markdown!');
 
@@ -197,7 +197,7 @@ Deno.test({
 Deno.test({
 	name: 'searchFilesContent - handle errors gracefully',
 	fn: async () => {
-		await withTestProject(async (testProjectRoot) => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// This test simulates an error by searching in a non-existent directory
 			const nonExistentDir = join(testProjectRoot, 'nonexistent');
 			const result = await searchFilesContent(nonExistentDir, 'pattern');

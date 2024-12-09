@@ -4,12 +4,14 @@ export interface LLMToolRequestFilesInput {
 	fileNames: string[];
 }
 
+export interface LLMToolRequestFilesResponseData {
+	data: {
+		filesAdded: string[];
+		filesError: string[];
+	};
+}
+
 export interface LLMToolRequestFilesResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			filesAdded: string[];
-			filesError: string[];
-		};
-	};
+	bbResponse: LLMToolRequestFilesResponseData;
 }

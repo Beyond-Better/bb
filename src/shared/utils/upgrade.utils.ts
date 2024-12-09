@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { compare, parse } from '@std/semver';
 import { copy, exists } from '@std/fs';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import { logger } from 'shared/logger.ts';
 import { ensureUserInstallLocation, getCurrentInstallLocation, type InstallLocation } from 'shared/install.ts';
@@ -66,6 +66,8 @@ export async function checkForUpdates(): Promise<UpgradeResult> {
 export async function performUpgrade(): Promise<UpgradeResult> {
 	const { version: currentVersion, canAutoUpdate } = await getVersionInfo();
 	const installLocation = await getCurrentInstallLocation();
+	const configManager = await ConfigManagerV2.getInstance();
+	const globalConfig = await configManager.getGlobalConfig();
 
 	// Check if we need sudo for system installation
 	if (!canAutoUpdate) {
@@ -84,7 +86,7 @@ export async function performUpgrade(): Promise<UpgradeResult> {
 		return {
 			success: false,
 			error: 'Cannot create or write to user installation directory',
-			currentVersion: (await ConfigManager.globalConfig()).version as string,
+			currentVersion: globalConfig.version as string,
 			latestVersion: 'unknown',
 			needsUpdate: false,
 			needsSudo: false,
@@ -126,7 +128,7 @@ export async function performUpgrade(): Promise<UpgradeResult> {
 		return {
 			success: false,
 			error: (error as Error).message,
-			currentVersion: (await ConfigManager.globalConfig()).version as string,
+			currentVersion: globalConfig.version as string,
 			latestVersion: 'unknown',
 			needsUpdate: false,
 			needsSudo: false,
@@ -186,7 +188,8 @@ async function restoreFromBackup(backupDir: string, installLocation: InstallLoca
 }
 
 async function downloadAndInstall(release: GithubRelease): Promise<void> {
-	const config = await ConfigManager.globalConfig();
+	// const configManager = await ConfigManagerV2.getInstance();
+	// const globalConfig = await configManager.getGlobalConfig();
 	const installLocation = await getCurrentInstallLocation();
 
 	// Determine platform-specific asset name

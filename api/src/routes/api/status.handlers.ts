@@ -1,6 +1,6 @@
 import type { Context } from '@oak/oak';
-import { ConfigManager } from 'shared/configManager.ts';
-import type { FullConfigSchema } from 'shared/configSchema.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
 //import { logger } from 'shared/logger.ts';
@@ -485,7 +485,11 @@ function getHtmlResponse(statusData: StatusData): string {
   `;
 }
 
-async function getTlsInfo(config: FullConfigSchema, startDir?: string): Promise<{
+async function getTlsInfo(
+	projectConfig: ProjectConfig | undefined,
+	globalConfig: GlobalConfig,
+	projectId?: string,
+): Promise<{
 	certType?: 'custom' | 'self-signed';
 	certPath?: string;
 	certSource?: 'config' | 'project' | 'global';
@@ -500,15 +504,18 @@ async function getTlsInfo(config: FullConfigSchema, startDir?: string): Promise<
 	let certSource: 'config' | 'project' | 'global' | undefined;
 	let certPath: string | undefined;
 
-	if (config.api.tlsCertPem) {
-		certContent = config.api.tlsCertPem;
+	if (globalConfig.api.tls?.certPem) {
+		certContent = globalConfig.api.tls.certPem;
+		certSource = 'config';
+	} else if (projectConfig?.settings.api?.tls?.certPem) {
+		certContent = projectConfig.settings.api.tls.certPem;
 		certSource = 'config';
 	} else {
-		const certFile = config.api.tlsCertFile || 'localhost.pem';
+		const certFile = globalConfig.api.tls?.certFile || 'localhost.pem';
 		certPath = certFile;
 
-		if (startDir) {
-			certContent = await readFromBbDir(startDir, certFile);
+		if (projectId) {
+			certContent = await readFromBbDir(projectId, certFile);
 			if (certContent) {
 				certSource = 'project';
 			}
@@ -542,12 +549,14 @@ async function getTlsInfo(config: FullConfigSchema, startDir?: string): Promise<
 }
 
 export const getStatus = async (ctx: Context) => {
-	// Get config based on startDir if provided
-	const dirParam = ctx.request.url.searchParams.get('startDir');
-	const startDir = dirParam || undefined;
-	const config = startDir ? await ConfigManager.fullConfig(startDir) : await ConfigManager.globalConfig();
+	// Get config based on projectId if provided
+	const dirParam = ctx.request.url.searchParams.get('projectId');
+	const projectId = dirParam || undefined;
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
+	const globalConfig = await configManager.getGlobalConfig();
 
-	const tlsInfo = config.api.apiUseTls ? await getTlsInfo(config, startDir) : {};
+	const tlsInfo = await getTlsInfo(projectConfig, globalConfig, projectId);
 
 	const statusData: StatusData = {
 		status: 'OK',
@@ -564,11 +573,13 @@ export const getStatus = async (ctx: Context) => {
 			'linux': '/etc/ssl/certs',
 		} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform],
 		tls: {
-			enabled: config.api.apiUseTls || false,
+			enabled: projectConfig?.settings.api?.tls?.useTls ?? globalConfig.api?.tls?.useTls ?? false,
 			...tlsInfo,
 		},
-		configType: startDir ? 'project' : 'global',
-		projectName: startDir ? config.project.name : undefined,
+		configType: projectId ? 'project' : 'global',
+		projectName: projectId
+			? (await (await ConfigManagerV2.getInstance()).getProjectConfig(projectId)).name
+			: undefined,
 	};
 
 	// Check Accept header

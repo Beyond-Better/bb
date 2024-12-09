@@ -9,14 +9,16 @@ export interface LLMToolRewriteFileInput {
 	expectedLineCount: number;
 }
 
+export interface LLMToolRewriteFileResponseData {
+	data: {
+		filePath: string;
+		lineCount: number;
+		isNewFile: boolean;
+		lineCountError?: string;
+	};
+}
+
 export interface LLMToolRewriteFileResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: {
-		data: {
-			filePath: string;
-			lineCount: number;
-			isNewFile: boolean;
-			lineCountError?: string;
-		};
-	};
+	bbResponse: LLMToolRewriteFileResponseData;
 }

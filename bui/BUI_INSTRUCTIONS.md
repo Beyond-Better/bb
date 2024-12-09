@@ -29,18 +29,18 @@ The main component of the BUI is the `Chat.tsx` file located in
 1. The `generateConversationId` function is imported from
    `shared/conversationManagement.ts`. This import should not be changed without
    explicit instruction.
-2. The `startDir` (current working directory) is crucial for the BB system and
+2. The `projectId` is crucial for the BB system and
    must be sent with each message.
 3. A greeting message is sent automatically when the WebSocket connection is
    established.
 4. The default `startDir` is set to `~/bb/`.
-5. The WebSocket server is expected to be running on `localhost:3000`.
+5. The WebSocket server is expected to be running on `localhost:3162`.
 
 ## WebSocket Implementation
 
 - The WebSocket connection is established using the browser's native WebSocket
   API.
-- The connection URL is constructed using `localhost:3000` as the host and the
+- The connection URL is constructed using `localhost:3162` as the host and the
   generated conversation ID.
 - Reconnection attempts use exponential backoff with jitter to avoid
   overwhelming the server.
@@ -51,7 +51,7 @@ The main component of the BUI is the `Chat.tsx` file located in
    directory path.
 2. Add a visual indicator to show the WebSocket connection status (connected,
    disconnected, reconnecting).
-3. Implement error handling for cases where the server rejects the `startDir` as
+3. Implement error handling for cases where the server rejects the `projectId` as
    invalid.
 4. Improve the UI/UX of the chat interface.
 5. Add more robust error handling or input validation.
@@ -67,7 +67,7 @@ When testing the BUI, focus on:
 3. Testing the conversation flow by sending and receiving messages.
 4. Checking the reconnection mechanism by intentionally disconnecting.
 5. Ensure the WebSocket connection is properly established with the server at
-   `localhost:3000`.
+   `localhost:3162`.
 
 ## Development Guidelines
 

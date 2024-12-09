@@ -5,8 +5,9 @@ import type { JSX } from 'preact';
 import LLMToolManager from '../llms/llmToolManager.ts';
 import type { ConversationLogEntry, ConversationLogEntryContent, ConversationLogEntryType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import type { FullConfigSchema } from 'shared/configSchema.ts';
-import type { AuxiliaryChatContent, LogEntryFormattedResult, LogEntryTitleData } from './types.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import type { AuxiliaryChatContent, LogEntryFormattedResult, LogEntryTitleData } from 'api/logEntries/types.ts';
 import {
 	formatLogEntryContent as formatLogEntryContentForConsole,
 	formatLogEntryPreview as formatLogEntryPreviewForConsole,
@@ -20,13 +21,16 @@ import {
 
 export default class LogEntryFormatterManager {
 	private toolManager!: LLMToolManager;
+	private globalConfig!: GlobalConfig;
 
 	constructor(
-		private fullConfig: FullConfigSchema,
+		private projectConfig: ProjectConfig,
 	) {}
 
 	public async init(): Promise<LogEntryFormatterManager> {
-		this.toolManager = await new LLMToolManager(this.fullConfig).init();
+		const configManager = await ConfigManagerV2.getInstance();
+		this.globalConfig = await configManager.getGlobalConfig();
+		this.toolManager = await new LLMToolManager(this.projectConfig).init();
 		//logger.debug(`LogEntryFormatterManager: Initialized toolManager:`, this.toolManager.getAllToolsMetadata());
 		return this;
 	}
@@ -41,23 +45,23 @@ export default class LogEntryFormatterManager {
 		switch (logEntry.entryType as ConversationLogEntryType) {
 			case 'user':
 				formatted = destination === 'console'
-					? this.formatLogEntryBasicConsole(logEntry, this.fullConfig.myPersonsName || 'User')
-					: this.formatLogEntryBasicBrowser(logEntry, this.fullConfig.myPersonsName || 'User');
+					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myPersonsName || 'User')
+					: this.formatLogEntryBasicBrowser(logEntry, this.globalConfig.myPersonsName || 'User');
 				break;
 			case 'assistant':
 				formatted = destination === 'console'
-					? this.formatLogEntryBasicConsole(logEntry, this.fullConfig.myAssistantsName || 'Assistant')
-					: this.formatLogEntryBasicBrowser(logEntry, this.fullConfig.myAssistantsName || 'Assistant');
+					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myAssistantsName || 'Assistant')
+					: this.formatLogEntryBasicBrowser(logEntry, this.globalConfig.myAssistantsName || 'Assistant');
 				break;
 			case 'answer':
 				formatted = destination === 'console'
 					? this.formatLogEntryBasicConsole(
 						logEntry,
-						`Answer from ${this.fullConfig.myAssistantsName || 'Assistant'}`,
+						`Answer from ${this.globalConfig.myAssistantsName || 'Assistant'}`,
 					)
 					: this.formatLogEntryBasicBrowser(
 						logEntry,
-						`Answer from ${this.fullConfig.myAssistantsName || 'Assistant'}`,
+						`Answer from ${this.globalConfig.myAssistantsName || 'Assistant'}`,
 					);
 				break;
 			case 'auxiliary':

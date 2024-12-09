@@ -108,7 +108,7 @@ api:
   apiHostname: localhost
 
   # The port number for the API to listen on
-  apiPort: 3000
+  apiPort: 3162
 
   # Whether the API listens with TLS
   apiUseTls: true

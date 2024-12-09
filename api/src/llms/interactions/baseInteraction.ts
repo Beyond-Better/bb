@@ -30,7 +30,7 @@ import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import type { FullConfigSchema } from 'shared/configManager.ts';
+import { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 
 class LLMInteraction {
@@ -74,7 +74,7 @@ class LLMInteraction {
 	protected _baseSystem: string = '';
 	public conversationPersistence!: ConversationPersistence;
 	public conversationLogger!: ConversationLogger;
-	protected fullConfig!: FullConfigSchema;
+	protected projectConfig!: ProjectConfig;
 
 	private _model: string = '';
 
@@ -96,7 +96,7 @@ class LLMInteraction {
 
 	public async init(parentId?: ConversationId): Promise<LLMInteraction> {
 		try {
-			const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
+			const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
 			const logEntryHandler = async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,
@@ -117,9 +117,9 @@ class LLMInteraction {
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 			this.conversationPersistence = await new ConversationPersistence(parentId ?? this.id, projectEditor).init();
-			this.conversationLogger = await new ConversationLogger(projectRoot, parentId ?? this.id, logEntryHandler)
+			this.conversationLogger = await new ConversationLogger(projectId, parentId ?? this.id, logEntryHandler)
 				.init();
-			this.fullConfig = projectEditor.fullConfig;
+			this.projectConfig = projectEditor.projectConfig;
 		} catch (error) {
 			logger.error('Failed to initialize LLMInteraction:', error as Error);
 			throw error;

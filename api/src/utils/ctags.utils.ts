@@ -1,6 +1,7 @@
 import { join } from '@std/path';
 import { exists } from '@std/fs';
-import { ConfigManager } from 'shared/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { countTokens } from 'anthropic-tokenizer';
 //import { contentType } from '@std/media-types';
@@ -114,8 +115,11 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 	return excludeOptions;
 }
 
-export async function generateCtags(bbDir: string, projectRoot: string): Promise<string | null> {
-	const repoInfoConfig = (await ConfigManager.projectConfig(projectRoot)).repoInfo;
+export async function generateCtags(bbDir: string, projectId: string): Promise<string | null> {
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectConfig = await configManager.getProjectConfig(projectId);
+	const repoInfoConfig = projectConfig.repoInfo;
+	const projectRoot = await getProjectRootFromStartDir(bbDir);
 
 	if (repoInfoConfig?.ctagsAutoGenerate === false) {
 		logger.info('Ctags auto-generation is disabled');
@@ -138,8 +142,10 @@ export async function generateCtags(bbDir: string, projectRoot: string): Promise
 	return null;
 }
 
-export async function readCtagsFile(bbDir: string): Promise<string | null> {
-	const repoInfoConfig = (await ConfigManager.projectConfig(bbDir)).repoInfo;
+export async function readCtagsFile(bbDir: string, projectId: string): Promise<string | null> {
+	const configManager = await ConfigManagerV2.getInstance();
+	const projectConfig = await configManager.getProjectConfig(projectId);
+	const repoInfoConfig = projectConfig.repoInfo;
 
 	const ctagsFilePath = repoInfoConfig?.ctagsFilePath
 		? join(bbDir, repoInfoConfig.ctagsFilePath)

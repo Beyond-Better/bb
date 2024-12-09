@@ -12,7 +12,7 @@ import type {
 
 export interface WebSocketMessage {
 	conversationId: string;
-	startDir: string;
+	projectId: string;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement?: string;
 }
