@@ -1,188 +1,186 @@
 import { Router } from '@oak/oak';
-//import type { Context } from '@oak/oak';
 import {
-    chatConversation,
-    clearConversation,
-    deleteConversation,
-    getConversation,
-    listConversations,
+	chatConversation,
+	clearConversation,
+	deleteConversation,
+	getConversation,
+	listConversations,
 } from './api/conversation.handlers.ts';
-import { websocketConversation, websocketApp } from './api/websocket.handlers.ts';
-import { suggestFiles } from './api/file.handlers.ts';
+import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
-import { setupProject } from './api/project.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
+import projectRouter from './api/projectRouter.ts';
+import fileRouter from './api/fileRouter.ts';
 
 const apiRouter = new Router();
 
 apiRouter
-    .get('/v1/status', getStatus)
-    // WebSocket endpoints
-    .get('/v1/ws/app', websocketApp)
-    .get('/v1/ws/conversation/:id', websocketConversation)
-    // Conversation endpoints
-    .get('/v1/conversation', listConversations)
-    .get('/v1/conversation/:id', getConversation)
-    .post('/v1/conversation/:id', chatConversation)
-    .delete('/v1/conversation/:id', deleteConversation)
-    .post('/v1/conversation/:id/clear', clearConversation)
-    // Log Entries endpoints
-    .post('/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType', logEntryFormatter)
-    // File handling endpoints
-    .post('/v1/setup_project', setupProject)
-    // File suggestion endpoint
-    .post('/v1/files/suggest', suggestFiles)
-    /**
-     * @openapi
-     * /api/v1/upgrade:
-     *   post:
-     *     summary: Upgrade BB to the latest version
-     *     description: |
-     *       Upgrades BB to the latest version. Only works with user-local installations.
-     *       System-wide installations require manual upgrade with sudo.
-     *     responses:
-     *       200:
-     *         description: Upgrade successful
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: true
-     *                 currentVersion:
-     *                   type: string
-     *                   example: '1.0.0'
-     *                 latestVersion:
-     *                   type: string
-     *                   example: '1.1.0'
-     *                 needsRestart:
-     *                   type: boolean
-     *                   example: true
-     *       403:
-     *         description: System-wide installation requires sudo
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: 'System-wide installation requires manual upgrade with sudo'
-     *                 needsSudo:
-     *                   type: boolean
-     *                   example: true
-     *       500:
-     *         description: Upgrade failed
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 success:
-     *                   type: boolean
-     *                   example: false
-     *                 error:
-     *                   type: string
-     *                   example: 'Failed to download latest version'
-     */
-    .post('/v1/upgrade', upgradeApi)
-    /**
-     * @openapi
-     * /api/v1/doctor/check:
-     *   get:
-     *     summary: Run system diagnostic checks
-     *     description: Performs a series of diagnostic checks on the BB system
-     *     responses:
-     *       200:
-     *         description: Diagnostic results
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 results:
-     *                   type: array
-     *                   items:
-     *                     type: object
-     *                     properties:
-     *                       category:
-     *                         type: string
-     *                         example: 'config'
-     *                       status:
-     *                         type: string
-     *                         enum: ['ok', 'warning', 'error']
-     *                       message:
-     *                         type: string
-     *                       details:
-     *                         type: string
-     *                       fix:
-     *                         type: object
-     *                         properties:
-     *                           description:
-     *                             type: string
-     *                           command:
-     *                             type: string
-     *                           apiEndpoint:
-     *                             type: string
-     *                 summary:
-     *                   type: object
-     *                   properties:
-     *                     total:
-     *                       type: number
-     *                     errors:
-     *                       type: number
-     *                     warnings:
-     *                       type: number
-     *                     ok:
-     *                       type: number
-     */
-    .get('/v1/doctor/check', checkHandler)
-    /**
-     * @openapi
-     * /api/v1/doctor/report:
-     *   get:
-     *     summary: Generate diagnostic report
-     *     description: Generates a comprehensive diagnostic report
-     *     responses:
-     *       200:
-     *         description: Diagnostic report (as downloadable file)
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     */
-    .get('/v1/doctor/report', reportHandler)
-    /**
-     * @openapi
-     * /api/v1/doctor/fix/{type}:
-     *   post:
-     *     summary: Apply a specific fix
-     *     description: Applies a fix for a specific diagnostic issue
-     *     parameters:
-     *       - name: type
-     *         in: path
-     *         required: true
-     *         schema:
-     *           type: string
-     *     responses:
-     *       200:
-     *         description: Fix applied successfully
-     *         content:
-     *           application/json:
-     *             schema:
-     *               type: object
-     *               properties:
-     *                 message:
-     *                   type: string
-     */
-    .post('/v1/doctor/fix/:type', applyFixHandler);
+	.get('/v1/status', getStatus)
+	// WebSocket endpoints
+	.get('/v1/ws/app', websocketApp)
+	.get('/v1/ws/conversation/:id', websocketConversation)
+	// Conversation endpoints
+	.get('/v1/conversation', listConversations)
+	.get('/v1/conversation/:id', getConversation)
+	.post('/v1/conversation/:id', chatConversation)
+	.delete('/v1/conversation/:id', deleteConversation)
+	.post('/v1/conversation/:id/clear', clearConversation)
+	// Log Entries endpoints
+	.post('/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType', logEntryFormatter)
+	/**
+	 * @openapi
+	 * /api/v1/upgrade:
+	 *   post:
+	 *     summary: Upgrade BB to the latest version
+	 *     description: |
+	 *       Upgrades BB to the latest version. Only works with user-local installations.
+	 *       System-wide installations require manual upgrade with sudo.
+	 *     responses:
+	 *       200:
+	 *         description: Upgrade successful
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 success:
+	 *                   type: boolean
+	 *                   example: true
+	 *                 currentVersion:
+	 *                   type: string
+	 *                   example: '1.0.0'
+	 *                 latestVersion:
+	 *                   type: string
+	 *                   example: '1.1.0'
+	 *                 needsRestart:
+	 *                   type: boolean
+	 *                   example: true
+	 *       403:
+	 *         description: System-wide installation requires sudo
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 success:
+	 *                   type: boolean
+	 *                   example: false
+	 *                 error:
+	 *                   type: string
+	 *                   example: 'System-wide installation requires manual upgrade with sudo'
+	 *                 needsSudo:
+	 *                   type: boolean
+	 *                   example: true
+	 *       500:
+	 *         description: Upgrade failed
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 success:
+	 *                   type: boolean
+	 *                   example: false
+	 *                 error:
+	 *                   type: string
+	 *                   example: 'Failed to download latest version'
+	 */
+	.post('/v1/upgrade', upgradeApi)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/check:
+	 *   get:
+	 *     summary: Run system diagnostic checks
+	 *     description: Performs a series of diagnostic checks on the BB system
+	 *     responses:
+	 *       200:
+	 *         description: Diagnostic results
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 results:
+	 *                   type: array
+	 *                   items:
+	 *                     type: object
+	 *                     properties:
+	 *                       category:
+	 *                         type: string
+	 *                         example: 'config'
+	 *                       status:
+	 *                         type: string
+	 *                         enum: ['ok', 'warning', 'error']
+	 *                       message:
+	 *                         type: string
+	 *                       details:
+	 *                         type: string
+	 *                       fix:
+	 *                         type: object
+	 *                         properties:
+	 *                           description:
+	 *                             type: string
+	 *                           command:
+	 *                             type: string
+	 *                           apiEndpoint:
+	 *                             type: string
+	 *                 summary:
+	 *                   type: object
+	 *                   properties:
+	 *                     total:
+	 *                       type: number
+	 *                     errors:
+	 *                       type: number
+	 *                     warnings:
+	 *                       type: number
+	 *                     ok:
+	 *                       type: number
+	 */
+	.get('/v1/doctor/check', checkHandler)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/report:
+	 *   get:
+	 *     summary: Generate diagnostic report
+	 *     description: Generates a comprehensive diagnostic report
+	 *     responses:
+	 *       200:
+	 *         description: Diagnostic report (as downloadable file)
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 */
+	.get('/v1/doctor/report', reportHandler)
+	/**
+	 * @openapi
+	 * /api/v1/doctor/fix/{type}:
+	 *   post:
+	 *     summary: Apply a specific fix
+	 *     description: Applies a fix for a specific diagnostic issue
+	 *     parameters:
+	 *       - name: type
+	 *         in: path
+	 *         required: true
+	 *         schema:
+	 *           type: string
+	 *     responses:
+	 *       200:
+	 *         description: Fix applied successfully
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               type: object
+	 *               properties:
+	 *                 message:
+	 *                   type: string
+	 */
+	.post('/v1/doctor/fix/:type', applyFixHandler)
+	// Mount sub-routers
+	.use('/v1/project', projectRouter.routes(), projectRouter.allowedMethods())
+	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods());
 
 /*
     // NOT IMPLEMENTED

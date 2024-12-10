@@ -3,7 +3,6 @@ import { walk } from '@std/fs';
 import { relative } from '@std/path';
 import { createExcludeRegexPatterns, getExcludeOptions, isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-//import type { DisplaySuggestion } from '../../../bui/src/types/suggestions.types.ts';
 import { getProjectRoot } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -15,6 +14,14 @@ export interface PatternOptions {
 export interface FileSuggestionsOptions {
 	partialPath: string;
 	projectId: string;
+	limit?: number;
+	caseSensitive?: boolean;
+	type?: 'all' | 'file' | 'directory';
+}
+
+export interface FileSuggestionsForPathOptions {
+	partialPath: string;
+	rootPath: string;
 	limit?: number;
 	caseSensitive?: boolean;
 	type?: 'all' | 'file' | 'directory';
@@ -33,12 +40,11 @@ export interface FileSuggestionsResponse {
 }
 
 /**
- * Main function to get file suggestions based on partial path
+ * Main function to get file suggestions based on partial path and project ID
  */
 export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
-	const { partialPath, projectId, limit = 50, caseSensitive = false, type = 'all' } = options;
+	const { partialPath, projectId, limit, caseSensitive, type } = options;
 
-	// logger.info('SuggestionPatterns: Getting suggestions', { partialPath, projectId, limit, caseSensitive, type });
 	const projectRoot = await getProjectRoot(projectId);
 
 	// Validate path is within project
@@ -46,14 +52,27 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		throw createError(ErrorType.FileHandling, 'Path outside project directory');
 	}
 
+	return suggestFilesForPath({
+		partialPath,
+		rootPath: projectRoot,
+		limit,
+		caseSensitive,
+		type,
+	});
+}
+
+/**
+ * Get file suggestions based on partial path and root directory
+ */
+export async function suggestFilesForPath(options: FileSuggestionsForPathOptions): Promise<FileSuggestionsResponse> {
+	const { partialPath, rootPath, limit = 50, caseSensitive = false, type = 'all' } = options;
+
 	// Remove leading slash as it's just a trigger, not part of the pattern
 	const searchPath = partialPath.replace(/^\//, '');
-	// logger.info('SuggestionPatterns: Normalized search path', { searchPath });
 
 	// Get exclude patterns
-	const excludeOptions = await getExcludeOptions(projectRoot);
-	const excludePatterns = createExcludeRegexPatterns(excludeOptions, projectRoot);
-	// logger.debug('SuggestionPatterns: Using exclude patterns', excludePatterns.map((p) => p.toString()));
+	const excludeOptions = await getExcludeOptions(rootPath);
+	const excludePatterns = createExcludeRegexPatterns(excludeOptions, rootPath);
 
 	// Generate patterns for matching
 	const patterns = createSuggestionPatterns(searchPath, { caseSensitive, type });
@@ -61,17 +80,6 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		logger.info('SuggestionPatterns: No valid patterns generated');
 		return { suggestions: [], hasMore: false };
 	}
-
-	// logger.info('SuggestionPatterns: Generated patterns', patterns.map((p) => p.toString()));
-
-	// // Test some known paths to verify pattern matching
-	// const testPaths = ['docs', 'docs/', 'docs/README.md', 'api/docs/example.md'];
-	// for (const testPath of testPaths) {
-	// 	logger.debug('SuggestionPatterns: Testing pattern against known path', {
-	// 		path: testPath,
-	// 		matches: patterns.map((p) => ({ pattern: p.toString(), matches: p.test(testPath) })),
-	// 	});
-	// }
 
 	// Collect matching files
 	const results: Array<{
@@ -84,9 +92,8 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 	let reachedLimit = false;
 
 	try {
-		//logger.debug('SuggestionPatterns: Starting file walk', { projectRoot });
 		for await (
-			const entry of walk(projectRoot, {
+			const entry of walk(rootPath, {
 				includeDirs: true,
 				followSymlinks: false,
 				match: patterns,
@@ -95,17 +102,12 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		) {
 			// Check limit before adding
 			if (results.length >= limit) {
-				//logger.debug('SuggestionPatterns: Reached result limit', { limit });
 				reachedLimit = true;
 				break;
 			}
 
 			const stat = await Deno.stat(entry.path);
-			const relativePath = relative(projectRoot, entry.path);
-			// logger.debug('SuggestionPatterns: Testing path', {
-			// 	path: relativePath,
-			// 	matches: patterns.map((p) => ({ pattern: p.toString(), matches: p.test(relativePath) })),
-			// });
+			const relativePath = relative(rootPath, entry.path);
 
 			results.push({
 				path: relativePath,
@@ -121,12 +123,6 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 			`Error walking directory: ${(error as Error).message}`,
 		);
 	}
-
-	// logger.info('SuggestionPatterns: Found matches', {
-	// 	count: results.length,
-	// 	hasMore: reachedLimit,
-	// 	patterns: patterns.map((p) => p.toString()),
-	// });
 
 	// Apply type filtering if specified
 	const filteredResults = results.filter((entry) => {
@@ -150,9 +146,8 @@ export function createSuggestionPatterns(
 ): RegExp[] {
 	// Normalize path separators to forward slashes
 	partialPath = partialPath.replace(/\\/g, '/');
-	// logger.info('SuggestionPatterns: Creating patterns for path', { partialPath, options });
 
-	// Reject paths trying to escape project root
+	// Reject paths trying to escape root
 	if (partialPath.includes('../') || partialPath.includes('..\\')) {
 		logger.warn('SuggestionPatterns: Rejecting path that tries to escape root', { partialPath });
 		return [];
@@ -174,13 +169,10 @@ export function createSuggestionPatterns(
 	// Handle empty input
 	if (!partialPath) {
 		const rootPattern = '**/*';
-		// logger.info('SuggestionPatterns: Creating root pattern', { rootPattern });
-		// Match all files at any depth
 		patterns.push(globToRegExp(rootPattern, globOptions));
 
 		if (options.type !== 'file') {
 			const rootDirPattern = '*/';
-			// logger.info('SuggestionPatterns: Creating root directory pattern', { rootDirPattern });
 			patterns.push(globToRegExp(rootDirPattern, globOptions));
 		}
 		return patterns;
@@ -206,7 +198,6 @@ export function createSuggestionPatterns(
 
 	for (const pattern of subPatterns) {
 		let singlePattern = pattern;
-		// logger.info('SuggestionPatterns: Processing pattern', { original: pattern });
 
 		// Handle directory patterns
 		if (
@@ -214,63 +205,33 @@ export function createSuggestionPatterns(
 			(!singlePattern.includes('*') && !singlePattern.includes('.') && !singlePattern.includes('{') &&
 				!singlePattern.includes('('))
 		) {
-			// For directory patterns (ending with / or no extension), match:
-			// 1. The directory itself
-			// 2. Everything under this directory
 			singlePattern = singlePattern.slice(0, -1);
-
-			// Match the directory itself and its contents
 			const dirPattern = singlePattern.includes('**') ? `${singlePattern}/**/*` : `**/${singlePattern}*/**/*`;
-			// logger.info('SuggestionPatterns: Created directory contents pattern', { dirPattern });
 			patterns.push(createRegex(globToRegExp(dirPattern, globOptions).source));
 		}
 
 		// Handle bare filename (no path, no wildcards)
 		if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
-			// Match directories that start with the pattern
 			const dirPattern = `**/${singlePattern}*/`;
-			// logger.info('SuggestionPatterns: Created directory match pattern', { dirPattern });
 			patterns.push(globToRegExp(dirPattern, globOptions));
 
-			// Match files under directories that start with the pattern
 			const filesPattern = `**/${singlePattern}*/**/*`;
-			// logger.info('SuggestionPatterns: Created files match pattern', { filesPattern });
 			patterns.push(globToRegExp(filesPattern, globOptions));
 		}
 
 		// Handle wildcard patterns
 		if (singlePattern.includes('*')) {
 			if (singlePattern.includes('**')) {
-				// Double-star pattern - ensure proper path handling
-				// logger.info('SuggestionPatterns: Using double-star pattern', { singlePattern });
-				// Add **/ prefix if pattern doesn't start with it
 				const prefixedPattern = singlePattern.startsWith('**/') ? singlePattern : `**/${singlePattern}`;
 				const pattern = globToRegExp(prefixedPattern, { ...globOptions, globstar: true });
-				// logger.debug('SuggestionPatterns: Created pattern', {
-				// 	original: singlePattern,
-				// 	prefixed: prefixedPattern,
-				// 	pattern: pattern.toString(),
-				// 	testPaths: {
-				// 		'docs/README.md': pattern.test('docs/README.md'),
-				// 		'docs/development/guide.md': pattern.test('docs/development/guide.md'),
-				// 	},
-				// });
 				patterns.push(pattern);
 			} else {
-				// Simple wildcard - handle file extension patterns differently
 				if (singlePattern.includes('.')) {
-					// File pattern - add **/ prefix only
 					const prefixedPattern = `**/${singlePattern}`;
-					// logger.info('SuggestionPatterns: Added **/ prefix to file pattern', { singlePattern });
 					patterns.push(createRegex(globToRegExp(prefixedPattern, globOptions).source));
 				} else {
-					// Directory pattern - match both the directory and its contents
 					const dirPattern = `**/${singlePattern}`;
 					const contentsPattern = `**/${singlePattern}/**/*`;
-					// logger.info('SuggestionPatterns: Created directory and contents patterns', {
-					// 	dirPattern,
-					// 	contentsPattern,
-					// });
 					patterns.push(globToRegExp(dirPattern, globOptions));
 					patterns.push(globToRegExp(contentsPattern, globOptions));
 				}
@@ -278,9 +239,5 @@ export function createSuggestionPatterns(
 		}
 	}
 
-	// logger.info('SuggestionPatterns: Final patterns', {
-	// 	path: partialPath,
-	// 	patterns: patterns.map((p) => p.toString()),
-	// });
 	return patterns;
 }

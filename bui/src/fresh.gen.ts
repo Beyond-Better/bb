@@ -14,10 +14,8 @@ import * as $projects_partial from './routes/projects/partial.tsx';
 import * as $settings_index from './routes/settings/index.tsx';
 import * as $settings_partial from './routes/settings/partial.tsx';
 import * as $Chat from './islands/Chat.tsx';
-import * as $Counter from './islands/Counter.tsx';
 import * as $Navigation from './islands/Navigation.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
-import * as $ProjectSelector from './islands/ProjectSelector.tsx';
 import * as $Settings from './islands/Settings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
 import * as $archive_AppStateProvider from './islands/archive/AppStateProvider.tsx';
@@ -43,10 +41,8 @@ const manifest = {
 	},
 	islands: {
 		'./islands/Chat.tsx': $Chat,
-		'./islands/Counter.tsx': $Counter,
 		'./islands/Navigation.tsx': $Navigation,
 		'./islands/ProjectManager.tsx': $ProjectManager,
-		'./islands/ProjectSelector.tsx': $ProjectSelector,
 		'./islands/Settings.tsx': $Settings,
 		'./islands/SideNav.tsx': $SideNav,
 		'./islands/archive/AppStateProvider.tsx': $archive_AppStateProvider,

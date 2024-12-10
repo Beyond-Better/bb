@@ -6,7 +6,7 @@ type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTM
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
-import { useAppState } from '../hooks/useAppState.ts';
+import { setConversation, useAppState } from '../hooks/useAppState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
@@ -16,6 +16,7 @@ import { Toast } from '../components/Toast.tsx';
 import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
 import { useVersion } from '../hooks/useVersion.ts';
+import { useProjectState } from '../hooks/useProjectState.ts';
 
 import { ChatInput } from '../components/ChatInput.tsx';
 // ConversationHeader has been deprecated in favor of ChatMetadata
@@ -39,12 +40,7 @@ const getConversationId = () => {
 	return params?.get('conversationId') || null;
 };
 
-const getProjectId = () => {
-	const params = getUrlParams();
-	const projectIdFromHash = params?.get('projectId');
-	const projectIdFromStorage = IS_BROWSER ? localStorage.getItem('projectId') : null;
-	return projectIdFromHash || projectIdFromStorage || '.';
-};
+// Project ID is now managed by useProjectState
 
 interface ChatProps {
 	chatState: Signal<ChatState>;
@@ -59,9 +55,10 @@ export default function Chat({
 	const appState = useAppState();
 
 
-
-	// State management
-	const [projectId, setProjectId] = useState(getProjectId);
+	// Get project state
+	const { state: projectState } = useProjectState(appState);
+	// Use projectId from projectState
+	const projectId = projectState.value.selectedProjectId || '.';
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
@@ -98,7 +95,6 @@ export default function Chat({
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
-		projectId,
 
 		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
@@ -109,16 +105,7 @@ export default function Chat({
 	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
 	const [handlers, scrollIndicatorState] = useChatState(config, chatState);
 
-	useEffect(() => {
-		console.log('Chat: Initial useEffect', { chatState: chatState.value });
-		if (!IS_BROWSER) return;
-
-		chatState.value.projectData = {
-			projectId,
-			type: 'git',
-			name: 'BB',
-		};
-	}, [projectId]);
+	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
 
 	// Update cache status every 30 seconds
 	useEffect(() => {
@@ -126,7 +113,10 @@ export default function Chat({
 		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
-			console.log('Chat: status.lastApiCallTime effect - updateCacheStatus', chatState.value.status.lastApiCallTime);
+			console.log(
+				'Chat: status.lastApiCallTime effect - updateCacheStatus',
+				chatState.value.status.lastApiCallTime,
+			);
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -151,12 +141,6 @@ export default function Chat({
 	}, [chatState.value.status.lastApiCallTime]);
 
 	// Utility functions
-	const updateProjectId = (newDir: string) => {
-		setProjectId(newDir);
-		if (IS_BROWSER && newDir) {
-			localStorage.setItem('projectId', newDir);
-		}
-	};
 
 	const handleCopy = async (text: string) => {
 		try {
@@ -251,11 +235,13 @@ export default function Chat({
 	const selectConversation = async (id: string) => {
 		try {
 			await handlers.selectConversation(id);
+			setConversation(id);
+
 			// Update URL while preserving hash parameters
-			const url = new URL(globalThis.location.href);
-			url.searchParams.set('conversationId', id);
-			const hash = globalThis.location.hash;
-			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
+			//const url = new URL(globalThis.location.href);
+			//url.searchParams.set('conversationId', id);
+			//const hash = globalThis.location.hash;
+			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		} catch (error) {
 			console.error('Failed to switch conversation:', error);
 			setToastMessage('Failed to switch conversation');

@@ -5,6 +5,47 @@ import type { VersionInfo } from 'shared/types/version.ts';
 import { createWebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
 
+interface AppState {
+	wsManager: WebSocketManager | null;
+	apiClient: ApiClient | null;
+	status: {
+		isConnecting: boolean;
+		isReady: boolean;
+		isLoading: boolean;
+		error: string | null;
+	};
+	error: string | null;
+	versionInfo: VersionInfo | undefined;
+	projectId: string | null;
+	conversationId: string | null;
+}
+
+// Load initial state from localStorage and URL
+const loadStoredState = () => {
+	let projectId = null;
+	let conversationId = null;
+
+	if (typeof window !== 'undefined') {
+		// Check URL parameters first
+		const params = new URLSearchParams(window.location.search);
+		projectId = params.get('projectId');
+		conversationId = params.get('conversationId');
+
+		// If not in URL, check localStorage
+		if (!projectId) {
+			projectId = localStorage.getItem('bb_projectId');
+		}
+		if (!conversationId) {
+			conversationId = localStorage.getItem('bb_conversationId');
+		}
+	}
+
+	return {
+		projectId,
+		conversationId,
+	};
+};
+
 const appState = signal<AppState>({
 	wsManager: null,
 	apiClient: null,
@@ -16,13 +57,65 @@ const appState = signal<AppState>({
 	},
 	error: null,
 	versionInfo: undefined,
+	...loadStoredState(),
 });
 
+// Function to update URL parameters
+const updateUrlParams = (projectId: string | null, conversationId: string | null) => {
+	if (typeof window === 'undefined') return;
+
+	const url = new URL(window.location.href);
+	if (projectId) {
+		url.searchParams.set('projectId', projectId);
+	} else {
+		url.searchParams.delete('projectId');
+	}
+	if (conversationId) {
+		url.searchParams.set('conversationId', conversationId);
+	} else {
+		url.searchParams.delete('conversationId');
+	}
+
+	window.history.replaceState({}, '', url.toString());
+};
+
+// Function to update localStorage
+const updateLocalStorage = (projectId: string | null, conversationId: string | null) => {
+	if (typeof localStorage === 'undefined') return;
+
+	if (projectId) {
+		localStorage.setItem('bb_projectId', projectId);
+	} else {
+		localStorage.removeItem('bb_projectId');
+	}
+	if (conversationId) {
+		localStorage.setItem('bb_conversationId', conversationId);
+	} else {
+		localStorage.removeItem('bb_conversationId');
+	}
+};
+
 export function useAppState(): Signal<AppState> {
-	// console.log('useAppState: hook called', {
-	//     currentState: appState.value
-	// });
 	return appState;
+}
+
+export function setProject(projectId: string | null) {
+	console.log('AppState: setProject', projectId);
+	appState.value = {
+		...appState.value,
+		projectId,
+	};
+	updateLocalStorage(projectId, appState.value.conversationId);
+	updateUrlParams(projectId, appState.value.conversationId);
+}
+
+export function setConversation(conversationId: string | null) {
+	appState.value = {
+		...appState.value,
+		conversationId,
+	};
+	updateLocalStorage(appState.value.projectId, conversationId);
+	updateUrlParams(appState.value.projectId, conversationId);
 }
 
 export function initializeAppState(config: AppConfig): void {
@@ -121,7 +214,6 @@ export function initializeAppState(config: AppConfig): void {
 			error: error.message,
 		};
 	});
-	//console.log('AppState: initializeAppState finished - ws handlers', wsManager.eventHandlers);
 }
 
 export function updateAppStateHandlers(handlers: {
@@ -146,6 +238,9 @@ export function cleanupAppState(): void {
 		wsManager.disconnect();
 	}
 
+	// Preserve project and conversation IDs during cleanup
+	const { projectId, conversationId } = appState.value;
+
 	appState.value = {
 		wsManager: null,
 		apiClient: null,
@@ -157,5 +252,7 @@ export function cleanupAppState(): void {
 		},
 		error: null,
 		versionInfo: undefined,
+		projectId,
+		conversationId,
 	};
 }

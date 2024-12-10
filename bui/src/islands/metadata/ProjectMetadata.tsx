@@ -6,15 +6,7 @@ import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx'
 import type { ApiClient } from '../../utils/apiClient.utils.ts';
 import type { ConversationEntry } from 'shared/types.ts';
 import { IS_BROWSER } from '$fresh/runtime.ts';
-// Version info is displayed in SideNav
-
-/*
-interface ProjectStatus {
-	cacheStatus: 'active' | 'expiring' | 'inactive';
-	apiStatus: ApiStatus;
-	isReady: boolean;
-}
- */
+import { ProjectSelector } from '../../components/ProjectSelector/index.ts';
 
 interface ProjectMetadataProps {
 	chatState: Signal<ChatState>;
@@ -32,9 +24,35 @@ export function ProjectMetadata({
 
 	return (
 		<div className='flex items-center justify-between px-4'>
-			<div className='flex items-center space-x-6'>
+			<div className='flex items-center space-x-8'>
+				{/* Project Selector */}
+				<div className='w-64'>
+					<ProjectSelector placement='bottom' />
+				</div>
+
 				{/* Project Info */}
 				<div className='flex items-center space-x-4'>
+					{/* Project Name */}
+					<div className='flex items-center space-x-2'>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							fill='none'
+							viewBox='0 0 24 24'
+							strokeWidth='1.5'
+							stroke='currentColor'
+							className='w-5 h-5 text-gray-400'
+						>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
+							/>
+						</svg>
+						<span className='text-sm font-medium text-gray-900'>
+							{projectName || 'No project selected'}
+						</span>
+					</div>
+
 					{/* Project Type */}
 					<div className='flex items-center space-x-2'>
 						<svg
@@ -53,28 +71,77 @@ export function ProjectMetadata({
 						</svg>
 						<span className='text-sm text-gray-500'>{projectType}</span>
 					</div>
-
-					{/* Project ID */}
-					<div className='flex items-center space-x-2'>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							fill='none'
-							viewBox='0 0 24 24'
-							strokeWidth='1.5'
-							stroke='currentColor'
-							className='w-5 h-5 text-gray-400'
-						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
-							/>
-						</svg>
-						<span className='text-sm font-medium text-gray-900'>
-							{projectId || 'No project selected'}
-						</span>
-					</div>
 				</div>
+
+				{/* Project Stats */}
+				{chatState.value.projectData?.stats && (
+					<div className='flex items-center space-x-6 text-sm'>
+						<div className='flex items-center text-blue-600'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='h-5 w-5 mr-1.5'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={1.5}
+									d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
+								/>
+							</svg>
+							<span>{chatState.value.projectData.stats.conversationCount.toLocaleString()}</span>
+							<span className='text-gray-500 ml-1'>
+								{chatState.value.projectData.stats.conversationCount === 1
+									? 'conversation'
+									: 'conversations'}
+							</span>
+						</div>
+
+						<div className='flex items-center text-purple-600'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='h-5 w-5 mr-1.5'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={1.5}
+									d='M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'
+								/>
+							</svg>
+							<span>{chatState.value.projectData.stats.totalTokens.toLocaleString()}</span>
+							<span className='text-gray-500 ml-1'>tokens used</span>
+						</div>
+
+						{chatState.value.projectData.stats.lastAccessed && (
+							<div className='flex items-center text-gray-500'>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									className='h-5 w-5 mr-1.5'
+									fill='none'
+									viewBox='0 0 24 24'
+									stroke='currentColor'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={1.5}
+										d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+									/>
+								</svg>
+								<span>
+									Last used:{' '}
+									{new Date(chatState.value.projectData.stats.lastAccessed).toLocaleString()}
+								</span>
+							</div>
+						)}
+					</div>
+				)}
 			</div>
 
 			{/* Status Info */}

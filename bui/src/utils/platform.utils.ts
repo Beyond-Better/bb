@@ -19,7 +19,7 @@ export function getPlatformInfo(): PlatformInfo {
 	if (platform.includes('mac')) {
 		// Check for Apple Silicon
 		const isAppleSilicon = userAgent.includes('mac') && navigator.maxTouchPoints > 1;
-		const info = {
+		const info: PlatformInfo = {
 			os: 'macos' as const,
 			arch: isAppleSilicon ? 'arm64' : 'x64',
 			variant: isAppleSilicon ? 'apple-silicon' : 'intel',
@@ -30,7 +30,7 @@ export function getPlatformInfo(): PlatformInfo {
 
 	// Detect Windows
 	if (platform.includes('win')) {
-		const info = {
+		const info: PlatformInfo = {
 			os: 'windows' as const,
 			arch: 'x64', // Currently only supporting x64 for Windows
 		};
@@ -39,7 +39,7 @@ export function getPlatformInfo(): PlatformInfo {
 	}
 
 	// Default to Linux
-	const info = {
+	const info: PlatformInfo = {
 		os: 'linux' as const,
 		arch: 'x64', // Currently only supporting x64 for Linux
 	};
@@ -49,8 +49,14 @@ export function getPlatformInfo(): PlatformInfo {
 
 export function getBBAppAssetName(version: string): string {
 	const platform = getPlatformInfo();
-	const assetPrefix = 'BB-app';
-	return assetName;
+	switch (platform.os) {
+		case 'macos':
+			return `BB-app-${version}-macos-${platform.variant}.dmg`;
+		case 'windows':
+			return `BB-app-${version}-windows-x64-setup.exe`;
+		case 'linux':
+			return `BB-app-${version}-linux-x64.AppImage`;
+	}
 }
 
 export function getSecurityInstructions(): string {

@@ -89,6 +89,7 @@
 		"api/llms/chatInteraction.ts": "./api/src/llms/interactions/chatInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
 		"api/logEntries/types.ts": "./api/src/logEntries/types.ts",
+		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
 		"api/storage/conversationLogger.ts": "./api/src/storage/conversationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",

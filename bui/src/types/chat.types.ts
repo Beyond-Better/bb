@@ -1,6 +1,7 @@
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { ApiStatus, Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { Project, ProjectStats } from '../hooks/useProjectState.ts';
 
 export type CacheStatus = 'active' | 'expiring' | 'inactive';
 
@@ -21,9 +22,11 @@ export interface ChatStatus {
 }
 
 export interface ProjectData {
-    projectId: string | null; 
-    type?: string; 
-    name?: string; 
+    projectId: string;
+    name: string;
+    type: string;
+    path: string;
+    stats?: ProjectStats;
 }
 
 export interface ChatState {
@@ -49,7 +52,6 @@ export interface ChatConfig {
 }
 
 export interface ChatHandlers {
-    //updateCacheStatus: () => void; // Update cache status based on lastApiCallTime
     clearError: () => void;
     sendConverse: (message: string) => Promise<void>;
     selectConversation: (id: string) => Promise<void>;

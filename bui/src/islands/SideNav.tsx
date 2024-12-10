@@ -1,7 +1,7 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import ProjectSelector from './ProjectSelector.tsx';
+import { ProjectSelector } from '../components/ProjectSelector/index.ts';
 import { initializeAppState, useAppState } from '../hooks/useAppState.ts';
 import { useVersion } from '../hooks/useVersion.ts';
 import { ConnectionStatus } from '../components/Connection/ConnectionStatus.tsx';

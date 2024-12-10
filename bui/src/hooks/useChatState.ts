@@ -1,8 +1,10 @@
 import { useEffect } from 'preact/hooks';
-import { Signal, signal } from '@preact/signals';
+import { Signal, signal, useComputed } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { useVersion } from './useVersion.ts';
+import { type ProjectState, useProjectState } from './useProjectState.ts';
+import { useAppState, type AppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
@@ -34,6 +36,7 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 
 export async function initializeChat(
 	config: ChatConfig,
+	appState: signal<AppState>,
 ): Promise<InitializationResult> {
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
@@ -41,7 +44,7 @@ export async function initializeChat(
 	// Create WebSocket manager last
 	const wsManager = createWebSocketManager({
 		url: config.wsUrl,
-		projectId: config.projectId,
+		projectId: appState.value.projectId,
 		onMessage: config.onMessage,
 		onError: config.onError,
 		onClose: config.onClose,
@@ -58,11 +61,82 @@ export function useChatState(
 	config: ChatConfig,
 	chatState: Signal<ChatState>,
 ): [ChatHandlers, Signal<ScrollIndicatorState>] {
+	// Get project state
+	const { state: projectState } = useProjectState(chatState);
+	const appState = useAppState();
+
+	// Create computed signal for project data
+	const projectData = useComputed(() => {
+		const project = projectState.value.projects.find((p) => p.projectId === appState.value.projectId);
+		return project
+			? {
+				projectId: project.projectId,
+				name: project.name,
+				type: project.type,
+				path: project.path,
+				stats: project.stats,
+			}
+			: null;
+	});
+
+	// Update chatState with computed project data
+	useEffect(() => {
+		chatState.value = {
+			...chatState.value,
+			projectData: projectData.value,
+		};
+	}, [projectData.value]);
 	// console.log('useChatState: hook called with config', {
 	// 	projectId: config.projectId,
 	// 	existingWsManager: chatState.value.wsManager?.constructor.name,
 	// 	existingApiClient: chatState.value.apiClient?.constructor.name,
 	// });
+	// Watch for project changes and reinitialize chat when needed
+// 	useEffect(async () => {
+// 		if (chatState.value.apiClient) {
+// 			// Load conversation list before WebSocket setup
+// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
+// 			const conversationResponse = await chatState.value.apiClient.getConversations(
+// 				appState.value.projectId,
+// 			);
+// 			if (!conversationResponse) {
+// 				throw new Error('Failed to load conversations');
+// 			}
+// 			const conversations = conversationResponse.conversations;
+// 
+// 			// Load conversation data first
+// 			const conversation = await chatState.value.apiClient.getConversation(
+// 				appState.value.conversationId,
+// 				appState.value.projectId,
+// 			);
+// 			const logEntries = conversation?.logEntries || [];
+// 			// Clear current chat state
+// 			chatState.value = {
+// 				...chatState.value,
+// 				conversationId: appState.value.conversationId ||'',
+// 				logEntries,
+// 				conversations,
+// 				status: {
+// 					...chatState.value.status,
+// 					isLoading: false,
+// 				},
+// 			};
+// 		} else {
+// 			// Clear current chat state
+// 			chatState.value = {
+// 				...chatState.value,
+// 				conversationId: '',
+// 				logEntries: [],
+// 				conversations: [],
+// 				status: {
+// 					...chatState.value.status,
+// 					isLoading: true,
+// 				},
+// 			};
+// 		}
+// 	}, [appState.value.projectId]);
+// 	//}, [projectState.value.selectedProjectId]);
+
 	// Initialize chat
 	useEffect(() => {
 		console.log('useChatState: got useEffect for config initialize', config);
@@ -83,22 +157,25 @@ export function useChatState(
 					status: { ...chatState.value.status, isLoading: true },
 				};
 
-				const { apiClient, wsManager } = await initializeChat(config);
+				const { apiClient, wsManager } = await initializeChat(config, appState);
 
 				// Load conversation list before WebSocket setup
-				const conversationResponse = await apiClient.getConversations(config.projectId);
+				const conversationResponse = await apiClient.getConversations(appState.value.projectId);
 				if (!conversationResponse) {
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
 
 				// Get conversation ID from URL if it exists, or create a new one
-				const params = new URLSearchParams(window.location.search);
-				const urlConversationId = params.get('conversationId');
-				const conversationId = urlConversationId || generateConversationId();
+				// const params = new URLSearchParams(window.location.search);
+				// const urlConversationId = params.get('conversationId');
+				// const conversationId = urlConversationId || generateConversationId();
 
 				// Load conversation data first
-				const conversation = await apiClient.getConversation(conversationId, config.projectId);
+				const conversation = await apiClient.getConversation(
+					chatState.value.conversationId,
+					appState.value.projectId,
+				);
 				const logEntries = conversation?.logEntries || [];
 
 				if (!mounted) {
@@ -112,7 +189,7 @@ export function useChatState(
 					...chatState.value,
 					apiClient,
 					wsManager,
-					conversationId,
+					//conversationId,
 					conversations,
 					logEntries,
 				};
@@ -120,7 +197,7 @@ export function useChatState(
 				currentWsManager = wsManager;
 
 				// Initialize WebSocket connection last and wait for ready state
-				await wsManager.setConversationId(conversationId);
+				await wsManager.setConversationId(appState.value.conversationId);
 
 				// Wait for WebSocket to be ready
 				await new Promise<void>((resolve, reject) => {
@@ -196,7 +273,7 @@ export function useChatState(
 				};
 			}
 		};
-	}, [config.apiUrl, config.wsUrl, config.projectId]);
+	}, [config.apiUrl, config.wsUrl, appState.value.projectId]);
 
 	// WebSocket event handlers
 	useEffect(() => {
@@ -246,7 +323,12 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
+		const handleMessage = async (data: { msgType: string; logEntryData: any }) => {
+			// Get current project for stats updates
+			const currentProject = projectState.value.projects.find((p) =>
+				p.projectId === appState.value.projectId
+			);
+			if (!currentProject) return;
 			// Update cache status on any API interaction
 			chatState.value = {
 				...chatState.value,
@@ -260,6 +342,12 @@ export function useChatState(
 
 			// Handle new conversation message
 			if (data.msgType === 'conversationNew') {
+				// Update project stats for new conversation
+				//await updateProjectStats(currentProject.projectId, {
+				//	conversationCount: (currentProject.stats?.conversationCount || 0) + 1,
+				//	totalTokens: currentProject.stats?.totalTokens || 0,
+				//	lastAccessed: new Date().toISOString(),
+				//});
 				chatState.value = {
 					...chatState.value,
 					conversations: [...chatState.value.conversations, {
@@ -278,6 +366,21 @@ export function useChatState(
 
 			// Handle conversation deletion
 			if (data.msgType === 'conversationDeleted') {
+				// Update project stats for deleted conversation
+				const deletedConversation = chatState.value.conversations.find((c) =>
+					c.id === data.logEntryData.conversationId
+				);
+				if (deletedConversation) {
+					// await updateProjectStats(currentProject.projectId, {
+					// 	conversationCount: Math.max(0, (currentProject.stats?.conversationCount || 1) - 1),
+					// 	totalTokens: Math.max(
+					// 		0,
+					// 		(currentProject.stats?.totalTokens || 0) -
+					// 			(deletedConversation.tokenUsageConversation?.totalTokens || 0),
+					// 	),
+					// 	lastAccessed: new Date().toISOString(),
+					// });
+				}
 				const deletedId = data.logEntryData.conversationId;
 				chatState.value = {
 					...chatState.value,
@@ -313,6 +416,13 @@ export function useChatState(
 
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
+				// Update project stats for token usage
+				const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
+				// await updateProjectStats(currentProject.projectId, {
+				// 	conversationCount: currentProject.stats?.conversationCount || 1,
+				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
+				// 	lastAccessed: new Date().toISOString(),
+				// });
 				chatState.value = {
 					...chatState.value,
 					status: {
@@ -543,8 +653,11 @@ export function useChatState(
 					console.error('selectConversation: apiClient is null before getConversation');
 					throw new Error('Chat API client was lost during conversation load');
 				}
-				const conversation = await chatState.value.apiClient.getConversation(id, config.projectId);
-				console.log(`useChatState: selectConversation for ${id}: loaded`);
+				const conversation = await chatState.value.apiClient.getConversation(
+					id,
+					appState.value.projectId,
+				);
+				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logEntries);
 
 				// Update conversation ID and logEntries
 				chatState.value = {

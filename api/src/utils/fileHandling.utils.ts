@@ -556,6 +556,59 @@ function passesMetadataFilters(stat: Deno.FileInfo, searchFileOptions: SearchFil
 	return true;
 }
 
+export interface ListDirectoryOptions {
+  only?: 'files' | 'directories';
+  matchingString?: string;
+  includeHidden?: boolean;
+}
+
+export async function listDirectory(
+  rootDir: string,
+  dirPath: string,
+  options: ListDirectoryOptions = {}
+): Promise<{ items: Array<{ name: string; path: string; isDirectory: boolean }>; errorMessage: string | null }> {
+  try {
+    const fullPath = join(rootDir, dirPath);
+    if (!await isPathWithinProject(rootDir, fullPath)) {
+      throw createError(ErrorType.FileHandling, `Access denied: ${dirPath} is outside the project directory`);
+    }
+
+    const items: Array<{ name: string; path: string; isDirectory: boolean }> = [];
+    const matchRegex = options.matchingString ? globToRegExp(options.matchingString, { extended: true, globstar: true }) : null;
+
+    for await (const entry of Deno.readDir(fullPath)) {
+      // Skip if filtering by type
+      if (options.only === 'files' && entry.isDirectory) continue;
+      if (options.only === 'directories' && !entry.isDirectory) continue;
+
+      // Skip hidden files unless explicitly included
+      if (!options.includeHidden && entry.name.startsWith('.')) continue;
+
+      // Skip if doesn't match pattern
+      if (matchRegex && !matchRegex.test(entry.name)) continue;
+
+      const relativePath = join(dirPath, entry.name);
+      items.push({
+        name: entry.name,
+        path: relativePath,
+        isDirectory: entry.isDirectory
+      });
+    }
+
+    // Sort directories first, then alphabetically
+    items.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return { items, errorMessage: null };
+  } catch (error) {
+    logger.error(`FileHandlingUtil: Error listing directory ${dirPath}: ${(error as Error).message}`);
+    return { items: [], errorMessage: (error as Error).message };
+  }
+}
+
 export async function searchFilesMetadata(
 	projectRoot: string,
 	searchFileOptions: {
