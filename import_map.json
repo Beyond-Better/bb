@@ -117,6 +117,7 @@
 		"shared/dynamicFormatter.ts": "./src/shared/utils/dynamicFormatter.ts",
 		"shared/install.ts": "./src/shared/utils/install.utils.ts",
 		"shared/upgrade.ts": "./src/shared/utils/upgrade.utils.ts",
+		"shared/platform.ts": "./src/shared/utils/platform.utils.ts",
 		"shared/process.ts": "./src/shared/utils/process.utils.ts",
 		"shared/version.ts": "./src/shared/utils/version.ts",
 

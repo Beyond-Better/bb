@@ -31,7 +31,6 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { VersionWarning } from '../components/Version/VersionWarning.tsx';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
@@ -56,12 +55,10 @@ export default function Chat({
 }: ChatProps): JSX.Element {
 	//console.log('Chat: Component mounting');
 	// Initialize version checking
-	const { checkVersionCompatibility, versionCompatibility } = useVersion();
+	const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
-	useEffect(() => {
-		checkVersionCompatibility(); // Set minimum required version
-	}, []);
+
 
 	// State management
 	const [projectId, setProjectId] = useState(getProjectId);
@@ -312,14 +309,14 @@ export default function Chat({
 			const isAtBottom = distanceFromBottom <= 50;
 
 			// Only log if something is changing
-			if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
-				console.log('ChatIsland: Scroll state:', {
-					distanceFromBottom,
-					isAtBottom,
-					shouldAutoScroll,
-					scrollIndicator: scrollIndicatorState.value,
-				});
-			}
+			// if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
+			// 	console.log('ChatIsland: Scroll state:', {
+			// 		distanceFromBottom,
+			// 		isAtBottom,
+			// 		shouldAutoScroll,
+			// 		scrollIndicator: scrollIndicatorState.value,
+			// 	});
+			// }
 
 			// Always update scroll indicator UI based on current scroll position
 			handlers.updateScrollVisibility(isAtBottom);
@@ -605,11 +602,6 @@ export default function Chat({
 					duration={2000}
 					onClose={() => setShowToast(false)}
 				/>
-			)}
-
-			{/* Version warning display */}
-			{versionCompatibility && !versionCompatibility.compatible && (
-				<VersionWarning apiClient={chatState.value.apiClient!} />
 			)}
 
 			{/* Error display */}

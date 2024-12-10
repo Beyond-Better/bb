@@ -4,7 +4,13 @@ import { useEffect } from 'preact/hooks';
 import ProjectSelector from './ProjectSelector.tsx';
 import { initializeAppState, useAppState } from '../hooks/useAppState.ts';
 import { useVersion } from '../hooks/useVersion.ts';
-import { getApiHostname, getApiPort, getApiUseTls, getApiUrl, getWsUrl } from '../utils/url.utils.ts';
+import { ConnectionStatus } from '../components/Connection/ConnectionStatus.tsx';
+import { BBAppDownload } from '../components/Connection/BBAppDownload.tsx';
+import { VersionWarning } from '../components/Version/VersionWarning.tsx';
+import { Toast } from '../components/Toast.tsx';
+import { StatusDialog } from '../components/Status/StatusDialog.tsx';
+import { useState } from 'preact/hooks';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 interface SideNavProps {
 	currentPath?: string;
@@ -41,36 +47,32 @@ const apiUseTls = getApiUseTls();
 const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
 const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
 
+// Initialize app state immediately
+if (IS_BROWSER) {
+	initializeAppState({
+		url: wsUrl,
+		apiUrl: apiUrl,
+		onMessage: (message) => {
+			console.log('SideNav: Received message:', message);
+		},
+		onError: (error) => {
+			console.error('SideNav: WebSocket error:', error);
+		},
+		onClose: () => {
+			console.log('SideNav: WebSocket closed');
+		},
+		onOpen: () => {
+			console.log('SideNav: WebSocket opened');
+		},
+	});
+}
+
 export default function SideNav({ currentPath = '/' }: SideNavProps) {
-	//console.log('SideNav: Component mounting', { wsUrl, apiUrl });
+	const [showToast, setShowToast] = useState(false);
+	const [showStatus, setShowStatus] = useState(false);
+	const [toastMessage, setToastMessage] = useState('');
 	const appState = useAppState();
 	const { versionCompatibility } = useVersion();
-
-	// Initialize app state on mount
-	// Effect for appState initialization
-	useEffect(() => {
-		console.log('SideNav: AppState initialization useEffect', { wsUrl, apiUrl });
-		if (IS_BROWSER) {
-			console.log('SideNav: Calling initializeAppState');
-			console.log('SideNav: Dependencies for useEffect changed', { wsUrl, apiUrl });
-			initializeAppState({
-				url: wsUrl,
-				apiUrl: apiUrl,
-				onMessage: (message) => {
-					console.log('SideNav: Received message:', message);
-				},
-				onError: (error) => {
-					console.error('SideNav: WebSocket error:', error);
-				},
-				onClose: () => {
-					console.log('SideNav: WebSocket closed');
-				},
-				onOpen: () => {
-					console.log('SideNav: WebSocket opened');
-				},
-			});
-		}
-	}, [wsUrl, apiUrl]);
 
 	// Update path when URL changes
 	useEffect(() => {
@@ -112,7 +114,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 
 	return (
 		<aside
-			class={`bg-white border-r border-gray-200 flex flex-col h-screen ${
+			class={`bg-white border-r border-gray-200 flex flex-col h-screen z-50 relative ${
 				isCollapsed.value ? 'w-16' : 'w-64'
 			} transition-all duration-300`}
 		>
@@ -184,7 +186,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 								onClick={() => path.value = item.path}
 								class={`flex items-center ${
 									isCollapsed.value ? 'justify-center' : 'justify-start'
-								} px-3 py-2 mx-2 rounded-md text-sm font-medium ${
+								} px-4 py-2 rounded-md text-sm font-medium ${
 									path.value === item.path
 										? 'bg-gray-100 text-gray-900'
 										: 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
@@ -213,64 +215,149 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 			</nav>
 
 			{/* Footer Section */}
-			<div class='border-t border-gray-200 p-4 space-y-4'>
-				{/* Connection Status */}
-				<div class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'}`}>
-					<div
-						class={`w-2 h-2 rounded-full ${appState.value.status.isReady ? 'bg-green-500' : 'bg-red-500'}`}
+			<div class='border-t border-gray-200 pt-4 px-2 space-y-3 mb-3'>
+				{/* Connection Status with Version Info */}
+				<ConnectionStatus
+					isCollapsed={isCollapsed.value}
+					className='mb-2'
+				/>
+
+				{/* BB App Download Prompt */}
+				{!appState.value.status.isReady && (
+					<BBAppDownload
+						isCollapsed={isCollapsed.value}
+						onClose={() => {
+							if (appState.value.status.isReady) {
+								setToastMessage('Connected to BB server successfully');
+								setShowToast(true);
+							}
+						}}
 					/>
-					{!isCollapsed.value && (
-						<span class='ml-2 text-sm text-gray-500'>
-							Server {appState.value.status.isReady ? 'Connected' : 'Disconnected'}
-						</span>
-					)}
-				</div>
+				)}
 
 				{/* Version Information */}
-				{!isCollapsed.value && appState.value.versionInfo && (
-					<div className='text-xs text-gray-500'>
-						<div>BB v{appState.value.versionInfo.version}</div>
-						{versionCompatibility && !versionCompatibility.compatible && (
-							<div className='text-amber-600'>
-								Update required: v{versionCompatibility.requiredVersion}
-							</div>
-						)}
+				{!isCollapsed.value &&
+					versionCompatibility && !versionCompatibility.compatible && (
+					<div className='text-xs text-gray-500 relative'>
+						<div className='text-amber-600'>
+							Update required: v{versionCompatibility.requiredVersion}
+						</div>
+						<div className='absolute left-full ml-4 bottom-0 z-[100]'>
+							<VersionWarning
+								apiClient={appState.value.apiClient!}
+								className='shadow-lg w-80'
+							/>
+						</div>
 					</div>
 				)}
 
+				{/* Status Button */}
+				<button
+					onClick={() => setShowStatus(true)}
+					title='View API status'
+					class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-emerald-600 bg-emerald-50 hover:bg-emerald-100 w-full`}
+				>
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						fill='none'
+						viewBox='0 0 24 24'
+						strokeWidth={2}
+						stroke='currentColor'
+						class='w-5 h-5'
+					>
+						<path
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							d='M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z'
+						/>
+					</svg>
+					{!isCollapsed.value && <span class='ml-3'>Status</span>}
+				</button>
+
 				{/* External Links */}
-				{!isCollapsed.value && (
-					<div class='space-y-2'>
-						<a
-							href='https://beyondbetter.dev/docs'
-							target='_blank'
-							rel='noopener noreferrer'
-							f-client-nav={false}
-							class='text-sm text-gray-500 hover:text-gray-900 block'
+				<div class='space-y-0.5'>
+					<a
+						href='https://beyondbetter.dev/docs'
+						target='_blank'
+						rel='noopener noreferrer'
+						f-client-nav={false}
+						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							fill='none'
+							viewBox='0 0 24 24'
+							stroke-width='1.5'
+							stroke='currentColor'
+							class='w-5 h-5'
 						>
-							Documentation
-						</a>
-						<a
-							href='https://beyondbetter.dev/blog'
-							target='_blank'
-							rel='noopener noreferrer'
-							f-client-nav={false}
-							class='text-sm text-gray-500 hover:text-gray-900 block'
+							<path
+								stroke-linecap='round'
+								stroke-linejoin='round'
+								d='M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25'
+							/>
+						</svg>
+						{!isCollapsed.value && <span class='ml-3'>Documentation</span>}
+					</a>
+					<a
+						href='https://beyondbetter.dev/blog'
+						target='_blank'
+						rel='noopener noreferrer'
+						f-client-nav={false}
+						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							fill='none'
+							viewBox='0 0 24 24'
+							stroke-width='1.5'
+							stroke='currentColor'
+							class='w-5 h-5'
 						>
-							Blog
-						</a>
-						<a
-							href='https://github.com/cknight/bb'
-							target='_blank'
-							rel='noopener noreferrer'
-							f-client-nav={false}
-							class='text-sm text-gray-500 hover:text-gray-900 block'
+							<path
+								stroke-linecap='round'
+								stroke-linejoin='round'
+								d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10'
+							/>
+						</svg>
+						{!isCollapsed.value && <span class='ml-3'>Blog</span>}
+					</a>
+					<a
+						href='https://github.com/cknight/bb'
+						target='_blank'
+						rel='noopener noreferrer'
+						f-client-nav={false}
+						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							class='w-5 h-5'
+							viewBox='0 0 24 24'
+							fill='currentColor'
 						>
-							GitHub
-						</a>
-					</div>
-				)}
+							<path d='M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z' />
+						</svg>
+						{!isCollapsed.value && <span class='ml-3'>GitHub</span>}
+					</a>
+				</div>
 			</div>
+
+			{/* Status Dialog */}
+			<StatusDialog
+				visible={showStatus}
+				onClose={() => setShowStatus(false)}
+				apiClient={appState.value.apiClient!}
+			/>
+
+			{/* Toast notifications */}
+			{showToast && (
+				<Toast
+					message={toastMessage}
+					type='success'
+					duration={2000}
+					onClose={() => setShowToast(false)}
+				/>
+			)}
 		</aside>
 	);
 }

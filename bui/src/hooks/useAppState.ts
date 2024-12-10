@@ -124,6 +124,22 @@ export function initializeAppState(config: AppConfig): void {
 	//console.log('AppState: initializeAppState finished - ws handlers', wsManager.eventHandlers);
 }
 
+export function updateAppStateHandlers(handlers: {
+	onMessage?: (message: any) => void;
+	onError?: (error: Error) => void;
+	onClose?: () => void;
+	onOpen?: () => void;
+}): void {
+	const { wsManager } = appState.value;
+	if (wsManager) {
+		// Update only provided handlers
+		if (handlers.onMessage) wsManager.on('message', handlers.onMessage);
+		if (handlers.onError) wsManager.on('error', handlers.onError);
+		if (handlers.onClose) wsManager.on('close', handlers.onClose);
+		if (handlers.onOpen) wsManager.on('open', handlers.onOpen);
+	}
+}
+
 export function cleanupAppState(): void {
 	const { wsManager } = appState.value;
 	if (wsManager) {

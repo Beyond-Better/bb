@@ -18,7 +18,7 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
     protected healthCheckTimer: number | null = null;
     protected retryCount: number = 0;
 
-    protected readonly MAX_RETRIES = 5;
+    protected readonly MAX_RETRIES = 500;
     protected readonly MAX_RETRY_DELAY = 32000; // 32 seconds
     protected readonly INITIAL_RETRY_DELAY = 1000; // 1 second
     protected readonly HEALTH_CHECK_INTERVAL = 30000; // 30 seconds

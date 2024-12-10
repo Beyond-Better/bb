@@ -18,15 +18,10 @@
 	},
 	"lint": {
 		"rules": {
-			"tags": [
-				"fresh",
-				"recommended"
-			]
+			"tags": ["fresh", "recommended"]
 		}
 	},
-	"exclude": [
-		"**/src/_fresh/*"
-	],
+	"exclude": ["**/src/_fresh/*"],
 	"importMap": "../import_map.json",
 	"compilerOptions": {
 		"jsx": "react-jsx",
@@ -39,14 +34,8 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": [
-			"src/",
-			"tests/"
-		],
-		"exclude": [
-			"src/testdata/",
-			"src/fixtures/**/*.ts"
-		]
+		"include": ["src/", "tests/"],
+		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
 	},
 	"version": "0.5.0"
 }

@@ -70,7 +70,7 @@ export function ConversationList({
 				</div>
 				<button
 					onClick={onNew}
-					className='w-full bg-blue-500 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2'
+					className='w-full bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
 					disabled={isLoading}
 				>
 					{isLoading

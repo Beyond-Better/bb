@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { initializeAppState, useAppState } from '../hooks/useAppState.ts';
+import { initializeAppState, useAppState } from '../../hooks/useAppState.ts';
 
 interface AppStateProviderProps {
     wsUrl: string;
