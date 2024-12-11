@@ -25,7 +25,7 @@ export default function Settings(): JSX.Element {
 				{/* Settings Grid */}
 				<div class='grid grid-cols-1 gap-6 sm:grid-cols-2'>
 					{/* Appearance */}
-					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow'>
+					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
 						<div class='flex items-center space-x-3'>
 							<div class='flex-shrink-0'>
 								<svg
