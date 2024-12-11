@@ -31,7 +31,7 @@ pub fn run() {
         
         let file = std::fs::File::create(log_file).expect("Failed to create log file");
         
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
             .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
             .target(env_logger::Target::Pipe(Box::new(file)))
             .init();
