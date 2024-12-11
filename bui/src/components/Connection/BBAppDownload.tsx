@@ -76,7 +76,7 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 					<div>
 						<h3 className='text-sm font-medium text-yellow-800'>BB Server Not Connected</h3>
 						<p className='mt-1 text-sm text-yellow-700'>
-							Unable to connect to BB server. Would you like to download the BB app instead?
+							Unable to connect to BB server. Please try launching the BB app first.
 						</p>
 					</div>
 					{/* Close button */}
@@ -96,7 +96,19 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 					</button>
 				</div>
 
-				{error ? <p className='text-sm text-red-600'>{error}</p> : downloadUrl
+				{error ? <p className='text-sm text-red-600'>{error}</p> : (
+					<div className='space-y-3'>
+						<div className='text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md'>
+							<h4 className='font-medium mb-2'>Launch BB App</h4>
+							<ol className='list-decimal list-inside space-y-1'>
+								<li>Open the BB app on your computer</li>
+								<li>Wait for the server to start</li>
+								<li>Refresh this page</li>
+							</ol>
+						</div>
+						<div className='border-t border-yellow-200 pt-3'>
+							<p className='text-sm text-yellow-700 mb-3'>Don't have BB installed yet?</p>
+							{downloadUrl
 					? (
 						<div className='space-y-3'>
 							<div className='flex flex-col gap-2'>
@@ -124,7 +136,9 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 								</pre>
 							</div>
 						</div>
-					)
+						</div>
+					)</div>
+				)
 					: (
 						<div className='flex items-center justify-center py-4'>
 							<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-700' />
