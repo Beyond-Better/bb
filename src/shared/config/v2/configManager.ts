@@ -383,7 +383,7 @@ dui:
 		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
 
 		// Update project registry
-		await this.updateProjectRegistry(projectId, name, projectPath);
+		await this.updateProjectRegistry(projectId, name, projectPath, type);
 
 		// Update caches
 		this.projectConfigs.set(projectId, config);
@@ -413,6 +413,20 @@ dui:
 		}
 	}
 
+	public async addProjectConfig(config: ProjectConfig, projectPath: string): Promise<void> {
+		// Update caches
+		this.projectConfigs.set(config.projectId, config);
+		this.projectRoots.set(config.projectId, projectPath);
+		this.projectIds.set(projectPath, config.projectId);
+
+		// Save project config
+		const configPath = join(projectPath, '.bb', 'config.yaml');
+		await ensureDir(join(projectPath, '.bb'));
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+
+		await this.updateProjectRegistry(config.projectId, config.name, projectPath, config.type);
+	}
+
 	/**
 	 * Updates the global project registry with a new project.
 	 * Creates the registry if it doesn't exist.
@@ -422,13 +436,13 @@ dui:
 	 * @throws Error if registry update fails
 	 * @internal
 	 */
-	private async updateProjectRegistry(projectId: string, name: string, path: string): Promise<void> {
+	private async updateProjectRegistry(projectId: string, name: string, path: string, type: string): Promise<void> {
 		const registryPath = join(await getGlobalConfigDir(), 'projects.json');
-		let registry: Record<string, { name: string; path: string }> = {};
+		let registry: Record<string, { name: string; path: string; type: string }> = {};
 
 		try {
 			const content = await Deno.readTextFile(registryPath);
-			registry = JSON.parse(content) as Record<string, { name: string; path: string }>;
+			registry = JSON.parse(content) as Record<string, { name: string; path: string; type: string }>;
 		} catch (error) {
 			if (!(error instanceof Deno.errors.NotFound)) {
 				const e = error as Error;
@@ -438,7 +452,7 @@ dui:
 		}
 		//console.log('updateProjectRegistry', { registry, projectId, path });
 
-		registry[projectId] = { name, path };
+		registry[projectId] = { name, path, type };
 		await Deno.writeTextFile(registryPath, JSON.stringify(registry));
 	}
 
@@ -489,9 +503,12 @@ dui:
 	 * console.log(`Backup created at: ${result.backupPath}`);
 	 * ```
 	 */
-	public async migrateConfig(config: GlobalConfigV1 | ProjectConfigV1): Promise<MigrationResult> {
+	public async migrateConfig(
+		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfig | ProjectConfig,
+	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
+		console.log('ConfigManager: migrateConfig: ', config);
 		const result: MigrationResult = {
 			success: true, // Start with true, only set to false on error
 			version: {
@@ -503,6 +520,12 @@ dui:
 			//config: {},
 		};
 
+		//console.log('ConfigManager: migrateConfig: ', result);
+		if (result.version.from === '2.0.0') {
+			result.config = config as GlobalConfig;
+			return result;
+		}
+
 		try {
 			// Determine config type
 			const configType = this.determineConfigType(config);
@@ -513,6 +536,7 @@ dui:
 
 			// Perform migration
 			const migrated = await this.performMigration(config, configType);
+			//console.log('ConfigManager: migrateConfig migrated: ', migrated);
 
 			// Record changes
 			//result.changes = this.calculateChanges(config, migrated);
@@ -642,6 +666,7 @@ dui:
 	 * @internal
 	 */
 	private async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
+		//console.log(`ConfigManager: loadProjectConfig for ${projectId}`);
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
@@ -771,18 +796,19 @@ dui:
 						throw new Error(`Migration failed: ${migrationResult.errors[0]?.message}`);
 					}
 					const migratedConfig = migrationResult.config as ProjectConfig;
-					console.log('ConfigManager: migrated config: ', migratedConfig);
+					//console.log('ConfigManager: migrated config: ', migratedConfig);
 
 					// Generate new project ID and create project
 					const projectId = migratedConfig.projectId;
 					const projectName = migratedConfig.name;
+					const projectType = migratedConfig.name;
 					// const projectId = await this.generateProjectId();
 					// const projectName = oldConfig.project?.name || 'Migrated Project';
 					// const projectType = oldConfig.project?.type || 'local';
 
 					// Save config and update registry
 					await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(migratedConfig)));
-					await this.updateProjectRegistry(projectId, projectName, projectRoot);
+					await this.updateProjectRegistry(projectId, projectName, projectRoot, projectType);
 
 					// Update caches
 					this.projectConfigs.set(projectId, migratedConfig);
@@ -905,6 +931,7 @@ dui:
 		type: 'global' | 'project',
 	): Promise<GlobalConfig | ProjectConfig> {
 		const version = this.determineConfigVersion(config);
+		//console.log('ConfigManager: performMigration: ', { type, version });
 
 		if (version === '2.0.0') {
 			return config as GlobalConfig | ProjectConfig; // Already at target version
@@ -1012,6 +1039,7 @@ dui:
 		// Generate a new project ID if one doesn't exist
 		const projectId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 		const v1Config = config as ProjectConfigV1; // Type assertion for migration
+		console.log('ConfigManager: migrateProjectConfigV1toV2: ', { projectId });
 
 		return {
 			projectId,

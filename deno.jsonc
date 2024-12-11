@@ -1,6 +1,6 @@
 {
 	"name": "bb",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"exports": "./cli/src/main.ts",
 	"tasks": {
 		"tool:check-types-project": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",

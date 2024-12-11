@@ -6,7 +6,7 @@ type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTM
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
-import { useAppState } from '../hooks/useAppState.ts';
+import { setConversation, useAppState } from '../hooks/useAppState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
@@ -16,6 +16,7 @@ import { Toast } from '../components/Toast.tsx';
 import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
 import { useVersion } from '../hooks/useVersion.ts';
+import { useProjectState } from '../hooks/useProjectState.ts';
 
 import { ChatInput } from '../components/ChatInput.tsx';
 // ConversationHeader has been deprecated in favor of ChatMetadata
@@ -31,7 +32,6 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { VersionWarning } from '../components/Version/VersionWarning.tsx';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
@@ -40,12 +40,7 @@ const getConversationId = () => {
 	return params?.get('conversationId') || null;
 };
 
-const getProjectId = () => {
-	const params = getUrlParams();
-	const projectIdFromHash = params?.get('projectId');
-	const projectIdFromStorage = IS_BROWSER ? localStorage.getItem('projectId') : null;
-	return projectIdFromHash || projectIdFromStorage || '.';
-};
+// Project ID is now managed by useProjectState
 
 interface ChatProps {
 	chatState: Signal<ChatState>;
@@ -56,15 +51,13 @@ export default function Chat({
 }: ChatProps): JSX.Element {
 	//console.log('Chat: Component mounting');
 	// Initialize version checking
-	const { checkVersionCompatibility, versionCompatibility } = useVersion();
+	const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
-	useEffect(() => {
-		checkVersionCompatibility(); // Set minimum required version
-	}, []);
-
-	// State management
-	const [projectId, setProjectId] = useState(getProjectId);
+	// Get project state and selectedProjectId signal
+	const { state: projectState, selectedProjectId } = useProjectState(appState);
+	// Use projectId from selectedProjectId signal
+	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
@@ -101,7 +94,6 @@ export default function Chat({
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
-		projectId,
 
 		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
@@ -112,16 +104,7 @@ export default function Chat({
 	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
 	const [handlers, scrollIndicatorState] = useChatState(config, chatState);
 
-	useEffect(() => {
-		console.log('Chat: Initial useEffect', { chatState: chatState.value });
-		if (!IS_BROWSER) return;
-
-		chatState.value.projectData = {
-			projectId,
-			type: 'git',
-			name: 'BB',
-		};
-	}, [projectId]);
+	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
 
 	// Update cache status every 30 seconds
 	useEffect(() => {
@@ -129,7 +112,10 @@ export default function Chat({
 		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
-			console.log('Chat: status.lastApiCallTime effect - updateCacheStatus', chatState.value.status.lastApiCallTime);
+			console.log(
+				'Chat: status.lastApiCallTime effect - updateCacheStatus',
+				chatState.value.status.lastApiCallTime,
+			);
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -154,12 +140,6 @@ export default function Chat({
 	}, [chatState.value.status.lastApiCallTime]);
 
 	// Utility functions
-	const updateProjectId = (newDir: string) => {
-		setProjectId(newDir);
-		if (IS_BROWSER && newDir) {
-			localStorage.setItem('projectId', newDir);
-		}
-	};
 
 	const handleCopy = async (text: string) => {
 		try {
@@ -206,6 +186,7 @@ export default function Chat({
 
 	const deleteConversation = async (id: string) => {
 		try {
+			if (!projectId) throw new Error('projectId is undefined for delete conversation');
 			if (!chatState.value.apiClient) throw new Error('API client not initialized');
 			if (!chatState.value.status.isReady) {
 				throw new Error('WebSocket connection not ready. Please try again.');
@@ -254,11 +235,13 @@ export default function Chat({
 	const selectConversation = async (id: string) => {
 		try {
 			await handlers.selectConversation(id);
+			setConversation(id);
+
 			// Update URL while preserving hash parameters
-			const url = new URL(globalThis.location.href);
-			url.searchParams.set('conversationId', id);
-			const hash = globalThis.location.hash;
-			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
+			//const url = new URL(globalThis.location.href);
+			//url.searchParams.set('conversationId', id);
+			//const hash = globalThis.location.hash;
+			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		} catch (error) {
 			console.error('Failed to switch conversation:', error);
 			setToastMessage('Failed to switch conversation');
@@ -312,14 +295,14 @@ export default function Chat({
 			const isAtBottom = distanceFromBottom <= 50;
 
 			// Only log if something is changing
-			if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
-				console.log('ChatIsland: Scroll state:', {
-					distanceFromBottom,
-					isAtBottom,
-					shouldAutoScroll,
-					scrollIndicator: scrollIndicatorState.value,
-				});
-			}
+			// if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
+			// 	console.log('ChatIsland: Scroll state:', {
+			// 		distanceFromBottom,
+			// 		isAtBottom,
+			// 		shouldAutoScroll,
+			// 		scrollIndicator: scrollIndicatorState.value,
+			// 	});
+			// }
 
 			// Always update scroll indicator UI based on current scroll position
 			handlers.updateScrollVisibility(isAtBottom);
@@ -388,10 +371,10 @@ export default function Chat({
 		}
 
 		// Handle disconnection
-		if (!chatState.value.status.isReady && !chatState.value.error) {
+		if (!chatState.value.status.isReady && !chatState.value.status.error) {
 			// Delay showing disconnection message
 			disconnectTimeoutId = setTimeout(() => {
-				if (!chatState.value.status.isReady && !chatState.value.error) {
+				if (!chatState.value.status.isReady && !chatState.value.status.error) {
 					setToastMessage('Connection lost. Attempting to reconnect...');
 					setShowToast(true);
 				}
@@ -411,7 +394,7 @@ export default function Chat({
 			if (disconnectTimeoutId) clearTimeout(disconnectTimeoutId);
 			if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
 		};
-	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.error]);
+	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.status.error]);
 
 	const conversationListState = computed<ConversationListState>(() => ({
 		conversations: chatState.value.conversations,
@@ -423,7 +406,7 @@ export default function Chat({
 		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
-				visible={chatState.value.status.isConnecting && !chatState.value.error}
+				visible={chatState.value.status.isConnecting && !chatState.value.status.error}
 				type='warning'
 			>
 				<div className='flex items-center justify-center'>
@@ -435,166 +418,194 @@ export default function Chat({
 
 			{/* Main content */}
 			<div className='flex flex-1 min-h-0'>
-				{/* Conversation list */}
-				<ConversationList
-					conversationListState={conversationListState}
-					onSelect={async (id) => {
-						await selectConversation(id);
-					}}
-					onNew={async () => {
-						const id = generateConversationId();
-						await selectConversation(id);
-					}}
-					onDelete={deleteConversation}
-				/>
-
-				{/* Chat area */}
-				<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-					{/* ConversationInfo and ToolBar row */}
-					<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
-						<div className='flex items-center space-x-4'>
-							{/* Messages Icon */}
-							<div className='flex items-center text-gray-500'>
+				{!projectId
+					? (
+						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
 								<svg
-									xmlns='http://www.w3.org/2000/svg'
+									className='w-12 h-12 mb-4 text-gray-400'
 									fill='none'
-									viewBox='0 0 24 24'
-									strokeWidth={1.5}
 									stroke='currentColor'
-									className='w-6 h-6'
+									viewBox='0 0 24 24'
 								>
 									<path
 										strokeLinecap='round'
 										strokeLinejoin='round'
-										d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+										strokeWidth={2}
+										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 									/>
 								</svg>
+								<p className='text-lg font-medium'>No Project selected</p>
+								<p className='text-sm'>Select a project to begin</p>
 							</div>
-							<ConversationInfo
-								logEntries={chatState.value.logEntries}
-								conversationId={chatState.value.conversationId || ''}
-								title={chatState.value.conversations.find((c: ConversationMetadata) =>
-									c.id === chatState.value.conversationId
-								)?.title}
-							/>
-						</div>
-
-						<ToolBar
-							onSendMessage={async (message) => {
-								await handlers.sendConverse(message);
-							}}
-							chatInputRef={chatInputRef}
-							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
-							projectId={projectId}
-							apiClient={chatState.value.apiClient!}
-						/>
-					</div>
-
-					{/* Messages */}
-					<div className='flex-1 min-h-0 relative flex flex-col'>
-						{scrollIndicatorState.value.isVisible && (
-							<button
-								onClick={() => {
-									if (messagesEndRef.current) {
-										messagesEndRef.current.scrollTo({
-											top: messagesEndRef.current.scrollHeight,
-											behavior: 'smooth',
-										});
-										setShouldAutoScroll(true);
-										handlers.updateScrollVisibility(true);
-									}
+						</main>
+					)
+					: (
+						<>
+							{/* Conversation list */}
+							<ConversationList
+								conversationListState={conversationListState}
+								onSelect={async (id) => {
+									await selectConversation(id);
 								}}
-								className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
-									scrollIndicatorState.value.isAnswerMessage
-										? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
-										: 'bg-blue-500 hover:bg-blue-600'
-								} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
-								title='Scroll to bottom'
-							>
-								{scrollIndicatorState.value.unreadCount > 0 && (
-									<span
-										className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
-											scrollIndicatorState.value.isAnswerMessage
-												? 'text-green-500'
-												: 'text-blue-500'
-										} rounded-full`}
-									>
-										{scrollIndicatorState.value.unreadCount}
-									</span>
-								)}
-
-								<svg
-									xmlns='http://www.w3.org/2000/svg'
-									className='h-5 w-5'
-									viewBox='0 0 20 20'
-									fill='currentColor'
-								>
-									<path
-										fillRule='evenodd'
-										d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
-										clipRule='evenodd'
-									/>
-								</svg>
-							</button>
-						)}
-						<div
-							ref={messagesEndRef}
-							className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
-							style={{ maxWidth: '100%' }}
-						>
-							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
-								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
-									<svg
-										className='w-12 h-12 mb-4 text-gray-400'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'
-									>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+								onNew={async () => {
+									const id = generateConversationId();
+									await selectConversation(id);
+								}}
+								onDelete={deleteConversation}
+							/>
+							{/* Chat area */}
+							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+								{/* ConversationInfo and ToolBar row */}
+								<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
+									<div className='flex items-center space-x-4'>
+										{/* Messages Icon */}
+										<div className='flex items-center text-gray-500'>
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												fill='none'
+												viewBox='0 0 24 24'
+												strokeWidth={1.5}
+												stroke='currentColor'
+												className='w-6 h-6'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+												/>
+											</svg>
+										</div>
+										<ConversationInfo
+											logEntries={chatState.value.logEntries}
+											conversationId={chatState.value.conversationId || ''}
+											title={chatState.value.conversations.find((c: ConversationMetadata) =>
+												c.id === chatState.value.conversationId
+											)?.title}
 										/>
-									</svg>
-									<p className='text-lg font-medium'>No messages yet</p>
-									<p className='text-sm'>Type a message to begin</p>
+									</div>
+
+									<ToolBar
+										onSendMessage={async (message) => {
+											await handlers.sendConverse(message);
+										}}
+										chatInputRef={chatInputRef}
+										disabled={!chatState.value.status.isReady ||
+											isProcessing(chatState.value.status)}
+										projectId={projectId}
+										apiClient={chatState.value.apiClient!}
+									/>
 								</div>
-							)}
-							{chatState.value.logEntries.length > 0 &&
-								chatState.value.logEntries.map((logEntryData, index) => (
-									<MessageEntry
-										key={index}
-										logEntryData={transformEntry(logEntryData)}
-										index={index}
-										onCopy={handleCopy}
+
+								{/* Messages */}
+								<div className='flex-1 min-h-0 relative flex flex-col'>
+									{scrollIndicatorState.value.isVisible && (
+										<button
+											onClick={() => {
+												if (messagesEndRef.current) {
+													messagesEndRef.current.scrollTo({
+														top: messagesEndRef.current.scrollHeight,
+														behavior: 'smooth',
+													});
+													setShouldAutoScroll(true);
+													handlers.updateScrollVisibility(true);
+												}
+											}}
+											className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
+												scrollIndicatorState.value.isAnswerMessage
+													? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
+													: 'bg-blue-500 hover:bg-blue-600'
+											} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
+											title='Scroll to bottom'
+										>
+											{scrollIndicatorState.value.unreadCount > 0 && (
+												<span
+													className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
+														scrollIndicatorState.value.isAnswerMessage
+															? 'text-green-500'
+															: 'text-blue-500'
+													} rounded-full`}
+												>
+													{scrollIndicatorState.value.unreadCount}
+												</span>
+											)}
+
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												className='h-5 w-5'
+												viewBox='0 0 20 20'
+												fill='currentColor'
+											>
+												<path
+													fillRule='evenodd'
+													d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
+													clipRule='evenodd'
+												/>
+											</svg>
+										</button>
+									)}
+									<div
+										ref={messagesEndRef}
+										className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
+										style={{ maxWidth: '100%' }}
+									>
+										{chatState.value.logEntries.length === 0 &&
+											!isProcessing(chatState.value.status) &&
+											(
+												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+													<svg
+														className='w-12 h-12 mb-4 text-gray-400'
+														fill='none'
+														stroke='currentColor'
+														viewBox='0 0 24 24'
+													>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															strokeWidth={2}
+															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+														/>
+													</svg>
+													<p className='text-lg font-medium'>No messages yet</p>
+													<p className='text-sm'>Type a message to begin</p>
+												</div>
+											)}
+										{chatState.value.logEntries.length > 0 &&
+											chatState.value.logEntries.map((logEntryData, index) => (
+												<MessageEntry
+													key={index}
+													logEntryData={transformEntry(logEntryData)}
+													index={index}
+													onCopy={handleCopy}
+													apiClient={chatState.value.apiClient!}
+													projectId={projectId}
+													conversationId={chatState.value.conversationId!}
+												/>
+											))}
+									</div>
+								</div>
+
+								{/* Input area */}
+								<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
+									<ChatInput
+										value={input}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
-										conversationId={chatState.value.conversationId!}
+										textareaRef={chatInputRef}
+										onChange={(value) => {
+											if (!chatState.value.status.isReady) return;
+											setInput(value.slice(0, 10000));
+										}}
+										onSend={sendConverse}
+										status={chatState.value.status}
+										disabled={!chatState.value.status.isReady}
+										onCancelProcessing={handlers.cancelProcessing}
+										maxLength={10000}
 									/>
-								))}
-						</div>
-					</div>
-
-					{/* Input area */}
-					<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
-						<ChatInput
-							value={input}
-							apiClient={chatState.value.apiClient!}
-							projectId={projectId}
-							textareaRef={chatInputRef}
-							onChange={(value) => {
-								if (!chatState.value.status.isReady) return;
-								setInput(value.slice(0, 10000));
-							}}
-							onSend={sendConverse}
-							status={chatState.value.status}
-							disabled={!chatState.value.status.isReady}
-							onCancelProcessing={handlers.cancelProcessing}
-							maxLength={10000}
-						/>
-					</div>
-				</main>
+								</div>
+							</main>
+						</>
+					)}
 			</div>
 
 			{/* Toast notifications */}
@@ -607,18 +618,13 @@ export default function Chat({
 				/>
 			)}
 
-			{/* Version warning display */}
-			{versionCompatibility && !versionCompatibility.compatible && (
-				<VersionWarning apiClient={chatState.value.apiClient!} />
-			)}
-
 			{/* Error display */}
 			<AnimatedNotification
-				visible={!!chatState.value.error}
+				visible={!!chatState.value.status.error}
 				type='error'
 			>
 				<div className='flex items-center justify-between'>
-					<span>{chatState.value.error}</span>
+					<span>{chatState.value.status.error}</span>
 					<button
 						onClick={() => handlers.clearError()}
 						className='ml-4 text-red-700 hover:text-red-800'

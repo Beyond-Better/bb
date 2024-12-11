@@ -43,34 +43,9 @@ export function ConversationList({
 	return (
 		<div className='w-[30%] min-w-[20rem] bg-white border-r border-gray-200 flex flex-col min-h-0'>
 			<div className='p-4 border-b border-gray-200 flex-none bg-gray-50'>
-				<div className='flex items-center justify-between mb-4'>
-					<div className='flex items-center gap-2 text-gray-700'>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							fill='none'
-							viewBox='0 0 24 24'
-							strokeWidth={1.5}
-							stroke='currentColor'
-							className='w-6 h-6'
-						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								d='M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z'
-							/>
-						</svg>
-						<span className='text-lg font-medium'>
-							{conversationListState.value.conversations.length} Conversations
-						</span>
-					</div>
-					{isLoading && (
-						<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
-						</div>
-					)}
-				</div>
 				<button
 					onClick={onNew}
-					className='w-full bg-blue-500 text-white px-4 py-2.5 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2'
+					className='w-full bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
 					disabled={isLoading}
 				>
 					{isLoading
@@ -79,6 +54,8 @@ export function ConversationList({
 								<div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'>
 								</div>
 								<span>Loading...</span>
+								<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
+								</div>
 							</>
 						)
 						: (

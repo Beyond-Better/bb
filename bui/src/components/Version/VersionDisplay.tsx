@@ -1,23 +1,20 @@
 import { JSX } from 'preact';
 import { useVersion } from '../../hooks/useVersion.ts';
 import { CompactVersion } from './VersionInfo.tsx';
-import { VersionWarning } from './VersionWarning.tsx';
+// VersionWarning moved to SideNav
 import type { ApiClient, ApiUpgradeResponse } from '../../utils/apiClient.utils.ts';
 
 interface VersionDisplayProps {
 	className?: string;
-	showWarning?: boolean;
 	apiClient: ApiClient;
 }
 
-export function VersionDisplay({ className = '', showWarning = true, apiClient }: VersionDisplayProps): JSX.Element {
-	const { versionState, versionInfo } = useVersion();
-	//console.log('versionState', versionState.value);
+export function VersionDisplay({ className = '', apiClient }: VersionDisplayProps): JSX.Element {
+	const { versionInfo, versionCompatibility } = useVersion();
 
 	if (!versionInfo) return <></>;
 
-	const versionCompatibility = versionState.value.versionCompatibility;
-	//console.log('VersionDisplay: versionCompatibility', versionCompatibility);
+	// Version compatibility is now computed directly
 
 	return (
 		<div className={`relative ${className}`}>
@@ -25,15 +22,6 @@ export function VersionDisplay({ className = '', showWarning = true, apiClient }
 				<VersionStatusIndicator />
 				<CompactVersion version={versionInfo.version} />
 			</div>
-
-			{showWarning && versionCompatibility && !versionCompatibility.compatible && (
-				<div className='absolute top-full right-0 mt-2 w-80 z-50'>
-					<VersionWarning
-						apiClient={apiClient}
-						className='shadow-lg'
-					/>
-				</div>
-			)}
 		</div>
 	);
 }
@@ -43,8 +31,7 @@ interface VersionStatusIndicatorProps {
 }
 
 export function VersionStatusIndicator({ className = '' }: VersionStatusIndicatorProps): JSX.Element {
-	const { versionState } = useVersion();
-	const versionCompatibility = versionState.value.versionCompatibility;
+	const { versionCompatibility } = useVersion();
 
 	if (!versionCompatibility) return <></>;
 

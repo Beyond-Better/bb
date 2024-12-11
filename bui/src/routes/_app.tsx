@@ -1,6 +1,6 @@
 import { PageProps } from '$fresh/server.ts';
 import { Head } from '$fresh/runtime.ts';
-import { Partial } from "$fresh/runtime.ts";
+import { Partial } from '$fresh/runtime.ts';
 import SideNav from '../islands/SideNav.tsx';
 
 export default function App({ Component, url }: PageProps) {
@@ -21,7 +21,7 @@ export default function App({ Component, url }: PageProps) {
 					<meta name='viewport' content='width=device-width, initial-scale=1.0' />
 					<link rel='stylesheet' href='/styles.css' />
 				</Head>
-				<body class="overflow-hidden">
+				<body class='overflow-hidden'>
 					<Component />
 				</body>
 			</html>
@@ -43,14 +43,14 @@ export default function App({ Component, url }: PageProps) {
 				<title>Beyond Better</title>
 				<link rel='stylesheet' href='/styles.css' />
 			</Head>
-			<body class="overflow-hidden" f-client-nav>
-				<div class="flex h-screen bg-gray-50">
+			<body class='overflow-hidden' f-client-nav>
+				<div class='flex h-screen bg-gray-50'>
 					{/* Side Navigation with app state initialization */}
 					<SideNav currentPath={url.pathname} />
 
 					{/* Main content area - updates via Partials */}
-					<div class="flex-1 flex flex-col overflow-hidden">
-						<Partial name="page-content">
+					<div class='flex-1 flex flex-col overflow-hidden'>
+						<Partial name='page-content'>
 							<Component />
 						</Partial>
 					</div>

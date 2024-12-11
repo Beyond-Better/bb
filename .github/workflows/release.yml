@@ -275,7 +275,7 @@ jobs:
 
                Linux:
                - Download the .AppImage file
-               - Make it executable: chmod +x BB-dui-*.AppImage
+               - Make it executable: chmod +x BB-app-*.AppImage
                - Run the AppImage
 
             2. Binary Installation:
@@ -382,7 +382,7 @@ jobs:
               for f in "dui-${platform}-${arch}"/*.dmg; do
                 if [ -f "$f" ]; then
                   echo "Found DMG file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
+                  new_name="BB-app-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.dmg"
                   echo "Creating renamed copy: $new_name"
                   cp "$f" "$new_name"
                   echo "Attempting upload of $new_name"
@@ -395,7 +395,7 @@ jobs:
               for app in "dui-${platform}-${arch}"/*.app; do
                 if [ -d "$app" ]; then
                   echo "Found app bundle: $app"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
+                  new_name="BB-app-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.app.tar.gz"
                   echo "Creating archive: $new_name"
                   tar -czf "$new_name" "$app"
                   echo "Attempting upload of $new_name"
@@ -408,7 +408,7 @@ jobs:
               for f in "dui-${platform}-${arch}"/*.AppImage; do
                 if [ -f "$f" ]; then
                   echo "Found AppImage file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
+                  new_name="BB-app-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.AppImage"
                   echo "Creating renamed copy: $new_name"
                   cp "$f" "$new_name"
                   echo "Attempting upload of $new_name"
@@ -421,7 +421,7 @@ jobs:
               for f in "dui-${platform}-${arch}"/*.msi; do
                 if [ -f "$f" ]; then
                   echo "Found MSI file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
+                  new_name="BB-app-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name.msi"
                   echo "Creating renamed copy: $new_name"
                   cp "$f" "$new_name"
                   echo "Attempting upload of $new_name"
@@ -434,7 +434,7 @@ jobs:
               for f in "dui-${platform}-${arch}"/*.exe; do
                 if [[ "$f" == *"-setup.exe" ]]; then
                   echo "Found NSIS file: $f"
-                  new_name="BB-dui-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
+                  new_name="BB-app-${{ steps.get_version.outputs.VERSION }}-$platform_name-$arch_name-setup.exe"
                   echo "Creating renamed copy: $new_name"
                   cp "$f" "$new_name"
                   echo "Attempting upload of $new_name"

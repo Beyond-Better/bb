@@ -3,14 +3,14 @@ import { PageContainer } from '../components/PageContainer.tsx';
 
 export default function Home(props: PageProps) {
 	return (
-		<div class="flex flex-col flex-1">
+		<div class='flex flex-col flex-1'>
 			{/* Metadata Bar - empty for home page but maintains consistent layout */}
-			<div class="border-b border-gray-200 px-4 py-2">
-				<div class="text-sm text-gray-500">Home</div>
+			<div class='border-b border-gray-200 px-4 py-2'>
+				<div class='text-sm text-gray-500'>Home</div>
 			</div>
 
 			{/* Main content */}
-			<div class="flex-1 flex flex-col overflow-hidden">
+			<div class='flex-1 flex flex-col overflow-hidden'>
 				<PageContainer>
 					<div class='space-y-8'>
 						{/* Welcome Section */}
@@ -19,7 +19,8 @@ export default function Home(props: PageProps) {
 								Welcome to Beyond Better
 							</h1>
 							<p class='text-xl text-gray-600 max-w-2xl mx-auto'>
-								Enhance your development workflow with AI-powered assistance for code, documentation, and more.
+								Enhance your development workflow with AI-powered assistance for code, documentation,
+								and more.
 							</p>
 						</section>
 
@@ -117,8 +118,8 @@ export default function Home(props: PageProps) {
 							</h2>
 							<div class='space-y-4'>
 								<p class='text-gray-600'>
-									BB helps you work more efficiently by providing AI-powered assistance for your development
-									tasks. Here's how to get started:
+									BB helps you work more efficiently by providing AI-powered assistance for your
+									development tasks. Here's how to get started:
 								</p>
 								<ol class='list-decimal list-inside space-y-2 text-gray-600'>
 									<li>Create or select a project to work with</li>

@@ -281,15 +281,15 @@ export function MessageEntry({
 					className={`px-4 py-2 ${styles.header.bg} border-t ${styles.header.border} text-xs text-gray-700 dark:text-gray-300 flex justify-between items-center`}
 				>
 					<div>
-						{new Date(logEntryData.timestamp).toLocaleString()}
+						{new Date(logEntryData.timestamp)?.toLocaleString()}
 					</div>
 					<div className='flex space-x-4'>
 						<span title='Input/Output tokens for this turn'>
-							Turn: {tokenUsageTurn?.inputTokens.toLocaleString() ?? 0}↑ /{' '}
-							{tokenUsageTurn?.outputTokens.toLocaleString() ?? 0}↓
+							Turn: {tokenUsageTurn?.inputTokens?.toLocaleString() ?? 0}↑ /{' '}
+							{tokenUsageTurn?.outputTokens?.toLocaleString() ?? 0}↓
 						</span>
 						<span title='Total tokens for this turn'>
-							({tokenUsageTurn?.totalTokens.toLocaleString() ?? 0})
+							({tokenUsageTurn?.totalTokens?.toLocaleString() ?? 0})
 						</span>
 						{(tokenUsageTurn?.cacheCreationInputTokens || tokenUsageTurn?.cacheReadInputTokens)
 							? (
@@ -316,11 +316,11 @@ export function MessageEntry({
 							className='border-l border-gray-300 dark:border-gray-600 pl-4'
 							title='Total conversation tokens (input/output)'
 						>
-							Conversation: {tokenUsageConversation.inputTokens.toLocaleString() || 0}↑ /{' '}
-							{tokenUsageConversation.outputTokens.toLocaleString() || 0}↓
+							Conversation: {tokenUsageConversation.inputTokens?.toLocaleString() || 0}↑ /{' '}
+							{tokenUsageConversation.outputTokens?.toLocaleString() || 0}↓
 						</span>
 						<span title='Total conversation tokens'>
-							({tokenUsageConversation.totalTokens.toLocaleString() || 0})
+							({tokenUsageConversation.totalTokens?.toLocaleString() || 0})
 						</span>
 					</div>
 				</div>

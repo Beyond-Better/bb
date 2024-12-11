@@ -89,6 +89,7 @@
 		"api/llms/chatInteraction.ts": "./api/src/llms/interactions/chatInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
 		"api/logEntries/types.ts": "./api/src/logEntries/types.ts",
+		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
 		"api/storage/conversationLogger.ts": "./api/src/storage/conversationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",
@@ -117,6 +118,7 @@
 		"shared/dynamicFormatter.ts": "./src/shared/utils/dynamicFormatter.ts",
 		"shared/install.ts": "./src/shared/utils/install.utils.ts",
 		"shared/upgrade.ts": "./src/shared/utils/upgrade.utils.ts",
+		"shared/platform.ts": "./src/shared/utils/platform.utils.ts",
 		"shared/process.ts": "./src/shared/utils/process.utils.ts",
 		"shared/version.ts": "./src/shared/utils/version.ts",
 

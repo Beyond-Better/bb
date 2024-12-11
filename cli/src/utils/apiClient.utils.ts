@@ -59,6 +59,19 @@ export default class ApiClient {
 		}
 	}
 
+	async listDirectory(dirPath: string, options: { only?: 'files' | 'directories'; matchingString?: string } = {}) {
+		try {
+			const response = await this.post('/api/v1/files/list-directory', {
+				dirPath,
+				...options,
+			});
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: List directory failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
 	async post(endpoint: string, data: Record<string, unknown>) {
 		try {
 			//logger.info(`APIClient: POST request to: ${this.baseUrl}${endpoint}`);

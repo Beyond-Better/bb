@@ -36,8 +36,7 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 
 	const { compatible, currentVersion, requiredVersion, updateAvailable, latestVersion } = versionCompatibility;
 	if (compatible) return <></>;
-	//console.log('VersionWarning: versionInfo', versionInfo);
-	//console.log('VersionWarning: compatible', compatible);
+	// Version compatibility is now computed directly
 
 	return (
 		<div className={`rounded-md bg-yellow-50 p-4 ${className}`}>

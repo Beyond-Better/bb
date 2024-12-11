@@ -23,10 +23,24 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Initialize the logger with timestamp
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-        .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
-        .init();
+    // Initialize the logger with timestamp and file output
+    if let Some(home_dir) = dirs::home_dir() {
+        let log_dir = home_dir.join("Library").join("Logs").join(config::APP_NAME);
+        std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
+        let log_file = log_dir.join("Beyond Better.log");
+        
+        let file = std::fs::File::create(log_file).expect("Failed to create log file");
+        
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
+            .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
+            .target(env_logger::Target::Pipe(Box::new(file)))
+            .init();
+    } else {
+        // Fallback to default logging if we can't create the log file
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+            .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
+            .init();
+    }
 
     debug!("Starting Beyond Better DUI application");
 

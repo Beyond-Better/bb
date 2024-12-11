@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+
+## [0.5.1] - 2024-12-11
+
+### Changed
+
+- Conversation counts moved to metadata bar
+
+### Fixed
+
+- BB Desktop logs to standard log diretory
+- BB Desktop looks for binaries in expected location
+- Browser handles project selection
+- Changing conversations is fixed
+
+
 ## [0.5.0] - 2024-12-09
 
 ### Added
