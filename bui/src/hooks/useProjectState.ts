@@ -1,6 +1,6 @@
-import { type Signal, signal, useSignal, computed } from '@preact/signals';
+import { computed, type Signal, signal, useSignal } from '@preact/signals';
 import { ProjectType } from 'shared/config/v2/types.ts';
-import type { AppState } from '../types/websocket.types.ts';
+import type { AppState } from './useAppState.ts';
 
 export interface ProjectStats {
 	conversationCount: number;
@@ -261,6 +261,7 @@ export function useProjectState(appState: Signal<AppState>) {
 
 	return {
 		state: projectState,
+		selectedProjectId,
 		loadProjects,
 		createProject,
 		updateProject,

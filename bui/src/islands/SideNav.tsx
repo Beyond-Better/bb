@@ -50,7 +50,7 @@ const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
 // Initialize app state immediately
 if (IS_BROWSER) {
 	initializeAppState({
-		url: wsUrl,
+		wsUrl: wsUrl,
 		apiUrl: apiUrl,
 		onMessage: (message) => {
 			console.log('SideNav: Received message:', message);
@@ -123,7 +123,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 				<a
 					href='/'
 					class={`flex items-center space-x-2 py-4 ${
-						isCollapsed.value ? 'pl-2 pr-5' : 'px-4'
+						isCollapsed.value ? 'pl-4 pr-2' : 'px-4'
 					} transition-all duration-300`}
 				>
 					<img
@@ -171,9 +171,13 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 			</div>
 
 			{/* Project Selector */}
-			<div class='px-4 py-2 border-b border-gray-200'>
-				<ProjectSelector isCollapsed={isCollapsed.value} />
-			</div>
+			{
+				/* <!-- currnetly only useful in Chat page so disabling for now -->
+				<div class='px-4 py-2 border-b border-gray-200'>
+					<ProjectSelector isCollapsed={isCollapsed.value} />
+				</div>
+				*/
+			}
 
 			{/* Navigation Section */}
 			<nav class='flex-1 overflow-y-auto py-4'>
@@ -255,7 +259,9 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 				<button
 					onClick={() => setShowStatus(true)}
 					title='View API status'
-					class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-emerald-600 bg-emerald-50 hover:bg-emerald-100 w-full`}
+					class={`flex items-center ${
+						isCollapsed.value ? 'justify-center' : 'justify-start'
+					} px-4 py-1.5 rounded-md text-sm text-emerald-600 bg-emerald-50 hover:bg-emerald-100 w-full`}
 				>
 					<svg
 						xmlns='http://www.w3.org/2000/svg'
@@ -281,7 +287,9 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						target='_blank'
 						rel='noopener noreferrer'
 						f-client-nav={false}
-						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						class={`flex items-center ${
+							isCollapsed.value ? 'justify-center' : 'justify-start'
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
@@ -304,7 +312,9 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						target='_blank'
 						rel='noopener noreferrer'
 						f-client-nav={false}
-						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						class={`flex items-center ${
+							isCollapsed.value ? 'justify-center' : 'justify-start'
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
@@ -327,7 +337,9 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						target='_blank'
 						rel='noopener noreferrer'
 						f-client-nav={false}
-						class={`flex items-center ${isCollapsed.value ? 'justify-center' : 'justify-start'} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						class={`flex items-center ${
+							isCollapsed.value ? 'justify-center' : 'justify-start'
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'

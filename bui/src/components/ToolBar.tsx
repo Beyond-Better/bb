@@ -24,7 +24,6 @@ interface ToolBarProps {
 export function ToolBar({ onSendMessage, chatInputRef, disabled, projectId, apiClient }: ToolBarProps): JSX.Element {
 	const [showHelp, setShowHelp] = useState(false);
 
-
 	const handleMetricsClick = () => {
 		onSendMessage('Provide conversation metrics');
 	};
@@ -194,8 +193,6 @@ export function ToolBar({ onSendMessage, chatInputRef, disabled, projectId, apiC
 					</svg>
 				</button>
 
-
-
 				{/* Help Button */}
 				<HelpButton
 					onClick={() => setShowHelp(true)}
@@ -209,8 +206,6 @@ export function ToolBar({ onSendMessage, chatInputRef, disabled, projectId, apiC
 				onClose={() => setShowHelp(false)}
 				apiClient={apiClient}
 			/>
-
-
 		</>
 	);
 }

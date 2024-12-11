@@ -5,8 +5,8 @@ import {
 	findV1Projects,
 	getProject,
 	listProjects,
-	updateProject,
 	migrateProject,
+	updateProject,
 } from './project.handlers.ts';
 
 const projectRouter = new Router();

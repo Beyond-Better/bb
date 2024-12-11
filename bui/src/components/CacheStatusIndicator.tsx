@@ -2,7 +2,7 @@ import { JSX } from 'preact';
 import { useEffect } from 'preact/hooks';
 import { signal } from '@preact/signals';
 
-/* 
+/*
 interface TimerState {
 	startTimestamp: number;
 	duration: number;

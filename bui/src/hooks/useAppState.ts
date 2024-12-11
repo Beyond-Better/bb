@@ -1,19 +1,14 @@
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
-import type { AppConfig, AppState } from '../types/websocket.types.ts';
+import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
-import { createWebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
-import { createApiClientManager } from '../utils/apiClient.utils.ts';
+import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
+import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
 
-interface AppState {
-	wsManager: WebSocketManager | null;
+export interface AppState {
+	wsManager: WebSocketManagerApp | null;
 	apiClient: ApiClient | null;
-	status: {
-		isConnecting: boolean;
-		isReady: boolean;
-		isLoading: boolean;
-		error: string | null;
-	};
+	status: WebSocketStatus;
 	error: string | null;
 	versionInfo: VersionInfo | undefined;
 	projectId: string | null;
@@ -118,7 +113,7 @@ export function setConversation(conversationId: string | null) {
 	updateUrlParams(appState.value.projectId, conversationId);
 }
 
-export function initializeAppState(config: AppConfig): void {
+export function initializeAppState(config: WebSocketConfigApp): void {
 	console.log('useAppState: initializeAppState called', {
 		hasExistingManagers: !!(appState.value.wsManager || appState.value.apiClient),
 	});
@@ -128,7 +123,8 @@ export function initializeAppState(config: AppConfig): void {
 	}
 
 	const wsManager = createWebSocketManagerApp({
-		url: config.url,
+		wsUrl: config.wsUrl,
+		apiUrl: config.apiUrl,
 		onMessage: (message) => {
 			console.log('AppState: Received message:', message);
 		},

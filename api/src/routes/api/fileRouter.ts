@@ -1,5 +1,13 @@
 import { Router } from '@oak/oak';
-import { addFile, listDirectoryContents, listFiles, removeFile, resolvePath, suggestFiles, suggestFilesForPath } from './file.handlers.ts';
+import {
+	addFile,
+	listDirectoryContents,
+	listFiles,
+	removeFile,
+	resolvePath,
+	suggestFiles,
+	suggestFilesForPath,
+} from './file.handlers.ts';
 
 const fileRouter = new Router();
 

@@ -348,7 +348,7 @@ export const migrateProject = async (
 };
 
 export const findV1Projects = async (
-	{ request, response }: { response: Context['response'] },
+	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	try {
 		logger.info('ProjectHandler: findV1Projects called');

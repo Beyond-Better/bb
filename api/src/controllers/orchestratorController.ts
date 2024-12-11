@@ -4,7 +4,6 @@ import * as diff from 'diff';
 const CONVERSATION_TOKEN_LIMIT = 192000;
 //const CONVERSATION_TOKEN_LIMIT = 64000;
 
-
 import type InteractionManager from 'api/llms/interactionManager.ts';
 import { interactionManager } from 'api/llms/interactionManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -934,9 +933,9 @@ class OrchestratorController {
 				if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
 					logger.warn(
 						`OrchestratorController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
-						`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
-						`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
-						`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`
+							`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
+							`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
+							`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
 					);
 
 					// Log auxiliary message about forced summary
@@ -944,9 +943,10 @@ class OrchestratorController {
 					await interaction.conversationLogger.logAuxiliaryMessage(
 						`force-summary-${timestamp}`,
 						{
-							message: `BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
+							message:
+								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
 							purpose: 'Token Limit Enforcement',
-						}
+						},
 					);
 
 					// Manually construct tool use for conversation summary
@@ -963,15 +963,15 @@ class OrchestratorController {
 								if (targetTokens < 1000) {
 									logger.warn(
 										`OrchestratorController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
-										`Using minimum of 1000 tokens for conversation summary.`
+											`Using minimum of 1000 tokens for conversation summary.`,
 									);
 								}
 								return Math.max(1000, targetTokens);
 							})(),
-							summaryLength: 'long'
+							summaryLength: 'long',
 						},
 						toolUseId: `force-summary-${Date.now()}`,
-						toolValidation: { validated: true, results: 'Tool input validation passed' }
+						toolValidation: { validated: true, results: 'Tool input validation passed' },
 					};
 
 					// Handle the tool use directly without adding its response to toolResponses
@@ -980,7 +980,9 @@ class OrchestratorController {
 					// Only add summary note to toolResponses if there are already responses to process
 					// This avoids triggering another loop iteration if LLM was done
 					if (toolResponses.length > 0) {
-						toolResponses.push('\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.');
+						toolResponses.push(
+							'\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.',
+						);
 					}
 				}
 

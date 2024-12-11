@@ -9,8 +9,9 @@ import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHan
 import type { ProjectConfig, ProjectType } from 'shared/config/v2/types.ts';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
 
-interface StoredProject {
+export interface StoredProject {
 	name: string;
 	path: string;
 	type: ProjectType;
@@ -223,7 +224,9 @@ class ProjectPersistence {
 						continue;
 					}
 					// For other errors, log and continue
-					logger.warn(`ProjectPersistence: Error processing entry ${entry.path}: ${entryError.message}`);
+					logger.warn(
+						`ProjectPersistence: Error processing entry ${entry.path}: ${(entryError as Error).message}`,
+					);
 				}
 			}
 
@@ -252,25 +255,23 @@ class ProjectPersistence {
 			// Read the v1 config
 			const configPath = join(projectPath, '.bb', 'config.yaml');
 			const v1ConfigContent = await Deno.readTextFile(configPath);
-			const v1Config = parseYaml(v1ConfigContent);
+			const v1Config = parseYaml(v1ConfigContent) as ProjectConfigV1;
 
 			// Use ConfigManager to migrate the config
 			const configManager = await ConfigManagerV2.getInstance();
 			logger.error(`ProjectPersistence: Migrating project for: ${projectPath}`);
 			const migrationResult = await configManager.migrateConfig(v1Config);
 			if (!migrationResult.success) {
-				throw new Error(`Migration failed: ${migrationResult.errors.map((e: Error) => e.message).join(', ')}`);
+				throw new Error(
+					`Migration failed: ${
+						migrationResult.errors.map((e: { path: string[]; message: string }) => e.message).join(', ')
+					}`,
+				);
 			}
 
 			const config = migrationResult.config as ProjectConfig;
 
-			// Update caches
-			configManager.projectConfigs.set(config.projectId, config);
-			configManager.projectRoots.set(config.projectId, projectPath);
-			configManager.projectIds.set(projectPath, config.projectId);
-
-			// Save project config
-			await Deno.writeTextFile(configPath, stringifyYaml(configManager.removeUndefined(config)));
+			await configManager.addProjectConfig(config, projectPath);
 
 			// Create a new stored project
 			const project: StoredProject = {
@@ -280,8 +281,9 @@ class ProjectPersistence {
 				type: config.type,
 			};
 
-			// Save the project
+			/*  // addProjectConfig saves the project to project registry
 			await this.saveProject(project);
+			 */
 
 			return project;
 		} catch (error) {

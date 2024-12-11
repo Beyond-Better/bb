@@ -3,6 +3,8 @@ import type { JSX } from 'preact';
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { DisplaySuggestion } from '../types/suggestions.types.ts';
 import type { Project } from '../hooks/useProjectState.ts';
+import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
+import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 
 export interface ApiStatus {
 	status: string;
@@ -39,16 +41,6 @@ interface ConversationResponse {
 
 export interface ConversationListResponse {
 	conversations: ConversationMetadata[];
-}
-
-export interface FileSuggestionsResponse {
-	suggestions: Array<{
-		path: string;
-		isDirectory: boolean;
-		size?: number;
-		modified?: string;
-	}>;
-	hasMore: boolean;
 }
 
 export interface LogEntryFormatResponse {
@@ -157,30 +149,34 @@ export class ApiClient {
 
 	// Project Management Methods
 	async listProjects(): Promise<{ projects: Project[] } | null> {
-		return this.get<{ projects: Project[] }>('/api/v1/projects');
+		return this.get<{ projects: Project[] }>('/api/v1/project');
 	}
 
 	async getProject(projectId: string): Promise<{ project: Project } | null> {
-		return this.get<{ project: Project }>(`/api/v1/projects/${projectId}`, [404]);
+		return this.get<{ project: Project }>(`/api/v1/project/${projectId}`, [404]);
 	}
 
 	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: Project } | null> {
-		return this.post<{ project: Project }>('/api/v1/projects', project);
+		return this.post<{ project: Project }>('/api/v1/project', project);
 	}
 
 	async updateProject(
 		projectId: string,
 		updates: Partial<Omit<Project, 'projectId'>>,
 	): Promise<{ project: Project } | null> {
-		return this.put<{ project: Project }>(`/api/v1/projects/${projectId}`, updates);
+		return this.put<{ project: Project }>(`/api/v1/project/${projectId}`, updates);
 	}
 
 	async deleteProject(projectId: string): Promise<void> {
-		await this.delete(`/api/v1/projects/${projectId}`, [404]);
+		await this.delete(`/api/v1/project/${projectId}`, [404]);
+	}
+
+	async migrateAndAddProject(projectPath: string): Promise<Project | null> {
+		return this.post('/api/v1/project/migrate', { projectPath });
 	}
 
 	async findV1Projects(searchDir: string): Promise<{ projects: string[] } | null> {
-		return this.get<{ projects: string[] }>(`/api/v1/projects/find?searchDir=${encodeURIComponent(searchDir)}`);
+		return this.get<{ projects: string[] }>(`/api/v1/project/find?searchDir=${encodeURIComponent(searchDir)}`);
 	}
 
 	// File Management Methods
@@ -206,20 +202,22 @@ export class ApiClient {
 		);
 	}
 
-	async listDirectory(dirPath: string, options: { only?: 'files' | 'directories'; matchingString?: string; includeHidden?: boolean } = {}) {
+	async listDirectory(
+		dirPath: string,
+		options: { only?: 'files' | 'directories'; matchingString?: string; includeHidden?: boolean } = {},
+	): Promise<ListDirectoryResponse | null> {
 		try {
-			const response = await this.post('/api/v1/files/list-directory', {
+			return await this.post<ListDirectoryResponse>('/api/v1/files/list-directory', {
 				dirPath,
-				...options
+				...options,
 			});
-			console.log(`APIClient: List directory for ${dirPath}`, response);
-			return response;
+			//console.log(`APIClient: List directory for ${dirPath}`, response);
+			//return response;
 		} catch (error) {
 			console.log(`APIClient: List directory failed: ${(error as Error).message}`);
 			throw error;
 		}
 	}
-
 
 	// Conversation Management Methods
 	async createConversation(id: string, projectId: string): Promise<ConversationResponse | null> {

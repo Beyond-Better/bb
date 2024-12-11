@@ -54,7 +54,6 @@ export default function Chat({
 	const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
-
 	// Get project state and selectedProjectId signal
 	const { state: projectState, selectedProjectId } = useProjectState(appState);
 	// Use projectId from selectedProjectId signal
@@ -187,6 +186,7 @@ export default function Chat({
 
 	const deleteConversation = async (id: string) => {
 		try {
+			if (!projectId) throw new Error('projectId is undefined for delete conversation');
 			if (!chatState.value.apiClient) throw new Error('API client not initialized');
 			if (!chatState.value.status.isReady) {
 				throw new Error('WebSocket connection not ready. Please try again.');
@@ -371,10 +371,10 @@ export default function Chat({
 		}
 
 		// Handle disconnection
-		if (!chatState.value.status.isReady && !chatState.value.error) {
+		if (!chatState.value.status.isReady && !chatState.value.status.error) {
 			// Delay showing disconnection message
 			disconnectTimeoutId = setTimeout(() => {
-				if (!chatState.value.status.isReady && !chatState.value.error) {
+				if (!chatState.value.status.isReady && !chatState.value.status.error) {
 					setToastMessage('Connection lost. Attempting to reconnect...');
 					setShowToast(true);
 				}
@@ -394,7 +394,7 @@ export default function Chat({
 			if (disconnectTimeoutId) clearTimeout(disconnectTimeoutId);
 			if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
 		};
-	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.error]);
+	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.status.error]);
 
 	const conversationListState = computed<ConversationListState>(() => ({
 		conversations: chatState.value.conversations,
@@ -406,7 +406,7 @@ export default function Chat({
 		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
-				visible={chatState.value.status.isConnecting && !chatState.value.error}
+				visible={chatState.value.status.isConnecting && !chatState.value.status.error}
 				type='warning'
 			>
 				<div className='flex items-center justify-center'>
@@ -418,166 +418,194 @@ export default function Chat({
 
 			{/* Main content */}
 			<div className='flex flex-1 min-h-0'>
-				{/* Conversation list */}
-				<ConversationList
-					conversationListState={conversationListState}
-					onSelect={async (id) => {
-						await selectConversation(id);
-					}}
-					onNew={async () => {
-						const id = generateConversationId();
-						await selectConversation(id);
-					}}
-					onDelete={deleteConversation}
-				/>
-
-				{/* Chat area */}
-				<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-					{/* ConversationInfo and ToolBar row */}
-					<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
-						<div className='flex items-center space-x-4'>
-							{/* Messages Icon */}
-							<div className='flex items-center text-gray-500'>
+				{!projectId
+					? (
+						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
 								<svg
-									xmlns='http://www.w3.org/2000/svg'
+									className='w-12 h-12 mb-4 text-gray-400'
 									fill='none'
-									viewBox='0 0 24 24'
-									strokeWidth={1.5}
 									stroke='currentColor'
-									className='w-6 h-6'
+									viewBox='0 0 24 24'
 								>
 									<path
 										strokeLinecap='round'
 										strokeLinejoin='round'
-										d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+										strokeWidth={2}
+										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 									/>
 								</svg>
+								<p className='text-lg font-medium'>No Project selected</p>
+								<p className='text-sm'>Select a project to begin</p>
 							</div>
-							<ConversationInfo
-								logEntries={chatState.value.logEntries}
-								conversationId={chatState.value.conversationId || ''}
-								title={chatState.value.conversations.find((c: ConversationMetadata) =>
-									c.id === chatState.value.conversationId
-								)?.title}
-							/>
-						</div>
-
-						<ToolBar
-							onSendMessage={async (message) => {
-								await handlers.sendConverse(message);
-							}}
-							chatInputRef={chatInputRef}
-							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
-							projectId={projectId}
-							apiClient={chatState.value.apiClient!}
-						/>
-					</div>
-
-					{/* Messages */}
-					<div className='flex-1 min-h-0 relative flex flex-col'>
-						{scrollIndicatorState.value.isVisible && (
-							<button
-								onClick={() => {
-									if (messagesEndRef.current) {
-										messagesEndRef.current.scrollTo({
-											top: messagesEndRef.current.scrollHeight,
-											behavior: 'smooth',
-										});
-										setShouldAutoScroll(true);
-										handlers.updateScrollVisibility(true);
-									}
+						</main>
+					)
+					: (
+						<>
+							{/* Conversation list */}
+							<ConversationList
+								conversationListState={conversationListState}
+								onSelect={async (id) => {
+									await selectConversation(id);
 								}}
-								className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
-									scrollIndicatorState.value.isAnswerMessage
-										? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
-										: 'bg-blue-500 hover:bg-blue-600'
-								} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
-								title='Scroll to bottom'
-							>
-								{scrollIndicatorState.value.unreadCount > 0 && (
-									<span
-										className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
-											scrollIndicatorState.value.isAnswerMessage
-												? 'text-green-500'
-												: 'text-blue-500'
-										} rounded-full`}
-									>
-										{scrollIndicatorState.value.unreadCount}
-									</span>
-								)}
-
-								<svg
-									xmlns='http://www.w3.org/2000/svg'
-									className='h-5 w-5'
-									viewBox='0 0 20 20'
-									fill='currentColor'
-								>
-									<path
-										fillRule='evenodd'
-										d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
-										clipRule='evenodd'
-									/>
-								</svg>
-							</button>
-						)}
-						<div
-							ref={messagesEndRef}
-							className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
-							style={{ maxWidth: '100%' }}
-						>
-							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
-								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
-									<svg
-										className='w-12 h-12 mb-4 text-gray-400'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'
-									>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+								onNew={async () => {
+									const id = generateConversationId();
+									await selectConversation(id);
+								}}
+								onDelete={deleteConversation}
+							/>
+							{/* Chat area */}
+							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+								{/* ConversationInfo and ToolBar row */}
+								<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
+									<div className='flex items-center space-x-4'>
+										{/* Messages Icon */}
+										<div className='flex items-center text-gray-500'>
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												fill='none'
+												viewBox='0 0 24 24'
+												strokeWidth={1.5}
+												stroke='currentColor'
+												className='w-6 h-6'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+												/>
+											</svg>
+										</div>
+										<ConversationInfo
+											logEntries={chatState.value.logEntries}
+											conversationId={chatState.value.conversationId || ''}
+											title={chatState.value.conversations.find((c: ConversationMetadata) =>
+												c.id === chatState.value.conversationId
+											)?.title}
 										/>
-									</svg>
-									<p className='text-lg font-medium'>No messages yet</p>
-									<p className='text-sm'>Type a message to begin</p>
+									</div>
+
+									<ToolBar
+										onSendMessage={async (message) => {
+											await handlers.sendConverse(message);
+										}}
+										chatInputRef={chatInputRef}
+										disabled={!chatState.value.status.isReady ||
+											isProcessing(chatState.value.status)}
+										projectId={projectId}
+										apiClient={chatState.value.apiClient!}
+									/>
 								</div>
-							)}
-							{chatState.value.logEntries.length > 0 &&
-								chatState.value.logEntries.map((logEntryData, index) => (
-									<MessageEntry
-										key={index}
-										logEntryData={transformEntry(logEntryData)}
-										index={index}
-										onCopy={handleCopy}
+
+								{/* Messages */}
+								<div className='flex-1 min-h-0 relative flex flex-col'>
+									{scrollIndicatorState.value.isVisible && (
+										<button
+											onClick={() => {
+												if (messagesEndRef.current) {
+													messagesEndRef.current.scrollTo({
+														top: messagesEndRef.current.scrollHeight,
+														behavior: 'smooth',
+													});
+													setShouldAutoScroll(true);
+													handlers.updateScrollVisibility(true);
+												}
+											}}
+											className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
+												scrollIndicatorState.value.isAnswerMessage
+													? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
+													: 'bg-blue-500 hover:bg-blue-600'
+											} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
+											title='Scroll to bottom'
+										>
+											{scrollIndicatorState.value.unreadCount > 0 && (
+												<span
+													className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
+														scrollIndicatorState.value.isAnswerMessage
+															? 'text-green-500'
+															: 'text-blue-500'
+													} rounded-full`}
+												>
+													{scrollIndicatorState.value.unreadCount}
+												</span>
+											)}
+
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												className='h-5 w-5'
+												viewBox='0 0 20 20'
+												fill='currentColor'
+											>
+												<path
+													fillRule='evenodd'
+													d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
+													clipRule='evenodd'
+												/>
+											</svg>
+										</button>
+									)}
+									<div
+										ref={messagesEndRef}
+										className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
+										style={{ maxWidth: '100%' }}
+									>
+										{chatState.value.logEntries.length === 0 &&
+											!isProcessing(chatState.value.status) &&
+											(
+												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+													<svg
+														className='w-12 h-12 mb-4 text-gray-400'
+														fill='none'
+														stroke='currentColor'
+														viewBox='0 0 24 24'
+													>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															strokeWidth={2}
+															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+														/>
+													</svg>
+													<p className='text-lg font-medium'>No messages yet</p>
+													<p className='text-sm'>Type a message to begin</p>
+												</div>
+											)}
+										{chatState.value.logEntries.length > 0 &&
+											chatState.value.logEntries.map((logEntryData, index) => (
+												<MessageEntry
+													key={index}
+													logEntryData={transformEntry(logEntryData)}
+													index={index}
+													onCopy={handleCopy}
+													apiClient={chatState.value.apiClient!}
+													projectId={projectId}
+													conversationId={chatState.value.conversationId!}
+												/>
+											))}
+									</div>
+								</div>
+
+								{/* Input area */}
+								<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
+									<ChatInput
+										value={input}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
-										conversationId={chatState.value.conversationId!}
+										textareaRef={chatInputRef}
+										onChange={(value) => {
+											if (!chatState.value.status.isReady) return;
+											setInput(value.slice(0, 10000));
+										}}
+										onSend={sendConverse}
+										status={chatState.value.status}
+										disabled={!chatState.value.status.isReady}
+										onCancelProcessing={handlers.cancelProcessing}
+										maxLength={10000}
 									/>
-								))}
-						</div>
-					</div>
-
-					{/* Input area */}
-					<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
-						<ChatInput
-							value={input}
-							apiClient={chatState.value.apiClient!}
-							projectId={projectId}
-							textareaRef={chatInputRef}
-							onChange={(value) => {
-								if (!chatState.value.status.isReady) return;
-								setInput(value.slice(0, 10000));
-							}}
-							onSend={sendConverse}
-							status={chatState.value.status}
-							disabled={!chatState.value.status.isReady}
-							onCancelProcessing={handlers.cancelProcessing}
-							maxLength={10000}
-						/>
-					</div>
-				</main>
+								</div>
+							</main>
+						</>
+					)}
 			</div>
 
 			{/* Toast notifications */}
@@ -592,11 +620,11 @@ export default function Chat({
 
 			{/* Error display */}
 			<AnimatedNotification
-				visible={!!chatState.value.error}
+				visible={!!chatState.value.status.error}
 				type='error'
 			>
 				<div className='flex items-center justify-between'>
-					<span>{chatState.value.error}</span>
+					<span>{chatState.value.status.error}</span>
 					<button
 						onClick={() => handlers.clearError()}
 						className='ml-4 text-red-700 hover:text-red-800'

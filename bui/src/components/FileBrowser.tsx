@@ -1,8 +1,8 @@
 import { useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Signal } from '@preact/signals';
-import type { AppState } from '../types/websocket.types.ts';
-import type { FileSuggestionsResponse } from '../utils/apiClient.utils.ts';
+import type { AppState } from '../hooks/useAppState.ts';
+import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import { ColumnFileBrowser } from './ColumnFileBrowser.tsx';
 
 interface FileBrowserProps {
@@ -89,7 +89,7 @@ export function FileBrowser({
 		loading.value = true;
 		try {
 			const apiClient = appState.value.apiClient;
-			const response = await apiClient.suggestFilesForPath(path, rootPath, { type });
+			const response = await apiClient?.suggestFilesForPath(path, rootPath, { type });
 			if (response) {
 				suggestions.value = response.suggestions;
 			}

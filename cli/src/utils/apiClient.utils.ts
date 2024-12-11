@@ -63,7 +63,7 @@ export default class ApiClient {
 		try {
 			const response = await this.post('/api/v1/files/list-directory', {
 				dirPath,
-				...options
+				...options,
 			});
 			return await response.json();
 		} catch (error) {

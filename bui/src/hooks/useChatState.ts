@@ -4,7 +4,7 @@ import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { useVersion } from './useVersion.ts';
 import { type ProjectState, useProjectState } from './useProjectState.ts';
-import { useAppState, type AppState } from '../hooks/useAppState.ts';
+import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
@@ -36,15 +36,16 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 
 export async function initializeChat(
 	config: ChatConfig,
-	appState: signal<AppState>,
+	appState: Signal<AppState>,
 ): Promise<InitializationResult> {
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
 	// Create WebSocket manager last
 	const wsManager = createWebSocketManager({
-		url: config.wsUrl,
-		projectId: appState.value.projectId,
+		wsUrl: config.wsUrl,
+		apiUrl: config.apiUrl,
+		projectId: appState.value.projectId || '',
 		onMessage: config.onMessage,
 		onError: config.onError,
 		onClose: config.onClose,
@@ -62,8 +63,8 @@ export function useChatState(
 	chatState: Signal<ChatState>,
 ): [ChatHandlers, Signal<ScrollIndicatorState>] {
 	// Get project state
-	const { state: projectState } = useProjectState(chatState);
 	const appState = useAppState();
+	const { state: projectState } = useProjectState(appState);
 
 	// Create computed signal for project data
 	const projectData = useComputed(() => {
@@ -92,50 +93,50 @@ export function useChatState(
 	// 	existingApiClient: chatState.value.apiClient?.constructor.name,
 	// });
 	// Watch for project changes and reinitialize chat when needed
-// 	useEffect(async () => {
-// 		if (chatState.value.apiClient) {
-// 			// Load conversation list before WebSocket setup
-// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
-// 			const conversationResponse = await chatState.value.apiClient.getConversations(
-// 				appState.value.projectId,
-// 			);
-// 			if (!conversationResponse) {
-// 				throw new Error('Failed to load conversations');
-// 			}
-// 			const conversations = conversationResponse.conversations;
-// 
-// 			// Load conversation data first
-// 			const conversation = await chatState.value.apiClient.getConversation(
-// 				appState.value.conversationId,
-// 				appState.value.projectId,
-// 			);
-// 			const logEntries = conversation?.logEntries || [];
-// 			// Clear current chat state
-// 			chatState.value = {
-// 				...chatState.value,
-// 				conversationId: appState.value.conversationId ||'',
-// 				logEntries,
-// 				conversations,
-// 				status: {
-// 					...chatState.value.status,
-// 					isLoading: false,
-// 				},
-// 			};
-// 		} else {
-// 			// Clear current chat state
-// 			chatState.value = {
-// 				...chatState.value,
-// 				conversationId: '',
-// 				logEntries: [],
-// 				conversations: [],
-// 				status: {
-// 					...chatState.value.status,
-// 					isLoading: true,
-// 				},
-// 			};
-// 		}
-// 	}, [appState.value.projectId]);
-// 	//}, [projectState.value.selectedProjectId]);
+	// 	useEffect(async () => {
+	// 		if (chatState.value.apiClient) {
+	// 			// Load conversation list before WebSocket setup
+	// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
+	// 			const conversationResponse = await chatState.value.apiClient.getConversations(
+	// 				appState.value.projectId,
+	// 			);
+	// 			if (!conversationResponse) {
+	// 				throw new Error('Failed to load conversations');
+	// 			}
+	// 			const conversations = conversationResponse.conversations;
+	//
+	// 			// Load conversation data first
+	// 			const conversation = await chatState.value.apiClient.getConversation(
+	// 				appState.value.conversationId,
+	// 				appState.value.projectId,
+	// 			);
+	// 			const logEntries = conversation?.logEntries || [];
+	// 			// Clear current chat state
+	// 			chatState.value = {
+	// 				...chatState.value,
+	// 				conversationId: appState.value.conversationId ||'',
+	// 				logEntries,
+	// 				conversations,
+	// 				status: {
+	// 					...chatState.value.status,
+	// 					isLoading: false,
+	// 				},
+	// 			};
+	// 		} else {
+	// 			// Clear current chat state
+	// 			chatState.value = {
+	// 				...chatState.value,
+	// 				conversationId: '',
+	// 				logEntries: [],
+	// 				conversations: [],
+	// 				status: {
+	// 					...chatState.value.status,
+	// 					isLoading: true,
+	// 				},
+	// 			};
+	// 		}
+	// 	}, [appState.value.projectId]);
+	// 	//}, [projectState.value.selectedProjectId]);
 
 	// Initialize chat
 	useEffect(() => {
@@ -160,22 +161,27 @@ export function useChatState(
 				const { apiClient, wsManager } = await initializeChat(config, appState);
 
 				// Load conversation list before WebSocket setup
-				const conversationResponse = await apiClient.getConversations(appState.value.projectId);
+				const conversationResponse = appState.value.projectId
+					? await apiClient.getConversations(appState.value.projectId)
+					: null;
 				if (!conversationResponse) {
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
 
 				// Get conversation ID from URL if it exists, or create a new one
-				// const params = new URLSearchParams(window.location.search);
-				// const urlConversationId = params.get('conversationId');
-				// const conversationId = urlConversationId || generateConversationId();
+				const params = new URLSearchParams(window.location.search);
+				const urlConversationId = params.get('conversationId');
+				const conversationId = urlConversationId || chatState.value.conversationId ||
+					appState.value.conversationId || generateConversationId();
 
 				// Load conversation data first
-				const conversation = await apiClient.getConversation(
-					chatState.value.conversationId,
-					appState.value.projectId,
-				);
+				const conversation = (conversationId && appState.value.projectId)
+					? await apiClient.getConversation(
+						conversationId,
+						appState.value.projectId,
+					)
+					: null;
 				const logEntries = conversation?.logEntries || [];
 
 				if (!mounted) {
@@ -189,7 +195,7 @@ export function useChatState(
 					...chatState.value,
 					apiClient,
 					wsManager,
-					//conversationId,
+					conversationId,
 					conversations,
 					logEntries,
 				};
@@ -197,7 +203,7 @@ export function useChatState(
 				currentWsManager = wsManager;
 
 				// Initialize WebSocket connection last and wait for ready state
-				await wsManager.setConversationId(appState.value.conversationId);
+				await wsManager.setConversationId(conversationId);
 
 				// Wait for WebSocket to be ready
 				await new Promise<void>((resolve, reject) => {
@@ -238,8 +244,7 @@ export function useChatState(
 
 				chatState.value = {
 					...chatState.value,
-					error: errorMessage,
-					status: { ...chatState.value.status, isLoading: false },
+					status: { ...chatState.value.status, isLoading: false, error: errorMessage },
 				};
 			}
 		}
@@ -268,8 +273,8 @@ export function useChatState(
 						lastApiCallTime: null,
 						apiStatus: ApiStatus.IDLE,
 						toolName: undefined,
+						error: null,
 					},
-					error: null,
 				};
 			}
 		};
@@ -325,9 +330,7 @@ export function useChatState(
 
 		const handleMessage = async (data: { msgType: string; logEntryData: any }) => {
 			// Get current project for stats updates
-			const currentProject = projectState.value.projects.find((p) =>
-				p.projectId === appState.value.projectId
-			);
+			const currentProject = projectState.value.projects.find((p) => p.projectId === appState.value.projectId);
 			if (!currentProject) return;
 			// Update cache status on any API interaction
 			chatState.value = {
@@ -509,11 +512,11 @@ export function useChatState(
 
 			chatState.value = {
 				...chatState.value,
-				error: errorMessage,
 				status: {
 					...chatState.value.status,
 					isLoading: false,
 					apiStatus: ApiStatus.IDLE,
+					error: errorMessage,
 				},
 			};
 		};
@@ -525,7 +528,10 @@ export function useChatState(
 			if (!mounted) return;
 			chatState.value = {
 				...chatState.value,
-				error: null,
+				status: {
+					...chatState.value.status,
+					error: null,
+				},
 			};
 		};
 
@@ -624,8 +630,11 @@ export function useChatState(
 				console.error('Failed to send message:', error);
 				chatState.value = {
 					...chatState.value,
-					status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
-					error: 'Failed to send message. Please try again.',
+					status: {
+						...chatState.value.status,
+						apiStatus: ApiStatus.IDLE,
+						error: 'Failed to send message. Please try again.',
+					},
 				};
 				throw error;
 			}
@@ -653,10 +662,12 @@ export function useChatState(
 					console.error('selectConversation: apiClient is null before getConversation');
 					throw new Error('Chat API client was lost during conversation load');
 				}
-				const conversation = await chatState.value.apiClient.getConversation(
-					id,
-					appState.value.projectId,
-				);
+				const conversation = (id && appState.value.projectId)
+					? await chatState.value.apiClient.getConversation(
+						id,
+						appState.value.projectId,
+					)
+					: null;
 				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logEntries);
 
 				// Update conversation ID and logEntries
@@ -681,8 +692,8 @@ export function useChatState(
 						...chatState.value.status,
 						isLoading: false,
 						apiStatus: ApiStatus.IDLE,
+						error: 'Failed to load conversation. Please try again.',
 					},
-					error: 'Failed to load conversation. Please try again.',
 				};
 				throw error;
 			}
@@ -697,7 +708,13 @@ export function useChatState(
 		},
 
 		clearError: () => {
-			chatState.value = { ...chatState.value, error: null };
+			chatState.value = {
+				...chatState.value,
+				status: {
+					...chatState.value.status,
+					error: null,
+				},
+			};
 		},
 
 		cancelProcessing: async () => {
@@ -711,7 +728,10 @@ export function useChatState(
 				console.error('Failed to cancel processing:', error);
 				chatState.value = {
 					...chatState.value,
-					error: 'Failed to cancel processing. Please try again.',
+					status: {
+						...chatState.value.status,
+						error: 'Failed to cancel processing. Please try again.',
+					},
 				};
 				throw error;
 			}

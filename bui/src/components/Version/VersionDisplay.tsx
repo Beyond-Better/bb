@@ -22,7 +22,6 @@ export function VersionDisplay({ className = '', apiClient }: VersionDisplayProp
 				<VersionStatusIndicator />
 				<CompactVersion version={versionInfo.version} />
 			</div>
-
 		</div>
 	);
 }

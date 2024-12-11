@@ -413,6 +413,20 @@ dui:
 		}
 	}
 
+	public async addProjectConfig(config: ProjectConfig, projectPath: string): Promise<void> {
+		// Update caches
+		this.projectConfigs.set(config.projectId, config);
+		this.projectRoots.set(config.projectId, projectPath);
+		this.projectIds.set(projectPath, config.projectId);
+
+		// Save project config
+		const configPath = join(projectPath, '.bb', 'config.yaml');
+		await ensureDir(join(projectPath, '.bb'));
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+
+		await this.updateProjectRegistry(config.projectId, config.name, projectPath, config.type);
+	}
+
 	/**
 	 * Updates the global project registry with a new project.
 	 * Creates the registry if it doesn't exist.
@@ -424,11 +438,11 @@ dui:
 	 */
 	private async updateProjectRegistry(projectId: string, name: string, path: string, type: string): Promise<void> {
 		const registryPath = join(await getGlobalConfigDir(), 'projects.json');
-		let registry: Record<string, { name: string; path: string }> = {};
+		let registry: Record<string, { name: string; path: string; type: string }> = {};
 
 		try {
 			const content = await Deno.readTextFile(registryPath);
-			registry = JSON.parse(content) as Record<string, { name: string; path: string }>;
+			registry = JSON.parse(content) as Record<string, { name: string; path: string; type: string }>;
 		} catch (error) {
 			if (!(error instanceof Deno.errors.NotFound)) {
 				const e = error as Error;
@@ -489,7 +503,9 @@ dui:
 	 * console.log(`Backup created at: ${result.backupPath}`);
 	 * ```
 	 */
-	public async migrateConfig(config: GlobalConfigV1 | ProjectConfigV1): Promise<MigrationResult> {
+	public async migrateConfig(
+		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfig | ProjectConfig,
+	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
 		console.log('ConfigManager: migrateConfig: ', config);
@@ -506,7 +522,7 @@ dui:
 
 		//console.log('ConfigManager: migrateConfig: ', result);
 		if (result.version.from === '2.0.0') {
-			result.config = config;
+			result.config = config as GlobalConfig;
 			return result;
 		}
 

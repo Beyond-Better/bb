@@ -1,2 +1,5 @@
 // Re-export chat manager for backward compatibility
-export { WebSocketManagerChat as WebSocketManager, createWebSocketManagerChat as createWebSocketManager } from './websocketManagerChat.utils.ts';
+export {
+	createWebSocketManagerChat as createWebSocketManager,
+	WebSocketManagerChat as WebSocketManager,
+} from './websocketManagerChat.utils.ts';

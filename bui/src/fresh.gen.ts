@@ -14,11 +14,9 @@ import * as $projects_partial from './routes/projects/partial.tsx';
 import * as $settings_index from './routes/settings/index.tsx';
 import * as $settings_partial from './routes/settings/partial.tsx';
 import * as $Chat from './islands/Chat.tsx';
-import * as $Navigation from './islands/Navigation.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
-import * as $archive_AppStateProvider from './islands/archive/AppStateProvider.tsx';
 import * as $metadata_ProjectManagerMetadata from './islands/metadata/ProjectManagerMetadata.tsx';
 import * as $metadata_ProjectMetadata from './islands/metadata/ProjectMetadata.tsx';
 import * as $metadata_SettingsMetadata from './islands/metadata/SettingsMetadata.tsx';
@@ -41,11 +39,9 @@ const manifest = {
 	},
 	islands: {
 		'./islands/Chat.tsx': $Chat,
-		'./islands/Navigation.tsx': $Navigation,
 		'./islands/ProjectManager.tsx': $ProjectManager,
 		'./islands/Settings.tsx': $Settings,
 		'./islands/SideNav.tsx': $SideNav,
-		'./islands/archive/AppStateProvider.tsx': $archive_AppStateProvider,
 		'./islands/metadata/ProjectManagerMetadata.tsx': $metadata_ProjectManagerMetadata,
 		'./islands/metadata/ProjectMetadata.tsx': $metadata_ProjectMetadata,
 		'./islands/metadata/SettingsMetadata.tsx': $metadata_SettingsMetadata,

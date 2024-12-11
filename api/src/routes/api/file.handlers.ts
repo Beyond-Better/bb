@@ -105,36 +105,36 @@ export const suggestFilesForPath = async (
 };
 
 export const listDirectoryContents = async (
-  { request, response }: { request: Context['request']; response: Context['response'] },
+	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
-  try {
-    const { dirPath, only, matchingString, includeHidden } = await request.body.json();
-	const rootDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
+	try {
+		const { dirPath, only, matchingString, includeHidden } = await request.body.json();
+		const rootDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
-    //if (!dirPath) {
-    //  response.status = 400;
-    //  response.body = { error: 'Directory path is required' };
-    //  return;
-    //}
+		//if (!dirPath) {
+		//  response.status = 400;
+		//  response.body = { error: 'Directory path is required' };
+		//  return;
+		//}
 
-    const options: ListDirectoryOptions = {};
-    if (only) options.only = only;
-    if (matchingString) options.matchingString = matchingString;
-    if (includeHidden !== undefined) options.includeHidden = includeHidden;
+		const options: ListDirectoryOptions = {};
+		if (only) options.only = only;
+		if (matchingString) options.matchingString = matchingString;
+		if (includeHidden !== undefined) options.includeHidden = includeHidden;
 
-    const result = await listDirectory(rootDir, dirPath, options);
-    response.body = result;
-  } catch (error) {
-    logger.error(`FileHandler: Error listing directory: ${(error as Error).message}`);
+		const result = await listDirectory(rootDir, dirPath, options);
+		response.body = result;
+	} catch (error) {
+		logger.error(`FileHandler: Error listing directory: ${(error as Error).message}`);
 
-    if ((error as Error).name === ErrorType.FileHandling) {
-      response.status = 400;
-      response.body = { error: (error as Error).message };
-    } else {
-      response.status = 500;
-      response.body = { error: 'Failed to list directory contents' };
-    }
-  }
+		if ((error as Error).name === ErrorType.FileHandling) {
+			response.status = 400;
+			response.body = { error: (error as Error).message };
+		} else {
+			response.status = 500;
+			response.body = { error: 'Failed to list directory contents' };
+		}
+	}
 };
 
 export const resolvePath = async (

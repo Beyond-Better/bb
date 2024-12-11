@@ -43,12 +43,6 @@ export function ConversationList({
 	return (
 		<div className='w-[30%] min-w-[20rem] bg-white border-r border-gray-200 flex flex-col min-h-0'>
 			<div className='p-4 border-b border-gray-200 flex-none bg-gray-50'>
-				<div className='flex items-center justify-end mb-4'>
-					{isLoading && (
-						<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
-						</div>
-					)}
-				</div>
 				<button
 					onClick={onNew}
 					className='w-full bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
@@ -60,6 +54,8 @@ export function ConversationList({
 								<div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'>
 								</div>
 								<span>Loading...</span>
+								<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
+								</div>
 							</>
 						)
 						: (
