@@ -63,13 +63,13 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 		}
 	}
 
-	if (isCollapsed || !showDownload) return <></>;
+	if (!showDownload) return <></>;
 
 	return (
 		<AnimatedNotification
 			visible={true}
 			type='warning'
-			className={className}
+			className={`${className} ${isCollapsed ? 'fixed bottom-4 right-4 z-50 max-w-sm shadow-lg' : ''}`}
 		>
 			<div className='space-y-4'>
 				<div className='flex items-start justify-between'>
