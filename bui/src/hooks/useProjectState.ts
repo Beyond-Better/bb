@@ -1,4 +1,4 @@
-import { type Signal, signal, useSignal } from '@preact/signals';
+import { type Signal, signal, useSignal, computed } from '@preact/signals';
 import { ProjectType } from 'shared/config/v2/types.ts';
 import type { AppState } from '../types/websocket.types.ts';
 
