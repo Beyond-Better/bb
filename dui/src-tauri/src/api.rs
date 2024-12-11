@@ -4,7 +4,7 @@ use serde::Serialize;
 use crate::config::read_global_config;
 use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
 
-fn get_bb_api_path() -> Result<PathBuf, String> {
+pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     let api_name = if cfg!(target_os = "windows") { "bb-api.exe" } else { "bb-api" };
     println!("Looking for {} executable", api_name);
 
