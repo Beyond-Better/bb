@@ -55,10 +55,10 @@ export default function Chat({
 	const appState = useAppState();
 
 
-	// Get project state
-	const { state: projectState } = useProjectState(appState);
-	// Use projectId from projectState
-	const projectId = projectState.value.selectedProjectId || '.';
+	// Get project state and selectedProjectId signal
+	const { state: projectState, selectedProjectId } = useProjectState(appState);
+	// Use projectId from selectedProjectId signal
+	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
