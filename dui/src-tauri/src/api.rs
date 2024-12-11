@@ -1,4 +1,5 @@
 use std::process::Command;
+use log::{debug, info, error, warn};
 use std::path::PathBuf;
 use serde::Serialize;
 use crate::config::read_global_config;
@@ -6,7 +7,7 @@ use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pi
 
 pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     let api_name = if cfg!(target_os = "windows") { "bb-api.exe" } else { "bb-api" };
-    println!("Looking for {} executable", api_name);
+    info!("Looking for {} executable", api_name);
 
     // Try user-specific location first
     if let Some(home) = dirs::home_dir() {
@@ -20,9 +21,9 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
         };
 
         let user_binary = user_install.join(api_name);
-        println!("Checking user install location: {}", user_binary.display());
+        debug!("Checking user install location: {}", user_binary.display());
         if user_binary.exists() {
-            println!("Found API executable in user install location");
+            info!("Found API executable in user install location");
             return Ok(user_binary);
         }
     }
@@ -37,9 +38,9 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     };
 
     let system_binary = system_install.join(api_name);
-    println!("Checking system install location: {}", system_binary.display());
+    debug!("Checking system install location: {}", system_binary.display());
     if system_binary.exists() {
-        println!("Found API executable in system install location");
+        info!("Found API executable in system install location");
         return Ok(system_binary);
     }
 
@@ -76,7 +77,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     let bb_api_path = get_bb_api_path()
         .map_err(|e| format!("Failed to locate bb-api executable: {}", e))?;
     
-    println!("Found bb-api executable at: {}", bb_api_path.display());
+    info!("Found bb-api executable at: {}", bb_api_path.display());
 
     // Build command arguments - only include valid args
     let mut args = Vec::new();
@@ -98,11 +99,11 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
         args.push(log_file.clone());
     }
 
-    println!("Starting API with command: {} {:?}", bb_api_path.display(), args);
+    info!("Starting API with command: {} {:?}", bb_api_path.display(), args);
 
     // Convert PathBuf to string for logging
     let bb_api_path_str = bb_api_path.to_string_lossy();
-    println!("Starting API with command: {} {:?}", bb_api_path_str, args);
+    debug!("Starting API with command: {} {:?}", bb_api_path_str, args);
 
     // Spawn the process
     let spawn_result = Command::new(bb_api_path)
@@ -112,11 +113,11 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     match spawn_result {
         Ok(child) => {
             let pid = child.id() as i32;
-            println!("API process started with PID: {}", pid);
+            info!("API process started with PID: {}", pid);
 
             // Save the PID immediately
             if let Err(e) = save_pid(pid).await {
-                println!("Warning: Failed to save PID file: {}", e);
+                warn!("Failed to save PID file: {}", e);
             }
             
             // Give the API a moment to start
@@ -127,7 +128,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                 // Verify the API is responding
                 match check_api_status().await {
                     Ok(status) if status.api_responds => {
-                        println!("API is responding after {} attempts", attempt);
+                        info!("API is responding after {} attempts", attempt);
                         return Ok(ApiStartResult {
                             success: true,
                             pid: Some(pid),
@@ -136,7 +137,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                     }
                     Ok(_) if attempt == max_attempts => {
                         let error_msg = "API process started but not responding after multiple attempts";
-                        println!("{}", error_msg);
+                        error!("{}", error_msg);
                         return Ok(ApiStartResult {
                             success: false,
                             pid: Some(pid),
@@ -144,11 +145,11 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                         });
                     }
                     Ok(_) => {
-                        println!("API not responding yet, attempt {}/{}", attempt, max_attempts);
+                        debug!("API not responding yet, attempt {}/{}", attempt, max_attempts);
                         continue;
                     }
                     Err(e) => {
-                        println!("Error checking API status: {}", e);
+                        error!("Error checking API status: {}", e);
                     }
                 }
             }
@@ -174,19 +175,19 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
 #[tauri::command]
 pub async fn stop_api() -> Result<bool, String> {
     let status = check_api_status().await?;
-    println!("Current API status: {:?}", status);
+    debug!("Current API status: {:?}", status);
 
     if !status.pid_exists && !status.api_responds {
-        println!("API is not running");
+        info!("API is not running");
         // Clean up any stale PID file
         if let Err(e) = crate::commands::api_status::remove_pid().await {
-            println!("Warning: Failed to remove stale PID file: {}", e);
+            warn!("Failed to remove stale PID file: {}", e);
         }
         return Ok(false);
     }
 
     if let Some(pid) = status.pid {
-        println!("Attempting to stop API process with PID: {}", pid);
+        info!("Attempting to stop API process with PID: {}", pid);
 
         let stop_result = {
             #[cfg(target_family = "unix")]
@@ -204,7 +205,7 @@ pub async fn stop_api() -> Result<bool, String> {
                 {
                     Ok(output) => output.status.success(),
                     Err(e) => {
-                        println!("Failed to execute taskkill: {}", e);
+                        error!("Failed to execute taskkill: {}", e);
                         false
                     }
                 }
@@ -217,36 +218,36 @@ pub async fn stop_api() -> Result<bool, String> {
             std::thread::sleep(std::time::Duration::from_millis(500));
             match check_api_status().await {
                 Ok(status) if !status.api_responds && !status.pid_exists => {
-                    println!("API stopped successfully after {} attempts", attempt);
+                    info!("API stopped successfully after {} attempts", attempt);
                     // Clean up PID file
                     if let Err(e) = crate::commands::api_status::remove_pid().await {
-                        println!("Warning: Failed to remove PID file: {}", e);
+                        warn!("Failed to remove PID file: {}", e);
                     }
                     return Ok(true);
                 }
                 Ok(_) if attempt == max_attempts => {
-                    println!("API failed to stop completely after {} attempts", max_attempts);
+                    error!("API failed to stop completely after {} attempts", max_attempts);
                     break;
                 }
                 Ok(_) => {
-                    println!("Waiting for API to stop, attempt {}/{}", attempt, max_attempts);
+                    debug!("Waiting for API to stop, attempt {}/{}", attempt, max_attempts);
                     continue;
                 }
                 Err(e) => {
-                    println!("Error checking API status during stop: {}", e);
+                    error!("Error checking API status during stop: {}", e);
                 }
             }
         }
 
         if stop_result {
-            println!("Stop command succeeded but API may still be running");
+            warn!("Stop command succeeded but API may still be running");
         } else {
-            println!("Failed to stop API process");
+            error!("Failed to stop API process");
         }
 
         Ok(stop_result)
     } else {
-        println!("No PID found for running API");
+        warn!("No PID found for running API");
         Ok(false)
     }
 }
