@@ -8,36 +8,42 @@ fn get_bb_api_path() -> Result<PathBuf, String> {
     let api_name = if cfg!(target_os = "windows") { "bb-api.exe" } else { "bb-api" };
     println!("Looking for {} executable", api_name);
 
-    // First try to find in the same directory as the current executable
-    if let Ok(mut exe_path) = std::env::current_exe() {
-        println!("Current executable path: {}", exe_path.display());
-        exe_path.pop(); // Remove executable name
-        exe_path.push(api_name);
-        println!("Checking for API at: {}", exe_path.display());
-        if exe_path.exists() {
-            println!("Found API executable in current directory");
-            return Ok(exe_path);
+    // Try user-specific location first
+    if let Some(home) = dirs::home_dir() {
+        let user_install = if cfg!(target_os = "windows") {
+            home.join("AppData").join("Local").join("BeyondBetter").join("bin")
+        } else if cfg!(target_os = "macos") {
+            home.join(".bb").join("bin")
+        } else {
+            // Linux
+            home.join(".local").join("bin")
+        };
+
+        let user_binary = user_install.join(api_name);
+        println!("Checking user install location: {}", user_binary.display());
+        if user_binary.exists() {
+            println!("Found API executable in user install location");
+            return Ok(user_binary);
         }
-    } else {
-        println!("Warning: Could not determine current executable path");
     }
 
-    // Then try to find in PATH
-    match std::env::var("PATH") {
-        Ok(path) => {
-            println!("Searching PATH for {}", api_name);
-            for dir in std::env::split_paths(&path) {
-                let full_path = dir.join(api_name);
-                println!("Checking PATH location: {}", full_path.display());
-                if full_path.exists() {
-                    println!("Found API executable in PATH");
-                    return Ok(full_path);
-                }
-            }
-            Err(format!("Could not find {} in PATH or current directory", api_name))
-        }
-        Err(e) => Err(format!("Failed to read PATH environment variable: {}", e))
+    // Try system location
+    let system_install = if cfg!(target_os = "windows") {
+        PathBuf::from(r"C:\Program Files\BeyondBetter\bin")
+    } else if cfg!(target_os = "macos") {
+        PathBuf::from("/usr/local/bin")
+    } else {
+        PathBuf::from("/usr/local/bin")
+    };
+
+    let system_binary = system_install.join(api_name);
+    println!("Checking system install location: {}", system_binary.display());
+    if system_binary.exists() {
+        println!("Found API executable in system install location");
+        return Ok(system_binary);
     }
+
+    Err(format!("Could not find {} in user or system install locations", api_name))
 }
 
 #[derive(Debug, Serialize)]
