@@ -78,15 +78,19 @@ export function useProjectState(appState: Signal<AppState>) {
 				// If we have a selectedProjectId but it's not in the projects list,
 				// we should clear it
 				const projectExists = response.projects.some(
-					(p) => p.projectId === projectState.value.selectedProjectId,
+					(p) => p.projectId === selectedProjectId.value,
 				);
 
 				projectState.value = {
 					...projectState.value,
 					projects: response.projects,
-	
 					loading: false,
 				};
+
+				// Clear selected project if it no longer exists
+				if (!projectExists && selectedProjectId.value) {
+					setSelectedProject(null);
+				}
 			}
 		} catch (error) {
 			projectState.value = {
@@ -147,7 +151,6 @@ export function useProjectState(appState: Signal<AppState>) {
 			projectState.value = {
 				...projectState.value,
 				projects: projectState.value.projects.filter((p) => p.projectId !== projectId),
-
 				loading: false,
 			};
 		} catch (error) {
