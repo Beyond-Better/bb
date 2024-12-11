@@ -108,38 +108,40 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 						</div>
 						<div className='border-t border-yellow-200 pt-3'>
 							<p className='text-sm text-yellow-700 mb-3'>Don't have BB installed yet?</p>
-							{downloadUrl ? (
-								<div className='space-y-3'>
-									<div className='flex flex-col gap-2'>
-										<a
-											href={downloadUrl}
-											className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500'
-											download
-										>
-											Download BB App v{version}
-										</a>
-										<a
-											href={releaseUrl}
-											target='_blank'
-											rel='noopener noreferrer'
-											className='text-sm text-yellow-700 hover:text-yellow-800'
-										>
-											View release on GitHub →
-										</a>
-									</div>
+							{downloadUrl
+								? (
+									<div className='space-y-3'>
+										<div className='flex flex-col gap-2'>
+											<a
+												href={downloadUrl}
+												className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500'
+												download
+											>
+												Download BB App v{version}
+											</a>
+											<a
+												href={releaseUrl}
+												target='_blank'
+												rel='noopener noreferrer'
+												className='text-sm text-yellow-700 hover:text-yellow-800'
+											>
+												View release on GitHub →
+											</a>
+										</div>
 
-									<div className='text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md'>
-										<h4 className='font-medium mb-2'>Important Security Notice</h4>
-										<pre className='whitespace-pre-wrap font-mono text-xs'>
+										<div className='text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md'>
+											<h4 className='font-medium mb-2'>Important Security Notice</h4>
+											<pre className='whitespace-pre-wrap font-mono text-xs'>
 											{getSecurityInstructions()}
-										</pre>
+											</pre>
+										</div>
 									</div>
-								</div>
-							) : (
-								<div className='flex items-center justify-center py-4'>
-									<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-700' />
-								</div>
-							)}
+								)
+								: (
+									<div className='flex items-center justify-center py-4'>
+										<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-700' />
+									</div>
+								)}
 						</div>
 					</div>
 				)}
