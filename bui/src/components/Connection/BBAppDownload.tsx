@@ -142,12 +142,7 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 							)}
 						</div>
 					</div>
-				)
-					: (
-						<div className='flex items-center justify-center py-4'>
-							<div className='animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-700' />
-						</div>
-					)}
+				)}
 			</div>
 		</AnimatedNotification>
 	);
