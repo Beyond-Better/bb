@@ -21,6 +21,7 @@ export function ProjectMetadata({
 	const projectId = chatState.value.projectData?.projectId || '.';
 	const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
+	const projectPath = chatState.value.projectData?.path || 'default';
 
 	return (
 		<div className='flex items-center justify-between px-4'>
@@ -32,25 +33,30 @@ export function ProjectMetadata({
 
 				{/* Project Info */}
 				<div className='flex items-center space-x-4'>
-					{/* Project Name */}
-					<div className='flex items-center space-x-2'>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							fill='none'
-							viewBox='0 0 24 24'
-							strokeWidth='1.5'
-							stroke='currentColor'
-							className='w-5 h-5 text-gray-400'
-						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
-							/>
-						</svg>
-						<span className='text-sm font-medium text-gray-900'>
-							{projectName || 'No project selected'}
-						</span>
+					{/* Project Name and ID */}
+					<div className='flex flex-col'>
+						<div className='flex items-center space-x-2'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								fill='none'
+								viewBox='0 0 24 24'
+								strokeWidth='1.5'
+								stroke='currentColor'
+								className='w-5 h-5 text-gray-400'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
+								/>
+							</svg>
+							<div>
+								<span className='text-sm font-medium text-gray-900'>
+									{projectName || 'No project selected'}
+								</span>
+								<div className='text-xs text-gray-500'>{projectId}</div>
+							</div>
+						</div>
 					</div>
 
 					{/* Project Type */}
@@ -70,6 +76,25 @@ export function ProjectMetadata({
 							/>
 						</svg>
 						<span className='text-sm text-gray-500'>{projectType}</span>
+					</div>
+
+					{/* Project Path */}
+					<div className='flex items-center space-x-2'>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							fill='none'
+							viewBox='0 0 24 24'
+							strokeWidth='1.5'
+							stroke='currentColor'
+							className='w-4 h-4 text-gray-400'
+						>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
+							/>
+						</svg>
+						<span className='text-sm text-gray-500'>{projectPath}</span>
 					</div>
 				</div>
 
