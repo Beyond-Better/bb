@@ -99,7 +99,7 @@ export function ProjectMetadata({
 				</div>
 
 				{/* Project Stats */}
-				{chatState.value.projectData?.stats && (
+				{(chatState.value.projectData?.stats || chatState.value.conversations) && (
 					<div className='flex items-center space-x-6 text-sm'>
 						<div className='flex items-center text-blue-600'>
 							<svg
