@@ -3,16 +3,19 @@ import { useEffect, useState } from 'preact/hooks';
 import { invoke } from '@tauri-apps/api/core';
 import { GlobalConfigValues, RustGlobalConfig } from '../../types/settings';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
+import { useDebugMode } from '../../providers/DebugModeProvider';
 
 const defaultConfig: GlobalConfigValues = {
 	myPersonsName: '',
 	myAssistantsName: '',
 	'api.maxTurns': 25,
 	'api.llmKeys.anthropic': '',
+	'api.tls.useTls': false,
 };
 
 export function Settings(): JSX.Element {
 	const [config, setConfig] = useState<GlobalConfigValues>(defaultConfig);
+	const { debugMode, setDebugMode } = useDebugMode();
 	const [originalConfig, setOriginalConfig] = useState<GlobalConfigValues>(defaultConfig);
 	const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 	const [errors, setErrors] = useState<Partial<Record<keyof GlobalConfigValues, string>>>({});
@@ -24,9 +27,8 @@ export function Settings(): JSX.Element {
 	const loadConfig = async () => {
 		console.log('Loading config...');
 		try {
-			console.log('Invoking get_global_config...');
+			//console.log('Invoking get_global_config...');
 			const rustConfig = await invoke<RustGlobalConfig>('get_global_config');
-			// console.log('Received response from get_global_config');
 			// console.log('Full Rust config structure:', JSON.stringify(rustConfig, null, 2));
 			// // Verify property access
 			// console.log('Direct property check:', {
@@ -42,6 +44,7 @@ export function Settings(): JSX.Element {
 			// console.log('myPersonsName from Rust:', rustConfig.myPersonsName);
 			// console.log('api.maxTurns from Rust:', rustConfig.api?.maxTurns);
 			// console.log('api.llmKeys from Rust:', rustConfig.api?.llmKeys);
+			// console.log('api.tls.useTls from Rust:', rustConfig.api?.tls?.useTls);
 
 			// Map snake_case Rust config to our frontend format
 			const configValues: GlobalConfigValues = {
@@ -49,12 +52,14 @@ export function Settings(): JSX.Element {
 				myAssistantsName: rustConfig.myAssistantsName || '',
 				'api.maxTurns': rustConfig.api?.maxTurns ?? 25,
 				'api.llmKeys.anthropic': rustConfig.api?.llmKeys?.anthropic || '',
+				'api.tls.useTls': rustConfig.api?.tls?.useTls ?? false,
 			};
 
 			// console.log('Mapped config values:', configValues);
 			// console.log('Mapped myPersonsName:', configValues.myPersonsName);
 			// console.log('Mapped api.maxTurns:', configValues['api.maxTurns']);
 			// console.log('Mapped api.llmKeys.anthropic:', configValues['api.llmKeys.anthropic']);
+			// console.log('Mapped api.tls.useTls:', configValues['api.tls.useTls']);
 			setConfig(configValues);
 			setOriginalConfig(configValues);
 		} catch (error) {
@@ -87,7 +92,7 @@ export function Settings(): JSX.Element {
 		return Object.keys(newErrors).length === 0;
 	};
 
-	const handleInputChange = (key: keyof GlobalConfigValues, value: string | number) => {
+	const handleInputChange = (key: keyof GlobalConfigValues, value: string | number | boolean) => {
 		console.log('Input change:', key, value);
 		setConfig((prev) => ({ ...prev, [key]: value }));
 		// Clear error when user starts typing
@@ -116,6 +121,11 @@ export function Settings(): JSX.Element {
 			if (config['api.maxTurns'] !== originalConfig['api.maxTurns']) {
 				console.log('Updating api.maxTurns:', config['api.maxTurns']);
 				updates.push(['api.maxTurns', config['api.maxTurns'].toString()]);
+			}
+
+			if (config['api.tls.useTls'] !== originalConfig['api.tls.useTls']) {
+				console.log('Updating api.tls.useTls:', config['api.tls.useTls']);
+				updates.push(['api.tls.useTls', config['api.tls.useTls'].toString()]);
 			}
 
 			const apiKey = config['api.llmKeys.anthropic'];
@@ -152,6 +162,7 @@ export function Settings(): JSX.Element {
 
 	const handleResetDefaults = () => {
 		setConfig(defaultConfig);
+		setDebugMode(false);
 		setErrors({});
 	};
 
@@ -221,50 +232,88 @@ export function Settings(): JSX.Element {
 					)}
 				</div>
 
-				<div>
-					<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-						Your Name
-					</label>
-					<input
-						type='text'
-						value={config.myPersonsName}
-						onChange={(e) => handleInputChange('myPersonsName', e.currentTarget.value)}
-						className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-							errors.myPersonsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-						}`}
-					/>
-					{errors.myPersonsName && <p className='mt-1 text-sm text-red-500'>{errors.myPersonsName}</p>}
+				<div className='grid grid-cols-2 gap-4'>
+					<div>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+							Your Name
+						</label>
+						<input
+							type='text'
+							value={config.myPersonsName}
+							onChange={(e) => handleInputChange('myPersonsName', e.currentTarget.value)}
+							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+								errors.myPersonsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+							}`}
+						/>
+						{errors.myPersonsName && <p className='mt-1 text-sm text-red-500'>{errors.myPersonsName}</p>}
+					</div>
+
+					<div>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+							Assistant Name
+						</label>
+						<input
+							type='text'
+							value={config.myAssistantsName}
+							onChange={(e) => handleInputChange('myAssistantsName', e.currentTarget.value)}
+							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+								errors.myAssistantsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+							}`}
+						/>
+						{errors.myAssistantsName && <p className='mt-1 text-sm text-red-500'>{errors.myAssistantsName}</p>}
+					</div>
 				</div>
 
-				<div>
-					<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-						Assistant Name
-					</label>
-					<input
-						type='text'
-						value={config.myAssistantsName}
-						onChange={(e) => handleInputChange('myAssistantsName', e.currentTarget.value)}
-						className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-							errors.myAssistantsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-						}`}
-					/>
-					{errors.myAssistantsName && <p className='mt-1 text-sm text-red-500'>{errors.myAssistantsName}</p>}
-				</div>
+				<div className='grid grid-cols-3 gap-4'>
+					<div>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+							Max Turns
+						</label>
+						<input
+							type='number'
+							min='1'
+							value={config['api.maxTurns']}
+							onChange={(e) => handleInputChange('api.maxTurns', parseInt(e.currentTarget.value) || 0)}
+							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+								errors['api.maxTurns'] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+							}`}
+						/>
+						{errors['api.maxTurns'] && <p className='mt-1 text-sm text-red-500'>{errors['api.maxTurns']}</p>}
+					</div>
 
-				<div>
-					<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-						Max Turns
-					</label>
-					<input
-						type='number'
-						min='1'
-						value={config['api.maxTurns']}
-						onChange={(e) => handleInputChange('api.maxTurns', parseInt(e.currentTarget.value) || 0)}
-						className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-							errors['api.maxTurns'] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-						}`}
-					/>
-					{errors['api.maxTurns'] && <p className='mt-1 text-sm text-red-500'>{errors['api.maxTurns']}</p>}
+					<div>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+							Use TLS
+						</label>
+						<div className='flex items-center h-[38px]'>
+							<input
+								type='checkbox'
+								checked={config['api.tls.useTls']}
+								onChange={(e) => handleInputChange('api.tls.useTls', e.currentTarget.checked)}
+								className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
+							/>
+							<span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
+								Enable TLS for secure connections
+							</span>
+						</div>
+					</div>
+
+					<div>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+							Debug Mode
+						</label>
+						<div className='flex items-center h-[38px]'>
+							<input
+								type='checkbox'
+								checked={debugMode}
+								onChange={(e) => setDebugMode(e.currentTarget.checked)}
+								className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
+							/>
+							<span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
+								Use localhost for development
+							</span>
+						</div>
+					</div>
 				</div>
 
 				<div className='flex justify-end'>

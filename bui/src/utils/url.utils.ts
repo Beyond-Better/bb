@@ -1,5 +1,12 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
+// Local storage keys
+const STORAGE_KEYS = {
+	API_HOSTNAME: 'bb_api_hostname',
+	API_PORT: 'bb_api_port',
+	API_USE_TLS: 'bb_api_use_tls',
+};
+
 // Helper functions for URL parameters
 export const getHashParams = () => {
 	if (!IS_BROWSER) return null;
@@ -17,42 +24,65 @@ export const getUrlParams = () => {
 	return getHashParams();
 };
 
+// Storage helper functions
+const getFromStorage = (key: string): string | null => {
+	if (!IS_BROWSER) return null;
+	return localStorage.getItem(key);
+};
+
+const setInStorage = (key: string, value: string) => {
+	if (!IS_BROWSER) return;
+	localStorage.setItem(key, value);
+};
+
 export const getApiHostname = () => {
-	// console.log('url.utils: getApiHostname called', {
-	//     isBrowser: IS_BROWSER,
-	//     params: getUrlParams()?.toString(),
-	//     hash: IS_BROWSER ? window.location.hash : null
-	// });
 	const params = getUrlParams();
-	return params?.get('apiHostname') || 'localhost';
+	const urlValue = params?.get('apiHostname');
+
+	if (urlValue) {
+		// Update storage if URL param exists
+		setInStorage(STORAGE_KEYS.API_HOSTNAME, urlValue);
+		return urlValue;
+	}
+
+	// Fall back to storage or default
+	return getFromStorage(STORAGE_KEYS.API_HOSTNAME) || 'localhost';
 };
 
 export const getApiPort = () => {
-	// console.log('url.utils: getApiPort called', {
-	//     isBrowser: IS_BROWSER,
-	//     params: getUrlParams()?.toString(),
-	//     hash: IS_BROWSER ? window.location.hash : null
-	// });
 	const params = getUrlParams();
-	return params?.get('apiPort') || '3162';
+	const urlValue = params?.get('apiPort');
+
+	if (urlValue) {
+		// Update storage if URL param exists
+		setInStorage(STORAGE_KEYS.API_PORT, urlValue);
+		return urlValue;
+	}
+
+	// Fall back to storage or default
+	return getFromStorage(STORAGE_KEYS.API_PORT) || '3162';
 };
 
 export const getApiUseTls = () => {
-	// console.log('url.utils: getApiUseTls called', {
-	//     isBrowser: IS_BROWSER,
-	//     params: getUrlParams()?.toString(),
-	//     hash: IS_BROWSER ? window.location.hash : null
-	// });
 	const params = getUrlParams();
-	return params?.get('apiUseTls') === 'true';
+	const urlValue = params?.get('apiUseTls');
+	//console.log('getApiUseTls: ', { urlValue });
+
+	if (urlValue !== null && urlValue !== undefined) {
+		// Update storage if URL param exists
+		setInStorage(STORAGE_KEYS.API_USE_TLS, urlValue);
+		return urlValue === 'true';
+	}
+
+	// Fall back to storage or default
+	const storedValue = getFromStorage(STORAGE_KEYS.API_USE_TLS);
+	return storedValue !== null ? storedValue === 'true' : false;
 };
 
 export const getApiUrl = (hostname: string, port: string, useTls: boolean): string => {
-	// console.log('url.utils: getApiUrl called', { hostname, port, useTls });
 	return `${useTls ? 'https' : 'http'}://${hostname}:${port}`;
 };
 
 export const getWsUrl = (hostname: string, port: string, useTls: boolean): string => {
-	// console.log('url.utils: getWsUrl called', { hostname, port, useTls });
 	return `${useTls ? 'wss' : 'ws'}://${hostname}:${port}/api/v1/ws`;
 };

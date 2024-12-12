@@ -77,6 +77,7 @@ export default function Chat({
 	const apiHostname = getApiHostname();
 	const apiPort = getApiPort();
 	const apiUseTls = getApiUseTls();
+	//console.log('Chat: ', { apiHostname, apiPort, apiUseTls });
 
 	if (!apiHostname || !apiPort) {
 		return (

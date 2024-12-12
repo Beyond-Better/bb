@@ -1,9 +1,14 @@
 {
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "main-capability",
-	"description": "Capability for the main window",
+	"description": "Capability for the main BB Server window",
 	"windows": ["main"],
 	"permissions": [
+		"core:app:default",
+		"core:window:default",
+		"core:window:allow-show",
+		"core:webview:default",
+		"core:webview:allow-create-webview-window",
 		"core:default",
 		"shell:allow-open",
 		{
@@ -78,5 +83,9 @@
 				{ "path": "/var/log/beyondbetter/*" }
 			]
 		}
-	]
+	],
+	"webviewConfig": {
+		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev"],
+		"allowedProtocols": ["ws", "wss", "http", "https"]
+	}
 }

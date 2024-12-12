@@ -1,4 +1,5 @@
 import { JSX } from 'preact';
+//import { getAll, Window } from '@tauri-apps/api/window';
 import { ApiStatus } from '../../types/ApiStatus';
 import { VersionDisplay } from '../Version/VersionDisplay';
 
@@ -24,29 +25,8 @@ export function Header({
 					</div>
 				</div>
 
-                {/* Navigation */}
-                <nav className='flex items-center space-x-4'>
-                    <button
-                        onClick={() => onNavigate('/')}
-                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
-                    >
-                        Server
-                    </button>
-                    <button
-                        onClick={() => onNavigate('/bui')}
-                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
-                    >
-                        BUI
-                    </button>
-                    <button
-                        onClick={() => onNavigate('/settings')}
-                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
-                    >
-                        Settings
-                    </button>
-                </nav>
 
-                <div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
+				<div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
 					<VersionDisplay />
 				</div>
 
@@ -75,3 +55,54 @@ export function Header({
 		</header>
 	);
 }
+
+// 				{/* Navigation */}
+// 				<nav className='flex items-center space-x-4'>
+// 					<button
+// 						onClick={() => onNavigate('/')}
+// 						className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+// 					>
+// 						BB Server
+// 					</button>
+// 					<button
+// 						onClick={async () => {
+// 							try {
+// 								// Try to find existing window
+// 								const windows = await getAll();
+// 								const chatWindow = windows.find(w => w.label === 'chat');
+// 								if (chatWindow) {
+// 									await chatWindow.show();
+// 									await chatWindow.setFocus();
+// 								} else {
+// 									// Create new window
+// 									const newWindow = new Window('chat', {
+// 										url: 'https://chat.beyondbetter.dev',
+// 										title: 'BB Chat',
+// 										width: 1200,
+// 										height: 800,
+// 										center: true
+// 									});
+// 									// Listen for window creation
+// 									await newWindow.once('tauri://created', () => {
+// 										console.log('BB Chat window created');
+// 									});
+// 									await newWindow.once('tauri://error', (e) => {
+// 										console.error('Error creating BB Chat window:', e);
+// 									});
+// 								}
+// 							} catch (error) {
+// 								console.error('Error managing chat window:', error);
+// 							}
+// 						}}
+// 						className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+// 						disabled={serverStatus !== ApiStatus.Ready}
+// 					>
+// 						BB Chat
+// 					</button>
+// 					<button
+// 						onClick={() => onNavigate('/settings')}
+// 						className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+// 					>
+// 						Settings
+// 					</button>
+// 				</nav>

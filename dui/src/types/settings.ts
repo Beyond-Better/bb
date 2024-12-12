@@ -33,6 +33,7 @@ export interface GlobalConfigValues {
   myAssistantsName: string;
   'api.maxTurns': number;
   'api.llmKeys.anthropic': string;
+  'api.tls.useTls': boolean;
 }
 
 export interface ConfirmDialogProps {

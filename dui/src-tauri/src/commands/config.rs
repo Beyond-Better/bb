@@ -270,7 +270,17 @@ fn update_yaml_value(root: &mut serde_yaml::Value, key: &str, value: &str) -> Re
                         serde_yaml::Value::String(part.clone()),
                         serde_yaml::Value::String(value.to_string())
                     );
-                }
+                },
+                "api.tls.useTls" => {
+                    if let Ok(use_tls) = value.parse::<bool>() {
+                        mapping.insert(
+                            serde_yaml::Value::String(part.clone()),
+                            serde_yaml::Value::Bool(use_tls)
+                        );
+                    } else {
+                        return Err("Invalid boolean for useTls".to_string());
+                    }
+                },
                 _ => return Err(format!("Unknown config key: {}", key))
             };
         } else {
@@ -326,6 +336,11 @@ fn update_config_value(config: &mut GlobalConfig, key: &str, value: &str) -> Res
         ["api", "logFile"] => {
             config.api.log_file = Some(value.to_string());
             //debug!("Updated logFile to: {}", value);
+        },
+        ["api", "tls", "useTls"] => {
+            let use_tls = value.parse::<bool>().map_err(|_| "Invalid boolean for useTls".to_string())?;
+            config.api.tls.use_tls = use_tls;
+            //debug!("Updated api.tls.useTls to: {}", use_tls);
         },
         _ => {
             error!("Unknown config key: {}", key);
