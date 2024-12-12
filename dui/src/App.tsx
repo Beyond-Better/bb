@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { ServerControl } from './components/ServerControl/ServerControl';
+import { BuiView } from './components/BuiView/BuiView';
 import { LogViewer } from './components/LogViewer/LogViewer';
 import { Header } from './components/Header/Header';
 import { Settings } from './components/Settings/Settings';
@@ -76,6 +77,7 @@ function App() {
 						</>
 					)}
 					{currentRoute === '/settings' && <Settings />}
+					{currentRoute === '/bui' && <BuiView serverStatus={serverStatus} />}
 				</main>
 			</div>
 		</VersionProvider>
