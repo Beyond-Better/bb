@@ -56,7 +56,7 @@ export const listProjects = async (
  */
 
 export const getProject = async (
-	{ params, request, response }: RouterContext<'/:id', { id: string }>,
+	{ params, request: _request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
 	try {
 		logger.info('ProjectHandler: getProject called');
@@ -120,6 +120,7 @@ export const createProject = async (
 		logger.info('ProjectHandler: createProject called');
 		const body = await request.body.json();
 		const { name, path, type } = body;
+		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		if (!name || !path || !type) {
 			response.status = 400;
@@ -129,17 +130,13 @@ export const createProject = async (
 
 		const projectPersistence = await new ProjectPersistence().init();
 
-		// Generate a new project ID
-		const projectId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-
 		const project = {
-			projectId,
 			name,
-			path,
+			path: join(rootPath, path),
 			type,
 		};
 
-		await projectPersistence.saveProject(project);
+		await projectPersistence.createProject(project);
 
 		response.status = 200;
 		response.body = { project };
@@ -256,7 +253,7 @@ export const updateProject = async (
  *         description: Internal server error
  */
 export const deleteProject = async (
-	{ params, request, response }: RouterContext<'/:id', { id: string }>,
+	{ params, request: _request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
 	try {
 		logger.info('ProjectHandler: deleteProject called');

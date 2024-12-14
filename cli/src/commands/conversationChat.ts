@@ -20,6 +20,7 @@ import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
 
 export const conversationChat = new Command()
 	.name('chat')
@@ -30,20 +31,32 @@ export const conversationChat = new Command()
 	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
 	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
-		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		let projectId;
+		try {
+			const startDir = Deno.cwd();
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			projectId = await getProjectId(projectRoot);
+		} catch (error) {
+			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+			console.error('Not a valid project directory. Run `bb init`.');
+			Deno.exit(1);
+		}
 
 		let apiStartedByUs = false;
 		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-		const bbDir = await getBbDir(projectId);
+		const globalConfig = await configManager.getGlobalConfig();
+		let apiConfig: ApiConfig;
+		if (projectId) {
+			const projectConfig = await configManager.getProjectConfig(projectId);
+			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+		} else {
+			apiConfig = globalConfig.api;
+		}
+		const bbDir = projectId ? await getBbDir(projectId) : (Deno.env.get('HOME') || '');
 
-		const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
-		const apiPort = projectConfig.settings.api?.port || 3162; // cast as string
-		const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-			? projectConfig.settings.api.tls.useTls
-			: true;
+		const apiHostname = apiConfig.hostname || 'localhost';
+		const apiPort = apiConfig.port || 3162; // cast as string
+		const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 		const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
 		const websocketManager = new WebsocketManager();
 
@@ -69,7 +82,7 @@ export const conversationChat = new Command()
 		const cleanup = async () => {
 			// Ensure API is stopped when the process exits
 			if (apiStartedByUs) {
-				await stopApiServer(projectRoot);
+				await stopApiServer(projectId);
 			}
 		};
 		const exit = async (code: number = 0) => {
@@ -81,17 +94,17 @@ export const conversationChat = new Command()
 
 		try {
 			// Check API status with enhanced checking
-			const processStatus = await checkApiStatus(projectRoot);
+			const processStatus = await checkApiStatus(projectId);
 			if (!processStatus.apiResponds) {
 				if (processStatus.pidExists) {
 					console.log('BB server process exists but is not responding. Attempting restart...');
-					await stopApiServer(projectRoot);
+					await stopApiServer(projectId);
 				} else {
 					console.log('BB server is not running. Starting it now...');
 				}
 
 				const { pid: _pid, apiLogFilePath: _apiLogFilePath, listen: _listen } = await startApiServer(
-					projectRoot,
+					projectId,
 					apiHostname,
 					`${apiPort}`,
 				);

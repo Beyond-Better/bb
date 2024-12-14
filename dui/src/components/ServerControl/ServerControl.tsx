@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ApiConfig, ApiStatus } from '../../types/api';
+
+interface ApiStartResult {
+    success: boolean;
+    pid: number | null;
+    error: string | null;
+    requires_settings: boolean;
+}
 import { open } from '@tauri-apps/plugin-shell';
 import { generateBuiUrl } from '../../utils/url';
 import { checkApiStatus, getApiConfig, startApi, stopApi } from '../../utils/api';
@@ -144,6 +151,11 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	};
 
 	const handleStartServer = async () => {
+    const navigateToSettings = () => {
+      setStartupPhase('');
+      setPollingInterval(NORMAL_POLL_INTERVAL);
+      onNavigate('/settings');
+    };
 		setError(null);
 		setStartupPhase('Initializing...');
 		setPollingInterval(STARTUP_POLL_INTERVAL);
@@ -152,6 +164,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		try {
 			// Start the API process
 			const result = await startApi();
+			if (result.requires_settings) {
+				setError(result.error || 'Configuration required');
+				setStartupPhase('Configuration needed');
+				navigateToSettings();
+				return;
+			}
 			if (!result.success) {
 				throw new Error(result.error || 'Failed to start server');
 			}

@@ -3,7 +3,7 @@ import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
-import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
+import { createBbDir, createBbIgnore, getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 import type {
 	ConfigVersion,
 	GlobalConfig,
@@ -18,10 +18,10 @@ import {
 	ApiConfigDefaults,
 	BuiConfigDefaults,
 	CliConfigDefaults,
+	CreateProjectData,
 	DuiConfigDefaults,
 	GlobalConfigDefaults,
 	ProjectConfigDefaults,
-	WizardAnswers,
 } from './types.ts';
 import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from '../configSchema.ts';
 
@@ -258,42 +258,38 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			await Deno.stat(globalConfigPath);
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
-				await ensureDir(globalConfigDir);
-				// const defaultConfig = stripIndent`
-				const defaultConfig = `
-# BB Configuration File
-
-version: 2.0.0
-
-api:
-  hostname: localhost
-  port: 3162
-  tls:
-    useTls: false
-  userToolDirectories:
-    - ./tools
-  toolConfigs: {}
-
-bui:
-  hostname: localhost
-  port: 8000
-  tls:
-    useTls: false
-
-cli:
-  historySize: 1000
-
-dui:
-  defaultApiConfig: {}
-  projectsDirectory: ./projects
-  recentProjects: 5
-
-`;
-				await Deno.writeTextFile(globalConfigPath, defaultConfig);
+				await this.createGlobalConfig();
 			} else {
 				throw error;
 			}
 		}
+	}
+
+	private async createGlobalConfig(): Promise<void> {
+		// Create and validate default config
+		const defaultConfig: GlobalConfig = {
+			version: '2.0.0',
+			myPersonsName: GlobalConfigDefaults.myPersonsName,
+			myAssistantsName: GlobalConfigDefaults.myAssistantsName,
+			noBrowser: GlobalConfigDefaults.noBrowser,
+			bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
+			bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
+			api: {
+				...ApiConfigDefaults,
+				llmKeys: {},
+			},
+			bui: BuiConfigDefaults,
+			cli: CliConfigDefaults,
+			dui: DuiConfigDefaults,
+		};
+
+		// Save to disk
+		const configDir = await getGlobalConfigDir();
+		const configPath = join(configDir, 'config.yaml');
+		await ensureDir(configDir);
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(defaultConfig)));
+
+		this.globalConfig = defaultConfig;
 	}
 
 	/**
@@ -344,9 +340,11 @@ dui:
 	 * );
 	 * ```
 	 */
-	public async createProject(name: string, type: ProjectType, path?: string): Promise<string> {
+	//public async createProject(name: string, type: ProjectType, path?: string): Promise<string> {
+	public async createProject(createProjectData: CreateProjectData): Promise<string> {
+		const { name, type, path } = createProjectData;
 		const projectId = await this.generateProjectId();
-		const projectPath = path || Deno.cwd();
+		const projectPath = path; // || Deno.cwd();
 		//console.log('createProject', { name, type, projectId, projectPath });
 		// Verify project path
 		try {
@@ -368,22 +366,61 @@ dui:
 			name,
 			type,
 			repoInfo: { tokenLimit: 1024 },
-			settings: {
-				api: globalConfig.api,
-				bui: globalConfig.bui,
-				cli: globalConfig.cli,
-				dui: globalConfig.dui,
-			},
+			settings: {},
 		};
-		//console.log('createProject', { config });
+		if (createProjectData.useTls !== undefined && createProjectData.useTls !== globalConfig.api.tls.useTls) {
+			config.settings = {
+				...config.settings,
+				api: {
+					...config.settings?.api,
+					tls: {
+						...config.settings?.api?.tls,
+						useTls: createProjectData.useTls,
+					},
+				},
+			};
+		}
+		if (createProjectData.anthropicApiKey) {
+			config.settings = {
+				...config.settings,
+				api: {
+					...config.settings?.api,
+					llmKeys: {
+						...config.settings?.api?.llmKeys,
+						anthropic: createProjectData.anthropicApiKey,
+					},
+				},
+			};
+		}
 
-		// Save project config
-		const configPath = join(projectPath, '.bb', 'config.yaml');
-		await ensureDir(join(projectPath, '.bb'));
-		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+		console.log('createProject', { config });
 
 		// Update project registry
 		await this.updateProjectRegistry(projectId, name, projectPath, type);
+
+		console.log('createProject: added to projectRegsitry');
+
+		// Save project config
+		await createBbDir(projectPath);
+		const configPath = join(projectPath, '.bb', 'config.yaml');
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+		console.log('createProject: created config file');
+
+		// Create .bb/ignore file
+		await createBbIgnore(projectPath);
+		console.log('createProject: created ignore file');
+
+
+		if (
+			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
+			createProjectData.myAssistantsName !== globalConfig.myAssistantsName
+		) {
+			await this.updateGlobalConfig({
+				...globalConfig,
+				myPersonsName: createProjectData.myPersonsName,
+				myAssistantsName: createProjectData.myAssistantsName,
+			});
+		}
 
 		// Update caches
 		this.projectConfigs.set(projectId, config);
@@ -616,6 +653,7 @@ dui:
 			const validation = await this.validateConfig(config);
 			if (!validation.isValid) {
 				// If validation fails, return default config
+				console.log('Error: globalConfig is not valid; using default config: ', validation.errors);
 				return {
 					version: '2.0.0',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
@@ -635,25 +673,14 @@ dui:
 			return config;
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
+				console.log('creating globalConfig');
 				// Create and validate default config
-				const defaultConfig: GlobalConfig = {
-					version: '2.0.0',
-					myPersonsName: GlobalConfigDefaults.myPersonsName,
-					myAssistantsName: GlobalConfigDefaults.myAssistantsName,
-					noBrowser: GlobalConfigDefaults.noBrowser,
-					bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
-					bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
-					api: {
-						...ApiConfigDefaults,
-						llmKeys: {},
-					},
-					bui: BuiConfigDefaults,
-					cli: CliConfigDefaults,
-					dui: DuiConfigDefaults,
-				};
-				return defaultConfig;
+				await this.ensureGlobalConfig();
+				console.log('created globalConfig', this.globalConfig);
+				return this.globalConfig!;
+			} else {
+				throw error;
 			}
-			throw error;
 		}
 	}
 
@@ -684,6 +711,28 @@ dui:
 		} catch (error) {
 			const e = error as Error;
 			throw new Error(`Failed to load project config: ${e.message}`);
+		}
+	}
+
+	public async loadProjectConfigFromProjectRoot(projectRoot: string): Promise<ProjectConfig | null> {
+		const configPath = join(projectRoot, '.bb', 'config.yaml');
+
+		try {
+			const content = await Deno.readTextFile(configPath);
+			const config = parseYaml(content) as ProjectConfig;
+
+			// Validate loaded config
+			const validation = await this.validateConfig(config);
+			if (!validation.isValid) {
+				throw new Error(`Invalid configuration: ${validation.errors[0]?.message}`);
+			}
+
+			return config;
+		} catch (error) {
+			if (!(error instanceof Deno.errors.NotFound)) {
+				console.log(`ConfigManager: No project found for ${projectRoot}:  ${(error as Error).message}`);
+			}
+			return null;
 		}
 	}
 
@@ -1664,6 +1713,8 @@ export function mergeGlobalIntoProjectConfig(
 	projectConfig.settings.bui = deepMerge.withOptions(options, globalConfig.bui, projectConfig.settings.bui);
 	projectConfig.settings.cli = deepMerge.withOptions(options, globalConfig.cli, projectConfig.settings.cli);
 	projectConfig.settings.dui = deepMerge.withOptions(options, globalConfig.dui, projectConfig.settings.dui);
+	projectConfig.myPersonsName = globalConfig.myPersonsName;
+	projectConfig.myAssistantsName = globalConfig.myAssistantsName;
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));
 	return projectConfig;

@@ -1,6 +1,7 @@
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
 
 export default class ApiClient {
 	private baseUrl: string;
@@ -18,25 +19,34 @@ export default class ApiClient {
 	}
 
 	static async create(
-		projectId: string,
+		projectId: string | undefined,
 		hostname?: string,
 		port?: number,
 		useTls?: boolean,
 	): Promise<ApiClient> {
 		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-		const apiHostname = hostname || projectConfig.settings.api?.hostname || 'localhost';
-		const apiPort = port || projectConfig.settings.api?.port || 3162;
+		const globalConfig = await configManager.getGlobalConfig();
+		let apiConfig: ApiConfig;
+		if (projectId) {
+			const projectConfig = await configManager.getProjectConfig(projectId);
+			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+		} else {
+			apiConfig = globalConfig.api;
+		}
+		const apiHostname = hostname || apiConfig.hostname || 'localhost';
+		const apiPort = port || apiConfig.port || 3162;
 		const apiUseTls = typeof useTls !== 'undefined'
 			? useTls
-			: typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-			? projectConfig.settings.api.tls.useTls
-			: true;
+			: typeof apiConfig.tls?.useTls !== 'undefined'
+			? apiConfig.tls.useTls
+			: false;
 		const baseUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
 		const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}`;
-		const rootCert = projectConfig.settings.api?.tls?.rootCaPem ||
-			await readFromBbDir(projectId, projectConfig.settings.api?.tls?.rootCaFile || 'rootCA.pem') ||
-			await readFromGlobalConfigDir(projectConfig.settings.api?.tls?.rootCaFile || 'rootCA.pem') || '';
+		const rootCert = apiConfig.tls?.rootCaPem ||
+			(projectId
+				? await readFromBbDir(projectId, apiConfig.tls?.rootCaFile || 'rootCA.pem')
+				: await readFromGlobalConfigDir(apiConfig.tls?.rootCaFile || 'rootCA.pem')) ||
+			'';
 
 		Deno.env.set('DENO_TLS_CA_STORE', 'system');
 

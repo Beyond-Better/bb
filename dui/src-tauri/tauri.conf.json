@@ -21,19 +21,7 @@
       "capabilities": [
         "main-capability"
       ],
-      "csp": "default-src 'self' https://*.bbai.tips https://*.beyondbetter.dev; connect-src 'self' http://localhost:3162 https://*.bbai.tips https://*.beyondbetter.dev; style-src 'self' 'unsafe-inline'",
-      "dangerousRemoteDomainIpcAccess": [
-        {
-          "domain": "bbai.tips",
-          "windows": ["main"],
-          "enableTauriAPI": false
-        },
-        {
-          "domain": "beyondbetter.dev",
-          "windows": ["main"],
-          "enableTauriAPI": false
-        }
-      ]
+      "csp": "default-src 'self' https://*.bbai.tips https://*.beyondbetter.dev; connect-src 'self' http://localhost:3162 https://*.bbai.tips https://*.beyondbetter.dev; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

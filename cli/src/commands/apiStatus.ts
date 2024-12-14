@@ -7,9 +7,15 @@ export const apiStatus = new Command()
 	.description('Check the status of the BB API server')
 	.option('--text', 'Return plain text instead of JSON')
 	.action(async (options) => {
-		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		let projectId;
+		try {
+			const startDir = Deno.cwd();
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			projectId = await getProjectId(projectRoot);
+		} catch (error) {
+			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+			projectId = undefined;
+		}
 		const status = await getApiStatus(projectId);
 
 		if (options.text) {

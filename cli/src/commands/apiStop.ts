@@ -6,8 +6,14 @@ export const apiStop = new Command()
 	.name('stop')
 	.description('Stop the BB API server')
 	.action(async () => {
-		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		let projectId;
+		try {
+			const startDir = Deno.cwd();
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			projectId = await getProjectId(projectRoot);
+		} catch (error) {
+			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+			projectId = undefined;
+		}
 		await stopApiServer(projectId);
 	});

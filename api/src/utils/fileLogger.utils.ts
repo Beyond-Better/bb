@@ -1,10 +1,13 @@
 import { dirname } from '@std/path';
+import { getBbDir } from 'shared/dataDir.ts';
 
 const APP_NAME = 'dev.beyondbetter.app';
 
 // Get the appropriate log directory based on the platform
-function getLogDir(): string {
-	if (Deno.build.os === 'darwin') {
+async function getLogDir(projectId?: string): Promise<string> {
+	if (projectId) {
+		return await getBbDir(projectId);
+	} else if (Deno.build.os === 'darwin') {
 		const homeDir = Deno.env.get('HOME');
 		if (!homeDir) {
 			throw new Error('HOME environment variable not set');
@@ -34,15 +37,20 @@ async function ensureLogDir(logFile: string): Promise<void> {
 	}
 }
 
-// Redirect console.log and console.error to the api log file
-export const apiFileLogger = async (apiLogFile: string) => {
+export const apiFileLogPath = async (apiLogFile: string, projectId?: string): Promise<string> => {
 	// If apiLogFile is not absolute, make it relative to the standard log directory
 	const logPath = apiLogFile.startsWith('/') || apiLogFile.includes(':\\')
 		? apiLogFile
-		: `${getLogDir()}/${apiLogFile}`;
+		: `${await getLogDir(projectId)}/${apiLogFile}`;
 
 	// Ensure the log directory exists
 	await ensureLogDir(logPath);
+	return logPath;
+};
+
+// Redirect console.log and console.error to the api log file
+export const apiFileLogger = async (apiLogFile: string) => {
+	const logPath = await apiFileLogPath(apiLogFile);
 
 	// Open the log file
 	const apiLogFileStream = await Deno.open(logPath, { write: true, create: true, append: true });

@@ -69,7 +69,7 @@ export async function upgradeApi(ctx: Context) {
 				logLevel,
 				logFile,
 			} = globalConfig.api;
-			const apiUseTls = tls?.useTls ?? true;
+			const apiUseTls = tls?.useTls ?? false;
 
 			// Construct restart command with current settings
 			const cmd = ['bb', 'restart'];

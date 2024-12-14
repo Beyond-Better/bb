@@ -6,13 +6,19 @@ use crate::config::read_global_config;
 use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
 
 pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
+    debug!("Starting binary search");
+    let mut checked_paths = Vec::new();
     let api_name = if cfg!(target_os = "windows") { "bb-api.exe" } else { "bb-api" };
     info!("Looking for {} executable", api_name);
 
     // Try user-specific location first
     if let Some(home) = dirs::home_dir() {
         let user_install = if cfg!(target_os = "windows") {
-            home.join("AppData").join("Local").join("BeyondBetter").join("bin")
+            if let Some(local_app_data) = dirs::data_local_dir() {
+                local_app_data.join("BeyondBetter").join("bin")
+            } else {
+                home.join("AppData").join("Local").join("BeyondBetter").join("bin")
+            }
         } else if cfg!(target_os = "macos") {
             home.join(".bb").join("bin")
         } else {
@@ -21,8 +27,13 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
         };
 
         let user_binary = user_install.join(api_name);
+        checked_paths.push(user_binary.clone());
         debug!("Checking user install location: {}", user_binary.display());
-        if user_binary.exists() {
+        if !user_install.exists() {
+            debug!("User install directory does not exist: {}", user_install.display());
+        } else if !user_binary.exists() {
+            debug!("Binary not found in user install location");
+        } else {
             info!("Found API executable in user install location");
             return Ok(user_binary);
         }
@@ -38,13 +49,27 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     };
 
     let system_binary = system_install.join(api_name);
+    checked_paths.push(system_binary.clone());
     debug!("Checking system install location: {}", system_binary.display());
-    if system_binary.exists() {
+    if !system_install.exists() {
+        debug!("System install directory does not exist: {}", system_install.display());
+    } else if !system_binary.exists() {
+        debug!("Binary not found in system install location");
+    } else {
         info!("Found API executable in system install location");
         return Ok(system_binary);
     }
 
-    Err(format!("Could not find {} in user or system install locations", api_name))
+    let error_msg = format!(
+        "Could not find {} in any of these locations:\n{}",
+        api_name,
+        checked_paths.iter()
+            .map(|p| format!("- {}", p.display()))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+    error!("Binary search failed: {}", error_msg);
+    Err(error_msg)
 }
 
 #[derive(Debug, Serialize)]
@@ -52,10 +77,38 @@ pub struct ApiStartResult {
     pub success: bool,
     pub pid: Option<i32>,
     pub error: Option<String>,
+    pub requires_settings: bool,
+}
+
+fn verify_api_requirements() -> Result<(), String> {
+    // Check if bb-api binary exists
+    get_bb_api_path().map_err(|e| format!("BB API binary not found: {}", e))?;
+
+    // Check if config exists and has required values
+    let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+
+    // Check for Anthropic API key
+    if global_config.api.llm_keys.as_ref()
+        .and_then(|keys| keys.anthropic.as_ref())
+        .map_or(true, |key| key.trim().is_empty()) {
+        return Err("Anthropic API key not configured".to_string());
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn start_api() -> Result<ApiStartResult, String> {
+    // Verify all requirements are met before starting
+    if let Err(e) = verify_api_requirements() {
+        return Ok(ApiStartResult {
+            success: false,
+            pid: None,
+            error: Some(e),
+            requires_settings: true,
+        });
+    }
+
     // First reconcile any existing state
     reconcile_pid_state().await?;
 
@@ -66,6 +119,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
             success: true,
             pid: status.pid,
             error: None,
+            requires_settings: false,
         });
     }
 
@@ -133,6 +187,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                             success: true,
                             pid: Some(pid),
                             error: None,
+                            requires_settings: false,
                         });
                     }
                     Ok(_) if attempt == max_attempts => {
@@ -142,6 +197,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                             success: false,
                             pid: Some(pid),
                             error: Some(error_msg.to_string()),
+                            requires_settings: false,
                         });
                     }
                     Ok(_) => {
@@ -158,6 +214,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                 success: false,
                 pid: Some(pid),
                 error: Some("API process started but failed to respond".to_string()),
+                requires_settings: false,
             })
         }
         Err(e) => {
@@ -167,6 +224,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                 success: false,
                 pid: None,
                 error: Some(error_msg),
+                requires_settings: false,
             })
         }
     }

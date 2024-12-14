@@ -1,15 +1,15 @@
 import { ensureDir, exists, walk } from '@std/fs';
 import { dirname, join, relative, resolve } from '@std/path';
-import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
+import { parse as parseYaml } from '@std/yaml';
 
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
-import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHandling.ts';
-import type { ProjectConfig, ProjectType } from 'shared/config/v2/types.ts';
+import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
+import type { CreateProjectData, ProjectConfig, ProjectType } from 'shared/config/v2/types.ts';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
+import type { ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
 
 export interface StoredProject {
 	name: string;
@@ -103,6 +103,30 @@ class ProjectPersistence {
 		}
 	}
 
+	async createProject(project: CreateProjectData): Promise<void> {
+		await this.ensureInitialized();
+		try {
+			const configManager = await ConfigManagerV2.getInstance();
+			await configManager.createProject(project);
+
+			logger.info(`ProjectPersistence: Created project for ${project.path}`);
+		} catch (error) {
+			logger.error(
+				`ProjectPersistence: Failed to create project for ${project.path}: ${(error as Error).message}`,
+			);
+			throw createError(
+				ErrorType.FileHandling,
+				`Failed to save project: ${(error as Error).message}`,
+				{
+					filePath: this.projectsPath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		}
+	}
+
+	// this is only updating the project registry, not the project config
+	// should also be using the functions from ConfigManager
 	async saveProject(project: StoredProject): Promise<void> {
 		await this.ensureInitialized();
 		try {
