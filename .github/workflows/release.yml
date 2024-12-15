@@ -281,7 +281,7 @@ jobs:
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
-            ${{ github.event.pull_request ? github.event.pull_request.body : (inputs.version ? format('Version {0} release', inputs.version) : 'No release notes provided.') }}
+            ${{ github.event.pull_request && github.event.pull_request.body || (inputs.version && format('Version {0} release', inputs.version)) || 'No release notes provided.' }}
           draft: false
           prerelease: false
 
