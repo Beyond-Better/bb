@@ -97,7 +97,7 @@ describe('ConfigManagerV2', () => {
 
 	describe('Project Management', () => {
 		it('should create new project with valid ID', async () => {
-			const projectId = await configManager.createProject('Test Project', 'local', testDir);
+			const projectId = await configManager.createProject({ name: 'Test Project', type: 'local', path: testDir });
 
 			assertExists(projectId);
 			assertEquals(projectId.length, 12);
@@ -109,7 +109,7 @@ describe('ConfigManagerV2', () => {
 		});
 
 		it('should load project config after creation', async () => {
-			const projectId = await configManager.createProject('Test Project', 'local', testDir);
+			const projectId = await configManager.createProject({ name: 'Test Project', type: 'local', path: testDir });
 			const config = await configManager.getProjectConfig(projectId);
 
 			assertEquals(config.name, 'Test Project');
@@ -118,7 +118,7 @@ describe('ConfigManagerV2', () => {
 		});
 
 		it('should update project config', async () => {
-			const projectId = await configManager.createProject('Test Project', 'local', testDir);
+			const projectId = await configManager.createProject({ name: 'Test Project', type: 'local', path: testDir });
 
 			const updates: Partial<ProjectConfig> = {
 				settings: {
@@ -139,7 +139,7 @@ describe('ConfigManagerV2', () => {
 
 		it('should reject invalid project paths', async () => {
 			await assertRejects(
-				() => configManager.createProject('Test Project', 'local', '/invalid/path'),
+				() => configManager.createProject({ name: 'Test Project', type: 'local', path: '/invalid/path' }),
 				Error,
 				'Project path /invalid/path does not exist',
 			);

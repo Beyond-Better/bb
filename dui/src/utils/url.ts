@@ -3,22 +3,24 @@ import { ApiConfig } from '../types/api';
 /**
  * Generates the BUI URL with only non-default values included in the parameters
  */
-export function generateBuiUrl(config: ApiConfig): string {
+export function generateBuiUrl(apiConfig: ApiConfig, debugMode: boolean = false): string {
   const params = new URLSearchParams();
   
   // Only add parameters that differ from defaults
-  if (config.apiHostname && config.apiHostname !== 'localhost') {
-    params.append('apiHostname', config.apiHostname);
+  if (apiConfig.hostname && apiConfig.hostname !== 'localhost') {
+    params.append('apiHostname', apiConfig.hostname);
   }
   
-  if (config.apiPort && config.apiPort !== 3162) {
-    params.append('apiPort', config.apiPort.toString());
+  if (apiConfig.port && apiConfig.port !== 3162) {
+    params.append('apiPort', apiConfig.port.toString());
   }
   
-  if (config.apiUseTls) {
+  if (apiConfig.tls.useTls) {
     params.append('apiUseTls', 'true');
   }
   
   const queryString = params.toString();
-  return `https://chat.beyondbetter.dev/${queryString ? `#${queryString}` : ''}`;
+  // In debug mode, use localhost
+  const buiHostname = debugMode ? 'localhost:8080' : 'chat.beyondbetter.dev';
+  return `https://${buiHostname}/${queryString ? `#${queryString}` : ''}`;
 }

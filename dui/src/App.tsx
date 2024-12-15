@@ -4,6 +4,7 @@ import { LogViewer } from './components/LogViewer/LogViewer';
 import { Header } from './components/Header/Header';
 import { Settings } from './components/Settings/Settings';
 import { VersionProvider } from './providers/VersionProvider';
+import { DebugModeProvider } from './providers/DebugModeProvider';
 import { VersionUpgradePrompt } from './components/VersionUpgradePrompt/VersionUpgradePrompt';
 import { useEffect, useState } from 'preact/hooks';
 import { ApiStatus } from './types/ApiStatus';
@@ -57,7 +58,8 @@ function App() {
 
 	return (
 		<VersionProvider>
-			<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+			<DebugModeProvider>
+				<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
 				<Header
 					serverStatus={serverStatus}
 					isConnected={isConnected}
@@ -71,13 +73,14 @@ function App() {
 								onStatusChange={handleStatusChange}
 								onConnectionChange={handleConnectionChange}
 								onNavigate={navigate}
-								/>
+							/>
 							{/*<LogViewer className="max-w-2xl mx-auto" />*/}
 						</>
 					)}
 					{currentRoute === '/settings' && <Settings />}
 				</main>
-			</div>
+				</div>
+			</DebugModeProvider>
 		</VersionProvider>
 	);
 }

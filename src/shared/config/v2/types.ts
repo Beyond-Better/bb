@@ -17,14 +17,18 @@ export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 /** Available log levels for configuration */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-export interface WizardAnswers {
-	project: {
-		name: string;
-		type: ProjectType;
-	};
+export interface CreateProjectData {
+	// 	project: {
+	// 		name: string;
+	// 		type: ProjectType;
+	// 	};
+	name: string;
+	type: ProjectType;
+	path: string;
 	anthropicApiKey?: string;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	useTls?: boolean;
 }
 
 // Core Configuration Types
@@ -154,6 +158,8 @@ export interface ProjectConfig {
 	version: ConfigVersion;
 	name: string;
 	type: ProjectType;
+	myPersonsName?: string;
+	myAssistantsName?: string;
 	llmGuidelinesFile?: string;
 	repoInfo: RepoInfoConfigSchema;
 	settings: {
@@ -225,7 +231,7 @@ export interface IConfigManagerV2 {
 	updateToolConfig(toolName: string, config: unknown): Promise<void>;
 
 	// Project management
-	createProject(name: string, type: ProjectType, path?: string): Promise<string>;
+	createProject(createProjectData: CreateProjectData): Promise<string>;
 	listProjects(): Promise<Array<{ id: string; name: string; type: ProjectType }>>;
 	archiveProject(projectId: string): Promise<void>;
 
@@ -239,7 +245,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
-		useTls: true,
+		useTls: false,
 	},
 	maxTurns: 25,
 	logLevel: 'info',

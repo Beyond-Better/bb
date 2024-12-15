@@ -40,15 +40,16 @@ const currentPath = () => {
 
 const path = signal(currentPath());
 
-// Initialize API URLs
-const apiHostname = getApiHostname();
-const apiPort = getApiPort();
-const apiUseTls = getApiUseTls();
-const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
-const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
-
 // Initialize app state immediately
 if (IS_BROWSER) {
+	// Initialize API URLs
+	const apiHostname = getApiHostname();
+	const apiPort = getApiPort();
+	const apiUseTls = getApiUseTls();
+	const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
+	const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
+	console.log('SideNav: ', { apiHostname, apiPort, apiUseTls, apiUrl, wsUrl });
+
 	initializeAppState({
 		wsUrl: wsUrl,
 		apiUrl: apiUrl,

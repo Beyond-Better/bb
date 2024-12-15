@@ -10,7 +10,7 @@ import router from './routes/routes.ts';
 import { logger } from 'shared/logger.ts';
 import type { BbState } from 'api/types.ts';
 import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
-import { apiFileLogger } from './utils/fileLogger.ts';
+import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
@@ -20,9 +20,9 @@ try {
 	const startDir = Deno.cwd();
 	const projectRoot = await getProjectRootFromStartDir(startDir);
 	projectId = await getProjectId(projectRoot);
-} catch (error) {
+} catch (_error) {
 	//console.error(`Could not set ProjectId: ${(error as Error).message}`);
-	projectId = null;
+	projectId = undefined;
 }
 
 const configManager = await ConfigManagerV2.getInstance();
@@ -41,7 +41,7 @@ if (projectId) {
 const environment = apiConfig.environment || 'local';
 const hostname = apiConfig.hostname || 'localhost';
 const port = apiConfig.port || 3162;
-const useTls = apiConfig.tls?.useTls ?? true;
+const useTls = apiConfig.tls?.useTls ?? false;
 
 // Parse command line arguments
 const args = parseArgs(Deno.args, {

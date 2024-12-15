@@ -3,6 +3,7 @@ import { colors } from 'cliffy/ansi/colors.ts';
 import { delay } from '@std/async';
 
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
 import { followApiLogs, getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
@@ -20,27 +21,39 @@ export const apiStart = new Command()
 		async (
 			{ logLevel: apiLogLevel, logFile: apiLogFile, hostname, port, useTls, nobrowser: noBrowser, follow },
 		) => {
-			const startDir = Deno.cwd();
-			const projectRoot = await getProjectRootFromStartDir(startDir);
-			const projectId = await getProjectId(projectRoot);
+			let projectId;
+			try {
+				const startDir = Deno.cwd();
+				const projectRoot = await getProjectRootFromStartDir(startDir);
+				projectId = await getProjectId(projectRoot);
+			} catch (_error) {
+				//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+				projectId = undefined;
+			}
 
 			const configManager = await ConfigManagerV2.getInstance();
 			const globalConfig = await configManager.getGlobalConfig();
-			const projectConfig = await configManager.getProjectConfig(projectId);
-			const apiHostname = `${hostname || projectConfig.settings.api?.hostname || 'localhost'}`;
-			const apiPort = `${port || projectConfig.settings.api?.port || 3162}`; // cast as string
+			let apiConfig: ApiConfig;
+			if (projectId) {
+				const projectConfig = await configManager.getProjectConfig(projectId);
+				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+			} else {
+				apiConfig = globalConfig.api;
+			}
+			const apiHostname = `${hostname || apiConfig.hostname || 'localhost'}`;
+			const apiPort = `${port || apiConfig.port || 3162}`; // cast as string
 			const apiUseTls = typeof useTls !== 'undefined'
 				? !!useTls
-				: typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-				? projectConfig.settings.api.tls.useTls
-				: true;
+				: typeof apiConfig.tls?.useTls !== 'undefined'
+				? apiConfig.tls.useTls
+				: false;
 			// console.error(
 			// 	colors.yellow(`Use TLS - useTls: `),
 			// 	useTls,
 			// );
 			// console.error(
 			// 	colors.yellow(`Use TLS - project: `),
-			// 	projectConfig.settings.api?.tls?.useTls,
+			// 	apiConfig.tls?.useTls,
 			// );
 			// console.error(
 			// 	colors.yellow(`Use TLS - final: `),
@@ -63,7 +76,9 @@ export const apiStart = new Command()
 
 			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
 				encodeURIComponent(apiHostname)
-			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&projectId=${encodeURIComponent(projectId)}`;
+			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}${
+				projectId ? `&projectId=${encodeURIComponent(projectId)}` : ''
+			}`;
 
 			// Check if the API is running with enhanced status checking
 			let apiRunning = false;

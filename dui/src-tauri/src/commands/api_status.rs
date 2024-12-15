@@ -55,6 +55,7 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 }
 
 fn get_pid_file_path() -> Result<PathBuf, String> {
+	// println!("Using runtime PID at: {}", get_app_runtime_dir()?.join(PID_FILE_NAME).display());
     Ok(get_app_runtime_dir()?.join(PID_FILE_NAME))
 }
 

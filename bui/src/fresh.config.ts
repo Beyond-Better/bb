@@ -6,6 +6,7 @@ import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 const configManager = await ConfigManagerV2.getInstance();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
+//console.log('BUI Config: ', globalRedactedConfig);
 
 const environment = globalConfig.bui.environment || 'local';
 const hostname = globalConfig.bui.hostname || 'localhost';
@@ -23,7 +24,7 @@ if (useTls) {
 		const projectRoot = await getProjectRootFromStartDir(startDir);
 		projectId = await getProjectId(projectRoot);
 	} catch (error) {
-		projectId = null;
+		projectId = undefined;
 	}
 
 	const cert = globalConfig.bui.tls.certPem ||

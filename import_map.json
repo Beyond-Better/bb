@@ -29,6 +29,7 @@
 		"marked": "https://esm.sh/marked@14.0.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",
 		"deno_dom": "jsr:@b-fuze/deno-dom@^0.1.48/wasm-noinit",
+		"dir": "https://deno.land/x/dir@1.5.2/mod.ts",
 
 		"$fresh/": "https://deno.land/x/fresh@1.7.3/",
 		"preact": "https://esm.sh/preact@10.22.0",
@@ -79,6 +80,7 @@
 		"api/utils/contentTypes.ts": "./api/src/utils/contentTypes.utils.ts",
 		"api/utils/fileHandling.ts": "./api/src/utils/fileHandling.utils.ts",
 		"api/utils/fileSuggestions.ts": "./api/src/utils/fileSuggestions.utils.ts",
+		"api/utils/fileLogger.ts": "./api/src/utils/fileLogger.utils.ts",
 		"api/utils/projectListing.ts": "./api/src/utils/projectListing.utils.ts",
 		"api/utils/error.ts": "./api/src/utils/error.utils.ts",
 		"api/utils/llms.ts": "./api/src/utils/llms.utils.ts",

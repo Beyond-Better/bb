@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'preact/hooks';
 import { ApiConfig, ApiStatus } from '../../types/api';
+
+interface ApiStartResult {
+	success: boolean;
+	pid: number | null;
+	error: string | null;
+	requires_settings: boolean;
+}
 import { open } from '@tauri-apps/plugin-shell';
+import { getCurrent } from '@tauri-apps/api/window';
+import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { generateBuiUrl } from '../../utils/url';
+import { useDebugMode } from '../../providers/DebugModeProvider';
 import { checkApiStatus, getApiConfig, startApi, stopApi } from '../../utils/api';
 
 // Constants for polling intervals
@@ -15,6 +25,7 @@ interface ServerControlProps {
 }
 
 export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }: ServerControlProps) {
+	const { debugMode } = useDebugMode();
 	const [status, setStatus] = useState<ApiStatus>({
 		pid_exists: false,
 		process_responds: false,
@@ -25,10 +36,17 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [startupPhase, setStartupPhase] = useState<string>('');
-	const [config, setConfig] = useState<ApiConfig | null>(null);
+	const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [buiUrl, setBuiUrl] = useState<string>('');
+
+	// Update BUI URL when apiConfig or debug mode changes
+	useEffect(() => {
+		if (apiConfig) {
+			setBuiUrl(generateBuiUrl(apiConfig, debugMode));
+		}
+	}, [apiConfig, debugMode]);
 
 	const [isVisible, setIsVisible] = useState(true);
 
@@ -48,9 +66,8 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		const init = async () => {
 			try {
 				const apiConfig = await getApiConfig();
-				console.log('apiConfig', apiConfig);
-				setConfig(apiConfig);
-				setBuiUrl(generateBuiUrl(apiConfig));
+				//console.log('apiConfig', apiConfig);
+				setApiConfig(apiConfig);
 
 				// Initial status check
 				const status = await checkApiStatus();
@@ -144,6 +161,11 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	};
 
 	const handleStartServer = async () => {
+		const navigateToSettings = () => {
+			setStartupPhase('');
+			setPollingInterval(NORMAL_POLL_INTERVAL);
+			onNavigate('/settings');
+		};
 		setError(null);
 		setStartupPhase('Initializing...');
 		setPollingInterval(STARTUP_POLL_INTERVAL);
@@ -152,6 +174,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		try {
 			// Start the API process
 			const result = await startApi();
+			if (result.requires_settings) {
+				setError(result.error || 'Configuration required');
+				setStartupPhase('Configuration needed');
+				navigateToSettings();
+				return;
+			}
 			if (!result.success) {
 				throw new Error(result.error || 'Failed to start server');
 			}
@@ -219,9 +247,10 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	return (
 		<div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl mx-auto'>
-			{/* Toggle Switch */}
-			<div className='flex flex-col items-center gap-4 mb-6'>
-				<div className='flex items-center gap-2'>
+			{/* Main Controls Container */}
+			<div className='flex flex-col gap-4 mb-6'>
+				{/* Top row with server controls and settings */}
+				<div className='flex items-center justify-between gap-2'>
 					{/* Toggle and status container */}
 					<div className='flex items-center min-w-[100px] text-gray-900 dark:text-gray-300 mr-3'>
 						Server Status:
@@ -260,15 +289,13 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								: 'Stopped'}
 						</div>
 					</div>
-				</div>
-
-				<div className='flex items-center gap-4'>
+					{/* Settings button */}
 					<button
 						onClick={() => onNavigate('/settings')}
-						className='inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800'
+						className='inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800'
 					>
 						<svg
-							className='w-5 h-5 mr-2'
+							className='w-4 h-4 mr-1'
 							fill='none'
 							stroke='currentColor'
 							viewBox='0 0 24 24'
@@ -288,6 +315,69 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						</svg>
 						Settings
 					</button>
+				</div>
+
+				{/* Chat buttons row */}
+				<div className='flex items-center gap-4 justify-center'>
+					{apiConfig?.tls?.useTls && /* debugMode && */
+						(
+							<button
+								onClick={async () => {
+									//console.log('Loading BB Chat');
+									try {
+										// Try to find existing window
+										const windows = await getAllWebviewWindows();
+										const chatWindow = windows.find((w) => w.label === 'bb_chat');
+										if (chatWindow) {
+											await chatWindow.show();
+											await chatWindow.setFocus();
+										} else {
+											// Create new window
+											const newWindow = new WebviewWindow('bb_chat', {
+												url: buiUrl,
+												title: 'BB Chat',
+												width: 1200,
+												height: 800,
+												center: true,
+												resizable: true,
+												decorations: true,
+												additionalBrowserArgs:
+													'--allow-insecure-localhost --disable-web-security --disable-features=BlockInsecurePrivateNetworkRequests',
+											});
+											await newWindow.once('tauri://created', () => {
+												console.log('BB Chat window created');
+											});
+											await newWindow.once('tauri://error', (e) => {
+												console.error('Error creating BB Chat window:', e);
+											});
+										}
+									} catch (error) {
+										console.error('Error managing chat window:', error);
+									}
+								}}
+								disabled={!status.api_responds}
+								className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+									status.api_responds
+										? 'bg-blue-600 hover:bg-blue-700'
+										: 'bg-gray-400 cursor-not-allowed'
+								} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
+							>
+								<svg
+									className='w-5 h-5 mr-2'
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+									/>
+								</svg>
+								Chat
+							</button>
+						)}
 
 					<button
 						onClick={async () => {
@@ -300,8 +390,8 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						}}
 						disabled={!status.api_responds}
 						className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-            ${status.api_responds ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
+							${status.api_responds ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}
+							focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
 					>
 						<svg
 							className='w-5 h-5 mr-2'
@@ -357,24 +447,24 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				{showAdvanced && (
 					<div className='mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4 grid gap-4'>
 						{/* Configuration Info */}
-						{/* {config.logFile && <div>Log: </div><div className='col-span-5'>{config.log_file}</div>} */}
-						{config && (
+						{/* {apiConfig.logFile && <div>Log: </div><div className='col-span-5'>{apiConfig.log_file}</div>} */}
+						{apiConfig && (
 							<div className='grid grid-cols-6 gap-y-4'>
 								<div className='font-bold'>Host:</div>
-								<div>{config.hostname}</div>
+								<div>{apiConfig.hostname}</div>
 								<div className='font-bold'>Port:</div>
-								<div>{config.port}</div>
+								<div>{apiConfig.port}</div>
 								<div className='font-bold'>TLS:</div>
-								<div>{config.tls.use_tls ? 'Enabled' : 'Disabled'}</div>
+								<div>{apiConfig.tls?.useTls ? 'Enabled' : 'Disabled'}</div>
 								<div className='font-bold'>Server Status:</div>
 								<div>{status.api_responds ? 'Ready' : 'Not ready'}</div>
 								<div className='font-bold'>Process Status:</div>
 								<div>{status.process_responds ? 'Responding' : 'Not responding'}</div>
 								<div className='font-bold'>Process ID:</div> <div>{status.pid || 'Not running'}</div>
-								{config.logFile && (
+								{apiConfig.logFile && (
 									<>
 										<div className='font-bold'>Server Log:</div>
-										<div className='col-span-5'>{config.logFile}</div>
+										<div className='col-span-5'>{apiConfig.logFile}</div>
 									</>
 								)}
 							</div>
