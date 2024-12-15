@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.6] - 2024-12-15
+
+### Added
+
+- add CSP header to BUI
+
+
 ## [0.5.5] - 2024-12-15
 
 ### Fixed
