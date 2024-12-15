@@ -80,16 +80,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS builds
+          # macOS universal build
           - os: macos-latest
-            target: "aarch64-apple-darwin"
-            arch: "aarch64"
-            name: "Apple Silicon"
-            platform: "macos"
-          - os: macos-latest
-            target: "x86_64-apple-darwin"
-            arch: "x86_64"
-            name: "Intel"
+            target: "universal-apple-darwin"
+            arch: "universal"
+            name: "Universal"
             platform: "macos"
           # Linux builds
           - os: ubuntu-latest
@@ -115,7 +110,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.platform == 'macos' && 'x86_64-apple-darwin,aarch64-apple-darwin' || matrix.target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -159,9 +154,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         with:
           projectPath: './dui'
-          args: --target ${{ matrix.target }}
+          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
 
       # Process and upload build artifacts
       - name: Process build artifacts
@@ -264,8 +260,7 @@ jobs:
                - Run the installer and follow the prompts
 
                macOS:
-               - Apple Silicon (M1/M2): Download the apple-silicon.dmg
-               - Intel: Download the intel.dmg
+               - Universal (Intel & Apple Silicon): Download the universal.dmg
                - Open the .dmg file
                - Drag the Beyond Better app to your Applications folder
                - When first launching, you'll need to:
@@ -338,7 +333,7 @@ jobs:
           done
 
           # Upload DUI artifacts
-          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64" "windows-x86_64"; do
+          for platform_arch in "macos-universal" "linux-x86_64" "windows-x86_64"; do
             echo "Processing DUI platform/arch: $platform_arch"
             platform="${platform_arch%%-*}"
             arch="${platform_arch#*-}"
@@ -347,12 +342,9 @@ jobs:
             ls -la "dui-${platform}-${arch}" || true
             
             case "$platform_arch" in
-              "macos-x86_64") 
+              "macos-universal") 
                 platform_name="macos"
-                arch_name="intel" ;;
-              "macos-aarch64")
-                platform_name="macos"
-                arch_name="apple-silicon" ;;
+                arch_name="universal" ;;
               "linux-x86_64")
                 platform_name="linux"
                 arch_name="x64" ;;
@@ -361,20 +353,7 @@ jobs:
                 arch_name="x64" ;;
             esac
             
-            case "$platform_arch" in
-              "macos-x86_64") 
-                platform_name="macos"
-                arch_name="intel" ;;
-              "macos-aarch64")
-                platform_name="macos"
-                arch_name="apple-silicon" ;;
-              "linux-x86_64")
-                platform_name="linux"
-                arch_name="x64" ;;
-              "windows-x86_64")
-                platform_name="windows"
-                arch_name="x64" ;;
-            esac
+
 
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
