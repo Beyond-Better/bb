@@ -1,69 +1,33 @@
-import { Signal, signal } from '@preact/signals';
-import { compare, parse, SemVer } from '@std/semver';
-import type { VersionCompatibility, VersionInfo } from 'shared/types/version.ts';
-
-interface VersionState {
-	versionInfo: VersionInfo | null;
-	versionCompatibility: VersionCompatibility | null;
-}
-
-const versionState = signal<VersionState>({
-	versionInfo: null,
-	versionCompatibility: null,
-});
+import { computed, Signal } from '@preact/signals';
+import { compare, parse } from '@std/semver';
+import type { VersionCompatibility } from 'shared/types/version.ts';
+import { useAppState } from './useAppState.ts';
 
 export function useVersion() {
-	const setVersionInfo = (info: VersionInfo) => {
-		// Always check compatibility with required version when version info changes
-		const current = parse(info.version);
-		const required = parse(info.minVersion);
+	const appState = useAppState();
+
+	const versionCompatibility = computed(() => {
+		const versionInfo = appState.value.versionInfo;
+		if (!versionInfo) return null;
+
+		const current = parse(versionInfo.version);
+		const required = parse(versionInfo.minVersion);
 		const comparison = compare(current, required);
 
 		// Compatible if current version is equal to or higher than required
 		const compatible = comparison >= 0;
 
-		const compatibility: VersionCompatibility = {
+		return {
 			compatible,
-			currentVersion: info.version,
-			requiredVersion: info.minVersion,
-			updateAvailable: !compatible && info.canAutoUpdate,
+			currentVersion: versionInfo.version,
+			requiredVersion: versionInfo.minVersion,
+			updateAvailable: !compatible && versionInfo.canAutoUpdate,
 			latestVersion: undefined, // Will be set when available
 		};
-
-		versionState.value = {
-			...versionState.value,
-			versionInfo: info,
-			versionCompatibility: compatibility,
-		};
-	};
-
-	const checkVersionCompatibility = () => {
-		if (!versionState.value.versionInfo) return;
-
-		const current = versionState.value.versionInfo.version;
-		const required = versionState.value.versionInfo.minVersion;
-		const comparison = compare(parse(current), parse(required));
-
-		// Compatible if current version is equal to or higher than required
-		const compatible = comparison >= 0;
-
-		versionState.value = {
-			...versionState.value,
-			versionCompatibility: {
-				compatible,
-				currentVersion: current,
-				requiredVersion: required,
-				updateAvailable: false, // Will be set when we implement update checking
-				latestVersion: undefined, // Will be set when we implement update checking
-			},
-		};
-	};
+	});
 
 	return {
-		versionState,
-		versionInfo: versionState.value.versionInfo,
-		versionCompatibility: versionState.value.versionCompatibility,
-		setVersionInfo,
-		checkVersionCompatibility,
+		versionInfo: appState.value.versionInfo,
+		versionCompatibility: versionCompatibility.value,
 	};
 }

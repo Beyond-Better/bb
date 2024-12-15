@@ -227,71 +227,29 @@ class AnthropicLLM extends LLM {
 	): Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] {
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 
-		// Find all messages that contain file additions with file metadata part
-		const fileAddedMessages = messages
+		// Find the last three user messages
+		const userMessages = messages
 			.map((m, index) => ({ message: m, index }))
-			.filter(({ message }) =>
-				message.role === 'user' &&
-				Array.isArray(message.content) &&
-				message.content.some((block) => {
-					if (block.type === 'tool_result' && Array.isArray(block.content)) {
-						// Look for file metadata part (for text or image) or file update notes in the nested content
-						return block.content.some((nestedPart) => (nestedPart.type === 'text' &&
-							this.hasFileMetadata(nestedPart.text))
-						);
-					}
-					return false;
-				})
-			);
+			.filter(({ message }) => message.role === 'user');
 
-		// Get the last three such messages
-		const lastThreeFileAddedMessages = fileAddedMessages.slice(-3);
-		const lastThreeIndices = new Set(lastThreeFileAddedMessages.map((m) => m.index));
+		// Get the last three user messages
+		const lastThreeUserMessages = userMessages.slice(-3);
+		const lastThreeIndices = new Set(lastThreeUserMessages.map((m) => m.index));
 
 		return messages.map((m, index) => {
 			const prevContent: AnthropicBlockParamOrArray = m.content as AnthropicBlockParamOrArray;
 			let content: AnthropicBlockParamOrArray;
 
-			// Add cache_control to the last content part of the last three file-added messages
+			// Add cache_control to the last content part of the last three user messages
 			if (m.role === 'user' && usePromptCaching && lastThreeIndices.has(index)) {
-				// Verify this message actually has a tool_result with file content
-				// const hasFileContent = Array.isArray(m.content) &&
-				// 	m.content.some((block) =>
-				// 		block.type === 'tool_result' &&
-				// 		Array.isArray(block.content) &&
-				// 		block.content.some((part) =>
-				// 			(part.type === 'text' &&
-				// 				typeof part.text === 'string' &&
-				// 				(this.hasFileMetadata(part.text) ||
-				// 					(part.text.startsWith('Note: File') &&
-				// 						part.text.includes('content is up-to-date')))) ||
-				// 			part.type === 'image'
-				// 		)
-				// 	);
-				const hasFileContent = Array.isArray(m.content) &&
-					m.content.some((block) =>
-						block.type === 'tool_result' &&
-						Array.isArray(block.content) &&
-						// we only need to check type === 'text' - images will have a corresponding metadata block
-						block.content.some((part) => (part.type === 'text' &&
-							this.hasFileMetadata(part.text))
-						)
-					);
-
-				if (hasFileContent) {
-					if (Array.isArray(prevContent)) {
-						content = [...prevContent];
-						const lastBlock = content[content.length - 1];
-						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
-					} else if (typeof prevContent === 'string') {
-						content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
-					} else {
-						content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
-					}
+				if (Array.isArray(prevContent)) {
+					content = [...prevContent];
+					const lastBlock = content[content.length - 1];
+					content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+				} else if (typeof prevContent === 'string') {
+					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
 				} else {
-					content = (Array.isArray(prevContent)
-						? prevContent
-						: [prevContent]) as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam[];
+					content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
 				}
 			} else {
 				content = (Array.isArray(prevContent)

@@ -2,27 +2,16 @@ import { Command } from 'cliffy/command/mod.ts';
 import { Confirm, Input, prompt } from 'cliffy/prompt/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { logger } from 'shared/logger.ts';
-import { createBbDir, createBbIgnore } from '../utils/init.utils.ts';
 import { basename } from '@std/path';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId } from 'shared/dataDir.ts';
 //import { GitUtils } from 'shared/git.ts';
 // Using ProjectType from v2 types
 
-interface WizardAnswers {
-	project: {
-		name: string;
-		type: ProjectType;
-	};
-	anthropicApiKey?: string;
-	myPersonsName?: string;
-	myAssistantsName?: string;
-	useTls?: boolean;
-}
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectType } from 'shared/config/v2/types.ts';
+import type { CreateProjectData, ProjectType } from 'shared/config/v2/types.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
-async function runWizard(projectRoot: string): Promise<WizardAnswers> {
+async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, 'path'>> {
 	// Show password notice if not on Windows
 	if (Deno.build.os !== 'windows') {
 		console.log(colors.bold('\nImportant Note about Security Setup:'));
@@ -36,20 +25,32 @@ async function runWizard(projectRoot: string): Promise<WizardAnswers> {
 	}
 
 	const configManager = await ConfigManagerV2.getInstance();
-	// TODO: Handle project config retrieval in v2
-	const existingProjectConfig = {
-		project: { name: basename(projectRoot), type: 'local' as ProjectType },
-		myPersonsName: Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
-		myAssistantsName: 'Claude',
-		api: { anthropicApiKey: '' },
-	};
 	const globalConfig = await configManager.getGlobalConfig();
+	console.log('globalConfig', globalConfig);
+	const projectConfig = await configManager.loadProjectConfigFromProjectRoot(projectRoot);
+	const existingProjectConfig: CreateProjectData = projectConfig
+		? {
+			name: projectConfig.name,
+			type: projectConfig.type,
+			path: projectRoot,
+			myPersonsName: projectConfig.myPersonsName,
+			myAssistantsName: projectConfig.myAssistantsName,
+			anthropicApiKey: projectConfig.settings.api?.llmKeys?.anthropic,
+		}
+		: {
+			name: basename(projectRoot),
+			type: 'local' as ProjectType,
+			path: projectRoot,
+			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
+			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
+			anthropicApiKey: '',
+		};
 
-	const defaultProjectName = existingProjectConfig.project.name;
+	const defaultProjectName = existingProjectConfig.name;
 	const defaultPersonName = existingProjectConfig.myPersonsName ||
 		'';
 	const defaultAssistantName = existingProjectConfig.myAssistantsName;
-	const existingApiKey = existingProjectConfig.api.anthropicApiKey;
+	const existingApiKey = existingProjectConfig.anthropicApiKey;
 	const isApiKeyRequired = !globalConfig.api.llmKeys?.anthropic;
 
 	const answers = await prompt([
@@ -111,14 +112,12 @@ async function runWizard(projectRoot: string): Promise<WizardAnswers> {
 	]);
 
 	// Detect project type
-	const projectType = existingProjectConfig.project.type;
+	const projectType = existingProjectConfig?.type || await detectProjectType(projectRoot);
 
 	// Remove empty values
-	const filteredAnswers: WizardAnswers = {
-		project: {
-			name: answers.projectName?.trim() || projectRoot,
-			type: projectType,
-		},
+	const filteredAnswers: Omit<CreateProjectData, 'path'> = {
+		name: answers.projectName?.trim() || projectRoot,
+		type: projectType,
 	};
 
 	if (answers.anthropicApiKey && answers.anthropicApiKey.trim() !== '') {
@@ -159,7 +158,7 @@ async function detectProjectType(_projectRoot: string): Promise<ProjectType> {
 async function printProjectDetails(
 	projectName: string,
 	projectType: string,
-	wizardAnswers: WizardAnswers,
+	createProjectData: Omit<CreateProjectData, 'path'>,
 	useTlsCert: boolean,
 ) {
 	const configManager = await ConfigManagerV2.getInstance();
@@ -167,11 +166,11 @@ async function printProjectDetails(
 	console.log(`\n${colors.bold.blue.underline('BB Project Details:')}`);
 	console.log(`  ${colors.bold('Name:')} ${colors.green(projectName)}`);
 	console.log(`  ${colors.bold('Type:')} ${colors.green(projectType)}`);
-	console.log(`  ${colors.bold('Your Name:')} ${colors.green(wizardAnswers.myPersonsName || 'Not set')}`);
-	console.log(`  ${colors.bold('Assistant Name:')} ${colors.green(wizardAnswers.myAssistantsName || 'Not set')}`);
+	console.log(`  ${colors.bold('Your Name:')} ${colors.green(createProjectData.myPersonsName || 'Not set')}`);
+	console.log(`  ${colors.bold('Assistant Name:')} ${colors.green(createProjectData.myAssistantsName || 'Not set')}`);
 	console.log(
 		`  ${colors.bold('API Key:')} ${
-			colors.green(wizardAnswers.anthropicApiKey ? 'Set in project config' : 'Not set in project config')
+			colors.green(createProjectData.anthropicApiKey ? 'Set in project config' : 'Not set in project config')
 		}`,
 	);
 	console.log(`  ${colors.bold('Using TLS Certificate:')} ${colors.green(useTlsCert ? 'Yes' : 'No')}`);
@@ -227,25 +226,23 @@ export const init = new Command()
 	.description('Initialize BB in the current directory')
 	.action(async () => {
 		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
+		const projectRoot = startDir; //await getProjectRootFromStartDir(startDir);
 		//const projectId = await getProjectId(projectRoot);
 
 		try {
-			await createBbDir(projectRoot);
-
 			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(projectRoot)}`);
-
-			// Run the wizard
-			const wizardAnswers = await runWizard(projectRoot);
 
 			// Create or update config with wizard answers and project info
 			const configManager = await ConfigManagerV2.getInstance();
 			await configManager.ensureGlobalConfig();
-			await configManager.createProject(
-				wizardAnswers.project.name,
-				wizardAnswers.project.type as ProjectType,
-				projectRoot,
-			);
+
+			// Run the wizard
+			const createProjectData = await runWizard(projectRoot);
+
+			await configManager.createProject({
+				...createProjectData,
+				path: projectRoot,
+			});
 
 			// Verify that API key is set either in user config or project config
 			const finalGlobalConfig = await configManager.getGlobalConfig();
@@ -258,10 +255,7 @@ export const init = new Command()
 				);
 			}
 
-			// Create .bb/ignore file
-			await createBbIgnore(projectRoot);
-
-			let useTlsCert = wizardAnswers.useTls ?? true;
+			let useTlsCert = createProjectData.useTls ?? true;
 			const certFileName = finalGlobalConfig.api.tls?.certFile || 'localhost.pem';
 			if (useTlsCert && !await certificateFileExists(certFileName)) {
 				const domain = finalGlobalConfig.api.hostname || 'localhost';
@@ -290,9 +284,9 @@ export const init = new Command()
 
 			//logger.debug('Printing project details...');
 			await printProjectDetails(
-				wizardAnswers.project.name,
-				wizardAnswers.project.type,
-				wizardAnswers,
+				createProjectData.name,
+				createProjectData.type,
+				createProjectData,
 				useTlsCert,
 			);
 

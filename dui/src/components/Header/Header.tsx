@@ -16,7 +16,7 @@ export function Header({
 	return (
 		<header className='bg-[#1B2333] text-white py-2 pl-4 pr-0 shadow-lg'>
 			<div className='max-w-7xl ml-auto mr-4 flex justify-between items-center gap-8 pl-4 pr-1'>
-				<div className='flex items-center gap-3 flex-1'>
+				<div className='flex items-center gap-6 flex-1'>
 					{/* Logo */}
 					<div className='flex items-center gap-2'>
 						<img src='/assets/bb-logo.png' alt='BB Logo' className='h-6 w-6' />
@@ -24,7 +24,29 @@ export function Header({
 					</div>
 				</div>
 
-				<div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
+                {/* Navigation */}
+                <nav className='flex items-center space-x-4'>
+                    <button
+                        onClick={() => onNavigate('/')}
+                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+                    >
+                        Server
+                    </button>
+                    <button
+                        onClick={() => onNavigate('/bui')}
+                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+                    >
+                        BUI
+                    </button>
+                    <button
+                        onClick={() => onNavigate('/settings')}
+                        className='px-3 py-1 rounded hover:bg-gray-700 transition-colors'
+                    >
+                        Settings
+                    </button>
+                </nav>
+
+                <div className='text-sm shrink-0 border-l border-gray-600 pl-4 flex items-center'>
 					<VersionDisplay />
 				</div>
 

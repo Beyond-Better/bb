@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Beyond Better",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "identifier": "dev.beyondbetter.app",
   "build": {
     "beforeDevCommand": "deno task dev",
@@ -18,7 +18,10 @@
       }
     ],
     "security": {
-      "csp": null
+      "capabilities": [
+        "main-capability"
+      ],
+      "csp": "default-src 'self' https://*.bbai.tips https://*.beyondbetter.dev; connect-src 'self' http://localhost:3162 https://*.bbai.tips https://*.beyondbetter.dev; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {
@@ -66,7 +69,7 @@
           "y": 170
         },
         "applicationFolderPosition": {
-          "x": 480,
+          "x": 90,
           "y": 170
         }
       }

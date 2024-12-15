@@ -1,5 +1,4 @@
-.aider*
-.aider.tags.cache.v3/*
+.git-overgrown
 .bb/*
 .BBEditLSPWorkspaceConfig.json
 build/*

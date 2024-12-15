@@ -1,13 +1,19 @@
 export interface ApiStatus {
-  running: boolean;
-  pid?: number;
-  error?: string;
+  pid_exists: boolean;
+  process_responds: boolean;
+  api_responds: boolean;
+  pid: number | null;
+  error: string | null;
 }
 
 export interface ApiConfig {
-  apiHostname?: string;
-  apiPort?: number;
-  apiUseTls?: boolean;
+  hostname: string;
+  port: number;
+  tls: {
+    useTls: boolean;
+    keyFile?: string;
+    certFile?: string;
+  };
   environment?: string;
   logLevel?: string;
 }

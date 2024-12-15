@@ -578,7 +578,7 @@ export function ChatInput({
 	const statusInfo = getStatusInfo();
 
 	return (
-		<div className='bg-white px-4 py-2'>
+		<div className='bg-white px-4 py-2 w-full'>
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}

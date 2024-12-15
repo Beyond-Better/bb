@@ -9,7 +9,7 @@ use libc;
 use crate::config::read_global_config;
 
 const PID_FILE_NAME: &str = "api.pid";
-const APP_NAME: &str = "BeyondBetter";
+const APP_NAME: &str = "dev.beyondbetter.app";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiStatusCheck {
@@ -55,6 +55,7 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 }
 
 fn get_pid_file_path() -> Result<PathBuf, String> {
+	// println!("Using runtime PID at: {}", get_app_runtime_dir()?.join(PID_FILE_NAME).display());
     Ok(get_app_runtime_dir()?.join(PID_FILE_NAME))
 }
 
@@ -103,18 +104,29 @@ fn check_process_exists(pid: i32) -> bool {
         .unwrap_or(false)
 }
 
-async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> bool {
+async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
     let scheme = if use_tls { "https" } else { "http" };
     let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
     
+    println!("Checking Server status at: {}", url);
+    
     match reqwest::get(&url).await {
-        Ok(response) => response.status().is_success(),
-        Err(_) => false,
+        Ok(response) => {
+            let status = response.status();
+            println!("Server responded with status: {}", status);
+            Ok(status.is_success())
+        },
+        Err(e) => {
+            println!("Failed to connect to Server: {}", e);
+            Ok(false)
+        }
     }
 }
 
 #[command]
 pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
+    println!("Checking Server status...");
+    
     let mut status = ApiStatusCheck {
         pid_exists: false,
         process_responds: false,
@@ -125,23 +137,40 @@ pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
 
     // Level 1: Check PID file
     let pid = get_pid().await?;
-    if let Some(pid) = pid {
-        status.pid = Some(pid);
-        
-        // Level 2: Check if process exists
-        status.pid_exists = check_process_exists(pid);
-
-        // Level 3: Check if API endpoint responds
-        if status.pid_exists {
-            let config = read_global_config()
-                .map_err(|e| format!("Failed to read global config: {}", e))?;
+    match pid {
+        Some(pid) => {
+            println!("Found PID file with PID: {}", pid);
+            status.pid = Some(pid);
             
-            status.api_responds = check_api_responds(
-                &config.api.hostname,
-                config.api.port,
-                config.api.tls.use_tls
-            ).await;
-            status.process_responds = status.api_responds;
+            // Level 2: Check if process exists
+            status.pid_exists = check_process_exists(pid);
+            println!("Process exists: {}", status.pid_exists);
+
+            // Level 3: Check if API endpoint responds
+            if status.pid_exists {
+                let config = read_global_config()
+                    .map_err(|e| format!("Failed to read global config: {}", e))?;
+                
+                println!("Checking Server endpoint at {}:{}", config.api.hostname, config.api.port);
+                match check_api_responds(
+                    &config.api.hostname,
+                    config.api.port,
+                    config.api.tls.use_tls
+                ).await {
+                    Ok(responds) => {
+                        status.api_responds = responds;
+                        status.process_responds = responds;
+                        println!("Server responds: {}", responds);
+                    }
+                    Err(e) => {
+                        println!("Error checking Server response: {}", e);
+                        status.error = Some(e);
+                    }
+                }
+            }
+        }
+        None => {
+            println!("No PID file found");
         }
     }
 
@@ -157,7 +186,7 @@ pub async fn reconcile_pid_state() -> Result<(), String> {
         remove_pid().await?;
     } else if status.pid_exists && !status.api_responds {
         // Process exists but API doesn't respond - potential zombie
-        println!("API process exists but is not responding. Consider restarting.");
+        println!("Server process exists but is not responding. Consider restarting.");
     } else if status.api_responds && pid.is_none() {
         // API responds but no PID file - recover state if possible
         if let Some(pid) = status.pid {

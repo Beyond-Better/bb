@@ -1,5 +1,5 @@
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-//import { WizardAnswers } from 'shared/config/v2/types.ts';
+import { CreateProjectData } from 'shared/config/v2/types.ts';
 import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
@@ -13,10 +13,10 @@ import type { ConversationStats } from 'shared/types.ts';
 export async function setupTestProject(): Promise<{ projectRoot: string; projectId: string }> {
 	const projectRoot = Deno.makeTempDirSync();
 
-	//const wizardAnswers: WizardAnswers = { project: { name: 'TestProject', type: 'local' } };
 	const configManager = await ConfigManagerV2.getInstance();
 	await configManager.ensureGlobalConfig();
-	const projectId = await configManager.createProject('TestProject', 'local', projectRoot);
+	const createProjectData: CreateProjectData = { name: 'TestProject', type: 'local', path: projectRoot };
+	const projectId = await configManager.createProject(createProjectData);
 	//console.log('setupTestProject', { projectRoot, projectId });
 
 	return { projectRoot, projectId };

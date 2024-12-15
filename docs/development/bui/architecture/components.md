@@ -1,310 +1,279 @@
 # BUI Component Patterns
 
-## Overview
+## Important Update
+This document has been updated to reflect the new dual-state architecture. Components now interact with either app state, chat state, or both, depending on their responsibilities.
 
-This document outlines component patterns for the Beyond Better UI, considering Fresh's specific architecture and constraints. These patterns focus on reusability, maintainability, and proper state handling.
+## Component Hierarchy
 
-## Fresh Component Types
+```
+Layout/
+├── SideNav (island)/              # Uses app state
+│   ├── Logo
+│   ├── MainNavigation
+│   ├── ProjectSelector            # Uses app state for projects
+│   └── StatusFooter
+│       ├── ServerStatus          # Uses app state
+│       ├── VersionInfo          # Uses app state
+│       └── ExternalLinks
+│
+├── MetadataBar (island)/         # Context-aware
+│   ├── Chat/                    # Uses chat state
+│   │   ├── ProjectMetadata
+│   │   └── ConversationTools
+│   ├── Projects/               # Uses app state
+│   │   ├── ProjectStats
+│   │   └── ProjectActions
+│   └── Settings/              # Uses app state
+│       ├── CategoryInfo
+│       └── CategoryActions
+│
+└── MainContent               # Route-specific content
+```
 
-### 1. Islands (Interactive Components)
-- Self-contained JavaScript functionality
-- Own state management
-- Client-side interactivity
-- Limited communication between islands
+## Component Types
 
-Example structure:
+### 1. App-Level Components
+Components that use app state for global features.
+
 ```typescript
-// islands/SomeFeature.tsx
-export default function SomeFeature() {
-    // State management
-    const [state, handlers] = useSomeState();
+// Example: ServerStatus component
+function ServerStatus() {
+    const appState = useAppState();
+    
+    return (
+        <div class={`flex items-center ${
+            appState.value.status.isReady ? "text-green-500" : "text-red-500"
+        }`}>
+            <StatusIndicator status={appState.value.status} />
+            <span>{appState.value.status.isReady ? "Connected" : "Disconnected"}</span>
+        </div>
+    );
+}
+```
 
-    // Event handlers
-    const handleAction = () => {
-        handlers.someAction();
-    };
+### 2. Chat-Specific Components
+Components that use chat state for conversation features.
 
+```typescript
+// Example: ConversationTools component
+function ConversationTools() {
+    const chatState = useChatState();
+    
+    return (
+        <div class="flex items-center space-x-2">
+            <ToolStatus status={chatState.value.status} />
+            <TokenDisplay usage={chatState.value.tokenUsage} />
+        </div>
+    );
+}
+```
+
+### 3. Hybrid Components
+Components that may use both app and chat state.
+
+```typescript
+// Example: ProjectSelector component
+function ProjectSelector() {
+    const appState = useAppState();
+    const chatState = useChatState();
+    
     return (
         <div>
-            <StatusIndicator status={state.status} />
-            <ActionButton onClick={handleAction} />
-        </div>
-    );
-}
-```
-
-### 2. Static Components
-- No client-side JavaScript
-- Server-side rendered
-- Reusable UI elements
-- Props-only configuration
-
-Example:
-```typescript
-// components/Header.tsx
-interface HeaderProps {
-    title: string;
-    theme?: 'light' | 'dark';
-}
-
-export function Header({ title, theme = 'light' }: HeaderProps) {
-    return (
-        <header class={`header ${theme}`}>
-            <h1>{title}</h1>
-        </header>
-    );
-}
-```
-
-## Reusable UI Components
-
-### 1. Status Indicators
-Used for showing connection, loading, or process states:
-```typescript
-interface StatusIndicatorProps {
-    status: 'connected' | 'disconnected' | 'error';
-    label?: string;
-    theme?: 'light' | 'dark';
-}
-
-export function StatusIndicator({ 
-    status, 
-    label, 
-    theme = 'light' 
-}: StatusIndicatorProps) {
-    const statusColors = {
-        connected: 'bg-green-500',
-        disconnected: 'bg-red-500',
-        error: 'bg-yellow-500'
-    };
-
-    return (
-        <div class="flex items-center gap-2">
-            <span class={`w-2 h-2 rounded-full ${statusColors[status]}`} />
-            {label && <span>{label}</span>}
-        </div>
-    );
-}
-```
-
-### 2. Input Components
-Standardized input handling with proper event management:
-```typescript
-interface ChatInputProps {
-    onSubmit: (message: string) => void;
-    disabled?: boolean;
-    placeholder?: string;
-}
-
-export function ChatInput({ 
-    onSubmit, 
-    disabled = false,
-    placeholder = 'Type your message...'
-}: ChatInputProps) {
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            const input = e.currentTarget as HTMLInputElement;
-            const message = input.value.trim();
-            if (message) {
-                onSubmit(message);
-                input.value = '';
-            }
-        }
-    };
-
-    return (
-        <input
-            type="text"
-            class="flex-1 p-2 border rounded"
-            placeholder={placeholder}
-            disabled={disabled}
-            onKeyDown={handleKeyDown}
-        />
-    );
-}
-```
-
-### 3. Action Buttons
-Consistent button styling and behavior:
-```typescript
-interface ActionButtonProps {
-    onClick: () => void;
-    disabled?: boolean;
-    variant?: 'primary' | 'secondary' | 'danger';
-    children: preact.ComponentChildren;
-}
-
-export function ActionButton({
-    onClick,
-    disabled = false,
-    variant = 'primary',
-    children
-}: ActionButtonProps) {
-    const variantStyles = {
-        primary: 'bg-blue-500 hover:bg-blue-600',
-        secondary: 'bg-gray-500 hover:bg-gray-600',
-        danger: 'bg-red-500 hover:bg-red-600'
-    };
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            class={`px-4 py-2 text-white rounded ${variantStyles[variant]}`}
-        >
-            {children}
-        </button>
-    );
-}
-```
-
-## Component Composition
-
-### 1. Layout Components
-Provide consistent structure:
-```typescript
-interface LayoutProps {
-    header?: preact.ComponentChildren;
-    sidebar?: preact.ComponentChildren;
-    children: preact.ComponentChildren;
-}
-
-export function Layout({ header, sidebar, children }: LayoutProps) {
-    return (
-        <div class="flex flex-col h-screen">
-            {header && (
-                <header class="bg-gray-800 text-white p-4">
-                    {header}
-                </header>
+            <ProjectList projects={appState.value.projects} />
+            {chatState.value.status.isReady && (
+                <CurrentProject project={chatState.value.currentProject} />
             )}
-            <div class="flex-1 flex overflow-hidden">
-                {sidebar && (
-                    <aside class="w-64 bg-gray-100 overflow-y-auto">
-                        {sidebar}
-                    </aside>
-                )}
-                <main class="flex-1 overflow-y-auto p-4">
-                    {children}
-                </main>
-            </div>
         </div>
     );
 }
 ```
 
-### 2. List Containers
-Reusable list structures:
-```typescript
-interface ListContainerProps<T> {
-    items: T[];
-    renderItem: (item: T) => preact.ComponentChildren;
-    emptyMessage?: string;
-}
+## State Access Patterns
 
-export function ListContainer<T>({ 
-    items, 
-    renderItem,
-    emptyMessage = 'No items to display'
-}: ListContainerProps<T>) {
-    if (items.length === 0) {
-        return <div class="text-gray-500">{emptyMessage}</div>;
+### 1. App State Access
+```typescript
+function AppStateComponent() {
+    const appState = useAppState();
+    
+    useEffect(() => {
+        // Handle app-level effects
+        if (appState.value.status.isReady) {
+            // Perform app-level operations
+        }
+    }, [appState.value.status.isReady]);
+    
+    return (
+        <div>
+            <StatusDisplay status={appState.value.status} />
+            <VersionInfo version={appState.value.version} />
+        </div>
+    );
+}
+```
+
+### 2. Chat State Access
+```typescript
+function ChatStateComponent() {
+    const chatState = useChatState();
+    
+    useEffect(() => {
+        // Handle chat-specific effects
+        if (chatState.value.status.isReady) {
+            // Perform chat operations
+        }
+    }, [chatState.value.status.isReady]);
+    
+    return (
+        <div>
+            <ConversationDisplay entries={chatState.value.logEntries} />
+            <ToolStatus status={chatState.value.status} />
+        </div>
+    );
+}
+```
+
+## Error Handling
+
+### 1. App-Level Errors
+```typescript
+function AppErrorBoundary() {
+    const appState = useAppState();
+    
+    if (appState.value.error) {
+        return (
+            <div class="bg-red-50 p-4 rounded-md">
+                <h3 class="text-red-800">Application Error</h3>
+                <p class="text-red-600">{appState.value.error}</p>
+            </div>
+        );
     }
+    
+    return null;
+}
+```
 
+### 2. Chat-Level Errors
+```typescript
+function ChatErrorDisplay() {
+    const chatState = useChatState();
+    
+    if (chatState.value.error) {
+        return (
+            <div class="bg-yellow-50 p-4 rounded-md">
+                <h3 class="text-yellow-800">Chat Error</h3>
+                <p class="text-yellow-600">{chatState.value.error}</p>
+            </div>
+        );
+    }
+    
+    return null;
+}
+```
+
+## Component Best Practices
+
+### 1. State Usage
+- Use appropriate state layer (app vs chat)
+- Keep state access close to usage
+- Handle loading and error states
+- Clean up subscriptions
+
+### 2. Error Handling
+- Use appropriate error boundary
+- Handle layer-specific errors
+- Provide recovery options
+- Log errors appropriately
+
+### 3. Performance
+- Minimize state updates
+- Use computed values
+- Implement proper cleanup
+- Monitor component lifecycle
+
+## Implementation Examples
+
+### 1. Home Page
+```typescript
+function HomePage() {
+    const appState = useAppState();
+    
+    if (!appState.value.status.isReady) {
+        return <DownloadGuide />;
+    }
+    
     return (
-        <ul class="space-y-2">
-            {items.map((item) => (
-                <li class="p-2">{renderItem(item)}</li>
-            ))}
-        </ul>
+        <div>
+            <ProjectList projects={appState.value.projects} />
+            <QuickActions />
+            <SystemStatus status={appState.value.status} />
+        </div>
     );
 }
 ```
 
-## State Handling
-
-### 1. Component-Level State
-For UI-specific state:
+### 2. Chat Page
 ```typescript
-function useComponentState() {
-    const [isOpen, setIsOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<string | null>(null);
-
-    return {
-        isOpen,
-        selectedItem,
-        toggle: () => setIsOpen(prev => !prev),
-        select: (item: string) => setSelectedItem(item)
-    };
-}
-```
-
-### 2. Controlled Components
-For parent-managed state:
-```typescript
-interface ControlledInputProps {
-    value: string;
-    onChange: (value: string) => void;
-}
-
-export function ControlledInput({ value, onChange }: ControlledInputProps) {
+function ChatPage() {
+    const appState = useAppState();
+    const chatState = useChatState();
+    
     return (
-        <input
-            value={value}
-            onInput={(e) => onChange(e.currentTarget.value)}
-        />
+        <div>
+            <MetadataBar>
+                <ChatMetadata />
+            </MetadataBar>
+            <Chat />
+            <StatusBar
+                appStatus={appState.value.status}
+                chatStatus={chatState.value.status}
+            />
+        </div>
     );
 }
 ```
-
-## Best Practices
-
-1. Component Design
-   - Single responsibility
-   - Clear props interface
-   - Consistent styling
-   - Proper type definitions
-
-2. State Management
-   - Minimize state
-   - Clear state ownership
-   - Controlled vs uncontrolled
-   - Proper cleanup
-
-3. Event Handling
-   - Type-safe events
-   - Debounce when needed
-   - Clear handler names
-   - Error boundaries
-
-4. Performance
-   - Memoization when needed
-   - Proper key usage
-   - Avoid unnecessary renders
-   - Optimize heavy operations
 
 ## Testing Components
 
+### 1. App State Testing
 ```typescript
-Deno.test({
-    name: "Component: specific functionality",
-    async fn() {
-        const component = new SomeComponent({
-            prop: "value"
-        });
-
-        // Test interaction
-        await component.someAction();
-
-        // Assert state
-        assertEquals(component.state.value, expected);
-    }
+Deno.test("AppComponent: handles connection status", async () => {
+    const component = new AppComponent();
+    await component.connect();
+    assertEquals(component.status, "connected");
 });
 ```
 
-## Next Steps
+### 2. Chat State Testing
+```typescript
+Deno.test("ChatComponent: handles message flow", async () => {
+    const component = new ChatComponent();
+    await component.sendMessage("test");
+    assertEquals(component.messages.length, 1);
+});
+```
 
-1. Implement shared components library
-2. Add component documentation
-3. Create component showcase
-4. Add accessibility features
+## Migration Guide
+
+### 1. Converting Existing Components
+- Identify state dependencies
+- Choose appropriate state layer
+- Update state access
+- Add error handling
+- Test new implementation
+
+### 2. Creating New Components
+- Determine state requirements
+- Choose component type
+- Implement state access
+- Add error handling
+- Write tests
+
+## References
+
+1. Architecture Documents
+- [State Management Separation](./state_management_separation.md)
+- [Testing Strategy](../testing/strategy.md)
+
+2. Implementation Examples
+- [Home Page Implementation](../features/home_page.md)
+- [Progress Summary](../progress_summary.md)

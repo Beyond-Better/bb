@@ -6,6 +6,7 @@ import { getApiStatus, restartApiServer } from '../utils/apiControl.utils.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
 
 export const apiRestart = new Command()
 	.name('restart')
@@ -16,20 +17,33 @@ export const apiRestart = new Command()
 	.option('--port <string>', 'Specify the port for API to listen on', { default: undefined })
 	.option('--use-tls <boolean>', 'Specify whether API should listen with TLS', { default: undefined })
 	.action(async ({ logLevel: apiLogLevel, logFile: apiLogFile, hostname, port, useTls }) => {
-		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		let projectId;
+		try {
+			const startDir = Deno.cwd();
+			const projectRoot = await getProjectRootFromStartDir(startDir);
+			projectId = await getProjectId(projectRoot);
+		} catch (_error) {
+			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+			projectId = undefined;
+		}
 
 		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(projectId);
+		const globalConfig = await configManager.getGlobalConfig();
+		let apiConfig: ApiConfig;
+		if (projectId) {
+			const projectConfig = await configManager.getProjectConfig(projectId);
+			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+		} else {
+			apiConfig = globalConfig.api;
+		}
 
-		const apiHostname = `${hostname || projectConfig.settings.api?.hostname || 'localhost'}`;
-		const apiPort = `${port || projectConfig.settings.api?.port || 3162}`; // cast as string
+		const apiHostname = `${hostname || apiConfig.hostname || 'localhost'}`;
+		const apiPort = `${port || apiConfig.port || 3162}`; // cast as string
 		const apiUseTls = typeof useTls !== 'undefined'
 			? !!useTls
-			: typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-			? projectConfig.settings.api.tls.useTls
-			: true;
+			: typeof apiConfig.tls?.useTls !== 'undefined'
+			? apiConfig.tls.useTls
+			: false;
 		try {
 			logger.info('Restarting API...');
 

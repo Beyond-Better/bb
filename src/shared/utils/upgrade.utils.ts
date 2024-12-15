@@ -136,7 +136,7 @@ export async function performUpgrade(): Promise<UpgradeResult> {
 	}
 }
 
-async function fetchLatestRelease(): Promise<GithubRelease> {
+export async function fetchLatestRelease(): Promise<GithubRelease> {
 	const response = await fetch('https://api.github.com/repos/Beyond-Better/bb/releases/latest');
 	if (!response.ok) {
 		throw new Error(`Failed to fetch latest release: ${response.statusText}`);

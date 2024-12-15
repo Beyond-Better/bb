@@ -2,6 +2,7 @@
 // Installation/upgrade functionality has been moved to commands/upgrade.rs
 
 use tauri::command;
+use crate::api::get_bb_api_path;
 use std::process::Command;
 use serde::{Deserialize, Serialize};
 use semver::Version;
@@ -164,7 +165,8 @@ pub async fn get_version_info() -> Result<VersionInfo, String> {
 
 #[command]
 pub async fn get_binary_version() -> Result<Option<String>, String> {
-    let output = Command::new("bb-api")
+    let bb_api_path = get_bb_api_path()?;
+    let output = Command::new(bb_api_path)
         .arg("--version")
         .output()
         .map_err(|e| e.to_string())?;

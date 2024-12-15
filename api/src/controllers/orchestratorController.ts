@@ -1,5 +1,9 @@
 import * as diff from 'diff';
 
+// Hard-coded conversation token limit (192k to leave room for 8k response)
+const CONVERSATION_TOKEN_LIMIT = 192000;
+//const CONVERSATION_TOKEN_LIMIT = 64000;
+
 import type InteractionManager from 'api/llms/interactionManager.ts';
 import { interactionManager } from 'api/llms/interactionManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -921,6 +925,66 @@ class OrchestratorController {
 				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
 
 				loopTurnCount++;
+
+				// Check total token usage including cache operations
+				const totalTurnTokens = interaction.tokenUsageTurn.totalTokens +
+					(interaction.tokenUsageTurn.cacheCreationInputTokens ?? 0) +
+					(interaction.tokenUsageTurn.cacheReadInputTokens ?? 0);
+				if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
+					logger.warn(
+						`OrchestratorController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
+							`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
+							`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
+							`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
+					);
+
+					// Log auxiliary message about forced summary
+					const timestamp = new Date().toISOString();
+					await interaction.conversationLogger.logAuxiliaryMessage(
+						`force-summary-${timestamp}`,
+						{
+							message:
+								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
+							purpose: 'Token Limit Enforcement',
+						},
+					);
+
+					// Manually construct tool use for conversation summary
+					const toolUse: LLMAnswerToolUse = {
+						toolName: 'conversation_summary',
+						toolInput: {
+							requestSource: 'tool',
+							// Calculate maxTokensToKeep:
+							// - Target keeping 75% of limit for conversation
+							// - Ensure minimum of 1000 tokens (tool requirement)
+							// - If limit is very low, warn but maintain minimum
+							maxTokensToKeep: (() => {
+								const targetTokens = Math.floor(CONVERSATION_TOKEN_LIMIT * 0.75);
+								if (targetTokens < 1000) {
+									logger.warn(
+										`OrchestratorController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
+											`Using minimum of 1000 tokens for conversation summary.`,
+									);
+								}
+								return Math.max(1000, targetTokens);
+							})(),
+							summaryLength: 'long',
+						},
+						toolUseId: `force-summary-${Date.now()}`,
+						toolValidation: { validated: true, results: 'Tool input validation passed' },
+					};
+
+					// Handle the tool use directly without adding its response to toolResponses
+					await this.handleToolUse(interaction, toolUse, currentResponse.messageResponse);
+
+					// Only add summary note to toolResponses if there are already responses to process
+					// This avoids triggering another loop iteration if LLM was done
+					if (toolResponses.length > 0) {
+						toolResponses.push(
+							'\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.',
+						);
+					}
+				}
 
 				// If there's tool toolResponse, send it back to the LLM
 				if (toolResponses.length > 0) {

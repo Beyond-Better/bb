@@ -3,7 +3,12 @@ use serde_yaml;
 use log::{error, info};
 
 
-use crate::config::{GlobalConfig, get_global_config_dir, read_global_config, LlmKeys};
+use crate::config::{GlobalConfig, get_global_config_dir, read_global_config, LlmKeys, get_default_log_path};
+
+#[tauri::command]
+pub async fn get_log_path() -> Result<Option<String>, String> {
+    Ok(get_default_log_path())
+}
 
 #[tauri::command]
 pub async fn test_read_config() -> Result<String, String> {
@@ -35,7 +40,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
     //info!("Looking for config file at: {:?}", config_path);
 
     // Read and parse config
-    let config = match fs::read_to_string(&config_path) {
+    let mut config = match fs::read_to_string(&config_path) {
         Ok(contents) => {
             //debug!("Raw config contents:\n{}", contents);
             match serde_yaml::from_str::<GlobalConfig>(&contents) {
@@ -59,6 +64,12 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
             }
         }
     };
+
+    // Set the log file path if it's not already set
+    if config.api.log_file.is_none() {
+        config.api.log_file = get_default_log_path();
+        info!("Setting default log path: {:?}", config.api.log_file);
+    }
     
     //info!("Config values:");
     // debug!("  my_persons_name: {}", config.my_persons_name);
@@ -72,7 +83,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
     
     // Log the parsed config details
     // info!("Parsed config details:");
-    // info!("  API Config: {:?}", config.api);
+    // info!("  Server Config: {:?}", config.api);
     // info!("  LLM Keys present: {}", config.api.llm_keys.is_some());
     //if let Some(ref keys) = config.api.llm_keys {
         // info!("  Anthropic key present: {}", keys.anthropic.is_some());
@@ -84,7 +95,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
     if let Some(ref mut keys) = redacted.api.llm_keys {
         if let Some(ref key) = keys.anthropic {
             if !key.is_empty() {
-                //debug!("Masking API key: {}...", &key[..18.min(key.len())]);
+                //debug!("Masking Server key: {}...", &key[..18.min(key.len())]);
                 keys.anthropic = Some(format!("{}...", &key[..18.min(key.len())]));
             }
         }
@@ -254,6 +265,12 @@ fn update_yaml_value(root: &mut serde_yaml::Value, key: &str, value: &str) -> Re
                         );
                     }
                 }
+                "api.logFile" => {
+                    mapping.insert(
+                        serde_yaml::Value::String(part.clone()),
+                        serde_yaml::Value::String(value.to_string())
+                    );
+                }
                 _ => return Err(format!("Unknown config key: {}", key))
             };
         } else {
@@ -305,6 +322,10 @@ fn update_config_value(config: &mut GlobalConfig, key: &str, value: &str) -> Res
             } else {
                 //debug!("Skipping masked API key update");
             }
+        },
+        ["api", "logFile"] => {
+            config.api.log_file = Some(value.to_string());
+            //debug!("Updated logFile to: {}", value);
         },
         _ => {
             error!("Unknown config key: {}", key);

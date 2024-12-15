@@ -3,7 +3,7 @@ import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
-import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
+import { createBbDir, createBbIgnore, getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 import type {
 	ConfigVersion,
 	GlobalConfig,
@@ -18,10 +18,10 @@ import {
 	ApiConfigDefaults,
 	BuiConfigDefaults,
 	CliConfigDefaults,
+	CreateProjectData,
 	DuiConfigDefaults,
 	GlobalConfigDefaults,
 	ProjectConfigDefaults,
-	WizardAnswers,
 } from './types.ts';
 import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from '../configSchema.ts';
 
@@ -258,42 +258,38 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			await Deno.stat(globalConfigPath);
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
-				await ensureDir(globalConfigDir);
-				// const defaultConfig = stripIndent`
-				const defaultConfig = `
-# BB Configuration File
-
-version: 2.0.0
-
-api:
-  hostname: localhost
-  port: 3162
-  tls:
-    useTls: false
-  userToolDirectories:
-    - ./tools
-  toolConfigs: {}
-
-bui:
-  hostname: localhost
-  port: 8000
-  tls:
-    useTls: false
-
-cli:
-  historySize: 1000
-
-dui:
-  defaultApiConfig: {}
-  projectsDirectory: ./projects
-  recentProjects: 5
-
-`;
-				await Deno.writeTextFile(globalConfigPath, defaultConfig);
+				await this.createGlobalConfig();
 			} else {
 				throw error;
 			}
 		}
+	}
+
+	private async createGlobalConfig(): Promise<void> {
+		// Create and validate default config
+		const defaultConfig: GlobalConfig = {
+			version: '2.0.0',
+			myPersonsName: GlobalConfigDefaults.myPersonsName,
+			myAssistantsName: GlobalConfigDefaults.myAssistantsName,
+			noBrowser: GlobalConfigDefaults.noBrowser,
+			bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
+			bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
+			api: {
+				...ApiConfigDefaults,
+				llmKeys: {},
+			},
+			bui: BuiConfigDefaults,
+			cli: CliConfigDefaults,
+			dui: DuiConfigDefaults,
+		};
+
+		// Save to disk
+		const configDir = await getGlobalConfigDir();
+		const configPath = join(configDir, 'config.yaml');
+		await ensureDir(configDir);
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(defaultConfig)));
+
+		this.globalConfig = defaultConfig;
 	}
 
 	/**
@@ -344,9 +340,11 @@ dui:
 	 * );
 	 * ```
 	 */
-	public async createProject(name: string, type: ProjectType, path?: string): Promise<string> {
+	//public async createProject(name: string, type: ProjectType, path?: string): Promise<string> {
+	public async createProject(createProjectData: CreateProjectData): Promise<string> {
+		const { name, type, path } = createProjectData;
 		const projectId = await this.generateProjectId();
-		const projectPath = path || Deno.cwd();
+		const projectPath = path; // || Deno.cwd();
 		//console.log('createProject', { name, type, projectId, projectPath });
 		// Verify project path
 		try {
@@ -368,22 +366,60 @@ dui:
 			name,
 			type,
 			repoInfo: { tokenLimit: 1024 },
-			settings: {
-				api: globalConfig.api,
-				bui: globalConfig.bui,
-				cli: globalConfig.cli,
-				dui: globalConfig.dui,
-			},
+			settings: {},
 		};
-		//console.log('createProject', { config });
+		if (createProjectData.useTls !== undefined && createProjectData.useTls !== globalConfig.api.tls.useTls) {
+			config.settings = {
+				...config.settings,
+				api: {
+					...config.settings?.api,
+					tls: {
+						...config.settings?.api?.tls,
+						useTls: createProjectData.useTls,
+					},
+				},
+			};
+		}
+		if (createProjectData.anthropicApiKey) {
+			config.settings = {
+				...config.settings,
+				api: {
+					...config.settings?.api,
+					llmKeys: {
+						...config.settings?.api?.llmKeys,
+						anthropic: createProjectData.anthropicApiKey,
+					},
+				},
+			};
+		}
 
-		// Save project config
-		const configPath = join(projectPath, '.bb', 'config.yaml');
-		await ensureDir(join(projectPath, '.bb'));
-		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+		console.log('createProject', { config });
 
 		// Update project registry
-		await this.updateProjectRegistry(projectId, name, projectPath);
+		await this.updateProjectRegistry(projectId, name, projectPath, type);
+
+		console.log('createProject: added to projectRegsitry');
+
+		// Save project config
+		await createBbDir(projectPath);
+		const configPath = join(projectPath, '.bb', 'config.yaml');
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+		console.log('createProject: created config file');
+
+		// Create .bb/ignore file
+		await createBbIgnore(projectPath);
+		console.log('createProject: created ignore file');
+
+		if (
+			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
+			createProjectData.myAssistantsName !== globalConfig.myAssistantsName
+		) {
+			await this.updateGlobalConfig({
+				...globalConfig,
+				myPersonsName: createProjectData.myPersonsName,
+				myAssistantsName: createProjectData.myAssistantsName,
+			});
+		}
 
 		// Update caches
 		this.projectConfigs.set(projectId, config);
@@ -413,6 +449,20 @@ dui:
 		}
 	}
 
+	public async addProjectConfig(config: ProjectConfig, projectPath: string): Promise<void> {
+		// Update caches
+		this.projectConfigs.set(config.projectId, config);
+		this.projectRoots.set(config.projectId, projectPath);
+		this.projectIds.set(projectPath, config.projectId);
+
+		// Save project config
+		const configPath = join(projectPath, '.bb', 'config.yaml');
+		await ensureDir(join(projectPath, '.bb'));
+		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
+
+		await this.updateProjectRegistry(config.projectId, config.name, projectPath, config.type);
+	}
+
 	/**
 	 * Updates the global project registry with a new project.
 	 * Creates the registry if it doesn't exist.
@@ -422,13 +472,13 @@ dui:
 	 * @throws Error if registry update fails
 	 * @internal
 	 */
-	private async updateProjectRegistry(projectId: string, name: string, path: string): Promise<void> {
+	private async updateProjectRegistry(projectId: string, name: string, path: string, type: string): Promise<void> {
 		const registryPath = join(await getGlobalConfigDir(), 'projects.json');
-		let registry: Record<string, { name: string; path: string }> = {};
+		let registry: Record<string, { name: string; path: string; type: string }> = {};
 
 		try {
 			const content = await Deno.readTextFile(registryPath);
-			registry = JSON.parse(content) as Record<string, { name: string; path: string }>;
+			registry = JSON.parse(content) as Record<string, { name: string; path: string; type: string }>;
 		} catch (error) {
 			if (!(error instanceof Deno.errors.NotFound)) {
 				const e = error as Error;
@@ -438,7 +488,7 @@ dui:
 		}
 		//console.log('updateProjectRegistry', { registry, projectId, path });
 
-		registry[projectId] = { name, path };
+		registry[projectId] = { name, path, type };
 		await Deno.writeTextFile(registryPath, JSON.stringify(registry));
 	}
 
@@ -489,9 +539,12 @@ dui:
 	 * console.log(`Backup created at: ${result.backupPath}`);
 	 * ```
 	 */
-	public async migrateConfig(config: GlobalConfigV1 | ProjectConfigV1): Promise<MigrationResult> {
+	public async migrateConfig(
+		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfig | ProjectConfig,
+	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
+		console.log('ConfigManager: migrateConfig: ', config);
 		const result: MigrationResult = {
 			success: true, // Start with true, only set to false on error
 			version: {
@@ -503,6 +556,12 @@ dui:
 			//config: {},
 		};
 
+		//console.log('ConfigManager: migrateConfig: ', result);
+		if (result.version.from === '2.0.0') {
+			result.config = config as GlobalConfig;
+			return result;
+		}
+
 		try {
 			// Determine config type
 			const configType = this.determineConfigType(config);
@@ -513,6 +572,7 @@ dui:
 
 			// Perform migration
 			const migrated = await this.performMigration(config, configType);
+			//console.log('ConfigManager: migrateConfig migrated: ', migrated);
 
 			// Record changes
 			//result.changes = this.calculateChanges(config, migrated);
@@ -592,6 +652,7 @@ dui:
 			const validation = await this.validateConfig(config);
 			if (!validation.isValid) {
 				// If validation fails, return default config
+				console.log('Error: globalConfig is not valid; using default config: ', validation.errors);
 				return {
 					version: '2.0.0',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
@@ -611,25 +672,14 @@ dui:
 			return config;
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
+				console.log('creating globalConfig');
 				// Create and validate default config
-				const defaultConfig: GlobalConfig = {
-					version: '2.0.0',
-					myPersonsName: GlobalConfigDefaults.myPersonsName,
-					myAssistantsName: GlobalConfigDefaults.myAssistantsName,
-					noBrowser: GlobalConfigDefaults.noBrowser,
-					bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
-					bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
-					api: {
-						...ApiConfigDefaults,
-						llmKeys: {},
-					},
-					bui: BuiConfigDefaults,
-					cli: CliConfigDefaults,
-					dui: DuiConfigDefaults,
-				};
-				return defaultConfig;
+				await this.ensureGlobalConfig();
+				console.log('created globalConfig', this.globalConfig);
+				return this.globalConfig!;
+			} else {
+				throw error;
 			}
-			throw error;
 		}
 	}
 
@@ -642,6 +692,7 @@ dui:
 	 * @internal
 	 */
 	private async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
+		//console.log(`ConfigManager: loadProjectConfig for ${projectId}`);
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
@@ -659,6 +710,28 @@ dui:
 		} catch (error) {
 			const e = error as Error;
 			throw new Error(`Failed to load project config: ${e.message}`);
+		}
+	}
+
+	public async loadProjectConfigFromProjectRoot(projectRoot: string): Promise<ProjectConfig | null> {
+		const configPath = join(projectRoot, '.bb', 'config.yaml');
+
+		try {
+			const content = await Deno.readTextFile(configPath);
+			const config = parseYaml(content) as ProjectConfig;
+
+			// Validate loaded config
+			const validation = await this.validateConfig(config);
+			if (!validation.isValid) {
+				throw new Error(`Invalid configuration: ${validation.errors[0]?.message}`);
+			}
+
+			return config;
+		} catch (error) {
+			if (!(error instanceof Deno.errors.NotFound)) {
+				console.log(`ConfigManager: No project found for ${projectRoot}:  ${(error as Error).message}`);
+			}
+			return null;
 		}
 	}
 
@@ -771,18 +844,19 @@ dui:
 						throw new Error(`Migration failed: ${migrationResult.errors[0]?.message}`);
 					}
 					const migratedConfig = migrationResult.config as ProjectConfig;
-					console.log('ConfigManager: migrated config: ', migratedConfig);
+					//console.log('ConfigManager: migrated config: ', migratedConfig);
 
 					// Generate new project ID and create project
 					const projectId = migratedConfig.projectId;
 					const projectName = migratedConfig.name;
+					const projectType = migratedConfig.name;
 					// const projectId = await this.generateProjectId();
 					// const projectName = oldConfig.project?.name || 'Migrated Project';
 					// const projectType = oldConfig.project?.type || 'local';
 
 					// Save config and update registry
 					await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(migratedConfig)));
-					await this.updateProjectRegistry(projectId, projectName, projectRoot);
+					await this.updateProjectRegistry(projectId, projectName, projectRoot, projectType);
 
 					// Update caches
 					this.projectConfigs.set(projectId, migratedConfig);
@@ -905,6 +979,7 @@ dui:
 		type: 'global' | 'project',
 	): Promise<GlobalConfig | ProjectConfig> {
 		const version = this.determineConfigVersion(config);
+		//console.log('ConfigManager: performMigration: ', { type, version });
 
 		if (version === '2.0.0') {
 			return config as GlobalConfig | ProjectConfig; // Already at target version
@@ -1012,6 +1087,7 @@ dui:
 		// Generate a new project ID if one doesn't exist
 		const projectId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
 		const v1Config = config as ProjectConfigV1; // Type assertion for migration
+		console.log('ConfigManager: migrateProjectConfigV1toV2: ', { projectId });
 
 		return {
 			projectId,
@@ -1636,6 +1712,8 @@ export function mergeGlobalIntoProjectConfig(
 	projectConfig.settings.bui = deepMerge.withOptions(options, globalConfig.bui, projectConfig.settings.bui);
 	projectConfig.settings.cli = deepMerge.withOptions(options, globalConfig.cli, projectConfig.settings.cli);
 	projectConfig.settings.dui = deepMerge.withOptions(options, globalConfig.dui, projectConfig.settings.dui);
+	projectConfig.myPersonsName = globalConfig.myPersonsName;
+	projectConfig.myAssistantsName = globalConfig.myAssistantsName;
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));
 	return projectConfig;

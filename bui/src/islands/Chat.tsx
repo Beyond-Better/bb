@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { computed } from '@preact/signals';
+import { computed, Signal } from '@preact/signals';
 import { JSX } from 'preact';
 type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
-import type { ChatConfig, ConversationListState } from '../types/chat.types.ts';
+import { setConversation, useAppState } from '../hooks/useAppState.ts';
+import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
@@ -14,82 +15,49 @@ import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
 import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
-//import { VersionDisplay } from '../components/Version/VersionDisplay.tsx';
 import { useVersion } from '../hooks/useVersion.ts';
+import { useProjectState } from '../hooks/useProjectState.ts';
 
 import { ChatInput } from '../components/ChatInput.tsx';
-import { ConversationHeader } from '../components/ConversationHeader.tsx';
-import { ConversationMetadata } from '../components/ConversationMetadata.tsx';
+// ConversationHeader has been deprecated in favor of ChatMetadata
+// ProjectMetadata is now handled in routes/chat/index.tsx
+import { ConversationInfo } from '../components/ConversationInfo.tsx';
+import { ApiStatus } from 'shared/types.ts';
 import { ToolBar } from '../components/ToolBar.tsx';
-import type { Conversation, ConversationEntry, ConversationLogEntry, TokenUsage } from 'shared/types.ts';
+import type {
+	Conversation,
+	ConversationEntry,
+	ConversationLogEntry,
+	ConversationMetadata,
+	TokenUsage,
+} from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { VersionWarning } from '../components/Version/VersionWarning.tsx';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
-const getHashParams = () => {
-	if (!IS_BROWSER) return null;
-	// console.log('Chat: URL parameters:', {
-	// 	hash: window.location.hash,
-	// 	params: params ? Object.fromEntries(params.entries()) : null,
-	// });
-	const hash = window.location.hash.slice(1);
-	return new URLSearchParams(hash);
-};
-
-const getQueryParams = () => {
-	if (!IS_BROWSER) return null;
-	return new URLSearchParams(window.location.search);
-};
-
-const getUrlParams = () => {
-	// For backward compatibility, return hash params
-	return getHashParams();
-};
-
 const getConversationId = () => {
-	const params = getQueryParams();
+	const params = new URLSearchParams(globalThis.location.search);
 	return params?.get('conversationId') || null;
 };
 
-const getApiHostname = () => {
-	const params = getUrlParams();
-	return params?.get('apiHostname') || 'localhost';
-};
+// Project ID is now managed by useProjectState
 
-const getApiPort = () => {
-	const params = getUrlParams();
-	return params?.get('apiPort') || '3162';
-};
+interface ChatProps {
+	chatState: Signal<ChatState>;
+}
 
-const getApiUseTls = () => {
-	const params = getUrlParams();
-	return params?.get('apiUseTls') === 'true';
-};
-
-const getProjectId = () => {
-	const params = getUrlParams();
-	const projectIdFromHash = params?.get('projectId');
-	const projectIdFromStorage = IS_BROWSER ? localStorage.getItem('projectId') : null;
-	return projectIdFromHash || projectIdFromStorage || '.';
-};
-
-const getApiUrl = (hostname: string, port: string, useTls: boolean): string => {
-	return `${useTls ? 'https' : 'http'}://${hostname}:${port}`;
-};
-
-const getWsUrl = (hostname: string, port: string, useTls: boolean): string => {
-	return `${useTls ? 'wss' : 'ws'}://${hostname}:${port}/api/v1/ws`;
-};
-
-export default function Chat(): JSX.Element {
+export default function Chat({
+	chatState,
+}: ChatProps): JSX.Element {
+	//console.log('Chat: Component mounting');
 	// Initialize version checking
-	const { checkVersionCompatibility } = useVersion();
-	useEffect(() => {
-		checkVersionCompatibility(); // Set minimum required version
-	}, []);
+	const { versionCompatibility } = useVersion();
+	const appState = useAppState();
 
-	// State management
-	const [projectId, setProjectId] = useState(getProjectId);
+	// Get project state and selectedProjectId signal
+	const { state: projectState, selectedProjectId } = useProjectState(appState);
+	// Use projectId from selectedProjectId signal
+	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [input, setInput] = useState('');
@@ -126,7 +94,6 @@ export default function Chat(): JSX.Element {
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
-		projectId,
 
 		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
@@ -134,14 +101,21 @@ export default function Chat(): JSX.Element {
 		onOpen: () => console.log('ChatIsland: WebSocket opened'),
 	};
 
-	const [chatState, handlers, scrollIndicatorState] = useChatState(config);
-	const { versionState } = useVersion();
+	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
+	const [handlers, scrollIndicatorState] = useChatState(config, chatState);
+
+	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
 
 	// Update cache status every 30 seconds
 	useEffect(() => {
 		if (!IS_BROWSER) return;
+		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
+			console.log(
+				'Chat: status.lastApiCallTime effect - updateCacheStatus',
+				chatState.value.status.lastApiCallTime,
+			);
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -166,12 +140,6 @@ export default function Chat(): JSX.Element {
 	}, [chatState.value.status.lastApiCallTime]);
 
 	// Utility functions
-	const updateProjectId = (newDir: string) => {
-		setProjectId(newDir);
-		if (IS_BROWSER && newDir) {
-			localStorage.setItem('projectId', newDir);
-		}
-	};
 
 	const handleCopy = async (text: string) => {
 		try {
@@ -218,6 +186,7 @@ export default function Chat(): JSX.Element {
 
 	const deleteConversation = async (id: string) => {
 		try {
+			if (!projectId) throw new Error('projectId is undefined for delete conversation');
 			if (!chatState.value.apiClient) throw new Error('API client not initialized');
 			if (!chatState.value.status.isReady) {
 				throw new Error('WebSocket connection not ready. Please try again.');
@@ -233,16 +202,16 @@ export default function Chat(): JSX.Element {
 			// Update conversations list immediately
 			chatState.value = {
 				...chatState.value,
-				conversations: chatState.value.conversations.filter((conv) => conv.id !== id),
+				conversations: chatState.value.conversations.filter((conv: ConversationMetadata) => conv.id !== id),
 			};
 
 			// Handle currently selected conversation
 			if (id === chatState.value.conversationId) {
 				await handlers.clearConversation();
-				const url = new URL(window.location.href);
+				const url = new URL(globalThis.location.href);
 				url.searchParams.delete('conversationId');
-				const hash = window.location.hash;
-				window.history.pushState({}, '', url.pathname + url.search + hash);
+				const hash = globalThis.location.hash;
+				globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 			}
 		} catch (error) {
 			console.error('Failed to delete conversation:', error);
@@ -266,20 +235,22 @@ export default function Chat(): JSX.Element {
 	const selectConversation = async (id: string) => {
 		try {
 			await handlers.selectConversation(id);
+			setConversation(id);
+
 			// Update URL while preserving hash parameters
-			const url = new URL(window.location.href);
-			url.searchParams.set('conversationId', id);
-			const hash = window.location.hash;
-			window.history.pushState({}, '', url.pathname + url.search + hash);
+			//const url = new URL(globalThis.location.href);
+			//url.searchParams.set('conversationId', id);
+			//const hash = globalThis.location.hash;
+			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		} catch (error) {
 			console.error('Failed to switch conversation:', error);
 			setToastMessage('Failed to switch conversation');
 			setShowToast(true);
 			// Clear the conversation ID from URL on error
-			const url = new URL(window.location.href);
+			const url = new URL(globalThis.location.href);
 			url.searchParams.delete('conversationId');
-			const hash = window.location.hash;
-			window.history.pushState({}, '', url.pathname + url.search + hash);
+			const hash = globalThis.location.hash;
+			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		}
 	};
 
@@ -289,11 +260,12 @@ export default function Chat(): JSX.Element {
 		const handleCancelProcessing = () => {
 			handlers.cancelProcessing();
 		};
-		window.addEventListener('bb:cancel-processing', handleCancelProcessing);
-		return () => window.removeEventListener('bb:cancel-processing', handleCancelProcessing);
+		globalThis.addEventListener('bb:cancel-processing', handleCancelProcessing);
+		return () => globalThis.removeEventListener('bb:cancel-processing', handleCancelProcessing);
 	}, [handlers]);
 
 	useEffect(() => {
+		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		setInput('');
@@ -305,12 +277,13 @@ export default function Chat(): JSX.Element {
 			}
 		};
 
-		window.addEventListener('popstate', handlePopState);
-		return () => window.removeEventListener('popstate', handlePopState);
+		globalThis.addEventListener('popstate', handlePopState);
+		return () => globalThis.removeEventListener('popstate', handlePopState);
 	}, [chatState.value.conversationId]);
 
 	// Handle scroll behavior
 	useEffect(() => {
+		console.log('Chat: Scroll useEffect');
 		if (!messagesEndRef.current) return;
 
 		const messagesContainer = messagesEndRef.current;
@@ -322,14 +295,14 @@ export default function Chat(): JSX.Element {
 			const isAtBottom = distanceFromBottom <= 50;
 
 			// Only log if something is changing
-			if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
-				console.log('ChatIsland: Scroll state:', {
-					distanceFromBottom,
-					isAtBottom,
-					shouldAutoScroll,
-					scrollIndicator: scrollIndicatorState.value,
-				});
-			}
+			// if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
+			// 	console.log('ChatIsland: Scroll state:', {
+			// 		distanceFromBottom,
+			// 		isAtBottom,
+			// 		shouldAutoScroll,
+			// 		scrollIndicator: scrollIndicatorState.value,
+			// 	});
+			// }
 
 			// Always update scroll indicator UI based on current scroll position
 			handlers.updateScrollVisibility(isAtBottom);
@@ -357,6 +330,7 @@ export default function Chat(): JSX.Element {
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
+		console.log('Chat: Visibility useEffect');
 		if (!IS_BROWSER) return;
 
 		// Don't force scroll during processing - respect user's scroll position
@@ -377,15 +351,17 @@ export default function Chat(): JSX.Element {
 		};
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
-		window.addEventListener('beforeunload', handleBeforeUnload);
+		globalThis.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
+			console.log('Chat: Cleanup for useEffect');
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			window.removeEventListener('beforeunload', handleBeforeUnload);
+			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	}, [chatState.value.status.apiStatus]);
 
 	useEffect(() => {
+		console.log('Chat: Connection status useEffect');
 		let disconnectTimeoutId: number;
 		let reconnectTimeoutId: number;
 
@@ -395,10 +371,10 @@ export default function Chat(): JSX.Element {
 		}
 
 		// Handle disconnection
-		if (!chatState.value.status.isReady && !chatState.value.error) {
+		if (!chatState.value.status.isReady && !chatState.value.status.error) {
 			// Delay showing disconnection message
 			disconnectTimeoutId = setTimeout(() => {
-				if (!chatState.value.status.isReady && !chatState.value.error) {
+				if (!chatState.value.status.isReady && !chatState.value.status.error) {
 					setToastMessage('Connection lost. Attempting to reconnect...');
 					setShowToast(true);
 				}
@@ -418,12 +394,7 @@ export default function Chat(): JSX.Element {
 			if (disconnectTimeoutId) clearTimeout(disconnectTimeoutId);
 			if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
 		};
-	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.error]);
-
-	// console.log('ChatIsland: Indicator state:', {
-	// 	shouldAutoScroll,
-	// 	scrollIndicator: scrollIndicatorState.value,
-	// });
+	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.status.error]);
 
 	const conversationListState = computed<ConversationListState>(() => ({
 		conversations: chatState.value.conversations,
@@ -432,10 +403,10 @@ export default function Chat(): JSX.Element {
 	}));
 
 	return (
-		<div className='flex flex-col h-screen bg-gray-50 overflow-hidden'>
+		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
-				visible={chatState.value.status.isConnecting && !chatState.value.error}
+				visible={chatState.value.status.isConnecting && !chatState.value.status.error}
 				type='warning'
 			>
 				<div className='flex items-center justify-center'>
@@ -443,186 +414,198 @@ export default function Chat(): JSX.Element {
 				</div>
 			</AnimatedNotification>
 
-			<ConversationHeader
-				projectId={projectId}
-				onProjectIdChange={updateProjectId}
-				onClearConversation={handlers.clearConversation}
-				status={chatState.value.status}
-				conversationCount={chatState.value.conversations.length}
-				totalTokens={chatState.value.conversations.reduce(
-					(total, conv) =>
-						total +
-						(conv.tokenUsageConversation?.totalTokens ?? conv.tokenUsageConversation?.totalTokensTotal ??
-							0),
-					0,
-				)}
-				cacheStatus={chatState.value.status.cacheStatus}
-				apiClient={chatState.value.apiClient!}
-			/>
+			{/* ProjectMetadata is now handled in routes/chat/index.tsx */}
 
 			{/* Main content */}
-			<div className='flex-1 flex overflow-hidden'>
-				{/* Conversation list */}
-				<ConversationList
-					conversationListState={conversationListState}
-					onSelect={async (id) => {
-						await selectConversation(id);
-					}}
-					onNew={async () => {
-						const id = generateConversationId();
-						await selectConversation(id);
-					}}
-					onDelete={deleteConversation}
-				/>
-
-				{/* Chat area */}
-				<main className='flex-1 flex flex-col bg-white overflow-hidden'>
-					{/* Messages header */}
-					<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
-						<div className='flex items-center space-x-4'>
-							{/* Messages Icon */}
-							<div className='flex items-center text-gray-500'>
+			<div className='flex flex-1 min-h-0'>
+				{!projectId
+					? (
+						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
 								<svg
-									xmlns='http://www.w3.org/2000/svg'
+									className='w-12 h-12 mb-4 text-gray-400'
 									fill='none'
-									viewBox='0 0 24 24'
-									strokeWidth={1.5}
 									stroke='currentColor'
-									className='w-6 h-6'
+									viewBox='0 0 24 24'
 								>
 									<path
 										strokeLinecap='round'
 										strokeLinejoin='round'
-										d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+										strokeWidth={2}
+										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 									/>
 								</svg>
+								<p className='text-lg font-medium'>No Project selected</p>
+								<p className='text-sm'>Select a project to begin</p>
 							</div>
-
-							{/* Conversation Metadata */}
-							<ConversationMetadata
-								logEntries={chatState.value.logEntries}
-								conversationId={chatState.value.conversationId}
-								title={chatState.value.conversations.find((c) =>
-									c.id === chatState.value.conversationId
-								)?.title}
-							/>
-						</div>
-
-						<ToolBar
-							onSendMessage={async (message) => {
-								await handlers.sendConverse(message);
-							}}
-							chatInputRef={chatInputRef}
-							disabled={!chatState.value.status.isReady || isProcessing(chatState.value.status)}
-							projectId={projectId}
-							apiClient={chatState.value.apiClient!}
-						/>
-					</div>
-
-					{/* Messages */}
-					<div className='flex-1 relative overflow-hidden'>
-						{scrollIndicatorState.value.isVisible && (
-							<button
-								onClick={() => {
-									if (messagesEndRef.current) {
-										messagesEndRef.current.scrollTo({
-											top: messagesEndRef.current.scrollHeight,
-											behavior: 'smooth',
-										});
-										setShouldAutoScroll(true);
-										handlers.updateScrollVisibility(true);
-									}
+						</main>
+					)
+					: (
+						<>
+							{/* Conversation list */}
+							<ConversationList
+								conversationListState={conversationListState}
+								onSelect={async (id) => {
+									await selectConversation(id);
 								}}
-								className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
-									scrollIndicatorState.value.isAnswerMessage
-										? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
-										: 'bg-blue-500 hover:bg-blue-600'
-								} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
-								title='Scroll to bottom'
-							>
-								{scrollIndicatorState.value.unreadCount > 0 && (
-									<span
-										className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
-											scrollIndicatorState.value.isAnswerMessage
-												? 'text-green-500'
-												: 'text-blue-500'
-										} rounded-full`}
-									>
-										{scrollIndicatorState.value.unreadCount}
-									</span>
-								)}
-
-								<svg
-									xmlns='http://www.w3.org/2000/svg'
-									className='h-5 w-5'
-									viewBox='0 0 20 20'
-									fill='currentColor'
-								>
-									<path
-										fillRule='evenodd'
-										d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
-										clipRule='evenodd'
-									/>
-								</svg>
-							</button>
-						)}
-						<div
-							ref={messagesEndRef}
-							className='h-full overflow-y-auto px-6 py-8 space-y-6'
-						>
-							{chatState.value.logEntries.length === 0 && !isProcessing(chatState.value.status) && (
-								<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
-									<svg
-										className='w-12 h-12 mb-4 text-gray-400'
-										fill='none'
-										stroke='currentColor'
-										viewBox='0 0 24 24'
-									>
-										<path
-											strokeLinecap='round'
-											strokeLinejoin='round'
-											strokeWidth={2}
-											d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+								onNew={async () => {
+									const id = generateConversationId();
+									await selectConversation(id);
+								}}
+								onDelete={deleteConversation}
+							/>
+							{/* Chat area */}
+							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+								{/* ConversationInfo and ToolBar row */}
+								<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
+									<div className='flex items-center space-x-4'>
+										{/* Messages Icon */}
+										<div className='flex items-center text-gray-500'>
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												fill='none'
+												viewBox='0 0 24 24'
+												strokeWidth={1.5}
+												stroke='currentColor'
+												className='w-6 h-6'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
+												/>
+											</svg>
+										</div>
+										<ConversationInfo
+											logEntries={chatState.value.logEntries}
+											conversationId={chatState.value.conversationId || ''}
+											title={chatState.value.conversations.find((c: ConversationMetadata) =>
+												c.id === chatState.value.conversationId
+											)?.title}
 										/>
-									</svg>
-									<p className='text-lg font-medium'>No messages yet</p>
-									<p className='text-sm'>Type a message to begin</p>
+									</div>
+
+									<ToolBar
+										onSendMessage={async (message) => {
+											await handlers.sendConverse(message);
+										}}
+										chatInputRef={chatInputRef}
+										disabled={!chatState.value.status.isReady ||
+											isProcessing(chatState.value.status)}
+										projectId={projectId}
+										apiClient={chatState.value.apiClient!}
+									/>
 								</div>
-							)}
-							{chatState.value.logEntries.length > 0 &&
-								chatState.value.logEntries.map((logEntryData, index) => (
-									<MessageEntry
-										key={index}
-										logEntryData={transformEntry(logEntryData)}
-										index={index}
-										onCopy={handleCopy}
+
+								{/* Messages */}
+								<div className='flex-1 min-h-0 relative flex flex-col'>
+									{scrollIndicatorState.value.isVisible && (
+										<button
+											onClick={() => {
+												if (messagesEndRef.current) {
+													messagesEndRef.current.scrollTo({
+														top: messagesEndRef.current.scrollHeight,
+														behavior: 'smooth',
+													});
+													setShouldAutoScroll(true);
+													handlers.updateScrollVisibility(true);
+												}
+											}}
+											className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
+												scrollIndicatorState.value.isAnswerMessage
+													? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
+													: 'bg-blue-500 hover:bg-blue-600'
+											} text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105`}
+											title='Scroll to bottom'
+										>
+											{scrollIndicatorState.value.unreadCount > 0 && (
+												<span
+													className={`px-1.5 py-0.5 text-xs bg-white font-medium ${
+														scrollIndicatorState.value.isAnswerMessage
+															? 'text-green-500'
+															: 'text-blue-500'
+													} rounded-full`}
+												>
+													{scrollIndicatorState.value.unreadCount}
+												</span>
+											)}
+
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												className='h-5 w-5'
+												viewBox='0 0 20 20'
+												fill='currentColor'
+											>
+												<path
+													fillRule='evenodd'
+													d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'
+													clipRule='evenodd'
+												/>
+											</svg>
+										</button>
+									)}
+									<div
+										ref={messagesEndRef}
+										className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
+										style={{ maxWidth: '100%' }}
+									>
+										{chatState.value.logEntries.length === 0 &&
+											!isProcessing(chatState.value.status) &&
+											(
+												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+													<svg
+														className='w-12 h-12 mb-4 text-gray-400'
+														fill='none'
+														stroke='currentColor'
+														viewBox='0 0 24 24'
+													>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															strokeWidth={2}
+															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+														/>
+													</svg>
+													<p className='text-lg font-medium'>No messages yet</p>
+													<p className='text-sm'>Type a message to begin</p>
+												</div>
+											)}
+										{chatState.value.logEntries.length > 0 &&
+											chatState.value.logEntries.map((logEntryData, index) => (
+												<MessageEntry
+													key={index}
+													logEntryData={transformEntry(logEntryData)}
+													index={index}
+													onCopy={handleCopy}
+													apiClient={chatState.value.apiClient!}
+													projectId={projectId}
+													conversationId={chatState.value.conversationId!}
+												/>
+											))}
+									</div>
+								</div>
+
+								{/* Input area */}
+								<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
+									<ChatInput
+										value={input}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
-										conversationId={chatState.value.conversationId!}
+										textareaRef={chatInputRef}
+										onChange={(value) => {
+											if (!chatState.value.status.isReady) return;
+											setInput(value.slice(0, 10000));
+										}}
+										onSend={sendConverse}
+										status={chatState.value.status}
+										disabled={!chatState.value.status.isReady}
+										onCancelProcessing={handlers.cancelProcessing}
+										maxLength={10000}
 									/>
-								))}
-						</div>
-					</div>
-
-					{/* Input area */}
-					<div className='border-t border-gray-200 flex-shrink-0 bg-white'>
-						<ChatInput
-							value={input}
-							apiClient={chatState.value.apiClient!}
-							projectId={projectId}
-							textareaRef={chatInputRef}
-							onChange={(value) => {
-								if (!chatState.value.status.isReady) return;
-								setInput(value.slice(0, 10000));
-							}}
-							onSend={sendConverse}
-							status={chatState.value.status}
-							disabled={!chatState.value.status.isReady}
-							onCancelProcessing={handlers.cancelProcessing}
-							maxLength={10000}
-						/>
-					</div>
-				</main>
+								</div>
+							</main>
+						</>
+					)}
 			</div>
 
 			{/* Toast notifications */}
@@ -635,16 +618,13 @@ export default function Chat(): JSX.Element {
 				/>
 			)}
 
-			{/* VersionWarning display - currently being displayed via VersionDisplay in ConversationHeader */}
-			{/* versionState.value.versionCompatibility && !versionState.value.versionCompatibility.compatible && ( <VersionWarning apiClient={chatState.value.apiClient} /> ) */}
-
 			{/* Error display */}
 			<AnimatedNotification
-				visible={!!chatState.value.error}
+				visible={!!chatState.value.status.error}
 				type='error'
 			>
 				<div className='flex items-center justify-between'>
-					<span>{chatState.value.error}</span>
+					<span>{chatState.value.status.error}</span>
 					<button
 						onClick={() => handlers.clearError()}
 						className='ml-4 text-red-700 hover:text-red-800'

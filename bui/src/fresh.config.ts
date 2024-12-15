@@ -23,7 +23,7 @@ if (useTls) {
 		const projectRoot = await getProjectRootFromStartDir(startDir);
 		projectId = await getProjectId(projectRoot);
 	} catch (error) {
-		projectId = null;
+		projectId = undefined;
 	}
 
 	const cert = globalConfig.bui.tls.certPem ||

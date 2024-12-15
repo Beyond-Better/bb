@@ -23,12 +23,12 @@ export function VersionDisplay({ className = '', showWarning = true }: VersionDi
         <VersionStatusIndicator />
         <div className='flex items-center gap-1'>
           <div className='flex items-center gap-1'>
-            <span className='text-xs text-gray-500 dark:text-gray-400'>DUI</span>
+            <span className='text-xs text-gray-500 dark:text-gray-400'>App</span>
             <CompactVersion version={versionState.value.versionInfo.version} />
           </div>
           <span className='text-xs text-gray-400 dark:text-gray-500'>|</span>
           <div className='flex items-center gap-1'>
-            <span className='text-xs text-gray-500 dark:text-gray-400'>API</span>
+            <span className='text-xs text-gray-500 dark:text-gray-400'>Server</span>
             <span className='text-xs text-gray-500 dark:text-gray-400'>
               {(() => {
                 const version = versionState.value.versionInfo.binaryVersion;
@@ -83,7 +83,7 @@ export function VersionStatusIndicator({ className = '' }: VersionStatusIndicato
     statusTitle = 'Version compatible';
   } else if (!isInstalled) {
     statusColor = 'bg-red-500';
-    statusTitle = 'BB API not installed';
+    statusTitle = 'BB Server not installed';
   }
 
   return (

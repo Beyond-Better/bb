@@ -9,8 +9,8 @@ import type { ApiClient } from '../utils/apiClient.utils.ts';
 
 interface ConversationHeaderProps {
 	cacheStatus: 'active' | 'expiring' | 'inactive';
-	projectId: string;
-	onProjectIdChange: (dir: string) => void;
+	startDir: string;
+	onStartDirChange: (dir: string) => void;
 	onClearConversation: () => void;
 	status: ChatStatus;
 	conversationCount: number;
@@ -22,8 +22,8 @@ interface ConversationHeaderProps {
 
 export function ConversationHeader({
 	cacheStatus,
-	projectId,
-	onProjectIdChange,
+	startDir,
+	onStartDirChange,
 	onClearConversation,
 	status,
 	conversationCount,
@@ -49,10 +49,10 @@ export function ConversationHeader({
 						</label>
 						<input
 							type='text'
-							value={projectId}
+							value={startDir}
 							onChange={(e: Event) => {
 								const target = e.target as HTMLInputElement;
-								onProjectIdChange(target.value);
+								onStartDirChange(target.value);
 								onClearConversation();
 							}}
 							className='bg-gray-700 text-white px-2 py-1.5 rounded-md w-[400px] focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm placeholder-gray-400 border border-gray-600 hover:border-gray-500 transition-colors'

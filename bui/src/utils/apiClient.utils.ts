@@ -2,6 +2,9 @@ import type { JSX } from 'preact';
 
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { DisplaySuggestion } from '../types/suggestions.types.ts';
+import type { Project } from '../hooks/useProjectState.ts';
+import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
+import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 
 export interface ApiStatus {
 	status: string;
@@ -38,16 +41,6 @@ interface ConversationResponse {
 
 export interface ConversationListResponse {
 	conversations: ConversationMetadata[];
-}
-
-export interface FileSuggestionsResponse {
-	suggestions: Array<{
-		path: string;
-		isDirectory: boolean;
-		size?: number;
-		modified?: string;
-	}>;
-	hasMore: boolean;
 }
 
 export interface LogEntryFormatResponse {
@@ -87,7 +80,7 @@ export interface ApiUpgradeResponse {
 	success: boolean;
 	currentVersion: string;
 	latestVersion: string;
-	needsUpdate: boolean; // We just updated
+	needsUpdate: boolean;
 	needsSudo: boolean;
 }
 
@@ -147,6 +140,85 @@ export class ApiClient {
 		}, allowedCodes);
 	}
 
+	async put<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
+		return this.request<T>(endpoint, {
+			method: 'PUT',
+			body: JSON.stringify(data),
+		}, allowedCodes);
+	}
+
+	// Project Management Methods
+	async listProjects(): Promise<{ projects: Project[] } | null> {
+		return this.get<{ projects: Project[] }>('/api/v1/project');
+	}
+
+	async getProject(projectId: string): Promise<{ project: Project } | null> {
+		return this.get<{ project: Project }>(`/api/v1/project/${projectId}`, [404]);
+	}
+
+	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: Project } | null> {
+		return this.post<{ project: Project }>('/api/v1/project', project);
+	}
+
+	async updateProject(
+		projectId: string,
+		updates: Partial<Omit<Project, 'projectId'>>,
+	): Promise<{ project: Project } | null> {
+		return this.put<{ project: Project }>(`/api/v1/project/${projectId}`, updates);
+	}
+
+	async deleteProject(projectId: string): Promise<void> {
+		await this.delete(`/api/v1/project/${projectId}`, [404]);
+	}
+
+	async migrateAndAddProject(projectPath: string): Promise<Project | null> {
+		return this.post('/api/v1/project/migrate', { projectPath });
+	}
+
+	async findV1Projects(searchDir: string): Promise<{ projects: string[] } | null> {
+		return this.get<{ projects: string[] }>(`/api/v1/project/find?searchDir=${encodeURIComponent(searchDir)}`);
+	}
+
+	// File Management Methods
+	async suggestFiles(partialPath: string, projectId: string): Promise<FileSuggestionsResponse | null> {
+		return this.post<FileSuggestionsResponse>(
+			'/api/v1/files/suggest',
+			{ partialPath, projectId },
+		);
+	}
+
+	async suggestFilesForPath(partialPath: string, rootPath: string, options: {
+		limit?: number;
+		caseSensitive?: boolean;
+		type?: 'all' | 'file' | 'directory';
+	} = {}): Promise<FileSuggestionsResponse | null> {
+		return this.post<FileSuggestionsResponse>(
+			'/api/v1/files/suggest-for-path',
+			{
+				partialPath,
+				rootPath,
+				...options,
+			},
+		);
+	}
+
+	async listDirectory(
+		dirPath: string,
+		options: { only?: 'files' | 'directories'; matchingString?: string; includeHidden?: boolean } = {},
+	): Promise<ListDirectoryResponse | null> {
+		try {
+			return await this.post<ListDirectoryResponse>('/api/v1/files/list-directory', {
+				dirPath,
+				...options,
+			});
+			//console.log(`APIClient: List directory for ${dirPath}`, response);
+			//return response;
+		} catch (error) {
+			console.log(`APIClient: List directory failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
 	// Conversation Management Methods
 	async createConversation(id: string, projectId: string): Promise<ConversationResponse | null> {
 		return this.get<ConversationResponse>(
@@ -186,13 +258,6 @@ export class ApiClient {
 		});
 		if (!response.ok) return null;
 		return response.text();
-	}
-
-	async suggestFiles(partialPath: string, projectId: string): Promise<FileSuggestionsResponse | null> {
-		return this.post<FileSuggestionsResponse>(
-			'/api/v1/files/suggest',
-			{ partialPath, projectId },
-		);
 	}
 
 	async getDiagnostics(): Promise<DiagnosticResponse | null> {

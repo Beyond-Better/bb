@@ -9,11 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added binary version display to DUI header
-  - Shows installed BB API version
-  - Shows "not installed" placeholder when binary is missing
-  - Uses Tauri's Command API to safely check binary version
-
 
 ### Changed
 
@@ -22,22 +17,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [0.5.0-trial] - 2024-12-07
+## [0.5.1] - 2024-12-11
+
+### Changed
+
+- Conversation counts moved to metadata bar
+
+### Fixed
+
+- BB Desktop logs to standard log diretory
+- BB Desktop looks for binaries in expected location
+- Browser handles project selection
+- Changing conversations is fixed
+
+
+## [0.5.0] - 2024-12-09
 
 ### Added
 
+- Multi-page design for browser interface
+- Automatic download of BB app
 - App to manage the BB Server
   - Auto-install/upgrade of bb and bb-api
   - Shows installed BB API version
+- Automatic conversation summary
 
 ### Changed
 
 - Global and Project configs schema (v2)
 - Use projectId instead of startDir to identify projects
+- Moved prompt cache points to all user messages, not just request_file tool use
 
 ### Fixed
 
-- typeguards for tool results
+- Typeguards for tool results
+- Lots of display fixes for missing metadata and token usage
 
 
 ## [0.4.1] - 2024-12-02

@@ -10,7 +10,9 @@
     "npm:@tauri-apps/api@2": "2.1.1",
     "npm:@tauri-apps/api@^2.1.1": "2.1.1",
     "npm:@tauri-apps/cli@2": "2.1.0",
+    "npm:@tauri-apps/plugin-fs@2": "2.0.3",
     "npm:@tauri-apps/plugin-shell@2": "2.0.1",
+    "npm:ansi_up@^6.0.2": "6.0.2",
     "npm:autoprefixer@*": "10.4.20_postcss@8.4.47",
     "npm:autoprefixer@^10.4.16": "10.4.20_postcss@8.4.47",
     "npm:babel-plugin-transform-hook-names@^1.0.2": "1.0.2_@babel+core@7.26.0",
@@ -481,6 +483,12 @@
         "@tauri-apps/cli-win32-x64-msvc"
       ]
     },
+    "@tauri-apps/plugin-fs@2.0.3": {
+      "integrity": "sha512-3Xv9cg5krj/2gSo1HFn9GbKUE0keh+DMx7O+hQeSzg1T4yGY5Fv/+yBISmrPa2j9thi3qcjgPj8PnMH4rbl/Dw==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
     "@tauri-apps/plugin-shell@2.0.1": {
       "integrity": "sha512-akU1b77sw3qHiynrK0s930y8zKmcdrSD60htjH+mFZqv5WaakZA/XxHR3/sF1nNv9Mgmt/Shls37HwnOr00aSw==",
       "dependencies": [
@@ -504,6 +512,9 @@
     },
     "ansi-styles@6.2.1": {
       "integrity": "sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug=="
+    },
+    "ansi_up@6.0.2": {
+      "integrity": "sha512-3G3vKvl1ilEp7J1u6BmULpMA0xVoW/f4Ekqhl8RTrJrhEBkonKn5k3bUc5Xt+qDayA6iDX0jyUh3AbZjB/l0tw=="
     },
     "any-promise@1.3.0": {
       "integrity": "sha512-7UvmKalWRt1wgjL1RrGxoSJW/0QZFIegpeGvZG9kjp8vrRu55XTHbwnqq2GpXm9uLbcuhxm3IqX9OB4MZR1b2A=="
@@ -1257,7 +1268,9 @@
         "npm:@tailwindcss/typography@~0.5.10",
         "npm:@tauri-apps/api@^2.1.1",
         "npm:@tauri-apps/cli@2",
+        "npm:@tauri-apps/plugin-fs@2",
         "npm:@tauri-apps/plugin-shell@2",
+        "npm:ansi_up@^6.0.2",
         "npm:autoprefixer@^10.4.16",
         "npm:babel-plugin-transform-hook-names@^1.0.2",
         "npm:postcss@^8.4.32",

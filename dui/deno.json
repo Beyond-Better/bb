@@ -6,6 +6,7 @@
     "tauri": "deno run -A npm:@tauri-apps/cli"
   },
   "imports": {
+    "ansi_up": "https://esm.sh/ansi_up",
     "preact": "npm:preact",
     "preact/": "npm:preact/",
     "@preact/signals": "npm:@preact/signals",

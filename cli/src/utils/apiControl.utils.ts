@@ -9,16 +9,17 @@ import {
 	removePid,
 	savePid,
 } from '../utils/apiStatus.utils.ts';
-import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
+import { getProjectRoot } from 'shared/dataDir.ts';
 import { dirname, join } from '@std/path';
 import { isCompiledBinary } from '../utils/environment.utils.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { watchLogs } from 'shared/logViewer.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import type { ApiConfig } from 'shared/config/v2/types.ts';
+import { apiFileLogPath } from 'api/utils/fileLogger.ts';
 
 export async function startApiServer(
-	projectId: string,
+	projectId: string | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,
@@ -30,33 +31,33 @@ export async function startApiServer(
 	await reconcilePidState(projectId);
 	const configManager = await ConfigManagerV2.getInstance();
 	const globalConfig = await configManager.getGlobalConfig();
-	const projectConfig = await configManager.getProjectConfig(projectId);
+	let apiConfig: ApiConfig;
+	if (projectId) {
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+	} else {
+		apiConfig = globalConfig.api;
+	}
 	const status = await checkApiStatus(projectId);
 	if (status.apiResponds) {
 		logger.info('BB API server is already running and responding.');
 		const pid = await getPid(projectId);
-		const bbDir = await getBbDir(projectId);
-		const apiLogFileName = apiLogFile || projectConfig.settings.api?.logFile || 'api.log';
-		const apiLogFilePath = join(bbDir, apiLogFileName);
-		const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
-		const apiPort = projectConfig.settings.api?.port || 3162;
-		const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-			? projectConfig.settings.api.tls.useTls
-			: true;
+		const apiLogFileName = apiLogFile || apiConfig.logFile || 'api.log';
+		const apiLogFilePath = await apiFileLogPath(apiLogFileName, projectId);
+		const apiHostname = apiConfig.hostname || 'localhost';
+		const apiPort = apiConfig.port || 3162;
+		const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 		return { pid: pid || 0, apiLogFilePath, listen: `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}` };
 	}
 
-	const bbDir = await getBbDir(projectId);
-	const projectRoot = await getProjectRoot(projectId);
-	const apiLogFileName = apiLogFile || projectConfig.settings.api?.logFile || 'api.log';
-	const apiLogFilePath = join(bbDir, apiLogFileName);
-	const logLevel = apiLogLevel || projectConfig.settings.api?.logLevel || 'info';
-	if (!apiHostname) apiHostname = `${projectConfig.settings.api?.hostname}`;
-	if (!apiPort) apiPort = `${projectConfig.settings.api?.port}`;
+	const projectRoot = projectId ? await getProjectRoot(projectId) : Deno.cwd();
+	const apiLogFileName = apiLogFile || apiConfig.logFile || 'api.log';
+	const apiLogFilePath = await apiFileLogPath(apiLogFileName, projectId);
+	const logLevel = apiLogLevel || apiConfig.logLevel || 'info';
+	if (!apiHostname) apiHostname = `${apiConfig.hostname}`;
+	if (!apiPort) apiPort = `${apiConfig.port}`;
 	if (typeof apiUseTls === 'undefined') {
-		apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-			? projectConfig.settings.api.tls.useTls
-			: true;
+		apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 	}
 	const apiHostnameArgs = apiHostname ? ['--hostname', apiHostname] : [];
 	const apiPortArgs = apiPort ? ['--port', apiPort] : [];
@@ -121,7 +122,7 @@ export async function startApiServer(
 	await delay(500);
 
 	const pid = process.pid;
-	await savePid(projectId, pid);
+	await savePid(pid, projectId);
 
 	if (!follow) {
 		// Unref the child process to allow the parent to exit
@@ -132,7 +133,7 @@ export async function startApiServer(
 	return { pid, apiLogFilePath, listen: `${apiHostname}:${apiPort}` };
 }
 
-export async function stopApiServer(projectId: string): Promise<void> {
+export async function stopApiServer(projectId?: string): Promise<void> {
 	const status = await checkApiStatus(projectId);
 
 	if (!status.pidExists && !status.apiResponds) {
@@ -163,7 +164,7 @@ export async function stopApiServer(projectId: string): Promise<void> {
 }
 
 export async function restartApiServer(
-	projectId: string,
+	projectId: string | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,
@@ -177,7 +178,7 @@ export async function restartApiServer(
 	return await startApiServer(projectId, apiHostname, apiPort, apiUseTls, apiLogLevel, apiLogFile);
 }
 
-export async function followApiLogs(apiLogFilePath: string, projectId: string): Promise<void> {
+export async function followApiLogs(apiLogFilePath: string, projectId?: string): Promise<void> {
 	try {
 		// Set up SIGINT (Ctrl+C) handler
 		const ac = new AbortController();
@@ -204,7 +205,7 @@ export async function followApiLogs(apiLogFilePath: string, projectId: string): 
 	}
 }
 
-export async function getApiStatus(projectId: string): Promise<{
+export async function getApiStatus(projectId?: string): Promise<{
 	running: boolean;
 	pid?: number;
 	apiUrl?: string;
@@ -213,12 +214,17 @@ export async function getApiStatus(projectId: string): Promise<{
 	error?: string;
 }> {
 	const configManager = await ConfigManagerV2.getInstance();
-	const projectConfig = await configManager.getProjectConfig(projectId);
-	const apiHostname = projectConfig.settings.api?.hostname || 'localhost';
-	const apiPort = projectConfig.settings.api?.port || 3162;
-	const apiUseTls = typeof projectConfig.settings.api?.tls?.useTls !== 'undefined'
-		? projectConfig.settings.api.tls.useTls
-		: true;
+	const globalConfig = await configManager.getGlobalConfig();
+	let apiConfig: ApiConfig;
+	if (projectId) {
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+	} else {
+		apiConfig = globalConfig.api;
+	}
+	const apiHostname = apiConfig.hostname || 'localhost';
+	const apiPort = apiConfig.port || 3162;
+	const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 	const processStatus = await checkApiStatus(projectId);
 	const status: {
 		running: boolean;
