@@ -154,9 +154,10 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOSX_DEPLOYMENT_TARGET: "10.13"
         with:
           projectPath: './dui'
-          args: --target ${{ matrix.target }}
+          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
 
       # Process and upload build artifacts
       - name: Process build artifacts
