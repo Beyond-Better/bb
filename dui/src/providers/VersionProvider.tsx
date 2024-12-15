@@ -38,19 +38,41 @@ export function VersionProvider({ children }: VersionProviderProps): JSX.Element
 		console.log('[VersionProvider] Starting version check');
 		setIsCheckingUpdates(true);
 		try {
+			console.log('[VersionProvider] Starting version info check');
 			// Get version info from Tauri command
 			const versionInfo = await invoke<VersionInfo>('get_version_info');
 			console.log('[VersionProvider] Version info:', versionInfo);
 
 			// Get binary version
-			const binaryVersion = await invoke<string | null>('get_binary_version');
-			versionInfo.binaryVersion = binaryVersion;
-			console.log('[VersionProvider] Binary version:', binaryVersion);
+			try {
+				const binaryVersion = await invoke<string | null>('get_binary_version');
+				versionInfo.binaryVersion = binaryVersion;
+				console.log('[VersionProvider] Binary version:', binaryVersion);
+			} catch (error) {
+				console.log('[VersionProvider] Binary check failed:', error);
+				versionInfo.binaryVersion = null;
+			}
 
 			// Get compatibility info from Tauri command
-			const versionCompatibility = await invoke<VersionCompatibility>('check_version_compatibility');
-			console.log('[VersionProvider] Version compatibility:', versionCompatibility);
+			let versionCompatibility: VersionCompatibility;
+			try {
+				versionCompatibility = await invoke<VersionCompatibility>('check_version_compatibility');
+				console.log('[VersionProvider] Version compatibility:', versionCompatibility);
+			} catch (error) {
+				console.log('[VersionProvider] Compatibility check failed:', error);
+				versionCompatibility = {
+					compatible: false,
+					currentVersion: 'not installed',
+					requiredVersion: '0.0.0',
+					updateAvailable: false,
+					latestVersion: null
+				};
+			}
 
+			console.log('[VersionProvider] Setting version state with:', {
+				versionInfo,
+				versionCompatibility
+			});
 			setVersionState({
 				value: {
 					versionInfo,
@@ -58,7 +80,9 @@ export function VersionProvider({ children }: VersionProviderProps): JSX.Element
 					error: undefined,
 				},
 			});
+			console.log('[VersionProvider] State updated successfully');
 		} catch (error) {
+			console.log('[VersionProvider] Error in version check:', error);
 			console.error('[VersionProvider] Error checking version:', error);
 			setVersionState({
 				value: {
