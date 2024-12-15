@@ -410,7 +410,6 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		await createBbIgnore(projectPath);
 		console.log('createProject: created ignore file');
 
-
 		if (
 			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
 			createProjectData.myAssistantsName !== globalConfig.myAssistantsName

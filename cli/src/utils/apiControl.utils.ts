@@ -9,18 +9,17 @@ import {
 	removePid,
 	savePid,
 } from '../utils/apiStatus.utils.ts';
-import { getBbDir, getProjectRoot } from 'shared/dataDir.ts';
+import { getProjectRoot } from 'shared/dataDir.ts';
 import { dirname, join } from '@std/path';
 import { isCompiledBinary } from '../utils/environment.utils.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { watchLogs } from 'shared/logViewer.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ApiConfig } from 'shared/config/v2/types.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { apiFileLogPath } from 'api/utils/fileLogger.ts';
 
 export async function startApiServer(
-	projectId: string|undefined,
+	projectId: string | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,
@@ -51,7 +50,7 @@ export async function startApiServer(
 		return { pid: pid || 0, apiLogFilePath, listen: `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}` };
 	}
 
-	const projectRoot = projectId ?  await getProjectRoot(projectId) : Deno.cwd();
+	const projectRoot = projectId ? await getProjectRoot(projectId) : Deno.cwd();
 	const apiLogFileName = apiLogFile || apiConfig.logFile || 'api.log';
 	const apiLogFilePath = await apiFileLogPath(apiLogFileName, projectId);
 	const logLevel = apiLogLevel || apiConfig.logLevel || 'info';
@@ -165,7 +164,7 @@ export async function stopApiServer(projectId?: string): Promise<void> {
 }
 
 export async function restartApiServer(
-	projectId: string|undefined,
+	projectId: string | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,
@@ -215,7 +214,7 @@ export async function getApiStatus(projectId?: string): Promise<{
 	error?: string;
 }> {
 	const configManager = await ConfigManagerV2.getInstance();
-		const globalConfig = await configManager.getGlobalConfig();
+	const globalConfig = await configManager.getGlobalConfig();
 	let apiConfig: ApiConfig;
 	if (projectId) {
 		const projectConfig = await configManager.getProjectConfig(projectId);
@@ -225,9 +224,7 @@ export async function getApiStatus(projectId?: string): Promise<{
 	}
 	const apiHostname = apiConfig.hostname || 'localhost';
 	const apiPort = apiConfig.port || 3162;
-	const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined'
-		? apiConfig.tls.useTls
-		: false;
+	const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 	const processStatus = await checkApiStatus(projectId);
 	const status: {
 		running: boolean;

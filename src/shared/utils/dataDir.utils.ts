@@ -59,14 +59,12 @@ export async function getGlobalConfigDir(): Promise<string> {
 	return globalConfigDir;
 }
 
-
 export async function getBbDataDir(projectId: string): Promise<string> {
 	const bbDir = await getBbDir(projectId);
 	const repoCacheDir = join(bbDir, 'data');
 	await ensureDir(repoCacheDir);
 	return repoCacheDir;
 }
-
 
 export async function createBbDir(projectRoot: string): Promise<void> {
 	const bbDir = join(projectRoot, '.bb');

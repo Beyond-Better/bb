@@ -36,7 +36,7 @@ export const conversationChat = new Command()
 			const startDir = Deno.cwd();
 			const projectRoot = await getProjectRootFromStartDir(startDir);
 			projectId = await getProjectId(projectRoot);
-		} catch (error) {
+		} catch (_error) {
 			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 			console.error('Not a valid project directory. Run `bb init`.');
 			Deno.exit(1);

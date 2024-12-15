@@ -3,7 +3,6 @@ import { join } from '@std/path';
 //import type { WizardAnswers } from 'shared/configManager.ts';
 import { logger } from 'shared/logger.ts';
 
-
 /*
 export async function createDefaultConfig(projectRoot: string, wizardAnswers: WizardAnswers): Promise<void> {
 	const configManager = await ConfigManagerV2.getInstance();

@@ -29,7 +29,7 @@
 		"marked": "https://esm.sh/marked@14.0.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",
 		"deno_dom": "jsr:@b-fuze/deno-dom@^0.1.48/wasm-noinit",
-		"dir": "https://deno.land/x/dir/mod.ts",
+		"dir": "https://deno.land/x/dir@1.5.2/mod.ts",
 
 		"$fresh/": "https://deno.land/x/fresh@1.7.3/",
 		"preact": "https://esm.sh/preact@10.22.0",

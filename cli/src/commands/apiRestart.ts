@@ -22,7 +22,7 @@ export const apiRestart = new Command()
 			const startDir = Deno.cwd();
 			const projectRoot = await getProjectRootFromStartDir(startDir);
 			projectId = await getProjectId(projectRoot);
-		} catch (error) {
+		} catch (_error) {
 			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 			projectId = undefined;
 		}
