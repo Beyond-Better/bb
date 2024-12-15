@@ -27,9 +27,7 @@ jobs:
           - os: windows-latest
             target: x86_64-pc-windows-msvc
           - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
+            target: universal-apple-darwin
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
@@ -80,16 +78,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS builds
+          # macOS universal build
           - os: macos-latest
-            target: "aarch64-apple-darwin"
-            arch: "aarch64"
-            name: "Apple Silicon"
-            platform: "macos"
-          - os: macos-latest
-            target: "x86_64-apple-darwin"
-            arch: "x86_64"
-            name: "Intel"
+            target: "universal-apple-darwin"
+            arch: "universal"
+            name: "Universal"
             platform: "macos"
           # Linux builds
           - os: ubuntu-latest
@@ -264,8 +257,7 @@ jobs:
                - Run the installer and follow the prompts
 
                macOS:
-               - Apple Silicon (M1/M2): Download the apple-silicon.dmg
-               - Intel: Download the intel.dmg
+               - Universal (Intel & Apple Silicon): Download the universal.dmg
                - Open the .dmg file
                - Drag the Beyond Better app to your Applications folder
                - When first launching, you'll need to:
@@ -319,7 +311,7 @@ jobs:
           }
 
           # Upload binary artifacts
-          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
+          for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc universal-apple-darwin; do
             echo "Processing binary target: $target"
             cd "bb-$target"
             
@@ -338,7 +330,7 @@ jobs:
           done
 
           # Upload DUI artifacts
-          for platform_arch in "macos-x86_64" "macos-aarch64" "linux-x86_64" "windows-x86_64"; do
+          for platform_arch in "macos-universal" "linux-x86_64" "windows-x86_64"; do
             echo "Processing DUI platform/arch: $platform_arch"
             platform="${platform_arch%%-*}"
             arch="${platform_arch#*-}"
@@ -347,12 +339,9 @@ jobs:
             ls -la "dui-${platform}-${arch}" || true
             
             case "$platform_arch" in
-              "macos-x86_64") 
+              "macos-universal") 
                 platform_name="macos"
-                arch_name="intel" ;;
-              "macos-aarch64")
-                platform_name="macos"
-                arch_name="apple-silicon" ;;
+                arch_name="universal" ;;
               "linux-x86_64")
                 platform_name="linux"
                 arch_name="x64" ;;
@@ -361,20 +350,7 @@ jobs:
                 arch_name="x64" ;;
             esac
             
-            case "$platform_arch" in
-              "macos-x86_64") 
-                platform_name="macos"
-                arch_name="intel" ;;
-              "macos-aarch64")
-                platform_name="macos"
-                arch_name="apple-silicon" ;;
-              "linux-x86_64")
-                platform_name="linux"
-                arch_name="x64" ;;
-              "windows-x86_64")
-                platform_name="windows"
-                arch_name="x64" ;;
-            esac
+
 
             if [ "$platform" = "macos" ]; then
               # Upload DMG files
