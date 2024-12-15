@@ -18,6 +18,7 @@ const initialProgress: InstallProgress = {
 
 export function VersionUpgradePrompt(): JSX.Element {
   const { versionState, checkForUpdates, isCheckingUpdates } = useContext(VersionContext);
+  console.log('[VersionUpgradePrompt] Version state:', versionState);
   const [upgradeState, setUpgradeState] = useState<UpgradeState>({
     isInstalling: false,
     progress: initialProgress,
@@ -104,11 +105,14 @@ export function VersionUpgradePrompt(): JSX.Element {
   const { versionInfo, versionCompatibility } = versionState.value;
 
   // Loading state
+  console.log('[VersionUpgradePrompt] Checking updates:', isCheckingUpdates);
   if (isCheckingUpdates) {
     return null;
   }
 
   // Wait for data
+  console.log('[VersionUpgradePrompt] Version info:', versionInfo);
+  console.log('[VersionUpgradePrompt] Version compatibility:', versionCompatibility);
   if (!versionInfo || !versionCompatibility) {
     return null;
   }
@@ -136,8 +140,10 @@ export function VersionUpgradePrompt(): JSX.Element {
     );
   };
 
-  // Not installed
-  if (!versionInfo.binaryVersion) {
+  // Not installed (null or undefined binaryVersion)
+  console.log('[VersionUpgradePrompt] Binary version:', versionInfo.binaryVersion);
+  if (versionInfo.binaryVersion === null || versionInfo.binaryVersion === undefined) {
+    console.log('[VersionUpgradePrompt] Showing installation prompt');
     return (
       <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-4">
         <div className="flex items-start">

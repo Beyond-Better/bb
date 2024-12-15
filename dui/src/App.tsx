@@ -17,7 +17,8 @@ function App() {
 	const [isInitialized, setIsInitialized] = useState(false);
 
 	const checkAndInitialize = async () => {
-		// Note: Config and binary checks removed until Tauri commands are implemented
+		// VersionProvider handles all version and binary checks
+		// Just set initialization status
 		setIsInitialized(true);
 	};
 
