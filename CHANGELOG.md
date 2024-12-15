@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+
+## [0.5.4] - 2024-12-15
+
+### Fixed
+
+- workflow syntax
+
+
 ## [0.5.3] - 2024-12-15
 
 ### Fixed
