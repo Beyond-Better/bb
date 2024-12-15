@@ -16,6 +16,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.5.3] - 2024-12-15
+
+### Fixed
+
+- GitHub workflow version handling
+
+
+## [0.5.2] - 2024-12-15
+
+### Added
+
+- Chat page added to desktop app (when using api in secure/tls mode)
+- Debug mode in desktop app to allow using localhost browser interface
+
+### Changed
+
+- Desktop app changed to universal binary for macOS
+
+### Fixed
+
+- projectId (& config) is optional for many CLI commands
+- API starts automatically when launching desktop app
+- Config in desktop app verified before starting API
+- API url generation in browser app
+- Default values set for global config
+
 
 ## [0.5.1] - 2024-12-11
 
