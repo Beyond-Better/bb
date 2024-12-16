@@ -40,3 +40,10 @@ tar = "0.4"
 zip = "0.6"
 log = "0.4"
 env_logger = "0.10"
+windows-sys = { version = "0.48", features = [
+    "Win32_Foundation",
+    "Win32_System_Threading",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_Security",
+    "Win32_System_ProcessStatus"
+] }

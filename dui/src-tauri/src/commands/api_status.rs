@@ -55,7 +55,6 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 }
 
 fn get_pid_file_path() -> Result<PathBuf, String> {
-	// println!("Using runtime PID at: {}", get_app_runtime_dir()?.join(PID_FILE_NAME).display());
     Ok(get_app_runtime_dir()?.join(PID_FILE_NAME))
 }
 
@@ -96,12 +95,22 @@ fn check_process_exists(pid: i32) -> bool {
 
 #[cfg(target_family = "windows")]
 fn check_process_exists(pid: i32) -> bool {
-    use std::process::Command;
-    Command::new("tasklist")
-        .args(&["/FI", &format!("PID eq {}", pid), "/NH"])
-        .output()
-        .map(|output| String::from_utf8_lossy(&output.stdout).contains(&pid.to_string()))
-        .unwrap_or(false)
+    use windows_sys::Win32::Foundation::{HANDLE, CloseHandle, STILL_ACTIVE};
+    use windows_sys::Win32::System::Threading::{OpenProcess, GetExitCodeProcess};
+    use windows_sys::Win32::System::Diagnostics::Debug::PROCESS_QUERY_LIMITED_INFORMATION;
+
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid as u32);
+        if handle == 0 {
+            return false;
+        }
+
+        let mut exit_code: u32 = 0;
+        let result = GetExitCodeProcess(handle, &mut exit_code);
+        CloseHandle(handle);
+
+        result != 0 && exit_code == STILL_ACTIVE
+    }
 }
 
 async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {

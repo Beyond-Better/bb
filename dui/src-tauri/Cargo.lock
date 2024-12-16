@@ -157,6 +157,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tempfile",
  "tokio",
+ "windows-sys 0.48.0",
  "zip",
 ]
 
