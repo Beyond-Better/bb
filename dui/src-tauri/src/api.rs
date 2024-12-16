@@ -1,8 +1,9 @@
-use std::process::Command;
 use log::{debug, info, error, warn};
 use std::path::PathBuf;
 use serde::Serialize;
 use std::fs;
+use dirs;
+use libc;
 use crate::config::read_global_config;
 use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
 
@@ -13,10 +14,14 @@ use std::ffi::OsStr;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Threading::{
     PROCESS_INFORMATION, STARTUPINFOW, CreateProcessW,
-    NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW, STARTF_USESHOWWINDOW,
+    NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW,
+    OpenProcess, TerminateProcess,
 };
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Foundation::{CloseHandle, BOOL, TRUE};
+use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+
+#[cfg(not(target_os = "windows"))]
+use std::process::Command;
 
 pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
     #[cfg(target_os = "macos")]
@@ -159,7 +164,7 @@ fn verify_api_requirements() -> Result<(), String> {
 fn create_process_windows(
     executable_path: PathBuf,
     args: Vec<String>,
-) -> Result<(u32, BOOL), String> {
+) -> Result<u32, String> {
     use std::ptr::null_mut;
     
     // Convert the command line to UTF-16 for Windows API
@@ -174,7 +179,7 @@ fn create_process_windows(
 
     let mut startup_info: STARTUPINFOW = unsafe { std::mem::zeroed() };
     startup_info.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
-    startup_info.dwFlags = STARTF_USESHOWWINDOW;
+    startup_info.dwFlags = 1; // STARTF_USESHOWWINDOW
     startup_info.wShowWindow = 0; // SW_HIDE
 
     let mut process_info: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
@@ -186,7 +191,7 @@ fn create_process_windows(
             wide_command.as_ptr() as *mut u16,
             null_mut(), // Process security attributes
             null_mut(), // Thread security attributes
-            0,         // Don't inherit handles
+            FALSE,     // Don't inherit handles
             CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
             null_mut(), // Use parent's environment
             null_mut(), // Use parent's current directory
@@ -199,13 +204,14 @@ fn create_process_windows(
         return Err("Failed to create process".to_string());
     }
 
-    // Close thread handle as we don't need it
+    // Close handles we don't need
     unsafe {
         CloseHandle(process_info.hThread);
+        CloseHandle(process_info.hProcess);
     }
 
-    // Return process ID and handle
-    Ok((process_info.dwProcessId, process_info.hProcess))
+    // Return process ID
+    Ok(process_info.dwProcessId)
 }
 
 #[tauri::command]
@@ -279,14 +285,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     let process_result = {
         #[cfg(target_os = "windows")]
         {
-            match create_process_windows(bb_api_path, args) {
-                Ok((pid, handle)) => {
-                    // Close process handle after getting PID
-                    unsafe { CloseHandle(handle) };
-                    Ok(pid as i32)
-                }
-                Err(e) => Err(e),
-            }
+            create_process_windows(bb_api_path, args).map(|pid| pid as i32)
         }
 
         #[cfg(not(target_os = "windows"))]
@@ -390,12 +389,9 @@ pub async fn stop_api() -> Result<bool, String> {
 
             #[cfg(target_family = "windows")]
             {
-                use windows_sys::Win32::Foundation::{HANDLE, CloseHandle};
-                use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess};
-                use windows_sys::Win32::System::Diagnostics::Debug::PROCESS_TERMINATE;
-
+                const PROCESS_TERMINATE: u32 = 0x0001;
                 unsafe {
-                    let handle = OpenProcess(PROCESS_TERMINATE, 0, pid as u32);
+                    let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
                     if handle == 0 {
                         false
                     } else {
