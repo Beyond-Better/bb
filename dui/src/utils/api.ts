@@ -58,6 +58,10 @@ export async function getApiConfig(): Promise<ApiConfig> {
 	return invoke('get_api_config');
 }
 
+export async function getApiLogPath(): Promise<string> {
+	return invoke('get_api_log_path');
+}
+
 export async function getApiConfigDefault(): Promise<ApiConfig> {
 	// For now, return default config until we implement config storage
 	return {

@@ -2,8 +2,54 @@ use std::process::Command;
 use log::{debug, info, error, warn};
 use std::path::PathBuf;
 use serde::Serialize;
+use std::fs;
 use crate::config::read_global_config;
 use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
+
+pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        dirs::home_dir().map(|home| {
+            home.join("Library")
+                .join("Logs")
+                .join(crate::config::APP_NAME)
+        })
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("ProgramData").ok().map(|program_data| {
+            PathBuf::from(program_data)
+                .join(crate::config::APP_NAME)
+                .join("logs")
+        })
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Some(PathBuf::from("/var/log")
+            .join(crate::config::APP_NAME.to_lowercase()))
+    }
+}
+
+pub fn get_default_api_log_path() -> Option<PathBuf> {
+    get_default_log_dir().map(|dir| dir.join("api.log"))
+}
+
+pub fn get_api_log_path(config: &crate::config::ApiConfig) -> Option<PathBuf> {
+    if let Some(log_file) = &config.log_file {
+        if log_file.starts_with('/') || log_file.contains(":\\") {
+            // Absolute path
+            Some(PathBuf::from(log_file))
+        } else {
+            // Relative path - append to default log dir
+            get_default_log_dir().map(|dir| dir.join(log_file))
+        }
+    } else {
+        // No log file specified - use default
+        get_default_api_log_path()
+    }
+}
 
 pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     debug!("Starting binary search");
@@ -146,12 +192,26 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     // Add TLS configuration
     args.push("--use-tls".to_string());
     args.push(config.tls.use_tls.to_string());
-    
-    // Add log file if specified
-    if let Some(log_file) = &config.log_file {
-        args.push("--log-file".to_string());
-        args.push(log_file.clone());
+
+    // Get log file path using the consolidated logic
+    let log_path = get_api_log_path(config)
+        .ok_or_else(|| "Failed to determine log path".to_string())?;
+
+    // Ensure log directory exists
+    if let Some(parent) = log_path.parent() {
+        if let Err(e) = fs::create_dir_all(parent) {
+            error!("Failed to create log directory for {:?}: {}", log_path, e);
+            return Ok(ApiStartResult {
+                success: false,
+                pid: None,
+                error: Some(format!("Failed to create log directory: {}", e)),
+                requires_settings: false,
+            });
+        }
     }
+
+    // Add log file argument
+    args.extend_from_slice(&["--log-file".to_string(), log_path.to_string_lossy().to_string()]);
 
     info!("Starting API with command: {} {:?}", bb_api_path.display(), args);
 
