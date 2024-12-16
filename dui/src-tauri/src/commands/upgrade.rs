@@ -143,9 +143,11 @@ pub async fn perform_install(app: AppHandle) -> Result<(), String> {
             error!("Installation location not writable: {:?}", install_location.path);
             return Err("Installation requires administrator privileges. Please run DUI as administrator.".to_string());
         }
-        #[cfg(not(target_os = "windows"))]
 
-        return Err("Installation location is not writable. Please run with elevated privileges.".to_string());
+        #[cfg(not(target_os = "windows"))]
+        {
+            return Err("Installation location is not writable. Please run with elevated privileges.".to_string());
+        }
     }
 
     // Create installation directory if it doesn't exist
@@ -299,6 +301,7 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
     // Extract the archive
     #[cfg(target_os = "windows")]
     {
+        debug!("Extracting Windows zip archive");
         let file = File::open(&download_path)
             .map_err(|e| { error!("Failed to open zip archive: {}", e); e })
             .map_err(|e| format!("Failed to open archive: {}", e))?;
@@ -339,6 +342,7 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
     
     #[cfg(not(target_os = "windows"))]
     {
+        debug!("Extracting Unix tar.gz archive");
         let tar_gz = File::open(&download_path)
             .map_err(|e| format!("Failed to open archive: {}", e))?;
         
