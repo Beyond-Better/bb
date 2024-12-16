@@ -137,7 +137,7 @@ checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
 name = "beyond-better"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "dirs",
  "env_logger",
@@ -157,6 +157,7 @@ dependencies = [
  "tauri-plugin-shell",
  "tempfile",
  "tokio",
+ "windows-sys 0.48.0",
  "zip",
 ]
 

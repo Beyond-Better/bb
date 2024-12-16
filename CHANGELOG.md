@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.9] - 2024-12-16
+
+### Changed
+
+- Modified API process handing in Windows version of desktop app
+
+
 ## [0.5.8] - 2024-12-16
 
 ### Fixed

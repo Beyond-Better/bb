@@ -6,6 +6,18 @@ use std::fs;
 use crate::config::read_global_config;
 use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
 
+#[cfg(target_os = "windows")]
+use std::os::windows::ffi::OsStrExt;
+#[cfg(target_os = "windows")]
+use std::ffi::OsStr;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    PROCESS_INFORMATION, STARTUPINFOW, CreateProcessW,
+    NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW, STARTF_USESHOWWINDOW,
+};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::{CloseHandle, BOOL, TRUE};
+
 pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
     #[cfg(target_os = "macos")]
     {
@@ -143,6 +155,59 @@ fn verify_api_requirements() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
+fn create_process_windows(
+    executable_path: PathBuf,
+    args: Vec<String>,
+) -> Result<(u32, BOOL), String> {
+    use std::ptr::null_mut;
+    
+    // Convert the command line to UTF-16 for Windows API
+    let mut command_line = format!("\"{}\"", executable_path.to_string_lossy());
+    for arg in args {
+        command_line.push_str(&format!(" \"{}\"", arg));
+    }
+    let wide_command: Vec<u16> = OsStr::new(&command_line)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let mut startup_info: STARTUPINFOW = unsafe { std::mem::zeroed() };
+    startup_info.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+    startup_info.dwFlags = STARTF_USESHOWWINDOW;
+    startup_info.wShowWindow = 0; // SW_HIDE
+
+    let mut process_info: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+
+    // Create the process with specific flags to hide the window
+    let success = unsafe {
+        CreateProcessW(
+            null_mut(), // Use command line for executable path
+            wide_command.as_ptr() as *mut u16,
+            null_mut(), // Process security attributes
+            null_mut(), // Thread security attributes
+            0,         // Don't inherit handles
+            CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
+            null_mut(), // Use parent's environment
+            null_mut(), // Use parent's current directory
+            &startup_info,
+            &mut process_info,
+        )
+    };
+
+    if success == 0 {
+        return Err("Failed to create process".to_string());
+    }
+
+    // Close thread handle as we don't need it
+    unsafe {
+        CloseHandle(process_info.hThread);
+    }
+
+    // Return process ID and handle
+    Ok((process_info.dwProcessId, process_info.hProcess))
+}
+
 #[tauri::command]
 pub async fn start_api() -> Result<ApiStartResult, String> {
     // Verify all requirements are met before starting
@@ -179,17 +244,12 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     
     info!("Found bb-api executable at: {}", bb_api_path.display());
 
-    // Build command arguments - only include valid args
+    // Build command arguments
     let mut args = Vec::new();
-    
-    // Add hostname and port
     args.push("--hostname".to_string());
     args.push(config.hostname.clone());
-    
     args.push("--port".to_string());
     args.push(config.port.to_string());
-    
-    // Add TLS configuration
     args.push("--use-tls".to_string());
     args.push(config.tls.use_tls.to_string());
 
@@ -215,18 +275,31 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
 
     info!("Starting API with command: {} {:?}", bb_api_path.display(), args);
 
-    // Convert PathBuf to string for logging
-    let bb_api_path_str = bb_api_path.to_string_lossy();
-    debug!("Starting API with command: {} {:?}", bb_api_path_str, args);
+    // Start the process using platform-specific method
+    let process_result = {
+        #[cfg(target_os = "windows")]
+        {
+            match create_process_windows(bb_api_path, args) {
+                Ok((pid, handle)) => {
+                    // Close process handle after getting PID
+                    unsafe { CloseHandle(handle) };
+                    Ok(pid as i32)
+                }
+                Err(e) => Err(e),
+            }
+        }
 
-    // Spawn the process
-    let spawn_result = Command::new(bb_api_path)
-        .args(&args)
-        .spawn();
+        #[cfg(not(target_os = "windows"))]
+        {
+            match Command::new(bb_api_path).args(&args).spawn() {
+                Ok(child) => Ok(child.id() as i32),
+                Err(e) => Err(format!("Failed to start API process: {}", e)),
+            }
+        }
+    };
 
-    match spawn_result {
-        Ok(child) => {
-            let pid = child.id() as i32;
+    match process_result {
+        Ok(pid) => {
             info!("API process started with PID: {}", pid);
 
             // Save the PID immediately
@@ -279,7 +352,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
         }
         Err(e) => {
             let error_msg = format!("Failed to start API process: {}", e);
-            println!("{}", error_msg);
+            error!("{}", error_msg);
             Ok(ApiStartResult {
                 success: false,
                 pid: None,
@@ -317,14 +390,18 @@ pub async fn stop_api() -> Result<bool, String> {
 
             #[cfg(target_family = "windows")]
             {
-                match Command::new("taskkill")
-                    .args(&["/PID", &pid.to_string(), "/F"])
-                    .output()
-                {
-                    Ok(output) => output.status.success(),
-                    Err(e) => {
-                        error!("Failed to execute taskkill: {}", e);
+                use windows_sys::Win32::Foundation::{HANDLE, CloseHandle};
+                use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess};
+                use windows_sys::Win32::System::Diagnostics::Debug::PROCESS_TERMINATE;
+
+                unsafe {
+                    let handle = OpenProcess(PROCESS_TERMINATE, 0, pid as u32);
+                    if handle == 0 {
                         false
+                    } else {
+                        let result = TerminateProcess(handle, 1);
+                        CloseHandle(handle);
+                        result != 0
                     }
                 }
             }
