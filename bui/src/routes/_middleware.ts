@@ -19,7 +19,7 @@ export async function handler(req: Request, ctx: FreshContext) {
 	);
 	headers.set(
 		'Content-Security-Policy',
-		`default-src 'self' 'unsafe-inline' data: blob: https: wss:; connect-src 'self' ws://localhost:3162/* http://localhost:3162/* data: blob: https: wss:; base-uri 'none';`,
+		`default-src 'self' 'unsafe-inline' data: blob: https: wss:; connect-src 'self' ws://localhost:3162 http://localhost:3162 data: blob: https: wss:; base-uri 'none';`,
 	);
 	// `default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:`,
 
