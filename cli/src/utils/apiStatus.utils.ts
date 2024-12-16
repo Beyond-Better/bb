@@ -10,6 +10,17 @@ import { logger } from 'shared/logger.ts';
 const PID_FILE_NAME = 'api.pid';
 const APP_NAME = 'dev.beyondbetter.app';
 
+/* ******************
+ * API type can be either global or per-project.
+ * The type of API is defined by whether the projectId is supplied.
+ * All of the API control functions have projectId as an optional argument
+ * If projectId is supplied then API control, such as location of PID file
+ * should be relative to the projectRoot.
+ * The calling function (CLI command entry point) is responsible for
+ * ensuring the projectId is valid, so all commands here can assume that
+ * getBbDir, getProjectRoot, etc will succeed (but that's no excuse for not handling errors)
+ ****************** */
+
 async function getAppRuntimeDir(): Promise<string> {
 	let runtimeDir: string;
 
@@ -121,6 +132,8 @@ export async function checkApiStatus(projectId?: string): Promise<ApiStatusCheck
 			let apiConfig: ApiConfig;
 			if (projectId) {
 				const projectConfig = await configManager.getProjectConfig(projectId);
+				// we don't need to check projectConfig.useProjectApi here since caller
+				// is responsible for that; if we've got a projectId, we're using projectConfig
 				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 			} else {
 				apiConfig = globalConfig.api;

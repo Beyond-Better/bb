@@ -33,10 +33,16 @@ export const apiStart = new Command()
 
 			const configManager = await ConfigManagerV2.getInstance();
 			const globalConfig = await configManager.getGlobalConfig();
+
 			let apiConfig: ApiConfig;
 			if (projectId) {
 				const projectConfig = await configManager.getProjectConfig(projectId);
-				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+				if (projectConfig.useProjectApi) {
+					apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+				} else {
+					apiConfig = globalConfig.api;
+					projectId = undefined;
+				}
 			} else {
 				apiConfig = globalConfig.api;
 			}

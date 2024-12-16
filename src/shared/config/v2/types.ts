@@ -162,6 +162,7 @@ export interface ProjectConfig {
 	myAssistantsName?: string;
 	llmGuidelinesFile?: string;
 	repoInfo: RepoInfoConfigSchema;
+	useProjectApi?: boolean;
 	settings: {
 		api?: Partial<ApiConfig>;
 		bui?: Partial<BuiConfig>;
@@ -254,6 +255,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],
 	toolConfigs: {},
+	//llmKeys: {},
 };
 
 export const BuiConfigDefaults: Readonly<BuiConfig> = {
@@ -281,6 +283,7 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 	version: '2.0.0',
 	type: 'local',
 	repoInfo: { tokenLimit: 1024 },
+	useProjectApi: false,
 	settings: {
 		api: ApiConfigDefaults,
 		bui: BuiConfigDefaults,

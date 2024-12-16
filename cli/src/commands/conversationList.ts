@@ -16,9 +16,17 @@ export const conversationList = new Command()
 		// 		startSpinner(spinner, 'Fetching saved conversations...');
 
 		try {
-			const startDir = resolve(directory);
-			const projectRoot = await getProjectRootFromStartDir(startDir);
-			const projectId = await getProjectId(projectRoot);
+			let projectId: string;
+			try {
+				const startDir = resolve(directory);
+				const projectRoot = await getProjectRootFromStartDir(startDir);
+				projectId = await getProjectId(projectRoot);
+			} catch (_error) {
+				//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+				console.error('Not a valid project directory. Run `bb init`.');
+				Deno.exit(1);
+			}
+
 			const configManager = await ConfigManagerV2.getInstance();
 			const globalConfig = await configManager.getGlobalConfig();
 			//const projectConfig = await configManager.getProjectConfig(projectId);
