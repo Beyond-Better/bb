@@ -171,15 +171,15 @@ pub fn run() {
             }
         };
         
-//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
             .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
             .target(env_logger::Target::Pipe(Box::new(file)))
             .init();
     } else {
         // Fallback to default logging if we can't create the log file
-//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
             .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
             .init();
     }
