@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.8] - 2024-12-16
+
+### Fixed
+
+- Automatic installation of binaries using Windows desktop app
+
+
 ## [0.5.7] - 2024-12-16
 
 ### Added
