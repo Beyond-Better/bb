@@ -3,6 +3,7 @@ use tauri_plugin_fs;
 use log::{debug, info, warn, error};
 use std::time::Duration;
 use std::fs;
+use std::path::PathBuf;
 use crate::config::get_global_config_dir;
 
 // Make modules available within the crate
@@ -16,7 +17,7 @@ pub use crate::config::{read_global_config, get_api_config, ApiConfig};
 pub use crate::commands::api_status::check_api_status;
 pub use crate::commands::version::{get_binary_version, get_version_info, check_version_compatibility};
 pub use crate::commands::upgrade::{perform_install, perform_upgrade};
-pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path};
+pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -120,6 +121,31 @@ async fn start_api_if_needed() -> Result<(), String> {
     }
 }
 
+fn get_app_log_dir() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        dirs::home_dir().map(|home| {
+            home.join("Library")
+                .join("Logs")
+                .join(config::APP_NAME)
+        })
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("ProgramData").ok().map(|program_data| {
+            PathBuf::from(program_data)
+                .join(config::APP_NAME)
+                .join("logs")
+        })
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Some(PathBuf::from("/var/log").join(config::APP_NAME.to_lowercase()))
+    }
+}
+
 pub fn run() {
     // Ensure global config exists before starting the app
     if let Err(e) = ensure_global_config() {
@@ -133,20 +159,27 @@ pub fn run() {
         }
     });
     // Initialize the logger with timestamp and file output
-    if let Some(home_dir) = dirs::home_dir() {
-        let log_dir = home_dir.join("Library").join("Logs").join(config::APP_NAME);
+    if let Some(log_dir) = get_app_log_dir() {
         std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
         let log_file = log_dir.join("Beyond Better.log");
         
-        let file = std::fs::File::create(log_file).expect("Failed to create log file");
+        let file = match std::fs::File::create(&log_file) {
+            Ok(f) => f,
+            Err(e) => {
+                error!("Failed to create log file at {:?}: {}", log_file, e);
+                panic!("Could not create log file: {}", e);
+            }
+        };
         
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
+//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
             .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
             .target(env_logger::Target::Pipe(Box::new(file)))
             .init();
     } else {
         // Fallback to default logging if we can't create the log file
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
             .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
             .init();
     }
@@ -170,7 +203,8 @@ pub fn run() {
             get_global_config,
             set_global_config_value,
             test_read_config,
-            get_log_path
+            get_log_path,
+            get_api_log_path
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

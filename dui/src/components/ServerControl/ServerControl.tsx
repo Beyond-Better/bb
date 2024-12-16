@@ -12,7 +12,7 @@ import { getCurrent } from '@tauri-apps/api/window';
 import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { generateBuiUrl } from '../../utils/url';
 import { useDebugMode } from '../../providers/DebugModeProvider';
-import { checkApiStatus, getApiConfig, startApi, stopApi } from '../../utils/api';
+import { checkApiStatus, getApiConfig, startApi, stopApi, getApiLogPath } from '../../utils/api';
 
 // Constants for polling intervals
 const NORMAL_POLL_INTERVAL = 15000; // 15 seconds for normal operation
@@ -37,6 +37,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [error, setError] = useState<string | null>(null);
 	const [startupPhase, setStartupPhase] = useState<string>('');
 	const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null);
+	const [apiLogPath, setApiLogPath] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [buiUrl, setBuiUrl] = useState<string>('');
@@ -64,6 +65,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	useEffect(() => {
 		const init = async () => {
+			try {
+				const logPath = await getApiLogPath();
+				setApiLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get API log path:', err);
+			}
 			try {
 				const apiConfig = await getApiConfig();
 				//console.log('apiConfig', apiConfig);
@@ -461,10 +468,10 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								<div className='font-bold'>Process Status:</div>
 								<div>{status.process_responds ? 'Responding' : 'Not responding'}</div>
 								<div className='font-bold'>Process ID:</div> <div>{status.pid || 'Not running'}</div>
-								{apiConfig.logFile && (
+								{apiLogPath && (
 									<>
 										<div className='font-bold'>Server Log:</div>
-										<div className='col-span-5'>{apiConfig.logFile}</div>
+										<div className='col-span-5'>{apiLogPath}</div>
 									</>
 								)}
 							</div>

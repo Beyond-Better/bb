@@ -11,6 +11,18 @@ pub async fn get_log_path() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+pub async fn get_api_log_path() -> Result<String, String> {
+    let config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+    
+    // Get the log path using the API function
+    let path = crate::api::get_api_log_path(&config.api)
+        .ok_or_else(|| "Failed to determine API log path".to_string())?;
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub async fn test_read_config() -> Result<String, String> {
     let config_dir = get_global_config_dir().map_err(|e| e.to_string())?;
     let config_path = config_dir.join("config.yaml");
