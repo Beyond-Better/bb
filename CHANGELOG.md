@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.10] - 2024-12-16
+
+### Fixed
+
+- Fixed imports for Windows build of desktop app
+
+
 ## [0.5.9] - 2024-12-16
 
 ### Changed

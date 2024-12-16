@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use reqwest;
 use tauri::command;
-use dirs;
-use libc;
 
 use crate::config::read_global_config;
 
@@ -95,12 +93,14 @@ fn check_process_exists(pid: i32) -> bool {
 
 #[cfg(target_family = "windows")]
 fn check_process_exists(pid: i32) -> bool {
-    use windows_sys::Win32::Foundation::{HANDLE, CloseHandle, STILL_ACTIVE};
+    use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
     use windows_sys::Win32::System::Threading::{OpenProcess, GetExitCodeProcess};
-    use windows_sys::Win32::System::Diagnostics::Debug::PROCESS_QUERY_LIMITED_INFORMATION;
+    
+    const PROCESS_QUERY_INFORMATION: u32 = 0x0400;
+    const STILL_ACTIVE: u32 = 259;
 
     unsafe {
-        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid as u32);
+        let handle = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid as u32);
         if handle == 0 {
             return false;
         }
