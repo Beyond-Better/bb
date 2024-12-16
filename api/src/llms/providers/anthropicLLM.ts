@@ -372,7 +372,9 @@ class AnthropicLLM extends LLM {
 
 			// Validate essential response properties
 			if (!anthropicMessage || !anthropicMessage.content) {
-				logger.error('AnthropicLLM: Invalid Anthropic response - missing message or content:', { anthropicMessage });
+				logger.error('AnthropicLLM: Invalid Anthropic response - missing message or content:', {
+					anthropicMessage,
+				});
 				throw createError(
 					ErrorType.LLM,
 					'Invalid response from Anthropic API: missing required properties',
@@ -517,7 +519,9 @@ class AnthropicLLM extends LLM {
 			// Perform special handling based on the stop reason
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'max_tokens':
-					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response reached the maximum token limit`);
+					logger.warn(
+						`AnthropicLLM: provider[${this.llmProviderName}] Response reached the maximum token limit`,
+					);
 
 					break;
 				case 'end_turn':
