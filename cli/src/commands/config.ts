@@ -1,9 +1,8 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectType } from 'shared/config/v2/types.ts';
+//import type { ProjectType } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
-//import { join } from '@std/path';
 import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 const formatValue = (value: unknown, indent = ''): string => {

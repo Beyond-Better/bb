@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.7] - 2024-12-16
+
+### Added
+
+- config option to set project dir for API control
+
+### Changed
+
+- updating logging in DUI
+
+
 ## [0.5.6] - 2024-12-15
 
 ### Added

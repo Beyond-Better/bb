@@ -31,7 +31,7 @@ export const conversationChat = new Command()
 	.option('--max-turns <number:number>', 'Maximum number of turns in the conversation')
 	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
-		let projectId;
+		let projectId: string;
 		try {
 			const startDir = Deno.cwd();
 			const projectRoot = await getProjectRootFromStartDir(startDir);
@@ -45,19 +45,24 @@ export const conversationChat = new Command()
 		let apiStartedByUs = false;
 		const configManager = await ConfigManagerV2.getInstance();
 		const globalConfig = await configManager.getGlobalConfig();
+
 		let apiConfig: ApiConfig;
-		if (projectId) {
-			const projectConfig = await configManager.getProjectConfig(projectId);
+		let apiProjectId: string | undefined = undefined;
+
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		if (projectConfig.useProjectApi) {
 			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+			apiProjectId = projectId;
 		} else {
 			apiConfig = globalConfig.api;
 		}
+
 		const bbDir = projectId ? await getBbDir(projectId) : (Deno.env.get('HOME') || '');
 
 		const apiHostname = apiConfig.hostname || 'localhost';
 		const apiPort = apiConfig.port || 3162; // cast as string
 		const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
-		const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
+		const apiClient = await ApiClient.create(apiProjectId, apiHostname, apiPort, apiUseTls);
 		const websocketManager = new WebsocketManager();
 
 		let terminalHandler: TerminalHandler | null = null;
@@ -82,7 +87,7 @@ export const conversationChat = new Command()
 		const cleanup = async () => {
 			// Ensure API is stopped when the process exits
 			if (apiStartedByUs) {
-				await stopApiServer(projectId);
+				await stopApiServer(apiProjectId);
 			}
 		};
 		const exit = async (code: number = 0) => {
@@ -94,17 +99,17 @@ export const conversationChat = new Command()
 
 		try {
 			// Check API status with enhanced checking
-			const processStatus = await checkApiStatus(projectId);
+			const processStatus = await checkApiStatus(apiProjectId);
 			if (!processStatus.apiResponds) {
 				if (processStatus.pidExists) {
 					console.log('BB server process exists but is not responding. Attempting restart...');
-					await stopApiServer(projectId);
+					await stopApiServer(apiProjectId);
 				} else {
 					console.log('BB server is not running. Starting it now...');
 				}
 
 				const { pid: _pid, apiLogFilePath: _apiLogFilePath, listen: _listen } = await startApiServer(
-					projectId,
+					apiProjectId,
 					apiHostname,
 					`${apiPort}`,
 				);
@@ -115,8 +120,8 @@ export const conversationChat = new Command()
 
 				await new Promise((resolve) => setTimeout(resolve, delayMs * 2));
 				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-					const processStatus = await checkApiStatus(projectId);
-					const status = await getApiStatus(projectId);
+					const processStatus = await checkApiStatus(apiProjectId);
+					const status = await getApiStatus(apiProjectId);
 
 					if (processStatus.apiResponds && status.running) {
 						apiRunning = true;
@@ -143,7 +148,7 @@ export const conversationChat = new Command()
 					await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
 				}
 				if (!apiRunning) {
-					const finalStatus = await checkApiStatus(projectId);
+					const finalStatus = await checkApiStatus(apiProjectId);
 					if (finalStatus.pidExists && !finalStatus.apiResponds) {
 						throw new Error(
 							`BB server process (PID: ${finalStatus.pid}) exists but is not responding. Try stopping the server first.`,
@@ -153,7 +158,7 @@ export const conversationChat = new Command()
 					}
 				} else {
 					apiStartedByUs = true;
-					const finalStatus = await checkApiStatus(projectId);
+					const finalStatus = await checkApiStatus(apiProjectId);
 					console.log(colors.bold.green(`BB server started successfully (PID: ${finalStatus.pid}).`));
 				}
 			}

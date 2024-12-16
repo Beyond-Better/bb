@@ -61,6 +61,8 @@ class AnthropicLLM extends LLM {
 		const clientOptions: ClientOptions = {
 			apiKey: this.projectConfig.settings.api?.llmKeys?.anthropic,
 		};
+		logger.info('AnthropicLLM: ClientOptions:', clientOptions);
+
 		this.anthropic = new Anthropic(clientOptions);
 	}
 
@@ -74,7 +76,7 @@ class AnthropicLLM extends LLM {
 	}
 
 	private logMessageDetails(messages: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[]): void {
-		logger.info('Message Details for LLM Request:');
+		logger.info('AnthropicLLM: Message Details for LLM Request:');
 
 		const messagesWithCache: number[] = [];
 		const messagesWithFiles: number[] = [];
@@ -264,7 +266,7 @@ class AnthropicLLM extends LLM {
 	}
 
 	private asProviderToolType(tools: LLMTool[]): Anthropic.Beta.PromptCaching.PromptCachingBetaTool[] {
-		//logger.debug('llms-anthropic-asProviderToolType', tools);
+		//logger.debug('AnthropicLLM: llms-anthropic-asProviderToolType', tools);
 		return tools.map((tool) => ({
 			name: tool.name,
 			description: tool.description,
@@ -276,7 +278,7 @@ class AnthropicLLM extends LLM {
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<Anthropic.MessageCreateParams> {
-		//logger.debug('llms-anthropic-prepareMessageParams-systemPrompt', interaction.baseSystem);
+		//logger.debug('AnthropicLLM: llms-anthropic-prepareMessageParams-systemPrompt', interaction.baseSystem);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const systemPrompt = await this.invoke(
 			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
@@ -293,7 +295,7 @@ class AnthropicLLM extends LLM {
 			]
 			: '';
 
-		//logger.debug('llms-anthropic-prepareMessageParams-tools', interaction.allTools());
+		//logger.debug('AnthropicLLM: llms-anthropic-prepareMessageParams-tools', interaction.allTools());
 		const tools = this.asProviderToolType(
 			await this.invoke(
 				LLMCallbackType.PREPARE_TOOLS,
@@ -317,10 +319,10 @@ class AnthropicLLM extends LLM {
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
-			logger.error('maxTokens missing from both speakOptions and interaction');
+			logger.error('AnthropicLLM: maxTokens missing from both speakOptions and interaction');
 		}
 		if (!speakOptions?.temperature && !interaction.temperature) {
-			logger.error('temperature missing from both speakOptions and interaction');
+			logger.error('AnthropicLLM: temperature missing from both speakOptions and interaction');
 		}
 
 		const model: string = speakOptions?.model || interaction.model || AnthropicModel.CLAUDE_3_5_SONNET;
@@ -336,7 +338,7 @@ class AnthropicLLM extends LLM {
 			temperature,
 			stream: false,
 		};
-		//logger.debug('llms-anthropic-prepareMessageParams', messageParams);
+		//logger.debug('AnthropicLLM: llms-anthropic-prepareMessageParams', messageParams);
 		//logger.dir(messageParams);
 
 		return messageParams;
@@ -365,12 +367,12 @@ class AnthropicLLM extends LLM {
 				).withResponse();
 
 			const anthropicMessage = anthropicMessageStream as Anthropic.Beta.PromptCaching.PromptCachingBetaMessage;
-			//logger.info('llms-anthropic-anthropicMessage', anthropicMessage);
-			//logger.info('llms-anthropic-anthropicResponse', anthropicResponse);
+			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
+			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
 
 			// Validate essential response properties
 			if (!anthropicMessage || !anthropicMessage.content) {
-				logger.error('Invalid Anthropic response - missing message or content:', { anthropicMessage });
+				logger.error('AnthropicLLM: Invalid Anthropic response - missing message or content:', { anthropicMessage });
 				throw createError(
 					ErrorType.LLM,
 					'Invalid response from Anthropic API: missing required properties',
@@ -380,7 +382,7 @@ class AnthropicLLM extends LLM {
 
 			// Validate and normalize content to ensure it's a non-empty array
 			if (!Array.isArray(anthropicMessage.content)) {
-				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:', {
+				logger.error('AnthropicLLM: !!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:', {
 					content: anthropicMessage.content,
 				});
 				// Convert to array if possible, or create error message
@@ -395,7 +397,7 @@ class AnthropicLLM extends LLM {
 
 			// Ensure content array is not empty
 			if (anthropicMessage.content.length === 0) {
-				logger.error('!!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
+				logger.error('AnthropicLLM: !!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
 				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM' }];
 			}
 
@@ -411,7 +413,7 @@ class AnthropicLLM extends LLM {
 			const tokensLimit = Number(headers.get('anthropic-ratelimit-tokens-limit'));
 			const tokensResetDate = new Date(headers.get('anthropic-ratelimit-tokens-reset') || '');
 
-			//logger.debug(`provider[${this.llmProviderName}] Creating message response from Anthropic message:`, {
+			//logger.debug(`AnthropicLLM: provider[${this.llmProviderName}] Creating message response from Anthropic message:`, {
 			//	messageType: anthropicMessage.type,
 			//	role: anthropicMessage.role,
 			//	contentLength: anthropicMessage.content.length,
@@ -451,16 +453,16 @@ class AnthropicLLM extends LLM {
 					statusText: anthropicResponse.statusText,
 				},
 			};
-			logger.debug(`provider[${this.llmProviderName}] Created message response:`, {
+			logger.debug(`AnthropicLLM: provider[${this.llmProviderName}] Created message response:`, {
 				id: messageResponse.id,
 				type: messageResponse.type,
 				contentLength: messageResponse.answerContent.length,
 			});
-			//logger.debug("llms-anthropic-messageResponse", messageResponse);
+			//logger.debug("AnthropicLLM: llms-anthropic-messageResponse", messageResponse);
 
 			return { messageResponse, messageMeta: { system: messageParams.system } };
 		} catch (err) {
-			logger.error('Error calling Anthropic API', err);
+			logger.error('AnthropicLLM: Error calling Anthropic API', err);
 			throw createError(
 				ErrorType.LLM,
 				`Could not get response from Anthropic API: ${(err as Error).message}`,
@@ -493,7 +495,7 @@ class AnthropicLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`AnthropicLLM: provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Tool exceeded max tokens') {
@@ -515,21 +517,21 @@ class AnthropicLLM extends LLM {
 			// Perform special handling based on the stop reason
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'max_tokens':
-					logger.warn(`provider[${this.llmProviderName}] Response reached the maximum token limit`);
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response reached the maximum token limit`);
 
 					break;
 				case 'end_turn':
-					logger.warn(`provider[${this.llmProviderName}] Response reached the end turn`);
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response reached the end turn`);
 					break;
 				case 'stop_sequence':
-					logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response reached its natural end`);
 					break;
 				case 'tool_use':
-					logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response is using a tool`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`AnthropicLLM: provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

@@ -1712,8 +1712,13 @@ export function mergeGlobalIntoProjectConfig(
 	projectConfig.settings.bui = deepMerge.withOptions(options, globalConfig.bui, projectConfig.settings.bui);
 	projectConfig.settings.cli = deepMerge.withOptions(options, globalConfig.cli, projectConfig.settings.cli);
 	projectConfig.settings.dui = deepMerge.withOptions(options, globalConfig.dui, projectConfig.settings.dui);
-	projectConfig.myPersonsName = globalConfig.myPersonsName;
-	projectConfig.myAssistantsName = globalConfig.myAssistantsName;
+
+	if (!projectConfig.myPersonsName?.trim()) {
+		projectConfig.myPersonsName = globalConfig.myPersonsName;
+	}
+	if (!projectConfig.myAssistantsName?.trim()) {
+		projectConfig.myAssistantsName = globalConfig.myAssistantsName;
+	}
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));
 	return projectConfig;
