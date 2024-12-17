@@ -15,7 +15,7 @@ interface ProjectMetadataProps {
 export function ProjectMetadata({
 	chatState,
 }: ProjectMetadataProps) {
-	if (IS_BROWSER) console.log('ProjectMetadata: chatState', chatState);
+	//if (IS_BROWSER) console.log('ProjectMetadata: chatState', chatState);
 
 	// Get projectId and conversationId from URL
 	const projectId = chatState.value.projectData?.projectId || '.';

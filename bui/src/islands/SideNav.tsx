@@ -2,7 +2,7 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { ProjectSelector } from '../components/ProjectSelector/index.ts';
-import { initializeAppState, useAppState } from '../hooks/useAppState.ts';
+import { initializeAppState, setPath, useAppState } from '../hooks/useAppState.ts';
 import { useVersion } from '../hooks/useVersion.ts';
 import { ConnectionStatus } from '../components/Connection/ConnectionStatus.tsx';
 import { BBAppDownload } from '../components/Connection/BBAppDownload.tsx';
@@ -37,8 +37,6 @@ const currentPath = () => {
 	if (IS_BROWSER) return globalThis.location.pathname;
 	return '/';
 };
-
-const path = signal(currentPath());
 
 // Initialize app state immediately
 if (IS_BROWSER) {
@@ -79,7 +77,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 		const handlePopState = () => {
-			path.value = globalThis.location.pathname;
+			setPath(globalThis.location.pathname);
 		};
 		globalThis.addEventListener('popstate', handlePopState);
 		return () => globalThis.removeEventListener('popstate', handlePopState);
@@ -124,7 +122,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 				<a
 					href='/'
 					class={`flex items-center space-x-2 py-4 ${
-						isCollapsed.value ? 'pl-4 pr-2' : 'px-4'
+						isCollapsed.value ? 'pl-2 pr-5' : 'px-4'
 					} transition-all duration-300`}
 				>
 					<img
@@ -173,7 +171,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 
 			{/* Project Selector */}
 			{
-				/* <!-- currnetly only useful in Chat page so disabling for now -->
+				/* <!-- currently only useful in Chat page so disabling for now -->
 				<div class='px-4 py-2 border-b border-gray-200'>
 					<ProjectSelector isCollapsed={isCollapsed.value} />
 				</div>
@@ -188,15 +186,15 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 							<a
 								href={item.path}
 								f-partial={item.path === '/' ? undefined : `${item.path}/partial`}
-								onClick={() => path.value = item.path}
+								onClick={() => setPath(item.path)}
 								class={`flex items-center ${
 									isCollapsed.value ? 'justify-center' : 'justify-start'
 								} px-4 py-2 rounded-md text-sm font-medium ${
-									path.value === item.path
+									appState.value.path === item.path
 										? 'bg-gray-100 text-gray-900'
 										: 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
 								}`}
-								aria-current={path.value === item.path ? 'page' : undefined}
+								aria-current={appState.value.path === item.path ? 'page' : undefined}
 							>
 								<svg
 									xmlns='http://www.w3.org/2000/svg'

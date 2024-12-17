@@ -13,12 +13,14 @@ export interface AppState {
 	versionInfo: VersionInfo | undefined;
 	projectId: string | null;
 	conversationId: string | null;
+	path: string;
 }
 
 // Load initial state from localStorage and URL
 const loadStoredState = () => {
 	let projectId = null;
 	let conversationId = null;
+	let path = '/';
 
 	if (typeof window !== 'undefined') {
 		// Check URL parameters first
@@ -33,11 +35,14 @@ const loadStoredState = () => {
 		if (!conversationId) {
 			conversationId = localStorage.getItem('bb_conversationId');
 		}
+		// Get current path from location
+		path = window.location.pathname;
 	}
 
 	return {
 		projectId,
 		conversationId,
+		path,
 	};
 };
 
@@ -92,6 +97,13 @@ const updateLocalStorage = (projectId: string | null, conversationId: string | n
 
 export function useAppState(): Signal<AppState> {
 	return appState;
+}
+
+export function setPath(path: string) {
+	appState.value = {
+		...appState.value,
+		path,
+	};
 }
 
 export function setProject(projectId: string | null) {
@@ -250,5 +262,6 @@ export function cleanupAppState(): void {
 		versionInfo: undefined,
 		projectId,
 		conversationId,
+		path: '/',
 	};
 }

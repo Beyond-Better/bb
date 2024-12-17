@@ -1,38 +1,29 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact';
-import { computed, Signal } from '@preact/signals';
+import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
-type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
-import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
+import { ConversationHeader } from '../components/ConversationHeader.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
-import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
 import { useVersion } from '../hooks/useVersion.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
-
 import { ChatInput } from '../components/ChatInput.tsx';
-// ConversationHeader has been deprecated in favor of ChatMetadata
-// ProjectMetadata is now handled in routes/chat/index.tsx
-import { ConversationInfo } from '../components/ConversationInfo.tsx';
-import { ApiStatus } from 'shared/types.ts';
 import { ToolBar } from '../components/ToolBar.tsx';
-import type {
-	Conversation,
-	ConversationEntry,
-	ConversationLogEntry,
-	ConversationMetadata,
-	TokenUsage,
-} from 'shared/types.ts';
+import { ApiStatus } from 'shared/types.ts';
+import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
+
+// Initialize conversation list visibility state
+const isConversationListVisible = signal(false);
 
 // Helper functions for URL parameters
 const getConversationId = () => {
@@ -418,7 +409,7 @@ export default function Chat({
 			{/* ProjectMetadata is now handled in routes/chat/index.tsx */}
 
 			{/* Main content */}
-			<div className='flex flex-1 min-h-0'>
+			<div className='flex flex-1 min-h-0 relative overflow-hidden'>
 				{!projectId
 					? (
 						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
@@ -443,60 +434,57 @@ export default function Chat({
 					)
 					: (
 						<>
-							{/* Conversation list */}
-							<ConversationList
-								conversationListState={conversationListState}
-								onSelect={async (id) => {
-									await selectConversation(id);
-								}}
-								onNew={async () => {
-									const id = generateConversationId();
-									await selectConversation(id);
-								}}
-								onDelete={deleteConversation}
-							/>
-							{/* Chat area */}
-							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-								{/* ConversationInfo and ToolBar row */}
-								<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
-									<div className='flex items-center space-x-4'>
-										{/* Messages Icon */}
-										<div className='flex items-center text-gray-500'>
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												fill='none'
-												viewBox='0 0 24 24'
-												strokeWidth={1.5}
-												stroke='currentColor'
-												className='w-6 h-6'
-											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
-												/>
-											</svg>
-										</div>
-										<ConversationInfo
-											logEntries={chatState.value.logEntries}
-											conversationId={chatState.value.conversationId || ''}
-											title={chatState.value.conversations.find((c: ConversationMetadata) =>
-												c.id === chatState.value.conversationId
-											)?.title}
-										/>
-									</div>
-
-									<ToolBar
-										onSendMessage={async (message) => {
-											await handlers.sendConverse(message);
+							{/* Collapsible Conversation List */}
+							<div
+								className={`absolute top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
+									isConversationListVisible.value
+										? 'w-[30%] min-w-[20rem] translate-x-0'
+										: 'w-0 -translate-x-full'
+								}`}
+								style={{ zIndex: 20 }}
+							>
+								<div className='h-full w-full overflow-hidden'>
+									<ConversationList
+										conversationListState={conversationListState}
+										onSelect={async (id) => {
+											await selectConversation(id);
+											isConversationListVisible.value = false;
 										}}
-										chatInputRef={chatInputRef}
-										disabled={!chatState.value.status.isReady ||
-											isProcessing(chatState.value.status)}
-										projectId={projectId}
-										apiClient={chatState.value.apiClient!}
+										onNew={async () => {
+											const id = generateConversationId();
+											await selectConversation(id);
+											isConversationListVisible.value = false;
+										}}
+										onDelete={deleteConversation}
+										onClose={() => isConversationListVisible.value = false}
 									/>
 								</div>
+							</div>
+							{/* Chat area */}
+							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+								{/* ConversationHeader */}
+								<ConversationHeader
+									cacheStatus={chatState.value.status.cacheStatus}
+									status={chatState.value.status}
+									onSelect={selectConversation}
+									onNew={async () => {
+										const id = generateConversationId();
+										await selectConversation(id);
+									}}
+									onDelete={deleteConversation}
+									onToggleList={() =>
+										isConversationListVisible.value = !isConversationListVisible.value}
+									isListVisible={isConversationListVisible.value}
+									apiClient={chatState.value.apiClient!}
+									chatState={chatState}
+									onSendMessage={async (message) => {
+										await handlers.sendConverse(message);
+									}}
+									chatInputRef={chatInputRef}
+									disabled={!chatState.value.status.isReady ||
+										isProcessing(chatState.value.status)}
+									projectId={projectId}
+								/>
 
 								{/* Messages */}
 								<div className='flex-1 min-h-0 relative flex flex-col'>

@@ -1,4 +1,5 @@
 import type { Project } from '../../hooks/useProjectState.ts';
+import { setPath } from '../../hooks/useAppState.ts';
 
 interface ProjectListProps {
 	projects: Project[];
@@ -44,11 +45,14 @@ export function ProjectList({
 
 	if (projects.length === 0) {
 		return (
-			<div className='p-4 text-gray-500 text-center'>
+			<div className='p-4 text-center text-gray-500 text-sm'>
 				<p>No projects found</p>
 				<a
-					href='/projects/new'
-					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-800'
+					href='/projects?new=true'
+					onClick={(e) => {
+						setPath('/projects');
+					}}
+					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-900'
 				>
 					Create a new project
 				</a>
@@ -57,84 +61,69 @@ export function ProjectList({
 	}
 
 	return (
-		<div className='max-h-96 overflow-y-auto'>
-			<div className='p-2 sticky top-0 bg-white border-b border-gray-100'>
-				<h3 className='text-sm font-medium text-gray-700'>Select Project</h3>
-			</div>
-			<ul className='py-2'>
-				{projects.map((project, index) => (
-					<li
-						key={project.projectId}
-						className={`px-4 py-2 cursor-pointer ${index === selectedIndex ? 'bg-gray-100' : ''} ${
-							project.projectId === currentProjectId ? 'text-blue-600' : 'text-gray-900'
-						} hover:bg-gray-50`}
-						onClick={() => onSelect(project)}
+		<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100'>
+			{/* Quick Actions */}
+			<li className='px-4 py-2 border-t border-gray-200'>
+				<div className='flex justify-between'>
+					<a
+						href='/projects'
+						onClick={(e) => {
+							setPath('/projects');
+						}}
+						className='text-xs text-blue-600 hover:text-blue-900'
 					>
-						<div className='flex flex-col space-y-2'>
-							<div className='flex items-start space-x-3'>
-								{/* Project Icon based on type */}
-								<div className='flex-shrink-0 mt-1'>
-									{project.type === 'local'
-										? (
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												className='h-5 w-5 text-gray-400'
-												fill='none'
-												viewBox='0 0 24 24'
-												stroke='currentColor'
-											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													strokeWidth={2}
-													d='M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'
-												/>
-											</svg>
-										)
-										: (
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												className='h-5 w-5 text-gray-400'
-												fill='none'
-												viewBox='0 0 24 24'
-												stroke='currentColor'
-											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													strokeWidth={2}
-													d='M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z'
-												/>
-											</svg>
-										)}
-								</div>
+						Manage Projects
+					</a>
+					<a
+						href='/projects?new=true'
+						onClick={(e) => {
+							setPath('/projects');
+						}}
+						className='text-xs text-blue-600 hover:text-blue-900'
+					>
+						New Project
+					</a>
+				</div>
+			</li>
 
-								{/* Project Info */}
-								<div className='flex-1 min-w-0'>
-									<div className='flex items-center justify-between'>
-										<p className='text-sm font-medium truncate'>
-											{project.name}
-										</p>
-										<p className='text-xs text-gray-500'>
-											{project.type}
-										</p>
-									</div>
-									<p className='text-xs text-gray-500 truncate'>
-										{project.path}
-									</p>
-								</div>
+			{projects.map((project, index) => (
+				<li
+					key={project.projectId}
+					className={`px-4 py-2 cursor-pointer group ${
+						index === selectedIndex ? 'bg-gray-100' : 'hover:bg-gray-50'
+					} ${project.projectId === currentProjectId ? 'bg-blue-50 hover:bg-blue-50' : ''}`}
+					onClick={() => onSelect(project)}
+				>
+					<div className='flex justify-between items-start'>
+						<div className='flex-1 min-w-0'>
+							{/* Title and Path */}
+							<div className='flex justify-between items-start mb-1'>
+								<h3
+									className='text-sm font-medium text-gray-900 truncate'
+									title={project.name}
+								>
+									{project.name}
+								</h3>
+								<span className='text-xs text-gray-500 ml-2'>
+									{project.type}
+								</span>
 							</div>
 
-							{/* Project Stats */}
+							{/* Path */}
+							<p className='text-xs text-gray-500 truncate mb-2' title={project.path}>
+								{project.path}
+							</p>
+
+							{/* Stats Row */}
 							{project.stats && (
-								<div className='flex space-x-4 text-xs text-gray-500 pl-8'>
-									<div className='flex items-center'>
+								<div className='flex items-center gap-1 text-xs text-gray-500'>
+									{/* Conversation Count */}
+									<span className='flex items-center gap-1'>
 										<svg
-											xmlns='http://www.w3.org/2000/svg'
-											className='h-4 w-4 mr-1'
+											className='w-4 h-4 mr-1'
 											fill='none'
-											viewBox='0 0 24 24'
 											stroke='currentColor'
+											viewBox='0 0 24 24'
 										>
 											<path
 												strokeLinecap='round'
@@ -143,69 +132,44 @@ export function ProjectList({
 												d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
 											/>
 										</svg>
-										{project.stats.conversationCount}{' '}
-										{project.stats.conversationCount === 1 ? 'conversation' : 'conversations'}
-									</div>
-									<div className='flex items-center'>
+										{project.stats.conversationCount} conversations
+									</span>
+
+									{/* Token Count */}
+									<span className='flex items-center gap-1'>
 										<svg
-											xmlns='http://www.w3.org/2000/svg'
-											className='h-4 w-4 mr-1'
+											className='w-4 h-4 mr-1'
 											fill='none'
-											viewBox='0 0 24 24'
 											stroke='currentColor'
+											viewBox='0 0 24 24'
 										>
 											<path
 												strokeLinecap='round'
 												strokeLinejoin='round'
 												strokeWidth={1.5}
-												d='M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'
+												d='M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z'
 											/>
 										</svg>
 										{project.stats.totalTokens.toLocaleString()} tokens
-									</div>
+									</span>
+
+									{/* Last Used */}
 									{project.stats.lastAccessed && (
-										<div className='flex items-center'>
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												className='h-4 w-4 mr-1'
-												fill='none'
-												viewBox='0 0 24 24'
-												stroke='currentColor'
-											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													strokeWidth={1.5}
-													d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
-												/>
-											</svg>
-											Last used: {new Date(project.stats.lastAccessed).toLocaleDateString()}
-										</div>
+										<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
+											{new Date(project.stats.lastAccessed).toLocaleDateString(undefined, {
+												month: 'short',
+												day: 'numeric',
+												hour: 'numeric',
+												minute: '2-digit',
+											})}
+										</span>
 									)}
 								</div>
 							)}
 						</div>
-					</li>
-				))}
-			</ul>
-
-			{/* Quick Actions */}
-			<div className='p-2 border-t border-gray-100'>
-				<div className='flex justify-between'>
-					<a
-						href='/projects'
-						className='text-xs text-gray-600 hover:text-gray-900'
-					>
-						Manage Projects
-					</a>
-					<a
-						href='/projects/new'
-						className='text-xs text-blue-600 hover:text-blue-800'
-					>
-						New Project
-					</a>
-				</div>
-			</div>
-		</div>
+					</div>
+				</li>
+			))}
+		</ul>
 	);
 }

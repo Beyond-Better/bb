@@ -21,7 +21,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 			<button
 				ref={ref}
 				onClick={onClick}
-				className={`w-full p-2 flex justify-center hover:bg-gray-50 relative ${className}`}
+				className={`w-full p-2 flex justify-center hover:bg-gray-50 relative border border-gray-300 rounded-lg ${className}`}
 				title={project?.name || 'Select Project'}
 				aria-expanded={isOpen}
 			>
@@ -47,7 +47,12 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 		<button
 			ref={ref}
 			onClick={onClick}
-			className={`w-full px-3 py-2 flex items-center justify-between hover:bg-gray-50 rounded-md ${className}`}
+			className={`flex items-center justify-between w-full gap-2 px-4 py-2 ${
+				isOpen
+					? 'border border-blue-500 rounded-t-lg rounded-b-none border-b-0 bg-white ring-2 ring-blue-200'
+					: 'border border-gray-300 rounded-lg hover:bg-gray-50'
+			} transition-colors ${className}`}
+			style={{ height: '40px' }}
 			aria-expanded={isOpen}
 		>
 			<div className='flex items-center min-w-0'>
