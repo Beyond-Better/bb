@@ -27,6 +27,7 @@ export function ProjectSelector({
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const popoverRef = useRef<HTMLDivElement>(null);
 	const selectedIndex = useSignal(0);
+	const searchQuery = useSignal('');
 
 	const projects = useComputed(() => projectState.value.projects);
 	const loading = useComputed(() => projectState.value.loading);
@@ -100,20 +101,6 @@ export function ProjectSelector({
 		triggerRef.current?.focus();
 	};
 
-	const getPopoverPosition = () => {
-		if (!triggerRef.current) return {};
-
-		const rect = triggerRef.current.getBoundingClientRect();
-		const positions: Record<string, any> = {
-			top: { bottom: window.innerHeight - rect.top + 8, left: rect.left },
-			bottom: { top: rect.bottom + 8, left: rect.left },
-			left: { top: rect.top, right: window.innerWidth - rect.left + 8 },
-			right: { top: rect.top, left: rect.right + 8 },
-		};
-
-		return positions[placement];
-	};
-
 	return (
 		<div className={`relative ${className}`}>
 			<ProjectTrigger
@@ -128,11 +115,33 @@ export function ProjectSelector({
 			{isOpen.value && (
 				<div
 					ref={popoverRef}
-					className='absolute z-50 w-96 bg-white border border-gray-200 rounded-lg shadow-lg'
-					style={getPopoverPosition()}
+					className='absolute z-30 bg-white border-x border-b border-blue-500 rounded-b-lg shadow-lg overflow-hidden w-full'
+					style={{
+						top: '100%',
+						left: 0,
+						right: 0,
+						marginTop: -1,
+					}}
 				>
+					{/* Search Input */}
+					<div className='border-b border-gray-200'>
+						<input
+							type='text'
+							value={searchQuery.value}
+							onInput={(e) => searchQuery.value = (e.target as HTMLInputElement).value}
+							placeholder='Search projects...'
+							autoComplete='off'
+							className='w-full px-4 py-2 border-0 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500 bg-white placeholder-gray-400'
+						/>
+					</div>
+
+					{/* Project List */}
 					<ProjectList
-						projects={projects.value}
+						projects={projects.value.filter((project) =>
+							searchQuery.value === '' ||
+							project.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+							project.path.toLowerCase().includes(searchQuery.value.toLowerCase())
+						)}
 						selectedIndex={selectedIndex.value}
 						currentProjectId={appState.value.projectId}
 						loading={loading.value}

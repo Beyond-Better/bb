@@ -1,134 +1,208 @@
 import { JSX } from 'preact';
-import { ChatStatus } from '../types/chat.types.ts';
+import type { RefObject } from 'preact';
+import { Signal, signal, useComputed } from '@preact/signals';
+import { IS_BROWSER } from '$fresh/runtime.ts';
+import { ChatState, ChatStatus } from '../types/chat.types.ts';
+import { isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
-import type { ConversationEntry } from 'shared/types.ts';
-import type { VersionInfo } from 'shared/types/version.ts';
-import { VersionDisplay } from '../components/Version/VersionDisplay.tsx';
+import type { ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
+import { ConversationSelector } from './ConversationSelector/index.ts';
+import { ToolBar } from './ToolBar.tsx';
+
+// Initialize collapse state signal from localStorage if available, otherwise default to true
+const getInitialCollapsedState = () => {
+	if (IS_BROWSER) {
+		const stored = localStorage.getItem('conversationListCollapsed');
+		return stored === null ? true : stored === 'true';
+	}
+	return true;
+};
+
+const isCollapsed = signal(getInitialCollapsedState());
+
+interface ChatInputRef {
+	textarea: HTMLTextAreaElement;
+	adjustHeight: () => void;
+}
 
 interface ConversationHeaderProps {
 	cacheStatus: 'active' | 'expiring' | 'inactive';
-	startDir: string;
-	onStartDirChange: (dir: string) => void;
-	onClearConversation: () => void;
 	status: ChatStatus;
-	conversationCount: number;
-	totalTokens: number;
-	projectType?: 'git' | 'local';
-	createdAt?: string;
+	onSelect: (id: string) => void;
+	onNew: () => void;
+	onDelete: (id: string) => Promise<void>;
+	onToggleList: () => void;
+	isListVisible: boolean;
+	chatState: Signal<ChatState>;
+	onSendMessage: (message: string) => Promise<void>;
+	chatInputRef: RefObject<ChatInputRef>;
+	disabled: boolean;
+	projectId: string;
 	apiClient: ApiClient;
 }
 
 export function ConversationHeader({
 	cacheStatus,
-	startDir,
-	onStartDirChange,
-	onClearConversation,
 	status,
-	conversationCount,
-	totalTokens,
-	projectType,
-	createdAt,
+	onSelect,
+	onNew,
+	onDelete,
+	onToggleList,
+	isListVisible,
+	chatState,
+	onSendMessage,
+	chatInputRef,
+	disabled,
+	projectId,
 	apiClient,
 }: ConversationHeaderProps): JSX.Element {
+	const currentConversation = useComputed(() =>
+		chatState.value.conversations.find((c) => c.id === chatState.value.conversationId)
+	);
+
 	return (
-		<header className='bg-[#1B2333] text-white py-2 pl-4 pr-0 shadow-lg'>
-			<div className='max-w-7xl ml-auto mr-4 flex justify-between items-center gap-8 pl-4 pr-1'>
-				<div className='flex items-center gap-3 flex-1'>
-					{/* Logo */}
-					<div className='flex items-center gap-2'>
-						<img src='/logo.png' alt='BB Logo' className='h-6 w-6' />
-						<h1 className='text-lg font-bold leading-none tracking-tight'>Beyond Better</h1>
-					</div>
+		<header className='bg-white border-b border-gray-200 py-2 px-4 shadow-sm'>
+			<div className='flex justify-between items-center'>
+				<div className='flex items-center space-x-8'>
+					{/* Toggle List Button */}
+					<button
+						onClick={() => {
+							onToggleList();
+							isCollapsed.value = !isCollapsed.value;
+							if (IS_BROWSER) {
+								localStorage.setItem('conversationListCollapsed', String(!isListVisible));
+							}
+						}}
+						className='p-1.5 rounded-lg hover:bg-gray-100 text-gray-500'
+						title={isListVisible ? 'Hide conversation list' : 'Show conversation list'}
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							fill='none'
+							viewBox='0 0 24 24'
+							strokeWidth={1.5}
+							stroke='currentColor'
+							className='w-5 h-5'
+						>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								d={
+									isListVisible
+										? 'M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5' // Double chevron left
+										: 'M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5' // Double chevron right
+								}
+							/>
+						</svg>
+					</button>
 
-					{/* Project Directory Input */}
-					<div className='flex items-center gap-2'>
-						<label className='text-sm font-medium text-gray-300 whitespace-nowrap'>
-							Project Directory:
-						</label>
-						<input
-							type='text'
-							value={startDir}
-							onChange={(e: Event) => {
-								const target = e.target as HTMLInputElement;
-								onStartDirChange(target.value);
-								onClearConversation();
-							}}
-							className='bg-gray-700 text-white px-2 py-1.5 rounded-md w-[400px] focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm placeholder-gray-400 border border-gray-600 hover:border-gray-500 transition-colors'
-							placeholder='Enter project path'
-						/>
-					</div>
+					{/* Conversation Selector */}
+					<ConversationSelector
+						chatState={chatState}
+						onSelect={onSelect}
+						onNew={onNew}
+						onDelete={onDelete}
+						placement='bottom'
+						className='w-96'
+					/>
 
-					{/* Project Metadata */}
-					<div className='flex items-center space-x-4 text-sm text-gray-300'>
-						{/* Project Type */}
-						{projectType && (
-							<div>
-								<span className='text-gray-400'>Type:</span> {projectType}
-							</div>
-						)}
+					{/* Current Conversation Stats */}
+					{currentConversation.value && (
+						<div className='flex items-center space-x-8 text-sm text-gray-500 ml-4'>
+							{currentConversation.value && (
+								<>
+									<div className='flex items-center  space-x-4'>
+										{/* Project Name and ID */}
+										<div className='flex flex-col'>
+											<div className='flex items-center space-x-2'>
+												{/* Conversation Icon */}
+												<svg
+													className='w-5 h-5 text-gray-500 flex-shrink-0'
+													fill='none'
+													stroke='currentColor'
+													viewBox='0 0 24 24'
+												>
+													<path
+														strokeLinecap='round'
+														strokeLinejoin='round'
+														strokeWidth={1.5}
+														d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z'
+													/>
+												</svg>
+												<div>
+													<span className='text-sm font-medium text-gray-900'>
+														{currentConversation.value.title || 'No converstaion selected'}
+													</span>
+													<div className='text-xs text-gray-500'>
+														{currentConversation.value.id}
+														<span className='ml-4 whitespace-nowrap'>
+															{new Date(currentConversation.value.updatedAt)
+																.toLocaleDateString(undefined, {
+																	month: 'short',
+																	day: 'numeric',
+																	hour: 'numeric',
+																	minute: '2-digit',
+																})}
+														</span>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
 
-						{/* Created Date */}
-						{createdAt && (
-							<div>
-								<span className='text-gray-400'>Created:</span>{' '}
-								{new Date(createdAt).toLocaleDateString()}
-							</div>
-						)}
+									<div className='flex items-center'>
+										<svg
+											className='w-4 h-4 mr-1.5'
+											fill='none'
+											stroke='currentColor'
+											viewBox='0 0 24 24'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												strokeWidth={2}
+												d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
+											/>
+										</svg>
+										{currentConversation.value.conversationStats.conversationTurnCount} turns
+									</div>
 
-						{/* Conversation Count */}
-						<div>
-							<span className='text-gray-400'>Conversations:</span> {conversationCount.toLocaleString()}
+									<div className='flex items-center'>
+										<svg
+											className='w-4 h-4 mr-1.5'
+											fill='none'
+											stroke='currentColor'
+											viewBox='0 0 24 24'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												strokeWidth={2}
+												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
+											/>
+										</svg>
+										{currentConversation.value.tokenUsageConversation?.totalTokens
+											?.toLocaleString() ||
+											currentConversation.value.tokenUsageConversation?.totalTokensTotal
+												?.toLocaleString() ||
+											0} tokens
+									</div>
+								</>
+							)}
 						</div>
-
-						{/* Total Token Usage */}
-						<div>
-							<span className='text-gray-400'>Total Tokens:</span> {totalTokens.toLocaleString()}
-						</div>
-					</div>
+					)}
 				</div>
 
-				{/* Status Indicators */}
-				<div className='flex items-center space-x-4 text-sm shrink-0 border-l border-gray-600 pl-4'>
-					{/* Cache Status */}
-					<div className='flex items-center space-x-2'>
-						<CacheStatusIndicator status={cacheStatus} />
-						{/* API Status */}
-						<div className='flex items-center space-x-2'>
-							<span
-								className={`flex items-center ${
-									status.apiStatus === ApiStatus.ERROR ? 'text-red-400' : 'text-gray-300'
-								}`}
-							>
-								{status.apiStatus === ApiStatus.LLM_PROCESSING && 'Claude is thinking...'}
-								{status.apiStatus === ApiStatus.TOOL_HANDLING &&
-									`Using tool: ${status.toolName || 'unknown'}`}
-								{status.apiStatus === ApiStatus.API_BUSY && 'API is processing...'}
-								{status.apiStatus === ApiStatus.ERROR && 'Error occurred'}
-							</span>
-						</div>
-					</div>
-
-					{/* Connection Status */}
-					<span
-						className={`flex items-center ${
-							status.isReady ? 'text-green-400' : status.isConnecting ? 'text-yellow-400' : 'text-red-400'
-						}`}
-					>
-						<span
-							className={`w-2 h-2 rounded-full mr-2 ${
-								status.isReady ? 'bg-green-400' : status.isConnecting ? 'bg-yellow-400' : 'bg-red-400'
-							}`}
-						/>
-						{status.isReady
-							? (status.apiStatus === ApiStatus.IDLE ? 'Connected' : 'Working')
-							: status.isConnecting
-							? 'Connecting'
-							: 'Disconnected'}
-					</span>
-
-					<VersionDisplay showWarning={true} apiClient={apiClient} />
+				<div className='flex justify-end'>
+					<ToolBar
+						onSendMessage={onSendMessage}
+						chatInputRef={chatInputRef}
+						disabled={disabled}
+						projectId={projectId}
+						apiClient={chatState.value.apiClient!}
+					/>
 				</div>
 			</div>
 		</header>

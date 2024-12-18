@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.11] - 2024-12-18
+
+### Added
+
+- Conversation selector on chat page
+
+### Changed
+
+- Project Manager links direct to chat page
+- Collapsed conversation list on chat page
+- Improved conversation metadata
+
+
 ## [0.5.10] - 2024-12-16
 
 ### Fixed

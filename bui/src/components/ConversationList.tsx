@@ -1,9 +1,8 @@
 import { Signal } from '@preact/signals';
-
-import type { ChatState, ConversationListState } from '../types/chat.types.ts';
-// import type { Conversation } from 'shared/types.ts';
+import type { ConversationListState } from '../types/chat.types.ts';
 
 interface ConversationListProps {
+	onClose?: () => void;
 	conversationListState: Signal<ConversationListState>;
 	onSelect: (id: string) => void;
 	onNew: () => void;
@@ -33,46 +32,74 @@ export interface Conversation {
 
 export function ConversationList({
 	conversationListState,
+	onClose,
 	onSelect,
 	onNew,
 	onDelete,
 }: ConversationListProps) {
 	const isLoading = conversationListState.value.isLoading;
-	//console.log(`ConversationList: conversationListState:`, conversationListState.value);
 
 	return (
-		<div className='w-[30%] min-w-[20rem] bg-white border-r border-gray-200 flex flex-col min-h-0'>
+		<div className='flex flex-col h-full'>
+			{/* New Conversation Button */}
 			<div className='p-4 border-b border-gray-200 flex-none bg-gray-50'>
-				<button
-					onClick={onNew}
-					className='w-full bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
-					disabled={isLoading}
-				>
-					{isLoading
-						? (
-							<>
-								<div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'>
-								</div>
-								<span>Loading...</span>
-								<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
-								</div>
-							</>
-						)
-						: (
-							<>
-								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M12 6v6m0 0v6m0-6h6m-6 0H6'
-									/>
-								</svg>
-								<span>New Conversation</span>
-							</>
-						)}
-				</button>
+				<div className='flex items-center gap-2 w-full'>
+					{/* Close Button */}
+					<button
+						onClick={onNew}
+						className='flex-grow bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
+						disabled={isLoading}
+					>
+						{isLoading
+							? (
+								<>
+									<div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'>
+									</div>
+									<span>Loading...</span>
+									<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
+									</div>
+								</>
+							)
+							: (
+								<>
+									<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth={2}
+											d='M12 6v6m0 0v6m0-6h6m-6 0H6'
+										/>
+									</svg>
+									<span>New Conversation</span>
+								</>
+							)}
+					</button>
+					{onClose && (
+						<button
+							onClick={onClose}
+							className='p-2 rounded-lg hover:bg-gray-200 text-gray-500 transition-colors shrink-0'
+							title='Close conversation list'
+						>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								fill='none'
+								viewBox='0 0 24 24'
+								strokeWidth={1.5}
+								stroke='currentColor'
+								className='w-5 h-5'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									d='M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5'
+								/>
+							</svg>
+						</button>
+					)}
+				</div>
 			</div>
+
+			{/* Conversations List */}
 			<div className='flex-1 overflow-y-auto'>
 				{conversationListState.value.conversations.length === 0
 					? (
@@ -116,7 +143,7 @@ export function ConversationList({
 											{/* Delete button - only visible on hover */}
 											<button
 												onClick={(e) => {
-													e.stopPropagation(); // Prevent conversation selection
+													e.stopPropagation();
 													if (
 														confirm(
 															`Are you sure you want to delete the conversation '${conv.title}'?`,
