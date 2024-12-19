@@ -1,0 +1,60 @@
+refresh_rate: 30 seconds
+
+appenders:
+  app:
+    kind: rolling_file
+    path: "Beyond Better.log"  # Will be prefixed with log directory path
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S%.3f)}] {h({l})} {t} - {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 10mb
+      roller:
+        kind: fixed_window
+        pattern: "Beyond Better.{}.log"
+        count: 5
+        base: 1
+
+  proxy:
+    kind: rolling_file
+    path: "proxy-access.log"  # Will be prefixed with log directory path
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S%.3f)}] {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 10mb
+      roller:
+        kind: fixed_window
+        pattern: "proxy-access.{}.log"
+        count: 5
+        base: 1
+
+root:
+  level: info
+  appenders:
+    - app
+
+loggers:
+  proxy:
+    level: info
+    appenders:
+      - proxy
+    additive: false
+
+  # Control noisy hyper logs
+  hyper:
+    level: warn
+  hyper::proto:
+    level: warn
+  hyper::client:
+    level: warn
+
+  # Keep important reqwest logs
+  reqwest:
+    level: warn
+
+  # Keep beyond_better_lib::proxy at debug in debug mode
+  beyond_better_lib::proxy:
+    level: debug

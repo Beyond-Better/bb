@@ -10,9 +10,10 @@ interface ApiStartResult {
 import { open } from '@tauri-apps/plugin-shell';
 import { getCurrent } from '@tauri-apps/api/window';
 import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { generateBuiUrl } from '../../utils/url';
+import { generateWebviewBuiUrl } from '../../utils/url';
+import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
-import { checkApiStatus, getApiConfig, startApi, stopApi, getApiLogPath } from '../../utils/api';
+import { checkApiStatus, getApiConfig, getApiLogPath, startApi, stopApi } from '../../utils/api';
 
 // Constants for polling intervals
 const NORMAL_POLL_INTERVAL = 15000; // 15 seconds for normal operation
@@ -40,12 +41,55 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [apiLogPath, setApiLogPath] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
-	const [buiUrl, setBuiUrl] = useState<string>('');
+	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
+	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
+	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
 
 	// Update BUI URL when apiConfig or debug mode changes
-	useEffect(() => {
+	useEffect(async () => {
+		const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
+		setDirectBuiUrl(direct);
+		// Set proxy target based on debug mode
+		if (apiConfig && !apiConfig.tls.useTls) {
+			try {
+				await setProxyTarget(direct);
+				console.debug('Set proxy target to:', direct);
+			} catch (err) {
+				console.error('Failed to set proxy target:', err);
+			}
+		}
+
+		console.debug('URL effect triggered with:', { apiConfig, debugMode });
 		if (apiConfig) {
-			setBuiUrl(generateBuiUrl(apiConfig, debugMode));
+			if (!apiConfig.tls.useTls) {
+				// Only get proxy info if TLS is disabled
+				console.debug('Getting proxy info...', { apiConfig, debugMode });
+				try {
+					console.debug('About to call getProxyInfo...');
+					const proxyInfo = await getProxyInfo();
+					console.debug('Received proxy info:', proxyInfo);
+					setProxyInfo(proxyInfo);
+					console.debug(`Using proxy on port ${proxyInfo.port} with target ${proxyInfo.target}`);
+					const url = generateWebviewBuiUrl({ apiConfig, proxyInfo, debugMode });
+					console.debug('Setting BUI URL with proxy:', url);
+					setWebviewBuiUrl(url);
+				} catch (err) {
+					console.error('Failed to get proxy info:', err);
+					console.debug('Error details:', {
+						message: err.message,
+						stack: err.stack,
+						error: err,
+					});
+					// Fallback to direct connection
+					const url = generateWebviewBuiUrl({ apiConfig, debugMode });
+					console.debug('Setting BUI URL without proxy:', url);
+					setWebviewBuiUrl(url);
+				}
+			} else {
+				// Use direct connection with TLS
+				console.debug('Using direct HTTPS connection');
+				setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, debugMode }));
+			}
 		}
 	}, [apiConfig, debugMode]);
 
@@ -62,6 +106,41 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
 	}, []);
+
+	// Auto-open chat window when component loads and server is running
+	useEffect(() => {
+		const openChatWindow = async () => {
+			if (status.api_responds && webviewBuiUrl) {
+				console.debug('Auto-opening BB Chat with webview URL:', webviewBuiUrl);
+				try {
+					const windows = await getAllWebviewWindows();
+					const chatWindow = windows.find((w) => w.label === 'bb_chat');
+					if (!chatWindow) {
+						// Create new window only if it doesn't exist
+						const newWindow = new WebviewWindow('bb_chat', {
+							url: webviewBuiUrl,
+							title: 'BB Chat',
+							width: 1200,
+							height: 800,
+							center: true,
+							resizable: true,
+							decorations: true,
+						});
+						await newWindow.once('tauri://created', () => {
+							console.log('BB Chat window created');
+						});
+						await newWindow.once('tauri://error', (e) => {
+							console.error('Error creating BB Chat window:', e);
+						});
+					}
+				} catch (error) {
+					console.error('Error managing chat window:', error);
+				}
+			}
+		};
+
+		openChatWindow();
+	}, [status.api_responds, webviewBuiUrl]);
 
 	useEffect(() => {
 		const init = async () => {
@@ -252,6 +331,36 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		}
 	};
 
+	const handleReloadChat = async () => {
+		console.debug('Reloading BB Chat with webview URL:', webviewBuiUrl);
+		try {
+			const windows = await getAllWebviewWindows();
+			const chatWindow = windows.find((w) => w.label === 'bb_chat');
+			if (chatWindow) {
+				// If window exists, close it and create a new one
+				await chatWindow.close();
+			}
+			// Create new window
+			const newWindow = new WebviewWindow('bb_chat', {
+				url: webviewBuiUrl,
+				title: 'BB Chat',
+				width: 1200,
+				height: 800,
+				center: true,
+				resizable: true,
+				decorations: true,
+			});
+			await newWindow.once('tauri://created', () => {
+				console.log('BB Chat window created');
+			});
+			await newWindow.once('tauri://error', (e) => {
+				console.error('Error creating BB Chat window:', e);
+			});
+		} catch (error) {
+			console.error('Error managing chat window:', error);
+		}
+	};
+
 	return (
 		<div className='bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 max-w-2xl mx-auto'>
 			{/* Main Controls Container */}
@@ -326,101 +435,53 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
-					{apiConfig?.tls?.useTls && /* debugMode && */
-						(
-							<button
-								onClick={async () => {
-									//console.log('Loading BB Chat');
-									try {
-										// Try to find existing window
-										const windows = await getAllWebviewWindows();
-										const chatWindow = windows.find((w) => w.label === 'bb_chat');
-										if (chatWindow) {
-											await chatWindow.show();
-											await chatWindow.setFocus();
-										} else {
-											// Create new window
-											const newWindow = new WebviewWindow('bb_chat', {
-												url: buiUrl,
-												title: 'BB Chat',
-												width: 1200,
-												height: 800,
-												center: true,
-												resizable: true,
-												decorations: true,
-												additionalBrowserArgs:
-													'--allow-insecure-localhost --disable-web-security --disable-features=BlockInsecurePrivateNetworkRequests',
-											});
-											await newWindow.once('tauri://created', () => {
-												console.log('BB Chat window created');
-											});
-											await newWindow.once('tauri://error', (e) => {
-												console.error('Error creating BB Chat window:', e);
-											});
-										}
-									} catch (error) {
-										console.error('Error managing chat window:', error);
-									}
-								}}
-								disabled={!status.api_responds}
-								className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-									status.api_responds
-										? 'bg-blue-600 hover:bg-blue-700'
-										: 'bg-gray-400 cursor-not-allowed'
-								} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
-							>
-								<svg
-									className='w-5 h-5 mr-2'
-									fill='none'
-									stroke='currentColor'
-									viewBox='0 0 24 24'
-								>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
-									/>
-								</svg>
-								Chat
-							</button>
-						)}
-
-					<button
-						onClick={async () => {
-							try {
-								await open(buiUrl);
-							} catch (err) {
-								console.error('Failed to open BUI URL:', err);
-								alert(`Please open this URL manually: ${buiUrl}`);
-							}
-						}}
-						disabled={!status.api_responds}
-						className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-							${status.api_responds ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}
-							focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
-					>
-						<svg
-							className='w-5 h-5 mr-2'
-							fill='none'
-							stroke='currentColor'
-							viewBox='0 0 24 24'
+					{apiConfig && (
+						<button
+							onClick={handleReloadChat}
+							disabled={!status.api_responds}
+							className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+								status.api_responds
+									? 'bg-blue-600 hover:bg-blue-700'
+									: 'bg-gray-400 cursor-not-allowed'
+							} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
 						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth={2}
-								d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'
-							/>
-						</svg>
-						Launch Beyond Better
-					</button>
+							<svg
+								className='w-5 h-5 mr-2'
+								fill='none'
+								stroke='currentColor'
+								viewBox='0 0 24 24'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+								/>
+							</svg>
+							Reload Chat
+						</button>
+					)}
 				</div>
-				{buiUrl && (
+
+				{directBuiUrl && (
 					<div className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4'>
 						<div className='mt-1'>
 							<div className='font-medium mb-1'>
-								<span className='break-all font-mono text-sm'>{buiUrl}</span>
+								<a
+									href={directBuiUrl}
+									onClick={async (e) => {
+										e.preventDefault();
+										try {
+											await open(directBuiUrl);
+										} catch (err) {
+											console.error('Failed to open direct BUI URL:', err);
+											alert(`Please open this URL manually: ${directBuiUrl}`);
+										}
+									}}
+									className='break-all font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer'
+								>
+									{directBuiUrl}
+								</a>
 							</div>
 						</div>
 					</div>
@@ -454,7 +515,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				{showAdvanced && (
 					<div className='mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4 grid gap-4'>
 						{/* Configuration Info */}
-						{/* {apiConfig.logFile && <div>Log: </div><div className='col-span-5'>{apiConfig.log_file}</div>} */}
 						{apiConfig && (
 							<div className='grid grid-cols-6 gap-y-4'>
 								<div className='font-bold'>Host:</div>
@@ -472,6 +532,19 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									<>
 										<div className='font-bold'>Server Log:</div>
 										<div className='col-span-5'>{apiLogPath}</div>
+									</>
+								)}
+								{proxyInfo && !apiConfig.tls.useTls ? (
+									<>
+										<div className='font-bold'>Proxy Port:</div>
+										<div>{proxyInfo.port}</div>
+										<div className='font-bold'>Proxy Target:</div>
+										<div className='col-span-3'>{proxyInfo.target}</div>
+									</>
+								) : (
+									<>
+										<div className='font-bold'>Proxy:</div>
+										<div>disabled</div>
 									</>
 								)}
 							</div>

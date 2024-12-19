@@ -1,6 +1,7 @@
-use env_logger;
 use tauri_plugin_fs;
 use log::{debug, info, warn, error};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use std::time::Duration;
 use std::fs;
 use std::path::PathBuf;
@@ -10,6 +11,8 @@ use crate::config::get_global_config_dir;
 pub mod api;
 pub mod config;  // Make config module public
 pub mod commands;  // Make commands module public
+pub mod logging;
+pub mod proxy;
 
 // Re-export public items
 pub use crate::api::{start_api, stop_api};
@@ -19,13 +22,35 @@ pub use crate::commands::version::{get_binary_version, get_version_info, check_v
 pub use crate::commands::upgrade::{perform_install, perform_upgrade};
 pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path};
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+pub use crate::commands::proxy::{get_proxy_info, set_proxy_target, set_debug_mode, start_proxy_server, stop_proxy_server};
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+async fn start_proxy(log_dir: std::path::PathBuf) -> Result<proxy::HttpProxy, Box<dyn std::error::Error>> {
+    // Check if proxy is needed based on TLS configuration
+    let config = read_global_config()?;
+
+    debug!("Initializing proxy server");
+    let proxy = proxy::HttpProxy::new(log_dir).await?;
+
+    if !config.api.tls.use_tls {
+        debug!("Starting proxy server (TLS disabled)");
+        if let Err(e) = proxy.start().await {
+            error!("Failed to start proxy server: {}", e);
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to start proxy server: {}", e)
+            )));
+        }
+        info!("Proxy server started successfully");
+    } else {
+        debug!("Proxy not needed - API is in TLS mode");
+        info!("API using TLS, direct HTTPS connections will be used");
+    }
+
+    Ok(proxy)
+}
+
 fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
     let config_dir = get_global_config_dir()?;
     let config_path = config_dir.join("config.yaml");
@@ -100,7 +125,7 @@ async fn start_api_if_needed() -> Result<(), String> {
                             }
                             Err(e) => {
                                 error!("Failed to start API: {}", e);
-                                return Err(e);
+                                return Err(e.to_string());
                             }
                         }
                     } else {
@@ -147,6 +172,20 @@ fn get_app_log_dir() -> Option<PathBuf> {
 }
 
 pub fn run() {
+    let log_dir = get_app_log_dir().expect("Failed to get log directory");
+    std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
+    
+    debug!("Starting Beyond Better DUI application");
+
+    // Initialize logging with log4rs
+    let _logging_handle = match logging::setup_app_logging(log_dir.clone()) {
+        Ok(handle) => handle,
+        Err(e) => {
+            eprintln!("Failed to setup logging: {}", e);
+            panic!("Failed to initialize logging system");
+        }
+    };
+
     // Ensure global config exists before starting the app
     if let Err(e) = ensure_global_config() {
         warn!("Failed to ensure global config: {}", e);
@@ -158,39 +197,27 @@ pub fn run() {
             warn!("Failed to start API: {}", e);
         }
     });
-    // Initialize the logger with timestamp and file output
-    if let Some(log_dir) = get_app_log_dir() {
-        std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
-        let log_file = log_dir.join("Beyond Better.log");
-        
-        let file = match std::fs::File::create(&log_file) {
-            Ok(f) => f,
-            Err(e) => {
-                error!("Failed to create log file at {:?}: {}", log_file, e);
-                panic!("Could not create log file: {}", e);
-            }
-        };
-        
-//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or(if cfg!(debug_assertions) { "debug" } else { "info" }))
-            .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
-            .target(env_logger::Target::Pipe(Box::new(file)))
-            .init();
-    } else {
-        // Fallback to default logging if we can't create the log file
-//         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug"))
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-            .format_timestamp(Some(env_logger::fmt::TimestampPrecision::Millis))
-            .init();
-    }
 
-    debug!("Starting Beyond Better DUI application");
+    // Start proxy server if needed
+    debug!("Initializing proxy state");
+    let proxy_state = match tauri::async_runtime::block_on(async {
+        start_proxy(log_dir.clone()).await
+    }) {
+        Ok(proxy) => {
+            info!("Proxy server initialized");
+            Arc::new(RwLock::new(proxy))
+        },
+        Err(e) => {
+            error!("Failed to initialize proxy server: {}", e);
+            panic!("Failed to initialize proxy server: {}", e);
+        }
+    };
 
+
+    // Initialize Tauri
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_fs::init())
+        .manage(proxy_state)
         .invoke_handler(tauri::generate_handler![
-            greet,
             start_api,
             stop_api,
             check_api_status,
@@ -204,8 +231,15 @@ pub fn run() {
             set_global_config_value,
             test_read_config,
             get_log_path,
-            get_api_log_path
+            get_api_log_path,
+            get_proxy_info,
+            set_proxy_target,
+            set_debug_mode,
+            start_proxy_server,
+            stop_proxy_server
         ])
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_fs::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

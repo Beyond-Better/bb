@@ -1,0 +1,29 @@
+refresh_rate: 30 seconds
+
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "[{d(%Y-%m-%d %H:%M:%S%.3f)}] {h({l})} {t} - {m}{n}"
+
+root:
+  level: warn
+  appenders:
+    - stdout
+
+loggers:
+  # Our proxy module stays at debug level
+  beyond_better_lib::proxy:
+    level: debug
+
+  # Set hyper to warn level to reduce noise
+  hyper:
+    level: warn
+  hyper::proto:
+    level: warn
+  hyper::client:
+    level: warn
+
+  # Keep important reqwest logs
+  reqwest:
+    level: warn

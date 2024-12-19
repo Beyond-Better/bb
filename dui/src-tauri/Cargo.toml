@@ -31,6 +31,16 @@ tempfile = "3.8"
 once_cell = "1.19"
 log = "0.4"
 env_logger = "0.10"
+log4rs = { version = "1.3", features = ["all_components", "yaml_format"] }
+chrono = "0.4"
+http = "0.2"
+hyper = { version = "0.14", features = ["full", "http1", "http2", "client"] }
+hyper-tls = "0.5"
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.4", features = ["trace"] }
+tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
+futures-util = { version = "0.3", features = ["sink"] }
+tungstenite = "0.20"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 flate2 = "1.0"

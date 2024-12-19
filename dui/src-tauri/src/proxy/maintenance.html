@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Temporarily Unavailable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Ensure Tailwind dark mode works with system preferences */
+        @media (prefers-color-scheme: dark) {
+            html {
+                background-color: #1a1a1a;
+                color: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-lg w-full text-center">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                Temporarily Unavailable
+            </h1>
+            <p class="text-lg text-gray-600 dark:text-gray-300 mb-4">
+                The service is temporarily unavailable. Please try again in a few minutes.
+            </p>
+            <div id="error-message" class="text-red-600 dark:text-red-400 text-sm">
+                <!--ERROR_MESSAGE-->
+            </div>
+        </div>
+    </div>
+</body>
+</html>

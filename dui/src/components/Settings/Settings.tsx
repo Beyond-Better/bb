@@ -1,6 +1,7 @@
 import { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { invoke } from '@tauri-apps/api/core';
+import { setDebugMode as setProxyDebugMode } from '../../utils/proxy';
 import { GlobalConfigValues, RustGlobalConfig } from '../../types/settings';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
 import { useDebugMode } from '../../providers/DebugModeProvider';
@@ -168,8 +169,32 @@ export function Settings(): JSX.Element {
 
 	const handleRestartConfirm = async () => {
 		try {
+			// Stop API first
 			await invoke('stop_api');
+
+			// Handle proxy server based on TLS setting
+			if (config['api.tls.useTls']) {
+				try {
+					await invoke('stop_proxy_server');
+					console.debug('Proxy server stopped after TLS enabled');
+				} catch (err) {
+					console.error('Failed to stop proxy server:', err);
+				}
+			}
+
+			// Start API
 			await invoke('start_api');
+
+			// If TLS is disabled, ensure proxy is started
+			if (!config['api.tls.useTls']) {
+				try {
+					await invoke('start_proxy_server');
+					console.debug('Proxy server started after TLS disabled');
+				} catch (err) {
+					console.error('Failed to start proxy server:', err);
+				}
+			}
+
 			setShowRestartConfirm(false);
 			// Navigate back
 			window.history.back();
@@ -306,7 +331,15 @@ export function Settings(): JSX.Element {
 							<input
 								type='checkbox'
 								checked={debugMode}
-								onChange={(e) => setDebugMode(e.currentTarget.checked)}
+								onChange={async (e) => {
+							setDebugMode(e.currentTarget.checked);
+							try {
+								await setProxyDebugMode(e.currentTarget.checked);
+								console.debug('Debug mode set successfully');
+							} catch (err) {
+								console.error('Failed to set debug mode:', err);
+							}
+						}}
 								className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
 							/>
 							<span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
