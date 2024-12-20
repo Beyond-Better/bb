@@ -204,7 +204,7 @@ export function ColumnFileBrowser({
 			<div class='flex items-center justify-between mb-2'>
 				<button
 					onClick={() => isExpanded.value = !isExpanded.value}
-					class='flex items-center p-1 rounded hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+					class='flex items-center p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
 					aria-label={isExpanded.value ? 'Collapse file browser' : 'Expand file browser'}
 				>
 					<svg
@@ -240,23 +240,26 @@ export function ColumnFileBrowser({
 
 			{isExpanded.value && (
 				<div ref={scrollContainerRef} class='overflow-x-auto flex-grow w-full'>
-					<div class='flex space-x-1 bg-gray-50 rounded-lg' style='height: 400px; min-width: min-content;'>
+					<div
+						class='flex space-x-1 bg-gray-50 dark:bg-gray-900 rounded-lg'
+						style='height: 400px; min-width: min-content;'
+					>
 						{error.value && (
-							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								<div class='text-red-500 px-4 text-center'>{error.value}</div>
+							<div class='flex-none w-52 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-lg'>
+								<div class='text-red-500 dark:text-red-400 px-4 text-center'>{error.value}</div>
 							</div>
 						)}
 						{!error.value && columns.value.length === 0 && !loading.value && (
 							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								<div class='text-gray-500'>Loading directory contents...</div>
+								<div class='text-gray-500 dark:text-gray-400'>Loading directory contents...</div>
 							</div>
 						)}
 						{columns.value.map((column, index) => (
 							<div
 								key={`${column.path}-${index}`}
-								class='flex-none w-52 flex flex-col bg-white rounded-lg shadow'
+								class='flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow'
 							>
-								<div class='text-sm font-medium text-gray-600 px-2 py-1 border-b sticky top-0 bg-white rounded-t-lg z-10'>
+								<div class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-lg z-10'>
 									{column.path === rootPath ? 'Root' : column.path.split('/').pop()}
 								</div>
 								<div class='overflow-y-auto flex-grow' style='height: calc(400px - 2rem);'>
@@ -269,7 +272,11 @@ export function ColumnFileBrowser({
 													onClick={() => handleItemClick(item, index)}
 													class={`
                           px-2 py-1 cursor-pointer text-sm flex items-center justify-between
-                          ${item.isDirectory ? 'text-blue-600 hover:bg-blue-50' : 'text-gray-700 hover:bg-gray-50'}
+                          ${
+														item.isDirectory
+															? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50'
+															: 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+													}
                           ${
 														type === 'directory' && !item.isDirectory
 															? 'opacity-50 cursor-not-allowed'
@@ -277,7 +284,7 @@ export function ColumnFileBrowser({
 													}
                           ${
 														column.selected === item.path
-															? 'bg-blue-100'
+															? 'bg-blue-100 dark:bg-blue-900/50'
 															: ''
 													}
                         `}
@@ -285,7 +292,9 @@ export function ColumnFileBrowser({
 													<div class='flex items-center flex-grow min-w-0'>
 														<span class='truncate'>{item.name}</span>
 													</div>
-													{item.isDirectory && <span class='text-gray-400 ml-2'>›</span>}
+													{item.isDirectory && (
+														<span class='text-gray-400 dark:text-gray-500 ml-2'>›</span>
+													)}
 												</div>
 											))
 										)}
@@ -294,7 +303,8 @@ export function ColumnFileBrowser({
 						))}
 						{loading.value && (
 							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500'></div>
+								<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+								</div>
 							</div>
 						)}
 					</div>

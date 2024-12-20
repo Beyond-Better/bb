@@ -42,7 +42,7 @@ export function ProjectMetadata({
 								viewBox='0 0 24 24'
 								strokeWidth='1.5'
 								stroke='currentColor'
-								className='w-5 h-5 text-gray-400'
+								className='w-5 h-5 text-gray-400 dark:text-gray-500'
 							>
 								<path
 									strokeLinecap='round'
@@ -51,10 +51,10 @@ export function ProjectMetadata({
 								/>
 							</svg>
 							<div>
-								<span className='text-sm font-medium text-gray-900'>
+								<span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
 									{projectName || 'No project selected'}
 								</span>
-								<div className='text-xs text-gray-500'>{projectId}</div>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>{projectId}</div>
 							</div>
 						</div>
 					</div>
@@ -67,7 +67,7 @@ export function ProjectMetadata({
 							viewBox='0 0 24 24'
 							strokeWidth='1.5'
 							stroke='currentColor'
-							className='w-4 h-4 text-gray-400'
+							className='w-4 h-4 text-gray-400 dark:text-gray-500'
 						>
 							<path
 								strokeLinecap='round'
@@ -75,7 +75,7 @@ export function ProjectMetadata({
 								d='M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5'
 							/>
 						</svg>
-						<span className='text-sm text-gray-500'>{projectType}</span>
+						<span className='text-sm text-gray-500 dark:text-gray-400'>{projectType}</span>
 					</div>
 
 					{/* Project Path */}
@@ -86,7 +86,7 @@ export function ProjectMetadata({
 							viewBox='0 0 24 24'
 							strokeWidth='1.5'
 							stroke='currentColor'
-							className='w-4 h-4 text-gray-400'
+							className='w-4 h-4 text-gray-400 dark:text-gray-500'
 						>
 							<path
 								strokeLinecap='round'
@@ -94,7 +94,7 @@ export function ProjectMetadata({
 								d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
 							/>
 						</svg>
-						<span className='text-sm text-gray-500'>{projectPath}</span>
+						<span className='text-sm text-gray-500 dark:text-gray-400'>{projectPath}</span>
 					</div>
 				</div>
 
@@ -117,7 +117,7 @@ export function ProjectMetadata({
 								/>
 							</svg>
 							<span>{chatState.value.conversations.length.toLocaleString()}</span>
-							<span className='text-gray-500 ml-1'>
+							<span className='text-gray-500 dark:text-gray-400 ml-1'>
 								{chatState.value.conversations.length === 1 ? 'conversation' : 'conversations'}
 							</span>
 						</div>
@@ -138,11 +138,11 @@ export function ProjectMetadata({
 								/>
 							</svg>
 							<span>{chatState.value.projectData?.stats?.totalTokens.toLocaleString() || '--'}</span>
-							<span className='text-gray-500 ml-1'>tokens used</span>
+							<span className='text-gray-500 dark:text-gray-400 ml-1'>tokens used</span>
 						</div>
 
 						{chatState.value.projectData?.stats?.lastAccessed && (
-							<div className='flex items-center text-gray-500'>
+							<div className='flex items-center text-gray-500 dark:text-gray-400'>
 								<svg
 									xmlns='http://www.w3.org/2000/svg'
 									className='h-5 w-5 mr-1.5'
@@ -170,7 +170,7 @@ export function ProjectMetadata({
 			{/* Status Info */}
 			<div className='flex items-center space-x-4'>
 				{/* Divider */}
-				<div className='h-4 w-px bg-gray-200' />
+				<div className='h-4 w-px bg-gray-200 dark:bg-gray-700' />
 
 				{/* Cache Status */}
 				<div className='flex items-center space-x-2'>
@@ -181,7 +181,9 @@ export function ProjectMetadata({
 				<div className='flex items-center space-x-2'>
 					<span
 						className={`flex items-center ${
-							chatState.value.status.apiStatus === ApiStatus.ERROR ? 'text-red-500' : 'text-gray-500'
+							chatState.value.status.apiStatus === ApiStatus.ERROR
+								? 'text-red-500 dark:text-red-400'
+								: 'text-gray-500 dark:text-gray-400'
 						}`}
 					>
 						{chatState.value.status.apiStatus === ApiStatus.LLM_PROCESSING && 'Claude is thinking...'}
@@ -198,7 +200,7 @@ export function ProjectMetadata({
 							chatState.value.status.isReady ? 'bg-green-400' : 'bg-red-400'
 						}`}
 					/>
-					<span className='text-sm text-gray-500'>
+					<span className='text-sm text-gray-500 dark:text-gray-400'>
 						Conversation{'  '}{chatState.value.status.isReady
 							? (chatState.value.status.apiStatus === ApiStatus.IDLE ? 'Connected' : 'Working')
 							: chatState.value.status?.isConnecting

@@ -16,15 +16,15 @@ export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTri
 				onClick={onClick}
 				className={`flex items-center justify-between w-full gap-2 px-4 py-2 ${
 					isOpen
-						? 'border border-blue-500 rounded-t-lg rounded-b-none border-b-0 bg-white ring-2 ring-blue-200'
-						: 'border border-gray-300 rounded-lg hover:bg-gray-50'
+						? 'border border-blue-500 dark:border-blue-400 rounded-t-lg rounded-b-none border-b-0 bg-white dark:bg-gray-900 ring-2 ring-blue-200 dark:ring-blue-500/30'
+						: 'border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800'
 				} transition-colors ${className}`}
 				style={{ height: '40px' }}
 			>
 				<div className='flex items-center gap-2 min-w-0'>
 					{/* Conversation Icon */}
 					<svg
-						className='w-5 h-5 text-gray-500 flex-shrink-0'
+						className='w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0'
 						fill='none'
 						stroke='currentColor'
 						viewBox='0 0 24 24'
@@ -42,13 +42,13 @@ export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTri
 						{conversation
 							? (
 								<div className='flex flex-col'>
-									<span className='text-sm font-medium text-gray-900 truncate'>
+									<span className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
 										{conversation.title || 'Untitled'}
 									</span>
 								</div>
 							)
 							: (
-								<span className='text-sm text-gray-500'>
+								<span className='text-sm text-gray-500 dark:text-gray-400'>
 									Select Conversation
 								</span>
 							)}

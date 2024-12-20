@@ -2,9 +2,10 @@ import { type Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 
 export default {
+	//darkMode: 'class',
 	content: [
 		// BUI components and routes
-		'{routes,islands,components}/**/*.{ts,tsx}',
+		'{routes,islands,components,utils}/**/*.{ts,tsx}',
 
 		// API formatters that generate HTML with Tailwind classes
 		// These files need to be included so Tailwind can detect utility classes
@@ -32,16 +33,16 @@ export default {
 					'@apply text-lg font-semibold flex items-center gap-2': {},
 				},
 				'.bb-log-entry-toolname': {
-					'@apply text-base font-normal text-gray-600': {},
+					'@apply text-base font-normal text-gray-600 dark:text-gray-400': {},
 				},
 				'.bb-log-entry-subtitle': {
-					'@apply text-sm text-gray-500': {},
+					'@apply text-sm text-gray-500 dark:text-gray-400': {},
 				},
 				'.bb-tool-use': {
-					'@apply p-4 rounded-lg border bg-white': {},
+					'@apply p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800': {},
 				},
 				'.bb-tool-result': {
-					'@apply p-4 rounded-lg border bg-white': {},
+					'@apply p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800': {},
 				},
 			},
 			fontSize: {
@@ -59,7 +60,7 @@ export default {
 				DEFAULT: {
 					css: {
 						// Set darker colors for better readability
-						color: '#374151', // text-gray-700
+						//color: '#374151', // text-gray-700
 						'--tw-prose-body': '#374151',
 						'--tw-prose-headings': '#111827',
 						'--tw-prose-lead': '#4b5563',
@@ -101,6 +102,7 @@ export default {
 							borderRadius: '0.375rem',
 						},
 						pre: {
+							color: 'inherit',
 							backgroundColor: '#f3f4f6',
 							borderRadius: '0.375rem',
 							padding: '0',

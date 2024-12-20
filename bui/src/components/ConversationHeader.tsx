@@ -63,7 +63,7 @@ export function ConversationHeader({
 	);
 
 	return (
-		<header className='bg-white border-b border-gray-200 py-2 px-4 shadow-sm'>
+		<header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 shadow-sm'>
 			<div className='flex justify-between items-center'>
 				<div className='flex items-center space-x-8'>
 					{/* Toggle List Button */}
@@ -75,7 +75,7 @@ export function ConversationHeader({
 								localStorage.setItem('conversationListCollapsed', String(!isListVisible));
 							}
 						}}
-						className='p-1.5 rounded-lg hover:bg-gray-100 text-gray-500'
+						className='p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
 						title={isListVisible ? 'Hide conversation list' : 'Show conversation list'}
 					>
 						<svg
@@ -110,16 +110,16 @@ export function ConversationHeader({
 
 					{/* Current Conversation Stats */}
 					{currentConversation.value && (
-						<div className='flex items-center space-x-8 text-sm text-gray-500 ml-4'>
+						<div className='flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400 ml-4'>
 							{currentConversation.value && (
 								<>
-									<div className='flex items-center  space-x-4'>
+									<div className='flex items-center space-x-4'>
 										{/* Project Name and ID */}
 										<div className='flex flex-col'>
 											<div className='flex items-center space-x-2'>
 												{/* Conversation Icon */}
 												<svg
-													className='w-5 h-5 text-gray-500 flex-shrink-0'
+													className='w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0'
 													fill='none'
 													stroke='currentColor'
 													viewBox='0 0 24 24'
@@ -132,10 +132,10 @@ export function ConversationHeader({
 													/>
 												</svg>
 												<div>
-													<span className='text-sm font-medium text-gray-900'>
+													<span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
 														{currentConversation.value.title || 'No converstaion selected'}
 													</span>
-													<div className='text-xs text-gray-500'>
+													<div className='text-xs text-gray-500 dark:text-gray-400'>
 														{currentConversation.value.id}
 														<span className='ml-4 whitespace-nowrap'>
 															{new Date(currentConversation.value.updatedAt)
@@ -154,7 +154,7 @@ export function ConversationHeader({
 
 									<div className='flex items-center'>
 										<svg
-											className='w-4 h-4 mr-1.5'
+											className='w-4 h-4 mr-1.5 text-gray-500 dark:text-gray-400'
 											fill='none'
 											stroke='currentColor'
 											viewBox='0 0 24 24'

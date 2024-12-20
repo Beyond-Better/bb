@@ -123,7 +123,7 @@ export function ConversationSelector({
 				{isOpen.value && (
 					<div
 						ref={popoverRef}
-						className='absolute z-30 bg-white border-x border-b border-blue-500 rounded-b-lg shadow-lg overflow-hidden w-full'
+						className='absolute z-30 bg-white dark:bg-gray-900 border-x border-b border-blue-500 dark:border-blue-400 rounded-b-lg shadow-lg overflow-hidden w-full'
 						style={{
 							top: '100%',
 							left: 0,
@@ -132,14 +132,14 @@ export function ConversationSelector({
 						}}
 					>
 						{/* Search Input */}
-						<div className='border-b border-gray-200'>
+						<div className='border-b border-gray-200 dark:border-gray-700'>
 							<input
 								type='text'
 								value={searchQuery.value}
 								onInput={(e) => searchQuery.value = (e.target as HTMLInputElement).value}
 								placeholder='Search conversations...'
 								autoComplete='off'
-								className='w-full px-4 py-2 border-0 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500 bg-white placeholder-gray-400'
+								className='w-full px-4 py-2 border-0 text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-blue-500 bg-white dark:bg-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500'
 							/>
 						</div>
 
@@ -161,12 +161,12 @@ export function ConversationSelector({
 			{/* New Conversation Button */}
 			<button
 				onClick={onNew}
-				className='bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2 border border-gray-300 h-[40px]'
+				className='bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 border border-gray-300 dark:border-gray-600 h-[40px]'
 			>
 				<svg className='w-4 h-4 flex-shrink-0' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 					<path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 6v6m0 0v6m0-6h6m-6 0H6' />
 				</svg>
-				<span className='text-sm'>New</span>
+				<span className='text-sm text-gray-700 dark:text-gray-200'>New</span>
 			</button>
 		</div>
 	);

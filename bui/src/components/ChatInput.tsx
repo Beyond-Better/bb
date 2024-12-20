@@ -32,7 +32,7 @@ enum TabState {
 	SUGGESTIONS = 1, // Suggestions shown (with or without selection)
 }
 
-const inputMaxCharLength = 5000;
+const inputMaxCharLength = 25000;
 const inputMaxScrollHeight = 350;
 
 // Helper function to check if we should show suggestions
@@ -578,7 +578,7 @@ export function ChatInput({
 	const statusInfo = getStatusInfo();
 
 	return (
-		<div className='bg-white px-4 py-2 w-full'>
+		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full'>
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}
@@ -594,11 +594,13 @@ export function ChatInput({
 						value={value}
 						onInput={handleInput}
 						onKeyDown={handleKeyPress}
-						className={`w-full px-3 py-2 border rounded-md resize-none overflow-y-auto 
-						  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+						className={`w-full px-3 py-2 border dark:border-gray-700 rounded-md resize-none overflow-y-auto dark:bg-gray-800 dark:text-gray-100 
+						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
-						  ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
-						  ${isProcessing(status) ? 'border-blue-200 bg-white' : ''}`}
+						  ${disabled ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
+						  ${
+							isProcessing(status) ? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800' : ''
+						}`}
 						placeholder={isProcessing(status)
 							? 'Type your message... (Statement in progress)'
 							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
@@ -614,18 +616,20 @@ export function ChatInput({
 
 					{(isShowingSuggestions || isLoadingSuggestions || suggestionsError) && (
 						<div
-							className='absolute z-10 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
+							className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
 							style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
 						>
 							{isLoadingSuggestions && (
-								<div className='flex items-center justify-center py-4'>
-									<LoadingSpinner size='small' color='text-blue-500' />
-									<span className='ml-2 text-gray-600'>Loading suggestions...</span>
+								<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
+									<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
+									<span className='ml-2 text-gray-600 dark:text-gray-300'>
+										Loading suggestions...
+									</span>
 								</div>
 							)}
 
 							{suggestionsError && (
-								<div className='text-red-500 p-3 text-sm'>
+								<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
 									Error: {suggestionsError}
 								</div>
 							)}
@@ -644,7 +648,7 @@ export function ChatInput({
 											className={`cursor-pointer py-2 pl-3 pr-9 ${
 												index === selectedIndex
 													? 'bg-blue-600 text-white'
-													: 'text-gray-900 hover:bg-blue-600 hover:text-white'
+													: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
 											}`}
 											onClick={() => {
 												if (suggestion.isDirectory) {
@@ -682,7 +686,11 @@ export function ChatInput({
 
 					<div className='absolute bottom-2 right-2 flex items-center space-x-2'>
 						<span
-							className={`text-xs ${value.length > maxLength * 0.9 ? 'text-red-500' : 'text-gray-400'}`}
+							className={`text-xs ${
+								value.length > maxLength * 0.9
+									? 'text-red-500 dark:text-red-400'
+									: 'text-gray-400 dark:text-gray-500'
+							}`}
 						>
 							{value.length} / {maxLength}
 						</span>
@@ -695,15 +703,15 @@ export function ChatInput({
 						focus:ring-opacity-50 min-w-[60px] ml-2
 						${
 						isProcessing(status)
-							? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+							? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
 							: disabled
-							? 'bg-gray-300 cursor-not-allowed'
-							: 'bg-blue-500 text-white hover:bg-blue-600'
+							? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+							: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
 					}`}
 					disabled={status.isLoading || disabled || isProcessing(status)}
 					aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
 				>
-					{status.isLoading ? <LoadingSpinner size='small' color='text-white' /> : 'Send'}
+					{status.isLoading ? <LoadingSpinner size='small' color='text-white dark:text-gray-200' /> : 'Send'}
 				</button>
 			</div>
 		</div>

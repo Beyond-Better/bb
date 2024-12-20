@@ -25,11 +25,11 @@ export default function Settings(): JSX.Element {
 				{/* Settings Grid */}
 				<div class='grid grid-cols-1 gap-6 sm:grid-cols-2'>
 					{/* Appearance */}
-					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
+					<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
 						<div class='flex items-center space-x-3'>
 							<div class='flex-shrink-0'>
 								<svg
-									class='h-6 w-6 text-gray-600'
+									class='h-6 w-6 text-gray-600 dark:text-gray-400'
 									xmlns='http://www.w3.org/2000/svg'
 									fill='none'
 									viewBox='0 0 24 24'
@@ -44,23 +44,23 @@ export default function Settings(): JSX.Element {
 								</svg>
 							</div>
 							<div>
-								<h3 class='text-lg font-medium text-gray-900'>Appearance</h3>
-								<p class='mt-1 text-sm text-gray-500'>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Appearance</h3>
+								<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 									Customize the look and feel of BB
 								</p>
 							</div>
 						</div>
-						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
 							Coming Soon
 						</span>
 					</div>
 
 					{/* Project Defaults */}
-					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
+					<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
 						<div class='flex items-center space-x-3'>
 							<div class='flex-shrink-0'>
 								<svg
-									class='h-6 w-6 text-gray-600'
+									class='h-6 w-6 text-gray-600 dark:text-gray-400'
 									xmlns='http://www.w3.org/2000/svg'
 									fill='none'
 									viewBox='0 0 24 24'
@@ -75,23 +75,23 @@ export default function Settings(): JSX.Element {
 								</svg>
 							</div>
 							<div>
-								<h3 class='text-lg font-medium text-gray-900'>Project Defaults</h3>
-								<p class='mt-1 text-sm text-gray-500'>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Project Defaults</h3>
+								<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 									Set default behaviors for projects
 								</p>
 							</div>
 						</div>
-						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
 							Coming Soon
 						</span>
 					</div>
 
 					{/* Notifications */}
-					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
+					<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
 						<div class='flex items-center space-x-3'>
 							<div class='flex-shrink-0'>
 								<svg
-									class='h-6 w-6 text-gray-600'
+									class='h-6 w-6 text-gray-600 dark:text-gray-400'
 									xmlns='http://www.w3.org/2000/svg'
 									fill='none'
 									viewBox='0 0 24 24'
@@ -106,23 +106,23 @@ export default function Settings(): JSX.Element {
 								</svg>
 							</div>
 							<div>
-								<h3 class='text-lg font-medium text-gray-900'>Notifications</h3>
-								<p class='mt-1 text-sm text-gray-500'>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Notifications</h3>
+								<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 									Configure notification preferences
 								</p>
 							</div>
 						</div>
-						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
 							Coming Soon
 						</span>
 					</div>
 
 					{/* Keyboard Shortcuts */}
-					<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
+					<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative'>
 						<div class='flex items-center space-x-3'>
 							<div class='flex-shrink-0'>
 								<svg
-									class='h-6 w-6 text-gray-600'
+									class='h-6 w-6 text-gray-600 dark:text-gray-400'
 									xmlns='http://www.w3.org/2000/svg'
 									fill='none'
 									viewBox='0 0 24 24'
@@ -137,22 +137,22 @@ export default function Settings(): JSX.Element {
 								</svg>
 							</div>
 							<div>
-								<h3 class='text-lg font-medium text-gray-900'>Keyboard Shortcuts</h3>
-								<p class='mt-1 text-sm text-gray-500'>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Keyboard Shortcuts</h3>
+								<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 									Customize keyboard shortcuts
 								</p>
 							</div>
 						</div>
-						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800'>
+						<span class='absolute top-4 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
 							Coming Soon
 						</span>
 					</div>
 				</div>
 
 				{/* Additional Info */}
-				<div class='bg-gray-50 rounded-lg p-6 mt-6'>
-					<h2 class='text-lg font-medium text-gray-900 mb-2'>More Features Coming Soon</h2>
-					<p class='text-gray-600'>
+				<div class='bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mt-6'>
+					<h2 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>More Features Coming Soon</h2>
+					<p class='text-gray-600 dark:text-gray-400'>
 						We're working on additional settings and customization options. Stay tuned for updates!
 					</p>
 				</div>

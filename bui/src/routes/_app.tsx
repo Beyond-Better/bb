@@ -43,8 +43,8 @@ export default function App({ Component, url }: PageProps) {
 				<title>Beyond Better</title>
 				<link rel='stylesheet' href='/styles.css' />
 			</Head>
-			<body class='overflow-hidden' f-client-nav>
-				<div class='flex h-screen bg-gray-50'>
+			<body class='overflow-hidden dark:bg-gray-900' f-client-nav>
+				<div class='flex h-screen bg-gray-50 dark:bg-gray-900'>
 					{/* Side Navigation with app state initialization */}
 					<SideNav currentPath={url.pathname} />
 

@@ -23,10 +23,10 @@ export function ProjectList({
 			<div className='p-4'>
 				<div className='animate-pulse flex space-x-4'>
 					<div className='flex-1 space-y-4 py-1'>
-						<div className='h-4 bg-gray-200 rounded w-3/4'></div>
+						<div className='h-4 bg-gray-200 dark:bg-gray-700 dark:bg-gray-700 rounded w-3/4'></div>
 						<div className='space-y-2'>
-							<div className='h-4 bg-gray-200 rounded'></div>
-							<div className='h-4 bg-gray-200 rounded w-5/6'></div>
+							<div className='h-4 bg-gray-200 dark:bg-gray-700 rounded'></div>
+							<div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6'></div>
 						</div>
 					</div>
 				</div>
@@ -36,23 +36,23 @@ export function ProjectList({
 
 	if (error) {
 		return (
-			<div className='p-4 text-red-600'>
+			<div className='p-4 text-red-600 dark:text-red-400'>
 				<p>Error loading projects:</p>
-				<p className='text-sm'>{error}</p>
+				<p className='text-sm text-red-600 dark:text-red-400'>{error}</p>
 			</div>
 		);
 	}
 
 	if (projects.length === 0) {
 		return (
-			<div className='p-4 text-center text-gray-500 text-sm'>
+			<div className='p-4 text-center text-gray-500 dark:text-gray-400 text-sm'>
 				<p>No projects found</p>
 				<a
 					href='/projects?new=true'
 					onClick={(e) => {
 						setPath('/projects');
 					}}
-					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-900'
+					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 				>
 					Create a new project
 				</a>
@@ -61,16 +61,16 @@ export function ProjectList({
 	}
 
 	return (
-		<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100'>
+		<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700'>
 			{/* Quick Actions */}
-			<li className='px-4 py-2 border-t border-gray-200'>
+			<li className='px-4 py-2 border-t border-gray-200 dark:border-gray-700'>
 				<div className='flex justify-between'>
 					<a
 						href='/projects'
 						onClick={(e) => {
 							setPath('/projects');
 						}}
-						className='text-xs text-blue-600 hover:text-blue-900'
+						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 					>
 						Manage Projects
 					</a>
@@ -79,7 +79,7 @@ export function ProjectList({
 						onClick={(e) => {
 							setPath('/projects');
 						}}
-						className='text-xs text-blue-600 hover:text-blue-900'
+						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 					>
 						New Project
 					</a>
@@ -90,8 +90,14 @@ export function ProjectList({
 				<li
 					key={project.projectId}
 					className={`px-4 py-2 cursor-pointer group ${
-						index === selectedIndex ? 'bg-gray-100' : 'hover:bg-gray-50'
-					} ${project.projectId === currentProjectId ? 'bg-blue-50 hover:bg-blue-50' : ''}`}
+						index === selectedIndex
+							? 'bg-gray-100 dark:bg-gray-700'
+							: 'hover:bg-gray-50 dark:hover:bg-gray-700'
+					} ${
+						project.projectId === currentProjectId
+							? 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+							: ''
+					}`}
 					onClick={() => onSelect(project)}
 				>
 					<div className='flex justify-between items-start'>
@@ -99,24 +105,24 @@ export function ProjectList({
 							{/* Title and Path */}
 							<div className='flex justify-between items-start mb-1'>
 								<h3
-									className='text-sm font-medium text-gray-900 truncate'
+									className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'
 									title={project.name}
 								>
 									{project.name}
 								</h3>
-								<span className='text-xs text-gray-500 ml-2'>
+								<span className='text-xs text-gray-500 dark:text-gray-400 ml-2'>
 									{project.type}
 								</span>
 							</div>
 
 							{/* Path */}
-							<p className='text-xs text-gray-500 truncate mb-2' title={project.path}>
+							<p className='text-xs text-gray-500 dark:text-gray-400 truncate mb-2' title={project.path}>
 								{project.path}
 							</p>
 
 							{/* Stats Row */}
 							{project.stats && (
-								<div className='flex items-center gap-1 text-xs text-gray-500'>
+								<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
 									{/* Conversation Count */}
 									<span className='flex items-center gap-1'>
 										<svg
@@ -155,7 +161,7 @@ export function ProjectList({
 
 									{/* Last Used */}
 									{project.stats.lastAccessed && (
-										<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
+										<span className='text-xs text-gray-500 dark:text-gray-400 ml-2 whitespace-nowrap'>
 											{new Date(project.stats.lastAccessed).toLocaleDateString(undefined, {
 												month: 'short',
 												day: 'numeric',

@@ -39,11 +39,11 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 	// Version compatibility is now computed directly
 
 	return (
-		<div className={`rounded-md bg-yellow-50 p-4 ${className}`}>
+		<div className={`rounded-md bg-yellow-50 dark:bg-yellow-900/30 p-4 ${className}`}>
 			<div className='flex'>
 				<div className='flex-shrink-0'>
 					<svg
-						className='h-5 w-5 text-yellow-400'
+						className='h-5 w-5 text-yellow-400 dark:text-yellow-300'
 						viewBox='0 0 20 20'
 						fill='currentColor'
 						aria-hidden='true'
@@ -56,8 +56,8 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 					</svg>
 				</div>
 				<div className='ml-3'>
-					<h3 className='text-sm font-medium text-yellow-800'>Version Mismatch</h3>
-					<div className='mt-2 text-sm text-yellow-700'>
+					<h3 className='text-sm font-medium text-yellow-800 dark:text-yellow-300'>Version Mismatch</h3>
+					<div className='mt-2 text-sm text-yellow-700 dark:text-yellow-400'>
 						<p>
 							The BB server version (v{currentVersion}) is not compatible with the required version
 							(v{requiredVersion}).
@@ -78,7 +78,7 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 													href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
 													target='_blank'
 													rel='noopener noreferrer'
-													className='rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
+													className='rounded-md bg-yellow-50 dark:bg-yellow-900/30 px-2 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
 												>
 													View Upgrade Guide
 												</a>
@@ -103,11 +103,11 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 													{isUpdating ? 'Updating...' : 'Update Now'}
 												</button>
 											)}
-										{error && <p className='text-sm text-red-600'>{error}</p>}
+										{error && <p className='text-sm text-red-600 dark:text-red-400'>{error}</p>}
 									</div>
 								)
 								: (
-									<p className='px-2 py-1.5 text-sm text-yellow-800'>
+									<p className='px-2 py-1.5 text-sm text-yellow-800 dark:text-yellow-300'>
 										<a
 											href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
 											target='_blank'
