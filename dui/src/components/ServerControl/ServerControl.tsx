@@ -8,8 +8,9 @@ interface ApiStartResult {
 	requires_settings: boolean;
 }
 import { open } from '@tauri-apps/plugin-shell';
-import { getCurrent } from '@tauri-apps/api/window';
-import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
+//import { getCurrent } from '@tauri-apps/api/window';
+import { getAllWebviewWindows, PhysicalPosition, PhysicalSize, WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { load } from '@tauri-apps/plugin-store';
 import { generateWebviewBuiUrl } from '../../utils/url';
 import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
@@ -23,6 +24,14 @@ interface ServerControlProps {
 	onStatusChange?: (status: ApiStatus) => void;
 	onConnectionChange?: (isConnected: boolean) => void;
 	onNavigate: (path: string) => void;
+}
+
+interface WindowState {
+	width: number;
+	height: number;
+	x: number;
+	y: number;
+	scaleFactor: number;
 }
 
 export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }: ServerControlProps) {
@@ -44,6 +53,22 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
 	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
 	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
+	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
+	const [chatWindowState, setChatWindowState] = useState<WindowState>({width: 800,height: 600,x: 50,y: 50,scaleFactor: 1});
+
+	// Check initial window state
+	useEffect(() => {
+		const checkWindow = async () => {
+			try {
+				const windows = await getAllWebviewWindows();
+				const chatWindow = windows.find((w) => w.label === 'bb_chat');
+				setIsChatWindowOpen(!!chatWindow);
+			} catch (error) {
+				console.error('Error checking window state:', error);
+			}
+		};
+		checkWindow();
+	}, []);
 
 	// Update BUI URL when apiConfig or debug mode changes
 	useEffect(async () => {
@@ -107,39 +132,20 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		};
 	}, []);
 
-	// Auto-open chat window when component loads and server is running
+	// Reload chat window when API status changes (including TLS changes)
 	useEffect(() => {
-		const openChatWindow = async () => {
+		const reloadChatWindow = async () => {
 			if (status.api_responds && webviewBuiUrl) {
-				console.debug('Auto-opening BB Chat with webview URL:', webviewBuiUrl);
+				console.debug('Reloading BB Chat with webview URL:', webviewBuiUrl);
 				try {
-					const windows = await getAllWebviewWindows();
-					const chatWindow = windows.find((w) => w.label === 'bb_chat');
-					if (!chatWindow) {
-						// Create new window only if it doesn't exist
-						const newWindow = new WebviewWindow('bb_chat', {
-							url: webviewBuiUrl,
-							title: 'BB Chat',
-							width: 1200,
-							height: 800,
-							center: true,
-							resizable: true,
-							decorations: true,
-						});
-						await newWindow.once('tauri://created', () => {
-							console.log('BB Chat window created');
-						});
-						await newWindow.once('tauri://error', (e) => {
-							console.error('Error creating BB Chat window:', e);
-						});
-					}
+					await handleReloadChat();
 				} catch (error) {
-					console.error('Error managing chat window:', error);
+					console.error('Error reloading chat window:', error);
 				}
 			}
 		};
 
-		openChatWindow();
+		reloadChatWindow();
 	}, [status.api_responds, webviewBuiUrl]);
 
 	useEffect(() => {
@@ -331,31 +337,124 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		}
 	};
 
+	const loadWindowState = async () => {
+		try {
+			const store = await load('bb-window-state.json', { autoSave: true });
+			const state = await store.get('chatWindow');
+			console.debug('Loaded chat window state:', state);
+			return state || {
+				width: 1200,
+				height: 800,
+				x: null,
+				y: null,
+				scaleFactor: 1,
+			};
+		} catch (error) {
+			console.error('Error loading window state:', error);
+			return {
+				width: 1200,
+				height: 800,
+				x: null,
+				y: null,
+				scaleFactor: 1,
+			};
+		}
+	};
+
+	const saveWindowState = async (window: WebviewWindow) => {
+		try {
+			const position = await window.outerPosition();
+			const size = await window.outerSize();
+			const scaleFactor = await window.scaleFactor();
+			const windowState = {
+				width: size.width,
+				height: size.height,
+				x: position.x,
+				y: position.y,
+				scaleFactor,
+			};
+			setChatWindowState(windowState);
+			const store = await load('bb-window-state.json', { autoSave: true });
+			console.debug('Saving chat window state:', windowState);
+			await store.set('chatWindow', windowState);
+		} catch (error) {
+			console.error('Error saving window state:', error);
+		}
+	};
+
 	const handleReloadChat = async () => {
-		console.debug('Reloading BB Chat with webview URL:', webviewBuiUrl);
+		const setupWindowListeners = (window: WebviewWindow) => {
+			// Save window state on move and resize
+
+			// Update window state on standard events
+			window.once('tauri://created', () => {
+				console.log('BB Chat window created');
+				setIsChatWindowOpen(true);
+			});
+			window.once('tauri://error', (e) => {
+				console.error('Error creating BB Chat window:', e);
+				setIsChatWindowOpen(false);
+			});
+			//window.once('tauri://close-requested', async () => {
+			//	console.log('BB Chat window closed');
+			//	await saveWindowState(window);
+			//});
+			window.once('tauri://destroyed', () => {
+				console.log('BB Chat window closed');
+				setIsChatWindowOpen(false);
+			});
+			window.listen('tauri://move', async () => {
+				await saveWindowState(window);
+			});
+			window.listen('tauri://resize', async () => {
+				await saveWindowState(window);
+			});
+			// window.once('tauri://move', (payload: position) => {
+			// 	console.log('BB Chat window moved', position);
+			// });
+			// window.once('tauri://resize', (payload: size) => {
+			// 	console.log('BB Chat window resized', size);
+			// });
+
+			//   WINDOW_RESIZED = 'tauri://resize',
+			//   WINDOW_MOVED = 'tauri://move',
+			//   WINDOW_FOCUS = 'tauri://focus',
+			//   WINDOW_BLUR = 'tauri://blur',
+			// const unlisten = await getCurrentWindow().onMoved(({ payload: position }) => {
+			//  console.log('Window moved', position);
+			// });
+			// const unlisten = await getCurrentWindow().onResized(({ payload: size }) => {
+			//  console.log('Window resized', size);
+			// });
+		};
+		if (!status.api_responds) {
+			console.debug('API not responding, skipping chat reload');
+			return;
+		}
+		console.info('Reloading BB Chat with webview URL:', webviewBuiUrl);
 		try {
 			const windows = await getAllWebviewWindows();
 			const chatWindow = windows.find((w) => w.label === 'bb_chat');
 			if (chatWindow) {
 				// If window exists, close it and create a new one
+				await saveWindowState(chatWindow);
 				await chatWindow.close();
 			}
 			// Create new window
+			const windowState = await loadWindowState();
+			console.log('windowState', windowState);
 			const newWindow = new WebviewWindow('bb_chat', {
 				url: webviewBuiUrl,
 				title: 'BB Chat',
-				width: 1200,
-				height: 800,
-				center: true,
+				width: windowState.width / windowState.scaleFactor,
+				height: windowState.height / windowState.scaleFactor,
+				x: windowState.x / windowState.scaleFactor,
+				y: windowState.y / windowState.scaleFactor,
+				center: windowState.x === null,
 				resizable: true,
 				decorations: true,
 			});
-			await newWindow.once('tauri://created', () => {
-				console.log('BB Chat window created');
-			});
-			await newWindow.once('tauri://error', (e) => {
-				console.error('Error creating BB Chat window:', e);
-			});
+			setupWindowListeners(newWindow);
 		} catch (error) {
 			console.error('Error managing chat window:', error);
 		}
@@ -440,9 +539,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							onClick={handleReloadChat}
 							disabled={!status.api_responds}
 							className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-								status.api_responds
-									? 'bg-blue-600 hover:bg-blue-700'
-									: 'bg-gray-400 cursor-not-allowed'
+								status.api_responds ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
 							} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
 						>
 							<svg
@@ -458,34 +555,30 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 								/>
 							</svg>
-							Reload Chat
+							{isChatWindowOpen ? 'Reload Chat' : 'Open Chat'}
 						</button>
 					)}
-				</div>
-
-				{directBuiUrl && (
-					<div className='text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4'>
-						<div className='mt-1'>
-							<div className='font-medium mb-1'>
-								<a
-									href={directBuiUrl}
-									onClick={async (e) => {
-										e.preventDefault();
-										try {
-											await open(directBuiUrl);
-										} catch (err) {
-											console.error('Failed to open direct BUI URL:', err);
-											alert(`Please open this URL manually: ${directBuiUrl}`);
-										}
-									}}
-									className='break-all font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer'
-								>
-									{directBuiUrl}
-								</a>
-							</div>
+					{directBuiUrl && (
+						<div className='font-medium text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-3'>
+							<a
+								href={directBuiUrl}
+								onClick={async (e) => {
+									e.preventDefault();
+									try {
+										await open(directBuiUrl);
+									} catch (err) {
+										console.error('Failed to open direct BUI URL:', err);
+										alert(`Please open this URL manually: ${directBuiUrl}`);
+									}
+								}}
+								className='break-all font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer'
+							>
+								{directBuiUrl}
+							</a>
 						</div>
-					</div>
-				)}
+					)}
+				</div>
+				{ /* <span className='font-medium text-sm text-gray-600 dark:text-gray-300 p-3'>{ `${chatWindowState.width} x ${chatWindowState.height} [${chatWindowState.x} / ${chatWindowState.y}] @ ${chatWindowState.scaleFactor}` }</span> */ }
 			</div>
 
 			{/* Error Message */}
@@ -534,19 +627,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										<div className='col-span-5'>{apiLogPath}</div>
 									</>
 								)}
-								{proxyInfo && !apiConfig.tls.useTls ? (
-									<>
-										<div className='font-bold'>Proxy Port:</div>
-										<div>{proxyInfo.port}</div>
-										<div className='font-bold'>Proxy Target:</div>
-										<div className='col-span-3'>{proxyInfo.target}</div>
-									</>
-								) : (
-									<>
-										<div className='font-bold'>Proxy:</div>
-										<div>disabled</div>
-									</>
-								)}
+								{proxyInfo && !apiConfig.tls.useTls
+									? (
+										<>
+											<div className='font-bold'>Proxy Port:</div>
+											<div>{proxyInfo.port}</div>
+											<div className='font-bold'>Proxy Target:</div>
+											<div className='col-span-3'>{proxyInfo.target}</div>
+										</>
+									)
+									: (
+										<>
+											<div className='font-bold'>Proxy:</div>
+											<div>disabled</div>
+										</>
+									)}
 							</div>
 						)}
 					</div>

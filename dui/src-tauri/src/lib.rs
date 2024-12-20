@@ -1,5 +1,6 @@
 use tauri_plugin_fs;
 use log::{debug, info, warn, error};
+use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use std::time::Duration;
@@ -11,6 +12,7 @@ use crate::config::get_global_config_dir;
 pub mod api;
 pub mod config;  // Make config module public
 pub mod commands;  // Make commands module public
+pub mod window_state;
 pub mod logging;
 pub mod proxy;
 
@@ -216,7 +218,6 @@ pub fn run() {
 
     // Initialize Tauri
     tauri::Builder::default()
-        .manage(proxy_state)
         .invoke_handler(tauri::generate_handler![
             start_api,
             stop_api,
@@ -238,8 +239,24 @@ pub fn run() {
             start_proxy_server,
             stop_proxy_server
         ])
+        .manage(proxy_state)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .setup(|app| {
+            if let Some(main_window) = app.webview_windows().get("main") {
+                // Load and apply saved window state
+                let state = window_state::load_window_state(&main_window);
+                window_state::apply_window_state(&main_window, &state);
+
+                // Set up window state event handlers
+                window_state::setup_window_state_handler(&main_window);
+            } else {
+                warn!("Main window not found");
+            }
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

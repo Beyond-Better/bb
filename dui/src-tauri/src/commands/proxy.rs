@@ -1,9 +1,7 @@
-use log::{debug, info, error};
-use tauri::State;
+use log::{debug, info};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::proxy::HttpProxy;
-use crate::config::read_global_config;
 
 #[tauri::command]
 pub async fn get_proxy_info(

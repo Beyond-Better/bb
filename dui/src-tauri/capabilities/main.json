@@ -9,8 +9,11 @@
 		"core:window:allow-show",
 		"core:webview:default",
 		"core:webview:allow-create-webview-window",
+		"core:window:allow-close",
 		"core:default",
 		"shell:allow-open",
+		"store:default",
+		"store:allow-load", 
 		{
 			"identifier": "fs:allow-open",
 			"allow": [

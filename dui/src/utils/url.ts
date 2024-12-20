@@ -10,8 +10,8 @@ interface UrlConfig {
 /**
  * Generates the BUI URL with appropriate proxy handling and parameters
  */
-export function generateBuiUrl({ apiConfig, proxyInfo, debugMode }: UrlConfig): string {
-  console.debug('generateBuiUrl called with:', {
+export function generateWebviewBuiUrl({ apiConfig, proxyInfo, debugMode }: UrlConfig): string {
+  console.debug('generateWebviewBuiUrl called with:', {
     apiConfig,
     proxyInfo,
     debugMode
