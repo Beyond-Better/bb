@@ -18,20 +18,26 @@ export function ConversationList({
 }: ConversationListProps) {
 	if (conversations.length === 0) {
 		return (
-			<div className='p-4 text-center text-gray-500 text-sm'>
+			<div className='p-4 text-center text-gray-500 dark:text-gray-400 text-sm'>
 				<p className='text-sm'>No conversations found</p>
 			</div>
 		);
 	}
 
 	return (
-		<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100'>
+		<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800'>
 			{conversations.map((conv, index) => (
 				<li
 					key={conv.id}
 					className={`px-4 py-2 cursor-pointer group ${
-						index === selectedIndex ? 'bg-gray-100' : 'hover:bg-gray-50'
-					} ${conv.id === currentConversationId ? 'bg-blue-50 hover:bg-blue-50' : ''}`}
+						index === selectedIndex
+							? 'bg-gray-100 dark:bg-gray-800'
+							: 'hover:bg-gray-50 dark:hover:bg-gray-700'
+					} ${
+						conv.id === currentConversationId
+							? 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-50 dark:hover:bg-blue-900/30'
+							: ''
+					}`}
 					onClick={() => onSelect(conv.id)}
 				>
 					<div className='flex justify-between items-start'>
@@ -39,7 +45,7 @@ export function ConversationList({
 							{/* Title and Updated Time */}
 							<div className='flex justify-between items-start mb-1'>
 								<h3
-									className='text-sm font-medium text-gray-900 truncate'
+									className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'
 									title={conv.title || 'Untitled'}
 								>
 									{conv.title || 'Untitled'}
@@ -47,7 +53,7 @@ export function ConversationList({
 							</div>
 
 							{/* Stats Row */}
-							<div className='flex items-center gap-1 text-xs text-gray-500'>
+							<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
 								{/* Turn Count */}
 								{conv.conversationStats && (
 									<span className='flex items-center gap-1'>
@@ -89,7 +95,7 @@ export function ConversationList({
 											0} tokens
 									</span>
 								)}
-								<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
+								<span className='text-xs text-gray-500 dark:text-gray-400 ml-2 whitespace-nowrap'>
 									{new Date(conv.updatedAt).toLocaleDateString(undefined, {
 										month: 'short',
 										day: 'numeric',

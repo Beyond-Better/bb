@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.5.12] - 2024-12-20
+
+### Added
+
+- http/websocket proxy in BUI to work around mixed content warnings in webview
+- persisting windows size/position
+- dark mode support
+
+
 ## [0.5.11] - 2024-12-18
 
 ### Added

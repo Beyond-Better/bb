@@ -9,9 +9,10 @@
     "npm:@tailwindcss/typography@~0.5.10": "0.5.15_tailwindcss@3.4.16__postcss@8.4.47",
     "npm:@tauri-apps/api@2": "2.1.1",
     "npm:@tauri-apps/api@^2.1.1": "2.1.1",
-    "npm:@tauri-apps/cli@2": "2.1.0",
-    "npm:@tauri-apps/plugin-fs@2": "2.0.3",
-    "npm:@tauri-apps/plugin-shell@2": "2.0.1",
+    "npm:@tauri-apps/cli@^2.1.0": "2.1.0",
+    "npm:@tauri-apps/plugin-fs@^2.2.0": "2.2.0",
+    "npm:@tauri-apps/plugin-shell@^2.2.0": "2.2.0",
+    "npm:@tauri-apps/plugin-store@^2.2.0": "2.2.0",
     "npm:ansi_up@^6.0.2": "6.0.2",
     "npm:autoprefixer@*": "10.4.20_postcss@8.4.47",
     "npm:autoprefixer@^10.4.16": "10.4.20_postcss@8.4.47",
@@ -483,14 +484,20 @@
         "@tauri-apps/cli-win32-x64-msvc"
       ]
     },
-    "@tauri-apps/plugin-fs@2.0.3": {
-      "integrity": "sha512-3Xv9cg5krj/2gSo1HFn9GbKUE0keh+DMx7O+hQeSzg1T4yGY5Fv/+yBISmrPa2j9thi3qcjgPj8PnMH4rbl/Dw==",
+    "@tauri-apps/plugin-fs@2.2.0": {
+      "integrity": "sha512-+08mApuONKI8/sCNEZ6AR8vf5vI9DXD4YfrQ9NQmhRxYKMLVhRW164vdW5BSLmMpuevftpQ2FVoL9EFkfG9Z+g==",
       "dependencies": [
         "@tauri-apps/api"
       ]
     },
-    "@tauri-apps/plugin-shell@2.0.1": {
-      "integrity": "sha512-akU1b77sw3qHiynrK0s930y8zKmcdrSD60htjH+mFZqv5WaakZA/XxHR3/sF1nNv9Mgmt/Shls37HwnOr00aSw==",
+    "@tauri-apps/plugin-shell@2.2.0": {
+      "integrity": "sha512-iC3Ic1hLmasoboG7BO+7p+AriSoqAwKrIk+Hpk+S/bjTQdXqbl2GbdclghI4gM32X0bls7xHzIFqhRdrlvJeaA==",
+      "dependencies": [
+        "@tauri-apps/api"
+      ]
+    },
+    "@tauri-apps/plugin-store@2.2.0": {
+      "integrity": "sha512-hJTRtuJis4w5fW1dkcgftsYxKXK0+DbAqurZ3CURHG5WkAyyZgbxpeYctw12bbzF9ZbZREXZklPq8mocCC3Sgg==",
       "dependencies": [
         "@tauri-apps/api"
       ]
@@ -1267,9 +1274,10 @@
         "npm:@preact/preset-vite@^2.5.0",
         "npm:@tailwindcss/typography@~0.5.10",
         "npm:@tauri-apps/api@^2.1.1",
-        "npm:@tauri-apps/cli@2",
-        "npm:@tauri-apps/plugin-fs@2",
-        "npm:@tauri-apps/plugin-shell@2",
+        "npm:@tauri-apps/cli@^2.1.0",
+        "npm:@tauri-apps/plugin-fs@^2.2.0",
+        "npm:@tauri-apps/plugin-shell@^2.2.0",
+        "npm:@tauri-apps/plugin-store@^2.2.0",
         "npm:ansi_up@^6.0.2",
         "npm:autoprefixer@^10.4.16",
         "npm:babel-plugin-transform-hook-names@^1.0.2",

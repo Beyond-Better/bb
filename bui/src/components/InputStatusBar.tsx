@@ -29,9 +29,9 @@ export function InputStatusBar({
 }: InputStatusBarProps): JSX.Element {
 	const getActionStyles = (variant?: ActionVariant): string => {
 		if (variant === 'danger') {
-			return 'bg-red-50 hover:bg-red-100 text-red-700 border border-red-300 hover:border-red-400 focus:ring-red-500 font-medium shadow-sm';
+			return 'bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-600 hover:border-red-400 dark:hover:border-red-500 focus:ring-red-500 font-medium shadow-sm';
 		}
-		return 'bg-blue-100 hover:bg-blue-200 text-blue-700 focus:ring-blue-500';
+		return 'bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-900/70 text-blue-700 dark:text-blue-400 focus:ring-blue-500';
 	};
 
 	const getStatusIcon = () => {
@@ -70,15 +70,15 @@ export function InputStatusBar({
 	const getStatusColors = () => {
 		switch (status) {
 			case ApiStatus.LLM_PROCESSING:
-				return { bg: 'bg-green-500/20', text: 'text-green-600' };
+				return { bg: 'bg-green-500/20 dark:bg-green-500/10', text: 'text-green-600 dark:text-green-400' };
 			case ApiStatus.TOOL_HANDLING:
-				return { bg: 'bg-yellow-500/20', text: 'text-yellow-600' };
+				return { bg: 'bg-yellow-500/20 dark:bg-yellow-500/10', text: 'text-yellow-600 dark:text-yellow-400' };
 			case ApiStatus.API_BUSY:
-				return { bg: 'bg-cyan-500/20', text: 'text-cyan-600' };
+				return { bg: 'bg-cyan-500/20 dark:bg-cyan-500/10', text: 'text-cyan-600 dark:text-cyan-400' };
 			case ApiStatus.ERROR:
-				return { bg: 'bg-red-500/20', text: 'text-red-600' };
+				return { bg: 'bg-red-500/20 dark:bg-red-500/10', text: 'text-red-600 dark:text-red-400' };
 			default:
-				return { bg: 'bg-gray-500/20', text: 'text-gray-600' };
+				return { bg: 'bg-gray-500/20 dark:bg-gray-500/10', text: 'text-gray-600 dark:text-gray-400' };
 		}
 	};
 
@@ -112,7 +112,7 @@ export function InputStatusBar({
 				</div>
 				{action && (
 					<>
-						<div className='h-6 w-px bg-blue-200 mx-3' aria-hidden='true' />
+						<div className='h-6 w-px bg-blue-200 dark:bg-blue-700 mx-3' aria-hidden='true' />
 						<button
 							onClick={action.onClick}
 							className={`ml-4 px-3 py-1.5 text-sm rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 ${

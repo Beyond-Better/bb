@@ -395,7 +395,7 @@ export default function Chat({
 	}));
 
 	return (
-		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
+		<div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
 				visible={chatState.value.status.isConnecting && !chatState.value.status.error}
@@ -412,10 +412,10 @@ export default function Chat({
 			<div className='flex flex-1 min-h-0 relative overflow-hidden'>
 				{!projectId
 					? (
-						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+						<main className='flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden w-full relative'>
+							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400'>
 								<svg
-									className='w-12 h-12 mb-4 text-gray-400'
+									className='w-12 h-12 mb-4 text-gray-400 dark:text-gray-500'
 									fill='none'
 									stroke='currentColor'
 									viewBox='0 0 24 24'
@@ -427,8 +427,8 @@ export default function Chat({
 										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 									/>
 								</svg>
-								<p className='text-lg font-medium'>No Project selected</p>
-								<p className='text-sm'>Select a project to begin</p>
+								<p className='text-lg font-medium dark:text-gray-300'>No Project selected</p>
+								<p className='text-sm dark:text-gray-400'>Select a project to begin</p>
 							</div>
 						</main>
 					)
@@ -436,7 +436,7 @@ export default function Chat({
 						<>
 							{/* Collapsible Conversation List */}
 							<div
-								className={`absolute top-0 left-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
+								className={`absolute top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out ${
 									isConversationListVisible.value
 										? 'w-[30%] min-w-[20rem] translate-x-0'
 										: 'w-0 -translate-x-full'
@@ -461,7 +461,7 @@ export default function Chat({
 								</div>
 							</div>
 							{/* Chat area */}
-							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
+							<main className='flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden w-full relative'>
 								{/* ConversationHeader */}
 								<ConversationHeader
 									cacheStatus={chatState.value.status.cacheStatus}
@@ -541,9 +541,9 @@ export default function Chat({
 										{chatState.value.logEntries.length === 0 &&
 											!isProcessing(chatState.value.status) &&
 											(
-												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400'>
 													<svg
-														className='w-12 h-12 mb-4 text-gray-400'
+														className='w-12 h-12 mb-4 text-gray-400 dark:text-gray-500'
 														fill='none'
 														stroke='currentColor'
 														viewBox='0 0 24 24'
@@ -555,8 +555,12 @@ export default function Chat({
 															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 														/>
 													</svg>
-													<p className='text-lg font-medium'>No messages yet</p>
-													<p className='text-sm'>Type a message to begin</p>
+													<p className='text-lg font-medium dark:text-gray-300'>
+														No messages yet
+													</p>
+													<p className='text-sm dark:text-gray-400'>
+														Type a message to begin
+													</p>
 												</div>
 											)}
 										{chatState.value.logEntries.length > 0 &&
@@ -575,7 +579,7 @@ export default function Chat({
 								</div>
 
 								{/* Input area */}
-								<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
+								<div className='border-t border-gray-200 dark:border-gray-700 flex-none bg-white dark:bg-gray-800 flex justify-center'>
 									<ChatInput
 										value={input}
 										apiClient={chatState.value.apiClient!}
@@ -589,7 +593,7 @@ export default function Chat({
 										status={chatState.value.status}
 										disabled={!chatState.value.status.isReady}
 										onCancelProcessing={handlers.cancelProcessing}
-										maxLength={10000}
+										maxLength={25000}
 									/>
 								</div>
 							</main>

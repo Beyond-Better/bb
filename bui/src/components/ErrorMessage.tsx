@@ -13,7 +13,7 @@ export function ErrorMessage({
 }: ErrorMessageProps): JSX.Element {
 	return (
 		<div
-			className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 mr-8 ml-8 animate-fade-in'
+			className='bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded relative mb-4 mr-8 ml-8 animate-fade-in'
 			role='alert'
 		>
 			<div className='flex justify-between items-start'>
@@ -24,7 +24,7 @@ export function ErrorMessage({
 				{onClose && (
 					<button
 						onClick={onClose}
-						className='ml-4 text-red-700 hover:text-red-900 transition-colors duration-300'
+						className='ml-4 text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-300 transition-colors duration-300'
 						aria-label='Close error message'
 					>
 						<svg

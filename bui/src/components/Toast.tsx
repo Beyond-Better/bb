@@ -34,7 +34,7 @@ export function Toast({
 
 	const typeStyles = {
 		success: {
-			bg: 'bg-green-500',
+			bg: 'bg-green-500 dark:bg-green-600',
 			icon: (
 				<svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 					<path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M5 13l4 4L19 7' />
@@ -42,7 +42,7 @@ export function Toast({
 			),
 		},
 		info: {
-			bg: 'bg-blue-500',
+			bg: 'bg-blue-500 dark:bg-blue-600',
 			icon: (
 				<svg className='w-5 h-5 mr-2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 					<path
@@ -60,7 +60,7 @@ export function Toast({
 
 	return (
 		<div
-			className={`fixed bottom-4 right-4 ${bg} text-white px-6 py-3 rounded-lg shadow-lg`}
+			className={`fixed bottom-4 right-4 ${bg} text-white px-6 py-3 rounded-lg shadow-lg dark:shadow-black/30`}
 			style={transition.style}
 			role='status'
 			aria-live='polite'

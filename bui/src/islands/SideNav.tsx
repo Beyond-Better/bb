@@ -113,7 +113,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 
 	return (
 		<aside
-			class={`bg-white border-r border-gray-200 flex flex-col h-screen z-50 relative ${
+			class={`bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen z-50 relative ${
 				isCollapsed.value ? 'w-16' : 'w-64'
 			} transition-all duration-300`}
 		>
@@ -149,7 +149,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 							localStorage.setItem('sideNavCollapsed', String(newState));
 						}
 					}}
-					class='absolute -right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 bg-white border border-gray-200 shadow-sm'
+					class='absolute -right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm'
 					aria-label={isCollapsed.value ? 'Expand sidebar' : 'Collapse sidebar'}
 				>
 					<svg
@@ -158,7 +158,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						viewBox='0 0 24 24'
 						stroke-width='1.5'
 						stroke='currentColor'
-						class='w-5 h-5 text-gray-500'
+						class='w-5 h-5 text-gray-500 dark:text-gray-400'
 					>
 						<path
 							stroke-linecap='round'
@@ -191,8 +191,8 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 									isCollapsed.value ? 'justify-center' : 'justify-start'
 								} px-4 py-2 rounded-md text-sm font-medium ${
 									appState.value.path === item.path
-										? 'bg-gray-100 text-gray-900'
-										: 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+										? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+										: 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
 								}`}
 								aria-current={appState.value.path === item.path ? 'page' : undefined}
 							>
@@ -218,7 +218,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 			</nav>
 
 			{/* Footer Section */}
-			<div class='border-t border-gray-200 pt-4 px-2 space-y-3 mb-3'>
+			<div class='border-t border-gray-200 dark:border-gray-700 pt-4 px-2 space-y-3 mb-3'>
 				{/* Connection Status with Version Info */}
 				<ConnectionStatus
 					isCollapsed={isCollapsed.value}
@@ -241,7 +241,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 				{/* Version Information */}
 				{!isCollapsed.value &&
 					versionCompatibility && !versionCompatibility.compatible && (
-					<div className='text-xs text-gray-500 relative'>
+					<div className='text-xs text-gray-500 dark:text-gray-400 relative'>
 						<div className='text-amber-600'>
 							Update required: v{versionCompatibility.requiredVersion}
 						</div>
@@ -260,7 +260,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 					title='View API status'
 					class={`flex items-center ${
 						isCollapsed.value ? 'justify-center' : 'justify-start'
-					} px-4 py-1.5 rounded-md text-sm text-emerald-600 bg-emerald-50 hover:bg-emerald-100 w-full`}
+					} px-4 py-1.5 rounded-md text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 w-full`}
 				>
 					<svg
 						xmlns='http://www.w3.org/2000/svg'
@@ -288,7 +288,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						f-client-nav={false}
 						class={`flex items-center ${
 							isCollapsed.value ? 'justify-center' : 'justify-start'
-						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
@@ -313,7 +313,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						f-client-nav={false}
 						class={`flex items-center ${
 							isCollapsed.value ? 'justify-center' : 'justify-start'
-						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
@@ -338,7 +338,7 @@ export default function SideNav({ currentPath = '/' }: SideNavProps) {
 						f-client-nav={false}
 						class={`flex items-center ${
 							isCollapsed.value ? 'justify-center' : 'justify-start'
-						} px-4 py-1.5 rounded-md text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50`}
+						} px-4 py-1.5 rounded-md text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700`}
 					>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'

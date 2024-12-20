@@ -17,7 +17,7 @@ export function SettingsMetadata({
 					viewBox='0 0 24 24'
 					stroke-width='1.5'
 					stroke='currentColor'
-					class='w-5 h-5 text-gray-400'
+					class='w-5 h-5 text-gray-400 dark:text-gray-500'
 				>
 					<path
 						stroke-linecap='round'
@@ -26,23 +26,23 @@ export function SettingsMetadata({
 					/>
 				</svg>
 				<div class='flex flex-col'>
-					<span class='text-sm font-medium text-gray-900'>
+					<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
 						{category}
 					</span>
-					<span class='text-xs text-gray-500'>
+					<span class='text-xs text-gray-500 dark:text-gray-400'>
 						{description}
 					</span>
 				</div>
 			</div>
 
 			{/* Divider */}
-			<div class='h-4 w-px bg-gray-200' />
+			<div class='h-4 w-px bg-gray-200 dark:bg-gray-700' />
 
 			{/* Settings Actions */}
 			<div class='flex items-center space-x-4'>
 				{/* Reset Settings */}
 				<button
-					class='text-sm text-gray-500 hover:text-gray-900 flex items-center space-x-1'
+					class='text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center space-x-1'
 					onClick={() => {
 						// TODO: Implement reset settings
 						console.log('Reset settings clicked');
@@ -67,7 +67,7 @@ export function SettingsMetadata({
 
 				{/* Export Settings */}
 				<button
-					class='text-sm text-gray-500 hover:text-gray-900 flex items-center space-x-1'
+					class='text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center space-x-1'
 					onClick={() => {
 						// TODO: Implement export settings
 						console.log('Export settings clicked');

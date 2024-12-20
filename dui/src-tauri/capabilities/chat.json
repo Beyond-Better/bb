@@ -3,7 +3,7 @@
 	"identifier": "chat-capability",
 	"description": "Capability for the BB Chat window",
 	"windows": ["bb_chat"],
-	"permissions": ["core:window:default", "core:webview:default"],
+	"permissions": ["core:window:default", "core:webview:default", "core:window:allow-close", "core:window:allow-destroy", "store:allow-load", "store:default"],
 	"webviewConfig": {
 		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev"],
 		"allowedProtocols": ["ws", "wss", "http", "https"],

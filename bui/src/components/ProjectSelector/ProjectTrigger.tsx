@@ -21,7 +21,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 			<button
 				ref={ref}
 				onClick={onClick}
-				className={`w-full p-2 flex justify-center hover:bg-gray-50 relative border border-gray-300 rounded-lg ${className}`}
+				className={`w-full p-2 flex justify-center hover:bg-gray-50 dark:hover:bg-gray-700 relative border border-gray-300 dark:border-gray-600 rounded-lg ${className}`}
 				title={project?.name || 'Select Project'}
 				aria-expanded={isOpen}
 			>
@@ -31,7 +31,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 					viewBox='0 0 24 24'
 					strokeWidth='1.5'
 					stroke='currentColor'
-					className='w-5 h-5 text-gray-500'
+					className='w-5 h-5 text-gray-500 dark:text-gray-400'
 				>
 					<path
 						strokeLinecap='round'
@@ -49,8 +49,8 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 			onClick={onClick}
 			className={`flex items-center justify-between w-full gap-2 px-4 py-2 ${
 				isOpen
-					? 'border border-blue-500 rounded-t-lg rounded-b-none border-b-0 bg-white ring-2 ring-blue-200'
-					: 'border border-gray-300 rounded-lg hover:bg-gray-50'
+					? 'border border-blue-500 dark:border-blue-400 rounded-t-lg rounded-b-none border-b-0 bg-white dark:bg-gray-800 ring-2 ring-blue-200 dark:ring-blue-900'
+					: 'border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700'
 			} transition-colors ${className}`}
 			style={{ height: '40px' }}
 			aria-expanded={isOpen}
@@ -62,7 +62,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 					viewBox='0 0 24 24'
 					strokeWidth='1.5'
 					stroke='currentColor'
-					className='w-5 h-5 text-gray-500 flex-shrink-0'
+					className='w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0'
 				>
 					<path
 						strokeLinecap='round'
@@ -74,16 +74,16 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 					{project
 						? (
 							<div className='flex flex-col'>
-								<span className='text-sm font-medium text-gray-900 truncate'>
+								<span className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
 									{project.name}
 								</span>
-								<span className='text-xs text-gray-500 truncate'>
+								<span className='text-xs text-gray-500 dark:text-gray-400 truncate'>
 									{project.path}
 								</span>
 							</div>
 						)
 						: (
-							<span className='text-sm text-gray-500'>
+							<span className='text-sm text-gray-500 dark:text-gray-400'>
 								Select Project
 							</span>
 						)}
@@ -95,7 +95,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 				viewBox='0 0 24 24'
 				strokeWidth='1.5'
 				stroke='currentColor'
-				className={`w-4 h-4 text-gray-500 transition-transform ml-2 flex-shrink-0 ${
+				className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ml-2 flex-shrink-0 ${
 					isOpen ? 'rotate-180' : ''
 				}`}
 			>

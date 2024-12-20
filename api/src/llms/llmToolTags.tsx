@@ -48,83 +48,93 @@ const formatBoolean = (
 
 export const TOOL_STYLES_BROWSER = {
 	base: {
-		container: 'rounded-lg border prose max-w-none py-1 px-4',
+		container: 'rounded-lg prose dark:prose-invert max-w-none py-1 px-4',
 		box: 'rounded-lg max-w-none py-1 px-4 whitespace-pre-wrap',
-		pre: 'p-2.5 rounded font-mono text-sm',
-		code: 'font-mono text-sm',
+		pre: 'p-2.5 rounded font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',
+		code: 'font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',
 		list: 'space-y-2',
 		listItem: 'ml-4',
-		label: 'font-semibold text-gray-700',
+		label: 'font-semibold text-gray-700 dark:text-gray-300',
 	},
 	// Status-based styles
 	status: {
-		error: 'bg-red-50 border-red-200 text-red-700',
-		success: 'bg-green-50 border-green-200 text-green-700',
-		warning: 'bg-yellow-50 border-yellow-200 text-yellow-700',
-		info: 'bg-blue-50 border-blue-200 text-blue-700',
+		error: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400',
+		success:
+			'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400',
+		warning:
+			'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400',
+		info: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400',
 	},
 	// Content type styles
 	content: {
-		error: 'text-red-600 bg-red-50 px-2 py-1 rounded',
+		error: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-800 px-2 py-1 rounded',
 		// Existing styles
-		code: 'bg-gray-50 border-gray-200',
-		data: 'bg-blue-50 border-blue-200',
-		filename: 'font-mono text-cyan-600',
+		code: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
+		data: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700',
+		filename: 'font-mono text-cyan-600 dark:text-cyan-400',
 
 		// Time-related
-		timestamp: 'font-mono text-gray-600',
-		duration: 'font-mono text-purple-600',
-		timeRange: 'font-mono text-purple-600',
-		timeAgo: 'font-mono text-purple-600',
+		timestamp: 'font-mono text-gray-600 dark:text-gray-400',
+		duration: 'font-mono text-purple-600 dark:text-purple-400',
+		timeRange: 'font-mono text-purple-600 dark:text-purple-400',
+		timeAgo: 'font-mono text-purple-600 dark:text-purple-400',
 
 		// Numbers/Metrics
-		percentage: 'font-mono text-emerald-600',
-		number: 'font-mono text-blue-600',
-		bytes: 'font-mono text-blue-600',
-		speed: 'font-mono text-blue-600',
+		percentage: 'font-mono text-emerald-600 dark:text-emerald-400',
+		number: 'font-mono text-blue-600 dark:text-blue-400',
+		bytes: 'font-mono text-blue-600 dark:text-blue-400',
+		speed: 'font-mono text-blue-600 dark:text-blue-400',
 
 		// Status/States
 		status: {
-			running: 'bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-sm',
-			completed: 'bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-sm',
-			failed: 'bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-sm',
-			pending: 'bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-sm',
-			success: 'bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-sm',
-			error: 'bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-sm',
-			warning: 'bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-sm',
+			running:
+				'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full text-sm',
+			completed:
+				'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full text-sm',
+			failed: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-0.5 rounded-full text-sm',
+			pending:
+				'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full text-sm',
+			success:
+				'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full text-sm',
+			error: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-0.5 rounded-full text-sm',
+			warning:
+				'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full text-sm',
 		},
-		progress: 'font-mono text-blue-600',
+		progress: 'font-mono text-blue-600 dark:text-blue-400',
 		priority: {
-			high: 'text-red-600 font-semibold',
-			medium: 'text-yellow-600 font-semibold',
-			low: 'text-green-600 font-semibold',
+			high: 'text-red-600 dark:text-red-400 font-semibold',
+			medium: 'text-yellow-600 dark:text-yellow-400 font-semibold',
+			low: 'text-green-600 dark:text-green-400 font-semibold',
 		},
-		version: 'font-mono text-gray-600',
+		version: 'font-mono text-gray-600 dark:text-gray-400',
 
 		// UI/Display
 		badge: {
-			default: 'bg-gray-100 text-gray-800 px-2 py-0.5 rounded-full text-sm',
-			primary: 'bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-sm',
-			success: 'bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-sm',
-			warning: 'bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-sm',
-			error: 'bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-sm',
+			default: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-full text-sm',
+			primary:
+				'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full text-sm',
+			success:
+				'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full text-sm',
+			warning:
+				'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full text-sm',
+			error: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 px-2 py-0.5 rounded-full text-sm',
 		},
 		icon: 'inline-block align-middle',
-		link: 'text-blue-600 hover:text-blue-800 underline',
+		link: 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline',
 		diff: {
-			add: 'bg-green-100 text-green-800 font-mono',
-			remove: 'bg-red-100 text-red-800 font-mono',
+			add: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 font-mono',
+			remove: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 font-mono',
 		},
 		truncated: 'truncate',
-		url: 'font-mono text-blue-600 break-all',
-		counts: 'font-mono text-purple-600',
-		tokenUsage: 'font-mono text-purple-600',
-		toolName: 'font-mono text-blue-600',
-		date: 'font-mono text-gray-600',
-		directory: 'font-mono text-cyan-700',
-		boolean: 'font-mono text-indigo-600',
-		regex: 'font-mono text-orange-600 bg-orange-50 px-1 rounded',
-		size: 'font-mono text-gray-600',
+		url: 'font-mono text-blue-600 dark:text-blue-400 break-all',
+		counts: 'font-mono text-purple-600 dark:text-purple-400',
+		tokenUsage: 'font-mono text-purple-600 dark:text-purple-400',
+		toolName: 'font-mono text-blue-600 dark:text-blue-400',
+		date: 'font-mono text-gray-600 dark:text-gray-400',
+		directory: 'font-mono text-cyan-700 dark:text-cyan-400',
+		boolean: 'font-mono text-indigo-600 dark:text-indigo-400',
+		regex: 'font-mono text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-1 rounded',
+		size: 'font-mono text-gray-600 dark:text-gray-400',
 	},
 };
 

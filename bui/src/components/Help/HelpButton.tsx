@@ -7,13 +7,13 @@ export function HelpButton({ onClick, disabled }: HelpButtonProps) {
 	return (
 		<>
 			{/* Divider */}
-			<div className='h-6 w-px bg-gray-200' />
+			<div className='h-6 w-px bg-gray-200 dark:bg-gray-700' />
 
 			<button
 				onClick={onClick}
 				disabled={disabled}
 				title='Show help'
-				className='flex items-center gap-1.5 px-2.5 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+				className='flex items-center gap-1.5 px-2.5 py-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 			>
 				<svg
 					xmlns='http://www.w3.org/2000/svg'

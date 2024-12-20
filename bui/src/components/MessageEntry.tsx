@@ -101,9 +101,9 @@ export function MessageEntry({
 	// Handle entries without logEntry (ConversationStart or invalid entries)
 	if (!hasLogEntry(logEntryData)) {
 		return (
-			<div className='bb-message-entry p-4 rounded-lg mb-4 shadow-md border border-gray-200 bg-gray-50'>
-				<div className='font-semibold text-gray-800'>Conversation Start</div>
-				<div className='text-gray-800'>Starting new conversation</div>
+			<div className='bb-message-entry p-4 rounded-lg mb-4 shadow-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'>
+				<div className='font-semibold text-gray-800 dark:text-gray-200'>Conversation Start</div>
+				<div className='text-gray-800 dark:text-gray-200'>Starting new conversation</div>
 			</div>
 		);
 	}
@@ -170,7 +170,7 @@ export function MessageEntry({
 
 		return (
 			<div className='overflow-x-auto'>
-				<pre className='whitespace-pre rounded-lg bg-gray-50 p-4'>
+				<pre className='whitespace-pre rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4'>
 					<code
 						className="language-json hljs"
 						dangerouslySetInnerHTML={{ __html: highlighted }}
@@ -190,7 +190,7 @@ export function MessageEntry({
 				{/* Header */}
 				<button
 					onClick={toggleExpanded}
-					className={`w-full flex items-center justify-between p-2 ${styles.header.bg} border-b ${styles.header.border} hover:bg-opacity-75 transition-colors duration-200`}
+					className={`w-full flex items-center justify-between p-2 ${styles.header.border} ${styles.header.bg} border-b hover:bg-opacity-75 dark:hover:bg-opacity-50 transition-colors duration-200`}
 					aria-controls={`message-content-${index}`}
 				>
 					<div className='flex items-center space-x-2'>
@@ -238,7 +238,7 @@ export function MessageEntry({
 										: JSON.stringify(logEntryData.logEntry?.content, null, 2),
 								);
 							}}
-							className={`opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-opacity-10 hover:bg-gray-500 ${styles.header.text}`}
+							className={`opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-200 p-1 rounded hover:bg-opacity-10 hover:bg-gray-500 dark:hover:bg-gray-400 dark:hover:bg-gray-400 ${styles.header.text}`}
 							title='Copy content'
 						>
 							<svg

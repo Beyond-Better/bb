@@ -38,7 +38,7 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 						viewBox='0 0 24 24'
 						stroke-width='1.5'
 						stroke='currentColor'
-						class='w-4 h-4 text-gray-400'
+						class='w-4 h-4 text-gray-400 dark:text-gray-500'
 					>
 						<path
 							stroke-linecap='round'
@@ -46,7 +46,7 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 							d='M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z'
 						/>
 					</svg>
-					<span class='text-sm text-gray-500'>
+					<span class='text-sm text-gray-500 dark:text-gray-400'>
 						{stats.value.total} projects
 					</span>
 				</div>
@@ -59,7 +59,7 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 						viewBox='0 0 24 24'
 						stroke-width='1.5'
 						stroke='currentColor'
-						class='w-4 h-4 text-gray-400'
+						class='w-4 h-4 text-gray-400 dark:text-gray-500'
 					>
 						<path
 							stroke-linecap='round'
@@ -67,7 +67,7 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 							d='M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z'
 						/>
 					</svg>
-					<span class='text-sm text-gray-500'>
+					<span class='text-sm text-gray-500 dark:text-gray-400'>
 						{stats.value.active} active
 					</span>
 				</div>
@@ -80,7 +80,7 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 						viewBox='0 0 24 24'
 						stroke-width='1.5'
 						stroke='currentColor'
-						class='w-4 h-4 text-gray-400'
+						class='w-4 h-4 text-gray-400 dark:text-gray-500'
 					>
 						<path
 							stroke-linecap='round'
@@ -88,14 +88,14 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 							d='M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z'
 						/>
 					</svg>
-					<span class='text-sm text-gray-500'>
+					<span class='text-sm text-gray-500 dark:text-gray-400'>
 						{stats.value.recent} recent
 					</span>
 				</div>
 			</div>
 
 			{/* Divider */}
-			<div class='h-4 w-px bg-gray-200' />
+			<div class='h-4 w-px bg-gray-200 dark:bg-gray-700' />
 
 			{/* View Toggle */}
 			<div class='flex items-center space-x-2'>
@@ -103,8 +103,8 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 					onClick={() => onViewChange?.('grid')}
 					class={`p-1.5 rounded-md ${
 						view === 'grid'
-							? 'bg-gray-100 text-gray-900'
-							: 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+							? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+							: 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
 					}`}
 					aria-label='Grid view'
 				>
@@ -127,8 +127,8 @@ export function ProjectManagerMetadata({ view = 'grid', onViewChange }: ProjectM
 					onClick={() => onViewChange?.('list')}
 					class={`p-1.5 rounded-md ${
 						view === 'list'
-							? 'bg-gray-100 text-gray-900'
-							: 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+							? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+							: 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
 					}`}
 					aria-label='List view'
 				>

@@ -5,8 +5,8 @@ export default function Home(props: PageProps) {
 	return (
 		<div class='flex flex-col flex-1'>
 			{/* Metadata Bar - empty for home page but maintains consistent layout */}
-			<div class='border-b border-gray-200 px-4 py-2'>
-				<div class='text-sm text-gray-500'>Home</div>
+			<div class='border-b border-gray-200 dark:border-gray-700 px-4 py-2'>
+				<div class='text-sm text-gray-500 dark:text-gray-400'>Home</div>
 			</div>
 
 			{/* Main content */}
@@ -15,10 +15,10 @@ export default function Home(props: PageProps) {
 					<div class='space-y-8'>
 						{/* Welcome Section */}
 						<section class='text-center'>
-							<h1 class='text-4xl font-bold text-gray-900 mb-4'>
+							<h1 class='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
 								Welcome to Beyond Better
 							</h1>
-							<p class='text-xl text-gray-600 max-w-2xl mx-auto'>
+							<p class='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'>
 								Enhance your development workflow with AI-powered assistance for code, documentation,
 								and more.
 							</p>
@@ -27,14 +27,14 @@ export default function Home(props: PageProps) {
 						{/* Quick Actions */}
 						<section class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8'>
 							{/* Chat Action */}
-							<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 mb-2'>Chat</h2>
-								<p class='text-gray-600 mb-4'>
+							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
+								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Chat</h2>
+								<p class='text-gray-600 dark:text-gray-300 mb-4'>
 									Start a conversation with BB to get help with your code and documentation.
 								</p>
 								<a
 									href='/chat'
-									class='inline-flex items-center text-blue-600 hover:text-blue-700'
+									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
 									Open Chat
 									<svg
@@ -55,14 +55,14 @@ export default function Home(props: PageProps) {
 							</div>
 
 							{/* Projects Action */}
-							<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 mb-2'>Projects</h2>
-								<p class='text-gray-600 mb-4'>
+							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
+								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Projects</h2>
+								<p class='text-gray-600 dark:text-gray-300 mb-4'>
 									Manage your projects and access project-specific features.
 								</p>
 								<a
 									href='/projects'
-									class='inline-flex items-center text-blue-600 hover:text-blue-700'
+									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
 									View Projects
 									<svg
@@ -83,14 +83,14 @@ export default function Home(props: PageProps) {
 							</div>
 
 							{/* Settings Action */}
-							<div class='bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 mb-2'>Settings</h2>
-								<p class='text-gray-600 mb-4'>
+							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
+								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Settings</h2>
+								<p class='text-gray-600 dark:text-gray-300 mb-4'>
 									Customize your BB experience and manage preferences.
 								</p>
 								<a
 									href='/settings'
-									class='inline-flex items-center text-blue-600 hover:text-blue-700'
+									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
 									Open Settings
 									<svg
@@ -112,16 +112,16 @@ export default function Home(props: PageProps) {
 						</section>
 
 						{/* Getting Started */}
-						<section class='mt-12 bg-white rounded-lg shadow-sm p-8'>
-							<h2 class='text-2xl font-semibold text-gray-900 mb-4'>
+						<section class='mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-8'>
+							<h2 class='text-2xl font-semibold text-gray-900 dark:text-white mb-4'>
 								Getting Started
 							</h2>
 							<div class='space-y-4'>
-								<p class='text-gray-600'>
+								<p class='text-gray-600 dark:text-gray-300'>
 									BB helps you work more efficiently by providing AI-powered assistance for your
 									development tasks. Here's how to get started:
 								</p>
-								<ol class='list-decimal list-inside space-y-2 text-gray-600'>
+								<ol class='list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300'>
 									<li>Create or select a project to work with</li>
 									<li>Start a chat conversation for assistance</li>
 									<li>Use BB's tools to enhance your workflow</li>

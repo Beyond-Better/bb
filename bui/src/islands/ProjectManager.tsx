@@ -101,8 +101,8 @@ export default function ProjectManager() {
 
 	if (showEditor.value) {
 		return (
-			<div className='container mx-auto px-4 py-8 max-h-[calc(100vh-4rem)] overflow-y-auto'>
-				<h1 className='text-2xl font-bold mb-6'>
+			<div className='container mx-auto px-4 py-8 max-h-[calc(100vh-4rem)] overflow-y-auto dark:bg-gray-900'>
+				<h1 className='text-2xl text-gray-900 dark:text-gray-100 font-bold mb-6'>
 					{editingProject.value ? 'Edit Project' : 'Create New Project'}
 				</h1>
 				<ProjectEditor
@@ -117,12 +117,12 @@ export default function ProjectManager() {
 	}
 
 	if (loading.value) {
-		return <div className='text-center py-8'>Loading projects...</div>;
+		return <div className='text-center py-8 dark:text-gray-300'>Loading projects...</div>;
 	}
 
 	if (projects.value.length === 0) {
 		return (
-			<div className='container mx-auto px-4 py-8 h-screen overflow-y-auto'>
+			<div className='container mx-auto px-4 py-8 h-screen overflow-y-auto dark:bg-gray-900'>
 				<div className='text-center'>
 					<h1 className='text-2xl font-bold mb-6'>Welcome to BB</h1>
 					<p className='mb-8'>Get started by creating a new project or finding existing projects.</p>
@@ -138,7 +138,7 @@ export default function ProjectManager() {
 						<div className='w-full max-w-md mt-8'>
 							<h2 className='text-xl font-semibold mb-4'>Find Existing Projects</h2>
 							<div className='space-y-4'>
-								<div className='form-group'>
+								<div className='form-group dark:text-gray-300'>
 									<label className='block text-sm font-medium text-gray-700 mb-2'>
 										Search Directory
 									</label>
@@ -165,7 +165,7 @@ export default function ProjectManager() {
 							{foundProjects.value.length > 0 && (
 								<div className='mt-4'>
 									<h3 className='text-lg font-medium mb-2'>Found Projects:</h3>
-									<ul className='bg-white shadow rounded-lg divide-y divide-gray-200 max-h-[400px] overflow-y-auto'>
+									<ul className='bg-white dark:bg-gray-800 shadow rounded-lg divide-y divide-gray-200 dark:divide-gray-700 max-h-[400px] overflow-y-auto'>
 										{foundProjects.value.map((path) => (
 											<li key={path} className='px-6 py-4 flex justify-between items-center'>
 												<span>{path}</span>
@@ -203,9 +203,9 @@ export default function ProjectManager() {
 	}
 
 	return (
-		<div className='container mx-auto px-4 py-8 h-screen overflow-y-auto'>
+		<div className='container mx-auto px-4 py-8 h-screen overflow-y-auto dark:bg-gray-900'>
 			<div className='flex justify-between items-center mb-6'>
-				<h1 className='text-2xl font-bold'>Project Manager</h1>
+				<h1 className='text-2xl font-bold dark:text-gray-200'>Project Manager</h1>
 				<div className='space-x-4'>
 					<button
 						onClick={handleCreateNew}
@@ -222,11 +222,11 @@ export default function ProjectManager() {
 				</div>
 			)}
 
-			<div className='bg-white shadow rounded-lg overflow-hidden mb-8'>
-				<table className='min-w-full divide-y divide-gray-200'>
-					<thead className='bg-gray-50'>
+			<div className='bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-8'>
+				<table className='min-w-full divide-y divide-gray-200 dark:divide-gray-700'>
+					<thead className='bg-gray-50 dark:bg-gray-700'>
 						<tr>
-							<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+							<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider'>
 								Name
 							</th>
 							<th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
@@ -240,13 +240,13 @@ export default function ProjectManager() {
 							</th>
 						</tr>
 					</thead>
-					<tbody className='bg-white divide-y divide-gray-200'>
+					<tbody className='bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700'>
 						{projects.value.map((project) => (
 							<tr key={project.projectId} className='hover:bg-gray-50'>
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
 										href='/chat'
-										className='block -mx-6 px-6 py-4 -my-4'
+										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
 										onClick={(e) => {
 											setPath('/chat');
 											setSelectedProject(project.projectId);
@@ -258,11 +258,7 @@ export default function ProjectManager() {
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
 										href='/chat'
-										className='block -mx-6 px-6 py-4 -my-4'
-										onClick={(e) => {
-											setPath('/chat');
-											setSelectedProject(project.projectId);
-										}}
+										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
 									>
 										{project.path}
 									</a>
@@ -270,7 +266,7 @@ export default function ProjectManager() {
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
 										href='/chat'
-										className='block -mx-6 px-6 py-4 -my-4'
+										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
 										onClick={(e) => {
 											setPath('/chat');
 											setSelectedProject(project.projectId);
@@ -334,10 +330,10 @@ export default function ProjectManager() {
 			</div>
 
 			<div className='mt-8'>
-				<h2 className='text-xl font-semibold mb-4'>Find More Projects</h2>
+				<h2 className='text-xl font-semibold mb-4 dark:text-gray-200'>Find More Projects</h2>
 				<div className='max-w-md space-y-4 pb-8'>
 					<div className='form-group'>
-						<label className='block text-sm font-medium text-gray-700 mb-2'>
+						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
 							Search Directory
 						</label>
 						<FileBrowser
@@ -366,13 +362,15 @@ export default function ProjectManager() {
 					{foundProjects.value.length > 0 && (
 						<div className='mt-4'>
 							<h3 className='text-lg font-medium mb-2'>Found Projects:</h3>
-							<ul className='bg-white shadow rounded-lg divide-y divide-gray-200 max-h-[400px] overflow-y-auto'>
+							<ul className='bg-white dark:bg-gray-800 shadow rounded-lg divide-y divide-gray-200 dark:divide-gray-700 max-h-[400px] overflow-y-auto'>
 								{foundProjects.value.map((path) => (
-									<li key={path} className='px-6 py-4 flex justify-between items-center'>
+									<li
+										key={path}
+										className='px-6 py-4 flex justify-between items-center dark:text-gray-300'
+									>
 										<span>{path}</span>
 										<button
-											onClick={() =>
-												handleMigrateProject(path)}
+											onClick={() => handleMigrateProject(path)}
 											className='ml-4 text-green-600 hover:text-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-full p-1'
 											title='Add Project'
 										>
