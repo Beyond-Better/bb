@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from 'preact';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { colors } from 'cliffy/ansi/colors';
 
 // Helper functions for formatting
 const formatNumber = (num: number, opts: { minimumFractionDigits?: number; maximumFractionDigits?: number } = {}) => {

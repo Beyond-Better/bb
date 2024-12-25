@@ -2,7 +2,7 @@
 import { stripIndents } from 'common-tags';
 import { writeAllSync } from '@std/io';
 import { TextLineStream } from '@std/streams';
-import { colors } from 'cliffy/ansi/mod.ts';
+import { colors } from 'cliffy/ansi/colors';
 //import { renderToString } from 'preact-render-to-string';
 
 import ConversationLogger from 'api/storage/conversationLogger.ts';

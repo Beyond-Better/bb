@@ -1,7 +1,9 @@
-import { Input } from 'cliffy/prompt/mod.ts';
+import { Input } from 'cliffy/prompt';
 import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { ansi, colors, tty } from 'cliffy/ansi/mod.ts';
+import { colors } from 'cliffy/ansi/colors';
+import { tty } from 'cliffy/ansi/tty';
+import { ansi } from 'cliffy/ansi';
 //import { crayon } from 'https://deno.land/x/crayon@3.3.3/mod.ts';
 //import { handleInput, handleKeyboardControls, handleMouseControls, Tui } from 'https://deno.land/x/tui@2.1.11/mod.ts';
 //import { TextBox } from 'https://deno.land/x/tui@2.1.11/src/components/mod.ts';

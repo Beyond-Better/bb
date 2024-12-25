@@ -1,4 +1,4 @@
-import { Command } from 'cliffy/command/mod.ts';
+import { Command } from 'cliffy/command';
 import { logger } from 'shared/logger.ts';
 //import { getBbDir } from 'shared/dataDir.ts';
 import { getLogFilePath, viewLastLines, watchLogs } from 'shared/logViewer.ts';

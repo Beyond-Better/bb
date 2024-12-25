@@ -211,7 +211,7 @@ return {
 ```typescript
 import type { LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { ToolNameInput, ToolNameResult } from './types.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { colors } from 'cliffy/ansi/colors';
 ```
 
 2. Update return types:
@@ -468,7 +468,7 @@ All styles and tags are defined in llmToolTags.tsx and imported by LLMTool. This
 // JSX components are defined in api/src/llms/llmToolTags.tsx
 /** @jsxImportSource preact */
 import type { JSX } from 'preact';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { colors } from 'cliffy/ansi/colors';
 
 // All styles and tags are defined in this file to avoid circular dependencies
 

@@ -1,4 +1,4 @@
-import { Command } from 'cliffy/command/mod.ts';
+import { Command } from 'cliffy/command';
 import type { ConversationMetadata } from 'shared/types.ts';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';

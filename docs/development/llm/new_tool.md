@@ -89,7 +89,7 @@ Create two separate formatter files for each tool:
 
 2. Console Formatter (`formatter.console.ts`):
    - Import necessary types from `api/llms/llmTool.ts` and `api/llms/llmMessage.ts`.
-   - Import `colors` from `cliffy/ansi/colors.ts` and `stripIndents` from `common-tags`.
+   - Import `colors` from `cliffy/ansi` and `stripIndents` from `common-tags`.
    - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions that return strings.
 
 ### Main Tool File

@@ -1,6 +1,6 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
-import { Confirm } from 'cliffy/prompt/mod.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
+import { Confirm } from 'cliffy/prompt';
 import { DoctorService } from 'shared/doctor/doctorService.ts';
 import { DiagnosticResult, DiagnosticStatus } from 'shared/doctor/types.ts';
 import { logger } from 'shared/logger.ts';
