@@ -25,7 +25,7 @@ These instructions guide the process of creating and updating formatter files fo
    - Use the following import structure:
      ```typescript
      import { LLMToolInputSchema, LLMToolRunResultContent, LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
-     import { colors } from 'cliffy/ansi/colors.ts';
+     import { colors } from 'cliffy/ansi/colors';
      import { stripIndents } from 'common-tags';
      ```
    - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions.
@@ -104,7 +104,7 @@ export const formatLogEntryToolResult = (
 
 // [toolName].console.ts
 import { LLMToolInputSchema, LLMToolRunResultContent, LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { colors } from 'cliffy/ansi/colors';
 import { stripIndents } from 'common-tags';
 import { getContentFromToolResult } from 'api/utils/llms.utils.ts';
 

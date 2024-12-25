@@ -1,5 +1,5 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { TerminalHandler } from '../utils/terminalHandler.utils.ts';
 import { logger } from 'shared/logger.ts';
 import ApiClient from 'cli/apiClient.ts';

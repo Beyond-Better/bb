@@ -413,8 +413,8 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 
 ### 5. CLI Command (`cli/src/commands/doctor.ts`)
 ```typescript
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { DoctorService } from 'shared/doctor/doctorService.ts';
 import { confirm } from 'cliffy/prompt/mod.ts';
 

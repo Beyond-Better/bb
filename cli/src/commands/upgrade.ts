@@ -1,4 +1,4 @@
-import { Command } from 'cliffy/command/mod.ts';
+import { Command } from 'cliffy/command';
 import { logger } from 'shared/logger.ts';
 import { checkForUpdates, performUpgrade } from 'shared/upgrade.ts';
 import { getCurrentInstallLocation } from 'shared/install.ts';
