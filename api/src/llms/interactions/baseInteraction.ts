@@ -492,6 +492,7 @@ class LLMInteraction {
 			],
 			is_error: isError,
 		} as LLMMessageContentPartToolResultBlock;
+		// logger.debug('LLMInteraction: Adding tool result', toolResult);
 
 		const lastMessage = this.getLastMessage();
 		if (lastMessage && lastMessage.role === 'user') {
