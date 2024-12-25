@@ -24,6 +24,7 @@ import {
 	getProjectRoot,
 	readFromBbDir,
 	removeFromBbDir,
+	resolveProjectFilePath,
 	writeToBbDir,
 } from 'shared/dataDir.ts';
 import EventManager from 'shared/eventManager.ts';
@@ -72,6 +73,18 @@ class ProjectEditor {
 			throw error;
 		}
 		return this;
+	}
+
+	public async isPathWithinProject(filePath: string): Promise<string> {
+		logger.info(`ProjectEditor isPathWithinProject for ${this.projectRoot} - ${filePath}`);
+		return await isPathWithinProject(this.projectRoot, filePath);
+	}
+
+	public async resolveProjectFilePath(filePath: string): Promise<string> {
+		logger.info(`ProjectEditor resolveProjectFilePath for ${this.projectId} - ${filePath}`);
+		const resolvedPath = await resolveProjectFilePath(this.projectId, filePath);
+		logger.info(`ProjectEditor resolveProjectFilePath resolvedPath: ${resolvedPath}`);
+		return resolvedPath;
 	}
 
 	public async getProjectRoot(): Promise<string> {
