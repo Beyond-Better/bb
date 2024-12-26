@@ -483,7 +483,7 @@ export const createToolTruncated = (text: string, maxLength: number): JSX.Elemen
 );
 
 // Export a single object for tag functions
-export const TOOL_TAGS = {
+export const TOOL_TAGS_BROWSER = {
 	// base elements
 	base: {
 		container: createToolContent,

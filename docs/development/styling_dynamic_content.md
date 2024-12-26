@@ -239,7 +239,7 @@ This example shows how the runtime solution provides more flexibility for dynami
 ### 7. Usage Guidelines
 
 1. Prefer static solutions when possible:
-   - Use predefined components from TOOL_TAGS
+   - Use predefined components from TOOL_TAGS_BROWSER
    - Add commonly used styles to Tailwind config
    - Create semantic classes for repeated patterns
 
@@ -330,7 +330,7 @@ describe('DynamicTool Formatter', () => {
 
 When adding new formatters or tools:
 1. Add new formatter files to Tailwind content config
-2. Use existing TOOL_TAGS components when possible
+2. Use existing TOOL_TAGS_BROWSER components when possible
 3. Document any new utility classes needed
 4. Consider impact on CSS bundle size
 5. Test generated HTML styling in both light and dark modes

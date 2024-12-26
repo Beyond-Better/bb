@@ -36,7 +36,7 @@ export class LLMRequestPersistence {
 				`Failed to write token usage record: ${(error as Error).message}`,
 				{
 					name: 'PersistenceError',
-					filePath,
+					filePath: this.llmRequestFile,
 					operation: 'write',
 				},
 			);

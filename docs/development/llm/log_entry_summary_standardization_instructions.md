@@ -472,7 +472,7 @@ import { colors } from 'cliffy/ansi/colors';
 
 // All styles and tags are defined in this file to avoid circular dependencies
 
-export const TOOL_TAGS = {
+export const TOOL_TAGS_BROWSER = {
   // Header elements
   content: {
     title: (text: string, toolName: string): JSX.Element => (
@@ -504,10 +504,10 @@ export const TOOL_TAGS = {
 };
 
 // Then imported and used in llmTool.ts
-import { TOOL_TAGS, TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE } from './llmToolTags.tsx';
+import { TOOL_TAGS_BROWSER, TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE } from './llmToolTags.tsx';
 
 // Re-exported as static properties
-static readonly TOOL_TAGS_BROWSER = TOOL_TAGS;
+static readonly TOOL_TAGS_BROWSER = TOOL_TAGS_BROWSER;
 static readonly TOOL_STYLES_BROWSER = TOOL_STYLES_BROWSER;
 static readonly TOOL_STYLES_CONSOLE = TOOL_STYLES_CONSOLE;
 

@@ -75,7 +75,7 @@ class ProjectEditor {
 		return this;
 	}
 
-	public async isPathWithinProject(filePath: string): Promise<string> {
+	public async isPathWithinProject(filePath: string): Promise<boolean> {
 		logger.info(`ProjectEditor isPathWithinProject for ${this.projectRoot} - ${filePath}`);
 		return await isPathWithinProject(this.projectRoot, filePath);
 	}

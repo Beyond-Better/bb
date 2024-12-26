@@ -1,7 +1,7 @@
 import type { JSX } from 'preact';
 import type { JSONSchema4 } from 'json-schema';
 import Ajv from 'ajv';
-import { TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE, TOOL_TAGS } from './llmToolTags.tsx';
+import { TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE, TOOL_TAGS_BROWSER } from './llmToolTags.tsx';
 
 import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
@@ -101,7 +101,7 @@ abstract class LLMTool {
 	): LLMToolLogEntryFormattedResult;
 
 	// Imported from llmToolTags.tsx
-	static readonly TOOL_TAGS_BROWSER = TOOL_TAGS;
+	static readonly TOOL_TAGS_BROWSER = TOOL_TAGS_BROWSER;
 	static readonly TOOL_STYLES_BROWSER = TOOL_STYLES_BROWSER;
 	static readonly TOOL_STYLES_CONSOLE = TOOL_STYLES_CONSOLE;
 }
