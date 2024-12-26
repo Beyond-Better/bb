@@ -6,16 +6,9 @@ Welcome to the BB Desktop UI (DUI) development documentation. This directory con
 
 ### Getting Started
 - [Main DUI Documentation](../../DUI.md) - Overview, features, and setup guide
-- [Getting Started Guide](./GETTING_STARTED.md) - Guide for development conversations
-- [Quick Start Guide](./QUICK-START.md) - Get up and running quickly
-
-### Configuration
-- [Tauri Configuration Guide](./TAURI-CONFIG.md) - Detailed Tauri configuration documentation
-- [Environment Setup](./ENVIRONMENT.md) - Development environment setup
 
 ### Development Guides
 - [Architecture Overview](./ARCHITECTURE.md) - System design and component interaction
-- [API Integration](./API-INTEGRATION.md) - BB API server management
 - [Component Guidelines](./COMPONENTS.md) - UI component development
 - [Testing Guide](./TESTING.md) - Testing strategy and implementation
 - [Build Process](./BUILD.md) - Building and packaging
@@ -93,8 +86,6 @@ dui/
      * API response verification
    - View server logs (Planned)
    - Configure server settings (Planned)
-   
-   See [API Integration](./API-INTEGRATION.md) for detailed status and next steps.
 
 2. Project Management:
    - List BB projects
@@ -138,7 +129,7 @@ dui/
 Before contributing:
 1. Read the [main DUI documentation](../../DUI.md)
 2. Check the [contribution guidelines](../../CONTRIBUTING.md)
-3. Review the [architecture overview](./ARCHITECTURE.md)
+3. Review the architecture overview
 4. Set up your development environment
 5. Run tests and ensure changes meet guidelines
 

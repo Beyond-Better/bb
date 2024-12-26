@@ -180,9 +180,9 @@ For detailed information on how to use Beyond Better (BB), please refer to our d
 
 ### Interface Documentation
 - [API Documentation](docs/API.md): Explore the Beyond Better API endpoints for integrating BB into your workflows or building custom tools
-- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for Beyond Better
+- [BUI Documentation](docs/BUI.md): Learn about the Browser User Interface for Beyond Better
 - [CLI Documentation](docs/CLI.md): Understand how to use the Beyond Better Command Line Interface for various operations
-- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface
+- [DUI Documentation](docs/DUI.md): Learn about the native application experience for managing the BB API server and services.
 
 These guides provide comprehensive information on Beyond Better's features, usage patterns, and best practices to help you make the most of this powerful tool. For a complete overview of available documentation, see our [Documentation Index](docs/README.md).
 

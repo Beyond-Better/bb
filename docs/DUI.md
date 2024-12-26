@@ -50,67 +50,115 @@ Additional Features:
    cd bb
    ```
 
-2. Start development server:
+2. Install dependencies:
    ```bash
    cd dui
    deno install
+
+   # Install required Babel plugins
+   deno add npm:@babel/plugin-transform-react-jsx-development
+   deno add npm:babel-plugin-transform-hook-names
+   ```
+
+3. Start development server:
+   ```bash
    deno task tauri dev
    ```
 
 ### Building for Production
 
-1. Build the application:
-   ```bash
-   cd dui
-   deno task tauri build
-   ```
+Build the application:
+```bash
+cd dui
+deno task tauri build
+```
 
-   The built application will be available in:
-   - Windows: `dui/src-tauri/target/release/bb-dui.exe`
-   - macOS: `dui/src-tauri/target/release/bundle/dmg/BB Manager.app`
-   - Linux: `dui/src-tauri/target/release/bundle/deb/bb-dui.deb`
+The built application will be available in:
+- Windows: `dui/src-tauri/target/release/bb-dui.exe`
+- macOS: `dui/src-tauri/target/release/bundle/dmg/BB Manager.app`
+- Linux: `dui/src-tauri/target/release/bundle/deb/bb-dui.deb`
 
 ## Project Structure
 
 ```
 dui/
-├── src-tauri/           # Rust backend
+├── src-tauri/              # Rust backend
 │   ├── src/
-│   │   ├── main.rs      # Tauri application entry
-│   │   ├── api.rs       # BB API integration
-│   │   └── config.rs    # Configuration management
-│   ├── Cargo.toml       # Rust dependencies
-│   └── tauri.conf.json  # Tauri configuration
-├── src/                 # Frontend
-│   ├── main.tsx        # Preact entry point
-│   ├── app.tsx         # Main application component
-│   ├── components/     # UI components
-│   ├── hooks/          # Custom hooks
-│   └── types/          # TypeScript types
-└── deno.json           # Deno configuration
+│   │   ├── main.rs        # Application entry
+│   │   ├── api.rs         # BB API integration
+│   │   └── config.rs      # Configuration
+│   ├── Cargo.toml         # Rust dependencies
+│   └── tauri.conf.json    # Tauri config
+├── src/                    # Frontend
+│   ├── main.tsx           # Entry point
+│   ├── app.tsx            # Root component
+│   ├── components/        # UI components
+│   │   ├── LogViewer/     # Log display
+│   │   ├── ProjectList/   # Project management
+│   │   └── StatusBar/     # API status
+│   ├── hooks/             # Custom hooks
+│   │   ├── useApi.ts      # API management
+│   │   └── useConfig.ts   # Configuration
+│   └── types/             # TypeScript types
+└── deno.json              # Deno config
 ```
+
+## Core Features
+
+### 1. BB API Server Management
+- Start/stop API server (Implemented)
+  * Direct bb-api binary execution
+  * Configuration-based startup
+  * Process management with PID tracking
+- Monitor server status (Implemented)
+  * Real-time status updates
+  * Process health checking
+  * API response verification
+- View server logs (Planned)
+- Configure server settings (Planned)
+
+### 2. Project Management
+- List BB projects
+- Add/remove projects
+- Select active project
+- Project configuration
+
+### 3. User Interface
+- Clean, modern design
+- Dark/light theme support
+- Responsive layout
+- Native OS integration
 
 ## Development Guidelines
 
-1. Code Style:
-   - Follow Rust style guide for backend code
-   - Use TypeScript best practices
-   - Follow Preact patterns and conventions
+### 1. Code Style
+- Follow Rust style guide for backend code
+- Use TypeScript best practices
+- Follow Preact patterns and conventions
 
-2. Testing:
-   - Write unit tests for Rust backend
-   - Test Preact components
-   - Perform cross-platform testing
+### 2. Testing
+- Write unit tests for Rust code
+- Test Preact components
+- Perform cross-platform testing
+- Integration tests for API
 
-3. Performance:
-   - Minimize main thread blocking
-   - Optimize resource usage
-   - Handle large log files efficiently
+### 3. Performance
+- Minimize main thread blocking
+- Optimize resource usage
+- Handle large log files efficiently
 
-4. Security:
-   - Follow Tauri security guidelines
-   - Validate all user inputs
-   - Handle sensitive data appropriately
+### 4. Security
+- Follow Tauri security guidelines
+- Validate all user inputs
+- Handle sensitive data appropriately
+
+## Configuration Files
+
+Key configuration files:
+- `dui/src-tauri/tauri.conf.json` - Main Tauri configuration
+- `dui/deno.json` - Deno configuration
+- `dui/src-tauri/Cargo.toml` - Rust dependencies
+- `dui/tsconfig.json` - TypeScript configuration
 
 ## Contributing
 
@@ -119,4 +167,10 @@ dui/
 3. Create a feature branch
 4. Submit a pull request
 
-For more detailed development information, see [docs/development/dui/README.md](development/dui/README.md).
+## Getting Help
+
+If you need help:
+1. Check the existing documentation
+2. Review troubleshooting guides
+3. Search the issue tracker
+4. Create a new issue if needed
