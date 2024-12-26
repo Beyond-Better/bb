@@ -146,6 +146,7 @@ class OpenAILLM extends LLM {
 	 */
 	public async speakWith(
 		messageParams: LLMProviderMessageRequest,
+		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
 			logger.debug('llms-openai-speakWith-messageParams', JSON.stringify(messageParams, null, 2));

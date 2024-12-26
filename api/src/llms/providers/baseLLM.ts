@@ -62,6 +62,7 @@ class LLM {
 
 	async speakWith(
 		_messageParams: LLMProviderMessageRequest,
+		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		throw new Error("Method 'speakWith' must be implemented.");
 	}
@@ -122,7 +123,7 @@ class LLM {
 
 			while (retries < maxRetries) {
 				try {
-					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest);
+					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest, interaction);
 
 					const status = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.status;
 
