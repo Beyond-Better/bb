@@ -351,6 +351,7 @@ class AnthropicLLM extends LLM {
 	 */
 	public override async speakWith(
 		messageParams: LLMProviderMessageRequest,
+		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
 			logger.dir(messageParams);
@@ -368,6 +369,16 @@ class AnthropicLLM extends LLM {
 			const anthropicMessage = anthropicMessageStream as Anthropic.Beta.PromptCaching.PromptCachingBetaMessage;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
+
+			if (this.projectConfig.settings.api?.logLevel === 'debug1') {
+				interaction.conversationPersistence.writeLLMRequest({
+					messageId: anthropicMessage.id,
+					requestBody: messageParams,
+					requestHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
+					responseMessage: anthropicMessage,
+					response: anthropicResponse,
+				});
+			}
 
 			// Validate essential response properties
 			if (!anthropicMessage || !anthropicMessage.content) {
