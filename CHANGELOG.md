@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- support for external tools
+- dedicated log (per conversation) of LLM request/responses
 
 ### Changed
 
+- docs shuffle
+- updated deps
 
 ### Fixed
 
