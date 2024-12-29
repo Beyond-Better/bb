@@ -1,7 +1,7 @@
 import { PageProps } from '$fresh/server.ts';
 import { signal } from '@preact/signals';
-import { ProjectManagerMetadata } from '../../islands/metadata/index.ts';
-import ProjectManager from '../../islands/ProjectManager.tsx';
+import { ProjectManagerMetadata } from '../../../islands/metadata/index.ts';
+import ProjectManager from '../../../islands/ProjectManager.tsx';
 
 interface ProjectsPageProps {
 	view?: 'grid' | 'list';

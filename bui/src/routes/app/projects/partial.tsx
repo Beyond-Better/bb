@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
 import { RouteConfig } from '$fresh/server.ts';
 import { Partial } from '$fresh/runtime.ts';
-import { SettingsMetadata } from '../../islands/metadata/index.ts';
-import Settings from '../../islands/Settings.tsx';
+import { ProjectManagerMetadata } from '../../../islands/metadata/index.ts';
+import ProjectManager from '../../../islands/ProjectManager.tsx';
 
 // Skip the app wrapper since we're rendering inside a Partial
 export const config: RouteConfig = {
@@ -10,25 +10,24 @@ export const config: RouteConfig = {
 	skipInheritedLayouts: true,
 };
 
-// Create signals for settings state
-const categoryState = signal<string>('General');
-const descriptionState = signal<string>('Manage your preferences and customize BB');
+// Initialize view state with signal
+const viewState = signal<'grid' | 'list'>('grid');
 
-export default function SettingsPartial() {
+export default function ProjectsPartial() {
 	return (
 		<Partial name='page-content'>
 			<div class='flex flex-col flex-1'>
 				{/* Metadata Bar */}
 				<div class='border-b border-gray-200 dark:border-gray-700 px-4 py-2'>
-					<SettingsMetadata
-						category={categoryState.value}
-						description={descriptionState.value}
+					<ProjectManagerMetadata
+						view={viewState.value}
+						onViewChange={(newView) => viewState.value = newView}
 					/>
 				</div>
 
 				{/* Main content */}
 				<div class='flex-1 flex flex-col overflow-hidden'>
-					<Settings />
+					<ProjectManager />
 				</div>
 			</div>
 		</Partial>

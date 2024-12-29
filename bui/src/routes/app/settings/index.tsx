@@ -1,7 +1,7 @@
 import { PageProps } from '$fresh/server.ts';
 import { signal } from '@preact/signals';
-import { SettingsMetadata } from '../../islands/metadata/index.ts';
-import Settings from '../../islands/Settings.tsx';
+import { SettingsMetadata } from '../../../islands/metadata/index.ts';
+import Settings from '../../../islands/Settings.tsx';
 
 interface SettingsPageProps {
 	category?: string;

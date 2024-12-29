@@ -1,9 +1,9 @@
 import { Signal, signal } from '@preact/signals';
 import { RouteConfig } from '$fresh/server.ts';
 import { Partial } from '$fresh/runtime.ts';
-import { ProjectMetadata } from '../../islands/metadata/index.ts';
-import Chat from '../../islands/Chat.tsx';
-import type { ChatState } from '../../types/chat.types.ts';
+import { ProjectMetadata } from '../../../islands/metadata/index.ts';
+import Chat from '../../../islands/Chat.tsx';
+import type { ChatState } from '../../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 
 // Skip the app wrapper since we're rendering inside a Partial

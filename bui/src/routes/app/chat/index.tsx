@@ -1,8 +1,8 @@
 import { PageProps } from '$fresh/server.ts';
 import { Signal, signal } from '@preact/signals';
-import { ProjectMetadata } from '../../islands/metadata/index.ts';
-import Chat from '../../islands/Chat.tsx';
-import type { ChatState } from '../../types/chat.types.ts';
+import { ProjectMetadata } from '../../../islands/metadata/index.ts';
+import Chat from '../../../islands/Chat.tsx';
+import type { ChatState } from '../../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 
 interface ChatPageProps {

@@ -92,6 +92,10 @@ export interface ApiConfig extends ServerConfig {
  * Extends base server config with BUI-specific settings.
  */
 export interface BuiConfig extends ServerConfig {
+	supabaseUrl?: string;
+	supabaseAnonKey?: string;
+	localMode?: boolean;
+	kvSessionPath?: string;
 }
 
 /**
@@ -267,6 +271,8 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	tls: {
 		useTls: true,
 	},
+	localMode: false,
+	kvSessionPath: 'auth.kv',
 };
 
 export const DuiConfigDefaults: Readonly<DuiConfig> = {
