@@ -416,7 +416,7 @@ export const createToolSpeed = (value: number, unit: string, decimals = 1): JSX.
 
 // Create new tag functions for status/states
 export const createToolStatus = (
-	status: 'running' | 'completed' | 'failed' | 'pending',
+	status: 'running' | 'completed' | 'warning' | 'failed' | 'pending',
 	text?: string,
 ): JSX.Element => (
 	<span className={TOOL_STYLES_BROWSER.content.status[status]}>
