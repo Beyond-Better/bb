@@ -9,7 +9,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { getGlobalConfigDir, getBbDir } from 'shared/dataDir.ts';
+import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 
 import { compare as compareVersions, parse as parseVersion } from '@std/semver';
 import { isAbsolute, join } from '@std/path';

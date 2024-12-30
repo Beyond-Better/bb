@@ -176,6 +176,7 @@ export interface FileHandlingErrorOptions extends ErrorOptions {
 		| 'search-replace'
 		| 'rewrite-file'
 		| 'move-file'
+		| 'create-dir'
 		// these are not really filehandling (filesystem) - they only affect files in the conversation
 		| 'request-files'
 		| 'forget-files';

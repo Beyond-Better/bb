@@ -16,7 +16,7 @@ export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 
 /** Available log levels for configuration
  * debug and debug0 are equivalent
- */ 
+ */
 
 export type LogLevel = 'debug' | 'debug0' | 'debug1' | 'debug2' | 'info' | 'warn' | 'error';
 

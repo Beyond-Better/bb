@@ -203,6 +203,18 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'removeFiles.tool',
+		'metadata': {
+			'name': 'remove_files',
+			'description':
+				'Remove files from the project, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
+		},
+	},
+	{
 		'toolNamePath': 'applyPatch.tool',
 		'metadata': {
 			'name': 'apply_patch',
