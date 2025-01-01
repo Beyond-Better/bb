@@ -132,6 +132,7 @@ export interface LLMMessageStop {
 	stopSequence: string | null;
 }
 
+
 export interface LLMProviderMessageResponseMeta {
 	status: number;
 	statusText: string;
@@ -140,13 +141,14 @@ export interface LLMProviderMessageResponseMeta {
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
-	tools?: Map<string, LLMTool>;
-	system: string;
-	prompt: string;
+	tools?: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
+	system: string; // | LLMMessageContentPartTextBlock;
+	//prompt: string; // CNG - I think this is a deprecated attribute
 	model: string;
 	maxTokens?: number;
 	max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
 	temperature?: number;
+	usePromptCaching?: boolean;
 }
 
 export type LLMProviderMessageResponseType = 'message' | 'error';
@@ -243,3 +245,39 @@ export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<inf
 export type LLMCallbacks = {
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
+
+
+
+export interface BBLLMResponseMetadata {
+	model: string;
+	provider: string; //'anthropic',
+	requestId: string;
+	type: 'message' | 'error';
+	role: 'assistant' | 'user';
+	stopReason: LLMMessageStop['stopReason'];
+	stopSequence: string | null;
+}
+
+// also in api/types/llms.ts
+export interface BBLLMResponseRateLimit {
+	requestsRemaining: number;
+	requestsLimit: number;
+	requestsResetDate: Date;
+	tokensRemaining: number;
+	tokensLimit: number;
+	tokensResetDate: Date;
+}
+
+// also in api/types/llms.ts (as LLMProviderMessageResponseMeta)
+export interface BBLLMResponseStatus {
+	status: number;
+	statusText: string;
+}
+
+export interface BBLLMResponse {
+	content: Array<LLMMessageContentPart>;
+	usage: LLMTokenUsage;
+	metadata: BBLLMResponseMetadata;
+	rateLimit: BBLLMResponseRateLimit;
+	responseStatus: BBLLMResponseStatus;
+}

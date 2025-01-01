@@ -8,6 +8,7 @@
 		"start": "deno run -A --unstable-kv --watch=static/,routes/ src/dev.ts",
 		"start-prod": "deno run -A --unstable-kv src/dev.ts",
 		"build": "deno run -A --unstable-kv src/dev.ts build",
+		"compile": "deno compile --include src/static --include src/_fresh --include deno.jsonc --output ../build/bb-bui -A src/main.ts",
 		"preview": "deno run -A --unstable-kv src/main.ts",
 		"update": "deno run -A -r https://fresh.deno.dev/update .",
 		"test": "deno test --allow-env --allow-net --allow-read --allow-run --allow-write --allow-import tests/",
