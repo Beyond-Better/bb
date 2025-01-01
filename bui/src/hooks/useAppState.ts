@@ -1,9 +1,11 @@
+import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 export interface AppState {
 	wsManager: WebSocketManagerApp | null;
@@ -22,9 +24,9 @@ const loadStoredState = () => {
 	let conversationId = null;
 	let path = '/';
 
-	if (typeof window !== 'undefined') {
+	if (IS_BROWSER && typeof globalThis !== 'undefined') {
 		// Check URL parameters first
-		const params = new URLSearchParams(window.location.search);
+		const params = new URLSearchParams(globalThis.location.search);
 		projectId = params.get('projectId');
 		conversationId = params.get('conversationId');
 
@@ -36,7 +38,7 @@ const loadStoredState = () => {
 			conversationId = localStorage.getItem('bb_conversationId');
 		}
 		// Get current path from location
-		path = window.location.pathname;
+		path = globalThis.location.pathname;
 	}
 
 	return {
@@ -62,9 +64,9 @@ const appState = signal<AppState>({
 
 // Function to update URL parameters
 const updateUrlParams = (projectId: string | null, conversationId: string | null) => {
-	if (typeof window === 'undefined') return;
+	if (!IS_BROWSER || typeof globalThis === 'undefined') return;
 
-	const url = new URL(window.location.href);
+	const url = new URL(globalThis.location.href);
 	if (projectId) {
 		url.searchParams.set('projectId', projectId);
 	} else {
@@ -76,7 +78,7 @@ const updateUrlParams = (projectId: string | null, conversationId: string | null
 		url.searchParams.delete('conversationId');
 	}
 
-	window.history.replaceState({}, '', url.toString());
+	globalThis.history.replaceState({}, '', url.toString());
 };
 
 // Function to update localStorage
@@ -96,6 +98,33 @@ const updateLocalStorage = (projectId: string | null, conversationId: string | n
 };
 
 export function useAppState(): Signal<AppState> {
+	if (IS_BROWSER && (!appState.value.apiClient || !appState.value.wsManager)) {
+		console.log('useAppState: DOING SELF INIT - only for login or error pages!!!');
+		const apiHostname = getApiHostname();
+		const apiPort = getApiPort();
+		const apiUseTls = getApiUseTls();
+		const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
+		const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
+		console.log('useAppState: ', { apiHostname, apiPort, apiUseTls, apiUrl, wsUrl });
+
+		initializeAppState({
+			wsUrl: wsUrl,
+			apiUrl: apiUrl,
+			onMessage: (message) => {
+				console.log('useAppState: Received message:', message);
+			},
+			onError: (error) => {
+				console.error('useAppState: WebSocket error:', error);
+			},
+			onClose: () => {
+				console.log('useAppState: WebSocket closed');
+			},
+			onOpen: () => {
+				console.log('useAppState: WebSocket opened');
+			},
+		});
+	}
+
 	return appState;
 }
 

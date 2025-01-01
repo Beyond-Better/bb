@@ -1,5 +1,21 @@
 # BB Project Conventions
 
+## ⚠️ CRITICAL INSTRUCTION FOR AI ASSISTANT ⚠️
+
+Before making ANY changes to component-specific directories (api/, bui/, cli/, dui/, abi/), you MUST:
+1. Request and read the CONVENTIONS.md file from that specific directory
+2. Follow those specific conventions IN ADDITION TO these general conventions
+3. If component conventions conflict with general conventions, component conventions take precedence
+
+Example:
+```typescript
+// Before modifying api/src/someFile.ts:
+await requestFiles(['api/CONVENTIONS.md']);
+// Read and follow api/CONVENTIONS.md guidelines
+```
+
+Failure to follow component-specific conventions can lead to inconsistencies and errors.
+
 ## Note to Users
 This document is primarily intended for the AI assistant to understand the project's conventions and guidelines. While you're welcome to read it, please be aware that changes to this file should only be made when explicitly instructed, as they directly affect how the AI interprets and works with the project.
 

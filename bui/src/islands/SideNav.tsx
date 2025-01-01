@@ -1,11 +1,11 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
-import { signal, Signal } from '@preact/signals';
+import { Signal, signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { useState } from 'preact/hooks';
 
 import { initializeAppState, setPath, useAppState } from '../hooks/useAppState.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
-import { ProjectSelector } from '../components/ProjectSelector/index.ts';
+//import { ProjectSelector } from '../components/ProjectSelector/index.ts';
 import { useVersion } from '../hooks/useVersion.ts';
 import { ConnectionStatus } from '../components/Connection/ConnectionStatus.tsx';
 import { BBAppDownload } from '../components/Connection/BBAppDownload.tsx';
@@ -39,10 +39,10 @@ const getInitialCollapsedState = () => {
 
 const isCollapsed = signal(getInitialCollapsedState());
 
-const currentPath = () => {
-	if (IS_BROWSER) return globalThis.location.pathname;
-	return '/';
-};
+// const currentPath = () => {
+// 	if (IS_BROWSER) return globalThis.location.pathname;
+// 	return '/';
+// };
 
 // Initialize app and auth state immediately
 if (IS_BROWSER) {
@@ -72,7 +72,7 @@ if (IS_BROWSER) {
 	});
 }
 
-export default function SideNav({ authState: authStateProp, currentPath = '/' }: SideNavProps) {
+export default function SideNav({ authState: authStateProp, currentPath: _currentPath = '/' }: SideNavProps) {
 	const [showToast, setShowToast] = useState(false);
 	const [showStatus, setShowStatus] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');

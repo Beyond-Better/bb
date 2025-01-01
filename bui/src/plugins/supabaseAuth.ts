@@ -1,7 +1,7 @@
-import type { MiddlewareHandlerContext, Plugin } from '$fresh/server.ts';
-import { Session, User } from '@supabase/supabase-js';
-import { type AuthState } from '../types/auth.ts';
-import { initializeAuthState, useAuthState } from '../hooks/useAuthState.ts';
+import type { FreshContext, Plugin } from '$fresh/server.ts';
+//import { Session, User } from '@supabase/supabase-js';
+//import { type AuthState } from '../types/auth.ts';
+import { initializeAuthState, useAuthState } from '../hooks/useAuthStateSupabase.ts';
 import { type BuiConfig } from 'shared/config/v2/types.ts';
 
 export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
@@ -36,7 +36,7 @@ export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
 	};
 };
 
-async function setSessionState(req: Request, ctx: MiddlewareHandlerContext) {
+async function setSessionState(req: Request, ctx: FreshContext) {
 	if (ctx.destination !== 'route') return await ctx.next();
 
 	const { authState, getServerClient } = useAuthState();
@@ -92,7 +92,7 @@ function createLoginRedirect(req: Request, error?: string) {
 	return loginUrl;
 }
 
-function ensureSignedIn(req: Request, ctx: MiddlewareHandlerContext) {
+function ensureSignedIn(req: Request, ctx: FreshContext) {
 	const { authState } = useAuthState();
 	if (authState.value.isLocalMode) {
 		return ctx.next();

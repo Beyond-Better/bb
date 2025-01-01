@@ -49,7 +49,7 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
 // 	},
 // };
 
-export default function VerifyPage(props: PageProps) {
+export default function VerifyPage(_props: PageProps) {
 	const { authState } = useAuthState();
 	return (
 		<div class='h-screen flex flex-col flex-1 overflow-hidden'>

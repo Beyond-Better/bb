@@ -73,7 +73,7 @@ class LLMToolManager {
 		for (const coreTool of CORE_TOOLS) {
 			const toolNamePath = join('tools', coreTool.toolNamePath);
 			coreTool.metadata.path = toolNamePath;
-			logger.info(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
+			logger.debug(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
 			this.toolMetadata.set(coreTool.metadata.name, coreTool.metadata);
 		}
 
@@ -206,14 +206,14 @@ class LLMToolManager {
 			const toolPath = isAbsolute(metadata.path!)
 				? join(metadata.path!, 'tool.ts')
 				: join('.', metadata.path!, 'tool.ts');
-			logger.info(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
+			logger.debug(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
 			const module = await import(new URL(toolPath, import.meta.url).href);
 			const tool = await new module.default(
 				metadata.name,
 				metadata.description,
 				this.projectConfig.settings.api?.toolConfigs?.[name] || {},
 			).init();
-			logger.info(`LLMToolManager: Loaded Tool ${tool.name}`);
+			logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
 			this.loadedTools.set(name, tool);
 			return tool;
 		} catch (error) {

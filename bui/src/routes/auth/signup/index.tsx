@@ -1,5 +1,5 @@
 import { PageProps } from '$fresh/server.ts';
-import { Handlers } from '$fresh/server.ts';
+//import { Handlers } from '$fresh/server.ts';
 import SignupContent from '../../../islands/auth/SignupContent.tsx';
 import { useAuthState } from '../../../hooks/useAuthState.ts';
 
@@ -44,7 +44,7 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
  * Passing authState as a component property so we can cross the server/island barrier
  *************/
 
-export default function SignupPage(props: PageProps) {
+export default function SignupPage(_props: PageProps) {
 	const { authState } = useAuthState();
 	return (
 		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
