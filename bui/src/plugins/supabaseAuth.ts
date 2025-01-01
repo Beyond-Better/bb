@@ -39,10 +39,15 @@ export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
 async function setSessionState(req: Request, ctx: MiddlewareHandlerContext) {
 	if (ctx.destination !== 'route') return await ctx.next();
 
-	const { getServerClient } = useAuthState();
+	const { authState, getServerClient } = useAuthState();
 
 	// Sanity check - start without a session
 	ctx.state.session = null;
+
+	if (authState.value.isLocalMode) {
+		ctx.state.session = authState.value.session;
+		return ctx.next();
+	}
 
 	// Create an empty response object here. We want to make sure we do this
 	// session refresh before going further down the middleware chain
@@ -88,6 +93,10 @@ function createLoginRedirect(req: Request, error?: string) {
 }
 
 function ensureSignedIn(req: Request, ctx: MiddlewareHandlerContext) {
+	const { authState } = useAuthState();
+	if (authState.value.isLocalMode) {
+		return ctx.next();
+	}
 	if (!ctx.state.user) {
 		const loginUrl = createLoginRedirect(req);
 		return new Response(null, {

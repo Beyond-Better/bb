@@ -1,5 +1,6 @@
 import { Signal, useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
+import type { EmailOtpType } from '@supabase/supabase-js';
 import { useAuthState } from '../../hooks/useAuthState.ts';
 import { AuthState } from '../../types/auth.ts';
 
@@ -17,33 +18,39 @@ export default function VerifyContent({ authState: authStateProp }: VerifyConten
 	const isVerifying = useSignal(false);
 	const successMessage = useSignal('');
 
-	useEffect(async () => {
+	useEffect(() => {
 		const handleVerification = async () => {
 			console.log('VerifyEmail');
 
 			const { searchParams } = new URL(window.location.href);
 			//const code = searchParams.get('code');
 			const tokenHash = searchParams.get('token_hash');
-			const type = searchParams.get('type') as EmailOtpType | null;
+			const type = searchParams.get('type') as EmailOtpType;
 			const next = searchParams.get('next') ?? '/app/home';
 
 			try {
-				console.log('VerifyEmail: ', tokenHash, type);
-				const data = await verifyOtp(null, null, tokenHash, type);
-				console.log('VerifyEmail: data[after getUser]', data);
+				if (tokenHash && type) {
+					console.log('VerifyEmail: ', tokenHash, type);
+					const data = await verifyOtp(null, null, tokenHash, type);
+					console.log('VerifyEmail: data[after getUser]', data);
 
-				if (data.error) {
+					if (data.error) {
+						isVerifying.value = false;
+						isError.value = true;
+						successMessage.value = `Failed to verify email: ${data.error}`;
+					}
+					if (data.user) {
+						isVerifying.value = false;
+						successMessage.value = 'Email verified successfully! Redirecting...';
+						// Redirect after a short delay
+						setTimeout(() => {
+							window.location.href = next;
+						}, 2000);
+					}
+				} else {
 					isVerifying.value = false;
 					isError.value = true;
-					successMessage.value = `Failed to verify email: ${data.error}`;
-				}
-				if (data.user) {
-					isVerifying.value = false;
-					successMessage.value = 'Email verified successfully! Redirecting...';
-					// Redirect after a short delay
-					setTimeout(() => {
-						window.location.href = next;
-					}, 2000);
+					successMessage.value = `No token_hash or type found in URL`;
 				}
 			} catch (error) {
 				console.error('Verification error:', error);

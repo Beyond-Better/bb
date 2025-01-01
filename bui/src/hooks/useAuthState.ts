@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import { createBrowserClient, createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr';
-import type { Session, SupabaseClient, User } from '@supabase/supabase-js';
+import type { Session, SupabaseClient, User, EmailOtpType, VerifyTokenHashParams } from '@supabase/supabase-js';
 
 import type { BuiConfig } from 'shared/config/v2/types.ts';
 import { AuthError, type AuthState, DUMMY_SESSION, DUMMY_USER } from '../types/auth.ts';
@@ -79,7 +79,7 @@ export function useAuthState(): {
 		req: Request | null,
 		resp: Response | null,
 		tokenHash: string,
-		type: string,
+		type: EmailOtpType,
 	) => Promise<{ user?: User; session?: Session; error?: string }>;
 	signIn: (
 		req: Request | null,
@@ -136,12 +136,12 @@ export function useAuthState(): {
 		authState,
 
 		getServerClient: (req: Request, resp: Response): SupabaseClientType | null => {
-			console.log('useAuthState: Attempting to get server client...');
+			//console.log('useAuthState: Getting server client...');
 			return getServerClient(req, resp);
 		},
 
 		getBrowserClient: (): SupabaseClientType | null => {
-			console.log('useAuthState: Attempting to get browser client...');
+			//console.log('useAuthState: Getting browser client...');
 			return getBrowserClient();
 		},
 
@@ -188,7 +188,7 @@ export function useAuthState(): {
 			req: Request | null,
 			resp: Response | null,
 			tokenHash: string,
-			type: string,
+			type: EmailOtpType,
 		): Promise<{ user?: User; session?: Session; error?: string }> => {
 			console.log('useAuthState: Attempting to verify OTP...');
 
@@ -203,7 +203,8 @@ export function useAuthState(): {
 				if (!supabase) return { error: 'Could not create supabase client' };
 
 				//console.log('useAuthState: Verifying', { tokenHash, type });
-				const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+				const verifyParams: VerifyTokenHashParams = { token_hash: tokenHash, type };
+				const { data, error } = await supabase.auth.verifyOtp(verifyParams);
 				//const { data, error } = await supabase.auth.verifyOtp({ email:'cng-1@cngarrison.com', token: tokenHash, type: 'email'})
 				//console.log('useAuthState: Returning verifyOtp', { data, error });
 
@@ -364,7 +365,7 @@ export function useAuthState(): {
 					user: data.user,
 					error: null,
 				};
-				return { user: data.user, session: data.session };
+				return { user: data.user  }; //session: data.session
 			} catch (error) {
 				console.error('Sign up failed:', error);
 				authState.value = {

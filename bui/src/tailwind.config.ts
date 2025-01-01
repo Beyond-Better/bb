@@ -105,7 +105,7 @@ export default {
 							color: 'inherit',
 							backgroundColor: 'var(--tw-prose-pre-bg)',
 							borderRadius: '0.375rem',
-							padding: '0',
+							padding: '1em',
 							margin: '1em 0',
 						},
 						'code.hljs': {
