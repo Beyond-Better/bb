@@ -1,4 +1,3 @@
-import { useEffect } from 'preact/hooks';
 import { JSX } from 'preact';
 import { PageContainer } from '../components/PageContainer.tsx';
 import { setPath } from '../hooks/useAppState.ts';

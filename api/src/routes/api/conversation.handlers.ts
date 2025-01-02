@@ -361,7 +361,7 @@ export const clearConversation = async (
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} cleared` };
 	} catch (error) {
-		logger.error(`EConversationHandler: rror in clearConversation: ${(error as Error).message}`);
+		logger.error(`ConversationHandler: Error in clearConversation: ${(error as Error).message}`);
 		response.status = 500;
 		response.body = { error: 'Failed to clear conversation' };
 	}

@@ -1,10 +1,11 @@
 import { Status } from '@oak/oak';
-import type { Context, State } from '@oak/oak';
+import type { Context, State, Next } from '@oak/oak';
 import type { Middleware } from '@oak/oak';
 import { isAPIError } from 'api/errors/error.ts';
 import type { APIError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import type { BbState } from "../types/app.types.ts";
 
 /**
  * Error Handler Middleware function
@@ -14,8 +15,9 @@ import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
  */
 
 export const errorHandler: Middleware = async (
+	//ctx: Context<BbState>,
 	ctx: Context<State, Record<string, unknown>>,
-	next: () => Promise<unknown>,
+	next: Next
 ): Promise<void> => {
 	try {
 		await next();

@@ -9,6 +9,8 @@ tags.ignore
 
 */.DS_Store
 
+.trash/
+
 bui-orig*
 bui-rewrite*
 

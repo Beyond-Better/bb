@@ -26,8 +26,8 @@ export interface AuthState {
 	isLocalMode: boolean;
 	error: string | null;
 	// Supabase configuration
-	supabaseUrl?: string;
-	supabaseAnonKey?: string;
+	//supabaseUrl?: string;
+	//supabaseAnonKey?: string;
 }
 
 // Dummy session for local mode

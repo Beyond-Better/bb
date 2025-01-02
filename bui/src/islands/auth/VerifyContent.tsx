@@ -22,7 +22,7 @@ export default function VerifyContent({ authState: authStateProp }: VerifyConten
 		const handleVerification = async () => {
 			console.log('VerifyEmail');
 
-			const { searchParams } = new URL(window.location.href);
+			const { searchParams } = new URL(globalThis.location.href);
 			//const code = searchParams.get('code');
 			const tokenHash = searchParams.get('token_hash');
 			const type = searchParams.get('type') as EmailOtpType;
@@ -44,7 +44,7 @@ export default function VerifyContent({ authState: authStateProp }: VerifyConten
 						successMessage.value = 'Email verified successfully! Redirecting...';
 						// Redirect after a short delay
 						setTimeout(() => {
-							window.location.href = next;
+							globalThis.location.href = next;
 						}, 2000);
 					}
 				} else {

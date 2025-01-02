@@ -1,4 +1,5 @@
 import { Router } from '@oak/oak';
+import { requireAuth } from '../middlewares/auth.middleware.ts';
 import {
 	chatConversation,
 	clearConversation,
@@ -13,10 +14,21 @@ import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
 import projectRouter from './api/projectRouter.ts';
 import fileRouter from './api/fileRouter.ts';
+import authRouter from './api/authRouter.ts';
 
 const apiRouter = new Router();
 
+// Define protected routes
+const protectedPaths = [
+	'/v1/ws/conversation/*',
+	'/v1/conversation/*',
+	'/v1/project/*',
+	'/v1/files/*'
+];
+
 apiRouter
+	// Apply auth middleware to protected routes
+	.use(requireAuth(protectedPaths))
 	.get('/v1/status', getStatus)
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
@@ -180,7 +192,8 @@ apiRouter
 	.post('/v1/doctor/fix/:type', applyFixHandler)
 	// Mount sub-routers
 	.use('/v1/project', projectRouter.routes(), projectRouter.allowedMethods())
-	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods());
+	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods())
+	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods());
 
 /*
     // NOT IMPLEMENTED

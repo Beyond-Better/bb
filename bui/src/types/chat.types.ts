@@ -52,7 +52,7 @@ export interface ChatHandlers {
 	clearError: () => void;
 	sendConverse: (message: string) => Promise<void>;
 	selectConversation: (id: string) => Promise<void>;
-	clearConversation: () => Promise<void>;
+	clearConversation: () => void;
 	cancelProcessing: () => Promise<void>;
 	updateScrollVisibility: (isAtBottom: boolean) => void; // Update scroll indicator visibility and state
 }

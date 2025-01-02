@@ -2,14 +2,15 @@ import { defineConfig } from '$fresh/server.ts';
 import tailwind from '$fresh/plugins/tailwind.ts';
 import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
+//import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
+import { authPlugin } from './plugins/auth.plugin.ts';
 
 const configManager = await ConfigManagerV2.getInstance();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
-//console.log('BUI Config: ', globalRedactedConfig);
+console.log('BUI Config: ', globalRedactedConfig);
 
-const environment = globalConfig.bui.environment || 'local';
+//const environment = globalConfig.bui.environment || 'local';
 const hostname = globalConfig.bui.hostname || 'localhost';
 const port = globalConfig.bui.port || 8000;
 const useTls = globalConfig.bui.tls?.useTls ?? true;
@@ -24,7 +25,7 @@ if (useTls) {
 		const startDir = Deno.cwd();
 		const projectRoot = await getProjectRootFromStartDir(startDir);
 		projectId = await getProjectId(projectRoot);
-	} catch (error) {
+	} catch (_error) {
 		projectId = undefined;
 	}
 
@@ -99,11 +100,12 @@ export default defineConfig({
 			name: 'highlight.js-theme',
 			...highlightStyles,
 		},
-		supabaseAuthPlugin(globalConfig.bui),
-// 		{
-// 			name: 'supabase_auth'
-// 		},
-
+		// Keep both auth plugins during transition
+		//supabaseAuthPlugin(globalConfig.bui),
+		authPlugin(globalConfig.bui),
+		// 		{
+		// 			name: 'supabase_auth'
+		// 		},
 	],
 	// build: {
 	// 	esbuild: {

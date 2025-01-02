@@ -1,18 +1,17 @@
-import { useEffect } from 'preact/hooks';
 import { JSX } from 'preact';
-type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
-import { IS_BROWSER } from '$fresh/runtime.ts';
+//type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
+//import { IS_BROWSER } from '$fresh/runtime.ts';
 import { PageContainer } from '../components/PageContainer.tsx';
 
-import { useAppState } from '../hooks/useAppState.ts';
+//import { useAppState } from '../hooks/useAppState.ts';
 
-interface SettingsProps {
-}
+//interface SettingsProps {
+//}
 
 export default function Settings(): JSX.Element {
 	// Initialize version checking
 
-	const appState = useAppState();
+	//const appState = useAppState();
 
 	// 	// Initialize chat configuration
 	// 	const apiHostname = getApiHostname();
