@@ -5,7 +5,7 @@
 		"cliffy/ansi/tty": "jsr:@cliffy/ansi@1.0.0-rc.7/tty",
 		"cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
 		"cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.7",
-		"anthropic": "https://esm.sh/@anthropic-ai/sdk@0.32.1",
+		"anthropic": "https://esm.sh/@anthropic-ai/sdk@0.33.1",
 		"anthropic-tokenizer": "npm:@anthropic-ai/tokenizer",
 		"openai": "https://esm.sh/openai@4.67.2",
 		"@google/generative-ai": "https://esm.sh/@google/generative-ai@0.21.0",

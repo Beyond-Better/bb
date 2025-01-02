@@ -25,27 +25,15 @@ import type {
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
 type AnthropicBlockParam =
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+	| Anthropic.Messages.ContentBlockParam;
 type AnthropicBlockParamOrString =
 	| string
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam;
+	| Anthropic.Messages.ContentBlockParam;
 type AnthropicBlockParamOrArray =
 	| string
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
-	| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam
+	| Anthropic.Messages.ContentBlockParam
 	| Array<
-		| Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam
-		| Anthropic.Beta.PromptCaching.PromptCachingBetaImageBlockParam
-		| Anthropic.Beta.PromptCaching.PromptCachingBetaToolUseBlockParam
-		| Anthropic.Beta.PromptCaching.PromptCachingBetaToolResultBlockParam
+		| Anthropic.Messages.ContentBlockParam
 	>;
 class AnthropicLLM extends LLM {
 	private anthropic!: Anthropic;
@@ -74,7 +62,7 @@ class AnthropicLLM extends LLM {
 		}
 	}
 
-	private logMessageDetails(messages: Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[]): void {
+	private logMessageDetails(messages: Anthropic.Messages.MessageParam[]): void {
 		logger.info('AnthropicLLM: Message Details for LLM Request:');
 
 		const messagesWithCache: number[] = [];
@@ -225,7 +213,7 @@ class AnthropicLLM extends LLM {
 
 	private asProviderMessageType(
 		messages: LLMMessage[],
-	): Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam[] {
+	): Anthropic.Messages.MessageParam[] {
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 
 		// Find the last three user messages
@@ -253,18 +241,17 @@ class AnthropicLLM extends LLM {
 					content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
 				}
 			} else {
-				content = (Array.isArray(prevContent)
-					? prevContent
-					: [prevContent]) as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam[];
+				content =
+					(Array.isArray(prevContent) ? prevContent : [prevContent]) as Anthropic.Messages.TextBlockParam[];
 			}
 			return {
 				role: m.role,
 				content: content,
-			} as Anthropic.Beta.PromptCaching.PromptCachingBetaMessageParam;
+			} as Anthropic.Messages.MessageParam;
 		});
 	}
 
-	private asProviderToolType(tools: LLMTool[]): Anthropic.Beta.PromptCaching.PromptCachingBetaTool[] {
+	private asProviderToolType(tools: LLMTool[]): Anthropic.Messages.Tool[] {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderToolType', tools);
 		return tools.map((tool) => ({
 			name: tool.name,
@@ -290,7 +277,7 @@ class AnthropicLLM extends LLM {
 					type: 'text',
 					text: systemPrompt,
 					...(usePromptCaching ? { cache_control: { type: 'ephemeral' } } : {}),
-				} as Anthropic.Beta.PromptCaching.PromptCachingBetaTextBlockParam,
+				} as Anthropic.Messages.TextBlockParam,
 			]
 			: '';
 
@@ -328,7 +315,7 @@ class AnthropicLLM extends LLM {
 		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
 		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
 
-		const messageParams: Anthropic.Beta.PromptCaching.MessageCreateParams = {
+		const messageParams: Anthropic.Messages.MessageCreateParams = {
 			messages,
 			system,
 			tools,
@@ -358,15 +345,14 @@ class AnthropicLLM extends LLM {
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.beta
-				.promptCaching.messages.create(
-					messageParams as Anthropic.MessageCreateParams,
-					{
-						headers: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
-					},
-				).withResponse();
+			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
+				messageParams as Anthropic.MessageCreateParams,
+				{
+					headers: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
+				},
+			).withResponse();
 
-			const anthropicMessage = anthropicMessageStream as Anthropic.Beta.PromptCaching.PromptCachingBetaMessage;
+			const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
 
