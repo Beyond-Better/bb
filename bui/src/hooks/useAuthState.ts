@@ -94,7 +94,7 @@ export function useAuthState() {
 					return { error: 'Could not load API Client' };
 				}
 				const { session, error } = await apiClient.getSession();
-				console.log('useAuthState: Returning session', session);
+				//console.log('useAuthState: Returning session', session);
 				const user = session?.user;
 
 				if (error) {
@@ -105,7 +105,7 @@ export function useAuthState() {
 					throw new AuthError('No user returned', 'auth_failed');
 				}
 
-				console.log('useAuthState: Returning session user', user);
+				//console.log('useAuthState: Returning session user', user);
 				return { user };
 			} catch (error) {
 				console.error('Get session failed:', (error as Error).message);

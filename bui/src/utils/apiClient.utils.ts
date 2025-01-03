@@ -1,11 +1,18 @@
 import type { JSX } from 'preact';
 
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
-//import type { DisplaySuggestion } from '../types/suggestions.types.ts';
 import type { Project } from '../hooks/useProjectState.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
+import type {
+	BillingPreviewResults,
+	BillingPreviewWithUsage,
+	Plan,
+	PlanResults,
+	SubscriptionResults,
+	SubscriptionWithUsage,
+} from '../types/subscription.ts';
 
 export interface AuthResponse {
 	user?: User;
@@ -157,6 +164,27 @@ export class ApiClient {
 		}, allowedCodes);
 	}
 
+	// Subscription Methods
+	async getCurrentSubscription(): Promise<SubscriptionWithUsage | null> {
+		const results = await this.get<SubscriptionResults>('/api/v1/user/subscription/current');
+		return results ? { ...results?.subscription, usage: results?.usage } : null;
+	}
+
+	async getAvailablePlans(): Promise<Plan[] | null> {
+		const results = await this.get<PlanResults>('/api/v1/subscription/plans');
+		return results?.plans || null;
+	}
+
+	async changePlan(planId: string): Promise<SubscriptionWithUsage | null> {
+		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', { planId });
+		return results ? { ...results?.subscription, usage: results?.usage } : null;
+	}
+
+	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {
+		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', { planId });
+		return results ? { ...results?.preview, usage: results?.usage } : null;
+	}
+
 	// Auth Methods
 	async signIn(email: string, password: string): Promise<AuthResponse> {
 		return await this.post<AuthResponse>('/api/v1/auth/login', { email, password }) ??
@@ -253,8 +281,6 @@ export class ApiClient {
 				dirPath,
 				...options,
 			});
-			//console.log(`APIClient: List directory for ${dirPath}`, response);
-			//return response;
 		} catch (error) {
 			console.log(`APIClient: List directory failed: ${(error as Error).message}`);
 			throw error;

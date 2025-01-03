@@ -15,6 +15,8 @@ import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handl
 import projectRouter from './api/projectRouter.ts';
 import fileRouter from './api/fileRouter.ts';
 import authRouter from './api/authRouter.ts';
+import userRouter from './api/userRouter.ts';
+import subscriptionRouter from './api/subscriptionRouter.ts';
 
 const apiRouter = new Router();
 
@@ -23,7 +25,8 @@ const protectedPaths = [
 	'/v1/ws/conversation/*',
 	'/v1/conversation/*',
 	'/v1/project/*',
-	'/v1/files/*'
+	'/v1/files/*',
+	'/v1/user/*'  // Protect all user routes including subscription
 ];
 
 apiRouter
@@ -193,7 +196,9 @@ apiRouter
 	// Mount sub-routers
 	.use('/v1/project', projectRouter.routes(), projectRouter.allowedMethods())
 	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods())
-	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods());
+	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods())
+	.use('/v1/user', userRouter.routes(), userRouter.allowedMethods())
+	.use('/v1/subscription', subscriptionRouter.routes(), subscriptionRouter.allowedMethods());
 
 /*
     // NOT IMPLEMENTED

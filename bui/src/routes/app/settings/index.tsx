@@ -11,7 +11,7 @@ interface SettingsPageProps {
 const categoryState = signal<string>('General');
 const descriptionState = signal<string>('Manage your preferences and customize BB');
 
-export default function SettingsPage(props: PageProps<SettingsPageProps>) {
+export default function SettingsPage(_props: PageProps<SettingsPageProps>) {
 	return (
 		<div class='flex flex-col flex-1'>
 			{/* Metadata Bar */}

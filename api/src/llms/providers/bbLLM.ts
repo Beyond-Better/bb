@@ -35,7 +35,7 @@ type LLMMessageContentPartOrString =
 // 		| LLMMessageContentPart
 // 	>;
 class BbLLM extends LLM {
-	private supabaseClient!: SupabaseClient<any, 'public', any>;
+	private supabaseClient!: SupabaseClient;
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
