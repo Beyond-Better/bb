@@ -8,20 +8,31 @@ const STORAGE_KEYS = {
 };
 
 // Helper functions for URL parameters
-export const getHashParams = () => {
-	if (!IS_BROWSER) return null;
-	const hash = window.location.hash.slice(1);
+export const getHashParams = (req?: Request) => {
+	if (!IS_BROWSER) {
+		if (!req) return null;
+		// Server-side doesn't have access to hash
+		return null;
+	}
+	const hash = globalThis.location.hash.slice(1);
 	return new URLSearchParams(hash);
 };
 
-export const getQueryParams = () => {
-	if (!IS_BROWSER) return null;
-	return new URLSearchParams(window.location.search);
+export const getQueryParams = (req?: Request) => {
+	if (!IS_BROWSER) {
+		if (!req) return null;
+		return new URLSearchParams(req.url.split('?')[1] || '');
+	}
+	return new URLSearchParams(globalThis.location.search);
 };
 
-export const getUrlParams = () => {
-	// For backward compatibility, return hash params
-	return getHashParams();
+export const getUrlParams = (req?: Request) => {
+	// For backward compatibility, return hash params in browser
+	// For server-side, use query params since hash isn't available
+	if (!IS_BROWSER && req) {
+		return getQueryParams(req);
+	}
+	return getHashParams(req);
 };
 
 // Storage helper functions
@@ -35,8 +46,8 @@ const setInStorage = (key: string, value: string) => {
 	localStorage.setItem(key, value);
 };
 
-export const getApiHostname = () => {
-	const params = getUrlParams();
+export const getApiHostname = (req?: Request) => {
+	const params = getUrlParams(req);
 	const urlValue = params?.get('apiHostname');
 
 	if (urlValue) {
@@ -49,7 +60,7 @@ export const getApiHostname = () => {
 	return getFromStorage(STORAGE_KEYS.API_HOSTNAME) || 'localhost';
 };
 
-export const getApiPort = () => {
+export const getApiPort = (req?: Request) => {
 	const params = getUrlParams();
 	const urlValue = params?.get('apiPort');
 
@@ -63,7 +74,7 @@ export const getApiPort = () => {
 	return getFromStorage(STORAGE_KEYS.API_PORT) || '3162';
 };
 
-export const getApiUseTls = () => {
+export const getApiUseTls = (req?: Request) => {
 	const params = getUrlParams();
 	const urlValue = params?.get('apiUseTls');
 	//console.log('getApiUseTls: ', { urlValue });

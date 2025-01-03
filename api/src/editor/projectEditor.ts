@@ -13,6 +13,7 @@ export interface ProjectInfo extends BaseProjectInfo {
 	projectId: string;
 }
 import OrchestratorController from '../controllers/orchestratorController.ts';
+import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
@@ -34,6 +35,7 @@ class ProjectEditor {
 	public orchestratorController!: OrchestratorController;
 	public projectConfig!: ProjectConfig;
 	public eventManager!: EventManager;
+	public sessionManager: SessionManager;
 	public projectId: string;
 	public projectRoot: string;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
@@ -47,10 +49,12 @@ class ProjectEditor {
 		tier: null,
 	};
 
-	constructor(projectId: string) {
+	constructor(projectId: string, sessionManager: SessionManager) {
 		this.projectRoot = '.'; // init() will overwrite this
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
+		this.sessionManager = sessionManager;
+		//logger.info('ProjectEditor: sessionManager', sessionManager);
 	}
 
 	public async init(): Promise<ProjectEditor> {

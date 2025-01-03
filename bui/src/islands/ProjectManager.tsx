@@ -32,7 +32,7 @@ export default function ProjectManager() {
 
 	useEffect(() => {
 		// Check URL parameters for new project flag
-		const params = new URLSearchParams(window.location.search);
+		const params = new URLSearchParams(globalThis.location.search);
 		if (params.get('new') === 'true') {
 			showEditor.value = true;
 			editingProject.value = undefined;
@@ -247,7 +247,7 @@ export default function ProjectManager() {
 									<a
 										href='/chat'
 										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
-										onClick={(e) => {
+										onClick={(_e) => {
 											setPath('/chat');
 											setSelectedProject(project.projectId);
 										}}
@@ -267,7 +267,7 @@ export default function ProjectManager() {
 									<a
 										href='/chat'
 										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
-										onClick={(e) => {
+										onClick={(_e) => {
 											setPath('/chat');
 											setSelectedProject(project.projectId);
 										}}

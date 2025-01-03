@@ -1,10 +1,17 @@
 import type { JSX } from 'preact';
 
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
-import type { DisplaySuggestion } from '../types/suggestions.types.ts';
+//import type { DisplaySuggestion } from '../types/suggestions.types.ts';
 import type { Project } from '../hooks/useProjectState.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
+import type { Session, User } from '../types/auth.ts';
+
+export interface AuthResponse {
+	user?: User;
+	session?: Session;
+	error?: string;
+}
 
 export interface ApiStatus {
 	status: string;
@@ -88,7 +95,10 @@ export class ApiClient {
 	private apiUrl: string;
 
 	constructor(apiUrl: string) {
-		this.apiUrl = apiUrl;
+		console.log(`APIClient: Initializing apiUrl with: ${apiUrl}`);
+		const normalizedUrl = apiUrl.replace(/\/+$/, '');
+		console.log(`APIClient: Normalized apiUrl to: ${normalizedUrl}`);
+		this.apiUrl = normalizedUrl;
 	}
 
 	private async request<T>(
@@ -126,62 +136,94 @@ export class ApiClient {
 	}
 
 	async get<T>(endpoint: string, allowedCodes: number[] = []): Promise<T | null> {
-		return this.request<T>(endpoint, {}, allowedCodes);
+		return await this.request<T>(endpoint, {}, allowedCodes);
 	}
 
 	async delete<T>(endpoint: string, allowedCodes: number[] = []): Promise<T | null> {
-		return this.request<T>(endpoint, { method: 'DELETE' }, allowedCodes);
+		return await this.request<T>(endpoint, { method: 'DELETE' }, allowedCodes);
 	}
 
 	async post<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
-		return this.request<T>(endpoint, {
+		return await this.request<T>(endpoint, {
 			method: 'POST',
 			body: JSON.stringify(data),
 		}, allowedCodes);
 	}
 
 	async put<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
-		return this.request<T>(endpoint, {
+		return await this.request<T>(endpoint, {
 			method: 'PUT',
 			body: JSON.stringify(data),
 		}, allowedCodes);
 	}
 
+	// Auth Methods
+	async signIn(email: string, password: string): Promise<AuthResponse> {
+		return await this.post<AuthResponse>('/api/v1/auth/login', { email, password }) ??
+			{ error: 'Failed to connect to API' };
+	}
+
+	async signOut(): Promise<AuthResponse> {
+		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ?? { error: 'Failed to connect to API' };
+	}
+
+	async getSession(): Promise<AuthResponse> {
+		return await this.get<AuthResponse>('/api/v1/auth/session') ?? { error: 'Failed to connect to API' };
+	}
+
+	async signUp(email: string, password: string): Promise<AuthResponse> {
+		const verifyUrl = new URL('/auth/verify', globalThis.location.href);
+		return await this.post<AuthResponse>('/api/v1/auth/signup', {
+			email,
+			password,
+			options: { emailRedirectTo: verifyUrl.toString() },
+		}) ?? { error: 'Failed to connect to API' };
+	}
+
+	async verifyOtp(tokenHash: string, type: string): Promise<AuthResponse> {
+		return await this.post<AuthResponse>('/api/v1/auth/callback', {
+			token_hash: tokenHash,
+			type,
+		}) ?? { error: 'Failed to connect to API' };
+	}
+
 	// Project Management Methods
 	async listProjects(): Promise<{ projects: Project[] } | null> {
-		return this.get<{ projects: Project[] }>('/api/v1/project');
+		return await this.get<{ projects: Project[] }>('/api/v1/project');
 	}
 
 	async getProject(projectId: string): Promise<{ project: Project } | null> {
-		return this.get<{ project: Project }>(`/api/v1/project/${projectId}`, [404]);
+		return await this.get<{ project: Project }>(`/api/v1/project/${projectId}`, [404]);
 	}
 
 	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: Project } | null> {
-		return this.post<{ project: Project }>('/api/v1/project', project);
+		return await this.post<{ project: Project }>('/api/v1/project', project);
 	}
 
 	async updateProject(
 		projectId: string,
 		updates: Partial<Omit<Project, 'projectId'>>,
 	): Promise<{ project: Project } | null> {
-		return this.put<{ project: Project }>(`/api/v1/project/${projectId}`, updates);
+		return await this.put<{ project: Project }>(`/api/v1/project/${projectId}`, updates);
 	}
 
 	async deleteProject(projectId: string): Promise<void> {
-		await this.delete(`/api/v1/project/${projectId}`, [404]);
+		await await this.delete(`/api/v1/project/${projectId}`, [404]);
 	}
 
 	async migrateAndAddProject(projectPath: string): Promise<Project | null> {
-		return this.post('/api/v1/project/migrate', { projectPath });
+		return await this.post('/api/v1/project/migrate', { projectPath });
 	}
 
 	async findV1Projects(searchDir: string): Promise<{ projects: string[] } | null> {
-		return this.get<{ projects: string[] }>(`/api/v1/project/find?searchDir=${encodeURIComponent(searchDir)}`);
+		return await this.get<{ projects: string[] }>(
+			`/api/v1/project/find?searchDir=${encodeURIComponent(searchDir)}`,
+		);
 	}
 
 	// File Management Methods
 	async suggestFiles(partialPath: string, projectId: string): Promise<FileSuggestionsResponse | null> {
-		return this.post<FileSuggestionsResponse>(
+		return await this.post<FileSuggestionsResponse>(
 			'/api/v1/files/suggest',
 			{ partialPath, projectId },
 		);
@@ -192,7 +234,7 @@ export class ApiClient {
 		caseSensitive?: boolean;
 		type?: 'all' | 'file' | 'directory';
 	} = {}): Promise<FileSuggestionsResponse | null> {
-		return this.post<FileSuggestionsResponse>(
+		return await this.post<FileSuggestionsResponse>(
 			'/api/v1/files/suggest-for-path',
 			{
 				partialPath,
@@ -221,13 +263,13 @@ export class ApiClient {
 
 	// Conversation Management Methods
 	async createConversation(id: string, projectId: string): Promise<ConversationResponse | null> {
-		return this.get<ConversationResponse>(
+		return await this.get<ConversationResponse>(
 			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 		);
 	}
 
 	async getConversations(projectId: string, limit = 200): Promise<ConversationListResponse | null> {
-		return this.get<ConversationListResponse>(
+		return await this.get<ConversationListResponse>(
 			`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
 		);
 	}
@@ -236,7 +278,7 @@ export class ApiClient {
 		id: string,
 		projectId: string,
 	): Promise<(ConversationResponse & { logEntries: ConversationEntry[] }) | null> {
-		return this.get<ConversationResponse & { logEntries: ConversationEntry[] }>(
+		return await this.get<ConversationResponse & { logEntries: ConversationEntry[] }>(
 			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);
@@ -247,7 +289,7 @@ export class ApiClient {
 	}
 
 	async getStatus(): Promise<ApiStatus | null> {
-		return this.get<ApiStatus>('/api/v1/status');
+		return await this.get<ApiStatus>('/api/v1/status');
 	}
 
 	async getStatusHtml(): Promise<string | null> {
@@ -261,7 +303,7 @@ export class ApiClient {
 	}
 
 	async getDiagnostics(): Promise<DiagnosticResponse | null> {
-		return this.get<DiagnosticResponse>('/api/v1/doctor/check');
+		return await this.get<DiagnosticResponse>('/api/v1/doctor/check');
 	}
 
 	async getDiagnosticReport(): Promise<Blob | null> {
@@ -271,18 +313,22 @@ export class ApiClient {
 	}
 
 	async applyDiagnosticFix(fixEndpoint: string): Promise<{ message: string } | null> {
-		return this.post<{ message: string }>(fixEndpoint, {});
+		return await this.post<{ message: string }>(fixEndpoint, {});
 	}
 
 	async upgradeApi(): Promise<ApiUpgradeResponse | null> {
-		return this.post<ApiUpgradeResponse>(
+		return await this.post<ApiUpgradeResponse>(
 			'/api/v1/upgrade',
 			{},
 		);
 	}
 
-	async formatLogEntry(entryType: string, logEntry: any, projectId: string): Promise<LogEntryFormatResponse | null> {
-		return this.post<LogEntryFormatResponse>(
+	async formatLogEntry(
+		entryType: string,
+		logEntry: unknown,
+		projectId: string,
+	): Promise<LogEntryFormatResponse | null> {
+		return await this.post<LogEntryFormatResponse>(
 			`/api/v1/format_log_entry/browser/${entryType}`,
 			{ logEntry, projectId },
 		);

@@ -447,7 +447,7 @@ class AnthropicLLM extends LLM {
 					tokensResetDate,
 				},
 				providerMessageResponseMeta: {
-					status: anthropicResponse.status,
+					statusCode: anthropicResponse.status,
 					statusText: anthropicResponse.statusText,
 				},
 			};

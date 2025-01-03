@@ -1,11 +1,10 @@
-import { useEffect } from 'preact/hooks';
 import { Signal } from '@preact/signals';
-import { ChatState, ChatStatus } from '../../types/chat.types.ts';
+import { ChatState } from '../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx';
-import type { ApiClient } from '../../utils/apiClient.utils.ts';
-import type { ConversationEntry } from 'shared/types.ts';
-import { IS_BROWSER } from '$fresh/runtime.ts';
+//import type { ApiClient } from '../../utils/apiClient.utils.ts';
+//import type { ConversationEntry } from 'shared/types.ts';
+//import { IS_BROWSER } from '$fresh/runtime.ts';
 import { ProjectSelector } from '../../components/ProjectSelector/index.ts';
 
 interface ProjectMetadataProps {

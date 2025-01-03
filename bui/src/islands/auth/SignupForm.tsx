@@ -1,6 +1,5 @@
-import { IS_BROWSER } from '$fresh/runtime.ts';
+//import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useComputed, useSignal } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
 import { useAuthState } from '../../hooks/useAuthState.ts';
 
 interface PasswordRequirement {
@@ -80,7 +79,7 @@ export default function SignupForm() {
 			if (data.user) {
 				// Handle successful signup
 				// Redirect to check-email page
-				window.location.href = `/auth/check-email?email=${encodeURIComponent(email.value)}`;
+				globalThis.location.href = `/auth/check-email?email=${encodeURIComponent(email.value)}`;
 			} else {
 				signupError.value = data.error || 'unknown error';
 			}

@@ -78,6 +78,8 @@ export interface ApiConfig extends ServerConfig {
 	usePromptCaching: boolean;
 	userToolDirectories: string[];
 	toolConfigs: Record<string, unknown>;
+	localMode?: boolean;
+	supabaseConfigUrl?: string;
 
 	// LLM Keys
 	llmKeys?: {
@@ -258,6 +260,8 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	maxTurns: 25,
 	logLevel: 'info',
 	logFileHydration: false,
+	localMode: false,
+	supabaseConfigUrl: 'https://chat.beyondbetter.dev/api/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],

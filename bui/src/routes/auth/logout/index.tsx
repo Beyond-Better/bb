@@ -1,4 +1,4 @@
-import { PageProps } from '$fresh/server.ts';
+//import { PageProps } from '$fresh/server.ts';
 import { Handlers } from '$fresh/server.ts';
 import { useAuthState } from '../../../hooks/useAuthState.ts';
 
@@ -15,7 +15,7 @@ export const handler: Handlers = {
 
 		try {
 			await signOut(req, resp);
-		} catch (error) {
+		} catch (_error) {
 			return new Response(null, {
 				headers: {
 					location: '/',

@@ -1,6 +1,5 @@
-import { IS_BROWSER } from '$fresh/runtime.ts';
+//import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useSignal } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
 import { useAuthState } from '../../hooks/useAuthState.ts';
 
 export default function LoginForm() {
@@ -24,9 +23,9 @@ export default function LoginForm() {
 		if (data.session && data.user) {
 			// Handle successful login
 			// Get redirectTo from URL parameters
-			const urlParams = new URLSearchParams(window.location.search);
+			const urlParams = new URLSearchParams(globalThis.location.search);
 			const redirectTo = urlParams.get('redirect') || '/app/home';
-			window.location.href = redirectTo;
+			globalThis.location.href = redirectTo;
 		} else {
 			loginError.value = data.error || 'unknown error';
 		}
