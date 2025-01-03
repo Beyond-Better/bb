@@ -48,7 +48,23 @@ export const GroqModels = [
 	GroqModel.GROQ_GEMMA_7B,
 ];
 
+export const BbModels = [
+// 	AnthropicModel.CLAUDE_3_HAIKU,
+// 	AnthropicModel.CLAUDE_3_SONNET,
+// 	AnthropicModel.CLAUDE_3_5_SONNET,
+// 	AnthropicModel.CLAUDE_3_OPUS,
+// 	OpenAIModel.GPT_4o,
+// 	OpenAIModel.GPT_4_TURBO,
+// 	OpenAIModel.GPT_4,
+// 	OpenAIModel.GPT_35_TURBO,
+// 	GroqModel.GROQ_LLAMA3_8B,
+// 	GroqModel.GROQ_LLAMA3_70B,
+// 	GroqModel.GROQ_MIXTRAL_8X7B,
+// 	GroqModel.GROQ_GEMMA_7B,
+];
+
 export enum LLMProvider {
+	BB = 'beyond-better',
 	ANTHROPIC = 'anthropic',
 	OPENAI = 'openai',
 	GROQ = 'groq',
@@ -56,6 +72,7 @@ export enum LLMProvider {
 }
 
 export const LLMProviders = [
+	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
 	LLMProvider.GROQ,
@@ -63,6 +80,7 @@ export const LLMProviders = [
 ];
 
 export const LLMProviderLabel = {
+	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
 	[LLMProvider.GROQ]: 'Groq',
@@ -70,6 +88,7 @@ export const LLMProviderLabel = {
 };
 
 export const LLMModelsByProvider = {
+	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
 	[LLMProvider.GROQ]: GroqModels,
@@ -78,7 +97,7 @@ export const LLMModelsByProvider = {
 
 export const LLMModelToProvider = Object.fromEntries(
 	LLMProviders
-		.filter((provider) => provider !== LLMProvider.UNKNOWN)
+		.filter((provider) => provider !== LLMProvider.UNKNOWN && provider !== LLMProvider.BB)
 		.flatMap((provider) => {
 			const modelsArray = LLMModelsByProvider[provider];
 			return modelsArray ? modelsArray.map((model) => [model, provider]) : [];
@@ -134,7 +153,7 @@ export interface LLMMessageStop {
 
 
 export interface LLMProviderMessageResponseMeta {
-	status: number;
+	statusCode: number;
 	statusText: string;
 }
 
@@ -270,7 +289,7 @@ export interface BBLLMResponseRateLimit {
 
 // also in api/types/llms.ts (as LLMProviderMessageResponseMeta)
 export interface BBLLMResponseStatus {
-	status: number;
+	statusCode: number;
 	statusText: string;
 }
 
@@ -279,5 +298,5 @@ export interface BBLLMResponse {
 	usage: LLMTokenUsage;
 	metadata: BBLLMResponseMetadata;
 	rateLimit: BBLLMResponseRateLimit;
-	responseStatus: BBLLMResponseStatus;
+	status: BBLLMResponseStatus;
 }

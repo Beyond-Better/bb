@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 //import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
@@ -35,23 +35,15 @@ type LLMMessageContentPartOrString =
 // 		| LLMMessageContentPart
 // 	>;
 class BbLLM extends LLM {
-	private supabase!: SupabaseClient<any, 'public', any>;
+	private supabaseClient!: SupabaseClient<any, 'public', any>;
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
 
-		this.llmProviderName = LLMProvider.ANTHROPIC;
+		this.llmProviderName = LLMProvider.BB;
 
-		this.initializeBBClient();
-	}
-
-	private initializeBBClient() {
-		this.supabase = createClient(
-			Deno.env.get('SUPABASE_URL') ?? '',
-			Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-			// { global: { headers: { Authorization: authHeader } } },
-			// { auth: { persistSession: false } }
-		);
+		const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
+		this.supabaseClient = projectEditor.sessionManager.supabaseClient;
 	}
 
 	// Helper function to check for file metadata blocks
@@ -215,14 +207,15 @@ class BbLLM extends LLM {
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMProviderMessageRequest> {
-		//logger.debug('BbLLM: llms-anthropic-prepareMessageParams-systemPrompt', interaction.baseSystem);
+		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-interaction.baseSystem', interaction.baseSystem);
 		const systemPrompt = await this.invoke(
 			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
 			speakOptions?.system || interaction.baseSystem,
 			interaction.id,
 		);
+		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-systemPrompt', systemPrompt);
 
-		//logger.debug('BbLLM: llms-anthropic-prepareMessageParams-tools', interaction.allTools());
+		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-interaction.allTools', interaction.allTools());
 		const tools = this.asProviderToolType(
 			await this.invoke(
 				LLMCallbackType.PREPARE_TOOLS,
@@ -230,6 +223,7 @@ class BbLLM extends LLM {
 				interaction.id,
 			),
 		);
+		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-tools', tools);
 
 		const messages = this.asProviderMessageType(
 			await this.invoke(
@@ -279,10 +273,10 @@ class BbLLM extends LLM {
 		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			logger.dir(messageParams);
+			logger.info('BbLLM: messageParams', messageParams);
 
-			//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabase.functions.invoke('llm-proxy', {
-			const { data, error } = await this.supabase.functions.invoke('llm-proxy', {
+			//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
+			const { data, error } = await this.supabaseClient.functions.invoke('llm-proxy', {
 				body: messageParams,
 			});
 			logger.info('BbLLM: llms-bb-data', data);
@@ -296,6 +290,29 @@ class BbLLM extends LLM {
 			//		responseMessage: bbResponseMessage,
 			//	});
 			//}
+
+			if (error) {
+				logger.error('BbLLM: Error calling BB API', error);
+				throw createError(
+					ErrorType.LLM,
+					`Received an error from BB API: `,
+					{
+						model: messageParams.model,
+						provider: this.llmProviderName,
+					} as LLMErrorOptions,
+				);
+			}
+			if (bbResponseMessage.status.statusCode !== 200) {
+				logger.error('BbLLM: Received a non-200 from BB API', bbResponseMessage);
+				throw createError(
+					ErrorType.LLM,
+					`Received a non-200 from BB API: `,
+					{
+						model: messageParams.model,
+						provider: this.llmProviderName,
+					} as LLMErrorOptions,
+				);
+			}
 
 			const messageResponse: LLMProviderMessageResponse = {
 				id: bbResponseMessage.metadata.requestId,
@@ -319,7 +336,7 @@ class BbLLM extends LLM {
 					cacheReadInputTokens: bbResponseMessage.usage.cacheReadInputTokens || 0,
 				},
 				rateLimit: bbResponseMessage.rateLimit,
-				providerMessageResponseMeta: bbResponseMessage.responseStatus,
+				providerMessageResponseMeta: bbResponseMessage.status,
 			};
 			logger.debug(`BbLLM: provider[${this.llmProviderName}] Created message response:`, {
 				id: messageResponse.id,

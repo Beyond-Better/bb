@@ -96,7 +96,7 @@ class LLMToolManager {
 
 			// Process each resolved directory
 			for (const resolvedDir of dirsToCheck) {
-				logger.info(`LLMToolManager: Checking ${resolvedDir} for tools`);
+				//logger.info(`LLMToolManager: Checking ${resolvedDir} for tools`);
 				try {
 					if (!await exists(resolvedDir)) {
 						logger.info(`LLMToolManager: Skipping ${resolvedDir} as it does not exist`);
@@ -117,7 +117,7 @@ class LLMToolManager {
 								metadata.path = toolPath;
 
 								if (this.isToolInSet(metadata)) {
-									logger.info(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
+									//logger.info(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
 									if (this.toolMetadata.has(metadata.name)) {
 										const existingMetadata = this.toolMetadata.get(metadata.name)!;
 										if (this.shouldReplaceExistingTool(existingMetadata, metadata)) {

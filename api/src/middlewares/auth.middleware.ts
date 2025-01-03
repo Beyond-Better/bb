@@ -22,6 +22,7 @@ export async function authMiddleware(ctx: Context<BbState>, next: Next) {
 		// Check for authentication
 		const sessionManager = ctx.app.state.auth.sessionManager;
 		const session = await sessionManager.getSession();
+			//logger.debug('Auth check', session);
 
 		if (!session) {
 			ctx.response.status = 401;

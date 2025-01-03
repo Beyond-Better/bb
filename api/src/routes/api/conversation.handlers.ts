@@ -4,6 +4,7 @@ import { projectEditorManager } from '../../editor/projectEditorManager.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
+import type { SessionManager } from '../../auth/session.ts';
 
 /**
  * @openapi
@@ -44,11 +45,12 @@ import ConversationLogger from 'api/storage/conversationLogger.ts';
  */
 
 export const chatConversation = async (
-	{ params, request, response }: RouterContext<'/v1/conversation/:id', { id: string }>,
+	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
 ) => {
 	logger.debug('ConversationHandler: chatConversation called');
 
 	const { id: conversationId } = params;
+
 	try {
 		const body = await request.body.json();
 		const { statement, projectId, maxTurns } = body;
@@ -58,6 +60,16 @@ export const chatConversation = async (
 				statement?.substring(0, 50)
 			}..."`,
 		);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
 
 		if (!statement) {
 			logger.warn(
@@ -86,7 +98,7 @@ export const chatConversation = async (
 		logger.debug(
 			`ConversationHandler: HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using projectId: ${projectId}`,
 		);
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
 
 		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId, {
 			maxTurns,
@@ -138,7 +150,7 @@ export const chatConversation = async (
  *         description: Internal server error
  */
 export const getConversation = async (
-	{ params, request, response }: RouterContext<'/v1/conversation/:id', { id: string }>,
+	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
 ) => {
 	let projectEditor;
 	let orchestratorController;
@@ -146,8 +158,18 @@ export const getConversation = async (
 		const conversationId = params.id as ConversationId;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
 		logger.debug(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
-		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
+		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
 
 		orchestratorController = projectEditor.orchestratorController;
 		if (!orchestratorController) {
@@ -212,13 +234,28 @@ export const getConversation = async (
  *         description: Internal server error
  */
 export const deleteConversation = async (
-	{ params, request, response }: RouterContext<'/v1/conversation/:id', { id: string }>,
+	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
 	//	{ params, response }: { params: { id: string }; response: Context['response'] },
 ) => {
 	try {
 		const { id: conversationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(
+			conversationId as ConversationId,
+			projectId,
+			sessionManager,
+		);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -335,12 +372,27 @@ export const listConversations = async (
 };
 
 export const clearConversation = async (
-	{ params, request, response }: RouterContext<'/v1/conversation/:id/clear', { id: string }>,
+	{ params, request, response, app }: RouterContext<'/v1/conversation/:id/clear', { id: string }>,
 ) => {
 	try {
 		const { id: conversationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(
+			conversationId as ConversationId,
+			projectId,
+			sessionManager,
+		);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
@@ -369,12 +421,23 @@ export const clearConversation = async (
 
 /*
 export const undoConversation = async (
-	{ params, request, response }: RouterContext<'/v1/conversation/:id/undo', { id: string }>,
+	{ params, request, response, app }: RouterContext<'/v1/conversation/:id/undo', { id: string }>,
 ) => {
 	try {
 		const { id: conversationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId, sessionManager);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {

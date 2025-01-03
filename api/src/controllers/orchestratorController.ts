@@ -22,6 +22,7 @@ import PromptManager from '../prompts/promptManager.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
@@ -119,7 +120,7 @@ class OrchestratorController {
 	public projectConfig!: ProjectConfig;
 	public promptManager!: PromptManager;
 	public toolManager!: LLMToolManager;
-	public llmProvider: LLM;
+	public llmProvider!: LLM;
 	public eventManager!: EventManager;
 	private projectEditorRef!: WeakRef<ProjectEditor>;
 	//private _providerRequestCount: number = 0;
@@ -148,15 +149,20 @@ class OrchestratorController {
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this.projectEditorRef = new WeakRef(projectEditor);
 		this.interactionManager = interactionManager; //new InteractionManager();
-		this.llmProvider = LLMFactory.getProvider(this.getInteractionCallbacks());
 	}
 
 	async init(): Promise<OrchestratorController> {
 		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
 		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
+
+		this.llmProvider = LLMFactory.getProvider(
+			this.getInteractionCallbacks(),
+			globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
+		);
 
 		return this;
 	}
