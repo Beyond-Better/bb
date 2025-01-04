@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- user account with subscription plans
+- llm proxy to remove requirement for api key
 - support for external tools
 - dedicated log (per conversation) of LLM request/responses
 - added remove_files tool
@@ -20,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `pre` background in dark mode
 
 
 ## [0.5.12] - 2024-12-20
