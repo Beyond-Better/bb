@@ -23,6 +23,7 @@ export interface PlanResults {
 }
 
 export interface Subscription {
+	subscription_id: string;
 	plan_id: string;
 	subscription_status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'INCOMPLETE';
 	subscription_period_start: string;
@@ -30,13 +31,9 @@ export interface Subscription {
 	subscription_cancel_at: string;
 	subscription_cancelled_at: string;
 	stripe_subscription_id: string;
+	stripe_customer_id: string;
 	plan: Plan;
-	//paymentMethod?: {
-	//	brand: string;
-	//	last4: string;
-	//	expiryMonth: number;
-	//	expiryYear: number;
-	//};
+	paymentMethod?: PaymentMethod;
 }
 export interface SubscriptionUsage {
 	currentUsage: {
@@ -54,6 +51,7 @@ export interface SubscriptionUsage {
 export interface SubscriptionResults {
 	subscription: Subscription;
 	usage: SubscriptionUsage;
+	PaymentMethods: PaymentMethod[];
 }
 
 export interface BillingPreview {
@@ -73,7 +71,25 @@ export interface BillingPreviewResults {
 export interface SubscriptionWithUsage extends Subscription {
 	usage?: SubscriptionUsage;
 }
+export interface SubscriptionWithUsageWithPaymentMethods extends SubscriptionWithUsage {
+	PaymentMethods: PaymentMethod[];
+}
 
 export interface BillingPreviewWithUsage extends BillingPreview {
 	usage?: SubscriptionUsage;
+}
+
+export interface PaymentMethod {
+	id: string;
+	type: string;
+	card?: {
+		brand: string;
+		last4: string;
+		exp_month: string;
+		exp_year: string;
+	};
+	isDefault: boolean;
+}
+export interface PaymentMethodResults {
+	PaymentMethods: PaymentMethod[];
 }

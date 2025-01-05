@@ -3,6 +3,125 @@ import type { PaymentMethod, SetupIntent, UsageBlockPurchase, UsageBlockResponse
 import type { SessionManager } from '../../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
+export async function createPaymentIntent(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: createPaymentIntent: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const body = await ctx.request.body.json();
+		const { amount, stripe_payment_method_id, subscription_id, payment_type } = body;
+
+		if (!amount || amount <= 0) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Valid amount is required' };
+			return;
+		}
+		if (!stripe_payment_method_id) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Valid payment method id is required' };
+			return;
+		}
+
+		const { data, error } = await supabaseClient.functions.invoke('payment-intent', {
+			method: 'POST',
+			body: {
+				amount,
+				stripe_payment_method_id,
+				metadata: {
+					subscription_id,
+					payment_type,
+				},
+			},
+		});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error creating payment intent:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to create payment intent' };
+	}
+}
+
+export async function createCustomerSession(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: createCustomerSession: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		//const body = await ctx.request.body.json();
+
+		const { data, error } = await supabaseClient.functions.invoke('customer-session', {
+			method: 'POST',
+			body: {},
+		});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error creating customer session:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to create customer session' };
+	}
+}
+
+export async function getBillingConfig(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: getBillingConfig: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const { data, error } = await supabaseClient.functions.invoke('billing-config', {
+			method: 'GET',
+		});
+		//logger.info('BillingHandler: getBillingConfig', {data, error});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error getting billing config:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to get billing configuration' };
+	}
+}
+
 export async function createSetupIntent(ctx: Context) {
 	try {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
@@ -50,6 +169,7 @@ export async function listPaymentMethods(ctx: Context) {
 		const { data, error } = await supabaseClient.functions.invoke('payment-methods', {
 			method: 'GET',
 		});
+		// logger.info(`BillingHandler: PaymentMethods`, { data, error });
 
 		if (error) {
 			ctx.response.status = 400;
@@ -57,7 +177,7 @@ export async function listPaymentMethods(ctx: Context) {
 			return;
 		}
 
-		ctx.response.body = { paymentMethods: data as PaymentMethod[] };
+		ctx.response.body = data as { paymentMethods: PaymentMethod[] };
 	} catch (err) {
 		console.error('Error listing payment methods:', err);
 		ctx.response.status = 500;
@@ -150,7 +270,6 @@ export async function purchaseUsageBlock(ctx: Context) {
 	}
 }
 
-
 export const removePaymentMethod = async (
 	{ params, response, app }: RouterContext<'/payment-methods/:id', { id: string }>,
 ) => {
@@ -194,4 +313,4 @@ export const removePaymentMethod = async (
 		response.status = 500;
 		response.body = { error: 'Failed to remove payment method' };
 	}
-}
+};

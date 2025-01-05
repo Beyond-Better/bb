@@ -46,12 +46,12 @@ export async function getAvailablePlans(ctx: Context) {
 			return;
 		}
 		const supabaseClient = sessionManager.getClient();
-		logger.info(`SubscriptionHandler: Getting plans`);
+		//logger.info(`SubscriptionHandler: Getting plans`);
 
 		const { data, error } = await supabaseClient.functions.invoke('plans', {
 			method: 'GET',
 		});
-		logger.info(`SubscriptionHandler: Plans`, { data, error });
+		//logger.info(`SubscriptionHandler: Plans`, { data, error });
 
 		if (error) {
 			ctx.response.status = 400;
@@ -123,6 +123,10 @@ export async function getPreview(ctx: Context) {
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
+		logger.info(
+			`SubscriptionHandler: createPaymentIntent: args`,
+			{ planId },
+		);
 
 		if (!planId) {
 			ctx.response.status = 400;
@@ -134,6 +138,10 @@ export async function getPreview(ctx: Context) {
 			method: 'POST',
 			body: { planId, preview: true },
 		});
+		logger.info(
+			`SubscriptionHandler: createPaymentIntent: data`,
+			{ data, error },
+		);
 
 		if (error) {
 			ctx.response.status = 400;

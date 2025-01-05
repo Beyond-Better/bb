@@ -27,6 +27,7 @@ import * as $index from './routes/index.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Home from './islands/Home.tsx';
 import * as $LandingHero from './islands/LandingHero.tsx';
+import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
@@ -71,6 +72,7 @@ const manifest = {
 		'./islands/Chat.tsx': $Chat,
 		'./islands/Home.tsx': $Home,
 		'./islands/LandingHero.tsx': $LandingHero,
+		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,
 		'./islands/ProjectManager.tsx': $ProjectManager,
 		'./islands/Settings.tsx': $Settings,
 		'./islands/SideNav.tsx': $SideNav,

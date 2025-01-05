@@ -8,10 +8,14 @@ import type { Session, User } from '../types/auth.ts';
 import type {
 	BillingPreviewResults,
 	BillingPreviewWithUsage,
+	PaymentMethod,
+	PaymentMethodResults,
 	Plan,
 	PlanResults,
 	SubscriptionResults,
 	SubscriptionWithUsage,
+	SubscriptionWithUsageWithPaymentMethods,
+	UsageBlockResponse,
 } from '../types/subscription.ts';
 
 export interface AuthResponse {
@@ -164,25 +168,139 @@ export class ApiClient {
 		}, allowedCodes);
 	}
 
+	// Stripe Configuration
+	async getStripeConfig(): Promise<{ stripeKey: string }> {
+		const result = await this.get<{ stripeKey: string }>('/api/v1/user/billing/config');
+		return result ?? { stripeKey: '' };
+	}
+
+	// Payment Methods
+	async createSetupIntent(): Promise<{ clientSecret: string; setupIntentId: string }> {
+		const result = await this.post<{ clientSecret: string; setupIntentId: string }>(
+			'/api/v1/user/billing/payment-methods/setup',
+			{},
+		);
+		return result ?? { clientSecret: '', setupIntentId: '' };
+	}
+
+	// New method to get customer session
+	async createCustomerSession(): Promise<{ clientSecret: string }> {
+		const result = await this.post<{ clientSecret: string }>(
+			'/api/v1/user/billing/customer-session',
+			{},
+		);
+		return result ?? { clientSecret: '' };
+	}
+
+	async listPaymentMethods(): Promise<PaymentMethod[] | null> {
+		const result = await this.get<PaymentMethodResults>('/api/v1/user/billing/payment-methods');
+		console.log('APIClient: listPaymentMethods', result);
+		return result?.paymentMethods || null;
+	}
+
+	async setDefaultPaymentMethod(paymentMethodId: string): Promise<{ success: boolean; message: string }> {
+		const result = await this.post<{ success: boolean; message: string }>(
+			'/api/v1/user/billing/payment-methods/default',
+			{ payment_method_id: paymentMethodId },
+		);
+		return result ?? { success: false, message: 'Failed to set default payment method' };
+	}
+
+	async removePaymentMethod(paymentMethodId: string): Promise<{ success: boolean; message: string }> {
+		const result = await this.delete<{ success: boolean; message: string }>(
+			`/api/v1/user/billing/payment-methods/${paymentMethodId}`,
+		);
+		return result ?? { success: false, message: 'Failed to remove payment method' };
+	}
+
+	async savePaymentMethod(paymentMethodId: string): Promise<{
+		success: boolean;
+		message: string;
+		paymentMethod: PaymentMethod;
+	}> {
+		const result = await this.post<{
+			success: boolean;
+			message: string;
+			paymentMethod: PaymentMethod;
+		}>(
+			'/api/v1/user/billing/payment-methods',
+			{ payment_method_id: paymentMethodId },
+		);
+		return result ?? {
+			success: false,
+			message: 'Failed to save payment method',
+			paymentMethod: {} as PaymentMethod,
+		};
+	}
+
+	// Payment Intent
+	async createPaymentIntent(params: {
+		amount: number;
+		subscription_id: string;
+		payment_type: 'subscription' | 'token_purchase';
+		stripe_payment_method_id: string;
+	}): Promise<{ clientSecret: string }> {
+		console.log('APIClient: createPaymentIntent', params);
+
+		const result = await this.post<{ clientSecret: string }>(
+			'/api/v1/user/billing/payment-intent',
+			params,
+		);
+		return result ?? { clientSecret: '' };
+	}
+
 	// Subscription Methods
-	async getCurrentSubscription(): Promise<SubscriptionWithUsage | null> {
+	async getCurrentSubscription(): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
 		const results = await this.get<SubscriptionResults>('/api/v1/user/subscription/current');
-		return results ? { ...results?.subscription, usage: results?.usage } : null;
+		console.log('APIClient: getCurrentSubscription', results);
+		return results
+			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			: null;
 	}
 
 	async getAvailablePlans(): Promise<Plan[] | null> {
 		const results = await this.get<PlanResults>('/api/v1/subscription/plans');
+		//console.log('APIClient: getAvailablePlans', results);
 		return results?.plans || null;
 	}
 
-	async changePlan(planId: string): Promise<SubscriptionWithUsage | null> {
-		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', { planId });
-		return results ? { ...results?.subscription, usage: results?.usage } : null;
+	async changePlan(
+		planId: string,
+		paymentMethodId: string | null,
+	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
+		const data: { plan_id: string; payment_method_id: string | null } = {
+			planId,
+			payment_method_id: paymentMethodId,
+		};
+		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
+		return results
+			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			: null;
+	}
+
+	async cancelSubscription(
+		immediate: boolean = false,
+	): Promise<{ success: boolean; subscription: SubscriptionWithUsage }> {
+		const result = await this.post<{ success: boolean; subscription: SubscriptionWithUsage }>(
+			'/api/v1/user/subscription/cancel',
+			{ immediate },
+		);
+		return result ?? { success: false, subscription: {} as SubscriptionWithUsage };
 	}
 
 	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {
-		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', { planId });
+		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', {
+			planId,
+		});
 		return results ? { ...results?.preview, usage: results?.usage } : null;
+	}
+
+	// Usage Block Purchase
+	async purchaseUsageBlock(amount: number, paymentMethodId: string): Promise<UsageBlockResponse | null> {
+		return await this.post<UsageBlockResponse>('/api/v1/user/billing/usage/purchase', {
+			amount,
+			payment_method_id: paymentMethodId,
+		});
 	}
 
 	// Auth Methods
@@ -236,7 +354,7 @@ export class ApiClient {
 	}
 
 	async deleteProject(projectId: string): Promise<void> {
-		await await this.delete(`/api/v1/project/${projectId}`, [404]);
+		await this.delete(`/api/v1/project/${projectId}`, [404]);
 	}
 
 	async migrateAndAddProject(projectPath: string): Promise<Project | null> {

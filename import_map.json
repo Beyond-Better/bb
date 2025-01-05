@@ -44,7 +44,7 @@
 		"@testing-library/preact": "https://esm.sh/@testing-library/preact@3.2.3",
 		"@supabase/supabase-js": "npm:@supabase/supabase-js@2",
 		"@supabase/ssr": "npm:@supabase/ssr",
-		"stripe": "https://esm.sh/stripe@17.5.0?target=deno",
+		"@stripe/stripe-js": "https://esm.sh/@stripe/stripe-js@5.4.0",
 		"chai": "https://esm.sh/chai@4.3.4",
 		"expect": "https://esm.sh/expect@29.7.0",
 		"tailwindcss": "npm:tailwindcss@3.4.1",

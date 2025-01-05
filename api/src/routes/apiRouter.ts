@@ -26,7 +26,7 @@ const protectedPaths = [
 	'/v1/conversation/*',
 	'/v1/project/*',
 	'/v1/files/*',
-	'/v1/user/*'  // Protect all user routes including subscription
+	'/v1/user/*',  // Protect all user routes including subscription
 ];
 
 apiRouter
@@ -207,6 +207,171 @@ apiRouter
     // Persistence endpoints
     .post('/v1/persist', persistConversation)
     .post('/v1/resume', resumeConversation)
+ */
+
+/**
+ * @openapi
+ * /api/v1/billing/config:
+ *   get:
+ *     summary: Get Stripe configuration
+ *     description: Returns the Stripe publishable key and mode
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stripe configuration
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/BillingConfig'
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/v1/billing/payment-methods:
+ *   get:
+ *     summary: List payment methods
+ *     description: Returns all payment methods for the authenticated user
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of payment methods
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 paymentMethods:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/PaymentMethod'
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/v1/billing/payment-methods/setup:
+ *   post:
+ *     summary: Create setup intent
+ *     description: Creates a SetupIntent for securely collecting payment method details
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Setup intent created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 clientSecret:
+ *                   type: string
+ *                   description: Stripe setup intent client secret
+ *                 setupIntentId:
+ *                   type: string
+ *                   description: Stripe setup intent ID
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/v1/billing/payment-methods/default:
+ *   post:
+ *     summary: Set default payment method
+ *     description: Sets the specified payment method as default
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               paymentMethodId:
+ *                 type: string
+ *                 description: Internal payment method ID
+ *     responses:
+ *       200:
+ *         description: Default payment method updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/v1/billing/payment-methods/{id}:
+ *   delete:
+ *     summary: Remove payment method
+ *     description: Removes the specified payment method
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Internal payment method ID
+ *     responses:
+ *       200:
+ *         description: Payment method removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *
+ * /api/v1/billing/usage/purchase:
+ *   post:
+ *     summary: Purchase usage block
+ *     description: Purchases a usage block with the specified amount
+ *     tags: [Billing]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Amount in USD
+ *               paymentMethodId:
+ *                 type: string
+ *                 description: Optional payment method ID
+ *     responses:
+ *       200:
+ *         description: Usage block purchased
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 blockId:
+ *                   type: string
+ *                   description: Usage block ID
+ *       401:
+ *         description: Unauthorized
  */
 
 export default apiRouter;
