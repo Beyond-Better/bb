@@ -31,7 +31,6 @@ export interface Subscription {
 	subscription_cancel_at: string;
 	subscription_cancelled_at: string;
 	stripe_subscription_id: string;
-	stripe_customer_id: string;
 	plan: Plan;
 	paymentMethod?: PaymentMethod;
 }

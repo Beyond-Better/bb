@@ -16,6 +16,7 @@ import type {
 	SubscriptionWithUsage,
 	SubscriptionWithUsageWithPaymentMethods,
 	UsageBlockResponse,
+	UsageBlockList,
 } from '../types/subscription.ts';
 
 export interface AuthResponse {
@@ -223,8 +224,8 @@ export class ApiClient {
 			message: string;
 			paymentMethod: PaymentMethod;
 		}>(
-			'/api/v1/user/billing/payment-methods',
-			{ payment_method_id: paymentMethodId },
+			'/api/v1/user/billing/payment-methods/default',
+			{ paymentMethodId },
 		);
 		return result ?? {
 			success: false,
@@ -237,14 +238,25 @@ export class ApiClient {
 	async createPaymentIntent(params: {
 		amount: number;
 		subscription_id: string;
+		purchase_id: string;
 		payment_type: 'subscription' | 'token_purchase';
 		stripe_payment_method_id: string;
+		source?: string;
 	}): Promise<{ clientSecret: string }> {
 		console.log('APIClient: createPaymentIntent', params);
-
+		const args = {
+			amount: params.amount,
+			stripe_payment_method_id: params.stripe_payment_method_id,
+			metadata: {
+				subscription_id: params.subscription_id,
+				purchase_id: params.purchase_id,
+				payment_type: params.payment_type,
+				source: params.source || 'unknown',
+			},
+		};
 		const result = await this.post<{ clientSecret: string }>(
 			'/api/v1/user/billing/payment-intent',
-			params,
+			args,
 		);
 		return result ?? { clientSecret: '' };
 	}
@@ -297,10 +309,16 @@ export class ApiClient {
 
 	// Usage Block Purchase
 	async purchaseUsageBlock(amount: number, paymentMethodId: string): Promise<UsageBlockResponse | null> {
-		return await this.post<UsageBlockResponse>('/api/v1/user/billing/usage/purchase', {
+		const results = await this.post<UsageBlockResponse>('/api/v1/user/billing/usage/purchase', {
 			amount,
-			payment_method_id: paymentMethodId,
+			paymentMethodId,
 		});
+		return results ? { ...results?.token_purchase } : null;
+	}
+
+	// Usage Block List
+	async listUsageBlocks(): Promise<UsageBlockList | null> {
+		return await this.get<UsageBlockList>('/api/v1/user/billing/usage/blocks');
 	}
 
 	// Auth Methods

@@ -37,7 +37,7 @@ export default function PaymentFlowDialog({
 	billingPreview,
 	existingPaymentMethod,
 }: PaymentFlowDialogProps) {
-	const { changePlan, billingState } = useBillingState();
+	const { changePlan, billingState, updatePaymentMethods } = useBillingState();
 	const appState = useAppState();
 
 	// Reset state when dialog opens/closes
@@ -95,19 +95,23 @@ export default function PaymentFlowDialog({
 			const apiClient = appState.value.apiClient;
 			if (!apiClient) throw new Error('API client not available');
 
-			// Create a payment intent for the prorated amount if needed
-			const proratedAmount = Math.round(billingPreview.prorationFactor * selectedPlan.plan_price_monthly * 100);
+			// payment intent is created in useBillingState.changePlan()
+			// // Create a payment intent for the prorated amount if needed
+			// const proratedAmount = Math.round(billingPreview.prorationFactor * selectedPlan.plan_price_monthly * 100);
+			// console.log('PaymentFlowDialog: handleConfirm-proratedAmount:', proratedAmount);
+			//
+			// if (proratedAmount > 0) {
+			// 	// Create payment intent with existing payment method
+			// 	await apiClient.createPaymentIntent({
+			// 		amount: proratedAmount,
+			// 		stripe_payment_method_id: selectedPaymentMethod.value,
+			// 		subscription_id: billingState.value.subscription?.subscription_id || '',
+			// 		payment_type: 'subscription',
+			// 		source: 'PaymentFlowDialog',
+			// 	});
+			// }
 
-			if (proratedAmount > 0) {
-				// Create payment intent with existing payment method
-				await apiClient.createPaymentIntent({
-					amount: proratedAmount,
-					subscription_id: billingState.value.subscription?.subscription_id || '',
-					payment_type: 'subscription',
-					stripe_payment_method_id: selectedPaymentMethod.value,
-				});
-			}
-
+			console.log('PaymentFlowDialog: handleConfirm-changing plan to:', selectedPlan);
 			// Change the plan - ABI will handle the payment success via webhook
 			await changePlan(selectedPlan.plan_id, selectedPaymentMethod.value);
 
@@ -125,16 +129,19 @@ export default function PaymentFlowDialog({
 					}
 
 					const subscription = await apiClient.getCurrentSubscription();
-					console.log('Polling subscription status:', subscription?.subscription_status);
+					console.log('PaymentFlowDialog: Polling subscription status:', subscription?.subscription_status);
 
 					if (subscription?.subscription_status === 'ACTIVE') {
-						const defaultPaymentMethod = subscription.PaymentMethods?.find((pm) => pm.isDefault) || null;
+						//const defaultPaymentMethod = subscription.PaymentMethods?.find((pm) => pm.isDefault) || null;
 						billingState.value = {
 							...billingState.value,
 							subscription,
-							defaultPaymentMethod,
+							//defaultPaymentMethod,
 						};
 						onClose();
+
+						await updatePaymentMethods();
+
 						return;
 					}
 

@@ -21,13 +21,14 @@ const usageBlockStep = signal<UsageBlockStep>('amount');
 const usageBlockError = signal<string | null>(null);
 const customAmount = signal<string>('');
 const selectedAmount = signal<number | null>(null);
+const selectedPaymentMethod = signal<string | null>(null);
 
 const PREDEFINED_AMOUNTS = [10, 20, 50, 100];
 const MIN_AMOUNT = 5;
 const MAX_AMOUNT = 100;
 
 export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMethod }: UsageBlockDialogProps) {
-	const { billingState } = useBillingState();
+	const { billingState, purchaseUsageBlock, updatePaymentMethods } = useBillingState();
 	const appState = useAppState();
 
 	const handleOnClose = () => {
@@ -53,14 +54,17 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 
 	// Reset state when dialog opens/closes
 	useEffect(() => {
-		if (!isOpen) {
+		if (isOpen) {
+			selectedPaymentMethod.value = existingPaymentMethod?.stripe_payment_method_id || null;
+		} else {
 			// Reset all state when dialog closes
 			usageBlockStep.value = 'amount';
 			usageBlockError.value = null;
 			customAmount.value = '';
 			selectedAmount.value = null;
+			selectedPaymentMethod.value = null;
 		}
-	}, [isOpen]);
+	}, [isOpen, existingPaymentMethod]);
 
 	const handleAmountSelect = (amount: number) => {
 		selectedAmount.value = amount;
@@ -84,7 +88,8 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 	};
 
 	const handleConfirm = async () => {
-		if (!selectedAmount.value || !existingPaymentMethod) {
+		console.log('UsageBlockDialog: ', { selectedAmount: selectedAmount.value, existingPaymentMethod });
+		if (!selectedAmount.value || !selectedPaymentMethod.value) {
 			usageBlockError.value = 'Please select an amount and ensure you have a payment method';
 			return;
 		}
@@ -96,16 +101,20 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 			const apiClient = appState.value.apiClient;
 			if (!apiClient) throw new Error('API client not available');
 
-			// Create payment intent with existing payment method
-			await apiClient.createPaymentIntent({
-				amount: Math.round(selectedAmount.value * 100),
-				subscription_id: billingState.value.subscription?.subscription_id || '',
-				payment_type: 'token_purchase',
-				stripe_payment_method_id: existingPaymentMethod.stripe_payment_method_id,
-			});
+			// payment intent is created in useBillingState.changePlan()
+			// // Create payment intent with existing payment method
+			// await apiClient.createPaymentIntent({
+			// 	amount: Math.round(selectedAmount.value * 100),
+			// 	stripe_payment_method_id: selectedPaymentMethod.value,
+			// 	subscription_id: billingState.value.subscription?.subscription_id || '',
+			// 	payment_type: 'token_purchase',
+			// 	source: 'UsageBlockDialog',
+			// });
+			//
+			// // Purchase the usage block - ABI will handle the payment success via webhook
+			// await apiClient.purchaseUsageBlock(selectedAmount.value, selectedPaymentMethod.value);
 
-			// Purchase the usage block - ABI will handle the payment success via webhook
-			await apiClient.purchaseUsageBlock(selectedAmount.value, existingPaymentMethod.stripe_payment_method_id);
+			await purchaseUsageBlock(selectedAmount.value, selectedPaymentMethod.value);
 
 			// Start polling for updated usage data
 			let retries = 0;
@@ -119,12 +128,28 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 						return;
 					}
 
-					const subscription = await apiClient.getCurrentSubscription();
-					if (subscription) {
+					const tokenPurchases = await apiClient.listUsageBlocks();
+					console.log('UsageBlockDialog: tokenPurchases', tokenPurchases);
+
+					if (tokenPurchases && tokenPurchases.purchases.length > 0) {
+						// Check if all purchases have completed status
+						const allCompleted = tokenPurchases.purchases.every(purchase => purchase.purchase_status === 'completed');
+						
+						if (!allCompleted) {
+							retries++;
+							const delay = baseDelay * Math.pow(2, retries - 1);
+							setTimeout(pollUsageUpdate, delay);
+							return;
+						}
 						billingState.value = {
 							...billingState.value,
-							subscription,
+							tokenPurchases,
 						};
+						handleOnClose();
+
+						await updatePaymentMethods();
+
+						return;
 					}
 
 					retries++;
@@ -221,7 +246,7 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 										max={MAX_AMOUNT}
 										value={customAmount.value}
 										onChange={handleCustomAmountChange}
-										class='flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700'
+										class='flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-gray-500 dark:text-gray-100 border border-gray-300 dark:border-gray-600 dark:bg-gray-700'
 										placeholder='Enter amount'
 									/>
 								</div>

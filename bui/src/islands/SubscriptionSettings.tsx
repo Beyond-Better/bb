@@ -8,12 +8,14 @@ import PlanCard from '../components/Subscriptions/PlanCard.tsx';
 import PaymentFlowDialog from '../components/Subscriptions/PaymentFlowDialog.tsx';
 import UsageBlockDialog from '../components/Subscriptions/UsageBlockDialog.tsx';
 import CancelDialog from '../components/Subscriptions/CancelDialog.tsx';
+import NewPaymentMethodForm from './NewPaymentMethodForm.tsx';
 
 const showCancelDialog = signal(false);
 const showUsageBlockDialog = signal(false);
+const showPaymentMethodDialog = signal(false);
 
 export default function SubscriptionSettings() {
-	const { billingState, initialize } = useBillingState();
+	const { billingState, initialize, updatePaymentMethods } = useBillingState();
 	const appState = useAppState();
 
 	// Initialize billing state
@@ -94,9 +96,9 @@ export default function SubscriptionSettings() {
 					<div class='mt-4 grid grid-cols-3 gap-6'>
 						{/* Each section uses flex-col to allow button positioning at bottom */}
 						{/* Current Subscription */}
-						<div class='flex flex-col min-h-[250px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
+						<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
 							<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Current Plan</h3>
-							<div class='flex flex-col flex-grow mt-4 mx-2 space-y-4'>
+							<div class='flex flex-col flex-grow mt-4 mx-2 mb-6 space-y-4'>
 								<div class='flex flex-wrap items-center gap-2'>
 									<span class='text-sm text-gray-500 dark:text-gray-400'>Plan:</span>
 									<span class='ml-2 text-sm font-medium text-gray-900 dark:text-gray-100'>
@@ -143,7 +145,7 @@ export default function SubscriptionSettings() {
 						{/* Usage Information */}
 						{billingState.value.subscription?.usage &&
 							billingState.value.subscription?.subscription_status === 'ACTIVE' && (
-							<div class='flex flex-col min-h-[250px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
+							<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
 								<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Usage</h3>
 								<div class='flex flex-col flex-grow mt-4 ml-2 mr-6 space-y-4'>
 									<div class='flex items-center justify-between'>
@@ -164,7 +166,7 @@ export default function SubscriptionSettings() {
 										</span>
 									</div>
 									<div class='mt-4'>
-										<div class='h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden'>
+										<div class='h-2 mb-6 bg-gray-200 dark:bg-gray-500 rounded-full overflow-hidden'>
 											<div
 												class='h-full bg-blue-600 dark:bg-blue-500 rounded-full'
 												style={{
@@ -194,7 +196,7 @@ export default function SubscriptionSettings() {
 						)}
 
 						{/* Payment Methods */}
-						<div class='flex flex-col min-h-[250px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
+						<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
 							<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Billing</h3>
 							<div class='flex flex-col flex-grow mt-4 mx-2 space-y-4'>
 								<div class='flex items-center justify-between'>
@@ -214,13 +216,52 @@ export default function SubscriptionSettings() {
 															Default
 														</div>
 													</div>
+													<button
+														onClick={async () => {
+															try {
+																await appState.value.apiClient?.removePaymentMethod(
+																	billingState.value.defaultPaymentMethod
+																		.payment_method_id,
+																);
+																await updatePaymentMethods();
+															} catch (err) {
+																console.error('Failed to remove payment method:', err);
+															}
+														}}
+														class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
+														title='Remove payment method'
+													>
+														<svg
+															class='h-5 w-5'
+															fill='none'
+															viewBox='0 0 24 24'
+															stroke='currentColor'
+														>
+															<path
+																stroke-linecap='round'
+																stroke-linejoin='round'
+																stroke-width='2'
+																d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+															/>
+														</svg>
+													</button>
 												</div>
 											</div>
 										)
 										: (
-											<p class='text-sm text-gray-500 dark:text-gray-400'>
-												No payment methods added
-											</p>
+											<div class='flex flex-col space-y-4'>
+												<p class='text-sm text-gray-500 dark:text-gray-400'>
+													No payment methods added
+												</p>
+												<button
+													onClick={() => {
+														showPaymentMethodDialog.value = true;
+													}}
+													class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
+												>
+													Add Payment Method
+												</button>
+											</div>
 										)}
 								</div>
 							</div>
@@ -263,6 +304,54 @@ export default function SubscriptionSettings() {
 					}}
 					existingPaymentMethod={billingState.value.defaultPaymentMethod}
 				/>
+			)}
+
+			{/* Payment Method Dialog */}
+			{showPaymentMethodDialog.value && (
+				<div
+					class='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'
+					onClick={(e) => {
+						// Close dialog when clicking outside
+						if (e.target === e.currentTarget) {
+							showPaymentMethodDialog.value = false;
+						}
+					}}
+				>
+					<div class='bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full p-6'>
+						<div class='flex justify-between items-center mb-4'>
+							<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Add Payment Method</h3>
+							<button
+								onClick={() => showPaymentMethodDialog.value = false}
+								class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
+							>
+								<span class='sr-only'>Close</span>
+								<svg class='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M6 18L18 6M6 6l12 12'
+									/>
+								</svg>
+							</button>
+						</div>
+						<NewPaymentMethodForm
+							onSuccess={async (paymentMethodId) => {
+								try {
+									await appState.value.apiClient?.savePaymentMethod(paymentMethodId);
+									showPaymentMethodDialog.value = false;
+									await updatePaymentMethods();
+								} catch (err) {
+									console.error('Failed to save payment method:', err);
+								}
+							}}
+							onError={(error) => {
+								console.error('Payment method error:', error);
+							}}
+							onCancel={() => showPaymentMethodDialog.value = false}
+						/>
+					</div>
+				</div>
 			)}
 
 			{/* Payment Flow Dialog */}

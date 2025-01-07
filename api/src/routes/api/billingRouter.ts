@@ -7,7 +7,8 @@ import {
   listPaymentMethods,
   setDefaultPaymentMethod,
   removePaymentMethod,
-  purchaseUsageBlock
+  purchaseUsageBlock,
+  listUsageBlocks
 } from './billing.handlers.ts';
 
 const billingRouter = new Router();
@@ -20,6 +21,7 @@ billingRouter
   .get('/payment-methods', listPaymentMethods)
   .post('/payment-methods/default', setDefaultPaymentMethod)
   .delete('/payment-methods/:id', removePaymentMethod)
-  .post('/usage/purchase', purchaseUsageBlock);
+  .post('/usage/purchase', purchaseUsageBlock)
+  .get('/usage/blocks', listUsageBlocks);
 
 export default billingRouter;

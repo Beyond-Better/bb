@@ -51,6 +51,10 @@ export interface UsageBlockResponse {
 	effectiveDate: string;    // When the new limit takes effect
 }
 
+export interface UsageBlockList {
+	purchases: UsageBlockResponse[];
+}
+
 export interface UsageMetrics {
 	tokens: {
 		total: number;

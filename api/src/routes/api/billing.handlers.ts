@@ -1,5 +1,11 @@
 import type { Context, RouterContext } from '@oak/oak';
-import type { PaymentMethod, SetupIntent, UsageBlockPurchase, UsageBlockResponse } from '../../types/billing.ts';
+import type {
+	PaymentMethod,
+	SetupIntent,
+	UsageBlockList,
+	UsageBlockPurchase,
+	UsageBlockResponse,
+} from '../../types/billing.ts';
 import type { SessionManager } from '../../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -17,7 +23,7 @@ export async function createPaymentIntent(ctx: Context) {
 		const supabaseClient = sessionManager.getClient();
 
 		const body = await ctx.request.body.json();
-		const { amount, stripe_payment_method_id, subscription_id, payment_type } = body;
+		const { amount, stripe_payment_method_id, metadata = {} } = body;
 
 		if (!amount || amount <= 0) {
 			ctx.response.status = 400;
@@ -35,10 +41,7 @@ export async function createPaymentIntent(ctx: Context) {
 			body: {
 				amount,
 				stripe_payment_method_id,
-				metadata: {
-					subscription_id,
-					payment_type,
-				},
+				metadata,
 			},
 		});
 
@@ -244,6 +247,10 @@ export async function purchaseUsageBlock(ctx: Context) {
 
 		const body = await ctx.request.body.json();
 		const { amount, paymentMethodId } = body as UsageBlockPurchase;
+		// logger.info(
+		// 	`BillingHandler: purchaseUsageBlock: args`,
+		// 	{ amount, paymentMethodId },
+		// );
 
 		if (!amount || amount <= 0) {
 			ctx.response.status = 400;
@@ -255,6 +262,10 @@ export async function purchaseUsageBlock(ctx: Context) {
 			method: 'POST',
 			body: { amount, paymentMethodId },
 		});
+		// logger.info(
+		// 	`BillingHandler: purchaseUsageBlock: result`,
+		// 	{ data, error },
+		// );
 
 		if (error) {
 			ctx.response.status = 400;
@@ -267,6 +278,41 @@ export async function purchaseUsageBlock(ctx: Context) {
 		console.error('Error purchasing usage block:', err);
 		ctx.response.status = 500;
 		ctx.response.body = { error: 'Failed to purchase usage block' };
+	}
+}
+
+export async function listUsageBlocks(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: listUsageBlocks: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const { data, error } = await supabaseClient.functions.invoke('usage-purchase', {
+			method: 'GET',
+		});
+		logger.warn(
+			`BillingHandler: listUsageBlocks: `,
+			{ data, error },
+		);
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data as UsageBlockList;
+	} catch (err) {
+		console.error('Error listing usage blocks:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to list usage blocks' };
 	}
 }
 
