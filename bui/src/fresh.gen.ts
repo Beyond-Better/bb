@@ -6,7 +6,8 @@ import * as $_404 from './routes/_404.tsx';
 import * as $_500 from './routes/_500.tsx';
 import * as $_app from './routes/_app.tsx';
 import * as $_middleware from './routes/_middleware.ts';
-import * as $api_config_supabase from './routes/api/config/supabase.ts';
+import * as $api_v1_config_supabase from './routes/api/v1/config/supabase.ts';
+import * as $api_v1_status from './routes/api/v1/status.ts';
 import * as $app_chat_index from './routes/app/chat/index.tsx';
 import * as $app_chat_partial from './routes/app/chat/partial.tsx';
 import * as $app_home_index from './routes/app/home/index.tsx';
@@ -49,7 +50,8 @@ const manifest = {
 		'./routes/_500.tsx': $_500,
 		'./routes/_app.tsx': $_app,
 		'./routes/_middleware.ts': $_middleware,
-		'./routes/api/config/supabase.ts': $api_config_supabase,
+		'./routes/api/v1/config/supabase.ts': $api_v1_config_supabase,
+		'./routes/api/v1/status.ts': $api_v1_status,
 		'./routes/app/chat/index.tsx': $app_chat_index,
 		'./routes/app/chat/partial.tsx': $app_chat_partial,
 		'./routes/app/home/index.tsx': $app_home_index,

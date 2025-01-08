@@ -42,11 +42,12 @@ function App() {
 	};
 
 	const handleStatusChange = (status: any) => {
-		if (status.error) {
+		// console.log('status', status);
+		if (status.api.error || status.bui.error) {
 			setServerStatus(ApiStatus.Error);
-		} else if (status.api_responds) {
+		} else if (status.api.service_responds && status.bui.service_responds) {
 			setServerStatus(ApiStatus.Ready);
-		} else if (status.process_responds) {
+		} else if (status.api.process_responds || status.bui.process_responds) {
 			setServerStatus(ApiStatus.Processing);
 		} else {
 			setServerStatus(ApiStatus.Error);
@@ -61,25 +62,25 @@ function App() {
 		<VersionProvider>
 			<DebugModeProvider>
 				<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-				<Header
-					serverStatus={serverStatus}
-					isConnected={isConnected}
-					onNavigate={navigate}
-				/>
-				<main className='container mx-auto px-4 py-8'>
-					<VersionUpgradePrompt />
-					{currentRoute === '/' && (
-						<>
-							<ServerControl
-								onStatusChange={handleStatusChange}
-								onConnectionChange={handleConnectionChange}
-								onNavigate={navigate}
-							/>
-							{/*<LogViewer className="max-w-2xl mx-auto" />*/}
-						</>
-					)}
-					{currentRoute === '/settings' && <Settings />}
-				</main>
+					<Header
+						serverStatus={serverStatus}
+						isConnected={isConnected}
+						onNavigate={navigate}
+					/>
+					<main className='container mx-auto px-4 py-8'>
+						<VersionUpgradePrompt />
+						{currentRoute === '/' && (
+							<>
+								<ServerControl
+									onStatusChange={handleStatusChange}
+									onConnectionChange={handleConnectionChange}
+									onNavigate={navigate}
+								/>
+								{/*<LogViewer className="max-w-2xl mx-auto" />*/}
+							</>
+						)}
+						{currentRoute === '/settings' && <Settings />}
+					</main>
 				</div>
 			</DebugModeProvider>
 		</VersionProvider>

@@ -359,9 +359,9 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
 
     // Install the binaries
     let binaries = if cfg!(target_os = "windows") {
-        vec!["bb.exe", "bb-api.exe"]
+        vec!["bb.exe", "bb-api.exe", "bb-bui.exe"]
     } else {
-        vec!["bb", "bb-api"]
+        vec!["bb", "bb-api", "bb-bui"]
     };
 
     for binary in binaries {
@@ -427,9 +427,9 @@ fn backup_current_installation(location: &InstallLocation) -> Result<(), String>
         .map_err(|e| format!("Failed to create backup directory: {}", e))?;
 
     let binaries = if cfg!(target_os = "windows") {
-        vec!["bb.exe", "bb-api.exe"]
+        vec!["bb.exe", "bb-api.exe", "bb-bui.exe"]
     } else {
-        vec!["bb", "bb-api"]
+        vec!["bb", "bb-api", "bb-bui"]
     };
 
     for binary in binaries {

@@ -1,9 +1,8 @@
-import type { Context } from '@oak/oak';
+import { Handlers } from '$fresh/server.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
-import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
-//import { logger } from 'shared/logger.ts';
+import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 
 type ExpiryStatus = 'valid' | 'expiring' | 'expired';
 type SupportedPlatform = 'darwin' | 'windows' | 'linux';
@@ -18,19 +17,6 @@ function formatDate(dateStr: string): string {
 		minute: '2-digit',
 		timeZoneName: 'short',
 	}).format(date);
-}
-
-function getExpiryStatus(validTo: Date): ExpiryStatus {
-	const now = new Date();
-	const thirtyDays = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
-
-	if (validTo < now) {
-		return 'expired';
-	}
-	if (validTo.getTime() - now.getTime() < thirtyDays) {
-		return 'expiring';
-	}
-	return 'valid';
 }
 
 function getExpiryStatusColor(status: ExpiryStatus): string {
@@ -55,12 +41,27 @@ function getExpiryStatusText(status: ExpiryStatus): string {
 	}
 }
 
+function getExpiryStatus(validTo: Date): ExpiryStatus {
+	const now = new Date();
+	const thirtyDays = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+
+	if (validTo < now) {
+		return 'expired';
+	}
+	if (validTo.getTime() - now.getTime() < thirtyDays) {
+		return 'expiring';
+	}
+	return 'valid';
+}
+
 interface StatusData {
+	status: string;
+	message: string;
 	platform: string;
 	platformDisplay: string;
 	trustStoreLocation?: string;
-	status: string;
-	message: string;
+	configType: 'project' | 'global';
+	projectName?: string;
 	tls: {
 		enabled: boolean;
 		certType?: 'custom' | 'self-signed';
@@ -72,8 +73,61 @@ interface StatusData {
 		subject?: string;
 		expiryStatus?: ExpiryStatus;
 	};
-	configType: 'project' | 'global';
-	projectName?: string;
+}
+
+async function getTlsInfo(
+	projectConfig: ProjectConfig | undefined,
+	globalConfig: GlobalConfig,
+	projectId?: string,
+): Promise<StatusData['tls']> {
+	// Try to get cert content from all possible sources
+	let certContent: string | null = null;
+	let certSource: 'config' | 'project' | 'global' | undefined;
+	let certPath: string | undefined;
+
+	if (globalConfig.api.tls?.certPem) {
+		certContent = globalConfig.api.tls.certPem;
+		certSource = 'config';
+	} else if (projectConfig?.settings.api?.tls?.certPem) {
+		certContent = projectConfig.settings.api.tls.certPem;
+		certSource = 'config';
+	} else {
+		const certFile = globalConfig.api.tls?.certFile || 'localhost.pem';
+		certPath = certFile;
+
+		if (projectId) {
+			certContent = await readFromBbDir(projectId, certFile);
+			if (certContent) {
+				certSource = 'project';
+			}
+		}
+
+		if (!certContent) {
+			certContent = await readFromGlobalConfigDir(certFile);
+			if (certContent) {
+				certSource = 'global';
+			}
+		}
+	}
+
+	if (!certContent) {
+		return { enabled: false };
+	}
+
+	const certInfo = getCertificateInfo(certContent);
+	if (!certInfo) return { enabled: false };
+
+	return {
+		enabled: true,
+		certType: certInfo.isSelfSigned ? 'self-signed' : 'custom',
+		certPath,
+		certSource,
+		issuer: certInfo.issuer,
+		subject: certInfo.subject,
+		validFrom: certInfo.validFrom.toISOString(),
+		validUntil: certInfo.validTo.toISOString(),
+		expiryStatus: getExpiryStatus(certInfo.validTo),
+	};
 }
 
 function getHtmlResponse(statusData: StatusData): string {
@@ -81,7 +135,7 @@ function getHtmlResponse(statusData: StatusData): string {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>BB API Status</title>
+        <title>BB BUI Status</title>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
@@ -341,7 +395,7 @@ function getHtmlResponse(statusData: StatusData): string {
         </style>
       </head>
       <body>
-        <h1>BB API Status</h1>
+        <h1>BB BUI Status</h1>
 
         <div class="platform-info">
           <h2>Environment</h2>
@@ -493,112 +547,58 @@ function getHtmlResponse(statusData: StatusData): string {
   `;
 }
 
-async function getTlsInfo(
-	projectConfig: ProjectConfig | undefined,
-	globalConfig: GlobalConfig,
-	projectId?: string,
-): Promise<{
-	certType?: 'custom' | 'self-signed';
-	certPath?: string;
-	certSource?: 'config' | 'project' | 'global';
-	validFrom?: string;
-	validUntil?: string;
-	issuer?: string;
-	subject?: string;
-	expiryStatus?: ExpiryStatus;
-}> {
-	// Try to get cert content from all possible sources
-	let certContent: string | null = null;
-	let certSource: 'config' | 'project' | 'global' | undefined;
-	let certPath: string | undefined;
+export const handler: Handlers = {
+	async GET(req, _ctx) {
+		// Get config based on projectId if provided
+		const dirParam = new URL(req.url).searchParams.get('projectId');
+		const projectId = dirParam || undefined;
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
+		const globalConfig = await configManager.getGlobalConfig();
 
-	if (globalConfig.api.tls?.certPem) {
-		certContent = globalConfig.api.tls.certPem;
-		certSource = 'config';
-	} else if (projectConfig?.settings.api?.tls?.certPem) {
-		certContent = projectConfig.settings.api.tls.certPem;
-		certSource = 'config';
-	} else {
-		const certFile = globalConfig.api.tls?.certFile || 'localhost.pem';
-		certPath = certFile;
+		const tlsInfo = await getTlsInfo(projectConfig, globalConfig, projectId);
 
-		if (projectId) {
-			certContent = await readFromBbDir(projectId, certFile);
-			if (certContent) {
-				certSource = 'project';
-			}
+		const statusData: StatusData = {
+			status: 'OK',
+			message: 'BUI is running',
+			platform: Deno.build.os,
+			platformDisplay: ({
+				'darwin': 'macOS',
+				'windows': 'Windows',
+				'linux': 'Linux',
+			} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform] || Deno.build.os,
+			trustStoreLocation: ({
+				'darwin': '/Library/Keychains/System.keychain',
+				'windows': 'Cert:\\LocalMachine\\Root',
+				'linux': '/etc/ssl/certs',
+			} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform],
+			tls: tlsInfo,
+			configType: projectId ? 'project' : 'global',
+			projectName: projectId ? projectConfig?.name : undefined,
+		};
+
+		// Check Accept header
+		const acceptHeader = req.headers.get('Accept') || '';
+		const wantsHtml = acceptHeader.includes('text/html');
+
+		if (wantsHtml) {
+			return new Response(
+				getHtmlResponse(statusData),
+				{
+					headers: {
+						'Content-Type': 'text/html',
+					},
+				},
+			);
+		} else {
+			return new Response(
+				JSON.stringify(statusData),
+				{
+					headers: {
+						'Content-Type': 'application/json',
+					},
+				},
+			);
 		}
-
-		if (!certContent) {
-			certContent = await readFromGlobalConfigDir(certFile);
-			if (certContent) {
-				certSource = 'global';
-			}
-		}
-	}
-
-	if (!certContent) {
-		return {};
-	}
-
-	const certInfo = getCertificateInfo(certContent);
-	if (!certInfo) return {};
-
-	return {
-		certType: certInfo.isSelfSigned ? 'self-signed' : 'custom',
-		certPath,
-		certSource,
-		issuer: certInfo.issuer,
-		subject: certInfo.subject,
-		validFrom: certInfo.validFrom.toISOString(),
-		validUntil: certInfo.validTo.toISOString(),
-		expiryStatus: getExpiryStatus(certInfo.validTo),
-	};
-}
-
-export const getStatus = async (ctx: Context) => {
-	// Get config based on projectId if provided
-	const dirParam = ctx.request.url.searchParams.get('projectId');
-	const projectId = dirParam || undefined;
-	const configManager = await ConfigManagerV2.getInstance();
-	const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
-	const globalConfig = await configManager.getGlobalConfig();
-
-	const tlsInfo = await getTlsInfo(projectConfig, globalConfig, projectId);
-
-	const statusData: StatusData = {
-		status: 'OK',
-		message: 'API is running',
-		platform: Deno.build.os,
-		platformDisplay: (({
-			'darwin': 'macOS',
-			'windows': 'Windows',
-			'linux': 'Linux',
-		} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform] || Deno.build.os),
-		trustStoreLocation: ({
-			'darwin': '/Library/Keychains/System.keychain',
-			'windows': 'Cert:\\LocalMachine\\Root',
-			'linux': '/etc/ssl/certs',
-		} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform],
-		tls: {
-			enabled: projectConfig?.settings.api?.tls?.useTls ?? globalConfig.api?.tls?.useTls ?? false,
-			...tlsInfo,
-		},
-		configType: projectId ? 'project' : 'global',
-		projectName: projectId
-			? (await (await ConfigManagerV2.getInstance()).getProjectConfig(projectId)).name
-			: undefined,
-	};
-
-	// Check Accept header
-	const acceptHeader = ctx.request.headers.get('Accept') || '';
-	const wantsHtml = acceptHeader.includes('text/html');
-
-	if (wantsHtml) {
-		ctx.response.type = 'text/html';
-		ctx.response.body = getHtmlResponse(statusData);
-	} else {
-		ctx.response.type = 'application/json';
-		ctx.response.body = statusData;
-	}
+	},
 };

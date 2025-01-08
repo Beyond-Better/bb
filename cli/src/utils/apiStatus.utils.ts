@@ -21,7 +21,7 @@ const APP_NAME = 'dev.beyondbetter.app';
  * getBbDir, getProjectRoot, etc will succeed (but that's no excuse for not handling errors)
  ****************** */
 
-async function getAppRuntimeDir(): Promise<string> {
+export async function getAppRuntimeDir(): Promise<string> {
 	let runtimeDir: string;
 
 	if (Deno.build.os === 'darwin') {

@@ -6,8 +6,8 @@ use log::{error, info};
 use crate::config::{GlobalConfig, get_global_config_dir, read_global_config, LlmKeys, get_default_log_path};
 
 #[tauri::command]
-pub async fn get_log_path() -> Result<Option<String>, String> {
-    Ok(get_default_log_path())
+pub async fn get_log_path(filename: &str) -> Result<Option<String>, String> {
+    Ok(get_default_log_path(filename))
 }
 
 #[tauri::command]
@@ -17,6 +17,18 @@ pub async fn get_api_log_path() -> Result<String, String> {
     // Get the log path using the API function
     let path = crate::api::get_api_log_path(&config.api)
         .ok_or_else(|| "Failed to determine API log path".to_string())?;
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn get_bui_log_path() -> Result<String, String> {
+    let config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+    
+    // Get the log path using the BUI function
+    let path = crate::bui::get_bui_log_path(&config.bui)
+        .ok_or_else(|| "Failed to determine BUI log path".to_string())?;
     
     // Convert to string, handling any non-UTF8 characters
     Ok(path.to_string_lossy().to_string())
@@ -79,8 +91,14 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
 
     // Set the log file path if it's not already set
     if config.api.log_file.is_none() {
-        config.api.log_file = get_default_log_path();
+        config.api.log_file = get_default_log_path("api.log");
         info!("Setting default log path: {:?}", config.api.log_file);
+    }
+
+    // Set the log file path if it's not already set
+    if config.bui.log_file.is_none() {
+        config.bui.log_file = get_default_log_path("bui.log");
+        info!("Setting default log path: {:?}", config.bui.log_file);
     }
     
     //info!("Config values:");
@@ -293,6 +311,22 @@ fn update_yaml_value(root: &mut serde_yaml::Value, key: &str, value: &str) -> Re
                         return Err("Invalid boolean for useTls".to_string());
                     }
                 },
+                "bui.logFile" => {
+                    mapping.insert(
+                        serde_yaml::Value::String(part.clone()),
+                        serde_yaml::Value::String(value.to_string())
+                    );
+                },
+                "bui.tls.useTls" => {
+                    if let Ok(use_tls) = value.parse::<bool>() {
+                        mapping.insert(
+                            serde_yaml::Value::String(part.clone()),
+                            serde_yaml::Value::Bool(use_tls)
+                        );
+                    } else {
+                        return Err("Invalid boolean for useTls".to_string());
+                    }
+                },
                 _ => return Err(format!("Unknown config key: {}", key))
             };
         } else {
@@ -353,6 +387,15 @@ fn update_config_value(config: &mut GlobalConfig, key: &str, value: &str) -> Res
             let use_tls = value.parse::<bool>().map_err(|_| "Invalid boolean for useTls".to_string())?;
             config.api.tls.use_tls = use_tls;
             //debug!("Updated api.tls.useTls to: {}", use_tls);
+        },
+        ["bui", "logFile"] => {
+            config.bui.log_file = Some(value.to_string());
+            //debug!("Updated logFile to: {}", value);
+        },
+        ["bui", "tls", "useTls"] => {
+            let use_tls = value.parse::<bool>().map_err(|_| "Invalid boolean for useTls".to_string())?;
+            config.bui.tls.use_tls = use_tls;
+            //debug!("Updated bui.tls.useTls to: {}", use_tls);
         },
         _ => {
             error!("Unknown config key: {}", key);

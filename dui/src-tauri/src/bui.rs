@@ -5,7 +5,8 @@ use std::fs;
 use dirs;
 use libc;
 use crate::config::read_global_config;
-use crate::commands::api_status::{check_api_status, reconcile_api_pid_state, save_api_pid};
+//use crate::commands::api_status::{check_api_status, reconcile_api_pid_state, save_api_pid};
+use crate::commands::bui_status::{check_bui_status, reconcile_bui_pid_state, save_bui_pid};
 
 #[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStrExt;
@@ -49,11 +50,11 @@ pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
     }
 }
 
-pub fn get_default_api_log_path() -> Option<PathBuf> {
-    get_default_log_dir().map(|dir| dir.join("api.log"))
+pub fn get_default_bui_log_path() -> Option<PathBuf> {
+    get_default_log_dir().map(|dir| dir.join("bui.log"))
 }
 
-pub fn get_api_log_path(config: &crate::config::ApiConfig) -> Option<PathBuf> {
+pub fn get_bui_log_path(config: &crate::config::BuiConfig) -> Option<PathBuf> {
     if let Some(log_file) = &config.log_file {
         if log_file.starts_with('/') || log_file.contains(":\\") {
             // Absolute path
@@ -64,15 +65,15 @@ pub fn get_api_log_path(config: &crate::config::ApiConfig) -> Option<PathBuf> {
         }
     } else {
         // No log file specified - use default
-        get_default_api_log_path()
+        get_default_bui_log_path()
     }
 }
 
-pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
+pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
     debug!("Starting binary search");
     let mut checked_paths = Vec::new();
-    let api_name = if cfg!(target_os = "windows") { "bb-api.exe" } else { "bb-api" };
-    info!("Looking for {} executable", api_name);
+    let bui_name = if cfg!(target_os = "windows") { "bb-bui.exe" } else { "bb-bui" };
+    info!("Looking for {} executable", bui_name);
 
     // Try user-specific location first
     if let Some(home) = dirs::home_dir() {
@@ -89,7 +90,7 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
             home.join(".local").join("bin")
         };
 
-        let user_binary = user_install.join(api_name);
+        let user_binary = user_install.join(bui_name);
         checked_paths.push(user_binary.clone());
         debug!("Checking user install location: {}", user_binary.display());
         if !user_install.exists() {
@@ -97,7 +98,7 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
         } else if !user_binary.exists() {
             debug!("Binary not found in user install location");
         } else {
-            info!("Found API executable in user install location");
+            info!("Found BUI executable in user install location");
             return Ok(user_binary);
         }
     }
@@ -111,7 +112,7 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
         PathBuf::from("/usr/local/bin")
     };
 
-    let system_binary = system_install.join(api_name);
+    let system_binary = system_install.join(bui_name);
     checked_paths.push(system_binary.clone());
     debug!("Checking system install location: {}", system_binary.display());
     if !system_install.exists() {
@@ -119,13 +120,13 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     } else if !system_binary.exists() {
         debug!("Binary not found in system install location");
     } else {
-        info!("Found API executable in system install location");
+        info!("Found BUI executable in system install location");
         return Ok(system_binary);
     }
 
     let error_msg = format!(
         "Could not find {} in any of these locations:\n{}",
-        api_name,
+        bui_name,
         checked_paths.iter()
             .map(|p| format!("- {}", p.display()))
             .collect::<Vec<_>>()
@@ -136,26 +137,31 @@ pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ApiStartResult {
+pub struct BuiStartResult {
     pub success: bool,
     pub pid: Option<i32>,
     pub error: Option<String>,
     pub requires_settings: bool,
 }
 
-fn verify_api_requirements() -> Result<(), String> {
-    // Check if bb-api binary exists
-    get_bb_api_path().map_err(|e| format!("BB API binary not found: {}", e))?;
+fn verify_bui_requirements() -> Result<(), String> {
+    // Check if bb-bui binary exists
+    get_bb_bui_path().map_err(|e| format!("BB BUI binary not found: {}", e))?;
 
-    // Check if config exists and has required values
-    let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
-
-    // Check for Anthropic API key
-    if global_config.api.llm_keys.as_ref()
-        .and_then(|keys| keys.anthropic.as_ref())
-        .map_or(true, |key| key.trim().is_empty()) {
-        return Err("Anthropic API key not configured".to_string());
-    }
+	// // Check if config exists and has required values
+	// let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+	// 
+	// // Check for required BUI config values
+	// if let Some(bui_config) = &global_config.bui {
+	// 	if bui_config.supabase_url.trim().is_empty() {
+	// 		return Err("Supabase URL not configured".to_string());
+	// 	}
+	// 	if bui_config.supabase_anon_key.trim().is_empty() {
+	// 		return Err("Supabase anonymous key not configured".to_string());
+	// 	}
+	// } else {
+	// 	return Err("BUI configuration not found".to_string());
+	// }
 
     Ok(())
 }
@@ -215,10 +221,21 @@ fn create_process_windows(
 }
 
 #[tauri::command]
-pub async fn start_api() -> Result<ApiStartResult, String> {
+pub async fn start_bui() -> Result<BuiStartResult, String> {
+	// // First check if API is running, as BUI requires it
+	// let api_status = check_api_status().await?;
+	// if !api_status.api_responds {
+	// 	return Ok(BuiStartResult {
+	// 		success: false,
+	// 		pid: None,
+	// 		error: Some("API must be running before starting BUI".to_string()),
+	// 		requires_settings: false,
+	// 	});
+	// }
+
     // Verify all requirements are met before starting
-    if let Err(e) = verify_api_requirements() {
-        return Ok(ApiStartResult {
+    if let Err(e) = verify_bui_requirements() {
+        return Ok(BuiStartResult {
             success: false,
             pid: None,
             error: Some(e),
@@ -227,12 +244,12 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     }
 
     // First reconcile any existing state
-    reconcile_api_pid_state().await?;
+    reconcile_bui_pid_state().await?;
 
-    // Check if API is already running
-    let status = check_api_status().await?;
-    if status.api_responds {
-        return Ok(ApiStartResult {
+    // Check if BUI is already running
+    let status = check_bui_status().await?;
+    if status.bui_responds {
+        return Ok(BuiStartResult {
             success: true,
             pid: status.pid,
             error: None,
@@ -240,15 +257,16 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
         });
     }
 
-    // Get API configuration
+    // Get BUI configuration
     let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
-    let config = &global_config.api;
+    //let config = global_config.bui.as_ref().ok_or("BUI configuration not found")?;
+    let config = &global_config.bui;
     
-    // Get the full path to the bb-api executable
-    let bb_api_path = get_bb_api_path()
-        .map_err(|e| format!("Failed to locate bb-api executable: {}", e))?;
+    // Get the full path to the bb-bui executable
+    let bb_bui_path = get_bb_bui_path()
+        .map_err(|e| format!("Failed to locate bb-bui executable: {}", e))?;
     
-    info!("Found bb-api executable at: {}", bb_api_path.display());
+    info!("Found bb-bui executable at: {}", bb_bui_path.display());
 
     // Build command arguments
     let mut args = Vec::new();
@@ -258,16 +276,21 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     args.push(config.port.to_string());
     args.push("--use-tls".to_string());
     args.push(config.tls.use_tls.to_string());
+	// args.push("--supabase-url".to_string());
+	// args.push(config.supabase_url.clone());
+	// args.push("--supabase-anon-key".to_string());
+	// args.push(config.supabase_anon_key.clone());
 
-    // Get log file path using the consolidated logic
-    let log_path = get_api_log_path(config)
+    // Get log file path
+    //let log_path = get_bui_log_path(&config)
+    let log_path = get_bui_log_path(config)
         .ok_or_else(|| "Failed to determine log path".to_string())?;
 
     // Ensure log directory exists
     if let Some(parent) = log_path.parent() {
         if let Err(e) = fs::create_dir_all(parent) {
             error!("Failed to create log directory for {:?}: {}", log_path, e);
-            return Ok(ApiStartResult {
+            return Ok(BuiStartResult {
                 success: false,
                 pid: None,
                 error: Some(format!("Failed to create log directory: {}", e)),
@@ -279,43 +302,43 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     // Add log file argument
     args.extend_from_slice(&["--log-file".to_string(), log_path.to_string_lossy().to_string()]);
 
-    info!("Starting API with command: {} {:?}", bb_api_path.display(), args);
+    info!("Starting BUI with command: {} {:?}", bb_bui_path.display(), args);
 
     // Start the process using platform-specific method
     let process_result = {
         #[cfg(target_os = "windows")]
         {
-            create_process_windows(bb_api_path, args).map(|pid| pid as i32)
+            create_process_windows(bb_bui_path, args).map(|pid| pid as i32)
         }
 
         #[cfg(not(target_os = "windows"))]
         {
-            match Command::new(bb_api_path).args(&args).spawn() {
+            match Command::new(bb_bui_path).args(&args).spawn() {
                 Ok(child) => Ok(child.id() as i32),
-                Err(e) => Err(format!("Failed to start API process: {}", e)),
+                Err(e) => Err(format!("Failed to start BUI process: {}", e)),
             }
         }
     };
 
     match process_result {
         Ok(pid) => {
-            info!("API process started with PID: {}", pid);
+            info!("BUI process started with PID: {}", pid);
 
             // Save the PID immediately
-            if let Err(e) = save_api_pid(pid).await {
+            if let Err(e) = save_bui_pid(pid).await {
                 warn!("Failed to save PID file: {}", e);
             }
             
-            // Give the API a moment to start
+            // Give the BUI a moment to start
             let max_attempts = 10;
             for attempt in 1..=max_attempts {
                 std::thread::sleep(std::time::Duration::from_millis(500));
                 
-                // Verify the API is responding
-                match check_api_status().await {
-                    Ok(status) if status.api_responds => {
-                        info!("API is responding after {} attempts", attempt);
-                        return Ok(ApiStartResult {
+                // Verify the BUI is responding
+                match check_bui_status().await {
+                    Ok(status) if status.bui_responds => {
+                        info!("BUI is responding after {} attempts", attempt);
+                        return Ok(BuiStartResult {
                             success: true,
                             pid: Some(pid),
                             error: None,
@@ -323,9 +346,9 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                         });
                     }
                     Ok(_) if attempt == max_attempts => {
-                        let error_msg = "API process started but not responding after multiple attempts";
+                        let error_msg = "BUI process started but not responding after multiple attempts";
                         error!("{}", error_msg);
-                        return Ok(ApiStartResult {
+                        return Ok(BuiStartResult {
                             success: false,
                             pid: Some(pid),
                             error: Some(error_msg.to_string()),
@@ -333,26 +356,26 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
                         });
                     }
                     Ok(_) => {
-                        debug!("API not responding yet, attempt {}/{}", attempt, max_attempts);
+                        debug!("BUI not responding yet, attempt {}/{}", attempt, max_attempts);
                         continue;
                     }
                     Err(e) => {
-                        error!("Error checking API status: {}", e);
+                        error!("Error checking BUI status: {}", e);
                     }
                 }
             }
 
-            Ok(ApiStartResult {
+            Ok(BuiStartResult {
                 success: false,
                 pid: Some(pid),
-                error: Some("API process started but failed to respond".to_string()),
+                error: Some("BUI process started but failed to respond".to_string()),
                 requires_settings: false,
             })
         }
         Err(e) => {
-            let error_msg = format!("Failed to start API process: {}", e);
+            let error_msg = format!("Failed to start BUI process: {}", e);
             error!("{}", error_msg);
-            Ok(ApiStartResult {
+            Ok(BuiStartResult {
                 success: false,
                 pid: None,
                 error: Some(error_msg),
@@ -363,21 +386,21 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
 }
 
 #[tauri::command]
-pub async fn stop_api() -> Result<bool, String> {
-    let status = check_api_status().await?;
-    debug!("Current API status: {:?}", status);
+pub async fn stop_bui() -> Result<bool, String> {
+    let status = check_bui_status().await?;
+    debug!("Current BUI status: {:?}", status);
 
-    if !status.pid_exists && !status.api_responds {
-        info!("API is not running");
+    if !status.pid_exists && !status.bui_responds {
+        info!("BUI is not running");
         // Clean up any stale PID file
-        if let Err(e) = crate::commands::api_status::remove_pid().await {
+        if let Err(e) = crate::commands::bui_status::remove_pid().await {
             warn!("Failed to remove stale PID file: {}", e);
         }
         return Ok(false);
     }
 
     if let Some(pid) = status.pid {
-        info!("Attempting to stop API process with PID: {}", pid);
+        info!("Attempting to stop BUI process with PID: {}", pid);
 
         let stop_result = {
             #[cfg(target_family = "unix")]
@@ -407,38 +430,41 @@ pub async fn stop_api() -> Result<bool, String> {
         let max_attempts = 10;
         for attempt in 1..=max_attempts {
             std::thread::sleep(std::time::Duration::from_millis(500));
-            match check_api_status().await {
-                Ok(status) if !status.api_responds && !status.pid_exists => {
-                    info!("API stopped successfully after {} attempts", attempt);
+            match check_bui_status().await {
+                Ok(status) if !status.bui_responds && !status.pid_exists => {
+                    info!("BUI stopped successfully after {} attempts", attempt);
                     // Clean up PID file
-                    if let Err(e) = crate::commands::api_status::remove_pid().await {
+                    if let Err(e) = crate::commands::bui_status::remove_pid().await {
                         warn!("Failed to remove PID file: {}", e);
                     }
                     return Ok(true);
                 }
                 Ok(_) if attempt == max_attempts => {
-                    error!("API failed to stop completely after {} attempts", max_attempts);
+                    error!("BUI failed to stop completely after {} attempts", max_attempts);
                     break;
                 }
                 Ok(_) => {
-                    debug!("Waiting for API to stop, attempt {}/{}", attempt, max_attempts);
+                    debug!("Waiting for BUI to stop, attempt {}/{}", attempt, max_attempts);
                     continue;
                 }
                 Err(e) => {
-                    error!("Error checking API status during stop: {}", e);
+                    error!("Error checking BUI status during stop: {}", e);
                 }
             }
         }
 
         if stop_result {
-            warn!("Stop command succeeded but API may still be running");
+            // Clean up PID file
+            if let Err(e) = crate::commands::bui_status::remove_pid().await {
+                warn!("Failed to remove PID file: {}", e);
+            }
         } else {
-            error!("Failed to stop API process");
+            error!("Failed to stop BUI process");
         }
 
         Ok(stop_result)
     } else {
-        warn!("No PID found for running API");
+        warn!("No PID found for running BUI");
         Ok(false)
     }
 }
