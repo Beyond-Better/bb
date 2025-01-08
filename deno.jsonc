@@ -19,7 +19,7 @@
 		"start-bui": "deno task -c ./bui/deno.jsonc start",
 		"start-api": "deno task -c ./api/deno.jsonc start",
 		"start-api-dev": "deno task -c ./api/deno.jsonc dev",
-		"build": "deno task -c ./cli/deno.jsonc build && deno task -c ./api/deno.jsonc build",
+		"build": "deno task -c ./cli/deno.jsonc build && deno task -c ./api/deno.jsonc build && deno task -c ./bui/deno.jsonc build",
 		"homebrew": "deno task -c ./cli/deno.jsonc build && deno task -c ./api/deno.jsonc build",
 		"test": "deno task test:config && deno task -c ./cli/deno.jsonc test && deno task -c ./api/deno.jsonc test",
 		"test:all": "deno task -c ./cli/deno.jsonc test && deno task -c ./bui/deno.jsonc test && deno task -c ./api/deno.jsonc test",
