@@ -1,6 +1,6 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { Confirm, Input, prompt } from 'cliffy/prompt/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { Confirm, Input, prompt } from 'cliffy/prompt';
+import { colors } from 'cliffy/ansi/colors';
 import { logger } from 'shared/logger.ts';
 import { basename } from '@std/path';
 import { getProjectId } from 'shared/dataDir.ts';

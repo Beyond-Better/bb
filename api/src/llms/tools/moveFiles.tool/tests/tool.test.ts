@@ -18,7 +18,6 @@ function isMoveFilesResponse(
 	return (
 		data !== null &&
 		typeof data === 'object' &&
-		typeof data === 'object' &&
 		'destination' in data &&
 		typeof data.destination === 'string' &&
 		'filesMoved' in data &&

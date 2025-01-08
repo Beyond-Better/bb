@@ -1,6 +1,30 @@
 # Creating a New Tool for BB
 
-**IMPORTANT: When creating a new tool, it is crucial to follow the structure, style, and conventions of existing tools as closely as possible. This ensures consistency across the project and makes maintenance easier. Always use an existing tool as a template and only modify what is necessary for the new functionality.**
+**NOTE: This document is primarily intended for BB to use when writing tools. Developers are strongly encouraged to use BB rather than writing tools manually.**
+
+To have BB create a tool for you, start a conversation like this:
+
+```
+User: I want a new tool named "file-backup" that creates backup copies of files before modifying them.
+
+BB: Let me help you create that tool. First, I'll read the tool creation documentation to ensure I follow all the requirements. Do you have any specific requirements or constraints for the tool before I begin?
+
+User: The backups should be stored in a .backups directory within the project.
+
+BB: I understand. Let me ask a few important questions:
+1. Should we limit the types of files that can be backed up?
+2. Should we implement a cleanup policy for old backups?
+3. Should we add a way to restore from backups?
+4. How should we handle large files?
+
+[Continue conversation with BB to design and implement the tool...]
+```
+
+For a complete example of BB creating a tool, see [Tool Creation Example](../examples/tool_creation_conversation.md).
+
+**IMPORTANT: When creating a tool, it is crucial to follow the structure, style, and conventions of existing tools as closely as possible. This ensures consistency across the project and makes maintenance easier. Always use an existing tool as a template and only modify what is necessary for the new functionality.**
+
+This document serves as BB's guide for creating tools. It includes step-by-step instructions, templates for gathering necessary information, and important considerations that BB will follow to ensure proper tool implementation.
 
 This document serves as a guide for creating new tools in the BB project. It includes a step-by-step process, a template for gathering necessary information, and important considerations for tool development.
 
@@ -89,7 +113,7 @@ Create two separate formatter files for each tool:
 
 2. Console Formatter (`formatter.console.ts`):
    - Import necessary types from `api/llms/llmTool.ts` and `api/llms/llmMessage.ts`.
-   - Import `colors` from `cliffy/ansi/colors.ts` and `stripIndents` from `common-tags`.
+   - Import `colors` from `cliffy/ansi` and `stripIndents` from `common-tags`.
    - Implement `formatLogEntryToolUse` and `formatLogEntryToolResult` functions that return strings.
 
 ### Main Tool File

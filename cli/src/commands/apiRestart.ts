@@ -1,5 +1,5 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { delay } from '@std/async';
 
 import { getApiStatus, restartApiServer } from '../utils/apiControl.utils.ts';

@@ -62,6 +62,7 @@ class LLM {
 
 	async speakWith(
 		_messageParams: LLMProviderMessageRequest,
+		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		throw new Error("Method 'speakWith' must be implemented.");
 	}
@@ -122,22 +123,22 @@ class LLM {
 
 			while (retries < maxRetries) {
 				try {
-					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest);
+					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest, interaction);
 
-					const status = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.status;
+					const statusCode = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusCode;
 
-					if (status >= 200 && status < 300) {
+					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
-					} else if (status === 429) {
+					} else if (statusCode === 429) {
 						// Rate limit exceeded
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
 							Date.now();
 						const waitTime = Math.max(rateLimit, delay);
 						logger.warn(`Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`);
 						await new Promise((resolve) => setTimeout(resolve, waitTime));
-					} else if (status >= 500) {
+					} else if (statusCode >= 500) {
 						// Server error, use exponential backoff
-						logger.warn(`Server error (${status}). Retrying in ${delay}ms.`);
+						logger.warn(`Server error (${statusCode}). Retrying in ${delay}ms.`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						delay *= 2; // Double the delay for next time
 					} else {
@@ -148,7 +149,7 @@ class LLM {
 							{
 								model: interaction.model,
 								provider: this.llmProviderName,
-								args: { status },
+								args: { status: statusCode },
 								conversationId: interaction.id,
 							} as LLMErrorOptions,
 						);

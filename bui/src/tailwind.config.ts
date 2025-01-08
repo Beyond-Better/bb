@@ -103,9 +103,9 @@ export default {
 						},
 						pre: {
 							color: 'inherit',
-							backgroundColor: '#f3f4f6',
+							backgroundColor: 'var(--tw-prose-pre-bg)',
 							borderRadius: '0.375rem',
-							padding: '0',
+							padding: '1em',
 							margin: '1em 0',
 						},
 						'code.hljs': {

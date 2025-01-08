@@ -2,6 +2,7 @@ import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { LLMCallbacks } from '../types.ts';
 import type LLM from './providers/baseLLM.ts';
 import AnthropicLLM from './providers/anthropicLLM.ts';
+import bbLLM from './providers/bbLLM.ts';
 //import OpenAILLM from './providers/openAILLM.ts';
 
 class LLMFactory {
@@ -10,6 +11,8 @@ class LLMFactory {
 		llmProviderName: LLMProviderEnum = LLMProviderEnum.ANTHROPIC,
 	): LLM {
 		switch (llmProviderName) {
+			case LLMProviderEnum.BB:
+				return new bbLLM(interactionCallbacks);
 			case LLMProviderEnum.ANTHROPIC:
 				return new AnthropicLLM(interactionCallbacks);
 			// case LLMProviderEnum.OPENAI:

@@ -13,6 +13,7 @@ export interface ProjectInfo extends BaseProjectInfo {
 	projectId: string;
 }
 import OrchestratorController from '../controllers/orchestratorController.ts';
+import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
@@ -24,6 +25,7 @@ import {
 	getProjectRoot,
 	readFromBbDir,
 	removeFromBbDir,
+	resolveProjectFilePath,
 	writeToBbDir,
 } from 'shared/dataDir.ts';
 import EventManager from 'shared/eventManager.ts';
@@ -33,6 +35,7 @@ class ProjectEditor {
 	public orchestratorController!: OrchestratorController;
 	public projectConfig!: ProjectConfig;
 	public eventManager!: EventManager;
+	public sessionManager: SessionManager;
 	public projectId: string;
 	public projectRoot: string;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
@@ -46,10 +49,12 @@ class ProjectEditor {
 		tier: null,
 	};
 
-	constructor(projectId: string) {
+	constructor(projectId: string, sessionManager: SessionManager) {
 		this.projectRoot = '.'; // init() will overwrite this
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
+		this.sessionManager = sessionManager;
+		//logger.info('ProjectEditor: sessionManager', sessionManager);
 	}
 
 	public async init(): Promise<ProjectEditor> {
@@ -72,6 +77,18 @@ class ProjectEditor {
 			throw error;
 		}
 		return this;
+	}
+
+	public async isPathWithinProject(filePath: string): Promise<boolean> {
+		logger.info(`ProjectEditor isPathWithinProject for ${this.projectRoot} - ${filePath}`);
+		return await isPathWithinProject(this.projectRoot, filePath);
+	}
+
+	public async resolveProjectFilePath(filePath: string): Promise<string> {
+		logger.info(`ProjectEditor resolveProjectFilePath for ${this.projectId} - ${filePath}`);
+		const resolvedPath = await resolveProjectFilePath(this.projectId, filePath);
+		logger.info(`ProjectEditor resolveProjectFilePath resolvedPath: ${resolvedPath}`);
+		return resolvedPath;
 	}
 
 	public async getProjectRoot(): Promise<string> {

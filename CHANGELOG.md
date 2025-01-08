@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.0] - 2025-01-08
+
+### Added
+
+- user account with subscription plans
+- llm proxy to remove requirement for api key
+- support for external tools
+- dedicated log (per conversation) of LLM request/responses
+- added remove_files tool
+
+### Changed
+
+- docs shuffle
+- updated deps (including Anthropic SDK with GA prompt caching)
+- improved prompting to encourage use of request_files tool
+
+### Fixed
+
+- `pre` background in dark mode
+
+
 ## [0.5.12] - 2024-12-20
 
 ### Added

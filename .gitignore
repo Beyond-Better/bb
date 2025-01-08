@@ -9,6 +9,8 @@ tags.ignore
 
 */.DS_Store
 
+.trash/
+
 bui-orig*
 bui-rewrite*
 
@@ -17,3 +19,5 @@ dui/src-tauri/target/debug
 dui/.vite
 
 */.bb/backups*
+
+docs/.obsidian

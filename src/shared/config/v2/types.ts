@@ -14,8 +14,11 @@ export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 /** Type of project - local directory or git repository */
 export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 
-/** Available log levels for configuration */
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/** Available log levels for configuration
+ * debug and debug0 are equivalent
+ */
+
+export type LogLevel = 'debug' | 'debug0' | 'debug1' | 'debug2' | 'info' | 'warn' | 'error';
 
 export interface CreateProjectData {
 	// 	project: {
@@ -75,6 +78,8 @@ export interface ApiConfig extends ServerConfig {
 	usePromptCaching: boolean;
 	userToolDirectories: string[];
 	toolConfigs: Record<string, unknown>;
+	localMode?: boolean;
+	supabaseConfigUrl?: string;
 
 	// LLM Keys
 	llmKeys?: {
@@ -89,6 +94,10 @@ export interface ApiConfig extends ServerConfig {
  * Extends base server config with BUI-specific settings.
  */
 export interface BuiConfig extends ServerConfig {
+	supabaseUrl?: string;
+	supabaseAnonKey?: string;
+	localMode?: boolean;
+	kvSessionPath?: string;
 }
 
 /**
@@ -251,6 +260,8 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	maxTurns: 25,
 	logLevel: 'info',
 	logFileHydration: false,
+	localMode: false,
+	supabaseConfigUrl: 'https://chat.beyondbetter.dev/api/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],
@@ -264,6 +275,8 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	tls: {
 		useTls: true,
 	},
+	localMode: false,
+	kvSessionPath: 'auth.kv',
 };
 
 export const DuiConfigDefaults: Readonly<DuiConfig> = {

@@ -1,136 +1,98 @@
-import { PageProps } from '$fresh/server.ts';
-import { PageContainer } from '../components/PageContainer.tsx';
+import LandingHero from '../islands/LandingHero.tsx';
 
-export default function Home(props: PageProps) {
+export default function Landing() {
 	return (
-		<div class='flex flex-col flex-1'>
-			{/* Metadata Bar - empty for home page but maintains consistent layout */}
-			<div class='border-b border-gray-200 dark:border-gray-700 px-4 py-2'>
-				<div class='text-sm text-gray-500 dark:text-gray-400'>Home</div>
-			</div>
+		<div class='min-h-screen bg-gray-50 dark:bg-gray-900'>
+			{/* Hero section */}
+			<LandingHero />
 
-			{/* Main content */}
-			<div class='flex-1 flex flex-col overflow-hidden'>
-				<PageContainer>
-					<div class='space-y-8'>
-						{/* Welcome Section */}
-						<section class='text-center'>
-							<h1 class='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
-								Welcome to Beyond Better
-							</h1>
-							<p class='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'>
-								Enhance your development workflow with AI-powered assistance for code, documentation,
-								and more.
-							</p>
-						</section>
+			{/* Feature section */}
+			<div class='mx-auto max-w-7xl px-6 lg:px-8 pb-24'>
+				<div class='mx-auto max-w-2xl lg:text-center'>
+					<h2 class='text-base font-semibold leading-7 text-purple-600'>The Beyond Better Difference</h2>
+					<p class='mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl'>
+						Not just another AI assistant
+					</p>
+					<p class='mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400'>
+						Beyond Better (BB) is designed to be a true pair programmer, understanding your code at a deep
+						level and helping you write better code.
+					</p>
+				</div>
 
-						{/* Quick Actions */}
-						<section class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8'>
-							{/* Chat Action */}
-							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Chat</h2>
-								<p class='text-gray-600 dark:text-gray-300 mb-4'>
-									Start a conversation with BB to get help with your code and documentation.
-								</p>
-								<a
-									href='/chat'
-									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
+				<div class='mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none'>
+					<dl class='grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3'>
+						{/* Feature 1 */}
+						<div class='flex flex-col'>
+							<dt class='flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white'>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									viewBox='0 0 24 24'
+									fill='currentColor'
+									class='w-5 h-5 text-purple-600'
 								>
-									Open Chat
-									<svg
-										class='w-5 h-5 ml-1'
-										xmlns='http://www.w3.org/2000/svg'
-										fill='none'
-										viewBox='0 0 24 24'
-										stroke='currentColor'
-									>
-										<path
-											stroke-linecap='round'
-											stroke-linejoin='round'
-											stroke-width='2'
-											d='M13 7l5 5m0 0l-5 5m5-5H6'
-										/>
-									</svg>
-								</a>
-							</div>
-
-							{/* Projects Action */}
-							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Projects</h2>
-								<p class='text-gray-600 dark:text-gray-300 mb-4'>
-									Manage your projects and access project-specific features.
+									<path d='M11.25 5.337c0-.355-.186-.676-.401-.959a1.647 1.647 0 01-.349-1.003c0-1.036 1.007-1.875 2.25-1.875S15 2.34 15 3.375c0 .369-.128.713-.349 1.003-.215.283-.401.604-.401.959 0 .332.278.598.61.578 1.91-.114 3.79-.342 5.632-.676a.75.75 0 01.878.645 49.17 49.17 0 01.376 5.452.657.657 0 01-.66.664c-.354 0-.675-.186-.958-.401a1.647 1.647 0 00-1.003-.349c-1.035 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401.31 0 .557.262.534.571a48.774 48.774 0 01-.595 4.845.75.75 0 01-.61.61c-1.82.317-3.673.533-5.555.642a.58.58 0 01-.611-.581c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.035-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959a.641.641 0 01-.658.643 49.118 49.118 0 01-4.708-.36.75.75 0 01-.645-.878c.293-1.614.504-3.257.629-4.924A.53.53 0 005.337 15c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.036 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.369 0 .713.128 1.003.349.283.215.604.401.959.401a.656.656 0 00.659-.663 47.703 47.703 0 00-.31-4.82.75.75 0 01.83-.832c1.343.155 2.703.254 4.077.294a.64.64 0 00.657-.642z' />
+								</svg>
+								Deep Code Understanding
+							</dt>
+							<dd class='mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-400'>
+								<p class='flex-auto'>
+									BB reads and understands your entire codebase, not just snippets. This means more
+									contextual and accurate assistance.
 								</p>
-								<a
-									href='/projects'
-									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
+							</dd>
+						</div>
+
+						{/* Feature 2 */}
+						<div class='flex flex-col'>
+							<dt class='flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white'>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									viewBox='0 0 24 24'
+									fill='currentColor'
+									class='w-5 h-5 text-purple-600'
 								>
-									View Projects
-									<svg
-										class='w-5 h-5 ml-1'
-										xmlns='http://www.w3.org/2000/svg'
-										fill='none'
-										viewBox='0 0 24 24'
-										stroke='currentColor'
-									>
-										<path
-											stroke-linecap='round'
-											stroke-linejoin='round'
-											stroke-width='2'
-											d='M13 7l5 5m0 0l-5 5m5-5H6'
-										/>
-									</svg>
-								</a>
-							</div>
-
-							{/* Settings Action */}
-							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Settings</h2>
-								<p class='text-gray-600 dark:text-gray-300 mb-4'>
-									Customize your BB experience and manage preferences.
+									<path
+										fill-rule='evenodd'
+										d='M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z'
+										clip-rule='evenodd'
+									/>
+								</svg>
+								Privacy First
+							</dt>
+							<dd class='mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-400'>
+								<p class='flex-auto'>
+									Your code stays on your machine. BB runs locally, ensuring your intellectual
+									property remains secure.
 								</p>
-								<a
-									href='/settings'
-									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
+							</dd>
+						</div>
+
+						{/* Feature 3 */}
+						<div class='flex flex-col'>
+							<dt class='flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white'>
+								<svg
+									xmlns='http://www.w3.org/2000/svg'
+									viewBox='0 0 24 24'
+									fill='currentColor'
+									class='w-5 h-5 text-purple-600'
 								>
-									Open Settings
-									<svg
-										class='w-5 h-5 ml-1'
-										xmlns='http://www.w3.org/2000/svg'
-										fill='none'
-										viewBox='0 0 24 24'
-										stroke='currentColor'
-									>
-										<path
-											stroke-linecap='round'
-											stroke-linejoin='round'
-											stroke-width='2'
-											d='M13 7l5 5m0 0l-5 5m5-5H6'
-										/>
-									</svg>
-								</a>
-							</div>
-						</section>
-
-						{/* Getting Started */}
-						<section class='mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-8'>
-							<h2 class='text-2xl font-semibold text-gray-900 dark:text-white mb-4'>
-								Getting Started
-							</h2>
-							<div class='space-y-4'>
-								<p class='text-gray-600 dark:text-gray-300'>
-									BB helps you work more efficiently by providing AI-powered assistance for your
-									development tasks. Here's how to get started:
+									<path
+										fill-rule='evenodd'
+										d='M14.447 3.027a.75.75 0 01.527.92l-4.5 16.5a.75.75 0 01-1.448-.394l4.5-16.5a.75.75 0 01.921-.526zM16.72 6.22a.75.75 0 011.06 0l5.25 5.25a.75.75 0 010 1.06l-5.25 5.25a.75.75 0 11-1.06-1.06L21.44 12l-4.72-4.72a.75.75 0 010-1.06zm-9.44 0a.75.75 0 010 1.06L2.56 12l4.72 4.72a.75.75 0 11-1.06 1.06L.97 12.53a.75.75 0 010-1.06l5.25-5.25a.75.75 0 011.06 0z'
+										clip-rule='evenodd'
+									/>
+								</svg>
+								Real Development Tools
+							</dt>
+							<dd class='mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-400'>
+								<p class='flex-auto'>
+									BB can execute commands, modify files, and perform real development tasks, not just
+									generate code.
 								</p>
-								<ol class='list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300'>
-									<li>Create or select a project to work with</li>
-									<li>Start a chat conversation for assistance</li>
-									<li>Use BB's tools to enhance your workflow</li>
-									<li>Customize your experience in settings</li>
-								</ol>
-							</div>
-						</section>
-					</div>
-				</PageContainer>
+							</dd>
+						</div>
+					</dl>
+				</div>
 			</div>
 		</div>
 	);

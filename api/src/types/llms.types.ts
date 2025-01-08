@@ -48,7 +48,23 @@ export const GroqModels = [
 	GroqModel.GROQ_GEMMA_7B,
 ];
 
+export const BbModels = [
+	// 	AnthropicModel.CLAUDE_3_HAIKU,
+	// 	AnthropicModel.CLAUDE_3_SONNET,
+	// 	AnthropicModel.CLAUDE_3_5_SONNET,
+	// 	AnthropicModel.CLAUDE_3_OPUS,
+	// 	OpenAIModel.GPT_4o,
+	// 	OpenAIModel.GPT_4_TURBO,
+	// 	OpenAIModel.GPT_4,
+	// 	OpenAIModel.GPT_35_TURBO,
+	// 	GroqModel.GROQ_LLAMA3_8B,
+	// 	GroqModel.GROQ_LLAMA3_70B,
+	// 	GroqModel.GROQ_MIXTRAL_8X7B,
+	// 	GroqModel.GROQ_GEMMA_7B,
+];
+
 export enum LLMProvider {
+	BB = 'beyond-better',
 	ANTHROPIC = 'anthropic',
 	OPENAI = 'openai',
 	GROQ = 'groq',
@@ -56,6 +72,7 @@ export enum LLMProvider {
 }
 
 export const LLMProviders = [
+	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
 	LLMProvider.GROQ,
@@ -63,6 +80,7 @@ export const LLMProviders = [
 ];
 
 export const LLMProviderLabel = {
+	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
 	[LLMProvider.GROQ]: 'Groq',
@@ -70,6 +88,7 @@ export const LLMProviderLabel = {
 };
 
 export const LLMModelsByProvider = {
+	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
 	[LLMProvider.GROQ]: GroqModels,
@@ -78,7 +97,7 @@ export const LLMModelsByProvider = {
 
 export const LLMModelToProvider = Object.fromEntries(
 	LLMProviders
-		.filter((provider) => provider !== LLMProvider.UNKNOWN)
+		.filter((provider) => provider !== LLMProvider.UNKNOWN && provider !== LLMProvider.BB)
 		.flatMap((provider) => {
 			const modelsArray = LLMModelsByProvider[provider];
 			return modelsArray ? modelsArray.map((model) => [model, provider]) : [];
@@ -133,20 +152,21 @@ export interface LLMMessageStop {
 }
 
 export interface LLMProviderMessageResponseMeta {
-	status: number;
+	statusCode: number;
 	statusText: string;
 }
 
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
-	tools?: Map<string, LLMTool>;
-	system: string;
-	prompt: string;
+	tools?: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
+	system: string; // | LLMMessageContentPartTextBlock;
+	//prompt: string; // CNG - I think this is a deprecated attribute
 	model: string;
 	maxTokens?: number;
 	max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
 	temperature?: number;
+	usePromptCaching?: boolean;
 }
 
 export type LLMProviderMessageResponseType = 'message' | 'error';
@@ -243,3 +263,37 @@ export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<inf
 export type LLMCallbacks = {
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
+
+export interface BBLLMResponseMetadata {
+	model: string;
+	provider: string; //'anthropic',
+	requestId: string;
+	type: 'message' | 'error';
+	role: 'assistant' | 'user';
+	stopReason: LLMMessageStop['stopReason'];
+	stopSequence: string | null;
+}
+
+// also in api/types/llms.ts
+export interface BBLLMResponseRateLimit {
+	requestsRemaining: number;
+	requestsLimit: number;
+	requestsResetDate: Date;
+	tokensRemaining: number;
+	tokensLimit: number;
+	tokensResetDate: Date;
+}
+
+// also in api/types/llms.ts (as LLMProviderMessageResponseMeta)
+export interface BBLLMResponseStatus {
+	statusCode: number;
+	statusText: string;
+}
+
+export interface BBLLMResponse {
+	content: Array<LLMMessageContentPart>;
+	usage: LLMTokenUsage;
+	metadata: BBLLMResponseMetadata;
+	rateLimit: BBLLMResponseRateLimit;
+	status: BBLLMResponseStatus;
+}

@@ -110,6 +110,14 @@ export interface CacheImpact {
 	savings: number; // Calculated savings
 }
 
+export interface LLMRequestRecord {
+	messageId: string; // Links to message in messages.jsonl
+	requestBody: unknown;
+	requestHeaders: unknown;
+	responseMessage: unknown;
+	response: unknown;
+}
+
 export interface TokenUsageRecord {
 	messageId: string; // Links to message in messages.jsonl
 	statementCount: number; // Links to log entry

@@ -24,6 +24,9 @@ This directory contains user-facing documentation and guides for BB users.
 ### Installation and Setup
 - [Windows Guide](guides/windows_guide.md) - Detailed guide for installing and using BB on Windows systems
 
+### Custom Tools
+- [Using Custom Tools](guides/custom_tools.md) - Guide to finding, installing, and using custom tools from the BB Tool Library
+
 ### Security
 - [Certificates](security/certificates.md) - Certificate management guide
 - [Trust Store](security/trust-store.md) - Trust store configuration and management
@@ -54,6 +57,8 @@ We plan to add more user guides covering:
 - Project configuration
 - Common workflows
 - Troubleshooting
+- Advanced tool usage
+- Tool development
 
 If you need help with these topics before guides are available, please:
 1. Check the [Project README](../../README.md)

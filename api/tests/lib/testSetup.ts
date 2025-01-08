@@ -9,6 +9,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
 import type { ConversationStats } from 'shared/types.ts';
+import { SessionManager } from '../../src/auth/session.ts';
 
 export async function setupTestProject(): Promise<{ projectRoot: string; projectId: string }> {
 	const projectRoot = Deno.makeTempDirSync();
@@ -35,7 +36,9 @@ export async function cleanupTestProject(projectId: string, projectRoot: string)
 export async function getProjectEditor(projectId: string): Promise<ProjectEditor> {
 	const projectEditorManager = new ProjectEditorManager();
 	//console.log('getProjectEditor', { projectId });
-	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectId);
+	const sessionManager = new SessionManager();
+	await sessionManager.initialize();
+	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectId, sessionManager);
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 

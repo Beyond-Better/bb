@@ -78,7 +78,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'request_files',
 			'description':
-				'Request one or more files to be added to the conversation. Use this tool when you know the exact file paths. For discovering files, use search_project instead. Always review file contents before making suggestions or changes.',
+				"Request one or more files to be added to the conversation, even if they don't exist in the project listing. Use this tool when you know the exact file paths. For discovering files, use search_project instead. Always review file contents before making suggestions or changes.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -200,6 +200,18 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+		},
+	},
+	{
+		'toolNamePath': 'removeFiles.tool',
+		'metadata': {
+			'name': 'remove_files',
+			'description':
+				'Remove files from the project, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
 		},
 	},
 	{

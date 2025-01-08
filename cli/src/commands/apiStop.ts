@@ -1,4 +1,4 @@
-import { Command } from 'cliffy/command/mod.ts';
+import { Command } from 'cliffy/command';
 import { stopApiServer } from '../utils/apiControl.utils.ts';
 import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 

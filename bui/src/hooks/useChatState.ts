@@ -2,13 +2,13 @@ import { useEffect } from 'preact/hooks';
 import { Signal, signal, useComputed } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { useVersion } from './useVersion.ts';
-import { type ProjectState, useProjectState } from './useProjectState.ts';
+//import { useVersion } from './useVersion.ts';
+import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
-import { isProcessing } from '../types/chat.types.ts';
-import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+//import { isProcessing } from '../types/chat.types.ts';
+//import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
@@ -34,10 +34,10 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 	isAnswerMessage: false,
 });
 
-export async function initializeChat(
+export function initializeChat(
 	config: ChatConfig,
 	appState: Signal<AppState>,
-): Promise<InitializationResult> {
+): InitializationResult {
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
@@ -158,7 +158,7 @@ export function useChatState(
 					status: { ...chatState.value.status, isLoading: true },
 				};
 
-				const { apiClient, wsManager } = await initializeChat(config, appState);
+				const { apiClient, wsManager } = initializeChat(config, appState);
 
 				// Load conversation list before WebSocket setup
 				const conversationResponse = appState.value.projectId
@@ -170,7 +170,7 @@ export function useChatState(
 				const conversations = conversationResponse.conversations;
 
 				// Get conversation ID from URL if it exists, or create a new one
-				const params = new URLSearchParams(window.location.search);
+				const params = new URLSearchParams(globalThis.location.search);
 				const urlConversationId = params.get('conversationId');
 				const conversationId = urlConversationId || chatState.value.conversationId ||
 					appState.value.conversationId || generateConversationId();
@@ -328,7 +328,7 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = async (data: { msgType: string; logEntryData: any }) => {
+		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) => p.projectId === appState.value.projectId);
 			if (!currentProject) return;
@@ -420,7 +420,7 @@ export function useChatState(
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				// Update project stats for token usage
-				const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
+				// const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
 				// await updateProjectStats(currentProject.projectId, {
 				// 	conversationCount: currentProject.stats?.conversationCount || 1,
 				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
@@ -450,7 +450,7 @@ export function useChatState(
 			}
 		};
 
-		const handleVersionInfo = (versionInfo: VersionInfo) => {
+		const handleVersionInfo = (_versionInfo: VersionInfo) => {
 			if (!mounted) return;
 			// Update local state
 			//chatState.value = {
@@ -699,7 +699,7 @@ export function useChatState(
 			}
 		},
 
-		clearConversation: async () => {
+		clearConversation: () => {
 			chatState.value = {
 				...chatState.value,
 				logEntries: [],

@@ -10,6 +10,7 @@ import type {
 	ConversationMetadata,
 	ConversationMetrics,
 	ConversationStats,
+	LLMRequestRecord,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
@@ -19,6 +20,7 @@ import type {
 //import type { LLMProviderSystem } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
+import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -45,6 +47,7 @@ class ConversationPersistence {
 	private projectInfoPath!: string;
 	private initialized: boolean = false;
 	private tokenUsagePersistence!: TokenUsagePersistence;
+	private llmRequestPersistence!: LLMRequestPersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
@@ -87,6 +90,7 @@ class ConversationPersistence {
 		this.resourcesPath = join(this.conversationDir, 'resources.json');
 
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationDir).init();
+		this.llmRequestPersistence = await new LLMRequestPersistence(this.conversationDir).init();
 
 		return this;
 	}
@@ -249,6 +253,16 @@ class ConversationPersistence {
 	async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
 		await this.ensureInitialized();
 		return this.tokenUsagePersistence.getUsage(type);
+	}
+
+	async writeLLMRequest(record: LLMRequestRecord): Promise<void> {
+		await this.ensureInitialized();
+		await this.llmRequestPersistence.writeLLMRequest(record);
+	}
+
+	async getLLMRequest(): Promise<LLMRequestRecord[]> {
+		await this.ensureInitialized();
+		return this.llmRequestPersistence.getLLMRequest();
 	}
 
 	async saveConversation(conversation: LLMConversationInteraction): Promise<void> {

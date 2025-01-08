@@ -12,6 +12,7 @@ import type { BbState } from 'api/types.ts';
 import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
+import { SessionManager } from './auth/session.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 
@@ -82,7 +83,19 @@ const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 	: useTls;
 //console.debug(`BB API starting at ${customHostname}:${customPort}`);
 
+// Initialize auth system
+const sessionManager = new SessionManager();
+await sessionManager.initialize();
+logger.info('Auth system initialized');
+
 const app = new Application<BbState>();
+
+// Set up app state
+app.state = {
+	auth: {
+		sessionManager,
+	},
+};
 
 app.use(oak_logger.logger);
 if (apiConfig.logLevel === 'debug') {

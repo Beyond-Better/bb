@@ -199,7 +199,7 @@ export default function Chat({
 
 			// Handle currently selected conversation
 			if (id === chatState.value.conversationId) {
-				await handlers.clearConversation();
+				handlers.clearConversation();
 				const url = new URL(globalThis.location.href);
 				url.searchParams.delete('conversationId');
 				const hash = globalThis.location.hash;

@@ -44,6 +44,7 @@ In a world where AI assistants are becoming commonplace, Beyond Better stands ou
 - **First-Class Project Discussions**: Makes conversations about your project as important as the changes themselves.
 - **Conversation Management**: Handles multiple conversations simultaneously for complex projects.
 - **Intelligent Tools**: Employs LLM tools for clear, purpose-driven interactions.
+- **Custom Tools**: Extend BB's capabilities with tools from the BB Tool Library or create your own.
 - **Web Page Fetching**: The `FetchWebPage` tool allows Beyond Better to retrieve content from web pages, providing additional context and information for the LLM to reference during conversations.
 - **Web Page Screenshot**: The `FetchWebScreenshot` tool enables Beyond Better to capture screenshots of web pages, allowing the LLM to analyze visual content when needed.
 - **Project-Wide Understanding**: Uses project file listing for initial project comprehension, with plans for advanced techniques like RAG and embeddings in the future.
@@ -148,6 +149,20 @@ After installation, you can start using Beyond Better as follows:
 
 On Windows, use `bb.exe` instead of `bb` when using the command line directly.
 
+## BB Tool Library
+
+BB supports extending its functionality through custom tools available in the BB Tool Library:
+
+- **Find Tools**: Browse and search for tools that enhance BB's capabilities
+- **Install Tools**: Easily add tools to your BB installation
+- **Create Tools**: Develop and publish your own tools using the @beyondbetter/tools package
+- **Share Tools**: Contribute to the BB community by sharing your tools
+
+For more information:
+- [Using Custom Tools](docs/user/guides/custom_tools.md)
+- [Publishing Tools](docs/development/guides/publishing_tools.md)
+- [Tool Library Reference](docs/development/reference/tool_library.md)
+
 ## Documentation
 
 For detailed information on how to use Beyond Better (BB), please refer to our documentation:
@@ -165,9 +180,9 @@ For detailed information on how to use Beyond Better (BB), please refer to our d
 
 ### Interface Documentation
 - [API Documentation](docs/API.md): Explore the Beyond Better API endpoints for integrating BB into your workflows or building custom tools
-- [BUI Documentation](docs/BUI.md): Learn about the planned Browser User Interface for Beyond Better
+- [BUI Documentation](docs/BUI.md): Learn about the Browser User Interface for Beyond Better
 - [CLI Documentation](docs/CLI.md): Understand how to use the Beyond Better Command Line Interface for various operations
-- [DUI Documentation](docs/DUI.md): Explore the future plans for the Desktop User Interface
+- [DUI Documentation](docs/DUI.md): Learn about the native application experience for managing the BB API server and services.
 
 These guides provide comprehensive information on Beyond Better's features, usage patterns, and best practices to help you make the most of this powerful tool. For a complete overview of available documentation, see our [Documentation Index](docs/README.md).
 

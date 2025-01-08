@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { RefObject } from 'preact/compat';
-import { dirname } from '@std/path';
+//import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
 import { ChatStatus, isProcessing } from '../types/chat.types.ts';
@@ -144,13 +144,13 @@ export function ChatInput({
 	const debouncedFetchSuggestions = (searchPath: string, forceShow: boolean = false) => {
 		// console.debug('ChatInput: Debouncing suggestion fetch', { searchPath, forceShow, tabState });
 		if (suggestionDebounceRef.current) {
-			window.clearTimeout(suggestionDebounceRef.current);
+			globalThis.clearTimeout(suggestionDebounceRef.current);
 		}
 		// If we're in suggestions mode but have no search path, use root
 		if (tabState === TabState.SUGGESTIONS && !searchPath) {
 			searchPath = '/';
 		}
-		suggestionDebounceRef.current = window.setTimeout(() => {
+		suggestionDebounceRef.current = globalThis.setTimeout(() => {
 			fetchSuggestions(searchPath, forceShow);
 		}, 150); // 150ms debounce delay
 	};
@@ -184,7 +184,7 @@ export function ChatInput({
 	useEffect(() => {
 		return () => {
 			if (suggestionDebounceRef.current) {
-				window.clearTimeout(suggestionDebounceRef.current);
+				globalThis.clearTimeout(suggestionDebounceRef.current);
 			}
 		};
 	}, []);
@@ -238,7 +238,7 @@ export function ChatInput({
 				setTabState(TabState.SUGGESTIONS);
 			}
 			// If we're in a directory, append a slash to show its contents
-			let searchPath = currentText;
+			const searchPath = currentText;
 			// if (currentText.endsWith('/') || currentText.endsWith('\\')) {
 			// 	console.debug('ChatInput: Directory path detected, showing contents');
 			// }
@@ -281,7 +281,7 @@ export function ChatInput({
 
 			// Handle tab based on current state
 			switch (tabState) {
-				case TabState.INITIAL:
+				case TabState.INITIAL: {
 					// First tab press - show suggestions
 					// console.debug('ChatInput: Initial tab with text:', currentSearchText);
 					setTabState(TabState.SUGGESTIONS);
@@ -302,8 +302,8 @@ export function ChatInput({
 						}
 					}
 					break;
-
-				case TabState.SUGGESTIONS:
+				}
+				case TabState.SUGGESTIONS: {
 					// console.debug('ChatInput: Tab in SUGGESTIONS state', {
 					// 	selectedIndex,
 					// 	suggestionCount: suggestions.length,
@@ -340,6 +340,7 @@ export function ChatInput({
 						setSelectedIndex(0);
 					}
 					break;
+				}
 			}
 			return;
 		}
@@ -456,8 +457,8 @@ export function ChatInput({
 			// For final selection, place cursor at end of the line
 			setTimeout(() => {
 				if (internalTextareaRef.current) {
-					const lines = newText.split('\n');
-					const lastLine = lines[lines.length - 1];
+					//const lines = newText.split('\n');
+					//const lastLine = lines[lines.length - 1];
 					const newPos: number = newText.length;
 					internalTextareaRef.current.setSelectionRange(newPos, newPos);
 				}

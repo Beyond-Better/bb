@@ -50,15 +50,15 @@ export function ColumnFileBrowser({
 	};
 
 	// Debug render
-	console.log('ColumnFileBrowser render:', {
-		currentPath: currentPath.value,
-		columnsCount: columns.value.length,
-		loading: loading.value,
-		rootPath,
-		error: error.value,
-		type,
-		defaultExpanded,
-	});
+	// console.log('ColumnFileBrowser render:', {
+	// 	currentPath: currentPath.value,
+	// 	columnsCount: columns.value.length,
+	// 	loading: loading.value,
+	// 	rootPath,
+	// 	error: error.value,
+	// 	type,
+	// 	defaultExpanded,
+	// });
 
 	useEffect(() => {
 		console.log('Initial load effect triggered with rootPath:', rootPath);

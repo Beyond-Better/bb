@@ -1,6 +1,6 @@
 /** @jsxImportSource preact */
 import type { JSX } from 'preact';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { colors } from 'cliffy/ansi/colors';
 
 // Helper functions for formatting
 const formatNumber = (num: number, opts: { minimumFractionDigits?: number; maximumFractionDigits?: number } = {}) => {
@@ -416,7 +416,7 @@ export const createToolSpeed = (value: number, unit: string, decimals = 1): JSX.
 
 // Create new tag functions for status/states
 export const createToolStatus = (
-	status: 'running' | 'completed' | 'failed' | 'pending',
+	status: 'running' | 'completed' | 'warning' | 'failed' | 'pending',
 	text?: string,
 ): JSX.Element => (
 	<span className={TOOL_STYLES_BROWSER.content.status[status]}>
@@ -483,7 +483,7 @@ export const createToolTruncated = (text: string, maxLength: number): JSX.Elemen
 );
 
 // Export a single object for tag functions
-export const TOOL_TAGS = {
+export const TOOL_TAGS_BROWSER = {
 	// base elements
 	base: {
 		container: createToolContent,

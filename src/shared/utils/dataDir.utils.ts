@@ -234,6 +234,24 @@ export async function removeFromBbDataDir(projectId: string, filename: string): 
 	}
 }
 
+export async function resolveProjectFilePath(projectId: string, filePath: string): Promise<string> {
+	if (filePath.startsWith('/')) {
+		return filePath;
+	}
+
+	const projectRoot = await getProjectRoot(projectId);
+	logger.info(`resolveProjectFilePath: checking ${filePath} in ${projectRoot}`);
+	if (projectRoot) {
+		const projectPath = join(projectRoot, filePath);
+		logger.info(`resolveProjectFilePath: checking ${projectPath}`);
+		if (await exists(projectPath)) {
+			return projectPath;
+		}
+	}
+
+	throw new Error(`File not found: ${filePath}`);
+}
+
 export async function resolveFilePath(filePath: string): Promise<string> {
 	if (filePath.startsWith('/')) {
 		return filePath;

@@ -9,6 +9,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 
 import { compare as compareVersions, parse as parseVersion } from '@std/semver';
 import { isAbsolute, join } from '@std/path';
@@ -48,6 +49,8 @@ class LLMToolManager {
 	private toolMetadata: Map<string, ToolMetadata> = new Map();
 	private loadedTools: Map<string, LLMTool> = new Map();
 	private projectConfig: ProjectConfig;
+	private bbDir: string | undefined;
+	private globalConfigDir: string | undefined;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 
 	constructor(
@@ -59,6 +62,8 @@ class LLMToolManager {
 	}
 
 	async init() {
+		this.bbDir = await getBbDir(this.projectConfig.projectId);
+		this.globalConfigDir = await getGlobalConfigDir();
 		await this.loadToolMetadata(this.projectConfig.settings.api?.userToolDirectories || []);
 
 		return this;
@@ -73,58 +78,79 @@ class LLMToolManager {
 		}
 
 		for (const directory of directories) {
-			logger.debug(`LLMToolManager: Checking ${directory} for tools`);
-			try {
-				if (!await exists(directory)) {
-					logger.debug(`LLMToolManager: Skipping ${directory} as it is does not exist`);
-					continue;
-				}
-				const directoryInfo = await Deno.stat(directory);
-				if (!directoryInfo.isDirectory) {
-					logger.debug(`LLMToolManager: Skipping ${directory} as it is not a directory`);
-					continue;
-				}
+			// For each directory, check both project root and global config locations
+			const dirsToCheck: string[] = [];
 
-				for await (const entry of Deno.readDir(directory)) {
-					if (entry.isDirectory && entry.name.endsWith('.tool')) {
-						try {
-							const toolPath = join(directory, entry.name);
-							const metadataInfoPath = join(toolPath, 'info.json');
-							const metadata: ToolMetadata = JSON.parse(await Deno.readTextFile(metadataInfoPath));
-							metadata.path = toolPath;
+			if (isAbsolute(directory)) {
+				dirsToCheck.push(directory);
+			} else {
+				// Add project bb path if available
+				if (this.bbDir) {
+					dirsToCheck.push(join(this.bbDir, directory));
+				}
+				// Add global config path if available
+				if (this.globalConfigDir) {
+					dirsToCheck.push(join(this.globalConfigDir, directory));
+				}
+			}
 
-							if (this.isToolInSet(metadata)) {
-								logger.debug(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
-								if (this.toolMetadata.has(metadata.name)) {
-									const existingMetadata = this.toolMetadata.get(metadata.name)!;
-									if (this.shouldReplaceExistingTool(existingMetadata, metadata)) {
-										this.toolMetadata.set(metadata.name, metadata);
+			// Process each resolved directory
+			for (const resolvedDir of dirsToCheck) {
+				//logger.info(`LLMToolManager: Checking ${resolvedDir} for tools`);
+				try {
+					if (!await exists(resolvedDir)) {
+						logger.info(`LLMToolManager: Skipping ${resolvedDir} as it does not exist`);
+						continue;
+					}
+					const directoryInfo = await Deno.stat(resolvedDir);
+					if (!directoryInfo.isDirectory) {
+						logger.info(`LLMToolManager: Skipping ${resolvedDir} as it is not a directory`);
+						continue;
+					}
+
+					for await (const entry of Deno.readDir(resolvedDir)) {
+						if (entry.isDirectory && entry.name.endsWith('.tool')) {
+							try {
+								const toolPath = join(resolvedDir, entry.name);
+								const metadataInfoPath = join(toolPath, 'info.json');
+								const metadata: ToolMetadata = JSON.parse(await Deno.readTextFile(metadataInfoPath));
+								metadata.path = toolPath;
+
+								if (this.isToolInSet(metadata)) {
+									//logger.info(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
+									if (this.toolMetadata.has(metadata.name)) {
+										const existingMetadata = this.toolMetadata.get(metadata.name)!;
+										if (this.shouldReplaceExistingTool(existingMetadata, metadata)) {
+											this.toolMetadata.set(metadata.name, metadata);
+										} else {
+											logger.warn(
+												`LLMToolManager: Tool ${metadata.name} has already been loaded and shouldn't be replaced`,
+											);
+										}
 									} else {
-										logger.warn(
-											`LLMToolManager: Tool ${metadata.name} has already been loaded and shouldn't be replaced`,
-										);
+										this.toolMetadata.set(metadata.name, metadata);
 									}
 								} else {
-									this.toolMetadata.set(metadata.name, metadata);
+									logger.warn(
+										`LLMToolManager: Tool ${entry.name} is not in tool set ${
+											Array.isArray(this.toolSet) ? this.toolSet.join(', ') : this.toolSet
+										}`,
+									);
 								}
-							} else {
-								logger.warn(
-									`LLMToolManager: Tool ${entry.name} is not in tool set ${
-										Array.isArray(this.toolSet) ? this.toolSet.join(', ') : this.toolSet
+							} catch (error) {
+								logger.error(
+									`LLMToolManager: Error loading tool metadata for ${entry.name}: ${
+										(error as Error).message
 									}`,
 								);
 							}
-						} catch (error) {
-							logger.error(
-								`LLMToolManager: Error loading tool metadata for ${entry.name}: ${
-									(error as Error).message
-								}`,
-							);
 						}
 					}
+				} catch (error) {
+					logger.error(
+						`LLMToolManager: Error processing directory ${directory}: ${(error as Error).message}`,
+					);
 				}
-			} catch (error) {
-				logger.error(`LLMToolManager: Error processing directory ${directory}: ${(error as Error).message}`);
 			}
 		}
 	}
@@ -161,7 +187,7 @@ class LLMToolManager {
 
 	async getTool(name: string): Promise<LLMTool | undefined> {
 		if (this.loadedTools.has(name)) {
-			//logger.info(`LLMToolManager: Returning cached ${name} tool`);
+			logger.info(`LLMToolManager: Returning cached ${name} tool`);
 			return this.loadedTools.get(name);
 		}
 
