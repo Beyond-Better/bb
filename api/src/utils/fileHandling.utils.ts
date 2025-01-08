@@ -92,7 +92,7 @@ export async function getExcludeOptions(projectRoot: string): Promise<string[]> 
 		join(projectRoot, '.bb', 'tags.ignore'),
 	];
 
-	const patterns = ['.bb/*', '.git/*'];
+	const patterns = ['.bb/*', '.git/*', '.trash/*'];
 	for (const file of excludeFiles) {
 		if (await exists(file)) {
 			const content = await Deno.readTextFile(file);

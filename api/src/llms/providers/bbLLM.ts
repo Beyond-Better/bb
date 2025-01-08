@@ -252,7 +252,7 @@ class BbLLM extends LLM {
 			system: systemPrompt,
 			tools,
 			model,
-			max_tokens: maxTokens,
+			maxTokens,
 			temperature,
 			usePromptCaching,
 		};
