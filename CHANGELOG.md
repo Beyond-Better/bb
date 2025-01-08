@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.6.0] - 2025-01-08
+
+### Added
+
 - user account with subscription plans
 - llm proxy to remove requirement for api key
 - support for external tools
