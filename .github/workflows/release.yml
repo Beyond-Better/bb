@@ -50,13 +50,20 @@ jobs:
           cd api
           deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
 
+      - name: Build BUI for ${{ matrix.target }}
+        run: |
+          cd bui
+          deno run -A --unstable-kv src/dev.ts build
+          deno compile --include src/static --include src/_fresh --include deno.jsonc --output ../build/bb-bui${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} -A src/main.ts
+
       - name: Create install script (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
         run: |
           echo '#!/bin/sh' > build/install.sh
           echo 'cp bb /usr/local/bin/' >> build/install.sh
           echo 'cp bb-api /usr/local/bin/' >> build/install.sh
-          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api' >> build/install.sh
+          echo 'cp bb-bui /usr/local/bin/' >> build/install.sh
+          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api /usr/local/bin/bb-bui' >> build/install.sh
           chmod +x build/install.sh
 
       - name: Copy README and INSTALL
