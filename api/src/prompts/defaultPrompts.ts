@@ -111,7 +111,7 @@ export const system: Prompt = {
 		  Project Details Status: ${
 			projectDetailsComplete
 				? 'Complete - includes a listing of all project files'
-				: `Partial - includes only a subset of files due to project size; IMPORTANT: use 'request files' tool to read files listed by ${myPersonsName}`
+				: `Partial - includes only a subset of files due to project size; IMPORTANT: use 'request files' tool to read files listed by ${myPersonsName}, even if they are not listed in project files`
 		}
 
 		  Conversation Caching Status: ${
