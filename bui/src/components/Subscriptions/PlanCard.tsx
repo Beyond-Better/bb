@@ -1,3 +1,5 @@
+import { Plan } from '../../types/subscription.ts';
+
 interface PlanCardProps {
 	plan: Plan;
 	isCurrentPlan: boolean;
@@ -36,7 +38,7 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 				)}
 			</div>
 			<ul class='mt-6 mb-8 space-y-4'>
-				{plan.plan_features?.features?.map((feature) => (
+				{plan.plan_features?.features?.map((feature: string) => (
 					<li class='flex items-start'>
 						<svg
 							class='flex-shrink-0 h-5 w-5 text-green-500 dark:text-green-400'
@@ -67,4 +69,3 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 		</div>
 	);
 }
-

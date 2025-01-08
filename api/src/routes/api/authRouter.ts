@@ -1,5 +1,5 @@
-import { Router } from "@oak/oak";
-import { handleLogin, handleLogout, handleStatus, handleCallback, handleSignup } from "./auth.handlers.ts";
+import { Router } from '@oak/oak';
+import { handleCallback, handleLogin, handleLogout, handleSignup, handleStatus } from './auth.handlers.ts';
 
 const router = new Router();
 
@@ -38,7 +38,7 @@ const router = new Router();
  *       400:
  *         description: Invalid request
  */
-router.post("/login", handleLogin);
+router.post('/login', handleLogin);
 
 /**
  * @openapi
@@ -57,7 +57,7 @@ router.post("/login", handleLogin);
  *                 success:
  *                   type: boolean
  */
-router.post("/logout", handleLogout);
+router.post('/logout', handleLogout);
 
 /**
  * @openapi
@@ -94,7 +94,7 @@ router.post("/logout", handleLogout);
  *       400:
  *         description: Invalid request
  */
-router.post("/signup", handleSignup);
+router.post('/signup', handleSignup);
 
 /**
  * @openapi
@@ -116,7 +116,7 @@ router.post("/signup", handleSignup);
  *                   type: object
  *                   nullable: true
  */
-router.get("/session", handleStatus);
+router.get('/session', handleStatus);
 
 /**
  * @openapi
@@ -145,6 +145,6 @@ router.get("/session", handleStatus);
  *       401:
  *         description: Invalid authorization code
  */
-router.post("/callback", handleCallback);
+router.post('/callback', handleCallback);
 
 export default router;

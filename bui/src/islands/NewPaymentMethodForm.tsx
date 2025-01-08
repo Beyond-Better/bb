@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { Stripe, StripeElements, StripeElementType, StripeError } from '@stripe/stripe-js';
+import type { StripeElement, StripeError } from '@stripe/stripe-js';
 import { useBillingState } from '../hooks/useBillingState.ts';
 
 interface NewPaymentMethodFormProps {
@@ -16,7 +16,7 @@ export default function NewPaymentMethodForm({
 	const { billingState, createPaymentElements } = useBillingState();
 	const [isProcessing, setIsProcessing] = useState(false);
 	const [message, setMessage] = useState('');
-	const [paymentElement, setPaymentElement] = useState<stripe.elements.Element | null>(null);
+	const [paymentElement, setPaymentElement] = useState<StripeElement | null>(null);
 
 	useEffect(() => {
 		let mounted = true;

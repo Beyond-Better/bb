@@ -50,7 +50,7 @@ export interface SubscriptionUsage {
 export interface SubscriptionResults {
 	subscription: Subscription;
 	usage: SubscriptionUsage;
-	PaymentMethods: PaymentMethod[];
+	paymentMethods: PaymentMethod[];
 }
 
 export interface BillingPreview {
@@ -71,7 +71,7 @@ export interface SubscriptionWithUsage extends Subscription {
 	usage?: SubscriptionUsage;
 }
 export interface SubscriptionWithUsageWithPaymentMethods extends SubscriptionWithUsage {
-	PaymentMethods: PaymentMethod[];
+	payment_methods: PaymentMethod[];
 }
 
 export interface BillingPreviewWithUsage extends BillingPreview {
@@ -79,16 +79,54 @@ export interface BillingPreviewWithUsage extends BillingPreview {
 }
 
 export interface PaymentMethod {
-	id: string;
+	payment_method_id: string;
+	stripe_payment_method_id: string;
 	type: string;
-	card?: {
-		brand: string;
-		last4: string;
-		exp_month: string;
-		exp_year: string;
-	};
-	isDefault: boolean;
+	// 	card?: {
+	// 		brand: string;
+	// 		last4: string;
+	// 		exp_month: string;
+	// 		exp_year: string;
+	// 	};
+	card_brand: string;
+	card_last4: string;
+	card_exp_month: string;
+	card_exp_year: string;
+	is_default: boolean;
 }
 export interface PaymentMethodResults {
-	PaymentMethods: PaymentMethod[];
+	paymentMethods: PaymentMethod[];
+}
+
+export interface BlockPurchase {
+	user_id: string;
+	product_id: string;
+	purchase_id: string;
+	subscription_id: string;
+	purchase_status: 'pending' | 'completed' | 'failed';
+	amount_usd: number;
+	tokens_added_at: string; // iso8601
+	created_at: string; // iso8601
+	updated_at: string; // iso8601
+}
+export interface BlockPurchaseResults {
+	token_purchase: BlockPurchase;
+}
+
+export interface PurchasesBalance {
+	balance: {
+		// Allowances
+		subscription_allowance_usd: number; // Monthly subscription allowance amount
+		block_allowance_usd: number; // Total purchased block allowance
+		total_allowance_usd: number; // Total available allowance (subscription + blocks)
+
+		// Usage
+		subscription_used_usd: number; // Amount used from subscription allowance
+		block_used_usd: number; // Amount used from purchased blocks
+		total_usage_usd: number; // Total usage across all sources
+
+		// Balance
+		remaining_usd: number; // Total remaining balance
+	};
+	purchases: Array<BlockPurchase>;
 }

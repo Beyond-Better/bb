@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import { createBrowserClient, createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr';
-import type { Session, SupabaseClient, User, EmailOtpType, VerifyTokenHashParams } from '@supabase/supabase-js';
+import type { EmailOtpType, Session, SupabaseClient, User, VerifyTokenHashParams } from '@supabase/supabase-js';
 
 import type { BuiConfig } from 'shared/config/v2/types.ts';
 import { AuthError, type AuthState, DUMMY_SESSION, DUMMY_USER } from '../types/auth.ts';
@@ -365,7 +365,7 @@ export function useAuthState(): {
 					user: data.user,
 					error: null,
 				};
-				return { user: data.user  }; //session: data.session
+				return { user: data.user }; //session: data.session
 			} catch (error) {
 				console.error('Sign up failed:', error);
 				authState.value = {

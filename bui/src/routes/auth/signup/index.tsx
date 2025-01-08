@@ -5,7 +5,7 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
 
 /*************
  * Use the POST handler if SignupForm is sending a traditional POST request
- * But we want error handling, password validation and other island behaviour 
+ * But we want error handling, password validation and other island behaviour
  * so SignupForm is calling signUp directly
  * leaving the POST handler for legacy reference - in case we need traditional behaviour for "dumb" clients
  *************/
@@ -13,18 +13,18 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
 // export const handler: Handlers = {
 // 	async POST(req) {
 // 		const { signUp } = useAuthState();
-// 
+//
 // 		const form = await req.formData();
 // 		const email = form.get('email')?.toString();
 // 		const password = form.get('password')?.toString();
-// 
+//
 // 		const resp = new Response(null, {
 // 			headers: {
 // 				location: `/auth/check-email?email=${encodeURIComponent(email)}`,
 // 			},
 // 			status: 302,
 // 		});
-// 
+//
 // 		try {
 // 			await signUp(req, resp, email, password);
 // 		} catch (error) {
@@ -35,7 +35,7 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
 // 				status: 302,
 // 			});
 // 		}
-// 
+//
 // 		return resp;
 // 	},
 // };
@@ -54,6 +54,3 @@ export default function SignupPage(_props: PageProps) {
 		</div>
 	);
 }
-
-
-

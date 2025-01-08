@@ -14,8 +14,8 @@ export default function Landing() {
 						Not just another AI assistant
 					</p>
 					<p class='mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400'>
-						Beyond Better (BB) is designed to be a true pair programmer, understanding your code at a deep level and helping
-						you write better code.
+						Beyond Better (BB) is designed to be a true pair programmer, understanding your code at a deep
+						level and helping you write better code.
 					</p>
 				</div>
 

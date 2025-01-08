@@ -99,7 +99,11 @@ class WebSocketChatHandler {
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
-			const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
+			const projectEditor = await projectEditorManager.getOrCreateEditor(
+				conversationId,
+				projectId,
+				sessionManager,
+			);
 
 			if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
 				logger.error(

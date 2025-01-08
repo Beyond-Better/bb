@@ -34,7 +34,6 @@ export const authPlugin = (buiConfig: BuiConfig): Plugin => {
 	};
 };
 
-
 async function setSessionState(req: Request, ctx: FreshContext) {
 	if (ctx.destination !== 'route') return await ctx.next();
 

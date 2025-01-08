@@ -24,8 +24,7 @@ import type {
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
-type AnthropicBlockParam =
-	| Anthropic.Messages.ContentBlockParam;
+type AnthropicBlockParam = Anthropic.Messages.ContentBlockParam;
 type AnthropicBlockParamOrString =
 	| string
 	| Anthropic.Messages.ContentBlockParam;
@@ -33,7 +32,7 @@ type AnthropicBlockParamOrArray =
 	| string
 	| Anthropic.Messages.ContentBlockParam
 	| Array<
-		| Anthropic.Messages.ContentBlockParam
+		Anthropic.Messages.ContentBlockParam
 	>;
 class AnthropicLLM extends LLM {
 	private anthropic!: Anthropic;

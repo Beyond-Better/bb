@@ -1,4 +1,4 @@
-import {  Signal } from '@preact/signals';
+import { Signal } from '@preact/signals';
 import LoginForm from './LoginForm.tsx';
 import { BBAppRequirement } from '../../components/auth/BBAppRequirement.tsx';
 import { useAuthState } from '../../hooks/useAuthState.ts';

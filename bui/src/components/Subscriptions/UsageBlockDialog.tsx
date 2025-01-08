@@ -2,17 +2,12 @@ import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { useAppState } from '../../hooks/useAppState.ts';
 import { useBillingState } from '../../hooks/useBillingState.ts';
+import { BlockPurchase, PaymentMethod } from '../../types/subscription.ts';
 
 interface UsageBlockDialogProps {
 	isOpen: boolean;
 	onClose: () => void;
-	existingPaymentMethod?: {
-		id: string;
-		card_brand: string;
-		card_last4: string;
-		card_exp_month: number;
-		card_exp_year: number;
-	};
+	existingPaymentMethod: PaymentMethod | null;
 }
 
 type UsageBlockStep = 'amount' | 'confirm' | 'processing';
@@ -128,13 +123,15 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 						return;
 					}
 
-					const tokenPurchases = await apiClient.listUsageBlocks();
-					console.log('UsageBlockDialog: tokenPurchases', tokenPurchases);
+					const purchasesBalance = await apiClient.listUsageBlocks();
+					console.log('UsageBlockDialog: purchasesBalance', purchasesBalance);
 
-					if (tokenPurchases && tokenPurchases.purchases.length > 0) {
+					if (purchasesBalance && purchasesBalance.purchases.length > 0) {
 						// Check if all purchases have completed status
-						const allCompleted = tokenPurchases.purchases.every(purchase => purchase.purchase_status === 'completed');
-						
+						const allCompleted = purchasesBalance.purchases.every((purchase: BlockPurchase) =>
+							purchase.purchase_status === 'completed'
+						);
+
 						if (!allCompleted) {
 							retries++;
 							const delay = baseDelay * Math.pow(2, retries - 1);
@@ -143,7 +140,7 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 						}
 						billingState.value = {
 							...billingState.value,
-							tokenPurchases,
+							purchasesBalance,
 						};
 						handleOnClose();
 

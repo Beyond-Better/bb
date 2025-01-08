@@ -1,6 +1,6 @@
 import { Router } from '@oak/oak';
 import billingRouter from './billingRouter.ts';
-import { changePlan, getCurrentSubscription, getPreview, cancelSubscription } from './subscription.handlers.ts';
+import { cancelSubscription, changePlan, getCurrentSubscription, getPreview } from './subscription.handlers.ts';
 
 const userRouter = new Router();
 
@@ -46,7 +46,6 @@ const userRouter = new Router();
  *             expYear:
  *               type: number
  */
-
 
 userRouter
 	.get('/subscription/current', getCurrentSubscription)

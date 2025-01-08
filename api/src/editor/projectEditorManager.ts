@@ -5,7 +5,11 @@ import type { SessionManager } from '../auth/session.ts';
 class ProjectEditorManager {
 	private projectEditors: Map<string, ProjectEditor> = new Map();
 
-	async getOrCreateEditor(conversationId: ConversationId | undefined, projectId: string, sessionManager: SessionManager): Promise<ProjectEditor> {
+	async getOrCreateEditor(
+		conversationId: ConversationId | undefined,
+		projectId: string,
+		sessionManager: SessionManager,
+	): Promise<ProjectEditor> {
 		if (conversationId && this.projectEditors.has(conversationId)) {
 			return this.projectEditors.get(conversationId)!;
 		}

@@ -6,21 +6,21 @@
  * Basic user information needed by clients
  */
 export interface AuthUser {
-  id: string;
-  email?: string;
+	id: string;
+	email?: string;
 }
 
 export interface AuthSession {
-  user: AuthUser;
-  access_token: string;
-  refresh_token: string;
-  expires_at?: number;
+	user: AuthUser;
+	access_token: string;
+	refresh_token: string;
+	expires_at?: number;
 }
 
 /**
  * Standardized error format for auth-related errors
  */
 export interface AuthError {
-  code: string;
-  message: string;
+	code: string;
+	message: string;
 }

@@ -1,12 +1,12 @@
 // Payment method and billing types for BB API
 
 export interface PaymentMethod {
-	id: string;           // Internal payment_method_id
-	stripeId: string;     // Stripe payment method ID
-	type: string;         // e.g., 'card'
+	id: string; // Internal payment_method_id
+	stripeId: string; // Stripe payment method ID
+	type: string; // e.g., 'card'
 	isDefault: boolean;
 	card: {
-		brand: string;      // e.g., 'visa'
+		brand: string; // e.g., 'visa'
 		last4: string;
 		expMonth: number;
 		expYear: number;
@@ -14,7 +14,7 @@ export interface PaymentMethod {
 }
 
 export interface SetupIntent {
-	clientSecret: string;  // Stripe setup intent client secret
+	clientSecret: string; // Stripe setup intent client secret
 	setupIntentId: string; // Stripe setup intent ID
 }
 
@@ -40,15 +40,15 @@ export interface Payment {
 }
 
 export interface UsageBlockPurchase {
-	amount: number;           // Amount of additional usage to purchase
+	amount: number; // Amount of additional usage to purchase
 	paymentMethodId?: string; // Optional - uses default if not provided
 }
 
 export interface UsageBlockResponse {
 	success: boolean;
-	newLimit: number;         // Updated max cost limit
-	purchaseAmount: number;   // Amount charged
-	effectiveDate: string;    // When the new limit takes effect
+	newLimit: number; // Updated max cost limit
+	purchaseAmount: number; // Amount charged
+	effectiveDate: string; // When the new limit takes effect
 }
 
 export interface UsageBlockList {

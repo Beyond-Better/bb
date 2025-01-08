@@ -22,7 +22,8 @@ export default function CheckEmailPage(props: PageProps) {
 					<div class='space-y-6'>
 						<div class='space-y-4'>
 							<p class='text-sm text-gray-600 dark:text-gray-400'>
-								Click the link in the email to verify your account. If you don't see the email, check your spam folder.
+								Click the link in the email to verify your account. If you don't see the email, check
+								your spam folder.
 							</p>
 
 							<div class='mt-6 text-center'>

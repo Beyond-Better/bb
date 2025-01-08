@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import type { StripeError } from '@stripe/stripe-js';
-import { BillingPreviewWithUsage, Plan } from '../../types/subscription.ts';
+import { BillingPreviewWithUsage, PaymentMethod, Plan } from '../../types/subscription.ts';
 import { useAppState } from '../../hooks/useAppState.ts';
 import { useBillingState } from '../../hooks/useBillingState.ts';
 import NewPaymentMethodForm from '../../islands/NewPaymentMethodForm.tsx';
@@ -14,14 +14,7 @@ interface PaymentFlowDialogProps {
 	selectedPlan: Plan;
 	currentPlan: Plan;
 	billingPreview: BillingPreviewWithUsage;
-	existingPaymentMethod?: {
-		payment_method_id: string;
-		stripe_payment_method_id: string;
-		card_brand: string;
-		card_last4: string;
-		card_exp_month: number;
-		card_exp_year: number;
-	};
+	existingPaymentMethod: PaymentMethod | null;
 }
 
 // Payment flow state signals

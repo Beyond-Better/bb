@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import type { StripeError } from '@stripe/stripe-js';
-import { BillingPreviewWithUsage, Plan } from '../types/subscription.ts';
+//import type { StripeError } from '@stripe/stripe-js';
+import { Plan } from '../types/subscription.ts';
 import { useAppState } from '../hooks/useAppState.ts';
 import { useBillingState } from '../hooks/useBillingState.ts';
 import PlanCard from '../components/Subscriptions/PlanCard.tsx';
@@ -148,37 +148,92 @@ export default function SubscriptionSettings() {
 							<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
 								<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Usage</h3>
 								<div class='flex flex-col flex-grow mt-4 ml-2 mr-6 space-y-4'>
+									{/* Allowance */}
 									<div class='flex items-center justify-between'>
-										<span class='text-sm text-gray-500 dark:text-gray-400'>Current Usage:</span>
-										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											${billingState.value.subscription.usage.currentUsage.costUsd.toFixed(2)} USD
+										<span
+											class='text-sm text-gray-500 dark:text-gray-400'
+											title='Total available allowance (subscription plan + purchased blocks)'
+										>
+											Allowance:
 										</span>
+										<div class='text-right'>
+											<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												${billingState.value.purchasesBalance?.balance.total_allowance_usd
+													?.toFixed(2)} USD
+											</span>
+											{billingState.value.purchasesBalance?.balance &&
+												billingState.value.purchasesBalance?.balance.block_allowance_usd > 0 &&
+												(
+													<div class='text-xs text-gray-500 dark:text-gray-400'>
+														(${billingState.value.purchasesBalance?.balance
+															.subscription_allowance_usd?.toFixed(2)}{' '}
+														plan + ${billingState.value.purchasesBalance?.balance
+															.block_allowance_usd?.toFixed(2)} blocks)
+													</div>
+												)}
+										</div>
 									</div>
+
+									<div class='border-t border-gray-200 dark:border-gray-700 my-4'></div>
+
+									{/* Usage */}
 									<div class='flex items-center justify-between'>
-										<span class='text-sm text-gray-500 dark:text-gray-400'>
-											Base Monthly Limit:
+										<span
+											class='text-sm text-gray-500 dark:text-gray-400'
+											title='Total usage across all sources (subscription + purchased blocks)'
+										>
+											Usage:
 										</span>
-										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											${billingState.value.subscription.usage.quotaLimits.base_cost_monthly
-												.toFixed(
+										<div class='text-right'>
+											<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												${billingState.value.purchasesBalance?.balance.total_usage_usd?.toFixed(
 													2,
 												)} USD
+											</span>
+											{billingState.value.purchasesBalance?.balance &&
+												billingState.value.purchasesBalance?.balance.block_used_usd > 0 && (
+												<div class='text-xs text-gray-500 dark:text-gray-400'>
+													(${billingState.value.purchasesBalance?.balance
+														.subscription_used_usd?.toFixed(2)}{' '}
+													plan + ${billingState.value.purchasesBalance?.balance.block_used_usd
+														?.toFixed(2)} blocks)
+												</div>
+											)}
+										</div>
+									</div>
+
+									<div class='border-t border-gray-200 dark:border-gray-700 my-4'></div>
+
+									{/* Final Balance */}
+									<div class='flex items-center justify-between'>
+										<span
+											class='text-sm text-gray-500 dark:text-gray-400'
+											title='Total available balance (subscription allowance + purchased blocks - usage)'
+										>
+											Remaining Balance:
+										</span>
+										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+											${billingState.value.purchasesBalance?.balance.remaining_usd?.toFixed(2)}
+											{' '}
+											USD
 										</span>
 									</div>
+
 									<div class='mt-4'>
 										<div class='h-2 mb-6 bg-gray-200 dark:bg-gray-500 rounded-full overflow-hidden'>
 											<div
 												class='h-full bg-blue-600 dark:bg-blue-500 rounded-full'
 												style={{
 													width: `${
-														Math.min(
-															(billingState.value.subscription.usage.currentUsage
-																.costUsd /
-																billingState.value.subscription.usage.quotaLimits
-																	.base_cost_monthly) *
+														billingState.value.purchasesBalance?.balance
+															? Math.min(
+																(billingState.value.purchasesBalance?.balance
+																	.total_usage_usd /
+																	billingState.value.purchasesBalance?.balance
+																		.total_allowance_usd) * 100,
 																100,
-															100,
-														)
+															)
+															: 0
 													}%`,
 												}}
 											>
@@ -186,12 +241,14 @@ export default function SubscriptionSettings() {
 										</div>
 									</div>
 								</div>
-								<button
-									onClick={() => showUsageBlockDialog.value = true}
-									class='mt-auto w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
-								>
-									Purchase Usage Block
-								</button>
+								{billingState.value.subscription.plan.plan_name === 'Usage' && (
+									<button
+										onClick={() => showUsageBlockDialog.value = true}
+										class='mt-auto w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
+									>
+										Purchase Usage Block
+									</button>
+								)}
 							</div>
 						)}
 
@@ -220,7 +277,7 @@ export default function SubscriptionSettings() {
 														onClick={async () => {
 															try {
 																await appState.value.apiClient?.removePaymentMethod(
-																	billingState.value.defaultPaymentMethod
+																	billingState.value.defaultPaymentMethod!
 																		.payment_method_id,
 																);
 																await updatePaymentMethods();

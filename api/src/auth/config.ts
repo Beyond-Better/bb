@@ -49,12 +49,15 @@ export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay:
 	const configManager = await ConfigManagerV2.getInstance();
 	const globalConfig = await configManager.getGlobalConfig();
 	//logger.info(`AuthConfig: Fetching Supabase config from:`, globalConfig.api.supabaseConfigUrl);
+	//const configUrl = globalConfig.api.supabaseConfigUrl || 'https://localhost:8080/api/config/supabase';
 	const configUrl = globalConfig.api.supabaseConfigUrl || 'https://chat.beyondbetter.dev/api/config/supabase';
 	const { maxRetries, retryDelay } = options;
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			logger.info(`AuthConfig: Fetching Supabase config from BUI [${configUrl}] (attempt ${attempt}/${maxRetries})`);
+			logger.info(
+				`AuthConfig: Fetching Supabase config from BUI [${configUrl}] (attempt ${attempt}/${maxRetries})`,
+			);
 
 			const response = await fetch(configUrl);
 			if (!response.ok) {

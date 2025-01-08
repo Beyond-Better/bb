@@ -22,7 +22,7 @@ interface TabPanelProps {
 
 export function Tabs({ tabs, activeTab, children }: TabsProps) {
 	return (
-		<div class="w-full flex flex-col min-w-0">
+		<div class='w-full flex flex-col min-w-0'>
 			{/* Tab Navigation */}
 			<div class='w-full border-b border-gray-200 dark:border-gray-700 overflow-x-auto'>
 				<nav class='-mb-px flex space-x-8 whitespace-nowrap px-4' aria-label='Settings navigation'>
@@ -72,7 +72,7 @@ export function Tabs({ tabs, activeTab, children }: TabsProps) {
 
 			{/* Tab Panels Container */}
 			<div class='mt-6 w-full min-w-0 overflow-x-auto'>
-				<div class="w-full min-w-[640px] px-4">
+				<div class='w-full min-w-[640px] px-4'>
 					{children}
 				</div>
 			</div>
@@ -82,7 +82,7 @@ export function Tabs({ tabs, activeTab, children }: TabsProps) {
 
 export function TabPanel({ id, activeTab, children }: TabPanelProps) {
 	if (activeTab.value !== id) return null;
-	
+
 	return (
 		<div
 			role='tabpanel'

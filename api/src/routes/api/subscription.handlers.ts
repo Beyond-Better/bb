@@ -186,7 +186,7 @@ export async function cancelSubscription(ctx: Context) {
 
 		ctx.response.body = {
 			success: true,
-			subscription: data as Subscription
+			subscription: data as Subscription,
 		};
 	} catch (err) {
 		console.error('Error canceling subscription:', err);

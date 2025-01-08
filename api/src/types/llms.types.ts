@@ -49,18 +49,18 @@ export const GroqModels = [
 ];
 
 export const BbModels = [
-// 	AnthropicModel.CLAUDE_3_HAIKU,
-// 	AnthropicModel.CLAUDE_3_SONNET,
-// 	AnthropicModel.CLAUDE_3_5_SONNET,
-// 	AnthropicModel.CLAUDE_3_OPUS,
-// 	OpenAIModel.GPT_4o,
-// 	OpenAIModel.GPT_4_TURBO,
-// 	OpenAIModel.GPT_4,
-// 	OpenAIModel.GPT_35_TURBO,
-// 	GroqModel.GROQ_LLAMA3_8B,
-// 	GroqModel.GROQ_LLAMA3_70B,
-// 	GroqModel.GROQ_MIXTRAL_8X7B,
-// 	GroqModel.GROQ_GEMMA_7B,
+	// 	AnthropicModel.CLAUDE_3_HAIKU,
+	// 	AnthropicModel.CLAUDE_3_SONNET,
+	// 	AnthropicModel.CLAUDE_3_5_SONNET,
+	// 	AnthropicModel.CLAUDE_3_OPUS,
+	// 	OpenAIModel.GPT_4o,
+	// 	OpenAIModel.GPT_4_TURBO,
+	// 	OpenAIModel.GPT_4,
+	// 	OpenAIModel.GPT_35_TURBO,
+	// 	GroqModel.GROQ_LLAMA3_8B,
+	// 	GroqModel.GROQ_LLAMA3_70B,
+	// 	GroqModel.GROQ_MIXTRAL_8X7B,
+	// 	GroqModel.GROQ_GEMMA_7B,
 ];
 
 export enum LLMProvider {
@@ -150,7 +150,6 @@ export interface LLMMessageStop {
 		| null;
 	stopSequence: string | null;
 }
-
 
 export interface LLMProviderMessageResponseMeta {
 	statusCode: number;
@@ -264,8 +263,6 @@ export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<inf
 export type LLMCallbacks = {
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
-
-
 
 export interface BBLLMResponseMetadata {
 	model: string;

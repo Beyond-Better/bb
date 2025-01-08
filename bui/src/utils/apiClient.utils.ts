@@ -8,15 +8,16 @@ import type { Session, User } from '../types/auth.ts';
 import type {
 	BillingPreviewResults,
 	BillingPreviewWithUsage,
+	BlockPurchase,
+	BlockPurchaseResults,
 	PaymentMethod,
 	PaymentMethodResults,
 	Plan,
 	PlanResults,
+	PurchasesBalance,
 	SubscriptionResults,
 	SubscriptionWithUsage,
 	SubscriptionWithUsageWithPaymentMethods,
-	UsageBlockResponse,
-	UsageBlockList,
 } from '../types/subscription.ts';
 
 export interface AuthResponse {
@@ -238,7 +239,7 @@ export class ApiClient {
 	async createPaymentIntent(params: {
 		amount: number;
 		subscription_id: string;
-		purchase_id: string;
+		purchase_id: string | null;
 		payment_type: 'subscription' | 'token_purchase';
 		stripe_payment_method_id: string;
 		source?: string;
@@ -280,7 +281,7 @@ export class ApiClient {
 		planId: string,
 		paymentMethodId: string | null,
 	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
-		const data: { plan_id: string; payment_method_id: string | null } = {
+		const data: { planId: string; payment_method_id: string | null } = {
 			planId,
 			payment_method_id: paymentMethodId,
 		};
@@ -308,8 +309,8 @@ export class ApiClient {
 	}
 
 	// Usage Block Purchase
-	async purchaseUsageBlock(amount: number, paymentMethodId: string): Promise<UsageBlockResponse | null> {
-		const results = await this.post<UsageBlockResponse>('/api/v1/user/billing/usage/purchase', {
+	async purchaseUsageBlock(amount: number, paymentMethodId: string): Promise<BlockPurchase | null> {
+		const results = await this.post<BlockPurchaseResults>('/api/v1/user/billing/usage/purchase', {
 			amount,
 			paymentMethodId,
 		});
@@ -317,8 +318,8 @@ export class ApiClient {
 	}
 
 	// Usage Block List
-	async listUsageBlocks(): Promise<UsageBlockList | null> {
-		return await this.get<UsageBlockList>('/api/v1/user/billing/usage/blocks');
+	async listUsageBlocks(): Promise<PurchasesBalance | null> {
+		return await this.get<PurchasesBalance>('/api/v1/user/billing/usage/blocks');
 	}
 
 	// Auth Methods

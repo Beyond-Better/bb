@@ -26,7 +26,7 @@ const protectedPaths = [
 	'/v1/conversation/*',
 	'/v1/project/*',
 	'/v1/files/*',
-	'/v1/user/*',  // Protect all user routes including subscription
+	'/v1/user/*', // Protect all user routes including subscription
 ];
 
 apiRouter

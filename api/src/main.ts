@@ -93,8 +93,8 @@ const app = new Application<BbState>();
 // Set up app state
 app.state = {
 	auth: {
-		sessionManager
-	}
+		sessionManager,
+	},
 };
 
 app.use(oak_logger.logger);

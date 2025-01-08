@@ -1,7 +1,13 @@
 import { signal } from '@preact/signals';
 import { loadStripe } from '@stripe/stripe-js';
-import type { Stripe, StripeElements, StripeElementsOptions, StripeError } from '@stripe/stripe-js';
-import type { BillingPreviewWithUsage, PaymentMethod, Plan, SubscriptionWithUsage } from '../types/subscription.ts';
+import type { Stripe, StripeElements, StripeElementsOptions } from '@stripe/stripe-js';
+import type {
+	BillingPreviewWithUsage,
+	PaymentMethod,
+	Plan,
+	PurchasesBalance,
+	SubscriptionWithUsage,
+} from '../types/subscription.ts';
 import { useAppState } from './useAppState.ts';
 
 // Error Types
@@ -37,6 +43,7 @@ interface BillingLoadingState {
 	subscription: boolean;
 	plans: boolean;
 	paymentMethods: boolean;
+	purchasesBalance: boolean;
 	preview: boolean;
 	planChange: boolean;
 	paymentSetup: boolean;
@@ -46,6 +53,7 @@ interface BillingLoadingState {
 interface BillingState {
 	subscription: SubscriptionWithUsage | null;
 	availablePlans: Plan[];
+	purchasesBalance: PurchasesBalance | null;
 	selectedPlan: Plan | null;
 	paymentMethods: PaymentMethod[];
 	defaultPaymentMethod: PaymentMethod | null;
@@ -60,6 +68,7 @@ const initialLoadingState: BillingLoadingState = {
 	subscription: false,
 	plans: false,
 	paymentMethods: false,
+	purchasesBalance: false,
 	preview: false,
 	planChange: false,
 	paymentSetup: false,
@@ -68,6 +77,7 @@ const initialLoadingState: BillingLoadingState = {
 const initialBillingState: BillingState = {
 	subscription: null,
 	availablePlans: [],
+	purchasesBalance: null,
 	selectedPlan: null,
 	paymentMethods: [],
 	defaultPaymentMethod: null,
@@ -144,18 +154,22 @@ export function useBillingState() {
 					subscription: true,
 					plans: true,
 					paymentMethods: true,
+					purchasesBalance: true,
 				},
 				paymentFlowError: null,
 			};
 
-			const [subscription, plans, paymentMethods] = await Promise.all([
+			const [subscription, plans, paymentMethods, purchasesBalance] = await Promise.all([
 				apiClient.getCurrentSubscription(),
 				apiClient.getAvailablePlans(),
 				apiClient.listPaymentMethods(),
+				apiClient.listUsageBlocks(),
+				apiClient.listUsageBlocks(),
 			]);
 			console.log('useBillingState: subscription', subscription);
+			console.log('useBillingState: purchasesBalance', purchasesBalance);
 
-			const defaultPaymentMethod = paymentMethods?.find((pm) => pm.is_default) || null;
+			const defaultPaymentMethod = paymentMethods?.find((pm: PaymentMethod) => pm.is_default) || null;
 			console.log('useBillingState: paymentMethods', paymentMethods);
 			console.log('useBillingState: defaultPaymentMethod', defaultPaymentMethod);
 
@@ -163,6 +177,7 @@ export function useBillingState() {
 				...billingState.value,
 				subscription: subscription || null,
 				availablePlans: plans || [],
+				purchasesBalance,
 				paymentMethods: paymentMethods || [],
 				defaultPaymentMethod,
 				loading: {
@@ -170,6 +185,7 @@ export function useBillingState() {
 					subscription: false,
 					plans: false,
 					paymentMethods: false,
+					purchasesBalance: false,
 				},
 			};
 		} catch (error) {
@@ -180,6 +196,7 @@ export function useBillingState() {
 					subscription: false,
 					plans: false,
 					paymentMethods: false,
+					purchasesBalance: false,
 				},
 				paymentFlowError: handleError(error, 'Failed to load billing data', 'api_error'),
 			};
@@ -311,7 +328,6 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-
 			console.log('useBillingState: changing plan with paymentMethodId: ', paymentMethodId);
 			// Change plan - ABI will handle the payment success via webhook
 			const newSubscription = await apiClient.changePlan(planId, paymentMethodId);
@@ -331,6 +347,7 @@ export function useBillingState() {
 				await apiClient.createPaymentIntent({
 					amount: proratedAmount,
 					subscription_id: newSubscription?.subscription_id || '',
+					purchase_id: null,
 					payment_type: 'subscription',
 					stripe_payment_method_id: paymentMethodId,
 					source: 'useBillingState:changePlan',
