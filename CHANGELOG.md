@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - docs shuffle
 - updated deps (including Anthropic SDK with GA prompt caching)
+- improved prompting to encourage use of request_files tool
 
 ### Fixed
 

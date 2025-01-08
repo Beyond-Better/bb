@@ -145,5 +145,20 @@
 √ update prompt cache points
 √ DUI:
 √  - API control
+√ Update docs on bb-site
+√ - direct download of DUI
+√ - update install instructions
+√ - docs for using DUI
+√   - project management
+√   - conversation selector
+√   - re-state to keep conversations short
+√ - explain that using (most) browsers requires API to be secure (TLS)
+√ Tool to open file (widget) in browser
 
+√ Subscriptions and plans (& billing)
+√ LLM Proxy for tracking token usage per user
+√ Change plans
+√ Exclude .trash from file searching
+√ Stripe subscriptions
+√ View Usage
 
