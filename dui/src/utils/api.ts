@@ -37,9 +37,10 @@ export async function startServer(): Promise<ServerStartResult> {
 
 export async function stopServer(): Promise<boolean> {
     // Stop BUI first, then API
-    const buiStopped = await invoke<boolean>('stop_bui');
+    //const buiStopped = await invoke<boolean>('stop_bui');
     const apiStopped = await invoke<boolean>('stop_api');
-    return buiStopped && apiStopped;
+    //return buiStopped && apiStopped;
+    return apiStopped;
 }
 
 export async function checkServerStatus(): Promise<ServerStatus> {

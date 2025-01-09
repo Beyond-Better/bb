@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use dirs;
 use log::{debug, error};
 
-
 pub const APP_NAME: &str = "dev.beyondbetter.app";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -35,9 +34,6 @@ pub struct ApiConfig {
     pub port: u16,
     #[serde(default)]
     pub tls: TlsConfig,
-    #[serde(rename(serialize = "maxTurns", deserialize = "maxTurns"))]
-    #[serde(default)]
-    pub max_turns: u32,
     #[serde(default)]
     pub log_level: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -52,22 +48,8 @@ pub struct ApiConfig {
     pub user_tool_directories: Vec<String>,
     #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
     pub tool_configs: serde_json::Value,
-    #[serde(rename(serialize = "llmKeys", deserialize = "llmKeys"))]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub llm_keys: Option<LlmKeys>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-pub struct LlmKeys {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub anthropic: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub openai: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub voyageai: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -85,10 +67,6 @@ pub struct BuiConfig {
     pub log_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
-	// #[serde(rename = "supabaseUrl")]
-	// pub supabase_url: String,
-	// #[serde(rename = "supabaseAnonKey")]
-	// pub supabase_anon_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -123,12 +101,6 @@ pub struct CliConfig {
 pub struct GlobalConfig {
     #[serde(default)]
     pub version: String,
-    #[serde(rename(serialize = "myPersonsName", deserialize = "myPersonsName"))]
-    #[serde(default)]
-    pub my_persons_name: String,
-    #[serde(rename(serialize = "myAssistantsName", deserialize = "myAssistantsName"))]
-    #[serde(default)]
-    pub my_assistants_name: String,
     #[serde(rename = "noBrowser")]
     #[serde(default)]
     pub no_browser: bool,
@@ -151,9 +123,6 @@ pub struct GlobalConfig {
     pub bb_bui_exe_name: String,
 }
 
-// Platform-specific log path helper
-
-
 impl Default for TlsConfig {
     fn default() -> Self {
         TlsConfig {
@@ -174,7 +143,6 @@ impl Default for ApiConfig {
             hostname: "localhost".to_string(),  // Hardcode to match TypeScript default
             port: 3162,
             tls: TlsConfig::default(),  // Will have useTls: false by default
-            max_turns: 25,
             log_level: "info".to_string(),
             log_file: get_default_log_path("api.log"),  // Platform-specific log path
             log_file_hydration: false,
@@ -182,7 +150,6 @@ impl Default for ApiConfig {
             use_prompt_caching: true,
             user_tool_directories: vec!["./tools".to_string()],
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),
-            llm_keys: None,
             environment: None,
         }
     }
@@ -190,16 +157,12 @@ impl Default for ApiConfig {
 
 impl Default for BuiConfig {
     fn default() -> Self {
-        //let mut tls = TlsConfig::default();
-        //tls.use_tls = true;  // BUI uses TLS by default
         BuiConfig {
             hostname: "localhost".to_string(),
             port: 8080,  // Default BUI port
             tls: TlsConfig::default(),  // Will have useTls: false by default
             log_level: "info".to_string(),
             log_file: get_default_log_path("bui.log"),  // Platform-specific log path
-			// supabase_url: "https://asyagnmzoxgyhqprdaky.supabase.co".to_string(),
-			// supabase_anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzeWFnbm16b3hneWhxcHJkYWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzMzAxMTQsImV4cCI6MjA1MTkwNjExNH0.sgTu1ig0B5O946KRqix4wV-nUrv3ktNrI1ulOabXxmw".to_string(),
             environment: None,
         }
     }
@@ -230,8 +193,6 @@ impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
             version: "2.0.0".to_string(),  // Match TypeScript default
-            my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
-            my_assistants_name: "Claude".to_string(),
             no_browser: false,
             api: ApiConfig::default(),
             bui: BuiConfig::default(),
@@ -298,7 +259,6 @@ pub fn get_global_config_dir() -> Result<PathBuf, std::io::Error> {
 pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> {
     let config_dir = get_global_config_dir()?;
     let config_path = config_dir.join("config.yaml");
-    //debug!("Attempting to read config from: {:?}", config_path);
     
     // Check if config directory exists
     if !config_dir.exists() {
@@ -312,10 +272,8 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
     // Try to read the config file
     match fs::read_to_string(&config_path) {
         Ok(contents) => {
-            //debug!("Successfully read config file, contents:\n{}", contents);
             match serde_yaml::from_str(&contents) {
                 Ok(config) => {
-                    //debug!("Successfully parsed config: {:?}", config);
                     Ok(config)
                 }
                 Err(e) => {
