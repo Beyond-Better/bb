@@ -6,14 +6,14 @@ use tauri::command;
 
 use crate::config::read_global_config;
 
-const PID_FILE_NAME: &str = "api.pid";
+const PID_FILE_NAME: &str = "bui.pid";
 const APP_NAME: &str = "dev.beyondbetter.app";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiStatusCheck {
     pub pid_exists: bool,
     pub process_responds: bool,
-    pub api_responds: bool,
+    pub bui_responds: bool,
     pub pid: Option<i32>,
     pub error: Option<String>,
 }
@@ -56,7 +56,7 @@ fn get_pid_file_path() -> Result<PathBuf, String> {
     Ok(get_app_runtime_dir()?.join(PID_FILE_NAME))
 }
 
-pub async fn save_api_pid(pid: i32) -> Result<(), String> {
+pub async fn save_bui_pid(pid: i32) -> Result<(), String> {
     let pid_file = get_pid_file_path()?;
     fs::write(&pid_file, pid.to_string())
         .map_err(|e| format!("Failed to write PID file: {}", e))
@@ -113,7 +113,7 @@ fn check_process_exists(pid: i32) -> bool {
     }
 }
 
-async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
+async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
     let scheme = if use_tls { "https" } else { "http" };
     let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
     
@@ -133,13 +133,13 @@ async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
 }
 
 #[command]
-pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
+pub async fn check_bui_status() -> Result<ApiStatusCheck, String> {
     println!("Checking Server status...");
     
     let mut status = ApiStatusCheck {
         pid_exists: false,
         process_responds: false,
-        api_responds: false,
+        bui_responds: false,
         pid: None,
         error: None,
     };
@@ -155,19 +155,19 @@ pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
             status.pid_exists = check_process_exists(pid);
             println!("Process exists: {}", status.pid_exists);
 
-            // Level 3: Check if API endpoint responds
+            // Level 3: Check if BUI endpoint responds
             if status.pid_exists {
                 let config = read_global_config()
                     .map_err(|e| format!("Failed to read global config: {}", e))?;
                 
-                println!("Checking Server endpoint at {}:{}", config.api.hostname, config.api.port);
-                match check_api_responds(
-                    &config.api.hostname,
-                    config.api.port,
-                    config.api.tls.use_tls
+                println!("Checking Server endpoint at {}:{}", config.bui.hostname, config.bui.port);
+                match check_bui_responds(
+                    &config.bui.hostname,
+                    config.bui.port,
+                    config.bui.tls.use_tls
                 ).await {
                     Ok(responds) => {
-                        status.api_responds = responds;
+                        status.bui_responds = responds;
                         status.process_responds = responds;
                         println!("Server responds: {}", responds);
                     }
@@ -186,21 +186,21 @@ pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
     Ok(status)
 }
 
-pub async fn reconcile_api_pid_state() -> Result<(), String> {
-    let status = check_api_status().await?;
+pub async fn reconcile_bui_pid_state() -> Result<(), String> {
+    let status = check_bui_status().await?;
     let pid = get_pid().await?;
 
     if !status.pid_exists && pid.is_some() {
         // PID file exists but process doesn't - clean up
         remove_pid().await?;
-    } else if status.pid_exists && !status.api_responds {
-        // Process exists but API doesn't respond - potential zombie
+    } else if status.pid_exists && !status.bui_responds {
+        // Process exists but BUI doesn't respond - potential zombie
         println!("Server process exists but is not responding. Consider restarting.");
-    } else if status.api_responds && pid.is_none() {
-        // API responds but no PID file - recover state if possible
+    } else if status.bui_responds && pid.is_none() {
+        // BUI responds but no PID file - recover state if possible
         if let Some(pid) = status.pid {
             println!("Recovering PID file with process ID: {}", pid);
-            save_api_pid(pid).await?;
+            save_bui_pid(pid).await?;
         }
     }
 

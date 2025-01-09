@@ -2,10 +2,12 @@ import { PageProps } from '$fresh/server.ts';
 import { Head } from '$fresh/runtime.ts';
 import { Partial } from '$fresh/runtime.ts';
 import SideNav from '../islands/SideNav.tsx';
-import { useAuthState } from '../hooks/useAuthState.ts';
-import { User } from '../types/auth.ts';
+import AuthContext from '../islands/AuthContext.tsx';
+//import { useAuthState } from '../hooks/useAuthState.ts';
+//import { User } from '../types/auth.ts';
+import type { BuiConfig } from 'shared/config/v2/types.ts';
 
-// List of routes that don't have SideNav
+// List of routes that don't have SideNav or auth protection
 export const CUSTOM_PATHS = [
 	'/doctor',
 	'/auth/',
@@ -36,9 +38,8 @@ const PageHead = ({ title }: PageHeadProps) => {
 	);
 };
 
-//export default async function App(req: Request, ctx: RouteContext) {
 export default function App({ Component, url, state }: PageProps) {
-	const { authState } = useAuthState();
+	//const { authState } = useAuthState();
 
 	// Pages that use a custom layout
 	const isCustomPage = isCustomPath(url.pathname);
@@ -54,27 +55,26 @@ export default function App({ Component, url, state }: PageProps) {
 		);
 	}
 
-	authState.value = {
-		...authState.value,
-		user: state.user as User,
-	};
+	//authState.value = {
+	//	...authState.value,
+	//	user: state.user as User,
+	//};
 
-	// Standard layout with navigation
+	// Standard layout with navigation and auth protection
 	return (
 		<html>
 			<PageHead title='Beyond Better' />
 			<body class='overflow-hidden dark:bg-gray-900' f-client-nav>
-				<div class='flex h-screen bg-gray-50 dark:bg-gray-900'>
-					{/* Side Navigation with app state initialization */}
-					<SideNav authState={authState} currentPath={url.pathname} />
-
-					{/* Main content area - updates via Partials */}
-					<div class='flex-1 flex flex-col overflow-hidden'>
-						<Partial name='page-content'>
-							<Component />
-						</Partial>
+				<AuthContext buiConfig={state.buiConfig as BuiConfig}>
+					<div class='flex h-screen bg-gray-50 dark:bg-gray-900'>
+						<SideNav currentPath={url.pathname} />
+						<div class='flex-1 flex flex-col overflow-hidden'>
+							<Partial name='page-content'>
+								<Component />
+							</Partial>
+						</div>
 					</div>
-				</div>
+				</AuthContext>
 			</body>
 		</html>
 	);

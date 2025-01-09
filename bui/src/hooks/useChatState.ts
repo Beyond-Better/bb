@@ -235,7 +235,7 @@ export function useChatState(
 				if (!mounted) return;
 
 				// Provide user-friendly error messages
-				let errorMessage = 'Failed to initialize chat';
+				let errorMessage = 'Failed to initialize chat - create or select a project';
 				if ((error as Error).message.includes('timeout')) {
 					errorMessage = 'Connection timed out. Please check your network and try again.';
 				} else if ((error as Error).message.includes('WebSocket')) {

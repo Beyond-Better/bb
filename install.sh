@@ -78,8 +78,9 @@ esac
 # Check for existing system installation
 system_bb="/usr/local/bin/bb"
 system_api="/usr/local/bin/bb-api"
+system_bui="/usr/local/bin/bb-bui"
 has_system_install=false
-if [ -f "$system_bb" ] || [ -f "$system_api" ]; then
+if [ -f "$system_bb" ] || [ -f "$system_api" ] || [ -f "$system_bui" ]; then
     has_system_install=true
 fi
 
@@ -133,15 +134,15 @@ tar xzf "$temp_dir/bb.tar.gz" -C "$temp_dir"
 # ls -la "$temp_dir"
 
 # Make binaries executable
-chmod +x "$temp_dir/bb" "$temp_dir/bb-api"
+chmod +x "$temp_dir/bb" "$temp_dir/bb-api" "$temp_dir/bb-bui"
 
 # Install binaries
-echo "${YELLOW}Installing 'bb' and 'bb-api' to $install_dir...${NC}"
+echo "${YELLOW}Installing 'bb', 'bb-api' and 'bb-bui' to $install_dir...${NC}"
 if [ "$need_sudo" = true ]; then
     echo "${RED}Note: This step requires sudo access. You may be prompted for your password.${NC}"
-    sudo mv "$temp_dir/bb" "$temp_dir/bb-api" "$install_dir/"
+    sudo mv "$temp_dir/bb" "$temp_dir/bb-api" "$temp_dir/bb-bui" "$install_dir/"
 else
-    mv "$temp_dir/bb" "$temp_dir/bb-api" "$install_dir/"
+    mv "$temp_dir/bb" "$temp_dir/bb-api" "$temp_dir/bb-bui" "$install_dir/"
     # Remove system installation if it exists
     if [ "$has_system_install" = true ]; then
         echo "${YELLOW}Removing system-wide installation...${NC}"
@@ -152,11 +153,14 @@ else
         if [ -f "$system_api" ]; then
             sudo rm "$system_api"
         fi
+        if [ -f "$system_bui" ]; then
+            sudo rm "$system_bui"
+        fi
         echo "${GREEN}System-wide installation removed successfully${NC}"
     fi
 fi
 
-echo "${YELLOW}'bb' and 'bb-api' have been successfully installed to $install_dir${NC}"
+echo "${YELLOW}'bb', 'bb-api' and 'bb-bui' have been successfully installed to $install_dir${NC}"
 
 # Update PATH for user installation
 if [ "$need_sudo" = false ]; then

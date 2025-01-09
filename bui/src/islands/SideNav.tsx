@@ -1,5 +1,5 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
-import { Signal, signal } from '@preact/signals';
+import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import { useState } from 'preact/hooks';
 
@@ -14,12 +14,10 @@ import { Toast } from '../components/Toast.tsx';
 import { StatusDialog } from '../components/Status/StatusDialog.tsx';
 import { UserMenu } from '../components/auth/UserMenu.tsx';
 
-import { AuthState } from '../types/auth.ts';
 import { useAuthState } from '../hooks/useAuthState.ts';
 
 interface SideNavProps {
 	currentPath?: string;
-	authState: Signal<AuthState>;
 }
 
 interface NavItem {
@@ -72,16 +70,14 @@ if (IS_BROWSER) {
 	});
 }
 
-export default function SideNav({ authState: authStateProp, currentPath: _currentPath = '/' }: SideNavProps) {
+export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProps) {
 	const [showToast, setShowToast] = useState(false);
 	const [showStatus, setShowStatus] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const appState = useAppState();
 	const { authState } = useAuthState();
 	const { versionCompatibility } = useVersion();
-	//console.log('SideNav: authStateProp', authStateProp.value);
-	authState.value = authStateProp.value;
-	//console.log('SideNav: authState', authState.value);
+	if (IS_BROWSER) console.log('AuthContext: authState', authState.value);
 
 	// Update path when URL changes
 	useEffect(() => {

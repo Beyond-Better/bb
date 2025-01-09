@@ -1,35 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from './config.ts';
 import { logger } from 'shared/logger.ts';
+import { KVStorage } from '../../../src/shared/storage/kvStorage.ts';
 import type { Session, SupabaseConfig } from '../types/auth.ts';
 
 /**
  * Manages Supabase authentication session
- * - Initializes Supabase client with Deno Storage
+ * - Initializes Supabase client with Deno KV Storage
  * - Handles session refresh
  * - Manages single auth session
  */
 export class SessionManager {
 	private supabaseClient: ReturnType<typeof createClient> | null = null;
 	private config: SupabaseConfig | null = null;
-	private storage: Storage;
+	private storage: KVStorage;
 
 	constructor() {
-		// Use Deno's built-in Storage API
-		this.storage = localStorage; // Use persistent storage
+		// Initialize KVStorage with auth-specific settings
+		this.storage = new KVStorage({
+			prefix: 'supabase_auth:',
+			filename: 'auth.kv', // Store auth data in separate file
+		});
 	}
 
 	/**
 	 * Initialize the session manager
+	 * - Initializes KV storage
 	 * - Fetches Supabase config
 	 * - Sets up Supabase client with storage
 	 * - Starts auto refresh
 	 */
 	async initialize(): Promise<void> {
 		try {
+			// Initialize KV storage first
+			await this.storage.initialize();
+
 			this.config = await fetchSupabaseConfig();
 			logger.info('SessionManager: initialized with config: ', this.config);
 
+			// Create Supabase client with our storage
 			this.supabaseClient = createClient(this.config.url, this.config.anonKey, {
 				auth: {
 					storage: this.storage,
@@ -38,11 +47,9 @@ export class SessionManager {
 					detectSessionInUrl: false, // API handles auth callbacks differently
 				},
 			});
-			//logger.info('SessionManager: initialized with supabaseClient: ', this.supabaseClient);
 
 			// Enable auto refresh
 			await this.supabaseClient.auth.startAutoRefresh();
-
 			logger.info('SessionManager: initialized successfully');
 		} catch (error) {
 			logger.error('SessionManager: Failed to initialize SessionManager:', error);
@@ -82,7 +89,7 @@ export class SessionManager {
 
 		try {
 			await this.supabaseClient.auth.signOut();
-			this.storage.clear();
+			await this.storage.clear();
 			logger.info('SessionManager: Session cleared successfully');
 		} catch (error) {
 			logger.error('SessionManager: Error clearing session:', error);
@@ -98,14 +105,11 @@ export class SessionManager {
 			await this.supabaseClient.auth.stopAutoRefresh();
 			this.supabaseClient = null;
 		}
-		this.storage.clear();
+		await this.storage.clear();
+		await this.storage.close(); // Ensure proper cleanup
 		this.config = null;
 	}
 
-	/**
-	 * Get the Supabase client instance
-	 * Throws if not initialized
-	 */
 	/**
 	 * Get the verification URL for email signups
 	 * Throws if not initialized

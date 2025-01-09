@@ -1,6 +1,6 @@
 import { PageProps } from '$fresh/server.ts';
 import VerifyContent from '../../../islands/auth/VerifyContent.tsx';
-import { useAuthState } from '../../../hooks/useAuthState.ts';
+//import { useAuthState } from '../../../hooks/useAuthState.ts';
 
 // export const handler: Handlers = {
 // 	async GET(req) {
@@ -50,11 +50,10 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
 // };
 
 export default function VerifyPage(_props: PageProps) {
-	const { authState } = useAuthState();
 	return (
 		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
 			<div class='flex-1 flex flex-col overflow-hidden'>
-				<VerifyContent authState={authState} />
+				<VerifyContent />
 			</div>
 		</div>
 	);

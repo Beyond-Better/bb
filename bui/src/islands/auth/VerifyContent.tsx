@@ -1,17 +1,13 @@
-import { Signal, useSignal } from '@preact/signals';
+import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import type { EmailOtpType } from '@supabase/supabase-js';
 import { useAuthState } from '../../hooks/useAuthState.ts';
-import { AuthState } from '../../types/auth.ts';
+//import { AuthState } from '../../types/auth.ts';
 
-interface VerifyContentProps {
-	authState: Signal<AuthState>;
-}
-
-export default function VerifyContent({ authState: authStateProp }: VerifyContentProps) {
+// interface VerifyContentProps {}
+// export default function VerifyContent(_props: VerifyContentProps) {
+export default function VerifyContent() {
 	const { authState, verifyOtp } = useAuthState();
-	//console.log('VerifyContent: authStateProp', authStateProp.value);
-	authState.value = authStateProp.value;
 	//console.log('VerifyContent: authState', authState.value);
 
 	const isError = useSignal(false);

@@ -79,6 +79,16 @@ pub struct BuiConfig {
     pub port: u16,
     #[serde(default)]
     pub tls: TlsConfig,
+    #[serde(default)]
+    pub log_level: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub log_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
+	// #[serde(rename = "supabaseUrl")]
+	// pub supabase_url: String,
+	// #[serde(rename = "supabaseAnonKey")]
+	// pub supabase_anon_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -136,6 +146,9 @@ pub struct GlobalConfig {
     #[serde(rename = "bbApiExeName")]
     #[serde(default)]
     pub bb_api_exe_name: String,
+    #[serde(rename = "bbBuiExeName")]
+    #[serde(default)]
+    pub bb_bui_exe_name: String,
 }
 
 // Platform-specific log path helper
@@ -163,7 +176,7 @@ impl Default for ApiConfig {
             tls: TlsConfig::default(),  // Will have useTls: false by default
             max_turns: 25,
             log_level: "info".to_string(),
-            log_file: get_default_log_path(),  // Platform-specific log path
+            log_file: get_default_log_path("api.log"),  // Platform-specific log path
             log_file_hydration: false,
             ignore_llm_request_cache: false,
             use_prompt_caching: true,
@@ -177,12 +190,17 @@ impl Default for ApiConfig {
 
 impl Default for BuiConfig {
     fn default() -> Self {
-        let mut tls = TlsConfig::default();
-        tls.use_tls = true;  // BUI uses TLS by default
+        //let mut tls = TlsConfig::default();
+        //tls.use_tls = true;  // BUI uses TLS by default
         BuiConfig {
             hostname: "localhost".to_string(),
-            port: 8000,  // Default BUI port
-            tls,
+            port: 8080,  // Default BUI port
+            tls: TlsConfig::default(),  // Will have useTls: false by default
+            log_level: "info".to_string(),
+            log_file: get_default_log_path("bui.log"),  // Platform-specific log path
+			// supabase_url: "https://asyagnmzoxgyhqprdaky.supabase.co".to_string(),
+			// supabase_anon_key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFzeWFnbm16b3hneWhxcHJkYWt5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYzMzAxMTQsImV4cCI6MjA1MTkwNjExNH0.sgTu1ig0B5O946KRqix4wV-nUrv3ktNrI1ulOabXxmw".to_string(),
+            environment: None,
         }
     }
 }
@@ -221,18 +239,19 @@ impl Default for GlobalConfig {
             dui: DuiConfig::default(),
             bb_exe_name: if cfg!(target_os = "windows") { "bb.exe".to_string() } else { "bb".to_string() },
             bb_api_exe_name: if cfg!(target_os = "windows") { "bb-api.exe".to_string() } else { "bb-api".to_string() },
+            bb_bui_exe_name: if cfg!(target_os = "windows") { "bb-bui.exe".to_string() } else { "bb-bui".to_string() },
         }
     }
 }
 
-pub fn get_default_log_path() -> Option<String> {
+pub fn get_default_log_path(filename: &str) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
         dirs::home_dir().map(|home| {
             home.join("Library")
                 .join("Logs")
                 .join(APP_NAME)
-                .join("api.log")
+                .join(filename)
                 .to_string_lossy()
                 .into_owned()
         })
@@ -244,7 +263,7 @@ pub fn get_default_log_path() -> Option<String> {
             PathBuf::from(program_data)
                 .join(APP_NAME)
                 .join("logs")
-                .join("api.log")
+                .join(filename)
                 .to_string_lossy()
                 .into_owned()
         })
@@ -252,7 +271,7 @@ pub fn get_default_log_path() -> Option<String> {
 
     #[cfg(target_os = "linux")]
     {
-        Some(format!("/var/log/{}/api.log", APP_NAME.to_lowercase()))
+        Some(format!("/var/log/{}/{}", APP_NAME.to_lowercase(), filename))
     }
 }
 
@@ -324,11 +343,23 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
 pub async fn get_api_config() -> Result<ApiConfig, String> {
     match read_global_config() {
         Ok(config) => {
-            //debug!("Returning API config with max_turns: {}", config.api.max_turns);
             Ok(config.api)
         },
         Err(e) => {
             error!("Failed to read config for API config: {}", e);
+            Err(format!("Failed to read config: {}", e))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_bui_config() -> Result<BuiConfig, String> {
+    match read_global_config() {
+        Ok(config) => {
+            Ok(config.bui)
+        },
+        Err(e) => {
+            error!("Failed to read config for BUI config: {}", e);
             Err(format!("Failed to read config: {}", e))
         }
     }

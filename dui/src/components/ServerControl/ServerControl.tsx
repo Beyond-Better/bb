@@ -1,27 +1,19 @@
 import { useEffect, useState } from 'preact/hooks';
-import { ApiConfig, ApiStatus } from '../../types/api';
-
-interface ApiStartResult {
-	success: boolean;
-	pid: number | null;
-	error: string | null;
-	requires_settings: boolean;
-}
+import { GlobalConfig, ServerStartResult, ServerStatus, ServiceStartResult } from '../../types/api';
 import { open } from '@tauri-apps/plugin-shell';
-//import { getCurrent } from '@tauri-apps/api/window';
 import { getAllWebviewWindows, PhysicalPosition, PhysicalSize, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { load } from '@tauri-apps/plugin-store';
 import { generateWebviewBuiUrl } from '../../utils/url';
 import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
-import { checkApiStatus, getApiConfig, getApiLogPath, startApi, stopApi } from '../../utils/api';
+import { checkServerStatus, getApiLogPath, getBuiLogPath, getGlobalConfig, startServer, stopServer } from '../../utils/api';
 
 // Constants for polling intervals
 const NORMAL_POLL_INTERVAL = 15000; // 15 seconds for normal operation
 const STARTUP_POLL_INTERVAL = 500; // 500ms during startup/status changes
 
 interface ServerControlProps {
-	onStatusChange?: (status: ApiStatus) => void;
+	onStatusChange?: (status: ServerStatus) => void;
 	onConnectionChange?: (isConnected: boolean) => void;
 	onNavigate: (path: string) => void;
 }
@@ -36,25 +28,42 @@ interface WindowState {
 
 export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }: ServerControlProps) {
 	const { debugMode } = useDebugMode();
-	const [status, setStatus] = useState<ApiStatus>({
-		pid_exists: false,
-		process_responds: false,
-		api_responds: false,
-		pid: null,
-		error: null,
+	const [status, setStatus] = useState<ServerStatus>({
+		api: {
+			pid_exists: false,
+			process_responds: false,
+			service_responds: false,
+			pid: null,
+			error: null,
+		},
+		bui: {
+			pid_exists: false,
+			process_responds: false,
+			service_responds: false,
+			pid: null,
+			error: null,
+		},
+		all_services_ready: false,
 	});
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [startupPhase, setStartupPhase] = useState<string>('');
-	const [apiConfig, setApiConfig] = useState<ApiConfig | null>(null);
+	const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
 	const [apiLogPath, setApiLogPath] = useState<string | null>(null);
+	const [buiLogPath, setBuiLogPath] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
 	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
 	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
 	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
-	const [chatWindowState, setChatWindowState] = useState<WindowState>({width: 800,height: 600,x: 50,y: 50,scaleFactor: 1});
+	const [chatWindowState, setChatWindowState] = useState<WindowState>({
+		width: 800,
+		height: 600,
+		x: 50,
+		y: 50,
+		scaleFactor: 1,
+	});
 
 	// Check initial window state
 	useEffect(() => {
@@ -70,12 +79,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		checkWindow();
 	}, []);
 
-	// Update BUI URL when apiConfig or debug mode changes
+	// Update BUI URL when globalConfig or debug mode changes
 	useEffect(async () => {
 		const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
 		setDirectBuiUrl(direct);
 		// Set proxy target based on debug mode
-		if (apiConfig && !apiConfig.tls.useTls) {
+		if (globalConfig?.api && !globalConfig.api.tls.useTls) {
 			try {
 				await setProxyTarget(direct);
 				console.debug('Set proxy target to:', direct);
@@ -84,11 +93,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			}
 		}
 
-		console.debug('URL effect triggered with:', { apiConfig, debugMode });
-		if (apiConfig) {
-			if (!apiConfig.tls.useTls) {
+		console.debug('URL effect triggered with:', { globalConfig, debugMode });
+		if (globalConfig?.api) {
+			const apiConfig = globalConfig.api;
+			if (!globalConfig.api.tls.useTls) {
 				// Only get proxy info if TLS is disabled
-				console.debug('Getting proxy info...', { apiConfig, debugMode });
+				console.debug('Getting proxy info...', { globalConfig, debugMode });
 				try {
 					console.debug('About to call getProxyInfo...');
 					const proxyInfo = await getProxyInfo();
@@ -116,7 +126,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, debugMode }));
 			}
 		}
-	}, [apiConfig, debugMode]);
+	}, [globalConfig, debugMode]);
 
 	const [isVisible, setIsVisible] = useState(true);
 
@@ -132,10 +142,10 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		};
 	}, []);
 
-	// Reload chat window when API status changes (including TLS changes)
+	// Reload chat window when server status changes (including TLS changes)
 	useEffect(() => {
 		const reloadChatWindow = async () => {
-			if (status.api_responds && webviewBuiUrl) {
+			if (status.all_services_ready && webviewBuiUrl) {
 				console.debug('Reloading BB Chat with webview URL:', webviewBuiUrl);
 				try {
 					await handleReloadChat();
@@ -146,7 +156,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		};
 
 		reloadChatWindow();
-	}, [status.api_responds, webviewBuiUrl]);
+	}, [status.all_services_ready, webviewBuiUrl]);
 
 	useEffect(() => {
 		const init = async () => {
@@ -157,13 +167,18 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				console.error('Failed to get API log path:', err);
 			}
 			try {
-				const apiConfig = await getApiConfig();
-				//console.log('apiConfig', apiConfig);
-				setApiConfig(apiConfig);
+				const logPath = await getBuiLogPath();
+				setBuiLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get BUI log path:', err);
+			}
+			try {
+				const config = await getGlobalConfig();
+				setGlobalConfig(config);
 
 				// Initial status check
-				const status = await checkApiStatus();
-				// Note: Auto-start removed to allow manual control via toggle
+				const status = await checkServerStatus();
+				setStatus(status);
 			} catch (err) {
 				setError(`Failed to load server configuration: ${err}`);
 			}
@@ -197,21 +212,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			onStatusChange(status);
 		}
 		if (onConnectionChange) {
-			onConnectionChange(status.process_responds);
+			onConnectionChange(status.all_services_ready);
 		}
 	}, [status, onStatusChange, onConnectionChange]);
 
 	const updateStatus = async () => {
 		try {
-			const apiStatus = await checkApiStatus();
-			setStatus(apiStatus);
+			const serverStatus = await checkServerStatus();
+			setStatus(serverStatus);
 
-			// Clear error if API is responding
-			if (apiStatus.api_responds) {
+			// Clear error if all services are ready
+			if (serverStatus.all_services_ready) {
 				setError(null);
 				setPollingInterval(NORMAL_POLL_INTERVAL);
-			} else if (apiStatus.error) {
-				setError(apiStatus.error);
+			} else if (serverStatus.api.error || serverStatus.bui.error) {
+				setError(serverStatus.api.error || serverStatus.bui.error);
 				// Use faster polling when there are issues
 				setPollingInterval(STARTUP_POLL_INTERVAL);
 			}
@@ -221,11 +236,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			// Use faster polling when there are issues
 			setPollingInterval(STARTUP_POLL_INTERVAL);
 			setStatus({
-				pid_exists: false,
-				process_responds: false,
-				api_responds: false,
-				pid: null,
-				error: err.message || 'Unknown error',
+				api: {
+					pid_exists: false,
+					process_responds: false,
+					service_responds: false,
+					pid: null,
+					error: err.message || 'Unknown error',
+				},
+				bui: {
+					pid_exists: false,
+					process_responds: false,
+					service_responds: false,
+					pid: null,
+					error: err.message || 'Unknown error',
+				},
+				all_services_ready: false,
 			});
 		}
 	};
@@ -234,18 +259,20 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		setIsLoading(true);
 		setError(null);
 		try {
-			if (status.api_responds) {
-				setStartupPhase('Stopping Server...');
+			if (status.all_services_ready) {
+				setStartupPhase('Stopping Services...');
 				await handleStopServer();
 			} else {
-				setStartupPhase('Starting Server...');
+				setStartupPhase('Starting Services...');
 				await handleStartServer();
 			}
 			// Force an immediate status check
 			await updateStatus();
 		} catch (err) {
 			console.error('Toggle error:', err);
-			setError(`Failed to ${status.api_responds ? 'stop' : 'start'} server: ${err.message || 'Unknown error'}`);
+			setError(
+				`Failed to ${status.all_services_ready ? 'stop' : 'start'} services: ${err.message || 'Unknown error'}`,
+			);
 		} finally {
 			setIsLoading(false);
 			setStartupPhase('');
@@ -264,39 +291,39 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		const maxAttempts = 25; // 5 seconds with 200ms intervals
 
 		try {
-			// Start the API process
-			const result = await startApi();
-			if (result.requires_settings) {
-				setError(result.error || 'Configuration required');
-				setStartupPhase('Configuration needed');
-				navigateToSettings();
-				return;
-			}
-			if (!result.success) {
-				throw new Error(result.error || 'Failed to start server');
+			// Start both services
+			const result = await startServer();
+			if (!result.all_services_ready) {
+				if (result.api.requires_settings || result.bui.requires_settings) {
+					setError('Configuration required');
+					setStartupPhase('Configuration needed');
+					navigateToSettings();
+					return;
+				}
+				throw new Error(result.api.error || result.bui.error || 'Failed to start services');
 			}
 
-			// Wait for API to become responsive
-			setStartupPhase('Waiting for Server...');
+			// Wait for services to become responsive
+			setStartupPhase('Waiting for Services...');
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				await new Promise((resolve) => setTimeout(resolve, STARTUP_POLL_INTERVAL));
-				const status = await checkApiStatus();
+				const status = await checkServerStatus();
 
-				if (status.api_responds) {
-					setStartupPhase('Server is ready');
+				if (status.all_services_ready) {
+					setStartupPhase('Services are ready');
 					setPollingInterval(NORMAL_POLL_INTERVAL);
 					return;
 				}
 
 				// Update phase with attempt count
-				setStartupPhase(`Waiting for Server (${attempt + 1}/${maxAttempts})...`);
+				setStartupPhase(`Waiting for Services (${attempt + 1}/${maxAttempts})...`);
 			}
 
-			// If we get here, API didn't respond in time
-			throw new Error('Server process started but not responding after 5 seconds');
+			// If we get here, services didn't respond in time
+			throw new Error('Services started but not responding after 5 seconds');
 		} catch (err) {
-			console.error('Start server error:', err);
-			setError(`Failed to start server: ${err.message || 'Unknown error'}`);
+			console.error('Start services error:', err);
+			setError(`Failed to start services: ${err.message || 'Unknown error'}`);
 			// Try to get current status
 			await updateStatus();
 		}
@@ -304,34 +331,34 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	const handleStopServer = async () => {
 		setError(null);
-		setStartupPhase('Stopping Server...');
+		setStartupPhase('Stopping Services...');
 		setPollingInterval(STARTUP_POLL_INTERVAL);
 		const maxAttempts = 25; // 5 seconds with 200ms intervals
 
 		try {
-			// Stop the API process
-			await stopApi();
+			// Stop both services
+			await stopServer();
 
-			// Wait for API to stop responding
+			// Wait for services to stop responding
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				await new Promise((resolve) => setTimeout(resolve, STARTUP_POLL_INTERVAL));
-				const status = await checkApiStatus();
+				const status = await checkServerStatus();
 
-				if (!status.api_responds) {
-					setStartupPhase('Server stopped');
+				if (!status.api.service_responds && !status.bui.service_responds) {
+					setStartupPhase('Services stopped');
 					setPollingInterval(NORMAL_POLL_INTERVAL);
 					return;
 				}
 
 				// Update phase with attempt count
-				setStartupPhase(`Waiting for Server to stop (${attempt + 1}/${maxAttempts})...`);
+				setStartupPhase(`Waiting for Services to stop (${attempt + 1}/${maxAttempts})...`);
 			}
 
-			// If we get here, API is still responding
-			throw new Error('Server process stop requested but Server is still responding after 5 seconds');
+			// If we get here, services are still responding
+			throw new Error('Services stop requested but still responding after 5 seconds');
 		} catch (err) {
-			console.error('Stop server error:', err);
-			setError(`Failed to stop server: ${err.message || 'Unknown error'}`);
+			console.error('Stop services error:', err);
+			setError(`Failed to stop services: ${err.message || 'Unknown error'}`);
 			// Try to get current status
 			await updateStatus();
 		}
@@ -384,9 +411,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	const handleReloadChat = async () => {
 		const setupWindowListeners = (window: WebviewWindow) => {
-			// Save window state on move and resize
-
-			// Update window state on standard events
 			window.once('tauri://created', () => {
 				console.log('BB Chat window created');
 				setIsChatWindowOpen(true);
@@ -395,10 +419,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				console.error('Error creating BB Chat window:', e);
 				setIsChatWindowOpen(false);
 			});
-			//window.once('tauri://close-requested', async () => {
-			//	console.log('BB Chat window closed');
-			//	await saveWindowState(window);
-			//});
 			window.once('tauri://destroyed', () => {
 				console.log('BB Chat window closed');
 				setIsChatWindowOpen(false);
@@ -409,28 +429,13 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			window.listen('tauri://resize', async () => {
 				await saveWindowState(window);
 			});
-			// window.once('tauri://move', (payload: position) => {
-			// 	console.log('BB Chat window moved', position);
-			// });
-			// window.once('tauri://resize', (payload: size) => {
-			// 	console.log('BB Chat window resized', size);
-			// });
-
-			//   WINDOW_RESIZED = 'tauri://resize',
-			//   WINDOW_MOVED = 'tauri://move',
-			//   WINDOW_FOCUS = 'tauri://focus',
-			//   WINDOW_BLUR = 'tauri://blur',
-			// const unlisten = await getCurrentWindow().onMoved(({ payload: position }) => {
-			//  console.log('Window moved', position);
-			// });
-			// const unlisten = await getCurrentWindow().onResized(({ payload: size }) => {
-			//  console.log('Window resized', size);
-			// });
 		};
-		if (!status.api_responds) {
-			console.debug('API not responding, skipping chat reload');
+
+		if (!status.all_services_ready) {
+			console.debug('Services not ready, skipping chat reload');
 			return;
 		}
+
 		console.info('Reloading BB Chat with webview URL:', webviewBuiUrl);
 		try {
 			const windows = await getAllWebviewWindows();
@@ -475,16 +480,16 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							<input
 								type='checkbox'
 								className='sr-only peer'
-								checked={status.api_responds}
+								checked={status.all_services_ready}
 								onChange={toggleServer}
 								disabled={isLoading}
 							/>
 							<div
 								className={`relative w-14 h-7 bg-gray-200 rounded-full peer 
-								dark:bg-gray-700 peer-checked:after:translate-x-full 
-								after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
-								after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
-								peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
+                                dark:bg-gray-700 peer-checked:after:translate-x-full 
+                                after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
+                                after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
+                                peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
 							>
 							</div>
 						</label>
@@ -492,14 +497,14 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							className={`ml-4 px-3 py-1 rounded-full font-medium text-sm ${
 								isLoading
 									? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-									: status.api_responds
+									: status.all_services_ready
 									? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
 									: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
 							}`}
 						>
 							{isLoading
 								? (startupPhase || 'Processing...')
-								: status.api_responds
+								: status.all_services_ready
 								? 'Running'
 								: 'Stopped'}
 						</div>
@@ -534,12 +539,14 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
-					{apiConfig && (
+					{globalConfig && (
 						<button
 							onClick={handleReloadChat}
-							disabled={!status.api_responds}
+							disabled={!status.all_services_ready}
 							className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-								status.api_responds ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+								status.all_services_ready
+									? 'bg-blue-600 hover:bg-blue-700'
+									: 'bg-gray-400 cursor-not-allowed'
 							} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
 						>
 							<svg
@@ -578,7 +585,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						</div>
 					)}
 				</div>
-				{ /* <span className='font-medium text-sm text-gray-600 dark:text-gray-300 p-3'>{ `${chatWindowState.width} x ${chatWindowState.height} [${chatWindowState.x} / ${chatWindowState.y}] @ ${chatWindowState.scaleFactor}` }</span> */ }
 			</div>
 
 			{/* Error Message */}
@@ -606,42 +612,69 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				</button>
 
 				{showAdvanced && (
-					<div className='mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4 grid gap-4'>
-						{/* Configuration Info */}
-						{apiConfig && (
-							<div className='grid grid-cols-6 gap-y-4'>
-								<div className='font-bold'>Host:</div>
-								<div>{apiConfig.hostname}</div>
-								<div className='font-bold'>Port:</div>
-								<div>{apiConfig.port}</div>
-								<div className='font-bold'>TLS:</div>
-								<div>{apiConfig.tls?.useTls ? 'Enabled' : 'Disabled'}</div>
-								<div className='font-bold'>Server Status:</div>
-								<div>{status.api_responds ? 'Ready' : 'Not ready'}</div>
-								<div className='font-bold'>Process Status:</div>
-								<div>{status.process_responds ? 'Responding' : 'Not responding'}</div>
-								<div className='font-bold'>Process ID:</div> <div>{status.pid || 'Not running'}</div>
-								{apiLogPath && (
-									<>
-										<div className='font-bold'>Server Log:</div>
-										<div className='col-span-5'>{apiLogPath}</div>
-									</>
-								)}
-								{proxyInfo && !apiConfig.tls.useTls
-									? (
+					<div className='mt-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-4'>
+						{globalConfig && (
+							<div className='grid gap-4'>
+								{/* API Status */}
+								<div className='grid grid-cols-6 gap-y-4'>
+									<div className='col-span-6 font-bold text-lg mb-2'>API Status</div>
+									<div className='font-bold'>Host:</div>
+									<div>{globalConfig.api.hostname}</div>
+									<div className='font-bold'>Port:</div>
+									<div>{globalConfig.api.port}</div>
+									<div className='font-bold'>TLS:</div>
+									<div>{globalConfig.api.tls.useTls ? 'Enabled' : 'Disabled'}</div>
+									<div className='font-bold'>Server Status:</div>
+									<div>{status.api.service_responds ? 'Ready' : 'Not ready'}</div>
+									<div className='font-bold'>Process Status:</div>
+									<div>{status.api.process_responds ? 'Responding' : 'Not responding'}</div>
+									<div className='font-bold'>Process ID:</div>
+									<div>{status.api.pid || 'Not running'}</div>
+									{apiLogPath && (
 										<>
-											<div className='font-bold'>Proxy Port:</div>
-											<div>{proxyInfo.port}</div>
-											<div className='font-bold'>Proxy Target:</div>
-											<div className='col-span-3'>{proxyInfo.target}</div>
-										</>
-									)
-									: (
-										<>
-											<div className='font-bold'>Proxy:</div>
-											<div>disabled</div>
+											<div className='font-bold'>Server Log:</div>
+											<div className='col-span-5'>{apiLogPath}</div>
 										</>
 									)}
+									{proxyInfo && !globalConfig.api.tls.useTls
+										? (
+											<>
+												<div className='font-bold'>Proxy Port:</div>
+												<div>{proxyInfo.port}</div>
+												<div className='font-bold'>Proxy Target:</div>
+												<div className='col-span-3'>{proxyInfo.target}</div>
+											</>
+										)
+										: (
+											<>
+												<div className='font-bold'>Proxy:</div>
+												<div>disabled</div>
+											</>
+										)}
+								</div>
+
+								{/* BUI Status */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-2'>BUI Status</div>
+									<div className='font-bold'>Host:</div>
+									<div>{globalConfig.bui.hostname}</div>
+									<div className='font-bold'>Port:</div>
+									<div>{globalConfig.bui.port}</div>
+									<div className='font-bold'>TLS:</div>
+									<div>{globalConfig.bui.tls.useTls ? 'Enabled' : 'Disabled'}</div>
+									<div className='font-bold'>Server Status:</div>
+									<div>{status.bui.service_responds ? 'Ready' : 'Not ready'}</div>
+									<div className='font-bold'>Process Status:</div>
+									<div>{status.bui.process_responds ? 'Responding' : 'Not responding'}</div>
+									<div className='font-bold'>Process ID:</div>
+									<div>{status.bui.pid || 'Not running'}</div>
+									{buiLogPath && (
+										<>
+											<div className='font-bold'>Server Log:</div>
+											<div className='col-span-5'>{buiLogPath}</div>
+										</>
+									)}
+								</div>
 							</div>
 						)}
 					</div>

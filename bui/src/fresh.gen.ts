@@ -6,7 +6,8 @@ import * as $_404 from './routes/_404.tsx';
 import * as $_500 from './routes/_500.tsx';
 import * as $_app from './routes/_app.tsx';
 import * as $_middleware from './routes/_middleware.ts';
-import * as $api_config_supabase from './routes/api/config/supabase.ts';
+import * as $api_v1_config_supabase from './routes/api/v1/config/supabase.ts';
+import * as $api_v1_status from './routes/api/v1/status.ts';
 import * as $app_chat_index from './routes/app/chat/index.tsx';
 import * as $app_chat_partial from './routes/app/chat/partial.tsx';
 import * as $app_home_index from './routes/app/home/index.tsx';
@@ -24,6 +25,7 @@ import * as $auth_signup_index from './routes/auth/signup/index.tsx';
 import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
+import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Home from './islands/Home.tsx';
 import * as $LandingHero from './islands/LandingHero.tsx';
@@ -32,6 +34,7 @@ import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
 import * as $SubscriptionSettings from './islands/SubscriptionSettings.tsx';
+import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
 import * as $auth_SignupContent from './islands/auth/SignupContent.tsx';
@@ -49,7 +52,8 @@ const manifest = {
 		'./routes/_500.tsx': $_500,
 		'./routes/_app.tsx': $_app,
 		'./routes/_middleware.ts': $_middleware,
-		'./routes/api/config/supabase.ts': $api_config_supabase,
+		'./routes/api/v1/config/supabase.ts': $api_v1_config_supabase,
+		'./routes/api/v1/status.ts': $api_v1_status,
 		'./routes/app/chat/index.tsx': $app_chat_index,
 		'./routes/app/chat/partial.tsx': $app_chat_partial,
 		'./routes/app/home/index.tsx': $app_home_index,
@@ -69,6 +73,7 @@ const manifest = {
 		'./routes/index.tsx': $index,
 	},
 	islands: {
+		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
 		'./islands/Home.tsx': $Home,
 		'./islands/LandingHero.tsx': $LandingHero,
@@ -77,6 +82,7 @@ const manifest = {
 		'./islands/Settings.tsx': $Settings,
 		'./islands/SideNav.tsx': $SideNav,
 		'./islands/SubscriptionSettings.tsx': $SubscriptionSettings,
+		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,
 		'./islands/auth/SignupContent.tsx': $auth_SignupContent,

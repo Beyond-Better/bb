@@ -10,6 +10,7 @@ use crate::config::get_global_config_dir;
 
 // Make modules available within the crate
 pub mod api;
+pub mod bui;
 pub mod config;  // Make config module public
 pub mod commands;  // Make commands module public
 pub mod window_state;
@@ -18,11 +19,12 @@ pub mod proxy;
 
 // Re-export public items
 pub use crate::api::{start_api, stop_api};
-pub use crate::config::{read_global_config, get_api_config, ApiConfig};
-pub use crate::commands::api_status::check_api_status;
+pub use crate::bui::{start_bui, stop_bui};
+pub use crate::config::{read_global_config, get_api_config, get_bui_config, ApiConfig, BuiConfig};
+pub use crate::commands::server_status::check_server_status;
 pub use crate::commands::version::{get_binary_version, get_version_info, check_version_compatibility};
 pub use crate::commands::upgrade::{perform_install, perform_upgrade};
-pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path};
+pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path, get_bui_log_path};
 
 pub use crate::commands::proxy::{get_proxy_info, set_proxy_target, set_debug_mode, start_proxy_server, stop_proxy_server};
 
@@ -75,7 +77,7 @@ fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn start_api_if_needed() -> Result<(), String> {
+async fn start_services_if_needed() -> Result<(), String> {
     debug!("Checking API startup conditions");
 
     // Try API status check with retries
@@ -83,7 +85,7 @@ async fn start_api_if_needed() -> Result<(), String> {
     let mut api_status = None;
 
     for attempt in 1..=max_status_attempts {
-        match crate::check_api_status().await {
+        match crate::check_server_status().await {
             Ok(status) => {
                 api_status = Some(status);
                 break;
@@ -99,11 +101,11 @@ async fn start_api_if_needed() -> Result<(), String> {
     }
 
     if let Some(status) = api_status {
-        if status.api_responds {
-            info!("API is already running");
+        if status.api.service_responds && status.bui.service_responds {
+            info!("All services are already running");
             return Ok(());
         }
-        debug!("API is not running (pid_exists: {}, process_responds: {})", status.pid_exists, status.process_responds);
+        debug!("Services not running (API: {}, BUI: {})", status.api.service_responds, status.bui.service_responds);
     }
 
     // Check if config exists and has API key
@@ -113,23 +115,34 @@ async fn start_api_if_needed() -> Result<(), String> {
                 if let Some(key) = &llm_keys.anthropic {
                     if !key.trim().is_empty() {
                         info!("Starting API automatically");
-                        match crate::start_api().await {
-                            Ok(result) => {
-                                if result.success {
-                                    info!("API started successfully");
-                                    // Give the API a moment to initialize
-                                    std::thread::sleep(Duration::from_millis(1000));
-                                    return Ok(());
-                                } else {
-                                    warn!("API start returned false: {}", result.error.unwrap_or_else(|| "Unknown error".to_string()));
-                                    return Err("API failed to start".to_string());
-                                }
-                            }
-                            Err(e) => {
-                                error!("Failed to start API: {}", e);
-                                return Err(e.to_string());
-                            }
-                        }
+                        // Start API first
+						let api_result = crate::start_api().await;
+						if let Err(e) = api_result {
+							error!("Failed to start API: {}", e);
+							return Err(e);
+						}
+						let api_result = api_result.unwrap();
+						if !api_result.success {
+							let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
+							warn!("API start returned false: {}", error);
+							return Err("API failed to start".to_string());
+						}
+						
+						// // Give the API a moment to initialize
+						// std::thread::sleep(Duration::from_millis(1000));
+						// 
+						// let bui_result = crate::start_bui().await;
+						// if let Err(e) = bui_result {
+						// 	error!("Failed to start BUI: {}", e);
+						// 	return Err(e);
+						// 
+						// let bui_result = bui_result.unwrap();
+						// if !bui_result.success {
+						// 	let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
+						// 	warn!("BUI start returned false: {}", error);
+						// 	return Err("BUI failed to start".to_string());
+						// }
+						
                     } else {
                         debug!("Not starting API: Anthropic API key is empty");
                     }
@@ -193,10 +206,10 @@ pub fn run() {
         warn!("Failed to ensure global config: {}", e);
     }
 
-    // Try to start API if needed
+    // Try to start services if needed
     tauri::async_runtime::block_on(async {
-        if let Err(e) = start_api_if_needed().await {
-            warn!("Failed to start API: {}", e);
+        if let Err(e) = start_services_if_needed().await {
+            warn!("Failed to start services: {}", e);
         }
     });
 
@@ -221,18 +234,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_api,
             stop_api,
-            check_api_status,
+            start_bui,
+            stop_bui,
+            commands::server_status::check_server_status,
             get_api_config,
+            get_bui_config,
+            get_global_config,
             get_binary_version,
             get_version_info,
             check_version_compatibility,
             perform_install,
             perform_upgrade,
-            get_global_config,
             set_global_config_value,
             test_read_config,
             get_log_path,
             get_api_log_path,
+            get_bui_log_path,
             get_proxy_info,
             set_proxy_target,
             set_debug_mode,
