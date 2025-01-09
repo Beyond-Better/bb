@@ -1,7 +1,7 @@
 import { PageProps } from '$fresh/server.ts';
 //import { Handlers } from '$fresh/server.ts';
 import LoginContent from '../../../islands/auth/LoginContent.tsx';
-import { useAuthState } from '../../../hooks/useAuthState.ts';
+//import { useAuthState } from '../../../hooks/useAuthState.ts';
 
 /*************
  * Use the POST handler if LoginForm is sending a traditional POST request
@@ -47,11 +47,10 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
  *************/
 
 export default function LoginPage(_props: PageProps) {
-	const { authState } = useAuthState();
 	return (
 		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
 			<div class='flex-1 flex flex-col overflow-hidden'>
-				<LoginContent authState={authState} />
+				<LoginContent />
 			</div>
 		</div>
 	);

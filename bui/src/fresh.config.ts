@@ -5,7 +5,8 @@ import { getAppRuntimeDir } from '../../cli/src/utils/apiStatus.utils.ts';
 import { join } from '@std/path';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 //import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
-import { authPlugin } from './plugins/auth.plugin.ts';
+//import { authPlugin } from './plugins/auth.plugin.ts';
+import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
 
 const configManager = await ConfigManagerV2.getInstance();
 const globalConfig = await configManager.getGlobalConfig();
@@ -150,7 +151,8 @@ export default defineConfig({
 		},
 		// Keep both auth plugins during transition
 		//supabaseAuthPlugin(globalConfig.bui),
-		authPlugin(globalConfig.bui),
+		//authPlugin(globalConfig.bui),
+		buiConfigPlugin(globalConfig.bui),
 		// 		{
 		// 			name: 'supabase_auth'
 		// 		},

@@ -1,7 +1,7 @@
 import { PageProps } from '$fresh/server.ts';
 //import { Handlers } from '$fresh/server.ts';
 import SignupContent from '../../../islands/auth/SignupContent.tsx';
-import { useAuthState } from '../../../hooks/useAuthState.ts';
+//import { useAuthState } from '../../../hooks/useAuthState.ts';
 
 /*************
  * Use the POST handler if SignupForm is sending a traditional POST request
@@ -45,11 +45,10 @@ import { useAuthState } from '../../../hooks/useAuthState.ts';
  *************/
 
 export default function SignupPage(_props: PageProps) {
-	const { authState } = useAuthState();
 	return (
 		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
 			<div class='flex-1 flex flex-col overflow-hidden'>
-				<SignupContent authState={authState} />
+				<SignupContent />
 			</div>
 		</div>
 	);

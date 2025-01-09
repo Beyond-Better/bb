@@ -1,17 +1,11 @@
-import { Signal } from '@preact/signals';
 import LoginForm from './LoginForm.tsx';
 import { BBAppRequirement } from '../../components/auth/BBAppRequirement.tsx';
-import { useAuthState } from '../../hooks/useAuthState.ts';
-import { AuthState } from '../../types/auth.ts';
+//import { useAuthState } from '../../hooks/useAuthState.ts';
 
-interface LoginContentProps {
-	authState: Signal<AuthState>;
-}
-
-export default function LoginContent({ authState: authStateProp }: LoginContentProps) {
-	const { authState } = useAuthState();
-	//console.log('LoginContent: authStateProp', authStateProp.value);
-	authState.value = authStateProp.value;
+// interface LoginContentProps {}
+// export default function LoginContent(props: LoginContentProps) {
+export default function LoginContent() {
+	//const { authState } = useAuthState();
 	//console.log('LoginContent: authState', authState.value);
 
 	return (

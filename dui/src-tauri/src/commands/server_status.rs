@@ -247,7 +247,8 @@ pub async fn check_server_status() -> Result<ServerStatus, String> {
     let api_status = check_service_status("api").await?;
     let bui_status = check_service_status("bui").await?;
 
-    let all_services_ready = api_status.service_responds && bui_status.service_responds;
+    //let all_services_ready = api_status.service_responds && bui_status.service_responds;
+    let all_services_ready = api_status.service_responds;
 
     Ok(ServerStatus {
         api: api_status,

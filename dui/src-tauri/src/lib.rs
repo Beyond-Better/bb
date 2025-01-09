@@ -128,43 +128,21 @@ async fn start_services_if_needed() -> Result<(), String> {
 							return Err("API failed to start".to_string());
 						}
 						
-						// Give the API a moment to initialize
-						std::thread::sleep(Duration::from_millis(1000));
-
-						let bui_result = crate::start_bui().await;
-						if let Err(e) = bui_result {
-							error!("Failed to start BUI: {}", e);
-							return Err(e);
-						}
-						let bui_result = bui_result.unwrap();
-						if !bui_result.success {
-							let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
-							warn!("BUI start returned false: {}", error);
-							return Err("BUI failed to start".to_string());
-						}
-						
-						// Now start BUI
-						// match crate::start_bui().await {
-						// 	Ok(result) => {
-						// 		if result.success {
-						// 			info!("BUI started successfully");
-						// 			// Give the API a moment to initialize
-						// 			std::thread::sleep(Duration::from_millis(1000));
-						// 			return Ok(());
-						// 		} else {
-						// 			warn!("BUI start returned false: {}", result.error.unwrap_or_else(|| "Unknown error".to_string()));
-						// 			// Stop API since BUI failed
-						// 			let _ = crate::stop_api().await;
-						// 			return Err("BUI failed to start".to_string());
-						// 		}
-						// 	}
-						// 	Err(e) => {
-						// 		error!("Failed to start BUI: {}", e);
-						// 		// Stop API since BUI failed
-						// 		let _ = crate::stop_api().await;
-						// 		return Err(e.to_string());
-						// 	}
+						// // Give the API a moment to initialize
+						// std::thread::sleep(Duration::from_millis(1000));
+						// 
+						// let bui_result = crate::start_bui().await;
+						// if let Err(e) = bui_result {
+						// 	error!("Failed to start BUI: {}", e);
+						// 	return Err(e);
+						// 
+						// let bui_result = bui_result.unwrap();
+						// if !bui_result.success {
+						// 	let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
+						// 	warn!("BUI start returned false: {}", error);
+						// 	return Err("BUI failed to start".to_string());
 						// }
+						
                     } else {
                         debug!("Not starting API: Anthropic API key is empty");
                     }

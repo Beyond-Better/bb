@@ -25,6 +25,7 @@ import * as $auth_signup_index from './routes/auth/signup/index.tsx';
 import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
+import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Home from './islands/Home.tsx';
 import * as $LandingHero from './islands/LandingHero.tsx';
@@ -33,6 +34,7 @@ import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
 import * as $SubscriptionSettings from './islands/SubscriptionSettings.tsx';
+import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
 import * as $auth_SignupContent from './islands/auth/SignupContent.tsx';
@@ -71,6 +73,7 @@ const manifest = {
 		'./routes/index.tsx': $index,
 	},
 	islands: {
+		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
 		'./islands/Home.tsx': $Home,
 		'./islands/LandingHero.tsx': $LandingHero,
@@ -79,6 +82,7 @@ const manifest = {
 		'./islands/Settings.tsx': $Settings,
 		'./islands/SideNav.tsx': $SideNav,
 		'./islands/SubscriptionSettings.tsx': $SubscriptionSettings,
+		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,
 		'./islands/auth/SignupContent.tsx': $auth_SignupContent,
