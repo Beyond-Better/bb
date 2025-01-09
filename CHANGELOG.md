@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support for external tools
 - dedicated log (per conversation) of LLM request/responses
 - added remove_files tool
+- binary build for BUI
 
 ### Changed
 
@@ -36,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `pre` background in dark mode
+- auth handling in BUI
 
 
 ## [0.5.12] - 2024-12-20

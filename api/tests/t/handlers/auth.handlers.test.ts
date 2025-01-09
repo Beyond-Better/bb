@@ -3,7 +3,7 @@
 // import { handleCallback, handleLogin, handleLogout, handleStatus } from './auth.handlers.ts';
 // import { SessionManager } from '../../auth/session.ts';
 // import type { BbState } from '../../types/app.types.ts';
-// 
+//
 // // Mock successful session data
 // const mockSession = {
 // 	user: {
@@ -14,18 +14,18 @@
 // 	refresh_token: 'test-refresh-token',
 // 	expires_at: Date.now() + 3600000,
 // };
-// 
+//
 // // Mock Supabase client responses
 // const mockSuccessfulAuth = {
 // 	data: { session: mockSession },
 // 	error: null,
 // };
-// 
+//
 // const mockFailedAuth = {
 // 	data: { session: null },
 // 	error: { message: 'Invalid credentials' },
 // };
-// 
+//
 // // Mock Supabase client
 // const mockSupabaseClient = {
 // 	auth: {
@@ -45,7 +45,7 @@
 // 		signOut: async () => ({ error: null }),
 // 	},
 // };
-// 
+//
 // // Mock localStorage
 // const mockStorage = new Map<string, string>();
 // globalThis.localStorage = {
@@ -58,13 +58,13 @@
 // 		return mockStorage.size;
 // 	},
 // };
-// 
+//
 // // Mock createClient
 // globalThis.createClient = () => mockSupabaseClient;
-// 
+//
 // // Store original fetch
 // const originalFetch = globalThis.fetch;
-// 
+//
 // // Mock successful config fetch
 // globalThis.fetch = async () =>
 // 	new Response(
@@ -74,7 +74,7 @@
 // 		}),
 // 		{ status: 200 },
 // 	);
-// 
+//
 // Deno.test("Auth Handlers", async (t) => {
 //   // Initialize session manager for tests
 //   const sessionManager = new SessionManager();

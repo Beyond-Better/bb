@@ -6,8 +6,8 @@ const key = 'test_storage';
 
 // Initialize KV storage
 const storage = new KVStorage({
-  prefix: 'test:',
-  filename: 'test_storage.kv'
+	prefix: 'test:',
+	filename: 'test_storage.kv',
 });
 
 console.log(`Initializing KV storage...`);
