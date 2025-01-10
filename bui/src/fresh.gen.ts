@@ -33,8 +33,9 @@ import * as $LandingHero from './islands/LandingHero.tsx';
 import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
+import * as $Settings_ProjectSettings from './islands/Settings/ProjectSettings.tsx';
+import * as $Settings_SubscriptionSettings from './islands/Settings/SubscriptionSettings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
-import * as $SubscriptionSettings from './islands/SubscriptionSettings.tsx';
 import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
@@ -82,8 +83,9 @@ const manifest = {
 		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,
 		'./islands/ProjectManager.tsx': $ProjectManager,
 		'./islands/Settings.tsx': $Settings,
+		'./islands/Settings/ProjectSettings.tsx': $Settings_ProjectSettings,
+		'./islands/Settings/SubscriptionSettings.tsx': $Settings_SubscriptionSettings,
 		'./islands/SideNav.tsx': $SideNav,
-		'./islands/SubscriptionSettings.tsx': $SubscriptionSettings,
 		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,

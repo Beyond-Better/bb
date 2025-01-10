@@ -1,14 +1,14 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 //import type { StripeError } from '@stripe/stripe-js';
-import { Plan } from '../types/subscription.ts';
-import { useAppState } from '../hooks/useAppState.ts';
-import { useBillingState } from '../hooks/useBillingState.ts';
-import PlanCard from '../components/Subscriptions/PlanCard.tsx';
-import PaymentFlowDialog from '../components/Subscriptions/PaymentFlowDialog.tsx';
-import UsageBlockDialog from '../components/Subscriptions/UsageBlockDialog.tsx';
-import CancelDialog from '../components/Subscriptions/CancelDialog.tsx';
-import NewPaymentMethodForm from './NewPaymentMethodForm.tsx';
+import { Plan } from '../../types/subscription.ts';
+import { useAppState } from '../../hooks/useAppState.ts';
+import { useBillingState } from '../../hooks/useBillingState.ts';
+import PlanCard from '../../components/Subscriptions/PlanCard.tsx';
+import PaymentFlowDialog from '../../components/Subscriptions/PaymentFlowDialog.tsx';
+import UsageBlockDialog from '../../components/Subscriptions/UsageBlockDialog.tsx';
+import CancelDialog from '../../components/Subscriptions/CancelDialog.tsx';
+import NewPaymentMethodForm from './../NewPaymentMethodForm.tsx';
 
 const showCancelDialog = signal(false);
 const showUsageBlockDialog = signal(false);
@@ -90,8 +90,16 @@ export default function SubscriptionSettings() {
 
 	return (
 		<div class='p-6'>
+			<div class='flex items-center space-x-3 mb-6'>
+				<div>
+					<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Plans and Billing</h3>
+					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+						Choose a new plan, purchase usage block, or update your billing details
+					</p>
+				</div>
+			</div>
 			<div class='mt-0'>
-				<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Current Subscription</h3>
+				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Subscription and Usage</h3>
 				{billingState.value.subscription && (
 					<div class='mt-4 grid grid-cols-3 gap-6'>
 						{/* Each section uses flex-col to allow button positioning at bottom */}
@@ -329,7 +337,7 @@ export default function SubscriptionSettings() {
 
 			{/* Available Plans */}
 			<div class='mt-8'>
-				<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Available Plans</h3>
+				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Available Plans</h3>
 				<div class='mt-4 flex flex-nowrap gap-6 overflow-x-auto pb-4'>
 					{billingState.value.availablePlans.map((plan) => (
 						<PlanCard
