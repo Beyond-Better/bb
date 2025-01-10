@@ -1,8 +1,10 @@
 import { PageProps } from '$fresh/server.ts';
 import { Head } from '$fresh/runtime.ts';
 import { Partial } from '$fresh/runtime.ts';
+
 import SideNav from '../islands/SideNav.tsx';
 import AuthContext from '../islands/AuthContext.tsx';
+import AppConfigContext from '../islands/Context/appConfig.tsx';
 //import { useAuthState } from '../hooks/useAuthState.ts';
 //import { User } from '../types/auth.ts';
 import type { BuiConfig } from 'shared/config/v2/types.ts';
@@ -11,6 +13,7 @@ import type { BuiConfig } from 'shared/config/v2/types.ts';
 export const CUSTOM_PATHS = [
 	'/doctor',
 	'/auth/',
+	'/api/',
 ];
 
 export function isCustomPath(path: string): boolean {
@@ -49,7 +52,9 @@ export default function App({ Component, url, state }: PageProps) {
 			<html>
 				<PageHead title='Beyond Better' />
 				<body class='overflow-hidden bg-gray-50 dark:bg-gray-900'>
-					<Component />
+					<AppConfigContext buiConfig={state.buiConfig as BuiConfig}>
+						<Component />
+					</AppConfigContext>
 				</body>
 			</html>
 		);
