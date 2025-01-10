@@ -259,7 +259,6 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
 
     // Get BUI configuration
     let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
-    //let config = global_config.bui.as_ref().ok_or("BUI configuration not found")?;
     let config = &global_config.bui;
     
     // Get the full path to the bb-bui executable
@@ -276,10 +275,6 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
     args.push(config.port.to_string());
     args.push("--use-tls".to_string());
     args.push(config.tls.use_tls.to_string());
-	// args.push("--supabase-url".to_string());
-	// args.push(config.supabase_url.clone());
-	// args.push("--supabase-anon-key".to_string());
-	// args.push(config.supabase_anon_key.clone());
 
     // Get log file path
     //let log_path = get_bui_log_path(&config)

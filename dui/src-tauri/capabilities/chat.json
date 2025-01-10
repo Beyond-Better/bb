@@ -5,7 +5,7 @@
 	"windows": ["bb_chat"],
 	"permissions": ["core:window:default", "core:webview:default", "core:window:allow-close", "core:window:allow-destroy", "store:allow-load", "store:default"],
 	"webviewConfig": {
-		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev"],
+		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev","https://localhost:8080"],
 		"allowedProtocols": ["ws", "wss", "http", "https"],
 		"csp": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:"
 	}

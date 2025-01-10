@@ -43,14 +43,11 @@ function App() {
 
 	const handleStatusChange = (status: any) => {
 		// console.log('status', status);
-		//if (status.api.error || status.bui.error) {
-		if (status.api.error) {
+		if (status.api.error || status.bui.error) {
 			setServerStatus(ApiStatus.Error);
-		//} else if (status.api.service_responds && status.bui.service_responds) {
-		} else if (status.api.service_responds) {
+		} else if (status.api.service_responds && status.bui.service_responds) {
 			setServerStatus(ApiStatus.Ready);
-		//} else if (status.api.process_responds || status.bui.process_responds) {
-		} else if (status.api.process_responds) {
+		} else if (status.api.process_responds || status.bui.process_responds) {
 			setServerStatus(ApiStatus.Processing);
 		} else {
 			setServerStatus(ApiStatus.Error);

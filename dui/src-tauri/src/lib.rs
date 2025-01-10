@@ -76,48 +76,85 @@ fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn start_services_if_needed() -> Result<(), String> {
-    debug!("Checking API startup conditions");
+    debug!("Checking API and BUI startup conditions");
 
-    // Try API status check with retries
+    // Try status check with retries
     let max_status_attempts = 3;
-    let mut api_status = None;
+    let mut services_status = None;
 
     for attempt in 1..=max_status_attempts {
         match crate::check_server_status().await {
             Ok(status) => {
-                api_status = Some(status);
+                services_status = Some(status);
                 break;
             }
             Err(e) if attempt == max_status_attempts => {
-                warn!("Failed to check API status after {} attempts: {}", max_status_attempts, e);
+                warn!("Failed to check services status after {} attempts: {}", max_status_attempts, e);
             }
             Err(e) => {
-                debug!("API status check attempt {}/{} failed: {}", attempt, max_status_attempts, e);
+                debug!("Services status check attempt {}/{} failed: {}", attempt, max_status_attempts, e);
                 std::thread::sleep(Duration::from_millis(500));
             }
         }
     }
 
-    if let Some(status) = api_status {
+    if let Some(status) = services_status {
         if status.api.service_responds && status.bui.service_responds {
             info!("All services are already running");
             return Ok(());
         }
         debug!("Services not running (API: {}, BUI: {})", status.api.service_responds, status.bui.service_responds);
-    }
 
-    // Start API if it's not running
-    info!("Starting API automatically");
-    let api_result = crate::start_api().await;
-    if let Err(e) = api_result {
-        error!("Failed to start API: {}", e);
-        return Err(e);
-    }
-    let api_result = api_result.unwrap();
-    if !api_result.success {
-        let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
-        warn!("API start returned false: {}", error);
-        return Err("API failed to start".to_string());
+        // Start API if it's not running
+        if !status.api.service_responds {
+            info!("Starting API automatically");
+            let api_result = crate::start_api().await;
+            if let Err(e) = api_result {
+                error!("Failed to start API: {}", e);
+                return Err(e);
+            }
+            let api_result = api_result.unwrap();
+            if !api_result.success {
+                let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
+                warn!("API start returned false: {}", error);
+                return Err("API failed to start".to_string());
+            }
+        }
+
+        // Start BUI if it's not running
+        if !status.bui.service_responds {
+            info!("Starting BUI automatically");
+            let bui_result = crate::start_bui().await;
+            if let Err(e) = bui_result {
+                error!("Failed to start BUI: {}", e);
+                return Err(e);
+            }
+            let bui_result = bui_result.unwrap();
+            if !bui_result.success {
+                let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
+                warn!("BUI start returned false: {}", error);
+                return Err("BUI failed to start".to_string());
+            }
+        }
+    } else {
+        // If we couldn't get status, try starting both services
+        info!("Could not determine service status, attempting to start both services");
+        
+        // Start API
+        let api_result = crate::start_api().await?;
+        if !api_result.success {
+            let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
+            warn!("API start returned false: {}", error);
+            return Err("API failed to start".to_string());
+        }
+
+        // Start BUI
+        let bui_result = crate::start_bui().await?;
+        if !bui_result.success {
+            let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
+            warn!("BUI start returned false: {}", error);
+            return Err("BUI failed to start".to_string());
+        }
     }
 
     Ok(())

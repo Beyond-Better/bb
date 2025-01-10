@@ -27,6 +27,13 @@ pub struct TlsConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmKeys {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anthropic: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct ApiConfig {
     #[serde(default)]
     pub hostname: String,
@@ -50,6 +57,10 @@ pub struct ApiConfig {
     pub tool_configs: serde_json::Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
+    #[serde(default)]
+    pub local_mode: bool,
+    #[serde(default)]
+    pub llm_keys: LlmKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -67,6 +78,8 @@ pub struct BuiConfig {
     pub log_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
+    #[serde(default)]
+    pub local_mode: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -137,6 +150,14 @@ impl Default for TlsConfig {
     }
 }
 
+impl Default for LlmKeys {
+    fn default() -> Self {
+        LlmKeys {
+            anthropic: None,
+        }
+    }
+}
+
 impl Default for ApiConfig {
     fn default() -> Self {
         ApiConfig {
@@ -151,6 +172,8 @@ impl Default for ApiConfig {
             user_tool_directories: vec!["./tools".to_string()],
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),
             environment: None,
+            local_mode: false,
+            llm_keys: LlmKeys::default(),
         }
     }
 }
@@ -164,6 +187,7 @@ impl Default for BuiConfig {
             log_level: "info".to_string(),
             log_file: get_default_log_path("bui.log"),  // Platform-specific log path
             environment: None,
+            local_mode: false,
         }
     }
 }

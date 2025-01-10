@@ -59,32 +59,61 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
     let config_path = config_dir.join("config.yaml");
 
     // Read and parse config
-    match fs::read_to_string(&config_path) {
+    let mut config = match fs::read_to_string(&config_path) {
         Ok(contents) => {
             match serde_yaml::from_str::<GlobalConfig>(&contents) {
-                Ok(config) => Ok(config),
+                Ok(config) => {
+                    config
+                },
                 Err(e) => {
                     error!("Failed to parse config YAML: {}", e);
-                    Err(format!("Failed to parse config: {}", e))
+                    return Err(format!("Failed to parse config: {}", e));
                 }
             }
         },
         Err(e) => {
             if e.kind() == std::io::ErrorKind::NotFound {
                 info!("Config file not found, using defaults");
-                Ok(GlobalConfig::default())
+                GlobalConfig::default()
             } else {
                 error!("Failed to read config file: {}", e);
-                Err(format!("Failed to read config: {}", e))
+                return Err(format!("Failed to read config: {}", e));
             }
         }
+    };
+
+    // Set the log file path if it's not already set
+    if config.api.log_file.is_none() {
+        config.api.log_file = get_default_log_path("api.log");
+        info!("Setting default log path: {:?}", config.api.log_file);
     }
+    if config.bui.log_file.is_none() {
+        config.bui.log_file = get_default_log_path("bui.log");
+        info!("Setting default log path: {:?}", config.bui.log_file);
+    }
+    
+    // Create a redacted copy for the frontend
+    let mut redacted = config.clone();
+    
+    // Mask the Anthropic API key if it exists and is not empty
+    if let Some(ref key) = redacted.api.llm_keys.anthropic {
+        if !key.is_empty() {
+            redacted.api.llm_keys.anthropic = Some(format!("{}...", &key[..18.min(key.len())]));
+        }
+    }
+    
+    Ok(redacted)
 }
 
 #[tauri::command]
 pub async fn set_global_config_value(key: String, value: String) -> Result<(), String> {
-    info!("Setting config value - Key: {}, Value: {}", key, value);
-    
+    //info!("Setting config value - Key: {}, Value: {}", key, value);
+    info!("Setting config value - Key: {}, Value: {}", key, if key.contains("api_key") || key.contains("llmKeys") {
+        "[REDACTED]".to_string()
+    } else {
+        value.clone()
+    });
+
     // Read current config
     let mut config = read_global_config().map_err(|e| {
         error!("Failed to read config for update: {}", e);
@@ -165,36 +194,29 @@ fn update_yaml_value(root: &mut serde_yaml::Value, key: &str, value: &str) -> Re
 
             // Set the value based on the key type
             match key {
-                "api.logFile" => {
+                "api.logFile" | "bui.logFile" => {
                     mapping.insert(
                         serde_yaml::Value::String(part.clone()),
                         serde_yaml::Value::String(value.to_string())
                     );
                 },
-                "api.tls.useTls" => {
-                    if let Ok(use_tls) = value.parse::<bool>() {
+                "api.tls.useTls" | "api.localMode" | "bui.tls.useTls" | "bui.localMode" => {
+                    if let Ok(bool_value) = value.parse::<bool>() {
                         mapping.insert(
                             serde_yaml::Value::String(part.clone()),
-                            serde_yaml::Value::Bool(use_tls)
+                            serde_yaml::Value::Bool(bool_value)
                         );
                     } else {
-                        return Err("Invalid boolean for useTls".to_string());
+                        return Err(format!("Invalid boolean value for {}", key));
                     }
                 },
-                "bui.logFile" => {
-                    mapping.insert(
-                        serde_yaml::Value::String(part.clone()),
-                        serde_yaml::Value::String(value.to_string())
-                    );
-                },
-                "bui.tls.useTls" => {
-                    if let Ok(use_tls) = value.parse::<bool>() {
+                "api.llmKeys.anthropic" => {
+                    // Only update if not masked
+                    if !value.ends_with("...") {
                         mapping.insert(
                             serde_yaml::Value::String(part.clone()),
-                            serde_yaml::Value::Bool(use_tls)
+                            serde_yaml::Value::String(value.to_string())
                         );
-                    } else {
-                        return Err("Invalid boolean for useTls".to_string());
                     }
                 },
                 _ => return Err(format!("Unknown config key: {}", key))
@@ -226,12 +248,31 @@ fn update_config_value(config: &mut GlobalConfig, key: &str, value: &str) -> Res
             let use_tls = value.parse::<bool>().map_err(|_| "Invalid boolean for useTls".to_string())?;
             config.api.tls.use_tls = use_tls;
         },
+        ["api", "localMode"] => {
+            let local_mode = value.parse::<bool>().map_err(|_| "Invalid boolean for localMode".to_string())?;
+            config.api.local_mode = local_mode;
+        },
+        ["api", "llmKeys", "anthropic"] => {
+            //config.api.llm_keys.anthropic = Some(value.to_string());
+            // Only update if the value has changed (not masked)
+            if !value.ends_with("...") {
+                //debug!("Updating Anthropic API key");
+				config.api.llm_keys.anthropic = Some(value.to_string());
+                //debug!("API key updated successfully");
+            } else {
+                //debug!("Skipping masked API key update");
+            }
+        },
         ["bui", "logFile"] => {
             config.bui.log_file = Some(value.to_string());
         },
         ["bui", "tls", "useTls"] => {
             let use_tls = value.parse::<bool>().map_err(|_| "Invalid boolean for useTls".to_string())?;
             config.bui.tls.use_tls = use_tls;
+        },
+        ["bui", "localMode"] => {
+            let local_mode = value.parse::<bool>().map_err(|_| "Invalid boolean for localMode".to_string())?;
+            config.bui.local_mode = local_mode;
         },
         _ => {
             error!("Unknown config key: {}", key);

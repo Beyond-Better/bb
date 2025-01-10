@@ -81,7 +81,8 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	// Update BUI URL when globalConfig or debug mode changes
 	useEffect(async () => {
-		const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
+		//const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
+		const direct = `${globalConfig.bui.tls.useTls ? 'https' : 'http'}://${globalConfig.bui.hostname}:${globalConfig.bui.port}`
 		setDirectBuiUrl(direct);
 		// Set proxy target based on debug mode
 		if (globalConfig?.api && !globalConfig.api.tls.useTls) {
@@ -96,6 +97,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		console.debug('URL effect triggered with:', { globalConfig, debugMode });
 		if (globalConfig?.api) {
 			const apiConfig = globalConfig.api;
+			const buiConfig = globalConfig.bui;
 			if (!globalConfig.api.tls.useTls) {
 				// Only get proxy info if TLS is disabled
 				console.debug('Getting proxy info...', { globalConfig, debugMode });
@@ -105,7 +107,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					console.debug('Received proxy info:', proxyInfo);
 					setProxyInfo(proxyInfo);
 					console.debug(`Using proxy on port ${proxyInfo.port} with target ${proxyInfo.target}`);
-					const url = generateWebviewBuiUrl({ apiConfig, proxyInfo, debugMode });
+					const url = generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMode });
 					console.debug('Setting BUI URL with proxy:', url);
 					setWebviewBuiUrl(url);
 				} catch (err) {
@@ -116,14 +118,14 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						error: err,
 					});
 					// Fallback to direct connection
-					const url = generateWebviewBuiUrl({ apiConfig, debugMode });
+					const url = generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode });
 					console.debug('Setting BUI URL without proxy:', url);
 					setWebviewBuiUrl(url);
 				}
 			} else {
 				// Use direct connection with TLS
 				console.debug('Using direct HTTPS connection');
-				setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, debugMode }));
+				setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode }));
 			}
 		}
 	}, [globalConfig, debugMode]);
