@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Settings in BUI for project defaults
 
 ### Changed
 
+- DUI control for API & BUI
+- LocalMode settings in DUI for API & BUI 
+- Redirect from login page if already logged in
 
 ### Fixed
 
