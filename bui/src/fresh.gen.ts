@@ -27,6 +27,7 @@ import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
 import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
+import * as $Context_appConfig from './islands/Context/appConfig.tsx';
 import * as $Home from './islands/Home.tsx';
 import * as $LandingHero from './islands/LandingHero.tsx';
 import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
@@ -75,6 +76,7 @@ const manifest = {
 	islands: {
 		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
+		'./islands/Context/appConfig.tsx': $Context_appConfig,
 		'./islands/Home.tsx': $Home,
 		'./islands/LandingHero.tsx': $LandingHero,
 		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,

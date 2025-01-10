@@ -18,10 +18,10 @@ export default function AuthContext({ children, buiConfig }: AuthContextProps) {
 	const { authState, getSessionUser } = useAuthState();
 	if (IS_BROWSER) console.log('AuthContext: authState', authState.value);
 
+	let sessionCheckInterval: number;
+
 	useEffect(() => {
 		if (!IS_BROWSER) return;
-
-		let sessionCheckInterval: number;
 
 		const checkSession = async () => {
 			if (authState.value.isLocalMode) {
