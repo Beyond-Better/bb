@@ -61,7 +61,7 @@ export const getApiHostname = (req?: Request) => {
 };
 
 export const getApiPort = (req?: Request) => {
-	const params = getUrlParams();
+	const params = getUrlParams(req);
 	const urlValue = params?.get('apiPort');
 
 	if (urlValue) {
@@ -75,7 +75,7 @@ export const getApiPort = (req?: Request) => {
 };
 
 export const getApiUseTls = (req?: Request) => {
-	const params = getUrlParams();
+	const params = getUrlParams(req);
 	const urlValue = params?.get('apiUseTls');
 	//console.log('getApiUseTls: ', { urlValue });
 

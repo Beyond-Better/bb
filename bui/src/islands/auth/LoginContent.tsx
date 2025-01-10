@@ -1,12 +1,38 @@
+import { IS_BROWSER } from '$fresh/runtime.ts';
+import { useEffect } from 'preact/hooks';
 import LoginForm from './LoginForm.tsx';
 import { BBAppRequirement } from '../../components/auth/BBAppRequirement.tsx';
-//import { useAuthState } from '../../hooks/useAuthState.ts';
+import { useAuthState } from '../../hooks/useAuthState.ts';
 
 // interface LoginContentProps {}
 // export default function LoginContent(props: LoginContentProps) {
 export default function LoginContent() {
-	//const { authState } = useAuthState();
-	//console.log('LoginContent: authState', authState.value);
+	const { authState, getSessionUser } = useAuthState();
+	//if (IS_BROWSER) console.log('LandingHero: authState', authState.value);
+
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+
+		const checkSession = async () => {
+			if (authState.value.isLocalMode) {
+				globalThis.location.href = '/app/home';
+				return;
+			}
+
+			try {
+				const { user, error } = await getSessionUser(null, null);
+				//console.log('LandingHero: getSessionUser', { user, error });
+				if (error || !user) return;
+
+				globalThis.location.href = '/app/home';
+				return;
+			} catch (error) {
+				console.error('Session check failed:', error);
+			}
+		};
+
+		checkSession();
+	}, []);
 
 	return (
 		<div class='min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
