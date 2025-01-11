@@ -33,7 +33,7 @@ class LLMChatInteraction extends LLMInteraction {
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
 			speakOptions = {
-				model: AnthropicModel.CLAUDE_3_HAIKU,
+				model: this.projectConfig.defaultModels!.chat, // AnthropicModel.CLAUDE_3_HAIKU,
 				system: '',
 				maxTokens: 4096,
 			} as LLMSpeakWithOptions;

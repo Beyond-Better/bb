@@ -99,12 +99,12 @@ class LLMToolManager {
 				//logger.info(`LLMToolManager: Checking ${resolvedDir} for tools`);
 				try {
 					if (!await exists(resolvedDir)) {
-						logger.info(`LLMToolManager: Skipping ${resolvedDir} as it does not exist`);
+						//logger.info(`LLMToolManager: Skipping ${resolvedDir} as it does not exist`);
 						continue;
 					}
 					const directoryInfo = await Deno.stat(resolvedDir);
 					if (!directoryInfo.isDirectory) {
-						logger.info(`LLMToolManager: Skipping ${resolvedDir} as it is not a directory`);
+						//logger.info(`LLMToolManager: Skipping ${resolvedDir} as it is not a directory`);
 						continue;
 					}
 

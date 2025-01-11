@@ -138,6 +138,12 @@ export interface GlobalConfig {
 	version: ConfigVersion;
 	myPersonsName: string;
 	myAssistantsName: string;
+	defaultModel: string;
+	defaultModels: {
+		orchestrator: string;
+		agent: string;
+		chat: string;
+	};
 	noBrowser: boolean;
 	api: ApiConfig;
 	bui: BuiConfig;
@@ -169,6 +175,11 @@ export interface ProjectConfig {
 	type: ProjectType;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	defaultModels?: {
+		orchestrator: string;
+		agent: string;
+		chat: string;
+	};
 	llmGuidelinesFile?: string;
 	repoInfo: RepoInfoConfigSchema;
 	useProjectApi?: boolean;
@@ -312,6 +323,11 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	version: '2.0.0',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
+	defaultModels: {
+		orchestrator: 'claude-3-5-sonnet-20241022',
+		agent: 'claude-3-5-sonnet-20241022',
+		chat: 'claude-3-haiku-20240307',
+	},
 	noBrowser: false,
 	api: ApiConfigDefaults,
 	bui: BuiConfigDefaults,

@@ -340,7 +340,7 @@ class AnthropicLLM extends LLM {
 		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			logger.dir(messageParams);
+			//logger.dir(messageParams);
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(

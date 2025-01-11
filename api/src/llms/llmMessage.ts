@@ -29,10 +29,16 @@ export interface LLMMessageContentPartImageBlockSource {
 	media_type: LLMMessageContentPartImageBlockSourceMediaType;
 	type: 'base64';
 }
+export interface LLMMessageContentPartAudioBlock { // openai
+	messageId?: string;
+	type: 'audio';
+	id: string; //Unique identifier for a previous audio response from the model
+}
 
 export interface LLMMessageContentPartToolUseBlock {
 	messageId?: string;
-	type: 'tool_use' | 'tool_calls'; // tool_use is anthropic - tool_calls is openai
+	//type: 'tool_use' | 'tool_calls'; // tool_use is anthropic - tool_calls is openai
+	type: 'tool_use'; // see comments in LLMMessageContentPartType
 	id: string;
 	input: object;
 	name: string;
@@ -40,9 +46,10 @@ export interface LLMMessageContentPartToolUseBlock {
 
 export interface LLMMessageContentPartToolResultBlock {
 	messageId?: string;
-	type: 'tool_result' | 'tool'; // tool_result is anthropic - tool is openai
+	//type: 'tool_result' | 'tool'; // tool_result is anthropic - tool is openai
+	type: 'tool_result'; // see comments in LLMMessageContentPartType
 	tool_use_id?: string; // anthropic
-	tool_call_id?: string; // openai
+	//tool_call_id?: string; // openai // use `tool_use_id` will be converted to `tool_call_id` by openAILLM
 	content?: Array<
 		LLMMessageContentPartTextBlock | LLMMessageContentPartImageBlock
 	>;
@@ -52,14 +59,18 @@ export interface LLMMessageContentPartToolResultBlock {
 export type LLMMessageContentPartType =
 	| 'text'
 	| 'image'
-	| 'tool_use' // anthropic
-	| 'tool_result' // anthropic
-	| 'tool_calls' // openai
-	| 'tool'; // openai
+	| 'audio' // openai
+	| 'tool_use' 
+	| 'tool_result'
+	| 'system' // openai // will be converted to `system` role by openAILLM
+	| 'developer'; // openai // will be converted to `developer` role by openAILLM
+// 	| 'tool_calls' // openai // use `tool_use` will be converted to `tool_calls` part of `assistant` role by openAILLM
+// 	| 'tool'; // openai // use `tool_result` will be converted to `tool` role by openAILLM
 
 export type LLMMessageContentPart =
 	| LLMMessageContentPartTextBlock
 	| LLMMessageContentPartImageBlock
+	| LLMMessageContentPartAudioBlock
 	| LLMMessageContentPartToolUseBlock
 	| LLMMessageContentPartToolResultBlock;
 
@@ -98,7 +109,8 @@ class LLMMessage {
 	public _statementCount!: number;
 
 	constructor(
-		public role: 'user' | 'assistant' | 'system' | 'tool', // system and tool are only for openai
+		//public role: 'user' | 'assistant' | 'system' | 'developer' | 'tool', // system, developer and tool are only for openai
+		public role: 'user' | 'assistant' , 
 		public content: LLMMessageContentParts,
 		stats: ConversationStats,
 		public tool_call_id?: string,

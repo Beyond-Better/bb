@@ -23,6 +23,7 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
+import type { LLMProviderMessageResponseRole } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -30,7 +31,7 @@ import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 
 class LLMInteraction {
@@ -551,7 +552,7 @@ class LLMInteraction {
 
 	public addMessage(
 		message: {
-			role: 'user' | 'assistant' | 'system' | 'tool';
+			role: LLMProviderMessageResponseRole;
 			content: LLMMessageContentParts;
 			conversationStats: ConversationStats;
 			id?: string;

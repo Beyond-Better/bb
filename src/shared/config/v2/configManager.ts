@@ -271,6 +271,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			version: '2.0.0',
 			myPersonsName: GlobalConfigDefaults.myPersonsName,
 			myAssistantsName: GlobalConfigDefaults.myAssistantsName,
+			defaultModels: GlobalConfigDefaults.defaultModels,
 			noBrowser: GlobalConfigDefaults.noBrowser,
 			bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
 			bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
@@ -412,12 +413,14 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 		if (
 			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
-			createProjectData.myAssistantsName !== globalConfig.myAssistantsName
+			createProjectData.myAssistantsName !== globalConfig.myAssistantsName ||
+			createProjectData.defaultModels !== globalConfig.defaultModels
 		) {
 			await this.updateGlobalConfig({
 				...globalConfig,
 				myPersonsName: createProjectData.myPersonsName,
 				myAssistantsName: createProjectData.myAssistantsName,
+				defaultModels: createProjectData.defaultModels,
 			});
 		}
 
@@ -657,6 +660,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					version: '2.0.0',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
 					myAssistantsName: GlobalConfigDefaults.myAssistantsName,
+					defaultModels: GlobalConfigDefaults.defaultModels,
 					noBrowser: GlobalConfigDefaults.noBrowser,
 					bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
 					bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
@@ -1718,6 +1722,9 @@ export function mergeGlobalIntoProjectConfig(
 	}
 	if (!projectConfig.myAssistantsName?.trim()) {
 		projectConfig.myAssistantsName = globalConfig.myAssistantsName;
+	}
+	if (!projectConfig.defaultModels) {
+		projectConfig.defaultModels = globalConfig.defaultModels;
 	}
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));
