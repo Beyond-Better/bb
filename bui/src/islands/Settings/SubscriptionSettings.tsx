@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals';
-import { useEffect } from 'preact/hooks';
+import { useEffect, useSignal } from 'preact/hooks';
+import { activeTab } from '../Settings.tsx';
 //import type { StripeError } from '@stripe/stripe-js';
 import { Plan } from '../../types/subscription.ts';
 import { useAppState } from '../../hooks/useAppState.ts';
@@ -18,10 +19,20 @@ export default function SubscriptionSettings() {
 	const { billingState, initialize, updatePaymentMethods } = useBillingState();
 	const appState = useAppState();
 
-	// Initialize billing state
+	// Track previous active state to detect tab changes
+	const wasActive = useSignal(false);
+
+	// Initialize billing state and refresh when tab becomes active
 	useEffect(() => {
-		initialize();
-	}, []);
+		const isActive = activeTab.value === 'subscription';
+		
+		// Refresh when first mounted or when becoming active after being inactive
+		if (isActive && (!wasActive.value || !billingState.value.subscription)) {
+			initialize();
+		}
+		
+		wasActive.value = isActive;
+	}, [activeTab.value]);
 
 	const handlePlanSelect = async (plan: Plan) => {
 		if (!billingState.value.stripe) {
