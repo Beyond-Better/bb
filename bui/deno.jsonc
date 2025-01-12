@@ -49,5 +49,5 @@
 			"src/fixtures/**/*.ts"
 		]
 	},
-	"version": "0.6.2a"
+	"version": "0.6.3"
 }
