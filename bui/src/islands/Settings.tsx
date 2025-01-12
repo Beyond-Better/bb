@@ -100,7 +100,7 @@ const SETTINGS_TABS: SettingsTab[] = [
 	},
 ];
 
-const activeTab = signal('subscription');
+export const activeTab = signal('subscription');
 export default function Settings(): JSX.Element {
 	// Set active tab from URL on initial load and navigation
 	if (IS_BROWSER) {
