@@ -14,7 +14,7 @@
 		"format": "deno fmt",
 		"check-format": "deno fmt --check",
 		"check-types": "deno check src/main.ts src/llms/tools/*.tool/*",
-		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts"
+		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts && deno cache src/llms/tools/*.tool/tests/tool.test.ts"
 	},
 	"importMap": "../import_map.json",
 	"unstable": [

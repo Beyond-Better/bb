@@ -63,6 +63,7 @@
 		"@std/dotenv": "jsr:@std/dotenv@^0.225.2",
 		"@std/encoding": "jsr:@std/encoding@^1.0.5",
 		"@std/fmt": "jsr:@std/fmt@^1.0.3",
+		"@std/fmt/colors": "jsr:@std/fmt@^1.0.3/colors",
 		"@std/fs": "jsr:@std/fs@^1.0.5",
 		"@std/html": "jsr:@std/html@^1.0.3",
 		"@std/http": "jsr:@std/http@^1.0.12",
