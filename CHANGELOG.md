@@ -15,8 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Location for log and run files in Linix
-
+- Location for log and run files in Linux
+- Subscription page updates when navigating away and back
 
 ## [0.6.1] - 2025-01-12
 
