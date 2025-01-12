@@ -58,6 +58,19 @@ export function initializeChat(
 	};
 }
 
+// Performance tracking for state updates
+let lastStateUpdateTime = Date.now();
+const trackStateUpdate = (operation: string) => {
+	const now = Date.now();
+	const timeSinceLastUpdate = now - lastStateUpdateTime;
+	console.debug('useChatState: State update timing', {
+		operation,
+		timeSinceLastUpdate,
+		timestamp: new Date(now).toISOString(),
+	});
+	lastStateUpdateTime = now;
+};
+
 export function useChatState(
 	config: ChatConfig,
 	chatState: Signal<ChatState>,
@@ -82,6 +95,7 @@ export function useChatState(
 
 	// Update chatState with computed project data
 	useEffect(() => {
+		trackStateUpdate('setState');
 		chatState.value = {
 			...chatState.value,
 			projectData: projectData.value,
@@ -146,6 +160,8 @@ export function useChatState(
 		let currentWsManager: WebSocketManager | null = null;
 
 		async function initialize() {
+			const initStart = performance.now();
+			console.debug('useChatState: Starting initialization');
 			console.log('useChatState: initialize called', {
 				mounted,
 				existingWsManager: chatState.value.wsManager?.constructor.name,
@@ -223,7 +239,11 @@ export function useChatState(
 					}
 				});
 
-				console.log('useChatState: initialization complete');
+				console.debug('useChatState: Initialization complete', {
+					// duration: initDuration.toFixed(2) + 'ms',
+					logEntriesCount: chatState.value.logEntries.length,
+					conversationsCount: chatState.value.conversations.length,
+				});
 
 				// Update final status
 				chatState.value = {
@@ -329,6 +349,13 @@ export function useChatState(
 		};
 
 		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
+			const startTime = performance.now();
+			console.debug('useChatState: Processing message:', {
+				type: data.msgType,
+				currentLogEntries: chatState.value.logEntries.length,
+				timestamp: new Date().toISOString(),
+			});
+			console.debug('useChatState: Processing message:', data.msgType);
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) => p.projectId === appState.value.projectId);
 			if (!currentProject) return;
@@ -407,7 +434,15 @@ export function useChatState(
 			// Update log entries
 			chatState.value = {
 				...chatState.value,
-				logEntries: [...chatState.value.logEntries, data.logEntryData],
+				logEntries: (() => {
+					const newEntries = [...chatState.value.logEntries, data.logEntryData];
+					console.debug('useChatState: Updated logEntries', {
+						previousCount: chatState.value.logEntries.length,
+						newCount: newEntries.length,
+						processingTime: performance.now() - startTime,
+					});
+					return newEntries;
+				})(),
 			};
 
 			if (scrollIndicatorState.value.isVisible) {

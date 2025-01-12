@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { RefObject } from 'preact';
+//import type { RefObject } from 'preact';
 import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
@@ -13,11 +13,11 @@ import { ConversationHeader } from '../components/ConversationHeader.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
-import { useVersion } from '../hooks/useVersion.ts';
+//import { useVersion } from '../hooks/useVersion.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
 import { ChatInput } from '../components/ChatInput.tsx';
-import { ToolBar } from '../components/ToolBar.tsx';
-import { ApiStatus } from 'shared/types.ts';
+//import { ToolBar } from '../components/ToolBar.tsx';
+//import { ApiStatus } from 'shared/types.ts';
 import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
@@ -40,9 +40,10 @@ interface ChatProps {
 export default function Chat({
 	chatState,
 }: ChatProps): JSX.Element {
+	console.debug('Chat: Component rendering');
 	//console.log('Chat: Component mounting');
 	// Initialize version checking
-	const { versionCompatibility } = useVersion();
+	//const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
 	// Get project state and selectedProjectId signal
@@ -51,7 +52,19 @@ export default function Chat({
 	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
+	// Track input changes for performance monitoring
+	const lastInputUpdateRef = useRef<number>(Date.now());
 	const [input, setInput] = useState('');
+	const setInputWithTracking = (value: string) => {
+		const now = Date.now();
+		const timeSinceLastUpdate = now - lastInputUpdateRef.current;
+		if (timeSinceLastUpdate < 16) { // Less than one frame at 60fps
+			console.debug('Chat: Rapid input updates detected:', timeSinceLastUpdate, 'ms');
+		}
+		lastInputUpdateRef.current = now;
+		setInput(value);
+	};
+	console.debug('Chat: Current input length:', input.length);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
 	interface ChatInputRef {
@@ -146,6 +159,9 @@ export default function Chat({
 	};
 
 	const sendConverse = async (retryCount = 0) => {
+		const startTime = performance.now();
+		//console.debug('Chat: Starting message send');
+		//console.debug('Chat: Sending message, length:', input.length);
 		// Update lastApiCallTime when sending a message
 		chatState.value.status.lastApiCallTime = Date.now();
 		chatState.value.status.cacheStatus = 'active';
@@ -156,7 +172,10 @@ export default function Chat({
 
 		try {
 			await handlers.sendConverse(trimmedInput);
-			setInput('');
+			const duration = performance.now() - startTime;
+			console.debug('Chat: Message send completed in', duration.toFixed(2), 'ms');
+			//console.debug('Chat: Clearing input');
+			setInputWithTracking('');
 		} catch (error) {
 			console.error('ChatIsland: Failed to send message:', error);
 			if (retryCount < maxRetries) {
@@ -587,13 +606,14 @@ export default function Chat({
 										textareaRef={chatInputRef}
 										onChange={(value) => {
 											if (!chatState.value.status.isReady) return;
-											setInput(value.slice(0, 10000));
+											setInputWithTracking(value.slice(0, 10000));
 										}}
 										onSend={sendConverse}
 										status={chatState.value.status}
 										disabled={!chatState.value.status.isReady}
 										onCancelProcessing={handlers.cancelProcessing}
 										maxLength={25000}
+										conversationId={chatState.value.conversationId}
 									/>
 								</div>
 							</main>

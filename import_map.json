@@ -31,6 +31,7 @@
 		"ms": "https://esm.sh/ms@2.1.3",
 		"speed-highlight": "https://deno.land/x/speed_highlight_js@v1.2.6/dist/index.js",
 		"marked": "https://esm.sh/marked@14.0.0",
+		"date-fns": "https://esm.sh/date-fns@4.1.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",
 		"deno_dom": "jsr:@b-fuze/deno-dom@^0.1.48/wasm-noinit",
 		"dir": "https://deno.land/x/dir@1.5.2/mod.ts",
