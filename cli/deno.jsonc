@@ -1,6 +1,6 @@
 {
 	"name": "bb-cli",
-	"version": "0.6.1",
+	"version": "0.6.2",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts",

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.6.2] - 2025-01-12
+
+### Added
+
 - Refresh button for Subscription usage
 - Prompt history in Chat Input
 
@@ -19,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Location for log and run files in Linux
 - Subscription page updates when navigating away and back
+
 
 ## [0.6.1] - 2025-01-12
 
