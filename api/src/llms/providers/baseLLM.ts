@@ -16,7 +16,7 @@ import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractToolUseFromContent } from 'api/utils/llms.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
@@ -216,13 +216,24 @@ class LLM {
 				// Process all answer parts and combine text content
 				try {
 					const combinedAnswer = extractTextFromContent(llmSpeakWithResponse.messageResponse.answerContent);
+					const toolUseAnswer = extractToolUseFromContent(llmSpeakWithResponse.messageResponse.answerContent);
 					if (combinedAnswer) {
 						llmSpeakWithResponse.messageResponse.answer = combinedAnswer;
 						logger.info(
 							`provider[${this.llmProviderName}] Extracted combined text answer:`,
 							combinedAnswer.substring(0, 100) + '...',
 						);
+					} else if (toolUseAnswer) {
+						llmSpeakWithResponse.messageResponse.answer = 'Extracted tool use';
+						logger.info(
+							`provider[${this.llmProviderName}] Extracted tool use answer:`,
+							toolUseAnswer.substring(0, 100) + '...',
+						);
 					} else {
+						logger.info(
+							`provider[${this.llmProviderName}] No valid text content found: `,
+							llmSpeakWithResponse.messageResponse.answerContent,
+						);
 						llmSpeakWithResponse.messageResponse.answer =
 							'Error: No valid text content found in LLM response';
 						llmSpeakWithResponse.messageResponse.answerContent = [{

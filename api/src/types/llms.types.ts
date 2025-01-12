@@ -36,6 +36,13 @@ export const OpenAIModels = [
 	OpenAIModel.GPT_35_TURBO,
 ];
 
+export enum DeepSeekModel {
+	GPT_4o = 'deepseek-chat',
+}
+export const DeepSeekModels = [
+	DeepSeekModel.GPT_4o,
+];
+
 export enum GroqModel {
 	GROQ_LLAMA3_8B = 'llama3-8b-8192',
 	GROQ_LLAMA3_70B = 'llama3-70b-8192',
@@ -68,6 +75,7 @@ export enum LLMProvider {
 	BB = 'beyond-better',
 	ANTHROPIC = 'anthropic',
 	OPENAI = 'openai',
+	DEEPSEEK = 'deepseek',
 	GROQ = 'groq',
 	UNKNOWN = '',
 }
@@ -76,6 +84,7 @@ export const LLMProviders = [
 	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
+	LLMProvider.DEEPSEEK,
 	LLMProvider.GROQ,
 	LLMProvider.UNKNOWN,
 ];
@@ -84,6 +93,7 @@ export const LLMProviderLabel = {
 	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
+	[LLMProvider.DEEPSEEK]: 'DeepSeek',
 	[LLMProvider.GROQ]: 'Groq',
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
@@ -92,6 +102,7 @@ export const LLMModelsByProvider = {
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
+	[LLMProvider.DEEPSEEK]: DeepSeekModels,
 	[LLMProvider.GROQ]: GroqModels,
 	[LLMProvider.UNKNOWN]: [],
 };

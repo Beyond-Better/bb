@@ -273,14 +273,14 @@ class BbLLM extends LLM {
 		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			logger.info('BbLLM: messageParams', messageParams);
+			//logger.info('BbLLM: messageParams', messageParams);
 
 			//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
 			const { data, error } = await this.supabaseClient.functions.invoke('llm-proxy', {
 				body: messageParams,
 			});
-			logger.info('BbLLM: llms-bb-data', data);
-			logger.info('BbLLM: llms-bb-error', error);
+			//logger.info('BbLLM: llms-bb-data', data);
+			//logger.info('BbLLM: llms-bb-error', error);
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.settings.api?.logLevel === 'debug1') {
 			//	interaction.conversationPersistence.writeLLMRequest({

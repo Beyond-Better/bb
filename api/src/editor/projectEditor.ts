@@ -169,7 +169,7 @@ class ProjectEditor {
 	async handleStatement(
 		statement: string,
 		conversationId: ConversationId,
-		options?: { maxTurns?: number },
+		options?: { maxTurns?: number; model?: string },
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
