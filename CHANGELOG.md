@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.6.1] - 2025-01-12
+
+### Added
+
 - Settings in BUI for project defaults
 - [beta] Support for OpenAI provider (needs image_url instead of b64 data)
 - [alpha] Support for DeepSeek provider (not returning tool_calls message) (via llm-proxy only)
