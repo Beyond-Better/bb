@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Settings in BUI for project defaults
+- [beta] Support for OpenAI provider (needs image_url instead of b64 data)
+- [alpha] Support for DeepSeek provider (not returning tool_calls message) (via llm-proxy only)
 
 ### Changed
 
@@ -19,9 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- support for OpenAI provider
-- support for DeepSeek provider
-
+- Changed KV key to fix auth session restoration in API
 
 ## [0.6.0] - 2025-01-08
 

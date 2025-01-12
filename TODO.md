@@ -143,6 +143,7 @@
 √ Enforced conversation summary when token limit is reached
 √ Click version should show detailed version info, along with option to upgrade server
 √ update prompt cache points
+√ Fix dark mode
 √ DUI:
 √  - API control
 √ Update docs on bb-site
