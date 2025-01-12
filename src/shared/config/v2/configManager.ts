@@ -1337,6 +1337,15 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			});
 		}
 
+		// Validate defaultModels config
+		if (!config.defaultModels) {
+			result.errors.push({
+				path: ['api'],
+				message: 'Default Models configuration is required',
+				value: undefined,
+			});
+		}
+
 		// Validate API config
 		if (!config.api) {
 			result.errors.push({
