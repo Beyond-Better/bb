@@ -139,6 +139,11 @@ describe('Configuration Types', () => {
 				version: '2.0.0',
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Claude',
+				defaultModels: {
+					orchestrator: 'claude-3-5-sonnet-20241022',
+					agent: 'claude-3-5-sonnet-20241022',
+					chat: 'claude-3-haiku-20240307',
+				},
 				noBrowser: false,
 				bbExeName: 'bb',
 				bbApiExeName: 'bb-api',

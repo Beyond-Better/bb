@@ -28,7 +28,7 @@
 		"kia-spinner": "https://deno.land/x/kia@0.4.1/mod.ts",
 		"evt": "https://deno.land/x/evt@v2.5.7/mod.ts",
 		"cors": "https://deno.land/x/cors@v1.2.2/mod.ts",
-		"ms": "https://deno.land/x/ms@v0.1.0/ms.ts",
+		"ms": "https://esm.sh/ms@2.1.3",
 		"speed-highlight": "https://deno.land/x/speed_highlight_js@v1.2.6/dist/index.js",
 		"marked": "https://esm.sh/marked@14.0.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",

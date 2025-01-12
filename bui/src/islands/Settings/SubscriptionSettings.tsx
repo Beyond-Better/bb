@@ -1,27 +1,43 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
+import { useSignal } from '@preact/signals';
+import { activeTab } from '../Settings.tsx';
 //import type { StripeError } from '@stripe/stripe-js';
-import { Plan } from '../types/subscription.ts';
-import { useAppState } from '../hooks/useAppState.ts';
-import { useBillingState } from '../hooks/useBillingState.ts';
-import PlanCard from '../components/Subscriptions/PlanCard.tsx';
-import PaymentFlowDialog from '../components/Subscriptions/PaymentFlowDialog.tsx';
-import UsageBlockDialog from '../components/Subscriptions/UsageBlockDialog.tsx';
-import CancelDialog from '../components/Subscriptions/CancelDialog.tsx';
-import NewPaymentMethodForm from './NewPaymentMethodForm.tsx';
+import { Plan } from '../../types/subscription.ts';
+import { useAppState } from '../../hooks/useAppState.ts';
+import { useBillingState } from '../../hooks/useBillingState.ts';
+import PlanCard from '../../components/Subscriptions/PlanCard.tsx';
+import PaymentFlowDialog from '../../components/Subscriptions/PaymentFlowDialog.tsx';
+import UsageBlockDialog from '../../components/Subscriptions/UsageBlockDialog.tsx';
+import CancelDialog from '../../components/Subscriptions/CancelDialog.tsx';
+import NewPaymentMethodForm from './../NewPaymentMethodForm.tsx';
 
 const showCancelDialog = signal(false);
 const showUsageBlockDialog = signal(false);
 const showPaymentMethodDialog = signal(false);
 
 export default function SubscriptionSettings() {
-	const { billingState, initialize, updatePaymentMethods } = useBillingState();
+	const { billingState, initialize, updatePaymentMethods, updateUsageData } = useBillingState();
 	const appState = useAppState();
 
-	// Initialize billing state
+	// Track previous active state to detect tab changes
+	const wasActive = useSignal(false);
+
+	// Initialize billing state and refresh when tab becomes active
 	useEffect(() => {
-		initialize();
-	}, []);
+		const isActive = activeTab.value === 'subscription';
+
+		if (isActive) {
+			initialize();
+		}
+
+		// Refresh when first mounted or when becoming active after being inactive
+		if (isActive && (!wasActive.value || !billingState.value.purchasesBalance)) {
+			updateUsageData();
+		}
+
+		wasActive.value = isActive;
+	}, [activeTab.value]);
 
 	const handlePlanSelect = async (plan: Plan) => {
 		if (!billingState.value.stripe) {
@@ -90,8 +106,16 @@ export default function SubscriptionSettings() {
 
 	return (
 		<div class='p-6'>
+			<div class='flex items-center space-x-3 mb-6'>
+				<div>
+					<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Plans and Billing</h3>
+					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+						Choose a new plan, purchase usage block, or update your billing details
+					</p>
+				</div>
+			</div>
 			<div class='mt-0'>
-				<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Current Subscription</h3>
+				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Subscription and Usage</h3>
 				{billingState.value.subscription && (
 					<div class='mt-4 grid grid-cols-3 gap-6'>
 						{/* Each section uses flex-col to allow button positioning at bottom */}
@@ -162,13 +186,14 @@ export default function SubscriptionSettings() {
 													?.toFixed(2)} USD
 											</span>
 											{billingState.value.purchasesBalance?.balance &&
-												billingState.value.purchasesBalance?.balance.block_allowance_usd > 0 &&
+												billingState.value.purchasesBalance?.balance.purchased_allowance_usd >
+													0 &&
 												(
 													<div class='text-xs text-gray-500 dark:text-gray-400'>
 														(${billingState.value.purchasesBalance?.balance
 															.subscription_allowance_usd?.toFixed(2)}{' '}
 														plan + ${billingState.value.purchasesBalance?.balance
-															.block_allowance_usd?.toFixed(2)} blocks)
+															.purchased_allowance_usd?.toFixed(2)} blocks)
 													</div>
 												)}
 										</div>
@@ -186,16 +211,17 @@ export default function SubscriptionSettings() {
 										</span>
 										<div class='text-right'>
 											<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-												${billingState.value.purchasesBalance?.balance.total_usage_usd?.toFixed(
+												${billingState.value.purchasesBalance?.balance.total_used_usd?.toFixed(
 													2,
 												)} USD
 											</span>
 											{billingState.value.purchasesBalance?.balance &&
-												billingState.value.purchasesBalance?.balance.block_used_usd > 0 && (
+												billingState.value.purchasesBalance?.balance.purchased_used_usd > 0 && (
 												<div class='text-xs text-gray-500 dark:text-gray-400'>
 													(${billingState.value.purchasesBalance?.balance
 														.subscription_used_usd?.toFixed(2)}{' '}
-													plan + ${billingState.value.purchasesBalance?.balance.block_used_usd
+													plan + ${billingState.value.purchasesBalance?.balance
+														.purchased_used_usd
 														?.toFixed(2)} blocks)
 												</div>
 											)}
@@ -213,9 +239,8 @@ export default function SubscriptionSettings() {
 											Remaining Balance:
 										</span>
 										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											${billingState.value.purchasesBalance?.balance.remaining_usd?.toFixed(2)}
-											{' '}
-											USD
+											${billingState.value.purchasesBalance?.balance.remaining_balance_usd
+												?.toFixed(2)} USD
 										</span>
 									</div>
 
@@ -228,7 +253,7 @@ export default function SubscriptionSettings() {
 														billingState.value.purchasesBalance?.balance
 															? Math.min(
 																(billingState.value.purchasesBalance?.balance
-																	.total_usage_usd /
+																	.total_used_usd /
 																	billingState.value.purchasesBalance?.balance
 																		.total_allowance_usd) * 100,
 																100,
@@ -329,7 +354,7 @@ export default function SubscriptionSettings() {
 
 			{/* Available Plans */}
 			<div class='mt-8'>
-				<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Available Plans</h3>
+				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Available Plans</h3>
 				<div class='mt-4 flex flex-nowrap gap-6 overflow-x-auto pb-4'>
 					{billingState.value.availablePlans.map((plan) => (
 						<PlanCard

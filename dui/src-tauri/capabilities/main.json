@@ -88,7 +88,7 @@
 		}
 	],
 	"webviewConfig": {
-		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev"],
+		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev","https://localhost:8080"],
 		"allowedProtocols": ["ws", "wss", "http", "https"]
 	}
 }

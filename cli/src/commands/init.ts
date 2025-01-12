@@ -36,6 +36,7 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 			myPersonsName: projectConfig.myPersonsName,
 			myAssistantsName: projectConfig.myAssistantsName,
 			anthropicApiKey: projectConfig.settings.api?.llmKeys?.anthropic,
+			defaultModels: projectConfig.defaultModels,
 		}
 		: {
 			name: basename(projectRoot),
@@ -44,6 +45,11 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
 			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
 			anthropicApiKey: '',
+			defaultModels: {
+				orchestrator: 'claude-3-5-sonnet-20241022',
+				agent: 'claude-3-5-sonnet-20241022',
+				chat: 'claude-3-haiku-20240307',
+			},
 		};
 
 	const defaultProjectName = existingProjectConfig.name;

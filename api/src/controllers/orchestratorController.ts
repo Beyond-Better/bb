@@ -43,6 +43,7 @@ import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import { LLMModelToProvider } from 'api/types/llms.ts';
 import {
 	generateConversationObjective,
 	generateConversationTitle,
@@ -161,7 +162,11 @@ class OrchestratorController {
 
 		this.llmProvider = LLMFactory.getProvider(
 			this.getInteractionCallbacks(),
-			globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
+			globalConfig.api.localMode
+				? LLMModelToProvider[this.projectConfig.defaultModels!.agent]
+				: LLMProviderEnum.BB,
+			//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
+			//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
 		);
 
 		return this;

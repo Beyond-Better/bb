@@ -144,20 +144,8 @@ pub struct ApiStartResult {
 }
 
 fn verify_api_requirements() -> Result<(), String> {
-    // Check if bb-api binary exists
-    get_bb_api_path().map_err(|e| format!("BB API binary not found: {}", e))?;
-
-    // Check if config exists and has required values
-    let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
-
-    // Check for Anthropic API key
-    if global_config.api.llm_keys.as_ref()
-        .and_then(|keys| keys.anthropic.as_ref())
-        .map_or(true, |key| key.trim().is_empty()) {
-        return Err("Anthropic API key not configured".to_string());
-    }
-
-    Ok(())
+    // Only check if bb-api binary exists
+    get_bb_api_path().map(|_| ()).map_err(|e| format!("BB API binary not found: {}", e))
 }
 
 #[cfg(target_os = "windows")]
@@ -216,13 +204,13 @@ fn create_process_windows(
 
 #[tauri::command]
 pub async fn start_api() -> Result<ApiStartResult, String> {
-    // Verify all requirements are met before starting
+    // Verify only that the binary exists
     if let Err(e) = verify_api_requirements() {
         return Ok(ApiStartResult {
             success: false,
             pid: None,
             error: Some(e),
-            requires_settings: true,
+            requires_settings: false,
         });
     }
 

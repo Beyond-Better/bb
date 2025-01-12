@@ -30,12 +30,12 @@ export class KVStorage implements Storage {
 		try {
 			const kvPath = await this.getKvPath();
 			this.kv = await Deno.openKv(kvPath);
-			logger.info(`KVStorage initialized at: ${kvPath}`);
+			logger.info(`KVStorage: initialized at: ${kvPath}`);
 
 			// Load initial data into cache
 			await this.loadCache();
 		} catch (error) {
-			logger.error('Failed to initialize KVStorage:', error);
+			logger.error('KVStorage: Failed to initialize KVStorage:', error);
 			throw error;
 		}
 	}
@@ -45,11 +45,14 @@ export class KVStorage implements Storage {
 		this.cache.clear();
 
 		const entries = this.kv!.list({ prefix: [this.prefix] });
+		//logger.info(`KVStorage: Entries for prefix: '${this.prefix}'`, entries);
 		for await (const entry of entries) {
+			//logger.info(`KVStorage: entry`, entry);
 			const key = entry.key[entry.key.length - 1] as string;
 			const value = entry.value as string;
 			this.cache.set(key, value);
 		}
+		//logger.info('KVStorage: Cache:', Object.fromEntries(this.cache));
 	}
 
 	private async getKvPath(): Promise<string> {
@@ -64,14 +67,14 @@ export class KVStorage implements Storage {
 				return join(globalDir, this.filename);
 			}
 		} catch (error) {
-			logger.error('Failed to determine KV path:', error);
+			logger.error('KVStorage: Failed to determine KV path:', error);
 			throw error;
 		}
 	}
 
 	private ensureInitialized(): void {
 		if (!this.kv) {
-			throw new Error('KVStorage not initialized. Call initialize() first.');
+			throw new Error('KVStorage: not initialized. Call initialize() first.');
 		}
 	}
 
@@ -85,19 +88,21 @@ export class KVStorage implements Storage {
 		this.cache.clear();
 		// Async cleanup in background
 		this.clearAsync().catch((error) => {
-			logger.error('Error in async clear:', error);
+			logger.error('KVStorage: Error in async clear:', error);
 		});
 	}
 
 	getItem(key: string): string | null {
+		//logger.info(`KVStorage: getItem:`, {key});
 		return this.cache.get(key) ?? null;
 	}
 
 	setItem(key: string, value: string): void {
 		this.cache.set(key, value);
+		//logger.info(`KVStorage: setItem:`, {key, value});
 		// Async persist in background
 		this.setItemAsync(key, value).catch((error) => {
-			logger.error('Error in async setItem:', error);
+			logger.error('KVStorage: Error in async setItem:', error);
 		});
 	}
 
@@ -105,7 +110,7 @@ export class KVStorage implements Storage {
 		this.cache.delete(key);
 		// Async cleanup in background
 		this.removeItemAsync(key).catch((error) => {
-			logger.error('Error in async removeItem:', error);
+			logger.error('KVStorage: Error in async removeItem:', error);
 		});
 	}
 
@@ -128,12 +133,12 @@ export class KVStorage implements Storage {
 
 	private async setItemAsync(key: string, value: string): Promise<void> {
 		this.ensureInitialized();
-		await this.kv!.set([this.prefix + key], value);
+		await this.kv!.set([this.prefix, key], value);
 	}
 
 	private async removeItemAsync(key: string): Promise<void> {
 		this.ensureInitialized();
-		await this.kv!.delete([this.prefix + key]);
+		await this.kv!.delete([this.prefix, key]);
 	}
 
 	// Additional methods for proper cleanup

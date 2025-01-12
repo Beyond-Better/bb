@@ -17,16 +17,15 @@ export async function startServer(): Promise<ServerStartResult> {
         };
     }
 
-    // // Now start BUI
-    // const buiResult = await invoke<ServiceStartResult>('start_bui');
-    // const allReady = apiResult.success && buiResult.success;
-    const allReady = apiResult.success;
+    // Now start BUI
+    const buiResult = await invoke<ServiceStartResult>('start_bui');
+    const allReady = apiResult.success && buiResult.success;
 
-    // // If BUI fails, stop API
-    // if (!buiResult.success && apiResult.success) {
-    //     await stopServer();
-    //     buiResult.error = `BUI failed to start: ${buiResult.error}. API stopped.`;
-    // }
+    // If BUI fails, stop API
+    if (!buiResult.success && apiResult.success) {
+        await stopServer();
+        buiResult.error = `BUI failed to start: ${buiResult.error}. API stopped.`;
+    }
 
     return {
         api: apiResult,
@@ -61,15 +60,14 @@ export async function checkServerStatusNative(): Promise<ServerStatus> {
     const buiStatus = await checkServiceStatusNative(
         config.api.hostname,
         config.api.port,
-        config.bui?.tls?.useTls || false,
+        config.bui.tls.useTls,
         '/api/v1/status'
     );
 
     return {
         api: apiStatus,
         bui: buiStatus,
-        // all_services_ready: apiStatus.service_responds && buiStatus.service_responds,
-        all_services_ready: apiStatus.service_responds,
+        all_services_ready: apiStatus.service_responds && buiStatus.service_responds,
     };
 }
 
@@ -145,8 +143,6 @@ export async function getGlobalConfigDefault(): Promise<GlobalConfig> {
             tls: {
                 useTls: false,
             },
-            //supabaseUrl: '',
-            //supabaseAnonKey: '',
         },
     };
 }

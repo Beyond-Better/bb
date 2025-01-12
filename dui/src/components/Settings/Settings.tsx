@@ -2,16 +2,16 @@ import { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { invoke } from '@tauri-apps/api/core';
 import { setDebugMode as setProxyDebugMode } from '../../utils/proxy';
-import { GlobalConfigValues, RustGlobalConfig } from '../../types/settings';
+import { GlobalConfigValues } from '../../types/settings';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
 import { useDebugMode } from '../../providers/DebugModeProvider';
 
 const defaultConfig: GlobalConfigValues = {
-	myPersonsName: '',
-	myAssistantsName: '',
-	'api.maxTurns': 25,
-	'api.llmKeys.anthropic': '',
 	'api.tls.useTls': false,
+	'api.localMode': false,
+	'api.llmKeys.anthropic': '',
+	'bui.tls.useTls': false,
+	'bui.localMode': false,
 };
 
 export function Settings(): JSX.Element {
@@ -28,39 +28,16 @@ export function Settings(): JSX.Element {
 	const loadConfig = async () => {
 		console.log('Loading config...');
 		try {
-			//console.log('Invoking get_global_config...');
 			const rustConfig = await invoke<RustGlobalConfig>('get_global_config');
-			// console.log('Full Rust config structure:', JSON.stringify(rustConfig, null, 2));
-			// // Verify property access
-			// console.log('Direct property check:', {
-			// 	hasMyPersonsName: 'myPersonsName' in rustConfig,
-			// 	myPersonsNameValue: rustConfig.myPersonsName,
-			// 	propertyNames: Object.keys(rustConfig),
-			// });
-			// // Log the raw response
-			// console.log('Raw config from Rust:', rustConfig);
-			// console.log('Config type:', Object.prototype.toString.call(rustConfig));
-			// console.log('Config keys:', Object.keys(rustConfig));
-			// console.log('Config entries:', Object.entries(rustConfig));
-			// console.log('myPersonsName from Rust:', rustConfig.myPersonsName);
-			// console.log('api.maxTurns from Rust:', rustConfig.api?.maxTurns);
-			// console.log('api.llmKeys from Rust:', rustConfig.api?.llmKeys);
-			// console.log('api.tls.useTls from Rust:', rustConfig.api?.tls?.useTls);
 
-			// Map snake_case Rust config to our frontend format
 			const configValues: GlobalConfigValues = {
-				myPersonsName: rustConfig.myPersonsName || '',
-				myAssistantsName: rustConfig.myAssistantsName || '',
-				'api.maxTurns': rustConfig.api?.maxTurns ?? 25,
-				'api.llmKeys.anthropic': rustConfig.api?.llmKeys?.anthropic || '',
 				'api.tls.useTls': rustConfig.api?.tls?.useTls ?? false,
+				'api.localMode': rustConfig.api?.localMode ?? false,
+				'api.llmKeys.anthropic': rustConfig.api?.llmKeys?.anthropic ?? '',
+				'bui.tls.useTls': rustConfig.bui?.tls?.useTls ?? false,
+				'bui.localMode': rustConfig.bui?.localMode ?? false,
 			};
 
-			// console.log('Mapped config values:', configValues);
-			// console.log('Mapped myPersonsName:', configValues.myPersonsName);
-			// console.log('Mapped api.maxTurns:', configValues['api.maxTurns']);
-			// console.log('Mapped api.llmKeys.anthropic:', configValues['api.llmKeys.anthropic']);
-			// console.log('Mapped api.tls.useTls:', configValues['api.tls.useTls']);
 			setConfig(configValues);
 			setOriginalConfig(configValues);
 		} catch (error) {
@@ -71,22 +48,10 @@ export function Settings(): JSX.Element {
 	const validateForm = (): boolean => {
 		const newErrors: Partial<Record<keyof GlobalConfigValues, string>> = {};
 
-		if (!config.myPersonsName.trim()) {
-			newErrors.myPersonsName = 'Name is required';
-		}
-
-		if (!config.myAssistantsName.trim()) {
-			newErrors.myAssistantsName = 'Assistant name is required';
-		}
-
 		const apiKey = config['api.llmKeys.anthropic'].trim();
 		// Only validate if the key is being changed (not masked)
 		if (apiKey && !apiKey.endsWith('...') && (!apiKey.startsWith('sk-ant-api03-') || apiKey.length < 48)) {
 			newErrors['api.llmKeys.anthropic'] = 'Invalid Anthropic API key format';
-		}
-
-		if (config['api.maxTurns'] < 1) {
-			newErrors['api.maxTurns'] = 'Max turns must be at least 1';
 		}
 
 		setErrors(newErrors);
@@ -109,32 +74,30 @@ export function Settings(): JSX.Element {
 			// Only save values that have changed
 			const updates = [];
 
-			if (config.myPersonsName !== originalConfig.myPersonsName) {
-				console.log('Updating myPersonsName:', config.myPersonsName);
-				updates.push(['myPersonsName', config.myPersonsName]);
-			}
-
-			if (config.myAssistantsName !== originalConfig.myAssistantsName) {
-				console.log('Updating myAssistantsName:', config.myAssistantsName);
-				updates.push(['myAssistantsName', config.myAssistantsName]);
-			}
-
-			if (config['api.maxTurns'] !== originalConfig['api.maxTurns']) {
-				console.log('Updating api.maxTurns:', config['api.maxTurns']);
-				updates.push(['api.maxTurns', config['api.maxTurns'].toString()]);
-			}
-
 			if (config['api.tls.useTls'] !== originalConfig['api.tls.useTls']) {
 				console.log('Updating api.tls.useTls:', config['api.tls.useTls']);
 				updates.push(['api.tls.useTls', config['api.tls.useTls'].toString()]);
 			}
-
+			if (config['api.localMode'] !== originalConfig['api.localMode']) {
+				console.log('Updating api.localMode:', config['api.localMode']);
+				updates.push(['api.localMode', config['api.localMode'].toString()]);
+			}
 			const apiKey = config['api.llmKeys.anthropic'];
 			const originalApiKey = originalConfig['api.llmKeys.anthropic'];
 			if (apiKey !== originalApiKey && !apiKey.endsWith('...')) {
 				console.log('Updating API key');
 				updates.push(['api.llmKeys.anthropic', apiKey]);
 				console.log('Updates array:', updates);
+			}
+
+
+			if (config['bui.tls.useTls'] !== originalConfig['bui.tls.useTls']) {
+				console.log('Updating bui.tls.useTls:', config['bui.tls.useTls']);
+				updates.push(['bui.tls.useTls', config['bui.tls.useTls'].toString()]);
+			}
+			if (config['bui.localMode'] !== originalConfig['bui.localMode']) {
+				console.log('Updating bui.localMode:', config['bui.localMode']);
+				updates.push(['bui.localMode', config['bui.localMode'].toString()]);
 			}
 
 			console.log(
@@ -169,8 +132,9 @@ export function Settings(): JSX.Element {
 
 	const handleRestartConfirm = async () => {
 		try {
-			// Stop API first
+			// Stop API/BUI first
 			await invoke('stop_api');
+			await invoke('stop_bui');
 
 			// Handle proxy server based on TLS setting
 			if (config['api.tls.useTls']) {
@@ -184,6 +148,7 @@ export function Settings(): JSX.Element {
 
 			// Start API
 			await invoke('start_api');
+			await invoke('start_bui');
 
 			// If TLS is disabled, ensure proxy is started
 			if (!config['api.tls.useTls']) {
@@ -230,121 +195,116 @@ export function Settings(): JSX.Element {
 				}}
 				className='space-y-6'
 			>
-				<div>
-					<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-						Anthropic API Key
-					</label>
-					<div className='relative'>
-						<input
-							type='text'
-							value={config['api.llmKeys.anthropic']}
-							onChange={(e) => handleInputChange('api.llmKeys.anthropic', e.currentTarget.value)}
-							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
+				{/* API Settings Section */}
+				<div className='space-y-4'>
+					<h3 className='text-lg font-semibold dark:text-white'>API Settings</h3>
+					<div className='grid grid-cols-2 gap-4'>
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={config['api.tls.useTls']}
+									onChange={(e) => handleInputChange('api.tls.useTls', e.currentTarget.checked)}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Use TLS
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Enable TLS for secure connections
+								</span>
+							</label>
+						</div>
+
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={config['api.localMode']}
+									onChange={(e) => handleInputChange('api.localMode', e.currentTarget.checked)}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Local Mode
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Use local mode to disable user auth
+								</span>
+							</label>
+						</div>
+
+						{config['api.localMode'] && (
+							<div className='col-span-2'>
+								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+									Anthropic API Key
+									<input
+										type='text'
+										value={config['api.llmKeys.anthropic']}
+										onChange={(e) => handleInputChange('api.llmKeys.anthropic', e.currentTarget.value)}
+										className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
 								errors['api.llmKeys.anthropic']
 									? 'border-red-500'
 									: 'border-gray-300 dark:border-gray-600'
-							}`}
-							placeholder='sk-ant-api03-...'
-						/>
-						{config['api.llmKeys.anthropic'].endsWith('...') && (
-							<span className='absolute right-3 top-2 text-sm text-gray-500 dark:text-gray-400'>
-								(Masked)
-							</span>
+							} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}
+										placeholder='Enter your Anthropic API key'
+									/>
+								</label>
+							</div>
 						)}
 					</div>
-					{errors['api.llmKeys.anthropic'] && (
-						<p className='mt-1 text-sm text-red-500'>{errors['api.llmKeys.anthropic']}</p>
-					)}
 				</div>
 
-				<div className='grid grid-cols-2 gap-4'>
-					<div>
-						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-							Your Name
-						</label>
-						<input
-							type='text'
-							value={config.myPersonsName}
-							onChange={(e) => handleInputChange('myPersonsName', e.currentTarget.value)}
-							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-								errors.myPersonsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-							}`}
-						/>
-						{errors.myPersonsName && <p className='mt-1 text-sm text-red-500'>{errors.myPersonsName}</p>}
-					</div>
-
-					<div>
-						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-							Assistant Name
-						</label>
-						<input
-							type='text'
-							value={config.myAssistantsName}
-							onChange={(e) => handleInputChange('myAssistantsName', e.currentTarget.value)}
-							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-								errors.myAssistantsName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-							}`}
-						/>
-						{errors.myAssistantsName && <p className='mt-1 text-sm text-red-500'>{errors.myAssistantsName}</p>}
-					</div>
-				</div>
-
-				<div className='grid grid-cols-3 gap-4'>
-					<div>
-						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-							Max Turns
-						</label>
-						<input
-							type='number'
-							min='1'
-							value={config['api.maxTurns']}
-							onChange={(e) => handleInputChange('api.maxTurns', parseInt(e.currentTarget.value) || 0)}
-							className={`w-full px-3 py-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-								errors['api.maxTurns'] ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-							}`}
-						/>
-						{errors['api.maxTurns'] && <p className='mt-1 text-sm text-red-500'>{errors['api.maxTurns']}</p>}
-					</div>
-
-					<div>
-						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-							Use TLS
-						</label>
-						<div className='flex items-center h-[38px]'>
-							<input
-								type='checkbox'
-								checked={config['api.tls.useTls']}
-								onChange={(e) => handleInputChange('api.tls.useTls', e.currentTarget.checked)}
-								className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
-							/>
-							<span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
-								Enable TLS for secure connections
-							</span>
+				{/* BUI Settings Section */}
+				<div className='space-y-4'>
+					<h3 className='text-lg font-semibold dark:text-white'>BUI Settings</h3>
+					<div className='grid grid-cols-2 gap-4'>
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={config['bui.tls.useTls']}
+									onChange={(e) => handleInputChange('bui.tls.useTls', e.currentTarget.checked)}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Use TLS
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Enable TLS for secure connections
+								</span>
+							</label>
 						</div>
-					</div>
 
-					<div>
-						<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-							Debug Mode
-						</label>
-						<div className='flex items-center h-[38px]'>
-							<input
-								type='checkbox'
-								checked={debugMode}
-								onChange={async (e) => {
-							setDebugMode(e.currentTarget.checked);
-							try {
-								await setProxyDebugMode(e.currentTarget.checked);
-								console.debug('Debug mode set successfully');
-							} catch (err) {
-								console.error('Failed to set debug mode:', err);
-							}
-						}}
-								className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500'
-							/>
-							<span className='ml-2 text-sm text-gray-600 dark:text-gray-400'>
-								Use localhost for development
-							</span>
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={config['bui.localMode']}
+									onChange={(e) => handleInputChange('bui.localMode', e.currentTarget.checked)}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Local Mode
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Use local mode to disable user auth
+								</span>
+							</label>
+						</div>
+
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={debugMode}
+									onChange={async (e) => {
+										setDebugMode(e.currentTarget.checked);
+										try {
+											await setProxyDebugMode(e.currentTarget.checked);
+											console.debug('Debug mode set successfully');
+										} catch (err) {
+											console.error('Failed to set debug mode:', err);
+										}
+									}}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Local Proxy Mode
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Use localhost for development
+								</span>
+							</label>
 						</div>
 					</div>
 				</div>

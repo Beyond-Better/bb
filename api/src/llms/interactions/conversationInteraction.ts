@@ -784,6 +784,8 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		this.addMessageForUserRole({ type: 'text', text: prompt });
 
+		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`BaseInteraction: relayToolResult - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
@@ -845,6 +847,8 @@ class LLMConversationInteraction extends LLMInteraction {
 			this.conversationStats,
 		);
 
+		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 

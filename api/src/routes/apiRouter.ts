@@ -17,6 +17,7 @@ import fileRouter from './api/fileRouter.ts';
 import authRouter from './api/authRouter.ts';
 import userRouter from './api/userRouter.ts';
 import subscriptionRouter from './api/subscriptionRouter.ts';
+import configRouter from './api/configRouter.ts';
 
 const apiRouter = new Router();
 
@@ -27,6 +28,7 @@ const protectedPaths = [
 	'/v1/project/*',
 	'/v1/files/*',
 	'/v1/user/*', // Protect all user routes including subscription
+	'/v1/config/*', // Protect all config routes
 ];
 
 apiRouter
@@ -198,7 +200,8 @@ apiRouter
 	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods())
 	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods())
 	.use('/v1/user', userRouter.routes(), userRouter.allowedMethods())
-	.use('/v1/subscription', subscriptionRouter.routes(), subscriptionRouter.allowedMethods());
+	.use('/v1/subscription', subscriptionRouter.routes(), subscriptionRouter.allowedMethods())
+	.use('/v1/config', configRouter.routes(), configRouter.allowedMethods());
 
 /*
     // NOT IMPLEMENTED

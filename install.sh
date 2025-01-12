@@ -123,7 +123,7 @@ trap 'rm -rf "$temp_dir"' EXIT
 
 # Download and extract the tarball
 echo "${YELLOW}Downloading BB ${latest_version} for ${arch}-${os}...${NC}"
-curl -sL "$download_url" -o "$temp_dir/bb.tar.gz"
+curl -L --progress-bar "$download_url" -o "$temp_dir/bb.tar.gz"
 # echo "Download complete. File size: $(wc -c < "$temp_dir/bb.tar.gz") bytes"
 # echo "File type: $(file "$temp_dir/bb.tar.gz")"
 echo "${YELLOW}Extracting archive...${NC}"

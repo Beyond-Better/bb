@@ -164,7 +164,6 @@ export function useBillingState() {
 				apiClient.getAvailablePlans(),
 				apiClient.listPaymentMethods(),
 				apiClient.listUsageBlocks(),
-				apiClient.listUsageBlocks(),
 			]);
 			console.log('useBillingState: subscription', subscription);
 			console.log('useBillingState: purchasesBalance', purchasesBalance);
@@ -199,6 +198,40 @@ export function useBillingState() {
 					purchasesBalance: false,
 				},
 				paymentFlowError: handleError(error, 'Failed to load billing data', 'api_error'),
+			};
+		}
+	};
+
+	const updateUsageData = async (): Promise<void> => {
+		try {
+			const apiClient = getApiClient();
+
+			billingState.value = {
+				...billingState.value,
+				loading: {
+					...billingState.value.loading,
+					purchasesBalance: true,
+				},
+			};
+
+			const purchasesBalance = await apiClient.listUsageBlocks();
+			console.log('useBillingState: purchasesBalance', purchasesBalance);
+
+			billingState.value = {
+				...billingState.value,
+				purchasesBalance,
+				loading: {
+					...billingState.value.loading,
+					purchasesBalance: false,
+				},
+			};
+		} catch (_error) {
+			billingState.value = {
+				...billingState.value,
+				loading: {
+					...billingState.value.loading,
+					purchasesBalance: false,
+				},
 			};
 		}
 	};
@@ -440,6 +473,7 @@ export function useBillingState() {
 			}
 		},
 		loadBillingData,
+		updateUsageData,
 		updatePaymentMethods,
 		createPaymentElements,
 		previewPlanChange,

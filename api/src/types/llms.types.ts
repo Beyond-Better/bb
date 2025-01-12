@@ -9,16 +9,17 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 export enum AnthropicModel {
-	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',
-	//CLAUDE_3_5_HAIKU = 'claude-3-haiku-20240307',
-	CLAUDE_3_SONNET = 'claude-3-sonnet-20240229',
+	CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-20241022',
 	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
+	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',
+	CLAUDE_3_SONNET = 'claude-3-sonnet-20240229',
 	CLAUDE_3_OPUS = 'claude-3-opus-20240229',
 }
 export const AnthropicModels = [
-	AnthropicModel.CLAUDE_3_HAIKU,
-	AnthropicModel.CLAUDE_3_SONNET,
+	AnthropicModel.CLAUDE_3_5_HAIKU,
 	AnthropicModel.CLAUDE_3_5_SONNET,
+	AnthropicModel.CLAUDE_3_HAIKU,
+	//AnthropicModel.CLAUDE_3_SONNET,
 	AnthropicModel.CLAUDE_3_OPUS,
 ];
 
@@ -33,6 +34,13 @@ export const OpenAIModels = [
 	OpenAIModel.GPT_4_TURBO,
 	OpenAIModel.GPT_4,
 	OpenAIModel.GPT_35_TURBO,
+];
+
+export enum DeepSeekModel {
+	GPT_4o = 'deepseek-chat',
+}
+export const DeepSeekModels = [
+	DeepSeekModel.GPT_4o,
 ];
 
 export enum GroqModel {
@@ -67,6 +75,7 @@ export enum LLMProvider {
 	BB = 'beyond-better',
 	ANTHROPIC = 'anthropic',
 	OPENAI = 'openai',
+	DEEPSEEK = 'deepseek',
 	GROQ = 'groq',
 	UNKNOWN = '',
 }
@@ -75,6 +84,7 @@ export const LLMProviders = [
 	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
+	LLMProvider.DEEPSEEK,
 	LLMProvider.GROQ,
 	LLMProvider.UNKNOWN,
 ];
@@ -83,6 +93,7 @@ export const LLMProviderLabel = {
 	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
+	[LLMProvider.DEEPSEEK]: 'DeepSeek',
 	[LLMProvider.GROQ]: 'Groq',
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
@@ -91,6 +102,7 @@ export const LLMModelsByProvider = {
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
+	[LLMProvider.DEEPSEEK]: DeepSeekModels,
 	[LLMProvider.GROQ]: GroqModels,
 	[LLMProvider.UNKNOWN]: [],
 };
@@ -261,6 +273,7 @@ export enum LLMCallbackType {
 }
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {
+	// @ts-ignore any
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
 

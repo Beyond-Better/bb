@@ -2,6 +2,7 @@ import type { JSX } from 'preact';
 
 import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { Project } from '../hooks/useProjectState.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
@@ -102,6 +103,10 @@ export interface ApiUpgradeResponse {
 	latestVersion: string;
 	needsUpdate: boolean;
 	needsSudo: boolean;
+}
+
+export interface ConfigUpdateResponse {
+	message: string;
 }
 
 export class ApiClient {
@@ -477,6 +482,23 @@ export class ApiClient {
 
 	async applyDiagnosticFix(fixEndpoint: string): Promise<{ message: string } | null> {
 		return await this.post<{ message: string }>(fixEndpoint, {});
+	}
+
+	// Configuration Management Methods
+	async getGlobalConfig(): Promise<GlobalConfig | null> {
+		return await this.get<GlobalConfig>('/api/v1/config/global');
+	}
+
+	async updateGlobalConfig(key: string, value: string): Promise<ConfigUpdateResponse | null> {
+		return await this.put<ConfigUpdateResponse>('/api/v1/config/global', { key, value });
+	}
+
+	async getProjectConfig(projectId: string): Promise<ProjectConfig | null> {
+		return await this.get<ProjectConfig>(`/api/v1/config/project/${projectId}`);
+	}
+
+	async updateProjectConfig(projectId: string, key: string, value: string): Promise<ConfigUpdateResponse | null> {
+		return await this.put<ConfigUpdateResponse>(`/api/v1/config/project/${projectId}`, { key, value });
 	}
 
 	async upgradeApi(): Promise<ApiUpgradeResponse | null> {

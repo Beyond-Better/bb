@@ -35,11 +35,11 @@ export const logEntryFormatter = async (
 			return;
 		}
 
-		logger.info(
-			`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
-				logEntry.toolName || 'N/A'
-			}`,
-		);
+		// logger.info(
+		// 	`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
+		// 		logEntry.toolName || 'N/A'
+		// 	}`,
+		// );
 
 		if (!['console', 'browser'].includes(logEntryDestination)) {
 			logger.warn(`HandlerlogEntryFormatter: Invalid logEntryDestination: ${logEntryDestination}`);

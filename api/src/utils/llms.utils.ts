@@ -61,3 +61,35 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 	}
 	return combinedText.trim();
 };
+
+export const extractToolUseFromContent = (answerContent: LLMMessageContentPart[]): string => {
+	if (!Array.isArray(answerContent)) {
+		throw new Error('answerContent must be an array');
+	}
+
+	let combinedText = '';
+	for (const part of answerContent) {
+		if (part && typeof part === 'object') {
+			// Handle tool_use content
+			if (part.type === 'tool_use') {
+				let toolUseStr = '';
+				// id: toolCall.id,
+				// name: toolCall.function.name,
+				// input: JSON.parse(toolCall.function.arguments),
+				toolUseStr = ``;
+				try {
+					if ('input' in part) {
+						toolUseStr = `[${part.name} - ${part.id}] input: \n${JSON.stringify(part.input)}`;
+					} else {
+						toolUseStr = part;
+					}
+				} catch {
+					// Keep default contentStr if JSON.stringify fails
+				}
+				// Try to coerce content to string if possible
+				combinedText += toolUseStr;
+			}
+		}
+	}
+	return combinedText.trim();
+};
