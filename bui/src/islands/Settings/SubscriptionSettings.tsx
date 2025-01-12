@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals';
-import { useEffect, useSignal } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
+import { useSignal } from '@preact/signals';
 import { activeTab } from '../Settings.tsx';
 //import type { StripeError } from '@stripe/stripe-js';
 import { Plan } from '../../types/subscription.ts';
@@ -16,7 +17,7 @@ const showUsageBlockDialog = signal(false);
 const showPaymentMethodDialog = signal(false);
 
 export default function SubscriptionSettings() {
-	const { billingState, initialize, updatePaymentMethods } = useBillingState();
+	const { billingState, initialize, updatePaymentMethods, updateUsageData } = useBillingState();
 	const appState = useAppState();
 
 	// Track previous active state to detect tab changes
@@ -25,12 +26,16 @@ export default function SubscriptionSettings() {
 	// Initialize billing state and refresh when tab becomes active
 	useEffect(() => {
 		const isActive = activeTab.value === 'subscription';
-		
-		// Refresh when first mounted or when becoming active after being inactive
-		if (isActive && (!wasActive.value || !billingState.value.subscription)) {
+
+		if (isActive ) {
 			initialize();
 		}
-		
+
+		// Refresh when first mounted or when becoming active after being inactive
+		if (isActive && (!wasActive.value || !billingState.value.purchasesBalance)) {
+			updateUsageData();
+		}
+
 		wasActive.value = isActive;
 	}, [activeTab.value]);
 
@@ -181,13 +186,13 @@ export default function SubscriptionSettings() {
 													?.toFixed(2)} USD
 											</span>
 											{billingState.value.purchasesBalance?.balance &&
-												billingState.value.purchasesBalance?.balance.block_allowance_usd > 0 &&
+												billingState.value.purchasesBalance?.balance.purchased_allowance_usd > 0 &&
 												(
 													<div class='text-xs text-gray-500 dark:text-gray-400'>
 														(${billingState.value.purchasesBalance?.balance
 															.subscription_allowance_usd?.toFixed(2)}{' '}
 														plan + ${billingState.value.purchasesBalance?.balance
-															.block_allowance_usd?.toFixed(2)} blocks)
+															.purchased_allowance_usd?.toFixed(2)} blocks)
 													</div>
 												)}
 										</div>
@@ -205,16 +210,16 @@ export default function SubscriptionSettings() {
 										</span>
 										<div class='text-right'>
 											<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-												${billingState.value.purchasesBalance?.balance.total_usage_usd?.toFixed(
+												${billingState.value.purchasesBalance?.balance.total_used_usd?.toFixed(
 													2,
 												)} USD
 											</span>
 											{billingState.value.purchasesBalance?.balance &&
-												billingState.value.purchasesBalance?.balance.block_used_usd > 0 && (
+												billingState.value.purchasesBalance?.balance.purchased_used_usd > 0 && (
 												<div class='text-xs text-gray-500 dark:text-gray-400'>
 													(${billingState.value.purchasesBalance?.balance
 														.subscription_used_usd?.toFixed(2)}{' '}
-													plan + ${billingState.value.purchasesBalance?.balance.block_used_usd
+													plan + ${billingState.value.purchasesBalance?.balance.purchased_used_usd
 														?.toFixed(2)} blocks)
 												</div>
 											)}
@@ -232,7 +237,7 @@ export default function SubscriptionSettings() {
 											Remaining Balance:
 										</span>
 										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											${billingState.value.purchasesBalance?.balance.remaining_usd?.toFixed(2)}
+											${billingState.value.purchasesBalance?.balance.remaining_balance_usd?.toFixed(2)}
 											{' '}
 											USD
 										</span>
@@ -247,7 +252,7 @@ export default function SubscriptionSettings() {
 														billingState.value.purchasesBalance?.balance
 															? Math.min(
 																(billingState.value.purchasesBalance?.balance
-																	.total_usage_usd /
+																	.total_used_usd /
 																	billingState.value.purchasesBalance?.balance
 																		.total_allowance_usd) * 100,
 																100,
