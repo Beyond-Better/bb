@@ -1,6 +1,6 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal, useSignal } from '@preact/signals';
-import {  useEffect } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 
 import { useAuthState } from '../hooks/useAuthState.ts';
 import { initializeAppState, useAppState } from '../hooks/useAppState.ts';

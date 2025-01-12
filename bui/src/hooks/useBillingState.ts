@@ -214,9 +214,8 @@ export function useBillingState() {
 				},
 			};
 
-			const purchasesBalance = await	apiClient.listUsageBlocks();
+			const purchasesBalance = await apiClient.listUsageBlocks();
 			console.log('useBillingState: purchasesBalance', purchasesBalance);
-
 
 			billingState.value = {
 				...billingState.value,

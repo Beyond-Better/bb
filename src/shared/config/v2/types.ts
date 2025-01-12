@@ -20,6 +20,12 @@ export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 
 export type LogLevel = 'debug' | 'debug0' | 'debug1' | 'debug2' | 'info' | 'warn' | 'error';
 
+export interface DefaultModels {
+	orchestrator: string;
+	agent: string;
+	chat: string;
+}
+
 export interface CreateProjectData {
 	// 	project: {
 	// 		name: string;
@@ -31,6 +37,7 @@ export interface CreateProjectData {
 	anthropicApiKey?: string;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	defaultModels?: DefaultModels;
 	useTls?: boolean;
 }
 
@@ -138,12 +145,7 @@ export interface GlobalConfig {
 	version: ConfigVersion;
 	myPersonsName: string;
 	myAssistantsName: string;
-	defaultModel: string;
-	defaultModels: {
-		orchestrator: string;
-		agent: string;
-		chat: string;
-	};
+	defaultModels: DefaultModels;
 	noBrowser: boolean;
 	api: ApiConfig;
 	bui: BuiConfig;
@@ -175,11 +177,7 @@ export interface ProjectConfig {
 	type: ProjectType;
 	myPersonsName?: string;
 	myAssistantsName?: string;
-	defaultModels?: {
-		orchestrator: string;
-		agent: string;
-		chat: string;
-	};
+	defaultModels?: DefaultModels;
 	llmGuidelinesFile?: string;
 	repoInfo: RepoInfoConfigSchema;
 	useProjectApi?: boolean;

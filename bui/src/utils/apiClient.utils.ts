@@ -106,7 +106,7 @@ export interface ApiUpgradeResponse {
 }
 
 export interface ConfigUpdateResponse {
-  message: string;
+	message: string;
 }
 
 export class ApiClient {

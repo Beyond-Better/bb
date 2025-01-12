@@ -15,19 +15,19 @@ import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
  *         description: Internal server error
  */
 export const getGlobalConfig = async (
-  { response }: { response: Context['response'] },
+	{ response }: { response: Context['response'] },
 ) => {
-  try {
-    const configManager = await ConfigManagerV2.getInstance();
-    const config = await configManager.getGlobalConfig();
+	try {
+		const configManager = await ConfigManagerV2.getInstance();
+		const config = await configManager.getGlobalConfig();
 
-    response.status = 200;
-    response.body = config;
-  } catch (error) {
-    logger.error(`ConfigHandler: Error in getGlobalConfig: ${(error as Error).message}`);
-    response.status = 500;
-    response.body = { error: 'Failed to retrieve global configuration' };
-  }
+		response.status = 200;
+		response.body = config;
+	} catch (error) {
+		logger.error(`ConfigHandler: Error in getGlobalConfig: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to retrieve global configuration' };
+	}
 };
 
 /**
@@ -61,28 +61,28 @@ export const getGlobalConfig = async (
  *         description: Internal server error
  */
 export const updateGlobalConfig = async (
-  { request, response }: { request: Context['request']; response: Context['response'] },
+	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
-  try {
-    const body = await request.body.json();
-    const { key, value } = body;
+	try {
+		const body = await request.body.json();
+		const { key, value } = body;
 
-    if (!key || value === undefined) {
-      response.status = 400;
-      response.body = { error: 'Missing required fields: key and value' };
-      return;
-    }
+		if (!key || value === undefined) {
+			response.status = 400;
+			response.body = { error: 'Missing required fields: key and value' };
+			return;
+		}
 
-    const configManager = await ConfigManagerV2.getInstance();
-    await configManager.setGlobalConfigValue(key, value);
+		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.setGlobalConfigValue(key, value);
 
-    response.status = 200;
-    response.body = { message: 'Configuration updated successfully' };
-  } catch (error) {
-    logger.error(`ConfigHandler: Error in updateGlobalConfig: ${(error as Error).message}`);
-    response.status = 500;
-    response.body = { error: 'Failed to update global configuration' };
-  }
+		response.status = 200;
+		response.body = { message: 'Configuration updated successfully' };
+	} catch (error) {
+		logger.error(`ConfigHandler: Error in updateGlobalConfig: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to update global configuration' };
+	}
 };
 
 /**
@@ -107,25 +107,25 @@ export const updateGlobalConfig = async (
  *         description: Internal server error
  */
 export const getProjectConfig = async (
-  { params, response }: RouterContext<'/project/:id', { id: string }>,
+	{ params, response }: RouterContext<'/project/:id', { id: string }>,
 ) => {
-  try {
-    const configManager = await ConfigManagerV2.getInstance();
-    const config = await configManager.getProjectConfig(params.id);
+	try {
+		const configManager = await ConfigManagerV2.getInstance();
+		const config = await configManager.getProjectConfig(params.id);
 
-    response.status = 200;
-    response.body = config;
-  } catch (error) {
-    const e = error as Error;
-    if (e.message.includes('not found')) {
-      response.status = 404;
-      response.body = { error: 'Project not found' };
-    } else {
-      logger.error(`ConfigHandler: Error in getProjectConfig: ${e.message}`);
-      response.status = 500;
-      response.body = { error: 'Failed to retrieve project configuration' };
-    }
-  }
+		response.status = 200;
+		response.body = config;
+	} catch (error) {
+		const e = error as Error;
+		if (e.message.includes('not found')) {
+			response.status = 404;
+			response.body = { error: 'Project not found' };
+		} else {
+			logger.error(`ConfigHandler: Error in getProjectConfig: ${e.message}`);
+			response.status = 500;
+			response.body = { error: 'Failed to retrieve project configuration' };
+		}
+	}
 };
 
 /**
@@ -168,32 +168,32 @@ export const getProjectConfig = async (
  *         description: Internal server error
  */
 export const updateProjectConfig = async (
-  { params, request, response }: RouterContext<'/project/:id', { id: string }>,
+	{ params, request, response }: RouterContext<'/project/:id', { id: string }>,
 ) => {
-  try {
-    const body = await request.body.json();
-    const { key, value } = body;
+	try {
+		const body = await request.body.json();
+		const { key, value } = body;
 
-    if (!key || value === undefined) {
-      response.status = 400;
-      response.body = { error: 'Missing required fields: key and value' };
-      return;
-    }
+		if (!key || value === undefined) {
+			response.status = 400;
+			response.body = { error: 'Missing required fields: key and value' };
+			return;
+		}
 
-    const configManager = await ConfigManagerV2.getInstance();
-    await configManager.setProjectConfigValue(params.id, key, value);
+		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.setProjectConfigValue(params.id, key, value);
 
-    response.status = 200;
-    response.body = { message: 'Configuration updated successfully' };
-  } catch (error) {
-    const e = error as Error;
-    if (e.message.includes('not found')) {
-      response.status = 404;
-      response.body = { error: 'Project not found' };
-    } else {
-      logger.error(`ConfigHandler: Error in updateProjectConfig: ${e.message}`);
-      response.status = 500;
-      response.body = { error: 'Failed to update project configuration' };
-    }
-  }
+		response.status = 200;
+		response.body = { message: 'Configuration updated successfully' };
+	} catch (error) {
+		const e = error as Error;
+		if (e.message.includes('not found')) {
+			response.status = 404;
+			response.body = { error: 'Project not found' };
+		} else {
+			logger.error(`ConfigHandler: Error in updateProjectConfig: ${e.message}`);
+			response.status = 500;
+			response.body = { error: 'Failed to update project configuration' };
+		}
+	}
 };

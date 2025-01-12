@@ -27,7 +27,7 @@ export default function SubscriptionSettings() {
 	useEffect(() => {
 		const isActive = activeTab.value === 'subscription';
 
-		if (isActive ) {
+		if (isActive) {
 			initialize();
 		}
 
@@ -186,7 +186,8 @@ export default function SubscriptionSettings() {
 													?.toFixed(2)} USD
 											</span>
 											{billingState.value.purchasesBalance?.balance &&
-												billingState.value.purchasesBalance?.balance.purchased_allowance_usd > 0 &&
+												billingState.value.purchasesBalance?.balance.purchased_allowance_usd >
+													0 &&
 												(
 													<div class='text-xs text-gray-500 dark:text-gray-400'>
 														(${billingState.value.purchasesBalance?.balance
@@ -219,7 +220,8 @@ export default function SubscriptionSettings() {
 												<div class='text-xs text-gray-500 dark:text-gray-400'>
 													(${billingState.value.purchasesBalance?.balance
 														.subscription_used_usd?.toFixed(2)}{' '}
-													plan + ${billingState.value.purchasesBalance?.balance.purchased_used_usd
+													plan + ${billingState.value.purchasesBalance?.balance
+														.purchased_used_usd
 														?.toFixed(2)} blocks)
 												</div>
 											)}
@@ -237,9 +239,8 @@ export default function SubscriptionSettings() {
 											Remaining Balance:
 										</span>
 										<span class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											${billingState.value.purchasesBalance?.balance.remaining_balance_usd?.toFixed(2)}
-											{' '}
-											USD
+											${billingState.value.purchasesBalance?.balance.remaining_balance_usd
+												?.toFixed(2)} USD
 										</span>
 									</div>
 

@@ -1016,6 +1016,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			version: '2.0.0',
 			myPersonsName: v1Config.myPersonsName || GlobalConfigDefaults.myPersonsName,
 			myAssistantsName: v1Config.myAssistantsName || GlobalConfigDefaults.myAssistantsName,
+			defaultModels: GlobalConfigDefaults.defaultModels,
 			noBrowser: v1Config.noBrowser ?? GlobalConfigDefaults.noBrowser,
 			bbExeName: v1Config.bbExeName || 'bb',
 			bbApiExeName: v1Config.bbApiExeName || 'bb-api',

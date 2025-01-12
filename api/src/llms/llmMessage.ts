@@ -60,7 +60,7 @@ export type LLMMessageContentPartType =
 	| 'text'
 	| 'image'
 	| 'audio' // openai
-	| 'tool_use' 
+	| 'tool_use'
 	| 'tool_result'
 	| 'system' // openai // will be converted to `system` role by openAILLM
 	| 'developer'; // openai // will be converted to `developer` role by openAILLM
@@ -110,7 +110,7 @@ class LLMMessage {
 
 	constructor(
 		//public role: 'user' | 'assistant' | 'system' | 'developer' | 'tool', // system, developer and tool are only for openai
-		public role: 'user' | 'assistant' , 
+		public role: 'user' | 'assistant',
 		public content: LLMMessageContentParts,
 		stats: ConversationStats,
 		public tool_call_id?: string,
