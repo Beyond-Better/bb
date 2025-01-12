@@ -181,7 +181,10 @@ fn get_app_log_dir() -> Option<PathBuf> {
 
     #[cfg(target_os = "linux")]
     {
-        Some(PathBuf::from("/var/log").join(config::APP_NAME.to_lowercase()))
+        dirs::home_dir().map(|home| {
+            home.join(".bb")
+                .join("logs")
+        })
     }
 }
 

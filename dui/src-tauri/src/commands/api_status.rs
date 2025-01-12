@@ -45,7 +45,11 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 
     #[cfg(target_os = "linux")]
     {
-        let dir = PathBuf::from("/var/run").join(APP_NAME.to_lowercase());
+        let home_dir = dirs::home_dir()
+            .ok_or_else(|| "Failed to get home directory".to_string())?;
+        let dir = home_dir
+            .join(".bb")
+            .join("run");
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create runtime directory: {}", e))?;
         Ok(dir)

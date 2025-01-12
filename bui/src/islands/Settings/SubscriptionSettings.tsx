@@ -15,6 +15,7 @@ import NewPaymentMethodForm from './../NewPaymentMethodForm.tsx';
 const showCancelDialog = signal(false);
 const showUsageBlockDialog = signal(false);
 const showPaymentMethodDialog = signal(false);
+const isRefreshingUsage = signal(false);
 
 export default function SubscriptionSettings() {
 	const { billingState, initialize, updatePaymentMethods, updateUsageData } = useBillingState();
@@ -118,7 +119,6 @@ export default function SubscriptionSettings() {
 				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Subscription and Usage</h3>
 				{billingState.value.subscription && (
 					<div class='mt-4 grid grid-cols-3 gap-6'>
-						{/* Each section uses flex-col to allow button positioning at bottom */}
 						{/* Current Subscription */}
 						<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
 							<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Current Plan</h3>
@@ -170,8 +170,37 @@ export default function SubscriptionSettings() {
 						{billingState.value.subscription?.usage &&
 							billingState.value.subscription?.subscription_status === 'ACTIVE' && (
 							<div class='flex flex-col min-h-[100px] p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'>
-								<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Usage</h3>
-								<div class='flex flex-col flex-grow mt-4 ml-2 mr-6 space-y-4'>
+								<div class='flex items-center justify-between mb-4'>
+									<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Usage</h3>
+									<button
+										onClick={async () => {
+											isRefreshingUsage.value = true;
+											try {
+												await updateUsageData();
+											} finally {
+												isRefreshingUsage.value = false;
+											}
+										}}
+										class='p-1 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
+										title='Refresh usage data'
+										disabled={isRefreshingUsage.value}
+									>
+										<svg
+											class={`h-5 w-5 ${isRefreshingUsage.value ? 'animate-spin' : ''}`}
+											fill='none'
+											viewBox='0 0 24 24'
+											stroke='currentColor'
+										>
+											<path
+												stroke-linecap='round'
+												stroke-linejoin='round'
+												stroke-width='2'
+												d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+											/>
+										</svg>
+									</button>
+								</div>
+								<div class='flex flex-col flex-grow mt-4 ml-2 mr-4 space-y-4'>
 									{/* Allowance */}
 									<div class='flex items-center justify-between'>
 										<span
@@ -244,7 +273,7 @@ export default function SubscriptionSettings() {
 										</span>
 									</div>
 
-									<div class='mt-4'>
+									<div class='mt-4 mr-0'>
 										<div class='h-2 mb-6 bg-gray-200 dark:bg-gray-500 rounded-full overflow-hidden'>
 											<div
 												class='h-full bg-blue-600 dark:bg-blue-500 rounded-full'
@@ -284,8 +313,8 @@ export default function SubscriptionSettings() {
 								<div class='flex items-center justify-between'>
 									{billingState.value.defaultPaymentMethod
 										? (
-											<div class='p-4 bg-gray-50 dark:bg-gray-700 rounded-md w-full'>
-												<div class='flex items-center justify-between'>
+											<div class='p-4 bg-gray-50 dark:bg-gray-700 rounded-md w-full group h-[60px] relative'>
+												<div class='flex items-center justify-between absolute inset-x-4 top-1/2 -translate-y-1/2'>
 													<div class='flex items-center'>
 														<div class='text-sm font-medium text-gray-900 dark:text-gray-100'>
 															{billingState.value.defaultPaymentMethod.card_brand
@@ -310,7 +339,7 @@ export default function SubscriptionSettings() {
 																console.error('Failed to remove payment method:', err);
 															}
 														}}
-														class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
+														class='hidden group-hover:block text-red-400 hover:text-red-500 dark:text-red-500 dark:hover:text-red-400'
 														title='Remove payment method'
 													>
 														<svg

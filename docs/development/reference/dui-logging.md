@@ -10,7 +10,7 @@ The DUI application uses log4rs for structured logging with automatic log rotati
 - Location: Platform-specific log directory
   - macOS: `~/Library/Logs/Beyond Better/`
   - Windows: `%ProgramData%\Beyond Better\logs\`
-  - Linux: `/var/log/beyond-better/`
+  - Linux: `~/.bb/logs/`
 - Rotation:
   - Size trigger: 10MB
   - Keeps 5 files
