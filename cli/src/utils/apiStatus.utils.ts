@@ -35,8 +35,10 @@ export async function getAppRuntimeDir(): Promise<string> {
 		if (!programData) throw new Error('Could not determine ProgramData directory');
 		runtimeDir = join(programData, APP_NAME, 'run');
 	} else {
-		// Linux: /var/run/dev.beyondbetter.app
-		runtimeDir = join('/var/run', APP_NAME.toLowerCase());
+		// Linux: ~/.bb/run
+		const homeDir = Deno.env.get('HOME');
+		if (!homeDir) throw new Error('Could not determine home directory');
+		runtimeDir = join(homeDir, '.bb', 'run');
 	}
 
 	await ensureDir(runtimeDir);

@@ -256,7 +256,13 @@ pub fn get_default_log_path(filename: &str) -> Option<String> {
 
     #[cfg(target_os = "linux")]
     {
-        Some(format!("/var/log/{}/{}", APP_NAME.to_lowercase(), filename))
+        dirs::home_dir().map(|home| {
+            home.join(".bb")
+                .join("logs")
+                .join(filename)
+                .to_string_lossy()
+                .into_owned()
+        })
     }
 }
 

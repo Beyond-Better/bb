@@ -21,7 +21,11 @@ async function getLogDir(projectId?: string): Promise<string> {
 		return `${programData}\\${APP_NAME}\\logs`;
 	} else {
 		// Linux and others
-		return `/var/log/${APP_NAME.toLowerCase()}`;
+		const homeDir = Deno.env.get('HOME');
+		if (!homeDir) {
+			throw new Error('HOME environment variable not set');
+		}
+		return `${homeDir}/.bb/logs`;
 	}
 }
 
