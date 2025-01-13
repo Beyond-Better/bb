@@ -30,7 +30,7 @@ const HistoryEntry = memo(({
 					onSelect(entry.value);
 				}}
 			>
-				<div className='text-sm truncate'>{entry.value}</div>
+				<div className='text-sm text-gray-500 dark:text-gray-400 truncate'>{entry.value}</div>
 				<div className='text-xs text-gray-500 dark:text-gray-400'>
 					{formatDistanceToNow(entry.timestamp)} ago
 				</div>

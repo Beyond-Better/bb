@@ -30,6 +30,8 @@ import type {
 	VectorSearchErrorOptions,
 } from 'api/errors/error.ts';
 
+export {isError} from 'shared/error.ts';
+
 export const createError = (
 	errorType: ErrorType,
 	message: string,

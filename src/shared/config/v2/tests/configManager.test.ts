@@ -26,7 +26,6 @@ describe('ConfigManagerV2', () => {
 	afterEach(async () => {
 		// Clean up test directory
 		await Deno.remove(testDir, { recursive: true });
-
 	});
 
 	describe('Global Configuration', () => {

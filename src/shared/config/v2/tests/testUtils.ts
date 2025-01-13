@@ -173,7 +173,7 @@ export function mockFileSystem() {
 	};
 
 	// Mock file writing
-	Deno.writeTextFile = async (path: string | URL, content: string| ReadableStream<string>) => {
+	Deno.writeTextFile = async (path: string | URL, content: string | ReadableStream<string>) => {
 		files.set(path.toString(), content as string);
 	};
 

@@ -120,6 +120,7 @@
 		"shared/eventManager.ts": "./src/shared/events/eventManager.ts",
 		"shared/fetchManager.ts": "./src/shared/fetch/fetchManager.ts",
 		"shared/dataDir.ts": "./src/shared/utils/dataDir.utils.ts",
+		"shared/error.ts": "./src/shared/utils/error.utils.ts",
 		"shared/tlsCerts.ts": "./src/shared/utils/tlsCerts.utils.ts",
 		"shared/git.ts": "./src/shared/utils/git.utils.ts",
 		"shared/config/v2/configManager.ts": "./src/shared/config/v2/configManager.ts",

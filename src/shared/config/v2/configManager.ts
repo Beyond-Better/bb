@@ -104,13 +104,20 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @throws Error if project not found or configuration is invalid
 	 */
 	public async getProjectConfig(projectId: string): Promise<ProjectConfig> {
+		console.log(`ConfigManager: getProjectConfig for ${projectId}`);
 		if (!this.projectConfigs.has(projectId)) {
+			console.log(`ConfigManager: getProjectConfig - no config for ${projectId}`);
 			const config = mergeGlobalIntoProjectConfig(
 				await this.loadProjectConfig(projectId),
 				await this.getGlobalConfig(),
 			);
+			console.log(`ConfigManager: mergedConfig for ${projectId}`, config);
 			this.projectConfigs.set(projectId, config);
 		}
+		console.log(
+			`ConfigManager: getProjectConfig - has config for ${projectId}`,
+			this.projectConfigs.get(projectId),
+		);
 		return this.projectConfigs.get(projectId)!;
 	}
 
@@ -166,6 +173,9 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	public async updateProjectConfig(projectId: string, updates: Partial<ProjectConfig>): Promise<void> {
 		const current = await this.getProjectConfig(projectId);
 		const updated = { ...current, ...updates };
+		//console.log(`ConfigManager: updateProjectConfig for ${projectId} - current`, current);
+		//console.log(`ConfigManager: updateProjectConfig for ${projectId} - updates`, updates);
+		console.log(`ConfigManager: updateProjectConfig for ${projectId} - updated`, updated);
 
 		// Validate before saving
 		const validation = await this.validateConfig(updated);
@@ -412,18 +422,23 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		console.log('createProject: created ignore file');
 
 		if (
-			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
-			createProjectData.myAssistantsName !== globalConfig.myAssistantsName
+			(createProjectData.myPersonsName && createProjectData.myPersonsName !== globalConfig.myPersonsName) ||
+			(createProjectData.myAssistantsName && createProjectData.myAssistantsName !== globalConfig.myAssistantsName)
 		) {
 			await this.updateGlobalConfig({
 				...globalConfig,
-				myPersonsName: createProjectData.myPersonsName,
-				myAssistantsName: createProjectData.myAssistantsName,
+				...(createProjectData.myPersonsName ? { myPersonsName: createProjectData.myPersonsName } : {}),
+				...(createProjectData.myAssistantsName ? { myAssistantsName: createProjectData.myAssistantsName } : {}),
 			});
 		}
 
+		const mergedConfig = mergeGlobalIntoProjectConfig(
+			config,
+			await this.getGlobalConfig(),
+		);
+
 		// Update caches
-		this.projectConfigs.set(projectId, config);
+		this.projectConfigs.set(projectId, mergedConfig);
 		this.projectRoots.set(projectId, projectPath);
 		this.projectIds.set(projectPath, projectId);
 
