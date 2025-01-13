@@ -619,7 +619,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							<div className='grid gap-4'>
 								{/* API Status */}
 								<div className='grid grid-cols-6 gap-y-4'>
-									<div className='col-span-6 font-bold text-lg mb-2'>API Status</div>
+									<div className='col-span-6 font-bold text-lg mb-1'>API Status</div>
 									<div className='font-bold'>Host:</div>
 									<div>{globalConfig.api.hostname}</div>
 									<div className='font-bold'>Port:</div>
@@ -638,6 +638,11 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 											<div className='col-span-5'>{apiLogPath}</div>
 										</>
 									)}
+								</div>
+
+								{/* API Proxy */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-1'>API Proxy</div>
 									{proxyInfo && !globalConfig.api.tls.useTls
 										? (
 											<>
@@ -657,7 +662,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 								{/* BUI Status */}
 								<div className='grid grid-cols-6 gap-y-4 mt-4'>
-									<div className='col-span-6 font-bold text-lg mb-2'>BUI Status</div>
+									<div className='col-span-6 font-bold text-lg mb-1'>BUI Status <span className="ml-2 text-sm">(Browser User Interface)</span></div>
 									<div className='font-bold'>Host:</div>
 									<div>{globalConfig.bui.hostname}</div>
 									<div className='font-bold'>Port:</div>
@@ -677,6 +682,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										</>
 									)}
 								</div>
+
 							</div>
 						)}
 					</div>

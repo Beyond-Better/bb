@@ -224,7 +224,7 @@ export function Settings(): JSX.Element {
 								/>
 								Local Mode
 								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
-									Use local mode to disable user auth
+									Use local mode to disable LLM cloud proxy
 								</span>
 							</label>
 						</div>
