@@ -413,14 +413,12 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 		if (
 			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
-			createProjectData.myAssistantsName !== globalConfig.myAssistantsName ||
-			createProjectData.defaultModels !== globalConfig.defaultModels
+			createProjectData.myAssistantsName !== globalConfig.myAssistantsName
 		) {
 			await this.updateGlobalConfig({
 				...globalConfig,
 				myPersonsName: createProjectData.myPersonsName,
 				myAssistantsName: createProjectData.myAssistantsName,
-				defaultModels: createProjectData.defaultModels,
 			});
 		}
 

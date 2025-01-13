@@ -7,24 +7,17 @@ import type { GlobalConfig, MigrationResult, ProjectConfig, ValidationResult } f
 import { ConfigManagerV2 } from '../mod.ts';
 import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from '../../configSchema.ts';
 
-// Extend globalThis type to include our custom property
-declare global {
-	var getGlobalConfigDir: () => Promise<string>;
-}
-
 describe('ConfigManagerV2', () => {
 	let testDir: string;
 	let configManager: ConfigManagerV2;
-	let originalGlobalConfigDir: () => Promise<string>;
 
 	beforeEach(async () => {
 		// Create test directory
 		testDir = await Deno.makeTempDir();
-		await ensureDir(join(testDir, '.bb'));
+		// Set custom global config directory
+		Deno.env.set('BB_GLOBAL_CONFIG_DIR', testDir);
 
-		// Mock global config directory
-		originalGlobalConfigDir = globalThis.getGlobalConfigDir;
-		globalThis.getGlobalConfigDir = async () => join(testDir, 'global');
+		await ensureDir(join(testDir, '.bb'));
 		await ensureDir(join(testDir, 'global'));
 
 		configManager = await ConfigManagerV2.getInstance();
@@ -34,8 +27,6 @@ describe('ConfigManagerV2', () => {
 		// Clean up test directory
 		await Deno.remove(testDir, { recursive: true });
 
-		// Restore original function
-		globalThis.getGlobalConfigDir = originalGlobalConfigDir;
 	});
 
 	describe('Global Configuration', () => {

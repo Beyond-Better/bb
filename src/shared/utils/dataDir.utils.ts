@@ -52,6 +52,9 @@ export async function getBbDirFromStartDir(startDir: string): Promise<string> {
 }
 
 export async function getGlobalConfigDir(): Promise<string> {
+    const customConfigDir = Deno.env.get('BB_GLOBAL_CONFIG_DIR'); // used for testing - don't rely on it for other purposes
+    if (customConfigDir) return customConfigDir;
+
 	const globalConfigDir = Deno.build.os === 'windows' ? (join(Deno.env.get('APPDATA') || '', 'bb')) : (
 		join(Deno.env.get('HOME') || '', '.config', 'bb')
 	);
