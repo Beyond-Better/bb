@@ -37,6 +37,8 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
+import { isLLMError } from 'api/errors/error.ts';
+
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
@@ -1028,14 +1030,35 @@ class OrchestratorController {
 				if (loopTurnCount === maxTurns - 1) {
 					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 				}
+
+				const args = isLLMError(error) ? error.args : null;
+				const errorMessage = args ? `${args.reason} - ${(error as Error).message}` : (error as Error).message;
+
+				// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
+				this.eventManager.emit(
+					'projectEditor:conversationError',
+					{
+						conversationId: interaction.id,
+						conversationTitle: interaction.title || '',
+						timestamp: new Date().toISOString(),
+						conversationStats: {
+							statementCount: this.statementCount,
+							statementTurnCount: this.statementTurnCount,
+							conversationTurnCount: this.conversationTurnCount,
+						},
+						error: errorMessage,
+						code: 'RESPONSE_HANDLING' as const,
+					} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+				);
+
 				// For non-fatal errors, log and continue to the next turn
 				currentResponse = {
 					messageResponse: {
 						answerContent: [{
 							type: 'text',
-							text: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
+							text: `Error occurred: ${errorMessage}. Continuing conversation.`,
 						}],
-						answer: `Error occurred: ${(error as Error).message}. Continuing conversation.`,
+						answer: `Error occurred: ${errorMessage}. Continuing conversation.`,
 					},
 					messageMeta: {},
 				} as LLMSpeakWithResponse;
@@ -1044,6 +1067,22 @@ class OrchestratorController {
 		logger.warn(`OrchestratorController: LOOP: DONE turns ${loopTurnCount}`);
 
 		//if (this.formatCommand) await runFormatCommand(this.projectRoot, this.formatCommand);
+
+		// this.eventManager.emit(
+		// 	'projectEditor:conversationError',
+		// 	{
+		// 		conversationId: interaction.id,
+		// 		conversationTitle: interaction.title || '',
+		// 		timestamp: new Date().toISOString(),
+		// 		conversationStats: {
+		// 			statementCount: this.statementCount,
+		// 			statementTurnCount: this.statementTurnCount,
+		// 			conversationTurnCount: this.conversationTurnCount,
+		// 		},
+		// 		error: 'Testing Error Display in BUI',
+		// 		code: 'EMPTY_PROMPT' as const,
+		// 	} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+		// );
 
 		if (this.isCancelled) {
 			logger.warn('OrchestratorController: Operation was cancelled.');

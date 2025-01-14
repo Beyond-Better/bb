@@ -45,6 +45,7 @@ export type EventMap = {
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'
+				| 'RESPONSE_HANDLING'
 				| 'EMPTY_PROMPT'
 				| 'LARGE_PROMPT'
 				| 'INVALID_START_DIR'

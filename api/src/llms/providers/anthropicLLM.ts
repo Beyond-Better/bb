@@ -415,6 +415,9 @@ class AnthropicLLM extends LLM {
 			//	role: anthropicMessage.role,
 			//	contentLength: anthropicMessage.content.length,
 			//});
+			if (anthropicResponse.status !== 200) {
+				logger.info(`AnthropicLLM: provider[${this.llmProviderName}] Non-200 response:`, { headers });
+			}
 
 			const messageResponse: LLMProviderMessageResponse = {
 				id: anthropicMessage.id,

@@ -132,6 +132,18 @@ class LLM {
 
 					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
+					} else if (statusCode === 413) {
+						logger.warn(`Request is too large.`);
+						throw createError(
+							ErrorType.LLM,
+							`Error calling LLM service: ${llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusText || 'Request is too large'}`,
+							{
+								model: interaction.model,
+								provider: this.llmProviderName,
+								args: { status: statusCode },
+								conversationId: interaction.id,
+							} as LLMErrorOptions,
+						);
 					} else if (statusCode === 429) {
 						// Rate limit exceeded
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
@@ -161,13 +173,14 @@ class LLM {
 					retries++;
 				} catch (error) {
 					// Handle any unexpected errors
+					const args = isLLMError(error) ? error.args : {};
 					throw createError(
 						ErrorType.LLM,
 						`Unexpected error calling LLM service: ${(error as Error).message}`,
 						{
 							model: interaction.model,
 							provider: this.llmProviderName,
-							args: { reason: (error as Error) },
+							args: { ...args, reason: (error as Error) },
 							conversationId: interaction.id,
 						} as LLMErrorOptions,
 					);
