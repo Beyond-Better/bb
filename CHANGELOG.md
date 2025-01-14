@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.4] - 2025-01-13
+
+### Fixed
+
+- Chat Input regressions
+
+
 ## [0.6.3] - 2025-01-12
 
 ### Fixed
