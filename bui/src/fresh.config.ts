@@ -47,8 +47,10 @@ const cleanupSetup = (pidFile: string | null) => {
 		};
 
 		// Handle various exit signals
-		Deno.addSignalListener('SIGINT', cleanup);
-		Deno.addSignalListener('SIGTERM', cleanup);
+		const signals: Deno.Signal[] = ['SIGINT', 'SIGTERM'];
+		for (const signal of signals) {
+			Deno.addSignalListener(signal, cleanup);
+		}
 		//addEventListener('unload', cleanup);
 	} catch (error) {
 		console.error('Error creating shutdown handlers:', error);

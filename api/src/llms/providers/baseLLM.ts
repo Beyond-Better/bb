@@ -18,13 +18,15 @@ import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent, extractToolUseFromContent } from 'api/utils/llms.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+import { ErrorType, isLLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
 //import { metricsService } from '../../services/metrics.service.ts';
-import kv from '../../utils/kv.utils.ts';
+import { KVManager } from 'api/utils/kvManager.ts';
 import { tokenUsageManager } from '../../utils/tokenUsage.utils.ts';
 
 const ajv = new Ajv();
+logger.info(`LLM: Creating storage for llmCache`);
+const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
 
 class LLM {
 	public llmProviderName: LLMProviderEnum = LLMProviderEnum.ANTHROPIC;
@@ -104,11 +106,12 @@ class LLM {
 			? this.createRequestCacheKey(llmProviderMessageRequest)
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
-			const cachedResponse = await kv.get<LLMSpeakWithResponse>(cacheKey);
+			logger.info(`provider[${this.llmProviderName}] speakWithPlus: Caching response`);
+			const cachedResponse = await await storage.getItem(cacheKey);
 
-			if (cachedResponse && cachedResponse.value) {
+			if (cachedResponse) {
 				logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
-				llmSpeakWithResponse = cachedResponse.value;
+				llmSpeakWithResponse = cachedResponse;
 				llmSpeakWithResponse.messageResponse.fromCache = true;
 				//await metricsService.recordCacheMetrics({ operation: 'hit' });
 			} else {
@@ -192,7 +195,9 @@ class LLM {
 			//	error: llmSpeakWithResponse.messageResponse.type === 'error' ? 'LLM request failed' : undefined,
 			//});
 
-			await this.updateTokenUsage(llmSpeakWithResponse.messageResponse.usage);
+			// [TODO] remove or properly implement token and request tracking
+			// currently just being used to record usage for most recent turn, overwriting last turn
+			//await this.updateTokenUsage(llmSpeakWithResponse.messageResponse.usage);
 
 			if (llmSpeakWithResponse.messageResponse.isTool) {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
@@ -269,7 +274,7 @@ class LLM {
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
 			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
-				await kv.set(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
+				await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}
 		}
@@ -423,15 +428,35 @@ class LLM {
 		});
 	}
 
+	// [TODO] remove or properly implement token and request tracking
+	// currently just being used to record usage for most recent turn, overwriting last turn
+	// tokensRemaining and requestsRemaining get extracted from LLM response headers
+	// but not propagated via usage (only via ratelimit)
+	// This is likely a deprecated usage since llm-proxy handles proper tracking and
+	// localMode doesn't need to enforce usage tracking
 	private async updateTokenUsage(usage: LLMTokenUsage): Promise<void> {
 		const currentUsage = await tokenUsageManager.getTokenUsage(this.llmProviderName);
+		logger.info(
+			`provider[${this.llmProviderName}] speakWithPlus: Checking token usage for: ${this.llmProviderName}`,
+			//currentUsage,
+		);
 		if (currentUsage) {
 			const updatedUsage = {
 				...currentUsage,
 				requestsRemaining: currentUsage.requestsRemaining - 1,
 				tokensRemaining: currentUsage.tokensRemaining - usage.totalTokens,
 			};
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Updating token usage for: ${this.llmProviderName}`,
+			//	updatedUsage,
+			//);
 			await tokenUsageManager.updateTokenUsage(this.llmProviderName, updatedUsage);
+		} else {
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Setting token usage for: ${this.llmProviderName}`,
+			//	usage,
+			//);
+			await tokenUsageManager.updateTokenUsage(this.llmProviderName, usage);
 		}
 	}
 }

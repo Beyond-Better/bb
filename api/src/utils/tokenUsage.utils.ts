@@ -1,6 +1,14 @@
 import type { LLMProvider } from '../types.ts';
-import kv from './kv.utils.ts';
+import { KVManager } from 'api/utils/kvManager.ts';
 import { logger } from 'shared/logger.ts';
+
+logger.info(`TokenUsageManager: Creating storage for tokenUsage`);
+const storage = await new KVManager<TokenUsage>({ prefix: 'tokenUsage' }).init();
+//logger.info(`TokenUsageManager: Created storage for tokenUsage`);
+
+// [TODO] - see notes for updateTokenUsage in baseLLM
+// This class is really for rate limits; not token usage
+// Calling code needs to be updated to use it properly for rate limit delays
 
 interface TokenUsage {
 	requestsRemaining: number;
@@ -22,22 +30,13 @@ class TokenUsageManager {
 		return TokenUsageManager.instance;
 	}
 
-	private getKey(provider: LLMProvider): string[] {
-		return ['tokenUsage', provider];
-	}
-
 	public async getTokenUsage(provider: LLMProvider): Promise<TokenUsage | null> {
-		const key = this.getKey(provider);
-		const result = await kv.get<TokenUsage>(key);
-		return result.value;
+		return await storage.getItem(provider);
 	}
 
 	public async updateTokenUsage(provider: LLMProvider, usage: TokenUsage): Promise<void> {
-		const key = this.getKey(provider);
-		await kv.atomic()
-			.set(key, usage)
-			.commit();
-		logger.info(`Updated token usage for ${provider}`);
+		await storage.setItemAtomic(provider, usage);
+		logger.info(`TokenUsageManager: Updated token usage for ${provider}`);
 	}
 
 	public async checkAndWaitForRateLimit(provider: LLMProvider): Promise<void> {
@@ -60,7 +59,7 @@ class TokenUsageManager {
 				requestsResetDate.getTime() - now.getTime(),
 				tokensResetDate.getTime() - now.getTime(),
 			);
-			logger.warn(`Rate limit nearly exceeded for ${provider}. Waiting for ${waitTime}ms.`);
+			logger.warn(`TokenUsageManager: Rate limit nearly exceeded for ${provider}. Waiting for ${waitTime}ms.`);
 			await new Promise((resolve) => setTimeout(resolve, waitTime));
 			/*
 			// [CNG] Not sure what the thinking was with throwing this error - I suspect it snuck in with boilerplate code -

@@ -58,7 +58,7 @@ class ConversationPersistence {
 	}
 
 	private async ensureInitialized(): Promise<void> {
-		logger.info(`ConversationPersistence: Ensuring Initialized`);
+		//logger.info(`ConversationPersistence: Ensuring Initialized`);
 		if (!this.initialized) {
 			await this.init();
 			this.initialized = true;
