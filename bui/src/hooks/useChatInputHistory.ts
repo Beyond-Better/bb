@@ -42,7 +42,7 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 	});
 
 	// Save current input with validation
-	const saveCurrentInput = (value: string) => {
+	const saveCurrentInput = (value: string): void => {
 		// Ensure we have a valid key and value
 		if (!conversationId.value) {
 			console.info('ChatHistory: No conversation ID for save');
@@ -85,6 +85,7 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		} catch (e) {
 			console.error('ChatHistory: Failed to save input:', e);
 		}
+		return;
 	};
 
 	// Get saved input with validation and error handling
@@ -190,16 +191,16 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		}
 
 		// Check for saved input first
-		const savedInput = localStorage.getItem(currentInputKey.value!);
-		// console.info('ChatHistory: Checked for saved input', {
-		// 	hasInput: !!savedInput,
-		// 	inputLength: savedInput?.length,
-		// });
-		// console.info('ChatHistory: Conversation changed, checking storage', {
-		// 	conversationId: conversationId.value,
-		// 	hasStorageKey: !!storageKey.value,
-		// 	hasInputKey: !!currentInputKey.value,
-		// });
+		// const savedInput = localStorage.getItem(currentInputKey.value!);
+		// // console.info('ChatHistory: Checked for saved input', {
+		// // 	hasInput: !!savedInput,
+		// // 	inputLength: savedInput?.length,
+		// // });
+		// // console.info('ChatHistory: Conversation changed, checking storage', {
+		// // 	conversationId: conversationId.value,
+		// // 	hasStorageKey: !!storageKey.value,
+		// // 	hasInputKey: !!currentInputKey.value,
+		// // });
 		const key = storageKey.value;
 		if (!key) {
 			currentHistory.value = [];

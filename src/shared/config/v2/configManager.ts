@@ -412,20 +412,23 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		console.log('createProject: created ignore file');
 
 		if (
-			createProjectData.myPersonsName !== globalConfig.myPersonsName ||
-			createProjectData.myAssistantsName !== globalConfig.myAssistantsName ||
-			createProjectData.defaultModels !== globalConfig.defaultModels
+			(createProjectData.myPersonsName && createProjectData.myPersonsName !== globalConfig.myPersonsName) ||
+			(createProjectData.myAssistantsName && createProjectData.myAssistantsName !== globalConfig.myAssistantsName)
 		) {
 			await this.updateGlobalConfig({
 				...globalConfig,
-				myPersonsName: createProjectData.myPersonsName,
-				myAssistantsName: createProjectData.myAssistantsName,
-				defaultModels: createProjectData.defaultModels,
+				...(createProjectData.myPersonsName ? { myPersonsName: createProjectData.myPersonsName } : {}),
+				...(createProjectData.myAssistantsName ? { myAssistantsName: createProjectData.myAssistantsName } : {}),
 			});
 		}
 
+		const mergedConfig = mergeGlobalIntoProjectConfig(
+			config,
+			await this.getGlobalConfig(),
+		);
+
 		// Update caches
-		this.projectConfigs.set(projectId, config);
+		this.projectConfigs.set(projectId, mergedConfig);
 		this.projectRoots.set(projectId, projectPath);
 		this.projectIds.set(projectPath, projectId);
 

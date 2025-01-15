@@ -1,5 +1,5 @@
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { CreateProjectData } from 'shared/config/v2/types.ts';
+import type { CreateProjectData } from 'shared/config/v2/types.ts';
 import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 

@@ -62,9 +62,11 @@ export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay:
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {
-			logger.info(
-				`AuthConfig: Fetching Supabase config from BUI [${configUrl}] (attempt ${attempt}/${maxRetries})`,
-			);
+			if (attempt > 1) {
+				logger.info(
+					`AuthConfig: Fetching Supabase config from BUI [${configUrl}] (attempt ${attempt}/${maxRetries})`,
+				);
+			}
 
 			const response = await fetch(configUrl);
 			if (!response.ok) {

@@ -99,7 +99,7 @@ export async function handleStatus(ctx: Context<BbState>) {
 	try {
 		const manager = getSessionManager(ctx);
 		const session = await manager.getSession();
-		logger.error('AuthHandler: handleStatus:', { session });
+		//logger.error('AuthHandler: handleStatus:', { session });
 
 		ctx.response.status = 200;
 		ctx.response.body = {

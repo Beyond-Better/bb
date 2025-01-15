@@ -63,12 +63,12 @@ class ProjectEditor {
 			const configManager = await ConfigManagerV2.getInstance();
 			this.projectConfig = await configManager.getProjectConfig(this.projectId);
 			logger.info(
-				`ProjectEditor config for ${this.projectConfig.settings.api?.hostname}:${this.projectConfig.settings.api?.port}`,
+				`ProjectEditor: config for ${this.projectConfig.settings.api?.hostname}:${this.projectConfig.settings.api?.port}`,
 			);
 			this.eventManager = EventManager.getInstance();
 			this.orchestratorController = await new OrchestratorController(this).init();
 
-			logger.info(`ProjectEditor initialized for ${this.projectId}`);
+			logger.info(`ProjectEditor: initialized for ${this.projectId}`);
 		} catch (error) {
 			logger.error(
 				`Failed to initialize ProjectEditor in ${this.projectId}:`,
@@ -80,19 +80,19 @@ class ProjectEditor {
 	}
 
 	public async isPathWithinProject(filePath: string): Promise<boolean> {
-		logger.info(`ProjectEditor isPathWithinProject for ${this.projectRoot} - ${filePath}`);
+		logger.info(`ProjectEditor: isPathWithinProject for ${this.projectRoot} - ${filePath}`);
 		return await isPathWithinProject(this.projectRoot, filePath);
 	}
 
 	public async resolveProjectFilePath(filePath: string): Promise<string> {
-		logger.info(`ProjectEditor resolveProjectFilePath for ${this.projectId} - ${filePath}`);
+		//logger.info(`ProjectEditor: resolveProjectFilePath for ${this.projectId} - ${filePath}`);
 		const resolvedPath = await resolveProjectFilePath(this.projectId, filePath);
-		logger.info(`ProjectEditor resolveProjectFilePath resolvedPath: ${resolvedPath}`);
+		//logger.info(`ProjectEditor: resolveProjectFilePath resolvedPath: ${resolvedPath}`);
 		return resolvedPath;
 	}
 
 	public async getProjectRoot(): Promise<string> {
-		// logger.info(`ProjectEditor getProjectRoot for ${this.projectId}`);
+		// logger.info(`ProjectEditor: getProjectRoot for ${this.projectId}`);
 		return await getProjectRoot(this.projectId);
 	}
 

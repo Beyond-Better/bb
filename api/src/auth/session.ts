@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from './config.ts';
 import { logger } from 'shared/logger.ts';
-import { KVStorage } from '../../../src/shared/storage/kvStorage.ts';
+import { KVStorage } from 'shared/kvStorage.ts';
 import type { Session, SupabaseConfig } from '../types/auth.ts';
 
 /**
@@ -18,7 +18,7 @@ export class SessionManager {
 	constructor() {
 		// Initialize KVStorage with auth-specific settings
 		this.storage = new KVStorage({
-			prefix: 'supabase_auth:',
+			prefix: 'supabase_auth',
 			filename: 'auth.kv', // Store auth data in separate file
 		});
 	}

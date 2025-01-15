@@ -22,60 +22,59 @@ import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
-// Initialize conversation list visibility state
-const isConversationListVisible = signal(false);
-
 // Helper functions for URL parameters
 const getConversationId = () => {
 	const params = new URLSearchParams(globalThis.location.search);
 	return params?.get('conversationId') || null;
 };
 
-// Project ID is now managed by useProjectState
+const INPUT_MAX_CHAR_LENGTH = 25000;
 
 interface ChatProps {
 	chatState: Signal<ChatState>;
 }
 
+// Initialize conversation list visibility state
+const isConversationListVisible = signal(false);
+const chatInputText = signal('');
+
 export default function Chat({
 	chatState,
 }: ChatProps): JSX.Element {
-	console.debug('Chat: Component rendering');
-	//console.log('Chat: Component mounting');
+	//console.info('Chat: Component rendering');
 	// Initialize version checking
 	//const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
 	// Get project state and selectedProjectId signal
-	const { state: projectState, selectedProjectId } = useProjectState(appState);
+	//const { state: projectState, selectedProjectId } = useProjectState(appState);
+	const { selectedProjectId } = useProjectState(appState);
 	// Use projectId from selectedProjectId signal
 	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
-	// Track input changes for performance monitoring
-	const lastInputUpdateRef = useRef<number>(Date.now());
-	const [input, setInput] = useState('');
-	const setInputWithTracking = (value: string) => {
-		const now = Date.now();
-		const timeSinceLastUpdate = now - lastInputUpdateRef.current;
-		if (timeSinceLastUpdate < 16) { // Less than one frame at 60fps
-			console.debug('Chat: Rapid input updates detected:', timeSinceLastUpdate, 'ms');
-		}
-		lastInputUpdateRef.current = now;
-		setInput(value);
-	};
-	console.debug('Chat: Current input length:', input.length);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
+	// Refs
 	interface ChatInputRef {
 		textarea: HTMLTextAreaElement;
 		adjustHeight: () => void;
 	}
-
 	const chatInputRef = useRef<ChatInputRef>(null);
-
-	// Refs
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+	// Track input changes for performance monitoring
+	//const lastInputUpdateRef = useRef<number>(Date.now());
+
+	const setInputWithTracking = (value: string) => {
+		//const now = Date.now();
+		//const timeSinceLastUpdate = now - lastInputUpdateRef.current;
+		//if (timeSinceLastUpdate < 16) { // Less than one frame at 60fps
+		//	console.debug('Chat: Rapid input updates detected:', timeSinceLastUpdate, 'ms');
+		//}
+		//lastInputUpdateRef.current = now;
+		chatInputText.value = value;
+		//console.debug('Chat: Current chatInputText length:', chatInputText.value.length);
+	};
 
 	// Initialize chat configuration
 	const apiHostname = getApiHostname();
@@ -161,20 +160,22 @@ export default function Chat({
 	const sendConverse = async (retryCount = 0) => {
 		const startTime = performance.now();
 		//console.debug('Chat: Starting message send');
-		//console.debug('Chat: Sending message, length:', input.length);
+		//console.debug('Chat: Sending message, length:', chatInputText.value.length);
 		// Update lastApiCallTime when sending a message
 		chatState.value.status.lastApiCallTime = Date.now();
 		chatState.value.status.cacheStatus = 'active';
-		if (!input.trim() || !chatState.value.status.isReady || isProcessing(chatState.value.status)) return;
+		if (!chatInputText.value.trim() || !chatState.value.status.isReady || isProcessing(chatState.value.status)) {
+			return;
+		}
 
-		const trimmedInput = input.trim();
+		const trimmedInput = chatInputText.value.trim();
 		const maxRetries = 3;
 
 		try {
 			await handlers.sendConverse(trimmedInput);
 			const duration = performance.now() - startTime;
-			console.debug('Chat: Message send completed in', duration.toFixed(2), 'ms');
-			//console.debug('Chat: Clearing input');
+			console.info('Chat: Message send completed in', duration.toFixed(2), 'ms');
+			console.info('Chat: Clearing input');
 			setInputWithTracking('');
 		} catch (error) {
 			console.error('ChatIsland: Failed to send message:', error);
@@ -279,7 +280,7 @@ export default function Chat({
 		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
-		setInput('');
+		chatInputText.value = '';
 
 		const handlePopState = async () => {
 			const urlConversationId = getConversationId();
@@ -357,7 +358,7 @@ export default function Chat({
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (isProcessing(chatState.value.status)) {
 				event.preventDefault();
-				return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
+				//return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
 			}
 		};
 
@@ -600,19 +601,19 @@ export default function Chat({
 								{/* Input area */}
 								<div className='border-t border-gray-200 dark:border-gray-700 flex-none bg-white dark:bg-gray-800 flex justify-center'>
 									<ChatInput
-										value={input}
+										chatInputText={chatInputText}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										textareaRef={chatInputRef}
 										onChange={(value) => {
 											if (!chatState.value.status.isReady) return;
-											setInputWithTracking(value.slice(0, 10000));
+											setInputWithTracking(value.slice(0, INPUT_MAX_CHAR_LENGTH));
 										}}
 										onSend={sendConverse}
 										status={chatState.value.status}
 										disabled={!chatState.value.status.isReady}
 										onCancelProcessing={handlers.cancelProcessing}
-										maxLength={25000}
+										maxLength={INPUT_MAX_CHAR_LENGTH}
 										conversationId={chatState.value.conversationId}
 									/>
 								</div>

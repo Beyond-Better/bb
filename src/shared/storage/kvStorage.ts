@@ -20,7 +20,7 @@ export class KVStorage implements Storage {
 	private cache: Map<string, string>;
 
 	constructor(options: KVStorageOptions = {}) {
-		this.prefix = options.prefix || 'auth:';
+		this.prefix = options.prefix || 'auth';
 		this.projectId = options.projectId;
 		this.filename = options.filename || 'bb.kv';
 		this.cache = new Map();
@@ -135,6 +135,11 @@ export class KVStorage implements Storage {
 		this.ensureInitialized();
 		await this.kv!.set([this.prefix, key], value);
 	}
+
+	//private async getItemAsync(key: string): Promise<unknown> {
+	//	this.ensureInitialized();
+	//	return await this.kv!.get([this.prefix, key]);
+	//}
 
 	private async removeItemAsync(key: string): Promise<void> {
 		this.ensureInitialized();

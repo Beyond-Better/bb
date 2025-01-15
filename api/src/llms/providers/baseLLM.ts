@@ -6,6 +6,7 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRateLimit,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
@@ -18,13 +19,15 @@ import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 import { extractTextFromContent, extractToolUseFromContent } from 'api/utils/llms.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+import { ErrorType, isLLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
 //import { metricsService } from '../../services/metrics.service.ts';
-import kv from '../../utils/kv.utils.ts';
-import { tokenUsageManager } from '../../utils/tokenUsage.utils.ts';
+import { KVManager } from 'api/utils/kvManager.ts';
+import { rateLimitManager } from '../../utils/rateLimit.utils.ts';
 
 const ajv = new Ajv();
+logger.info(`LLM: Creating storage for llmCache`);
+const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
 
 class LLM {
 	public llmProviderName: LLMProviderEnum = LLMProviderEnum.ANTHROPIC;
@@ -104,11 +107,12 @@ class LLM {
 			? this.createRequestCacheKey(llmProviderMessageRequest)
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
-			const cachedResponse = await kv.get<LLMSpeakWithResponse>(cacheKey);
+			logger.info(`provider[${this.llmProviderName}] speakWithPlus: Caching response`);
+			const cachedResponse = await await storage.getItem(cacheKey);
 
-			if (cachedResponse && cachedResponse.value) {
+			if (cachedResponse) {
 				logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
-				llmSpeakWithResponse = cachedResponse.value;
+				llmSpeakWithResponse = cachedResponse;
 				llmSpeakWithResponse.messageResponse.fromCache = true;
 				//await metricsService.recordCacheMetrics({ operation: 'hit' });
 			} else {
@@ -129,6 +133,21 @@ class LLM {
 
 					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
+					} else if (statusCode === 413) {
+						logger.warn(`Request is too large.`);
+						throw createError(
+							ErrorType.LLM,
+							`Error calling LLM service: ${
+								llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusText ||
+								'Request is too large'
+							}`,
+							{
+								model: interaction.model,
+								provider: this.llmProviderName,
+								args: { status: statusCode, reason: 'Request is too large' },
+								conversationId: interaction.id,
+							} as LLMErrorOptions,
+						);
 					} else if (statusCode === 429) {
 						// Rate limit exceeded
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
@@ -158,13 +177,14 @@ class LLM {
 					retries++;
 				} catch (error) {
 					// Handle any unexpected errors
+					const args = isLLMError(error) ? (error.options?.args || {}) : {};
 					throw createError(
 						ErrorType.LLM,
 						`Unexpected error calling LLM service: ${(error as Error).message}`,
 						{
 							model: interaction.model,
 							provider: this.llmProviderName,
-							args: { reason: (error as Error) },
+							args: { ...args, reason: (error as Error).message },
 							conversationId: interaction.id,
 						} as LLMErrorOptions,
 					);
@@ -178,7 +198,10 @@ class LLM {
 					{
 						model: interaction.model,
 						provider: this.llmProviderName,
-						args: { retries: maxRetries },
+						args: {
+							retries: { max: maxRetries, current: retries },
+							reason: 'Max retries reached when calling LLM service',
+						},
 						conversationId: interaction.id,
 					} as LLMErrorOptions,
 				);
@@ -192,7 +215,9 @@ class LLM {
 			//	error: llmSpeakWithResponse.messageResponse.type === 'error' ? 'LLM request failed' : undefined,
 			//});
 
-			await this.updateTokenUsage(llmSpeakWithResponse.messageResponse.usage);
+			// [TODO] remove or properly implement token and request tracking
+			// currently just being used to record usage for most recent turn, overwriting last turn
+			//await this.updateRateLimit(llmSpeakWithResponse.messageResponse.rateLimit);
 
 			if (llmSpeakWithResponse.messageResponse.isTool) {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
@@ -269,7 +294,7 @@ class LLM {
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
 			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
-				await kv.set(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
+				await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}
 		}
@@ -423,15 +448,35 @@ class LLM {
 		});
 	}
 
-	private async updateTokenUsage(usage: LLMTokenUsage): Promise<void> {
-		const currentUsage = await tokenUsageManager.getTokenUsage(this.llmProviderName);
+	// [TODO] remove or properly implement token and request tracking
+	// currently just being used to record usage for most recent turn, overwriting last turn
+	// tokensRemaining and requestsRemaining get extracted from LLM response headers
+	// but not propagated via usage (only via ratelimit)
+	// This is likely a deprecated usage since llm-proxy handles proper tracking and
+	// localMode doesn't need to enforce usage tracking
+	private async updateRateLimit(limits: LLMRateLimit): Promise<void> {
+		const currentUsage = await rateLimitManager.getRateLimit(this.llmProviderName);
+		logger.info(
+			`provider[${this.llmProviderName}] speakWithPlus: Checking rate limits for: ${this.llmProviderName}`,
+			//currentUsage,
+		);
 		if (currentUsage) {
 			const updatedUsage = {
 				...currentUsage,
-				requestsRemaining: currentUsage.requestsRemaining - 1,
-				tokensRemaining: currentUsage.tokensRemaining - usage.totalTokens,
+				requestsRemaining: limits.requestsRemaining,
+				tokensRemaining: limits.tokensRemaining,
 			};
-			await tokenUsageManager.updateTokenUsage(this.llmProviderName, updatedUsage);
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Updating rate limits for: ${this.llmProviderName}`,
+			//	updatedUsage,
+			//);
+			await rateLimitManager.updateRateLimit(this.llmProviderName, updatedUsage);
+		} else {
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Setting rate limits for: ${this.llmProviderName}`,
+			//	limits,
+			//);
+			await rateLimitManager.updateRateLimit(this.llmProviderName, limits);
 		}
 	}
 }
