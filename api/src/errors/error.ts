@@ -50,7 +50,11 @@ export interface LLMErrorOptions extends ErrorOptions {
 	provider: LLMProvider;
 	model?: string;
 	pipeline?: string;
-	args?: object;
+	args?: {
+		status?: number;
+		retries?: { max: number; current: number };
+		reason?: string;
+	};
 	conversationId: ConversationId;
 }
 

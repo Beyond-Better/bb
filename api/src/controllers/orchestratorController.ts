@@ -1031,7 +1031,7 @@ class OrchestratorController {
 					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 				}
 
-				const args = isLLMError(error) ? error.args : null;
+				const args = isLLMError(error) ? error.options?.args : null;
 				const errorMessage = args ? `${args.reason} - ${(error as Error).message}` : (error as Error).message;
 
 				// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
