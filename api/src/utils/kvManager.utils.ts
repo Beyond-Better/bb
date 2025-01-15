@@ -56,15 +56,15 @@ export class KVManager<T = unknown> {
 			// Reuse existing KV instance if available
 			if (KVManager.kvInstances.has(this.kvPath)) {
 				this.kv = KVManager.kvInstances.get(this.kvPath)!;
-				logger.info(`KVManager: reusing instance at: ${this.kvPath}`);
+				//logger.debug(`KVManager: reusing instance at: ${this.kvPath}`);
 			} else {
 				this.kv = await Deno.openKv(this.kvPath);
 				KVManager.kvInstances.set(this.kvPath, this.kv);
-				logger.info(`KVManager: initialized new instance at: ${this.kvPath}`);
+				//logger.debug(`KVManager: initialized new instance at: ${this.kvPath}`);
 			}
 
 			KVManager.instances.add(this);
-			//logger.info(`KVManager: all instances by path: `, KVManager.kvInstances.keys());
+			//logger.debug(`KVManager: all instances by path: `, KVManager.kvInstances.keys());
 		} catch (error) {
 			logger.error('KVManager: Failed to initialize KVManager:', error);
 			throw error;

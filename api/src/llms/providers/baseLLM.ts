@@ -26,7 +26,7 @@ import { KVManager } from 'api/utils/kvManager.ts';
 import { rateLimitManager } from '../../utils/rateLimit.utils.ts';
 
 const ajv = new Ajv();
-logger.info(`LLM: Creating storage for llmCache`);
+//logger.debug(`LLM: Creating storage for llmCache`);
 const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
 
 class LLM {

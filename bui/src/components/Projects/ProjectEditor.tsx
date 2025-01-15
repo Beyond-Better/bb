@@ -1,8 +1,8 @@
 import { useComputed, useSignal } from '@preact/signals';
-import { Project } from '../hooks/useProjectState.ts';
+import { Project } from '../../hooks/useProjectState.ts';
 import { ProjectType } from 'shared/config/v2/types.ts';
-import { FileBrowser } from './FileBrowser.tsx';
-import { useAppState } from '../hooks/useAppState.ts';
+import { FileBrowser } from '../FileBrowser.tsx';
+import { useAppState } from '../../hooks/useAppState.ts';
 
 interface ProjectEditorProps {
 	project?: Project;
@@ -70,6 +70,9 @@ export function ProjectEditor({
 				onSubmit={handleSubmit}
 				class='space-y-6 bg-white dark:bg-gray-800 shadow rounded-lg p-6 border dark:border-gray-700'
 			>
+				<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>
+					{project ? 'Edit Project' : 'Create New Project'}
+				</h2>
 				<div class='form-group'>
 					<label class='block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2'>
 						Project Name
