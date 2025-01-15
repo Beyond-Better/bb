@@ -245,10 +245,11 @@ export default function ProjectManager() {
 							<tr key={project.projectId} className='hover:bg-gray-50'>
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
-										href='/chat'
+										href='/app/chat'
+										f-partial='/app/chat/partial'
 										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
 										onClick={(_e) => {
-											setPath('/chat');
+											setPath('/app/chat');
 											setSelectedProject(project.projectId);
 										}}
 									>
@@ -257,18 +258,24 @@ export default function ProjectManager() {
 								</td>
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
-										href='/chat'
+										href='/app/chat'
+										f-partial='/app/chat/partial'
 										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
+										onClick={(_e) => {
+											setPath('/app/chat');
+											setSelectedProject(project.projectId);
+										}}
 									>
 										{project.path}
 									</a>
 								</td>
 								<td className='px-6 py-4 whitespace-nowrap'>
 									<a
-										href='/chat'
+										href='/app/chat'
+										f-partial='/app/chat/partial'
 										className='block dark:text-gray-300 -mx-6 px-6 py-4 -my-4'
 										onClick={(_e) => {
-											setPath('/chat');
+											setPath('/app/chat');
 											setSelectedProject(project.projectId);
 										}}
 									>

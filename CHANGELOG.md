@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Chat Input regressions
+- Navigation in Project Manager
+- Propagating errors from LLM
 
 
 ## [0.6.3] - 2025-01-12
