@@ -1,4 +1,4 @@
-import { useComputed, useSignal } from '@preact/signals';
+import { useComputed, useSignal, batch } from '@preact/signals';
 import { Project } from '../../hooks/useProjectState.ts';
 import { ProjectType } from 'shared/config/v2/types.ts';
 import { FileBrowser } from '../FileBrowser.tsx';
@@ -25,6 +25,12 @@ export function ProjectEditor({
 	const path = useSignal(project?.path || '');
 	const isDirectoryValid = useSignal(false);
 	const type = useSignal<ProjectType>(project?.type || 'local');
+const llmGuidelinesFile = useSignal(project?.llmGuidelinesFile || '');
+
+// File suggestion state
+const suggestions = useSignal<Array<{ path: string; display: string }>>([]);
+const isLoadingSuggestions = useSignal(false);
+const showSuggestions = useSignal(false);
 	const saving = useSignal(false);
 	const error = useSignal<string | null>(null);
 
@@ -45,6 +51,7 @@ export function ProjectEditor({
 
 		try {
 			const projectData = {
+        llmGuidelinesFile: llmGuidelinesFile.value,
 				name: name.value,
 				path: path.value,
 				type: type.value,

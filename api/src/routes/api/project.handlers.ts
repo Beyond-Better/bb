@@ -3,6 +3,7 @@ import { join, normalize } from '@std/path';
 
 import { logger } from 'shared/logger.ts';
 import ProjectPersistence from 'api/storage/projectPersistence.ts';
+import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 /**
  * @openapi
@@ -119,7 +120,7 @@ export const createProject = async (
 	try {
 		logger.info('ProjectHandler: createProject called');
 		const body = await request.body.json();
-		const { name, path, type } = body;
+		const { name, path, type, llmGuidelinesFile } = body;
 		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		if (!name || !path || !type) {
@@ -220,7 +221,14 @@ export const updateProject = async (
 			type,
 		};
 
-		await projectPersistence.saveProject(project);
+		// Save project metadata
+await projectPersistence.saveProject(project);
+
+// If llmGuidelinesFile is provided, update project config
+if (llmGuidelinesFile !== undefined) {
+  const configManager = await ConfigManagerV2.getInstance();
+  await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
+}
 
 		response.status = 200;
 		response.body = { project };
