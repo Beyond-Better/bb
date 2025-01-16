@@ -1,9 +1,12 @@
 import type { Context, RouterContext } from '@oak/oak';
-import { join, normalize } from '@std/path';
+import { join, normalize, relative } from '@std/path';
+import { toUnixPath } from '../../utils/path.utils.ts';
 
 import { logger } from 'shared/logger.ts';
 import ProjectPersistence from 'api/storage/projectPersistence.ts';
+import type { StoredProject } from 'api/storage/projectPersistence.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { Project } from 'shared/types/project.ts';
 
 /**
  * @openapi
@@ -23,7 +26,22 @@ export const listProjects = async (
 	try {
 		logger.info('ProjectHandler: listProjects called');
 		const projectPersistence = await new ProjectPersistence().init();
-		const projects = await projectPersistence.listProjects();
+		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
+		const configManager = await ConfigManagerV2.getInstance();
+		const storedProjects: StoredProject[] = await projectPersistence.listProjects();
+		const projects = await Promise.all(storedProjects.map(async (project) => {
+			let projectConfig = {};
+			try {
+				projectConfig = await configManager.getProjectConfig(project.projectId);
+			} catch (e) {
+				// Failed to load project config: No such file or directory (os error 2): readfile '/Users/.../.bb/config.yaml'
+			}
+			return {
+				...project,
+				...projectConfig,
+				path: toUnixPath(relative(rootPath, project.path)),
+			};
+		}));
 
 		response.status = 200;
 		response.body = { projects };
@@ -65,13 +83,21 @@ export const getProject = async (
 		const { id: projectId } = params;
 
 		const projectPersistence = await new ProjectPersistence().init();
-		const project = await projectPersistence.getProject(projectId);
-
-		if (!project) {
+		const storedProject: StoredProject | null = await projectPersistence.getProject(projectId);
+		if (!storedProject) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };
 			return;
 		}
+
+		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
+		const configManager = await ConfigManagerV2.getInstance();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		const project: Project = {
+			...storedProject,
+			...projectConfig,
+			path: toUnixPath(relative(rootPath, storedProject.path)),
+		};
 
 		response.status = 200;
 		response.body = { project };
@@ -131,13 +157,20 @@ export const createProject = async (
 
 		const projectPersistence = await new ProjectPersistence().init();
 
-		const project = {
+		const storedProject: Omit<StoredProject, 'projectId'> = {
 			name,
 			path: join(rootPath, path),
 			type,
 		};
 
-		await projectPersistence.createProject(project);
+		const projectId = await projectPersistence.createProject(storedProject);
+
+		// If llmGuidelinesFile is provided, update project config
+		if (llmGuidelinesFile !== undefined) {
+			const configManager = await ConfigManagerV2.getInstance();
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
+		}
+		const project: Project = { ...storedProject, projectId, llmGuidelinesFile };
 
 		response.status = 200;
 		response.body = { project };
@@ -197,7 +230,8 @@ export const updateProject = async (
 		const { id: projectId } = params;
 
 		const body = await request.body.json();
-		const { name, path, type } = body;
+		const { name, path, type, llmGuidelinesFile } = body;
+		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		if (!name || !path || !type) {
 			response.status = 400;
@@ -205,30 +239,31 @@ export const updateProject = async (
 			return;
 		}
 
+		// If llmGuidelinesFile is provided, update project config
+		if (llmGuidelinesFile !== undefined) {
+			const configManager = await ConfigManagerV2.getInstance();
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
+		}
+
 		const projectPersistence = await new ProjectPersistence().init();
 
-		const existingProject = await projectPersistence.getProject(projectId);
-		if (!existingProject) {
+		const storedProject: StoredProject | null = await projectPersistence.getProject(projectId);
+		if (!storedProject) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };
 			return;
 		}
 
-		const project = {
+		const project: Project = {
 			projectId,
 			name,
-			path,
+			path: join(rootPath, path),
 			type,
+			llmGuidelinesFile,
 		};
 
 		// Save project metadata
-await projectPersistence.saveProject(project);
-
-// If llmGuidelinesFile is provided, update project config
-if (llmGuidelinesFile !== undefined) {
-  const configManager = await ConfigManagerV2.getInstance();
-  await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
-}
+		await projectPersistence.saveProject(project);
 
 		response.status = 200;
 		response.body = { project };
@@ -270,7 +305,7 @@ export const deleteProject = async (
 
 		const projectPersistence = await new ProjectPersistence().init();
 
-		const project = await projectPersistence.getProject(projectId);
+		const project: StoredProject | null = await projectPersistence.getProject(projectId);
 		if (!project) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };

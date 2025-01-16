@@ -27,6 +27,12 @@ export interface AuthResponse {
 	error?: string;
 }
 
+export interface SystemMeta {
+	os: 'windows' | 'darwin' | 'linux';
+	pathSeparator: string;
+	apiVersion: string;
+}
+
 export interface ApiStatus {
 	status: string;
 	message: string;
@@ -125,7 +131,7 @@ export class ApiClient {
 		allowedCodes: number[] = [],
 	): Promise<T | null> {
 		const url = `${this.apiUrl}${endpoint}`;
-		console.log(`APIClient: sending ${options.method || 'GET'} to: ${url}`);
+		//console.log(`APIClient: sending ${options.method || 'GET'} to: ${url}`);
 
 		try {
 			const response = await fetch(url, {
@@ -454,6 +460,10 @@ export class ApiClient {
 
 	async deleteConversation(id: string, projectId: string): Promise<void> {
 		await this.delete(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`, [404]);
+	}
+
+	async getMeta(): Promise<SystemMeta | null> {
+		return await this.get<{ meta: SystemMeta }>('/api/v1/meta').then(response => response?.meta ?? null);
 	}
 
 	async getStatus(): Promise<ApiStatus | null> {

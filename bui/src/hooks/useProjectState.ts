@@ -74,26 +74,8 @@ export function useProjectState(appState: Signal<AppState>) {
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
 			// Get project list
-const response = await apiClient?.listProjects();
+			const response = await apiClient?.listProjects();
 
-// Load config for each project
-if (response?.projects) {
-	const projectsWithConfig = await Promise.all(
-		response.projects.map(async (project) => {
-			try {
-				const config = await apiClient?.getProjectConfig(project.projectId);
-				return {
-					...project,
-					llmGuidelinesFile: config?.llmGuidelinesFile
-				};
-			} catch (err) {
-				console.warn(`Failed to load config for project ${project.projectId}:`, err);
-				return project;
-			}
-		})
-	);
-	response.projects = projectsWithConfig;
-}
 			console.log('useProjectState: loadProjects', response);
 			if (response) {
 				// If we have a selectedProjectId but it's not in the projects list,
@@ -148,15 +130,15 @@ if (response?.projects) {
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
 			// Get current config to preserve other values
-const currentConfig = await apiClient?.getProjectConfig(projectId);
+			//const currentConfig = await apiClient?.getProjectConfig(projectId);
 
-// Update project metadata
-const response = await apiClient?.updateProject(projectId, updates);
+			// Update project metadata
+			const response = await apiClient?.updateProject(projectId, updates);
 
-// Update config if llmGuidelinesFile is provided
-if (updates.llmGuidelinesFile !== undefined) {
-	await apiClient?.updateProjectConfig(projectId, 'llmGuidelinesFile', updates.llmGuidelinesFile);
-}
+// 			// Update config if llmGuidelinesFile is provided
+// 			if (updates.llmGuidelinesFile !== undefined) {
+// 				await apiClient?.updateProjectConfig(projectId, 'llmGuidelinesFile', updates.llmGuidelinesFile);
+// 			}
 			if (response) {
 				projectState.value = {
 					...projectState.value,

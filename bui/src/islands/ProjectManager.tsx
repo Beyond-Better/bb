@@ -59,6 +59,7 @@ export default function ProjectManager() {
 	};
 
 	const handleEditorCancel = () => {
+		console.log('ProjectManager: handleEditorCancel called');
 		showEditor.value = false;
 		editingProject.value = undefined;
 	};
@@ -100,6 +101,7 @@ export default function ProjectManager() {
 							? (
 								<ProjectEditor
 									project={editingProject.value}
+									appState={appState}
 									onSave={handleEditorSave}
 									onCancel={handleEditorCancel}
 									onCreateProject={createProject}
