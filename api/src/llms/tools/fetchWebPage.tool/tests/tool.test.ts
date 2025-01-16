@@ -45,7 +45,7 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('successful fetch - bbResponse:', result.bbResponse);
+			console.log('successful fetch - bbResponse:', result.bbResponse);
 			// console.log('successful fetch - toolResponse:', result.toolResponse);
 			// console.log('successful fetch - toolResults:', result.toolResults);
 
