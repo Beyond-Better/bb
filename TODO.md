@@ -162,4 +162,12 @@
 √ Exclude .trash from file searching
 √ Stripe subscriptions
 √ View Usage
+√ DUI Prefs - don't require Anthropic key when not in localMode
+√ built binary for bui
+√ OpenAi support
+√ OpenAi support
+√ DUI: Linux, change from /var/log to ~/.bb and /var/run to ~/.bb (or maybe ~/.local)
+√ Chat Input history
+√ BUI: Update the settings page to get latest usage when changing page nav.
+
 

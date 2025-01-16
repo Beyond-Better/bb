@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.5] - 2025-01-16
+
+### Added
+
+
+### Changed
+
+- layout for project manager
+
+### Fixed
+
+- version reporting for api
+
+
 ## [0.6.4] - 2025-01-13
 
 ### Fixed

@@ -212,7 +212,9 @@ export function ColumnFileBrowser({
 							xmlns='http://www.w3.org/2000/svg'
 							viewBox='0 0 20 20'
 							fill='currentColor'
-							class={`w-4 h-4 mr-1.5 transition-transform ${isExpanded.value ? 'transform rotate-90' : ''}`}
+							class={`w-4 h-4 mr-1.5 transition-transform ${
+								isExpanded.value ? 'transform rotate-90' : ''
+							}`}
 						>
 							<path
 								fill-rule='evenodd'
@@ -241,7 +243,8 @@ export function ColumnFileBrowser({
 				</div>
 				{isExpanded.value && columns.value.length > 0 && (
 					<div class='text-sm text-gray-500 dark:text-gray-400 px-2'>
-						Current path: <span class='pl-2 font-bold font-mono'>{columns.value[columns.value.length - 1].path}</span>
+						Current path:{' '}
+						<span class='pl-2 font-bold font-mono'>{columns.value[columns.value.length - 1].path}</span>
 					</div>
 				)}
 			</div>

@@ -109,7 +109,9 @@ export default function ProjectManager() {
 							: projects.value.length === 0
 							? (
 								<>
-									<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>Get Started with Beyond Better</h2>
+									<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>
+										Get Started with Beyond Better
+									</h2>
 									<p class='mt-2 text-sm text-gray-500 dark:text-gray-400'>
 										Get started by creating a new project or importing existing projects.
 									</p>
