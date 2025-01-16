@@ -89,7 +89,7 @@ export class SessionManager {
 
 		try {
 			await this.supabaseClient.auth.signOut();
-			await this.storage.clear();
+			this.storage.clear();
 			logger.info('SessionManager: Session cleared successfully');
 		} catch (error) {
 			logger.error('SessionManager: Error clearing session:', error);
@@ -105,7 +105,7 @@ export class SessionManager {
 			await this.supabaseClient.auth.stopAutoRefresh();
 			this.supabaseClient = null;
 		}
-		await this.storage.clear();
+		this.storage.clear();
 		await this.storage.close(); // Ensure proper cleanup
 		this.config = null;
 	}
