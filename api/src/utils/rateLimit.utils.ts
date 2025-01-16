@@ -1,11 +1,11 @@
-import type { LLMProvider } from '../types.ts';
+import type { LLMProvider } from 'api/types.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMRateLimit } from 'api/types.ts';
 
-logger.info(`RateLimitManager: Creating storage for rateLimit`);
+//logger.debug(`RateLimitManager: Creating storage for rateLimit`);
 const storage = await new KVManager<LLMRateLimit>({ prefix: 'rateLimit' }).init();
-//logger.info(`RateLimitManager: Created storage for rateLimit`);
+//logger.debug(`RateLimitManager: Created storage for rateLimit`);
 
 // [TODO] - see notes for updateRateLimit in baseLLM
 // This class is really for rate limits; not token usage

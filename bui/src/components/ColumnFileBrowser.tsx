@@ -201,48 +201,59 @@ export function ColumnFileBrowser({
 
 	return (
 		<div class={`column-file-browser flex flex-col flex-grow ${className}`} style='width: 100%;'>
-			<div class='flex items-center justify-between mb-2'>
-				<button
-					onClick={() => isExpanded.value = !isExpanded.value}
-					class='flex items-center p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-					aria-label={isExpanded.value ? 'Collapse file browser' : 'Expand file browser'}
-				>
-					<svg
-						xmlns='http://www.w3.org/2000/svg'
-						viewBox='0 0 20 20'
-						fill='currentColor'
-						class={`w-5 h-5 transition-transform ${isExpanded.value ? 'transform rotate-90' : ''}`}
+			<div class='space-y-2'>
+				<div class='flex items-center justify-between'>
+					<button
+						onClick={() => isExpanded.value = !isExpanded.value}
+						class='flex items-center px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm'
+						aria-label={isExpanded.value ? 'Collapse file browser' : 'Expand file browser'}
 					>
-						<path
-							fill-rule='evenodd'
-							d='M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z'
-							clip-rule='evenodd'
-						/>
-					</svg>
-				</button>
-				{isExpanded.value && (
-					<label class='flex items-center text-sm text-gray-600'>
-						<input
-							type='checkbox'
-							checked={showHidden.value}
-							onChange={() => {
-								showHidden.value = !showHidden.value;
-								if (columns.value.length > 0) {
-									reloadAllColumns();
-								}
-							}}
-							class='mr-2'
-						/>
-						Show Hidden Files
-					</label>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							viewBox='0 0 20 20'
+							fill='currentColor'
+							class={`w-4 h-4 mr-1.5 transition-transform ${
+								isExpanded.value ? 'transform rotate-90' : ''
+							}`}
+						>
+							<path
+								fill-rule='evenodd'
+								d='M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z'
+								clip-rule='evenodd'
+							/>
+						</svg>
+						{isExpanded.value ? 'Collapse Browser' : 'Browse Files'}
+					</button>
+					{isExpanded.value && (
+						<label class='flex items-center text-sm text-gray-600 dark:text-gray-400'>
+							<input
+								type='checkbox'
+								checked={showHidden.value}
+								onChange={() => {
+									showHidden.value = !showHidden.value;
+									if (columns.value.length > 0) {
+										reloadAllColumns();
+									}
+								}}
+								class='mr-2'
+							/>
+							Show Hidden Files
+						</label>
+					)}
+				</div>
+				{isExpanded.value && columns.value.length > 0 && (
+					<div class='text-sm text-gray-500 dark:text-gray-400 px-2'>
+						Current path:{' '}
+						<span class='pl-2 font-bold font-mono'>{columns.value[columns.value.length - 1].path}</span>
+					</div>
 				)}
 			</div>
 
 			{isExpanded.value && (
-				<div ref={scrollContainerRef} class='overflow-x-auto flex-grow w-full'>
+				<div ref={scrollContainerRef} class='mt-3 overflow-x-auto flex-grow w-full'>
 					<div
-						class='flex space-x-1 bg-gray-50 dark:bg-gray-900 rounded-lg'
-						style='height: 400px; min-width: min-content;'
+						class='flex space-x-0.5 bg-gray-50 dark:bg-gray-900 rounded-lg p-1'
+						style='height: 300px; min-width: min-content;'
 					>
 						{error.value && (
 							<div class='flex-none w-52 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-lg'>
@@ -257,9 +268,9 @@ export function ColumnFileBrowser({
 						{columns.value.map((column, index) => (
 							<div
 								key={`${column.path}-${index}`}
-								class='flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow'
+								class='flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700'
 							>
-								<div class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-lg z-10'>
+								<div class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1.5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-md z-10'>
 									{column.path === rootPath ? 'Root' : column.path.split('/').pop()}
 								</div>
 								<div class='overflow-y-auto flex-grow' style='height: calc(400px - 2rem);'>
