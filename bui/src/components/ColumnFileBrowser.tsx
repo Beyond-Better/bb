@@ -1,12 +1,20 @@
 import { useSignal } from '@preact/signals';
+import { dirname } from '@std/path';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
+import { formatPathForDisplay } from '../utils/path.utils.ts';
 
 interface DirectoryItem {
 	name: string;
 	path: string;
 	isDirectory: boolean;
+}
+
+interface Column {
+	path: string;
+	items: DirectoryItem[];
+	selected?: string;
 }
 
 interface ColumnFileBrowserProps {
@@ -18,6 +26,8 @@ interface ColumnFileBrowserProps {
 	appState: Signal<AppState>;
 	defaultExpanded?: boolean;
 	onSelectionValid?: (isValid: boolean, selectedPath?: string) => void;
+	alwaysShowPath?: boolean;
+	helpText?: string;
 }
 
 export function ColumnFileBrowser({
@@ -29,183 +39,290 @@ export function ColumnFileBrowser({
 	appState,
 	defaultExpanded = true,
 	onSelectionValid,
+	alwaysShowPath,
+	helpText,
 }: ColumnFileBrowserProps) {
-	const currentPath = useSignal(rootPath);
-	const columns = useSignal<Array<{ path: string; items: DirectoryItem[]; selected?: string }>>([]);
+	// Core state
+	const columns = useSignal<Column[]>([]);
+	const isExpanded = useSignal(defaultExpanded);
+	const showHidden = useSignal(false);
 	const loading = useSignal(false);
 	const error = useSignal<string | null>(null);
-	const showHidden = useSignal(false);
-	const isExpanded = useSignal(defaultExpanded);
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 
-	const scrollToEnd = () => {
-		setTimeout(() => {
-			if (scrollContainerRef.current) {
-				scrollContainerRef.current.scrollTo({
-					left: scrollContainerRef.current.scrollWidth,
+	// Scroll selected items into view
+	const scrollSelectedItemsIntoView = async () => {
+		// Wait for columns to be rendered
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		if (columns.value.length > 0) {
+			//console.log('ColumnFileBrowser: Scrolling selected items into view');
+			const columnElements = containerRef.current?.querySelectorAll('.column-container');
+			if (columnElements?.length) {
+				// First scroll selected items into view vertically
+				columnElements.forEach((column, index) => {
+					//console.log('ColumnFileBrowser: Checking column', index, 'for selected items');
+					const selectedItems = column.querySelectorAll('.bg-blue-100');
+					//console.log('ColumnFileBrowser: Found', selectedItems.length, 'selected items');
+					const selected = column.querySelector('.bg-blue-100');
+					if (selected) {
+						selected.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+					}
+				});
+
+				// Then always scroll the last column into view horizontally
+				columnElements[columnElements.length - 1].scrollIntoView({
 					behavior: 'smooth',
+					block: 'nearest',
+					inline: 'end',
 				});
 			}
-		}, 100);
+		}
 	};
 
-	// Debug render
-	// console.log('ColumnFileBrowser render:', {
-	// 	currentPath: currentPath.value,
-	// 	columnsCount: columns.value.length,
-	// 	loading: loading.value,
-	// 	rootPath,
-	// 	error: error.value,
-	// 	type,
-	// 	defaultExpanded,
-	// });
-
-	useEffect(() => {
-		console.log('Initial load effect triggered with rootPath:', rootPath);
-		error.value = null;
-		if (isExpanded.value) {
-			loadDirectory(rootPath, true);
-		}
-	}, [rootPath, isExpanded.value]);
-
-	const reloadAllColumns = async () => {
-		console.log('Reloading all columns with showHidden:', showHidden.value);
-		const currentColumns = [...columns.value];
-		const selections = new Map(currentColumns.map((col) => [col.path, col.selected]));
-		columns.value = [];
-
-		for (const column of currentColumns) {
-			const response = await appState.value.apiClient?.listDirectory(column.path, {
-				only: type === 'directory' ? 'directories' : undefined,
-				includeHidden: showHidden.value,
-			});
-
-			if (response && !response.errorMessage && response.items) {
-				// Preserve the previous selection if the item still exists
-				const selectedPath = selections.get(column.path);
-				const itemStillExists = selectedPath && response.items.some((item) => item.path === selectedPath);
-
-				columns.value = [...columns.value, {
-					path: column.path,
-					items: response.items,
-					selected: itemStillExists ? selectedPath : undefined,
-				}];
-
-				// If this is the last column, update selection validity
-				if (column === currentColumns[currentColumns.length - 1]) {
-					updateSelectionValidity();
-				}
+	// Keep old function for compatibility
+	const scrollLastColumnIntoView = () => {
+		if (columns.value.length > 0) {
+			const columnElements = containerRef.current?.querySelectorAll('.column-container');
+			if (columnElements?.length) {
+				columnElements[columnElements.length - 1].scrollIntoView({
+					behavior: 'smooth',
+					block: 'nearest',
+					inline: 'end',
+				});
 			}
 		}
-		console.log('Columns after reload:', columns.value);
 	};
 
-	const loadDirectory = async (path: string, isInitial = false) => {
-		if (!path) return;
-		console.log('loadDirectory called:', { path, isInitial, showHidden: showHidden.value });
+	// Split a path into components
+	const splitPath = (path: string): string[] => {
+		if (!path || path === '.' || path === './') return [];
+		return path.split(/[\\\/]/).filter(Boolean);
+	};
+
+	// Load directory contents
+	const loadDirectory = async (path: string) => {
+		// Add delay to help with debugging
+		//await new Promise(resolve => setTimeout(resolve, 500));
 		loading.value = true;
 		error.value = null;
 
 		try {
-			const apiClient = appState.value.apiClient;
-			const response = await apiClient?.listDirectory(path, {
+			const response = await appState.value.apiClient?.listDirectory(path, {
 				only: type === 'directory' ? 'directories' : undefined,
 				includeHidden: showHidden.value,
 			});
-			console.log('Directory response:', response);
 
 			if (!response) {
-				error.value = 'no response from directory listing';
-				return;
+				throw new Error('No response from directory listing');
 			}
 
 			if (response.errorMessage) {
-				error.value = response.errorMessage;
-				return;
+				throw new Error(response.errorMessage);
 			}
 
-			if (response.items) {
-				if (isInitial) {
-					console.log('Setting initial column');
-					columns.value = [{ path, items: response.items }];
-				} else {
-					// Find the column index for this path
-					const columnIndex = columns.value.findIndex((col) => col.path === path);
-					console.log('Found column index:', columnIndex, 'for path:', path);
-
-					if (columnIndex !== -1) {
-						// Remove all columns after this one and update this column
-						console.log('Updating column and removing subsequent ones');
-						columns.value = [
-							...columns.value.slice(0, columnIndex),
-							{ path, items: response.items },
-						];
-					} else {
-						// Add new column
-						console.log('Adding new column');
-						columns.value = [...columns.value, { path, items: response.items }];
-					}
-				}
-				console.log('Updated columns count:', columns.value.length);
-				updateSelectionValidity();
-				scrollToEnd();
-			}
+			return response.items || [];
 		} catch (e) {
-			console.error('Error loading directory:', e);
 			error.value = e instanceof Error ? e.message : 'Failed to load directory';
+			return [];
 		} finally {
 			loading.value = false;
 		}
 	};
 
-	const handleItemClick = async (item: DirectoryItem, columnIndex: number) => {
-		console.log('Item clicked:', item, 'in column:', columnIndex);
+	// Handle initial load and value changes
+	useEffect(() => {
+		// Always initialize if alwaysShowPath is true, otherwise only when expanded
+		if (!isExpanded.value && !alwaysShowPath) return;
 
-		// Update selection in current column
+		const initializeBrowser = async () => {
+			//console.log('ColumnFileBrowser: Initializing browser:', { rootPath, value });
+			// Always start with root
+			const rootItems = await loadDirectory(rootPath);
+			const pathComponents = splitPath(value);
+			//console.log('ColumnFileBrowser: Creating columns with pathComponents:', pathComponents);
+
+			// Get existing selections from current columns
+			const existingSelections = new Map(columns.value.map((col) => [col.path, col.selected]));
+
+			// Initialize with root column
+			const newColumns: Column[] = [{
+				path: rootPath,
+				items: rootItems,
+				// First column should show first path component
+				selected: pathComponents[0],
+			}];
+
+			// Load each path component
+			for (let i = 0; i < pathComponents.length; i++) {
+				// Build full path from root
+				const pathPart = pathComponents.slice(0, i + 1).join('/');
+				const path = rootPath === '.' ? pathPart : `${rootPath}/${pathPart}`;
+				//console.log('ColumnFileBrowser: Loading path component:', { rootPath, pathPart, path, index: i });
+				const items = await loadDirectory(path);
+
+				//console.log('ColumnFileBrowser: Adding column:', { path, selected: pathComponents[i], index: i });
+				// Each column should select its own path component, except the last one
+				newColumns.push({
+					path,
+					items,
+					selected: i < pathComponents.length - 1 ? pathComponents[i + 1] : undefined,
+				});
+			}
+
+			//console.log('ColumnFileBrowser: Final columns:', newColumns.map((c) => ({ path: c.path, selected: c.selected })));
+			columns.value = newColumns;
+			// Don't call updateSelectionValidity during initial load
+			await scrollSelectedItemsIntoView();
+		};
+
+		initializeBrowser();
+	}, [value, isExpanded.value]);
+
+	// Handle directory selection
+	const handleItemClick = async (item: DirectoryItem, columnIndex: number) => {
+		if (type === 'directory' && !item.isDirectory) return;
+		if (columns.value[columnIndex].selected === item.path) return;
+
 		const newColumns = [...columns.value];
-		newColumns[columnIndex] = { ...newColumns[columnIndex], selected: item.path };
+
+		// Update selection in clicked column
+		newColumns[columnIndex] = {
+			...newColumns[columnIndex],
+			selected: item.name,
+		};
+
+		// Store the selection for persistence
+		const selectedName = item.name;
+
+		// Update columns first
+		columns.value = newColumns;
 
 		if (item.isDirectory) {
-			// Remove all columns after this one
-			newColumns.splice(columnIndex + 1);
-			columns.value = newColumns;
+			// Build full path from parent directories
+			const parentPath = columns.value[columnIndex].path;
+			const fullPath = parentPath === '.' ? item.name : `${parentPath}/${item.name}`;
+			// console.log('ColumnFileBrowser: Path building:', {
+			// 	columnIndex,
+			// 	parentPath,
+			// 	itemPath: item.path,
+			// 	itemName: item.name,
+			// 	fullPath,
+			// });
 
-			currentPath.value = item.path;
-			await loadDirectory(item.path);
-		} else {
-			// For files, just update the selection
+			// Load items for new column
+			const items = await loadDirectory(fullPath);
+
+			// Remove subsequent columns and add new one
+			newColumns.length = columnIndex + 1;
+			newColumns.push({
+				path: fullPath,
+				items,
+				selected: undefined, // Last column should not have a selection
+			});
+
+			// Update columns first, then trigger change
 			columns.value = newColumns;
-			onChange(item.path);
+			onChange(fullPath);
+			scrollLastColumnIntoView();
+		} else {
+			// Build full path for file selection
+			const parentPath = columns.value[columnIndex].path;
+			const fullPath = parentPath === '.' ? item.name : `${parentPath}/${item.name}`;
+			// console.log('ColumnFileBrowser: File selection:', {
+			// 	columnIndex,
+			// 	parentPath,
+			// 	itemPath: item.path,
+			// 	itemName: item.name,
+			// 	fullPath,
+			// });
+
+			columns.value = newColumns;
+			onChange(fullPath);
 		}
 
 		updateSelectionValidity();
 	};
 
+	// Handle show/hide hidden files
+	const reloadAllColumns = async () => {
+		const newColumns: Column[] = [];
+
+		for (const column of columns.value) {
+			const items = await loadDirectory(column.path);
+			newColumns.push({
+				...column,
+				items,
+			});
+		}
+
+		columns.value = newColumns;
+		updateSelectionValidity();
+	};
+
+	// Update selection validity
 	const updateSelectionValidity = () => {
 		if (!onSelectionValid) return;
 
 		const lastColumn = columns.value[columns.value.length - 1];
 		const secondLastColumn = columns.value[columns.value.length - 2];
 
-		// If last column has a selection, use that
 		if (lastColumn?.selected) {
-			onSelectionValid(true, lastColumn.selected);
-		} // Otherwise use second-last column if it exists and has a selection
-		else if (secondLastColumn?.selected) {
-			onSelectionValid(true, secondLastColumn.selected);
-		} // No valid selection
-		else {
+			const fullPath = lastColumn.path === '.'
+				? lastColumn.selected
+				: `${lastColumn.path}/${lastColumn.selected}`;
+			onSelectionValid(true, fullPath);
+		} else if (secondLastColumn?.selected) {
+			const fullPath = secondLastColumn.path === '.'
+				? secondLastColumn.selected
+				: `${secondLastColumn.path}/${secondLastColumn.selected}`;
+			onSelectionValid(true, fullPath);
+		} else {
 			onSelectionValid(false);
 		}
 	};
 
 	return (
-		<div class={`column-file-browser flex flex-col flex-grow ${className}`} style='width: 100%;'>
+		<div
+			class={`column-file-browser flex flex-col flex-grow ${className}`}
+			style='width: 100%;'
+		>
+			{(alwaysShowPath || isExpanded.value) && columns.value.length > 0 && (
+				<div class='ml-3 mb-2 text-lg text-gray-500 dark:text-gray-400 flex items-center'>
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						fill='none'
+						viewBox='0 0 24 24'
+						strokeWidth={1.5}
+						stroke='currentColor'
+						class='w-4 h-4'
+					>
+						<path
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
+						/>
+					</svg>
+								<span class='mx-1'>/</span>
+					{columns.value[columns.value.length - 1].path !== '.'
+						&& (
+							<>
+								<span class='font-bold font-mono'>
+									{formatPathForDisplay(
+										columns.value[columns.value.length - 1].path,
+										appState.value.systemMeta?.pathSeparator,
+									)}
+								</span>
+							</>
+						)
+						}
+				</div>
+			)}
 			<div class='space-y-2'>
 				<div class='flex items-center justify-between'>
 					<button
+						type='button'
 						onClick={() => isExpanded.value = !isExpanded.value}
-						class='flex items-center px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm'
+						class='flex items-center ml-2 px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm'
 						aria-label={isExpanded.value ? 'Collapse file browser' : 'Expand file browser'}
 					>
 						<svg
@@ -241,16 +358,16 @@ export function ColumnFileBrowser({
 						</label>
 					)}
 				</div>
-				{isExpanded.value && columns.value.length > 0 && (
-					<div class='text-sm text-gray-500 dark:text-gray-400 px-2'>
-						Current path:{' '}
-						<span class='pl-2 font-bold font-mono'>{columns.value[columns.value.length - 1].path}</span>
-					</div>
-				)}
 			</div>
 
 			{isExpanded.value && (
-				<div ref={scrollContainerRef} class='mt-3 overflow-x-auto flex-grow w-full'>
+			<>
+			{helpText && (
+				<div class='mt-2 mb-1 ml-3 text-sm text-gray-600 dark:text-gray-400'>
+					{helpText}
+				</div>
+			)}
+				<div ref={containerRef} class='mt-3 overflow-x-auto flex-grow w-full'>
 					<div
 						class='flex space-x-0.5 bg-gray-50 dark:bg-gray-900 rounded-lg p-1'
 						style='height: 300px; min-width: min-content;'
@@ -262,16 +379,41 @@ export function ColumnFileBrowser({
 						)}
 						{!error.value && columns.value.length === 0 && !loading.value && (
 							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								<div class='text-gray-500 dark:text-gray-400'>Loading directory contents...</div>
+								{/* <div class='text-gray-500 dark:text-gray-400'>Loading directory contents...</div> */}
+								<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+								</div>
 							</div>
 						)}
 						{columns.value.map((column, index) => (
 							<div
 								key={`${column.path}-${index}`}
-								class='flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700'
+								class='column-container flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700'
 							>
-								<div class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1.5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-md z-10'>
-									{column.path === rootPath ? 'Root' : column.path.split('/').pop()}
+								<div
+									class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1.5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-md z-10 flex items-center'
+									title={column.path}
+								>
+									{column.path === rootPath
+										? (
+											<>
+												<svg
+													xmlns='http://www.w3.org/2000/svg'
+													fill='none'
+													viewBox='0 0 24 24'
+													strokeWidth={1.5}
+													stroke='currentColor'
+													className='w-4 h-4 mr-1'
+												>
+													<path
+														strokeLinecap='round'
+														strokeLinejoin='round'
+														d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
+													/>
+												</svg>
+												<span>Home</span>
+											</>
+										)
+										: <span className='truncate'>{column.path.split('/').pop()}</span>}
 								</div>
 								<div class='overflow-y-auto flex-grow' style='height: calc(400px - 2rem);'>
 									{column.items.length === 0
@@ -279,26 +421,26 @@ export function ColumnFileBrowser({
 										: (
 											column.items.map((item) => (
 												<div
-													key={`${item.path}-${index}`}
+													key={item.path}
 													onClick={() => handleItemClick(item, index)}
 													class={`
-                          px-2 py-1 cursor-pointer text-sm flex items-center justify-between
-                          ${
+													px-2 py-1 cursor-pointer text-sm flex items-center justify-between
+													${
 														item.isDirectory
 															? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50'
 															: 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
 													}
-                          ${
+													${
 														type === 'directory' && !item.isDirectory
 															? 'opacity-50 cursor-not-allowed'
 															: ''
 													}
-                          ${
-														column.selected === item.path
-															? 'bg-blue-100 dark:bg-blue-900/50'
+													${
+														column.selected === item.name
+															? 'bg-blue-100 dark:bg-blue-900/50 selected-item'
 															: ''
 													}
-                        `}
+												`}
 												>
 													<div class='flex items-center flex-grow min-w-0'>
 														<span class='truncate'>{item.name}</span>
@@ -320,7 +462,7 @@ export function ColumnFileBrowser({
 						)}
 					</div>
 				</div>
-			)}
+		</>	)}
 		</div>
 	);
 }

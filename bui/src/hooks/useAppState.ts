@@ -4,10 +4,11 @@ import type { Signal } from '@preact/signals';
 import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
-import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
+import { type ApiClient, createApiClientManager, type SystemMeta } from '../utils/apiClient.utils.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 export interface AppState {
+	systemMeta: SystemMeta | null;
 	wsManager: WebSocketManagerApp | null;
 	apiClient: ApiClient | null;
 	status: WebSocketStatus;
@@ -49,6 +50,7 @@ const loadStoredState = () => {
 };
 
 const appState = signal<AppState>({
+	systemMeta: null,
 	wsManager: null,
 	apiClient: null,
 	status: {
@@ -193,6 +195,16 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 	});
 
 	const apiClient = createApiClientManager(config.apiUrl);
+
+	// Load system metadata
+	apiClient.getMeta().then(meta => {
+		appState.value = {
+			...appState.value,
+			systemMeta: meta
+		};
+	}).catch(error => {
+		console.error('AppState: Failed to load system metadata:', error);
+	});
 
 	// Update state with managers
 	appState.value = {

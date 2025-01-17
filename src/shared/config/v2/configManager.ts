@@ -1738,6 +1738,12 @@ export function mergeGlobalIntoProjectConfig(
 	}
 	if (!projectConfig.defaultModels) {
 		projectConfig.defaultModels = globalConfig.defaultModels;
+	} else if (
+		!projectConfig.defaultModels.orchestrator ||
+		!projectConfig.defaultModels.agent ||
+		!projectConfig.defaultModels.chat
+	) {
+		projectConfig.defaultModels = { ...globalConfig.defaultModels, ...projectConfig.defaultModels };
 	}
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));
