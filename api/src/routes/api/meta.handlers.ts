@@ -16,22 +16,22 @@ import { VERSION } from 'version.ts';
  *         description: Internal server error
  */
 export const getMeta = async (
-    { response }: { response: Context['response'] },
+	{ response }: { response: Context['response'] },
 ) => {
-    try {
-        logger.info('MetaHandler: getMeta called');
-        
-        const meta = {
-            os: Deno.build.os,
-            pathSeparator: SEPARATOR,
-            apiVersion: VERSION,
-        };
+	try {
+		logger.info('MetaHandler: getMeta called');
 
-        response.status = 200;
-        response.body = { meta };
-    } catch (error) {
-        logger.error(`MetaHandler: Error in getMeta: ${(error as Error).message}`);
-        response.status = 500;
-        response.body = { error: 'Failed to get system metadata', details: (error as Error).message };
-    }
+		const meta = {
+			os: Deno.build.os,
+			pathSeparator: SEPARATOR,
+			apiVersion: VERSION,
+		};
+
+		response.status = 200;
+		response.body = { meta };
+	} catch (error) {
+		logger.error(`MetaHandler: Error in getMeta: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to get system metadata', details: (error as Error).message };
+	}
 };

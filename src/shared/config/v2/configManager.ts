@@ -179,11 +179,16 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		await ensureDir(join(projectRoot, '.bb'));
 		await Deno.writeTextFile(configPath, stringifyYaml(updated));
 
+		const mergedConfig = mergeGlobalIntoProjectConfig(
+			await updated,
+			await this.getGlobalConfig(),
+		);
+
 		// Update cache
-		this.projectConfigs.set(projectId, updated);
+		this.projectConfigs.set(projectId, mergedConfig);
 	}
 
-	public async setProjectConfigValue(projectId: string, key: string, value: string): Promise<void> {
+	public async setProjectConfigValue(projectId: string, key: string, value: string | null): Promise<void> {
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
@@ -200,8 +205,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			}
 		}
 
-		// Update the value
-		this.updateNestedValue(current, key, value);
+		if (value === null) {
+			// Remove the key when value is null (resetting to global default)
+			delete current[key];
+		} else {
+			// Update the value
+			this.updateNestedValue(current, key, value);
+		}
 
 		//if (!this.validateProjectConfig(current)) {
 		//	throw new Error('Invalid project configuration after setting value');
@@ -698,7 +708,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @throws Error if project not found or configuration is invalid
 	 * @internal
 	 */
-	private async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
+	public async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
 		//console.log(`ConfigManager: loadProjectConfig for ${projectId}`);
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
@@ -1672,7 +1682,15 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		target[keys[keys.length - 1]] = this.parseConfigValue(value);
 	}
 
-	private parseConfigValue(value: string): unknown {
+	private parseConfigValue(value: unknown): unknown {
+		// Log the value and its type
+		//console.info('ConfigManager: parseConfigValue:', { value, type: typeof value });
+
+		// Handle non-string values
+		if (typeof value !== 'string') {
+			return value;
+		}
+
 		// Try to parse as JSON if it looks like a complex value
 		if (
 			value.startsWith('{') || value.startsWith('[') ||

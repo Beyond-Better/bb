@@ -5,7 +5,8 @@ import { ProjectEditor } from '../components/Projects/ProjectEditor.tsx';
 import { ProjectList } from '../components/Projects/ProjectList.tsx';
 import { ProjectImporter } from '../components/Projects/ProjectImporter.tsx';
 import { useAppState } from '../hooks/useAppState.ts';
-import { Project, useProjectState } from '../hooks/useProjectState.ts';
+import {  useProjectState } from '../hooks/useProjectState.ts';
+import type { Project, ProjectWithSources } from 'shared/types/project.ts';
 
 export default function ProjectManager() {
 	const appState = useAppState();
@@ -20,7 +21,7 @@ export default function ProjectManager() {
 	} = useProjectState(appState);
 
 	const showEditor = useSignal(false);
-	const editingProject = useSignal<Project | undefined>(undefined);
+	const editingProject = useSignal<ProjectWithSources | undefined>(undefined);
 	const loading = useComputed(() => projectState.value.loading);
 	const error = useComputed(() => projectState.value.error);
 	const projects = useComputed(() => projectState.value.projects);
@@ -41,7 +42,7 @@ export default function ProjectManager() {
 		showEditor.value = true;
 	};
 
-	const handleEdit = (project: Project) => {
+	const handleEdit = (project: ProjectWithSources) => {
 		editingProject.value = project;
 		showEditor.value = true;
 	};

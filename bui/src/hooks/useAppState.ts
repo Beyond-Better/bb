@@ -2,9 +2,10 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
-import type { VersionInfo } from 'shared/types/version.ts';
+import type { SystemMeta, VersionInfo } from 'shared/types/version.ts';
+import {} from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
-import { type ApiClient, createApiClientManager, type SystemMeta } from '../utils/apiClient.utils.ts';
+import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 export interface AppState {
@@ -197,12 +198,12 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 	const apiClient = createApiClientManager(config.apiUrl);
 
 	// Load system metadata
-	apiClient.getMeta().then(meta => {
+	apiClient.getMeta().then((meta) => {
 		appState.value = {
 			...appState.value,
-			systemMeta: meta
+			systemMeta: meta,
 		};
-	}).catch(error => {
+	}).catch((error) => {
 		console.error('AppState: Failed to load system metadata:', error);
 	});
 
@@ -266,7 +267,7 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 }
 
 export function updateAppStateHandlers(handlers: {
-	onMessage?: (message: any) => void;
+	onMessage?: (message: unknown) => void;
 	onError?: (error: Error) => void;
 	onClose?: () => void;
 	onOpen?: () => void;
@@ -299,6 +300,7 @@ export function cleanupAppState(): void {
 			isLoading: false,
 			error: null,
 		},
+		systemMeta: null,
 		error: null,
 		versionInfo: undefined,
 		projectId,

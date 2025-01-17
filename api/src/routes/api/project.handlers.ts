@@ -6,7 +6,58 @@ import { logger } from 'shared/logger.ts';
 import ProjectPersistence from 'api/storage/projectPersistence.ts';
 import type { StoredProject } from 'api/storage/projectPersistence.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { Project } from 'shared/types/project.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ConfigValue, Project, ProjectWithSources } from 'shared/types/project.ts';
+
+/**
+ * Helper function to create a config value with source information
+ */
+function createConfigValue<T>(projectValue: T | undefined, globalValue: T | undefined): ConfigValue<T | undefined> {
+	return {
+		global: globalValue,
+		project: projectValue,
+		//source: projectValue !== undefined ? 'project' : 'global',
+	};
+}
+
+/**
+ * Helper function to enhance a project with source information for config values
+ */
+async function enhanceProjectWithSources(
+	storedProject: StoredProject,
+	projectConfig: Partial<ProjectConfig>,
+	globalConfig: Partial<GlobalConfig>,
+	path: string,
+): Promise<ProjectWithSources> {
+	return {
+		...storedProject,
+		path,
+		myPersonsName: createConfigValue(
+			projectConfig.myPersonsName,
+			globalConfig.myPersonsName,
+		),
+		myAssistantsName: createConfigValue(
+			projectConfig.myAssistantsName,
+			globalConfig.myAssistantsName,
+		),
+		llmGuidelinesFile: createConfigValue(
+			projectConfig.llmGuidelinesFile,
+			globalConfig.llmGuidelinesFile,
+		),
+		settings: {
+			api: {
+				maxTurns: createConfigValue(
+					projectConfig.settings?.api?.maxTurns,
+					globalConfig.api?.maxTurns,
+				),
+				toolConfigs: createConfigValue(
+					projectConfig.settings?.api?.toolConfigs,
+					globalConfig.api?.toolConfigs,
+				),
+			},
+		},
+	};
+}
 
 /**
  * @openapi
@@ -28,19 +79,22 @@ export const listProjects = async (
 		const projectPersistence = await new ProjectPersistence().init();
 		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
 		const storedProjects: StoredProject[] = await projectPersistence.listProjects();
+
 		const projects = await Promise.all(storedProjects.map(async (project) => {
 			let projectConfig = {};
 			try {
-				projectConfig = await configManager.getProjectConfig(project.projectId);
-			} catch (e) {
+				projectConfig = await configManager.loadProjectConfig(project.projectId);
+			} catch (_e) {
 				// Failed to load project config: No such file or directory (os error 2): readfile '/Users/.../.bb/config.yaml'
 			}
-			return {
-				...project,
-				...projectConfig,
-				path: toUnixPath(relative(rootPath, project.path)),
-			};
+			return enhanceProjectWithSources(
+				project,
+				projectConfig,
+				globalConfig,
+				toUnixPath(relative(rootPath, project.path)),
+			);
 		}));
 
 		response.status = 200;
@@ -73,7 +127,6 @@ export const listProjects = async (
  *       500:
  *         description: Internal server error
  */
-
 export const getProject = async (
 	{ params, request: _request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
@@ -92,12 +145,15 @@ export const getProject = async (
 
 		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-		const project: Project = {
-			...storedProject,
-			...projectConfig,
-			path: toUnixPath(relative(rootPath, storedProject.path)),
-		};
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.loadProjectConfig(projectId);
+
+		const project = await enhanceProjectWithSources(
+			storedProject,
+			projectConfig,
+			globalConfig,
+			toUnixPath(relative(rootPath, storedProject.path)),
+		);
 
 		response.status = 200;
 		response.body = { project };
@@ -146,7 +202,7 @@ export const createProject = async (
 	try {
 		logger.info('ProjectHandler: createProject called');
 		const body = await request.body.json();
-		const { name, path, type, llmGuidelinesFile } = body;
+		const { name, path, type } = body;
 		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		if (!name || !path || !type) {
@@ -165,12 +221,54 @@ export const createProject = async (
 
 		const projectId = await projectPersistence.createProject(storedProject);
 
-		// If llmGuidelinesFile is provided, update project config
-		if (llmGuidelinesFile !== undefined) {
-			const configManager = await ConfigManagerV2.getInstance();
-			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
+		// Update project config values
+		const configManager = await ConfigManagerV2.getInstance();
+		if (body.llmGuidelinesFile !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
 		}
-		const project: Project = { ...storedProject, projectId, llmGuidelinesFile };
+		if (body.myPersonsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.myPersonsName);
+		}
+		if (body.myAssistantsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.myAssistantsName);
+		}
+
+		// Handle settings if provided
+		if (body.settings) {
+			logger.info('ProjectHandler: Processing settings:', body.settings);
+			if (body.settings.api?.maxTurns !== undefined) {
+				logger.info('ProjectHandler: Setting maxTurns:', {
+					value: body.settings.api.maxTurns,
+					type: typeof body.settings.api.maxTurns,
+				});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.maxTurns',
+					body.settings.api.maxTurns,
+				);
+			}
+			if (body.settings.api?.toolConfigs !== undefined) {
+				logger.info('ProjectHandler: Setting toolConfigs:', {
+					value: body.settings.api.toolConfigs,
+					type: typeof body.settings.api.toolConfigs,
+				});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.toolConfigs',
+					body.settings.api.toolConfigs,
+				);
+			}
+		}
+
+		// Return the created project with source information
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.loadProjectConfig(projectId);
+		const project = await enhanceProjectWithSources(
+			{ ...storedProject, projectId },
+			projectConfig,
+			globalConfig,
+			rootPath,
+		);
 
 		response.status = 200;
 		response.body = { project };
@@ -220,7 +318,6 @@ export const createProject = async (
  *       500:
  *         description: Internal server error
  */
-
 export const updateProject = async (
 	{ params, request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
@@ -230,19 +327,13 @@ export const updateProject = async (
 		const { id: projectId } = params;
 
 		const body = await request.body.json();
-		const { name, path, type, llmGuidelinesFile } = body;
+		const { name, path, type } = body;
 		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		if (!name || !path || !type) {
 			response.status = 400;
 			response.body = { error: 'Missing required fields' };
 			return;
-		}
-
-		// If llmGuidelinesFile is provided, update project config
-		if (llmGuidelinesFile !== undefined) {
-			const configManager = await ConfigManagerV2.getInstance();
-			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', llmGuidelinesFile);
 		}
 
 		const projectPersistence = await new ProjectPersistence().init();
@@ -254,19 +345,57 @@ export const updateProject = async (
 			return;
 		}
 
+		// Update project config values
+		const configManager = await ConfigManagerV2.getInstance();
+		if (body.llmGuidelinesFile !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
+		}
+		if (body.myPersonsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.myPersonsName);
+		}
+		if (body.myAssistantsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.myAssistantsName);
+		}
+		// Handle settings if provided
+		if (body.settings) {
+			if (body.settings.api?.maxTurns !== undefined) {
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.maxTurns',
+					body.settings.api.maxTurns,
+				);
+			}
+			if (body.settings.api?.toolConfigs !== undefined) {
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.toolConfigs',
+					body.settings.api.toolConfigs,
+				);
+			}
+		}
+
 		const project: Project = {
 			projectId,
 			name,
 			path: join(rootPath, path),
 			type,
-			llmGuidelinesFile,
 		};
 
 		// Save project metadata
 		await projectPersistence.saveProject(project);
 
+		// Return the updated project with source information
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.loadProjectConfig(projectId);
+		const enhancedProject = await enhanceProjectWithSources(
+			project,
+			projectConfig,
+			globalConfig,
+			rootPath,
+		);
+
 		response.status = 200;
-		response.body = { project };
+		response.body = { project: enhancedProject };
 	} catch (error) {
 		logger.error(`ProjectHandler: Error in updateProject: ${(error as Error).message}`);
 		response.status = 500;

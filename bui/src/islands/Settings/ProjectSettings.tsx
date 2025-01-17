@@ -38,7 +38,7 @@ function hasSensitiveValues(yaml: string): boolean {
 		if (!obj || typeof obj !== 'object') return false;
 		const { wasRedacted } = redactSensitiveInfo(obj);
 		return wasRedacted;
-	} catch (error) {
+	} catch (_error) {
 		return false;
 	}
 }
@@ -145,12 +145,13 @@ export default function ProjectSettings() {
 					return 'This field is required';
 				}
 				break;
-			case 'maxTurns':
+			case 'maxTurns': {
 				const turns = Number(value);
 				if (isNaN(turns) || turns < 1 || turns > 100 || !Number.isInteger(turns)) {
 					return 'Must be a positive integer between 1 and 100';
 				}
 				break;
+			}
 			case 'toolConfigs':
 				if (typeof value !== 'string') return 'Must be a YAML string';
 				try {
@@ -357,7 +358,7 @@ export default function ProjectSettings() {
 						readOnly={hasSensitiveValues(formState.toolConfigs) && !showSensitive.value}
 						onChange={(e) => handleInputChange(e, 'toolConfigs')}
 						placeholder={TOOLS_PLACEHOLDER}
-						class='mt-1 form-textarea block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base font-mono px-3 py-2'
+						class='mt-1 form-textarea block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm leading-relaxed font-mono px-3 py-2'
 					/>
 					{formErrors.value.toolConfigs && (
 						<p class='mt-2 text-base text-red-600 dark:text-red-400'>

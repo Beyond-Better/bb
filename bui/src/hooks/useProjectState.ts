@@ -1,24 +1,9 @@
-import { computed, type Signal, signal, useSignal } from '@preact/signals';
-import { ProjectType } from 'shared/config/v2/types.ts';
+import { computed, type Signal, signal } from '@preact/signals';
 import type { AppState } from './useAppState.ts';
-
-export interface ProjectStats {
-	conversationCount: number;
-	totalTokens: number;
-	lastAccessed: string;
-}
-
-export interface Project {
-	projectId: string;
-	name: string;
-	path: string;
-	type: ProjectType;
-	stats?: ProjectStats;
-	llmGuidelinesFile?: string;
-}
+import type {Project,  ProjectWithSources } from 'shared/types/project.ts';
 
 export interface ProjectState {
-	projects: Project[];
+	projects: ProjectWithSources[];
 	loading: boolean;
 	error: string | null;
 }
@@ -36,16 +21,16 @@ const loadStoredState = () => {
 
 // Update URL parameters
 const updateUrlParams = (projectId: string | null) => {
-	if (typeof window === 'undefined') return;
+	if (typeof globalThis === 'undefined') return;
 
-	const url = new URL(window.location.href);
+	const url = new URL(globalThis.location.href);
 	if (projectId) {
 		url.searchParams.set('projectId', projectId);
 	} else {
 		url.searchParams.delete('projectId');
 	}
 
-	window.history.replaceState({}, '', url.toString());
+	globalThis.history.replaceState({}, '', url.toString());
 };
 
 // Update localStorage
@@ -135,10 +120,6 @@ export function useProjectState(appState: Signal<AppState>) {
 			// Update project metadata
 			const response = await apiClient?.updateProject(projectId, updates);
 
-// 			// Update config if llmGuidelinesFile is provided
-// 			if (updates.llmGuidelinesFile !== undefined) {
-// 				await apiClient?.updateProjectConfig(projectId, 'llmGuidelinesFile', updates.llmGuidelinesFile);
-// 			}
 			if (response) {
 				projectState.value = {
 					...projectState.value,
@@ -225,7 +206,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		updateLocalStorage(projectId);
 	}
 
-	function getSelectedProject(): Project | null {
+	function getSelectedProject(): ProjectWithSources | null {
 		if (!selectedProjectId.value) return null;
 		return projectState.value.projects.find(
 			(p) => p.projectId === selectedProjectId.value,

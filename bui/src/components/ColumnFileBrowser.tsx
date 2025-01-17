@@ -302,9 +302,9 @@ export function ColumnFileBrowser({
 							d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
 						/>
 					</svg>
-								<span class='mx-1'>/</span>
-					{columns.value[columns.value.length - 1].path !== '.'
-						&& (
+					<span class='mx-1'>/</span>
+					{columns.value[columns.value.length - 1].path !== '.' &&
+						(
 							<>
 								<span class='font-bold font-mono'>
 									{formatPathForDisplay(
@@ -313,8 +313,7 @@ export function ColumnFileBrowser({
 									)}
 								</span>
 							</>
-						)
-						}
+						)}
 				</div>
 			)}
 			<div class='space-y-2'>
@@ -339,7 +338,7 @@ export function ColumnFileBrowser({
 								clip-rule='evenodd'
 							/>
 						</svg>
-						{isExpanded.value ? 'Collapse Browser' : 'Browse Files'}
+						{isExpanded.value ? 'Collapse Browser' : 'Show Browser'}
 					</button>
 					{isExpanded.value && (
 						<label class='flex items-center text-sm text-gray-600 dark:text-gray-400'>
@@ -361,108 +360,109 @@ export function ColumnFileBrowser({
 			</div>
 
 			{isExpanded.value && (
-			<>
-			{helpText && (
-				<div class='mt-2 mb-1 ml-3 text-sm text-gray-600 dark:text-gray-400'>
-					{helpText}
-				</div>
-			)}
-				<div ref={containerRef} class='mt-3 overflow-x-auto flex-grow w-full'>
-					<div
-						class='flex space-x-0.5 bg-gray-50 dark:bg-gray-900 rounded-lg p-1'
-						style='height: 300px; min-width: min-content;'
-					>
-						{error.value && (
-							<div class='flex-none w-52 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-lg'>
-								<div class='text-red-500 dark:text-red-400 px-4 text-center'>{error.value}</div>
-							</div>
-						)}
-						{!error.value && columns.value.length === 0 && !loading.value && (
-							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								{/* <div class='text-gray-500 dark:text-gray-400'>Loading directory contents...</div> */}
-								<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+				<>
+					{helpText && (
+						<div class='mt-2 mb-1 ml-3 text-sm text-gray-600 dark:text-gray-400'>
+							{helpText}
+						</div>
+					)}
+					<div ref={containerRef} class='mt-3 overflow-x-auto flex-grow w-full'>
+						<div
+							class='flex space-x-0.5 bg-gray-50 dark:bg-gray-900 rounded-lg p-1'
+							style='height: 300px; min-width: min-content;'
+						>
+							{error.value && (
+								<div class='flex-none w-52 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-lg'>
+									<div class='text-red-500 dark:text-red-400 px-4 text-center'>{error.value}</div>
 								</div>
-							</div>
-						)}
-						{columns.value.map((column, index) => (
-							<div
-								key={`${column.path}-${index}`}
-								class='column-container flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700'
-							>
+							)}
+							{!error.value && columns.value.length === 0 && !loading.value && (
+								<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
+									{/* <div class='text-gray-500 dark:text-gray-400'>Loading directory contents...</div> */}
+									<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+									</div>
+								</div>
+							)}
+							{columns.value.map((column, index) => (
 								<div
-									class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1.5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-md z-10 flex items-center'
-									title={column.path}
+									key={`${column.path}-${index}`}
+									class='column-container flex-none w-52 flex flex-col bg-white dark:bg-gray-800 rounded-md shadow-sm border border-gray-100 dark:border-gray-700'
 								>
-									{column.path === rootPath
-										? (
-											<>
-												<svg
-													xmlns='http://www.w3.org/2000/svg'
-													fill='none'
-													viewBox='0 0 24 24'
-													strokeWidth={1.5}
-													stroke='currentColor'
-													className='w-4 h-4 mr-1'
-												>
-													<path
-														strokeLinecap='round'
-														strokeLinejoin='round'
-														d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
-													/>
-												</svg>
-												<span>Home</span>
-											</>
-										)
-										: <span className='truncate'>{column.path.split('/').pop()}</span>}
-								</div>
-								<div class='overflow-y-auto flex-grow' style='height: calc(400px - 2rem);'>
-									{column.items.length === 0
-										? <div class='px-2 py-1 text-gray-500 text-sm'>Empty directory</div>
-										: (
-											column.items.map((item) => (
-												<div
-													key={item.path}
-													onClick={() => handleItemClick(item, index)}
-													class={`
+									<div
+										class='text-sm font-medium text-gray-600 dark:text-gray-300 px-2 py-1.5 border-b dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 rounded-t-md z-10 flex items-center'
+										title={column.path}
+									>
+										{column.path === rootPath
+											? (
+												<>
+													<svg
+														xmlns='http://www.w3.org/2000/svg'
+														fill='none'
+														viewBox='0 0 24 24'
+														strokeWidth={1.5}
+														stroke='currentColor'
+														className='w-4 h-4 mr-1'
+													>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
+														/>
+													</svg>
+													<span>Home</span>
+												</>
+											)
+											: <span className='truncate'>{column.path.split('/').pop()}</span>}
+									</div>
+									<div class='overflow-y-auto flex-grow' style='height: calc(400px - 2rem);'>
+										{column.items.length === 0
+											? <div class='px-2 py-1 text-gray-500 text-sm'>Empty directory</div>
+											: (
+												column.items.map((item) => (
+													<div
+														key={item.path}
+														onClick={() => handleItemClick(item, index)}
+														class={`
 													px-2 py-1 cursor-pointer text-sm flex items-center justify-between
 													${
-														item.isDirectory
-															? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50'
-															: 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-													}
+															item.isDirectory
+																? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50'
+																: 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+														}
 													${
-														type === 'directory' && !item.isDirectory
-															? 'opacity-50 cursor-not-allowed'
-															: ''
-													}
+															type === 'directory' && !item.isDirectory
+																? 'opacity-50 cursor-not-allowed'
+																: ''
+														}
 													${
-														column.selected === item.name
-															? 'bg-blue-100 dark:bg-blue-900/50 selected-item'
-															: ''
-													}
+															column.selected === item.name
+																? 'bg-blue-100 dark:bg-blue-900/50 selected-item'
+																: ''
+														}
 												`}
-												>
-													<div class='flex items-center flex-grow min-w-0'>
-														<span class='truncate'>{item.name}</span>
+													>
+														<div class='flex items-center flex-grow min-w-0'>
+															<span class='truncate'>{item.name}</span>
+														</div>
+														{item.isDirectory && (
+															<span class='text-gray-400 dark:text-gray-500 ml-2'>›</span>
+														)}
 													</div>
-													{item.isDirectory && (
-														<span class='text-gray-400 dark:text-gray-500 ml-2'>›</span>
-													)}
-												</div>
-											))
-										)}
+												))
+											)}
+									</div>
 								</div>
-							</div>
-						))}
-						{loading.value && (
-							<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
-								<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+							))}
+							{loading.value && (
+								<div class='flex-none w-52 flex items-center justify-center bg-white rounded-lg shadow'>
+									<div class='animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 dark:border-blue-400'>
+									</div>
 								</div>
-							</div>
-						)}
+							)}
+						</div>
 					</div>
-				</div>
-		</>	)}
+				</>
+			)}
 		</div>
 	);
 }
