@@ -20,6 +20,12 @@
         "x-typescript-types": "https://esm.sh/v135/ajv@8.14.0/dist/ajv.d.ts"
       }
     },
+    "https://esm.sh/ansi_up@6.0.2": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/ansi_up@6.0.2/ansi_up.d.ts"
+      }
+    },
     "https://esm.sh/common-tags@1.8.2": {
       "headers": {
         "content-type": "application/javascript; charset=utf-8",

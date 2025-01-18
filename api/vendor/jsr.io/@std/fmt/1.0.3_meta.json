@@ -1,0 +1,60 @@
+{
+  "manifest": {
+    "/LICENSE": {
+      "size": 1075,
+      "checksum": "sha256-0961f97da6619d5fe9ddb98649191d5ca6e958856ea5252f4cce7c9b85513819"
+    },
+    "/printf.ts": {
+      "size": 29850,
+      "checksum": "sha256-2fb4be8843f7bd00a2d4c77552ca7f2e3efd5d0091c739c669abc4d82a93cae8"
+    },
+    "/bytes.ts": {
+      "size": 5651,
+      "checksum": "sha256-883ff416b545ee8fb3388e4f18dcd4ddc5b5138fffba777e786144a080695d73"
+    },
+    "/deno.json": {
+      "size": 192,
+      "checksum": "sha256-410672a43b0d631a3e766a627c3b8e557a6288e905f14b5859f2a9369e262d9b"
+    },
+    "/printf_test.ts": {
+      "size": 27158,
+      "checksum": "sha256-83b8447d270ad5a015510cb5eedc6a0f5e27704766575ceecb0bb8cb58c1cb23"
+    },
+    "/bytes_test.ts": {
+      "size": 8640,
+      "checksum": "sha256-f44ec04f6d2368813e5a746adcd060dd41c5a2721b1b873e577d1cd1b82aaa8b"
+    },
+    "/duration_test.ts": {
+      "size": 1999,
+      "checksum": "sha256-4bd1a8c231a698af2a2cd3888b67e6abf9ea0bc062876d4c127cd32c4a99cc56"
+    },
+    "/duration.ts": {
+      "size": 4599,
+      "checksum": "sha256-f77d8641e2500d733861f27252b11ffddccaa8b8a65ab39603134793c3a579c0"
+    },
+    "/README.md": {
+      "size": 464,
+      "checksum": "sha256-df54055e214802f0089f6d71ca85c66b898a5fa2bc69fa7c4683503dcd8cc3f8"
+    },
+    "/colors.ts": {
+      "size": 21831,
+      "checksum": "sha256-17695d6f9e097eb5c42ebaa06112e2004e992af3bc3ade9a579fafd9556e6128"
+    },
+    "/colors_test.ts": {
+      "size": 6418,
+      "checksum": "sha256-b3802d6d263310ae10d19292583ad7e36065d52a131e77c854ff519a6c1f4360"
+    }
+  },
+  "moduleGraph2": {
+    "/bytes.ts": {},
+    "/printf.ts": {},
+    "/duration.ts": {},
+    "/colors.ts": {}
+  },
+  "exports": {
+    "./bytes": "./bytes.ts",
+    "./colors": "./colors.ts",
+    "./duration": "./duration.ts",
+    "./printf": "./printf.ts"
+  }
+}

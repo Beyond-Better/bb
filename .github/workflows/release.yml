@@ -43,19 +43,19 @@ jobs:
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
-          deno task update-deps
+          #deno task update-deps
           deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bb${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
 
       - name: Build API for ${{ matrix.target }}
         run: |
           cd api
-          deno task update-deps
+          #deno task update-deps
           deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
 
       - name: Build BUI for ${{ matrix.target }}
         run: |
           cd bui
-          deno task update-deps
+          #deno task update-deps
           deno run -A --unstable-kv src/dev.ts build
           deno compile --include src/static --include src/_fresh --include deno.jsonc --target ${{ matrix.target }} --output ../build/bb-bui${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} -A src/main.ts
 

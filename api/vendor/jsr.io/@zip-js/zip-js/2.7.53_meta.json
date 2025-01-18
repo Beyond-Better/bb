@@ -1,0 +1,1860 @@
+{
+  "manifest": {
+    "/tests/tests-data.js": {
+      "size": 4841,
+      "checksum": "sha256-8917c3334aa149642b059c612478bceaa733661fbc6257e542aef2853a68865b"
+    },
+    "/tests/all/test-crc.js": {
+      "size": 1947,
+      "checksum": "sha256-b1b966742a94f68a701527f310a39b6e76dd051b8443387145beebab64fbb928"
+    },
+    "/tests/data/lorem-encrypted.zip": {
+      "size": 825,
+      "checksum": "sha256-3b05e5fc74a851b4efbc4e66805418a59b6bace792c21f808dbd4f075f5b83aa"
+    },
+    "/index.cjs": {
+      "size": 394235,
+      "checksum": "sha256-e26809a0d8d7312145eee5c16b72b0f75e920c8a22085ef0922d0007450553e6"
+    },
+    "/tests/all/test-http-crypto.js": {
+      "size": 2026,
+      "checksum": "sha256-5fd196afdd8de5b8706bf30062e1dbd58a0b85fbe051c53dac2e4853516157f1"
+    },
+    "/lib/z-worker-inline.js": {
+      "size": 45538,
+      "checksum": "sha256-7d666d4c91f8125fff088b1552dfdd45bc818e9add5ea66f33b16e8c997166cc"
+    },
+    "/tests/all/test-worker-timeout.js": {
+      "size": 1955,
+      "checksum": "sha256-fa22928c6b32bed1d0bd086f6af0c406d821bcb58956150f563b82abe302f59e"
+    },
+    "/tests/all/test-usdz.js": {
+      "size": 2240,
+      "checksum": "sha256-4d139dfb0ed04ddd63fb024d3470f708acab6f5b1231a645b25a1d90ed05fb4c"
+    },
+    "/rollup-fflate.config.js": {
+      "size": 4020,
+      "checksum": "sha256-9b821be1bb935f3048cf35e6f44dec609d57bb511dc64d9f0785714598044857"
+    },
+    "/tests/all/test-extended-timestamp.js": {
+      "size": 2214,
+      "checksum": "sha256-ad9236aa857067564ea645798d046c39b8eb04adb246e73a6c8f7e9271e07e1f"
+    },
+    "/tests/all/test-fs-passthrough.js": {
+      "size": 3627,
+      "checksum": "sha256-357bcf7128bfc48c9a5352b8521ac79c74990c1b9e2dc3b8c757fa2d37b43958"
+    },
+    "/lib/core/io.js": {
+      "size": 19520,
+      "checksum": "sha256-3884028bae2696be0886dd5250ef7815303026897fc0e19a8c83a36857b3ae89"
+    },
+    "/dist/zip-full.min.js": {
+      "size": 135313,
+      "checksum": "sha256-07951802e867a82b37591a33ed8a34a6f5e7ad58971acabab546f33fa9f70f96"
+    },
+    "/dist/zip-no-worker-deflate.min.js": {
+      "size": 57662,
+      "checksum": "sha256-03ec9b314586ac2f931fad9757314c9ad72e3fb5a75120f6b0d4c6144ff226b1"
+    },
+    "/dist/z-worker-pako.js": {
+      "size": 16570,
+      "checksum": "sha256-4a4c58507db8d7f82df9784cdf512d3cd549cc2e4b1e110f143488667bd86312"
+    },
+    "/lib/core/streams/codec-stream.js": {
+      "size": 4311,
+      "checksum": "sha256-1c0d9de91141bf89f49dc1e239dd22d75a3e46d38dd153aca1a6d48c231d4d85"
+    },
+    "/dist/z-worker-fflate.js": {
+      "size": 16538,
+      "checksum": "sha256-6f06eb96dd4ecfd521b9c45ab306f301adbb4880d463b186a7c16e8b3c5d05ca"
+    },
+    "/tests/all/loader.html": {
+      "size": 792,
+      "checksum": "sha256-d580ceec2ac2920f3fd7dd689521b72dcc028b56acd17bb8492db6af89fd73ca"
+    },
+    "/lib/z-worker-inline-template.js": {
+      "size": 1857,
+      "checksum": "sha256-bb4ce21ff8bb29c006494f14284cd65b6fe3e43acc0820003ea1173d6c15c415"
+    },
+    "/tests/all/test-empty.js": {
+      "size": 486,
+      "checksum": "sha256-84563a231c6966c2390ccad5ec1abc54df08d500d5950e9158ddf3b9fc5c9540"
+    },
+    "/tests/data/lorem-zip64.zip": {
+      "size": 775,
+      "checksum": "sha256-4447796a50f6a17c640696a2e92788caa4a5f20b00b8f5a94ac98670b645fb07"
+    },
+    "/lib/core/streams/codecs/deflate.js": {
+      "size": 65547,
+      "checksum": "sha256-08c1b24d1845528f6db296570d690ecbe23c6c01c6cb26b561e601e770281c3a"
+    },
+    "/dist/zip.js": {
+      "size": 224055,
+      "checksum": "sha256-5bf6bc983aab816bfd14453a56428180bb3b9af2310f8d1791f1f62f1fd61f64"
+    },
+    "/tests/all/test-passthrough-zstd.js": {
+      "size": 4302,
+      "checksum": "sha256-6b2392617a79bd18fd2c3dd731d4dbc66114a5a625ab8098f9ac03f434838f08"
+    },
+    "/tests/all/test-directory.js": {
+      "size": 2273,
+      "checksum": "sha256-1132f162618de8681e1a6d522ae4ee41f5c401890364ecb1e641fe8a445f9b03"
+    },
+    "/tests/all/test-data-descriptor-signature.js": {
+      "size": 2333,
+      "checksum": "sha256-8e4cdeea1be26d5240bbc6c7c241d66d69bbdf8ea1b102ad76db464aa989783a"
+    },
+    "/lib/core/zip-entry.js": {
+      "size": 4362,
+      "checksum": "sha256-e82cad789f5f17ee70a5b6aaf25f9283e9e5894079e0a3c4a19d328de0a44edc"
+    },
+    "/lib/core/streams/codecs/sjcl.js": {
+      "size": 19962,
+      "checksum": "sha256-462289c5312f01bba8a757a7a0f3d8f349f471183cb4c49fb73d58bba18a5428"
+    },
+    "/deno.json": {
+      "size": 130,
+      "checksum": "sha256-73c162f5d57ad2e57841c759944cb318fe794d38415d9534c99a7ba96d51a7cb"
+    },
+    "/tests/all/test-pako-no-worker.js": {
+      "size": 2201,
+      "checksum": "sha256-79d6e611e22da6eebdb0e4a50e62aa8cc9fa8dde2d0c77c23b65193f3faea92b"
+    },
+    "/tests/data/lorem-split.z03": {
+      "size": 65536,
+      "checksum": "sha256-325c6cacc9018527d8df37bf55fa2c04df649a223f1b46f5e3ce0c4a1813353f"
+    },
+    "/tests/data/lorem-split.z06": {
+      "size": 65536,
+      "checksum": "sha256-ca6cf52b4c5509524209ec22e6eba7b201a40a571a64bf144d9bd51791142eda"
+    },
+    "/lib/core/util/cp437-decode.js": {
+      "size": 2371,
+      "checksum": "sha256-d665ded184037ffe5d255be8f379f90416053e3d0d84fac95b28f4aeaab3d336"
+    },
+    "/tests/data/lorem-split.zip": {
+      "size": 23406,
+      "checksum": "sha256-c2ea647faaa734919557940733912432a1e194c9076db2da8ff63f3ec10648a4"
+    },
+    "/tests/all/test-array.js": {
+      "size": 2146,
+      "checksum": "sha256-416d72851c5b160599ba7955f10d5b939abd9d91fdd1c7e00a4b8fcf5481f713"
+    },
+    "/dist/zip-fs-full.js": {
+      "size": 405831,
+      "checksum": "sha256-cacb432f55e95297237bf2238ea251513ef28b0eb02f5501a6bf99e8fb7c3d24"
+    },
+    "/tests/all/test-store.js": {
+      "size": 2393,
+      "checksum": "sha256-5ca959100892e04287fb1608d00b2d9432be9a19d613ef681e501fde0c2e63a0"
+    },
+    "/lib/core/streams/codecs/crc32.js": {
+      "size": 1956,
+      "checksum": "sha256-dfdde666f72b4a5ffc8cf5b1451e0db578ce4bd90de20df2cff5bfd47758cb23"
+    },
+    "/lib/core/streams/common-crypto.js": {
+      "size": 2127,
+      "checksum": "sha256-e3c28d03f3c2809d5bf69f31d01449679eb94cb76648e370145986313052436a"
+    },
+    "/tests/data/lorem-split.z01": {
+      "size": 65536,
+      "checksum": "sha256-b64b7ef7dd5199fee93c63ba841b267e0f9efbc9099ad2535049a0d30d873461"
+    },
+    "/index.d.ts": {
+      "size": 59185,
+      "checksum": "sha256-24375294f0de7960591da158e9943b9222c01708b19a9ee4e3af636880e0f3df"
+    },
+    "/dist/zip-fs-full.min.js": {
+      "size": 168909,
+      "checksum": "sha256-98fe38466768192adaa83366bec4c73aa75b6ce5d04ea24d57b16503984e11e9"
+    },
+    "/tests/all/test-custom-io.js": {
+      "size": 2688,
+      "checksum": "sha256-1380bb3326f5b1fcbcf2340c6d6e92fa9b2b35489d1a049b38177fd7cc3c548d"
+    },
+    "/tests/all/test-fs-base64.js": {
+      "size": 1804,
+      "checksum": "sha256-c0989d4df9cf7519ba2ef0bbfabba237aba2c61abf2a78c59c20e8b32334ea95"
+    },
+    "/tests/all/test-http-range.js": {
+      "size": 1739,
+      "checksum": "sha256-0557a4c8a835a1d1c9578718088f21122e7e4f2e7fc5e5b83f8a6e94d2547655"
+    },
+    "/tests/all/test-abort-signal-write.js": {
+      "size": 1962,
+      "checksum": "sha256-90e505720c9845fb9be76a4a8de075a746af8d0cd7988d4c18ae1c7910fa6e1d"
+    },
+    "/tests/data/lorem.txt": {
+      "size": 1162,
+      "checksum": "sha256-ce58a77a173174f448453d859ea9ebfed4d0f2ea284ab47f2c839b14f2643dea"
+    },
+    "/tests/vendor/pako.min.js": {
+      "size": 44044,
+      "checksum": "sha256-a618e9cade14842f0d4a616737c56ee5380264069875dba5f6d88566e47d5955"
+    },
+    "/lib/core/constants.js": {
+      "size": 4090,
+      "checksum": "sha256-14fe1468b87cd0fe20c6f1fec916485f875d8592beba94c9241af4cbd12dd88f"
+    },
+    "/tests/vendor/pako_inflate.min.js": {
+      "size": 20820,
+      "checksum": "sha256-1fcba0fbbbb76fb31572a438aaa7caa6791fc07544d2da2cc07dde8c97583ef6"
+    },
+    "/dist/zip-no-worker.min.js": {
+      "size": 88861,
+      "checksum": "sha256-e0516cdfdf1f76c52b4154d4d76fcf6022f7e5147f1588272636ed4324ca1191"
+    },
+    "/cli-deno/mc-zip.js": {
+      "size": 5964,
+      "checksum": "sha256-2db85ca769c3bbce36e03cc564b2e706f7d1ec80cde54d325259b0d039e7201a"
+    },
+    "/tests/all/test-fs-replace.js": {
+      "size": 820,
+      "checksum": "sha256-0cd14ae901b1a9cd83076dad2527785c97ff8dd4987602060ebab5db25ef495b"
+    },
+    "/tests/all/test-streams.js": {
+      "size": 2127,
+      "checksum": "sha256-0c85128e237dcbc1c1462570129930d6d9c7f8a02f878ac64f1113a9376f4fa3"
+    },
+    "/lib/zip-no-worker-fflate.js": {
+      "size": 1871,
+      "checksum": "sha256-a18988c1ac0308650adf79e04790c7012444e3a0a7a3bd2371f00024c065614f"
+    },
+    "/tests/all/test-crypto.js": {
+      "size": 2714,
+      "checksum": "sha256-8fbe3a1bef28fa9a18f3acf1414e4900df2ca43c508deb35a8918806c33b2398"
+    },
+    "/tests/all/test-zipcrypto.js": {
+      "size": 2486,
+      "checksum": "sha256-33d3170313e9d413bf7c2650e1aa73eab9e32e91605887e8c2b576d26cc8fb49"
+    },
+    "/dist/zip-full.js": {
+      "size": 350633,
+      "checksum": "sha256-41f023347e97a5916f4c695da13493a7cc1d58c5a524a5c8843d46b21655ec7c"
+    },
+    "/lib/zip-full.js": {
+      "size": 2205,
+      "checksum": "sha256-78517ef384e00f42470817219539d36217ba10f1516cf5bb3e1cb827c917343f"
+    },
+    "/tests/all/test-zip64-auto.js": {
+      "size": 3408,
+      "checksum": "sha256-8c8bd7a237ef50e3966ffbdff87c7a22b8b1e96abfc44203f0dbad138d3c98ff"
+    },
+    "/tests/data/lorem-split.z07": {
+      "size": 65536,
+      "checksum": "sha256-4d3cb6603abf8ee816b528b0538d4db62712dbdf7e0f1d4a8c7d4424566660b3"
+    },
+    "/lib/core/streams/stream-adapter.js": {
+      "size": 1914,
+      "checksum": "sha256-9e7f3fe1601cc447943cd37b5adb6d74c6e9c404d002e707e8eace7bc048929c"
+    },
+    "/tests/data/lorem-split.z05": {
+      "size": 65536,
+      "checksum": "sha256-ff57d46601e64b44d621ed4dc0495e773e85f27867d9f6e9a4c77c2aafc944cd"
+    },
+    "/tests/all/test-parallel-writes-ordered.js": {
+      "size": 1497,
+      "checksum": "sha256-0cc7418178d228983b7c9d8b6f8623c0bb1f46780023ebdbe53c6040067f053a"
+    },
+    "/tests/all/test-fs-streams.js": {
+      "size": 2029,
+      "checksum": "sha256-38d64500567bc52b4b957644a77259142c1ea06cddea1a120c2cda12e23d9f6c"
+    },
+    "/tests/all/test-split-data.js": {
+      "size": 2291,
+      "checksum": "sha256-bb05f89ababd43ccfb766046662185d5fca715133b5db932b0774d7bc6f4b56c"
+    },
+    "/tests/all/test-fs-http-reader.js": {
+      "size": 1887,
+      "checksum": "sha256-ad22cf851838d587baac1b124a9480354721b6d751962c81a76fe5ae0ec871c6"
+    },
+    "/tests/all/test-crypto-check-password.js": {
+      "size": 2530,
+      "checksum": "sha256-33a5dc50b1039aa1922b76da4f063ed1671d5075569a7b3a589ee7d626ed6c5b"
+    },
+    "/tests/all/test-fflate.js": {
+      "size": 2122,
+      "checksum": "sha256-62c7a7c9beec32f1fac84ddaaf506ae6ed75d368e6209f2605b77a8bc37874e6"
+    },
+    "/tests/all/test-zip-streams.js": {
+      "size": 2683,
+      "checksum": "sha256-dd497568b72c32a4d24d4c3fff459c10b9775061066f70e248d25388d7930d9e"
+    },
+    "/tests/all/test-passthrough-crypto.js": {
+      "size": 2653,
+      "checksum": "sha256-18ab49b659bd75d052beaab2e07d607eeb1f95af9e4d46ce032d16b4f592eeb2"
+    },
+    "/tests/bun-runner.test.js": {
+      "size": 518,
+      "checksum": "sha256-b04554a9a6bfe0941e70821c7a6468c34238b4fefaf5d4885388ac6d382a0ef7"
+    },
+    "/tests/all/test-zip64-crypto.js": {
+      "size": 2363,
+      "checksum": "sha256-f57168a48c66db49dbb15c472084e952e33fb71624ce02e1e5cb58d59dc4f99a"
+    },
+    "/tests/all/test-readable-zip-stream.js": {
+      "size": 1718,
+      "checksum": "sha256-e537b7b746a6393d1050a4e9b6a1722580c913681d5a1c65bfe61d8bb9b77729"
+    },
+    "/tests/all/test-blob.js": {
+      "size": 2155,
+      "checksum": "sha256-ea3622c20ac0296b20fcccf7dfdf9dcdb6451c5809f9ab5731a4ef331220b1d7"
+    },
+    "/tests/data/lorem-split.z04": {
+      "size": 65536,
+      "checksum": "sha256-f15228aa5c35bca578ef7555e60f17233723571aefe269d79b43366f7b13041c"
+    },
+    "/tests/all/test-http-zip64.js": {
+      "size": 1819,
+      "checksum": "sha256-0f65c113d9a4c9e0093b49c4a485d14a65e8c89c3a6394f2eb62e33f2749305e"
+    },
+    "/lib/core/streams/codecs/inflate.js": {
+      "size": 57297,
+      "checksum": "sha256-55d00eed332cf2c4f61e2ee23133e3257768d0608572ee3f9641a2921c3a6f67"
+    },
+    "/README.md": {
+      "size": 5479,
+      "checksum": "sha256-b53afeb0314685bcd26ccbe0ea116585d5741a4851f1ae9cfac97dd4e5a5c42d"
+    },
+    "/dist/z-worker.js": {
+      "size": 51307,
+      "checksum": "sha256-075b948eae9a1c218a627024a464cb750d27d9e84874dc094f66dbd609788f65"
+    },
+    "/tests/data/lorem.zip": {
+      "size": 739,
+      "checksum": "sha256-c4cd5a5448053c3030b4097845bfe70386366f56a7d00c399f643d95a3ab2753"
+    },
+    "/tests/all/test-split-zip.js": {
+      "size": 2516,
+      "checksum": "sha256-557bd58f2ccfca7a18ae5d03186fe31e47ea55a8ddb1dbfdc1466719006c1269"
+    },
+    "/lib/core/configuration.js": {
+      "size": 3958,
+      "checksum": "sha256-baa316a63df2f8239f9d52cd4863eaedaddd34ad887b7513588da75d19e84932"
+    },
+    "/tests/index.html": {
+      "size": 355,
+      "checksum": "sha256-ca05cab4b69965a08745ae236e16ebf5ce70db4b9a3bdacdcac7e8672afb3cf7"
+    },
+    "/tests/all/test-zip64.js": {
+      "size": 2092,
+      "checksum": "sha256-211d27c27d939843a11d31199ca24a46a8c98bdede64decfb21d816015ae5b57"
+    },
+    "/tests/all/test-fs-export-options.js": {
+      "size": 2127,
+      "checksum": "sha256-a2d0c9f20ba04cb21a483ac9880186bb054773ca06ff3a64db3e339e3a1e11f4"
+    },
+    "/package.json": {
+      "size": 2883,
+      "checksum": "sha256-dddabf449529529883be557c1017fd0c5be8c04836adeb63bc0402be9404a440"
+    },
+    "/tests/all/test-parallel-writes-auto-buffered.js": {
+      "size": 3290,
+      "checksum": "sha256-e8dbcafca9f61205615522cd0ae1735717846ae5a9464da051d56616ef5a9694"
+    },
+    "/lib/zip-no-worker.js": {
+      "size": 1934,
+      "checksum": "sha256-a59f2298893d0ec0a256e5567d01218dba31d69f31a6c352d974344bdf437255"
+    },
+    "/tests/all/test-no-worker.js": {
+      "size": 2013,
+      "checksum": "sha256-7c27b0e90c719809aed62398e3871ac3a141604c7ee8ebef98dc6b36e060cdc0"
+    },
+    "/tests/all/test-text-encoding.js": {
+      "size": 1253,
+      "checksum": "sha256-d6f6927a6ead2164da2b96c51c5f94b570ba3c7fdf8f7c4259084f3a63b2f0f1"
+    },
+    "/rollup.config.dev.js": {
+      "size": 2913,
+      "checksum": "sha256-3d47fd0a0000950ce755ad136dc780746a16172b23d131384ed285aca2352fcb"
+    },
+    "/tests/all/test-duplicated-filename.js": {
+      "size": 565,
+      "checksum": "sha256-59380235b08dca8f4c5bf579b6c05ebee72e9a66a388210539df7d9f938556f3"
+    },
+    "/lib/zip-fflate-shim.js": {
+      "size": 1840,
+      "checksum": "sha256-d2f5a98a114f0e96799d22a1b273426f63b8e0fdec5327021c13f0d338337051"
+    },
+    "/tests/data/lorem-store.zip": {
+      "size": 1278,
+      "checksum": "sha256-481010d3a3362a3012784a5c0ed48a288ea1336ecf4f301d90d9c89b68f6a719"
+    },
+    "/tests/vendor/pako_deflate.min.js": {
+      "size": 25614,
+      "checksum": "sha256-b4ea78188af1869ce5cdd9d8d669d7a0f8491cfc26e37e35a0a7abd838a24080"
+    },
+    "/tests/all/test-use-unicode-file-names.js": {
+      "size": 2794,
+      "checksum": "sha256-1369f769e2cb2d20cf79603d246a4f3978cb53ba46899034483b09cce510fded"
+    },
+    "/rollup-es5.config.js": {
+      "size": 5648,
+      "checksum": "sha256-17f6e00d935be85218fca9b85a2b13e7076ff21753acd958da970a2c4e8929c9"
+    },
+    "/lib/core/util/default-mime-type.js": {
+      "size": 1567,
+      "checksum": "sha256-177ae00e1956d3d00cdefc40eb158cb591d3d24ede452c056d30f98d73d9cd73"
+    },
+    "/lib/core/z-worker-core.js": {
+      "size": 5390,
+      "checksum": "sha256-2d22311a913342b31fc25a4552a7b1805e195aacafc4d9847b0ead31ad152fd6"
+    },
+    "/lib/core/util/encode-text.js": {
+      "size": 1871,
+      "checksum": "sha256-47f2b26231d379e3d024db0a59bc713c76392fff7bf3120dae1a48453d47f8d3"
+    },
+    "/tests/all/test-parallel-writes.js": {
+      "size": 2044,
+      "checksum": "sha256-18dcac48168a36eae1a41f7e69d68133f301ed3eddf0218ee5018752c064275c"
+    },
+    "/index-fflate.js": {
+      "size": 2708,
+      "checksum": "sha256-1fbb75442f8912d9da846c76e8ff029fca8aa9ab7deafa37eb2b1c573ac430ba"
+    },
+    "/tests/all/test-multiple-writers.js": {
+      "size": 1690,
+      "checksum": "sha256-ec764b740e266657db1f7680ddf15a7629b3919f3d0689a33b22f721bad92618"
+    },
+    "/dist/zip-fs.js": {
+      "size": 245871,
+      "checksum": "sha256-063259d9dd3ccc8681a2d75f02ebec64c82fbb32071bf0fd3a0e32c2397f8cb9"
+    },
+    "/tests/all/test-fs.js": {
+      "size": 1935,
+      "checksum": "sha256-9bfa80e21a3b27052d978e26b24374ffa4f8dcc6ef256a0ad5b1bfcd0318eda3"
+    },
+    "/tests/all/test-writable-stream.js": {
+      "size": 2273,
+      "checksum": "sha256-1bd4e06ac25ea9afd9b0c9543343371b9ee67fb3ec4b31923537205b825aa0c5"
+    },
+    "/lib/core/util/decode-text.js": {
+      "size": 1738,
+      "checksum": "sha256-c04a098fa7c16470c48b6abd4eb4ac48af53547de65e7c8f39b78ae62330ad57"
+    },
+    "/index.js": {
+      "size": 2884,
+      "checksum": "sha256-6ae94bb4897a2c6f73df3f4c952f88b3ce76ba47892f86790b419c013926fb60"
+    },
+    "/LICENSE": {
+      "size": 1501,
+      "checksum": "sha256-1b7ebc8d7889ed25491484ab2b102370742ca6c0b26650a0c62cc2269b579b84"
+    },
+    "/tests/all/test-invalid-crc.js": {
+      "size": 2067,
+      "checksum": "sha256-002f3969e1ae4a7751432ef5fef75a896eb2c064f1ac0f63ff8401fb3f95423f"
+    },
+    "/tests/all/test-pako.js": {
+      "size": 2149,
+      "checksum": "sha256-ff13a540fa90423cc8ecd4c76d04f1ac341c7f1dc99ef93d484d780c6aacbc37"
+    },
+    "/rollup-fflate.config.dev.js": {
+      "size": 3045,
+      "checksum": "sha256-3510aa52a206b168468d37ae14587dc222248709531e05992d4611a7c727a8c4"
+    },
+    "/tests/vendor/fflate.min.js": {
+      "size": 30128,
+      "checksum": "sha256-85d7cdfd6b9feb5736a83481edac933cf4615f87dc9734cef4d7d840283ef4cd"
+    },
+    "/tests/deno-runner.js": {
+      "size": 365,
+      "checksum": "sha256-0dfe8ce55f5e47e12ef79983b479ed52911b1db5373604371ce9bef446058e81"
+    },
+    "/lib/zip-full-fflate.js": {
+      "size": 2142,
+      "checksum": "sha256-793a047a11327afef97a87d2ae051bdee8c65ffee6fd230a46c6d7c6ed7d8185"
+    },
+    "/tests/all/test-abort-signal-read.js": {
+      "size": 2203,
+      "checksum": "sha256-7229db3b1d9165ce72b8e3db65104d0674b71b300a937a19befa7072d2c5ac80"
+    },
+    "/tests/data/lorem-invalid-crc.zip": {
+      "size": 1278,
+      "checksum": "sha256-cdd94a51bfbe98d64b93b3095c32589d5f2d0afe5ebaed7e4ab5b61ad598ab7f"
+    },
+    "/lib/z-worker.js": {
+      "size": 1695,
+      "checksum": "sha256-90181d48b10de2f2ecae8066c589079ea4def94f9779f96438f6559bb92aea22"
+    },
+    "/lib/zip-no-worker-deflate.js": {
+      "size": 1827,
+      "checksum": "sha256-a67138e00c60689b48af36df3f8c793941460d9e5457e06ce3a2cad562214302"
+    },
+    "/tests/web-runner.js": {
+      "size": 1565,
+      "checksum": "sha256-6cfbc20bd14be67c29c84781ed0f0f6fc2a78a12aacea7a80936ff461ad0b7b0"
+    },
+    "/lib/z-worker-bootstrap-pako.js": {
+      "size": 1803,
+      "checksum": "sha256-ca59e6c0ff4e718cb5be6476a242682ddca0e5a48ed6fba98ecaf50c94725f22"
+    },
+    "/tests/all/test-fflate-no-worker.js": {
+      "size": 2182,
+      "checksum": "sha256-3ccc707f00188848b1881618067f058370462528a6b47b5f228f997fbee57235"
+    },
+    "/lib/zip-no-worker-fflate-inflate.js": {
+      "size": 1815,
+      "checksum": "sha256-c886dd2b9065fdffcc90f72ed84da7c02afdc08841535588bda3d40655b8aa1a"
+    },
+    "/rollup-es5.config.dev.js": {
+      "size": 4241,
+      "checksum": "sha256-c23f33c37c622d01cabf1f9cfb01f0b8a3019e5e589f3415c7cf62e2a1dc400a"
+    },
+    "/tests/all/test-readable-stream.js": {
+      "size": 2055,
+      "checksum": "sha256-e504a445dcd888e50225729711dda8d98425ff122701c592b9b5fe0c06a2b055"
+    },
+    "/lib/z-worker-bootstrap-fflate.js": {
+      "size": 1827,
+      "checksum": "sha256-5df994110b1e5ca19bc1ac82a86ea838b178746f804da04bf699663f2a5bd490"
+    },
+    "/tests/all/test-passthrough.js": {
+      "size": 2585,
+      "checksum": "sha256-1c00192dd51c51918cec26dc5286e67e72aa5338aa99b37206a390fd8eae64a1"
+    },
+    "/lib/core/streams/zip-entry-stream.js": {
+      "size": 5458,
+      "checksum": "sha256-5434921e9901b460ece7d669337ce71bfc013db682a638e0a40caa1d8e2e479e"
+    },
+    "/lib/core/streams/crc32-stream.js": {
+      "size": 1952,
+      "checksum": "sha256-10e26bd18df0e1e89d61a62827a1a1c19f4e541636dd0eccbd85af3afabce289"
+    },
+    "/tests/all/test-base64.js": {
+      "size": 1962,
+      "checksum": "sha256-0030ff56d7e921b4f744780a5950dd34add5df71653fd7efcc70898616417c54"
+    },
+    "/lib/zip.js": {
+      "size": 2067,
+      "checksum": "sha256-0f9e0c4bc744e4d9bd95f55293d3e2d7196dc49abb87bfc7d9d127b57aceb083"
+    },
+    "/tsconfig.json": {
+      "size": 234,
+      "checksum": "sha256-728e1f74774c8fad6ec34d3672783b96f733db6578178cc7f0160182ace4ddf0"
+    },
+    "/package-lock.json": {
+      "size": 81841,
+      "checksum": "sha256-52e93e4b3f56afb5ffb412123abd82deae4c2e742a3e95b60b8f4f193fab19fc"
+    },
+    "/lib/zip-no-worker-fflate-deflate.js": {
+      "size": 1815,
+      "checksum": "sha256-e66e4a99ba84fed3e697b5b7083cf899b90f13d80691975fcd605decd75a38a3"
+    },
+    "/tests/node-runner.js": {
+      "size": 662,
+      "checksum": "sha256-29d557db8ef23bf3145f56814b9517ba4e69753bd8e5b153ff6ba7b6a7e944d4"
+    },
+    "/tests/all/test-fs-unzip-store.js": {
+      "size": 1883,
+      "checksum": "sha256-5f0eeb30d2e9b343291624c2c24f9583d1bb8352a688dbe094b50dc03b8afc69"
+    },
+    "/lib/zip-fs.js": {
+      "size": 2105,
+      "checksum": "sha256-c18ebfe158361827beaa9aac7ad27f7535bcd1d118e1888bf948067363df1b47"
+    },
+    "/tests/all/test-sw-worker.js": {
+      "size": 916,
+      "checksum": "sha256-b698e3d06617f04bc44347075411ba866b73a6f527504612f590047ddd467eeb"
+    },
+    "/tests/all/test-http-split-zip.js": {
+      "size": 1032,
+      "checksum": "sha256-9c54fddefdf6858fa8844f823c240adbd086d9b619b5f6e2ebe6c3c5904fa4e5"
+    },
+    "/index.min.js": {
+      "size": 170239,
+      "checksum": "sha256-69c41d635175e1beb7bf8dd17b09c36c6fa85623c44ff9603ba7e06371739b75"
+    },
+    "/tests/all/test-fs-check-password.js": {
+      "size": 895,
+      "checksum": "sha256-03d4739bea4728e57bbe9c6f5238d47e2f1af2e358ec476a283aaaf6298909a8"
+    },
+    "/dist/README.md": {
+      "size": 3161,
+      "checksum": "sha256-99e5d844888b8a84c5e9dd4dd41992fac7295bd3846c7b6d60c52a7fbf3d18e1"
+    },
+    "/tests/all/test-safe-closing.js": {
+      "size": 2031,
+      "checksum": "sha256-2442b5341f83e40703dd7558965a80253dd6ccdd117e358bd8b636f047ef46d4"
+    },
+    "/tests/all/test-passthrough-zipcrypto.js": {
+      "size": 2685,
+      "checksum": "sha256-0e84806b29165af94bbbd09a62bfeeebdf339a95c8d18c773a00eb95657bee2c"
+    },
+    "/tests/all/test-fs-text.js": {
+      "size": 1690,
+      "checksum": "sha256-9fb6d93dbb2d40b05907e217f1f7b45b1c633fdb73b9c148b8f15bda958c8dec"
+    },
+    "/lib/core/zip-fs-core.js": {
+      "size": 21495,
+      "checksum": "sha256-5807bd0a835a4cb86e0813fdd543aa261ff5b0121612e15c6347f6e063296281"
+    },
+    "/tests/all/test-parallel-reads.js": {
+      "size": 1967,
+      "checksum": "sha256-904d9b04f165a943b4b488287505a03a5bace2f0f967354cdcbc2176b750c949"
+    },
+    "/tests/all/test-fs-http-import.js": {
+      "size": 1926,
+      "checksum": "sha256-3843abedc5719d52665a07b86fd116635469826a6fd6c7edb8f3e694fe6837a3"
+    },
+    "/lib/core/codec-worker.js": {
+      "size": 9054,
+      "checksum": "sha256-5e8d0201842e187827d9dc67f58d751213a3e5dce213374f2ba62e2c50a1bb7c"
+    },
+    "/lib/core/zip-reader.js": {
+      "size": 29414,
+      "checksum": "sha256-30cf6e6cc9a1c119a10cd0f70a5765c805dbfee8f4e6ebf3b64d60afd03ed97d"
+    },
+    "/lib/zip-no-worker-inflate.js": {
+      "size": 1827,
+      "checksum": "sha256-a1471d13b388f9b0913218d299ce60be8280ed0a004eb49593eadb27e19e7c22"
+    },
+    "/lib/core/util/mime-type.js": {
+      "size": 32000,
+      "checksum": "sha256-6c6dfa4daf98ef59cd65118073b74f327ceab2ef28140e38934b0d15eb2b5c29"
+    },
+    "/lib/core/streams/zip-crypto-stream.js": {
+      "size": 4803,
+      "checksum": "sha256-19305af1e8296e7fa6763f3391d0b8149a1e09c659e1d1ff32a484448b18243c"
+    },
+    "/.npmignore": {
+      "size": 59,
+      "checksum": "sha256-be12f086e542e3b54735011bc88a58a668eb07f01f9bbf2c50ebfedd1def4a2a"
+    },
+    "/tests/vendor/fflate-es2019.min.js": {
+      "size": 29253,
+      "checksum": "sha256-e6b45602ca601ebf81b5ef639d34e645db3cbcf464a1c6c9289e2d2573453ac4"
+    },
+    "/lib/core/zip-writer.js": {
+      "size": 41097,
+      "checksum": "sha256-ee9a618b9513538456fd9952fcd5e19fa7204657c86bcc17c2a80a615ff7a30c"
+    },
+    "/tests/all/test-data-descriptor.js": {
+      "size": 2302,
+      "checksum": "sha256-a8a404102a30cf4c7a3fc72e510b01d7554791c661162c6e532809e0c3b01aec"
+    },
+    "/tests/all/test-crypto-raw-password.js": {
+      "size": 2213,
+      "checksum": "sha256-a137b13db471995edb312df82e56c7d736a22d94f3cf53be3000fa2af495e1ef"
+    },
+    "/lib/zip-data-uri.js": {
+      "size": 2126,
+      "checksum": "sha256-b7d039bc5bdca8a2d31766bfae418b85d4cf8ac7c8ebea2061e607367f2a7bbc"
+    },
+    "/rollup.config.js": {
+      "size": 4413,
+      "checksum": "sha256-b74a7ef7fd15ba4db8df8488bf451f97f593b2b1229dcbe37c3e470be4f0deae"
+    },
+    "/dist/zip-fs.min.js": {
+      "size": 109834,
+      "checksum": "sha256-671d6c6421fe686ce551777390d93a08ed22b4c9c9ec0ffe80cc4ff254d346de"
+    },
+    "/tests/all/test-fs-metadata.js": {
+      "size": 2273,
+      "checksum": "sha256-2cbb191fb81b14dfb2668e989fa57db6d50d637ff3513aee10c1461dd02fadac"
+    },
+    "/tests/all/test-extra-field.js": {
+      "size": 2083,
+      "checksum": "sha256-d22c9c97a07ebdcc87f67eb521179e52f617e201f5da8cd621c7e48105cd6e97"
+    },
+    "/tests/data/lorem-zstd.zip": {
+      "size": 793,
+      "checksum": "sha256-65a46fc00e7254c86f6a0c1710fdc1e44927e237aa0fba9f1e1771669ef698a8"
+    },
+    "/lib/core/util/stream-codec-shim.js": {
+      "size": 3271,
+      "checksum": "sha256-22ca28de10b002d576667c30360a63a41601ab1b6a5dd12c7b91aac8f7b1781b"
+    },
+    "/lib/core/streams/aes-crypto-stream.js": {
+      "size": 10876,
+      "checksum": "sha256-5e335e704c73952f48ff4fdaa22397dc0deb2f65da0b11a6de3941dc37618b15"
+    },
+    "/.eslintrc.json": {
+      "size": 766,
+      "checksum": "sha256-99dc5f652a305907a74304486b62da7f0ac82fc07151f91887dc020e16fa2e47"
+    },
+    "/tests/data/lorem-split.z02": {
+      "size": 65536,
+      "checksum": "sha256-9293b40d083aa79b99c4d784fe22bea852f843b6cddad9715559603536c1d7c5"
+    },
+    "/tests/all/test-sw.js": {
+      "size": 2312,
+      "checksum": "sha256-b572d06234407ff9ac42db0186f678f9f5520bd13bcaadde283253bdf014e8f6"
+    },
+    "/dist/zip-no-worker-inflate.min.js": {
+      "size": 60198,
+      "checksum": "sha256-cec364ab073d6b1035094d2cff32600597314c541c533f383a062b2457c9a595"
+    },
+    "/tests/all/test-passthrough-uncompressed.js": {
+      "size": 2609,
+      "checksum": "sha256-d9d6e653c24dbd6435811db645c66ed8de9918bf7646c31eb42715865e7aea23"
+    },
+    "/lib/z-worker-fflate.js": {
+      "size": 1634,
+      "checksum": "sha256-eccc8b11e1e76aa46b34844162734379fe55a8726fe674de981e10523788b57a"
+    },
+    "/tests/all/test-wrapped.js": {
+      "size": 3381,
+      "checksum": "sha256-8bf791f0de0699f1c0ba30cde5b3be3c825092932bb4e645dbc1feeacb7d9ae2"
+    },
+    "/lib/core/codec-pool.js": {
+      "size": 4629,
+      "checksum": "sha256-bcadc41dd82392e586f8ce04791b3be92eab039fb6e09f08c86bb1b1c0419c82"
+    },
+    "/dist/zip.min.js": {
+      "size": 99811,
+      "checksum": "sha256-c239c5a4914692dc41bb58027395c99ce7f1b93ab97059dc4035822303ea45d3"
+    },
+    "/tests/all/test-common-js.cjs": {
+      "size": 2169,
+      "checksum": "sha256-cb96cfc62ea1cbded9667cf7e69fcc120c88eba7d7e37190b115aa66f5000331"
+    }
+  },
+  "moduleGraph2": {
+    "/lib/core/streams/common-crypto.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../constants.js",
+          "specifierRange": [
+            [
+              30,
+              46
+            ],
+            [
+              30,
+              63
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codecs/sjcl.js",
+          "specifierRange": [
+            [
+              33,
+              7
+            ],
+            [
+              33,
+              25
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/util/decode-text.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./cp437-decode.js",
+          "specifierRange": [
+            [
+              30,
+              28
+            ],
+            [
+              30,
+              47
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/crc32-stream.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codecs/crc32.js",
+          "specifierRange": [
+            [
+              30,
+              22
+            ],
+            [
+              30,
+              41
+            ]
+          ]
+        }
+      ]
+    },
+    "/index.d.ts": {},
+    "/lib/core/zip-writer.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              65,
+              7
+            ],
+            [
+              65,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./configuration.js",
+          "specifierRange": [
+            [
+              69,
+              7
+            ],
+            [
+              69,
+              27
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codec-pool.js",
+          "specifierRange": [
+            [
+              73,
+              7
+            ],
+            [
+              73,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./io.js",
+          "specifierRange": [
+            [
+              78,
+              7
+            ],
+            [
+              78,
+              16
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./util/encode-text.js",
+          "specifierRange": [
+            [
+              79,
+              27
+            ],
+            [
+              79,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-entry.js",
+          "specifierRange": [
+            [
+              93,
+              7
+            ],
+            [
+              93,
+              23
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/codec-pool.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              30,
+              32
+            ],
+            [
+              30,
+              48
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./streams/codec-stream.js",
+          "specifierRange": [
+            [
+              37,
+              7
+            ],
+            [
+              37,
+              34
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codec-worker.js",
+          "specifierRange": [
+            [
+              38,
+              28
+            ],
+            [
+              38,
+              47
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/util/default-mime-type.js": {},
+    "/lib/core/configuration.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              33,
+              7
+            ],
+            [
+              33,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./streams/stream-adapter.js",
+          "specifierRange": [
+            [
+              34,
+              30
+            ],
+            [
+              34,
+              59
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/stream-adapter.js": {},
+    "/lib/core/util/cp437-decode.js": {},
+    "/index.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./lib/core/streams/codecs/deflate.js",
+          "specifierRange": [
+            [
+              30,
+              24
+            ],
+            [
+              30,
+              62
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./lib/core/streams/codecs/inflate.js",
+          "specifierRange": [
+            [
+              31,
+              24
+            ],
+            [
+              31,
+              62
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./lib/core/configuration.js",
+          "specifierRange": [
+            [
+              32,
+              26
+            ],
+            [
+              32,
+              55
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./lib/core/util/mime-type.js",
+          "specifierRange": [
+            [
+              33,
+              28
+            ],
+            [
+              33,
+              58
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./lib/core/codec-pool.js",
+          "specifierRange": [
+            [
+              34,
+              33
+            ],
+            [
+              34,
+              59
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./lib/zip-fs.js",
+          "specifierRange": [
+            [
+              86,
+              7
+            ],
+            [
+              86,
+              24
+            ]
+          ]
+        }
+      ],
+      "tsReferences": [
+        {
+          "type": "types",
+          "text": "./index.d.ts",
+          "range": [
+            [
+              0,
+              21
+            ],
+            [
+              0,
+              35
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/util/stream-codec-shim.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../constants.js",
+          "specifierRange": [
+            [
+              31,
+              47
+            ],
+            [
+              31,
+              64
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/aes-crypto-stream.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../constants.js",
+          "specifierRange": [
+            [
+              31,
+              63
+            ],
+            [
+              31,
+              80
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../util/encode-text.js",
+          "specifierRange": [
+            [
+              32,
+              27
+            ],
+            [
+              32,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codecs/sjcl.js",
+          "specifierRange": [
+            [
+              38,
+              7
+            ],
+            [
+              38,
+              25
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./common-crypto.js",
+          "specifierRange": [
+            [
+              44,
+              7
+            ],
+            [
+              44,
+              27
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/zip-entry-stream.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./crc32-stream.js",
+          "specifierRange": [
+            [
+              31,
+              28
+            ],
+            [
+              31,
+              47
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./aes-crypto-stream.js",
+          "specifierRange": [
+            [
+              35,
+              7
+            ],
+            [
+              35,
+              31
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-crypto-stream.js",
+          "specifierRange": [
+            [
+              39,
+              7
+            ],
+            [
+              39,
+              31
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./common-crypto.js",
+          "specifierRange": [
+            [
+              44,
+              7
+            ],
+            [
+              44,
+              27
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/codecs/sjcl.js": {},
+    "/lib/core/streams/codecs/deflate.js": {},
+    "/lib/core/zip-reader.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              61,
+              7
+            ],
+            [
+              61,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./configuration.js",
+          "specifierRange": [
+            [
+              65,
+              7
+            ],
+            [
+              65,
+              27
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codec-pool.js",
+          "specifierRange": [
+            [
+              72,
+              7
+            ],
+            [
+              72,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./io.js",
+          "specifierRange": [
+            [
+              79,
+              7
+            ],
+            [
+              79,
+              16
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./util/decode-text.js",
+          "specifierRange": [
+            [
+              80,
+              27
+            ],
+            [
+              80,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./streams/codecs/crc32.js",
+          "specifierRange": [
+            [
+              81,
+              22
+            ],
+            [
+              81,
+              49
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-entry.js",
+          "specifierRange": [
+            [
+              98,
+              7
+            ],
+            [
+              98,
+              23
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/codecs/crc32.js": {},
+    "/lib/zip-fs.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/configuration.js",
+          "specifierRange": [
+            [
+              28,
+              26
+            ],
+            [
+              28,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./z-worker-inline.js",
+          "specifierRange": [
+            [
+              29,
+              35
+            ],
+            [
+              29,
+              57
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/util/default-mime-type.js",
+          "specifierRange": [
+            [
+              30,
+              28
+            ],
+            [
+              30,
+              62
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/util/stream-codec-shim.js",
+          "specifierRange": [
+            [
+              31,
+              35
+            ],
+            [
+              31,
+              69
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/codec-pool.js",
+          "specifierRange": [
+            [
+              32,
+              33
+            ],
+            [
+              32,
+              55
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/io.js",
+          "specifierRange": [
+            [
+              43,
+              14
+            ],
+            [
+              43,
+              28
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-reader.js",
+          "specifierRange": [
+            [
+              44,
+              14
+            ],
+            [
+              44,
+              36
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-writer.js",
+          "specifierRange": [
+            [
+              45,
+              14
+            ],
+            [
+              45,
+              36
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-fs-core.js",
+          "specifierRange": [
+            [
+              46,
+              14
+            ],
+            [
+              46,
+              37
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/z-worker-inline.js": {},
+    "/lib/core/zip-entry.js": {},
+    "/lib/core/constants.js": {},
+    "/lib/core/streams/codecs/inflate.js": {},
+    "/lib/zip-data-uri.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/configuration.js",
+          "specifierRange": [
+            [
+              28,
+              26
+            ],
+            [
+              28,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./z-worker-inline.js",
+          "specifierRange": [
+            [
+              29,
+              35
+            ],
+            [
+              29,
+              57
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/util/default-mime-type.js",
+          "specifierRange": [
+            [
+              30,
+              28
+            ],
+            [
+              30,
+              62
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/util/stream-codec-shim.js",
+          "specifierRange": [
+            [
+              31,
+              35
+            ],
+            [
+              31,
+              69
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./core/codec-pool.js",
+          "specifierRange": [
+            [
+              32,
+              33
+            ],
+            [
+              32,
+              55
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/io.js",
+          "specifierRange": [
+            [
+              43,
+              14
+            ],
+            [
+              43,
+              28
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-reader.js",
+          "specifierRange": [
+            [
+              44,
+              14
+            ],
+            [
+              44,
+              36
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-writer.js",
+          "specifierRange": [
+            [
+              45,
+              14
+            ],
+            [
+              45,
+              36
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./core/zip-fs-core.js",
+          "specifierRange": [
+            [
+              46,
+              14
+            ],
+            [
+              46,
+              37
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/codec-stream.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-entry-stream.js",
+          "specifierRange": [
+            [
+              44,
+              7
+            ],
+            [
+              44,
+              30
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/util/mime-type.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./default-mime-type.js",
+          "specifierRange": [
+            [
+              30,
+              50
+            ],
+            [
+              30,
+              74
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/util/encode-text.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../constants.js",
+          "specifierRange": [
+            [
+              30,
+              31
+            ],
+            [
+              30,
+              48
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/codec-worker.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              33,
+              7
+            ],
+            [
+              33,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./streams/codec-stream.js",
+          "specifierRange": [
+            [
+              43,
+              7
+            ],
+            [
+              43,
+              34
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/streams/zip-crypto-stream.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./codecs/crc32.js",
+          "specifierRange": [
+            [
+              31,
+              22
+            ],
+            [
+              31,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./common-crypto.js",
+          "specifierRange": [
+            [
+              36,
+              7
+            ],
+            [
+              36,
+              27
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/zip-fs-core.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./io.js",
+          "specifierRange": [
+            [
+              43,
+              7
+            ],
+            [
+              43,
+              16
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-reader.js",
+          "specifierRange": [
+            [
+              47,
+              7
+            ],
+            [
+              47,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-writer.js",
+          "specifierRange": [
+            [
+              50,
+              7
+            ],
+            [
+              50,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./zip-entry.js",
+          "specifierRange": [
+            [
+              53,
+              7
+            ],
+            [
+              53,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              54,
+              32
+            ],
+            [
+              54,
+              48
+            ]
+          ]
+        }
+      ]
+    },
+    "/lib/core/io.js": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./constants.js",
+          "specifierRange": [
+            [
+              35,
+              7
+            ],
+            [
+              35,
+              23
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./configuration.js",
+          "specifierRange": [
+            [
+              36,
+              33
+            ],
+            [
+              36,
+              53
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "exports": {
+    ".": "./index.js",
+    "./data-uri": "./lib/zip-data-uri.js"
+  }
+}
