@@ -34,12 +34,12 @@ export function FileBrowser({
 }: FileBrowserProps) {
 	// If using column view, render the ColumnFileBrowser
 	if (viewMode === 'column') {
-		console.log('FileBrowser: rendering ColumnFileBrowser with props:', {
-			value,
-			rootPath,
-			type,
-			defaultExpanded,
-		});
+		//console.log('FileBrowser: rendering ColumnFileBrowser with props:', {
+		//	value,
+		//	rootPath,
+		//	type,
+		//	defaultExpanded,
+		//});
 		return (
 			<ColumnFileBrowser
 				value={value}

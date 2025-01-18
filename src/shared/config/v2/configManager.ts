@@ -192,11 +192,11 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
-		let current: ProjectConfigUpdate;
+		let current: ProjectConfig & { [key: string]: unknown };
 
 		try {
 			const content = await Deno.readTextFile(configPath);
-			current = parseYaml(content) as ProjectConfig;
+			current = parseYaml(content) as ProjectConfig & { [key: string]: unknown };
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				current = ProjectConfigDefaults;
@@ -227,13 +227,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		this.projectConfigs.set(projectId, current);
 	}
 
-	public async setGlobalConfigValue(key: string, value: string): Promise<void> {
+	public async setGlobalConfigValue(key: string, value: string | null): Promise<void> {
 		const globalConfigPath = join(await getGlobalConfigDir(), 'config.yaml');
-		let current: GlobalConfigUpdate;
+		let current: GlobalConfig & { [key: string]: unknown };
 
 		try {
 			const content = await Deno.readTextFile(globalConfigPath);
-			current = parseYaml(content) as GlobalConfig;
+			current = parseYaml(content) as GlobalConfig & { [key: string]: unknown };
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				current = GlobalConfigDefaults;
@@ -242,8 +242,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			}
 		}
 
-		// Update the value
-		this.updateNestedValue(current, key, value);
+		if (value === null) {
+			// Remove the key when value is null (resetting to global default)
+			delete current[key];
+		} else {
+			// Update the value
+			this.updateNestedValue(current, key, value);
+		}
 
 		//if (!this.validateGlobalConfig({ ...current, version: VERSION })) {
 		//	console.error(current);

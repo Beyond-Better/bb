@@ -360,13 +360,15 @@ export class ApiClient {
 
 	// Project Management Methods
 	async listProjects(): Promise<{ projects: ProjectWithSources[] } | null> {
-		const projects = await this.get<{ projects: ProjectWithSources[] }>('/api/v1/project');
-		console.log('APIClient: listProjects', projects);
-		return projects;
+		return await this.get<{ projects: ProjectWithSources[] }>('/api/v1/project');
 	}
 
 	async getProject(projectId: string): Promise<{ project: ProjectWithSources } | null> {
 		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, [404]);
+	}
+
+	async blankProject(): Promise<{ project: ProjectWithSources } | null> {
+		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/new`);
 	}
 
 	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: ProjectWithSources } | null> {

@@ -56,20 +56,22 @@ function ConfigValueField<T extends string | number | undefined>({
 
 	return (
 		<div class='form-group'>
-			<div class="flex items-center gap-2">
-				<label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+			<div class='flex items-center gap-2'>
+				<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
 					{label}
 				</label>
-				<span class={`px-2 py-0.5 text-xs rounded-full ${
-					!value.project
-						? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-						: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-				}`}>
+				<span
+					class={`px-2 py-0.5 text-xs rounded-full ${
+						!value.project
+							? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+							: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+					}`}
+				>
 					{!value.project ? 'Global Default' : 'Project Setting'}
 				</span>
 			</div>
 			{description && (
-				<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+				<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 					{description}
 				</p>
 			)}
@@ -89,30 +91,29 @@ function ConfigValueField<T extends string | number | undefined>({
 							project: newValue as T,
 						});
 					}}
-					class={`mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 
-						${value.project
-							? 'border-blue-300 dark:border-blue-600'
-							: 'dark:border-gray-700'
-						} bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100`}
+					class={`mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:outline-none
+						${
+						value.project ? 'border-blue-300 dark:border-blue-600' : 'dark:border-gray-700'
+					} bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100`}
 				/>
-				{value.project !== null && (
+				{value.project !== null &&value.project !== undefined && (
 					<button
-						type="button"
+						type='button'
 						onClick={() => {
 							onChange({
 								...value,
 								project: null,
 							});
 						}}
-						class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-						title="Reset to global default"
+						class='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
+						title='Reset to global default'
 					>
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+								stroke-linecap='round'
+								stroke-linejoin='round'
+								stroke-width='2'
+								d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
 							/>
 						</svg>
 					</button>
@@ -123,17 +124,17 @@ function ConfigValueField<T extends string | number | undefined>({
 }
 
 interface ProjectEditorProps {
-	project?: ProjectWithSources;
+	projectWithSources?: ProjectWithSources;
 	appState: Signal<AppState>;
 	onSave?: () => void;
 	onCancel?: () => void;
 	className?: string;
-	onCreateProject: (project: Omit<Project, 'projectId'>) => Promise<void>;
+	onCreateProject: (projectWithSources: Omit<Project, 'projectId'>) => Promise<void>;
 	onUpdateProject: (projectId: string, updates: Partial<Omit<Project, 'projectId'>>) => Promise<void>;
 }
 
 export function ProjectEditor({
-	project,
+	projectWithSources,
 	appState,
 	onSave,
 	onCancel,
@@ -141,26 +142,26 @@ export function ProjectEditor({
 	onCreateProject,
 	onUpdateProject,
 }: ProjectEditorProps) {
-	const name = useSignal(project?.name || '');
-	const path = useSignal(project?.path || '');
-	const type = useSignal<ProjectType>(project?.type || 'local');
-	const myPersonsName = useSignal(project?.myPersonsName || { global: '', project: null });
-	const myAssistantsName = useSignal(project?.myAssistantsName || { global: '', project: null });
-	const llmGuidelinesFile = useSignal(project?.llmGuidelinesFile || { global: '', project: null });
-	const maxTurns = useSignal(project?.settings?.api?.maxTurns || { global: 50, project: null });
+	const name = useSignal(projectWithSources?.name || '');
+	const path = useSignal(projectWithSources?.path || '');
+	const type = useSignal<ProjectType>(projectWithSources?.type || 'local');
+	const myPersonsName = useSignal(projectWithSources?.myPersonsName || { global: '', project: null });
+	const myAssistantsName = useSignal(projectWithSources?.myAssistantsName || { global: '', project: null });
+	const llmGuidelinesFile = useSignal(projectWithSources?.llmGuidelinesFile || { global: '', project: null });
+	const maxTurns = useSignal(projectWithSources?.settings?.api?.maxTurns || { global: 50, project: null });
 	const toolConfigs = useSignal(
-		project?.settings?.api?.toolConfigs
+		projectWithSources?.settings?.api?.toolConfigs
 			? {
-				global: project?.settings?.api?.toolConfigs.global
-					? formatYaml(project?.settings?.api?.toolConfigs.global)
+				global: projectWithSources?.settings?.api?.toolConfigs.global
+					? formatYaml(projectWithSources?.settings?.api?.toolConfigs.global)
 					: '',
-				project: project?.settings?.api?.toolConfigs.project
-					? formatYaml(project?.settings?.api?.toolConfigs.project)
+				project: projectWithSources?.settings?.api?.toolConfigs.project
+					? formatYaml(projectWithSources?.settings?.api?.toolConfigs.project)
 					: null,
 			}
 			: { global: '', project: null },
 	);
-	const isDirectoryValid = useSignal(project ? true : false);
+	const isDirectoryValid = useSignal(projectWithSources && projectWithSources.projectId ? true : false);
 
 	// File suggestion state
 	const suggestions = useSignal<Array<{ path: string; display: string }>>([]);
@@ -203,8 +204,8 @@ export function ProjectEditor({
 				},
 			} as Project;
 
-			if (project) {
-				await onUpdateProject(project.projectId, projectData);
+			if (projectWithSources && projectWithSources.projectId) {
+				await onUpdateProject(projectWithSources.projectId, projectData);
 			} else {
 				await onCreateProject(projectData);
 			}
@@ -235,7 +236,7 @@ export function ProjectEditor({
 				}}
 			>
 				<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>
-					{project ? 'Edit Project' : 'Create New Project'}
+					{projectWithSources && projectWithSources.projectId ? 'Edit Project' : 'Create New Project'}
 				</h2>
 
 				{/* Project Name and Type Section */}
@@ -244,28 +245,39 @@ export function ProjectEditor({
 						<label class='block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2'>
 							Project Name
 						</label>
-						<input
-							type='text'
-							value={name.value}
-							onInput={(e) => name.value = (e.target as HTMLInputElement).value}
-							class='w-full px-3 py-2 border dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100'
-							placeholder='My Project'
-							required
-						/>
+						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+							Give your project a meaningful name
+						</p>
+						<div class='relative'>
+							<input
+								type='text'
+								value={name.value}
+								onInput={(e) => name.value = (e.target as HTMLInputElement).value}
+								class='mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 dark:focus:ring-blue-400 focus:outline-none '
+								placeholder='My Project'
+								required
+							/>
+						</div>
 					</div>
 
 					<div class='form-group'>
 						<label class='block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2'>
 							Project Type
 						</label>
-						<select
-							value={type.value}
-							onChange={(e) => type.value = (e.target as HTMLSelectElement).value as ProjectType}
-							class='w-full px-3 py-2 border dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100'
-						>
-							<option value='local'>Local Directory</option>
-							<option value='git'>Git Repository</option>
-						</select>
+						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+							Use 'Git Repository' for automatic saves (<code class='font-mono'>git</code>{' '}
+							must be installed and repo initialized)
+						</p>
+						<div class='relative'>
+							<select
+								value={type.value}
+								onChange={(e) => type.value = (e.target as HTMLSelectElement).value as ProjectType}
+								class='mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 dark:focus:ring-blue-400 focus:outline-none '
+							>
+								<option value='local'>Local Directory</option>
+								<option value='git'>Git Repository</option>
+							</select>
+						</div>
 					</div>
 				</div>
 
@@ -285,7 +297,7 @@ export function ProjectEditor({
 						type='directory'
 						className='w-full mt-3'
 						appState={appState}
-						defaultExpanded={!project}
+						defaultExpanded={!projectWithSources || !projectWithSources.projectId}
 						alwaysShowPath={true}
 						onSelectionValid={(isValid, selectedPath) => {
 							isDirectoryValid.value = isValid;
@@ -300,8 +312,8 @@ export function ProjectEditor({
 					<ConfigValueField
 						value={myPersonsName.value}
 						onChange={(newValue) => myPersonsName.value = newValue}
-						label="Your Name"
-						description="The name the assistant will use when referring to you in conversations"
+						label='Your Name'
+						description='The name the assistant will use when referring to you in conversations'
 					/>
 
 					{/* Assistant's Name */}
@@ -309,7 +321,7 @@ export function ProjectEditor({
 						value={myAssistantsName.value}
 						onChange={(newValue) => myAssistantsName.value = newValue}
 						label="Assistant's Name"
-						description="What the AI assistant will call itself during conversations"
+						description='What the AI assistant will call itself during conversations'
 					/>
 				</div>
 
@@ -317,15 +329,17 @@ export function ProjectEditor({
 				<div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
 					{/* Guidelines File Section */}
 					<div class='form-group relative'>
-						<div class="flex items-center gap-2">
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+						<div class='flex items-center gap-2'>
+							<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
 								LLM Guidelines File
 							</label>
-							<span class={`px-2 py-0.5 text-xs rounded-full ${
-								!llmGuidelinesFile.value.project
-									? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-									: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-							}`}>
+							<span
+								class={`px-2 py-0.5 text-xs rounded-full ${
+									!llmGuidelinesFile.value.project
+										? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+										: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+								}`}
+							>
 								{!llmGuidelinesFile.value.project ? 'Global Default' : 'Project Setting'}
 							</span>
 						</div>
@@ -336,7 +350,11 @@ export function ProjectEditor({
 							<input
 								type='text'
 								value={llmGuidelinesFile.value.project || llmGuidelinesFile.value.global || ''}
-								class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 border ${llmGuidelinesFile.value.project ? 'border-blue-300 dark:border-blue-600' : 'border-gray-300 dark:border-gray-700'}`}
+								class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 border ${
+									llmGuidelinesFile.value.project
+										? 'border-blue-300 dark:border-blue-600'
+										: 'border-gray-300 dark:border-gray-700'
+								}`}
 								onKeyDown={(e: KeyboardEvent) => {
 									// Handle form submission prevention
 									if (e.key === 'Enter' && showSuggestions.value && suggestions.value.length > 0) {
@@ -410,7 +428,7 @@ export function ProjectEditor({
 										try {
 											const response = await appState.value.apiClient?.suggestFiles(
 												value,
-												project?.projectId || '',
+												projectWithSources?.projectId || '',
 											);
 											batch(() => {
 												selectedIndex.value = undefined; // Reset selection with new suggestions
@@ -447,7 +465,6 @@ export function ProjectEditor({
 										});
 									}, 200);
 								}}
-
 								placeholder='Select a guidelines file (optional)'
 								aria-expanded={showSuggestions.value}
 								aria-controls='guidelines-file-suggestions'
@@ -457,22 +474,22 @@ export function ProjectEditor({
 							/>
 							{llmGuidelinesFile.value.project !== null && (
 								<button
-									type="button"
+									type='button'
 									onClick={() => {
 										llmGuidelinesFile.value = {
 											...llmGuidelinesFile.value,
 											project: null,
 										};
 									}}
-									class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-									title="Reset to global default"
+									class='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
+									title='Reset to global default'
 								>
-									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+											stroke-linecap='round'
+											stroke-linejoin='round'
+											stroke-width='2'
+											d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
 										/>
 									</svg>
 								</button>
@@ -536,26 +553,28 @@ export function ProjectEditor({
 					<ConfigValueField
 						value={maxTurns.value}
 						onChange={(newValue) => maxTurns.value = newValue}
-						label="Maximum Turns"
-						description="Limits tool uses per statement to prevent infinite loops and control token usage"
-						type="number"
+						label='Maximum Turns'
+						description='Limits tool uses per statement to prevent infinite loops and control token usage'
+						type='number'
 						min={1}
 						max={100}
-						className="max-w-[200px]"
+						className='max-w-[200px]'
 					/>
 				</div>
 
 				{/* Tool Configs Section */}
 				<div class='form-group'>
-					<div class="flex items-center gap-2">
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-200">
+					<div class='flex items-center gap-2'>
+						<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
 							Tool Configurations (YAML)
 						</label>
-						<span class={`px-2 py-0.5 text-xs rounded-full ${
-							!toolConfigs.value.project
-								? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-								: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-						}`}>
+						<span
+							class={`px-2 py-0.5 text-xs rounded-full ${
+								!toolConfigs.value.project
+									? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+									: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+							}`}
+						>
 							{!toolConfigs.value.project ? 'Global Default' : 'Project Setting'}
 						</span>
 					</div>
@@ -563,7 +582,7 @@ export function ProjectEditor({
 						Configures behavior of the assistant's tools like allowed commands and API keys. Each tool can
 						have its own settings.
 					</p>
-					<div class="relative">
+					<div class='relative'>
 						<textarea
 							rows={10}
 							value={toolConfigs.value.project || toolConfigs.value.global || ''}
@@ -574,26 +593,30 @@ export function ProjectEditor({
 								};
 							}}
 							placeholder={TOOLS_PLACEHOLDER}
-							class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed border ${toolConfigs.value.project ? 'border-blue-300 dark:border-blue-600' : 'border-gray-300 dark:border-gray-700'}`}
+							class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed border ${
+								toolConfigs.value.project
+									? 'border-blue-300 dark:border-blue-600'
+									: 'border-gray-300 dark:border-gray-700'
+							}`}
 						/>
 						{toolConfigs.value.project !== null && (
 							<button
-								type="button"
+								type='button'
 								onClick={() => {
 									toolConfigs.value = {
 										...toolConfigs.value,
 										project: null,
 									};
 								}}
-								class="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-								title="Reset to global default"
+								class='absolute right-2 top-2 text-gray-400 hover:text-gray-600'
+								title='Reset to global default'
 							>
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
 									/>
 								</svg>
 							</button>
@@ -622,7 +645,11 @@ export function ProjectEditor({
 						disabled={!isValid.value || saving.value}
 						class='px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 dark:disabled:opacity-40 disabled:cursor-not-allowed'
 					>
-						{saving.value ? 'Saving...' : (project ? 'Update Project' : 'Create Project')}
+						{saving.value
+							? 'Saving...'
+							: (projectWithSources && projectWithSources.projectId
+								? 'Update Project'
+								: 'Create Project')}
 					</button>
 				</div>
 			</form>

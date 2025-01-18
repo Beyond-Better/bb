@@ -1,15 +1,18 @@
 import { computed, type Signal, signal } from '@preact/signals';
 import type { AppState } from './useAppState.ts';
-import type {Project,  ProjectWithSources } from 'shared/types/project.ts';
+import type { Project, ProjectWithSources } from 'shared/types/project.ts';
+import { toProject } from 'shared/types/project.ts';
 
 export interface ProjectState {
-	projects: ProjectWithSources[];
+	projects: Project[];
+	projectsWithSources: ProjectWithSources[];
 	loading: boolean;
 	error: string | null;
 }
 
 const initialState: ProjectState = {
 	projects: [],
+	projectsWithSources: [],
 	loading: false,
 	error: null,
 };
@@ -71,7 +74,8 @@ export function useProjectState(appState: Signal<AppState>) {
 
 				projectState.value = {
 					...projectState.value,
-					projects: response.projects,
+					projects: response.projects.map(toProject),
+					projectsWithSources: response.projects,
 					loading: false,
 				};
 
@@ -89,6 +93,17 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
+	async function getBlankProject(): Promise<ProjectWithSources | undefined> {
+		const apiClient = appState.value.apiClient;
+		try {
+			const response = await apiClient?.blankProject();
+			return response?.project || undefined;
+		} catch (error) {
+			console.log('useProjectState: unable to get blank project', error);
+			return undefined;
+		}
+	}
+
 	async function createProject(project: Omit<Project, 'projectId'>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
@@ -97,7 +112,8 @@ export function useProjectState(appState: Signal<AppState>) {
 			if (response) {
 				projectState.value = {
 					...projectState.value,
-					projects: [...projectState.value.projects, response.project],
+					projects: [...projectState.value.projects, toProject(response.project)],
+					projectsWithSources: [...projectState.value.projectsWithSources, response.project],
 					loading: false,
 				};
 			}
@@ -123,7 +139,12 @@ export function useProjectState(appState: Signal<AppState>) {
 			if (response) {
 				projectState.value = {
 					...projectState.value,
-					projects: projectState.value.projects.map((p) => p.projectId === projectId ? response.project : p),
+					projects: projectState.value.projects.map((p) =>
+						p.projectId === projectId ? toProject(response.project) : p
+					),
+					projectsWithSources: projectState.value.projectsWithSources.map((p) =>
+						p.projectId === projectId ? response.project : p
+					),
 					loading: false,
 				};
 			}
@@ -144,6 +165,7 @@ export function useProjectState(appState: Signal<AppState>) {
 			projectState.value = {
 				...projectState.value,
 				projects: projectState.value.projects.filter((p) => p.projectId !== projectId),
+				projectsWithSources: projectState.value.projectsWithSources.filter((p) => p.projectId !== projectId),
 				loading: false,
 			};
 		} catch (error) {
@@ -206,7 +228,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		updateLocalStorage(projectId);
 	}
 
-	function getSelectedProject(): ProjectWithSources | null {
+	function getSelectedProject(): Project | null {
 		if (!selectedProjectId.value) return null;
 		return projectState.value.projects.find(
 			(p) => p.projectId === selectedProjectId.value,
@@ -256,6 +278,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		state: projectState,
 		selectedProjectId,
 		loadProjects,
+		getBlankProject,
 		createProject,
 		updateProject,
 		deleteProject,

@@ -23,12 +23,12 @@ function createConfigValue<T>(projectValue: T | undefined, globalValue: T | unde
 /**
  * Helper function to enhance a project with source information for config values
  */
-async function enhanceProjectWithSources(
+function enhanceProjectWithSources(
 	storedProject: StoredProject,
 	projectConfig: Partial<ProjectConfig>,
 	globalConfig: Partial<GlobalConfig>,
 	path: string,
-): Promise<ProjectWithSources> {
+): ProjectWithSources {
 	return {
 		...storedProject,
 		path,
@@ -108,6 +108,48 @@ export const listProjects = async (
 
 /**
  * @openapi
+ * /api/v1/projects/new:
+ *   get:
+ *     summary: Get project details for new project
+ *     description: Retrieves boilerplate of a blank project
+ *     responses:
+ *       200:
+ *         description: Successful response with project details
+ *       500:
+ *         description: Internal server error
+ */
+export const blankProject = async (
+	{ request: _request, response }: RouterContext<'/new'>,
+) => {
+	try {
+		logger.info('ProjectHandler: blankProject called');
+
+		const configManager = await ConfigManagerV2.getInstance();
+		const globalConfig = await configManager.getGlobalConfig();
+
+		const project = enhanceProjectWithSources(
+			{
+				projectId: '',
+				name: '',
+				type: 'local',
+				path: '',
+			} as StoredProject,
+			{},
+			globalConfig,
+			'',
+		);
+
+		response.status = 200;
+		response.body = { project };
+	} catch (error) {
+		logger.error(`ProjectHandler: Error in getProject: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to get project', details: (error as Error).message };
+	}
+};
+
+/**
+ * @openapi
  * /api/v1/projects/{id}:
  *   get:
  *     summary: Get project details
@@ -148,7 +190,7 @@ export const getProject = async (
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
 
-		const project = await enhanceProjectWithSources(
+		const project = enhanceProjectWithSources(
 			storedProject,
 			projectConfig,
 			globalConfig,
@@ -263,7 +305,7 @@ export const createProject = async (
 		// Return the created project with source information
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
-		const project = await enhanceProjectWithSources(
+		const project = enhanceProjectWithSources(
 			{ ...storedProject, projectId },
 			projectConfig,
 			globalConfig,
@@ -387,7 +429,7 @@ export const updateProject = async (
 		// Return the updated project with source information
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
-		const enhancedProject = await enhanceProjectWithSources(
+		const enhancedProject = enhanceProjectWithSources(
 			project,
 			projectConfig,
 			globalConfig,

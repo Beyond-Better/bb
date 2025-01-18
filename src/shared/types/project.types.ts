@@ -41,6 +41,15 @@ export interface ProjectWithSources
 	};
 }
 
+export function toProject(projectWithSources: ProjectWithSources): Project {
+	return {
+		projectId: projectWithSources.projectId,
+		name: projectWithSources.name,
+		path: projectWithSources.path,
+		type: projectWithSources.type,
+	};
+}
+
 export interface ProjectStats {
 	conversationCount: number;
 	totalTokens: number;

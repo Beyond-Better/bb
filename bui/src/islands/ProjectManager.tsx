@@ -5,8 +5,8 @@ import { ProjectEditor } from '../components/Projects/ProjectEditor.tsx';
 import { ProjectList } from '../components/Projects/ProjectList.tsx';
 import { ProjectImporter } from '../components/Projects/ProjectImporter.tsx';
 import { useAppState } from '../hooks/useAppState.ts';
-import {  useProjectState } from '../hooks/useProjectState.ts';
-import type { Project, ProjectWithSources } from 'shared/types/project.ts';
+import { useProjectState } from '../hooks/useProjectState.ts';
+import { type Project, type ProjectWithSources } from 'shared/types/project.ts';
 
 export default function ProjectManager() {
 	const appState = useAppState();
@@ -18,13 +18,16 @@ export default function ProjectManager() {
 		updateProject,
 		deleteProject,
 		setSelectedProject,
+		getBlankProject,
 	} = useProjectState(appState);
 
 	const showEditor = useSignal(false);
-	const editingProject = useSignal<ProjectWithSources | undefined>(undefined);
+	const editingProject = useSignal<Project | undefined>(undefined);
+	const editingProjectWithSources = useSignal<ProjectWithSources | undefined>(undefined);
 	const loading = useComputed(() => projectState.value.loading);
 	const error = useComputed(() => projectState.value.error);
-	const projects = useComputed(() => projectState.value.projects);
+	//const projects = useComputed(() => projectState.value.projects);
+	const projectsWithSources = useComputed(() => projectState.value.projectsWithSources);
 
 	useEffect(() => {
 		// Check URL parameters for new project flag
@@ -37,32 +40,32 @@ export default function ProjectManager() {
 		loadProjects();
 	}, []);
 
-	const handleCreateNew = () => {
-		editingProject.value = undefined;
+	const handleCreateNew = async () => {
+		editingProjectWithSources.value = await getBlankProject();
 		showEditor.value = true;
 	};
 
-	const handleEdit = (project: ProjectWithSources) => {
-		editingProject.value = project;
+	const handleEdit = (projectWithSources: ProjectWithSources) => {
+		editingProjectWithSources.value = projectWithSources;
 		showEditor.value = true;
 	};
 
-	const handleDelete = async (project: Project) => {
-		if (confirm(`Are you sure you want to delete project "${project.name}"?`)) {
-			await deleteProject(project.projectId);
+	const handleDelete = async (projectWithSources: ProjectWithSources) => {
+		if (confirm(`Are you sure you want to delete project "${projectWithSources.name}"?`)) {
+			await deleteProject(projectWithSources.projectId);
 		}
 	};
 
 	const handleEditorSave = () => {
 		showEditor.value = false;
-		editingProject.value = undefined;
+		editingProjectWithSources.value = undefined;
 		loadProjects();
 	};
 
 	const handleEditorCancel = () => {
 		console.log('ProjectManager: handleEditorCancel called');
 		showEditor.value = false;
-		editingProject.value = undefined;
+		editingProjectWithSources.value = undefined;
 	};
 
 	if (loading.value) {
@@ -101,7 +104,7 @@ export default function ProjectManager() {
 						{showEditor.value
 							? (
 								<ProjectEditor
-									project={editingProject.value}
+									projectWithSources={editingProjectWithSources.value}
 									appState={appState}
 									onSave={handleEditorSave}
 									onCancel={handleEditorCancel}
@@ -109,7 +112,7 @@ export default function ProjectManager() {
 									onUpdateProject={updateProject}
 								/>
 							)
-							: projects.value.length === 0
+							: projectsWithSources.value.length === 0
 							? (
 								<>
 									<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>
@@ -135,7 +138,7 @@ export default function ProjectManager() {
 							: (
 								<div className='grid grid-cols-1 lg:grid-cols-[1fr,auto] gap-8'>
 									<ProjectList
-										projects={projects}
+										projectsWithSources={projectsWithSources}
 										setSelectedProject={setSelectedProject}
 										handleEdit={handleEdit}
 										handleDelete={handleDelete}
