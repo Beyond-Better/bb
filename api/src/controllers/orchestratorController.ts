@@ -37,7 +37,7 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { isLLMError } from 'api/errors/error.ts';
+import { isLLMError, type LLMError } from 'api/errors/error.ts';
 
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
@@ -174,39 +174,56 @@ class OrchestratorController {
 		return this;
 	}
 
-	private handleLLMError(error: Error, interaction: LLMConversationInteraction): void {
-		// Extract useful information from the error if it's our custom error type
-		const errorDetails = error instanceof Error
-			? {
-				message: (error as Error).message,
-				code: (error as Error).name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
+	private handleLLMError(error: Error, interaction: LLMConversationInteraction): LLMError {
+		logger.error(`OrchestratorController: handleLLMError:`, error);
+
+		if (isLLMError(error)) {
+			// Extract useful information from the error if it's our custom error type
+			const errorDetails = {
+				message: error.message,
+				code: error.name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
 				// Include any additional error properties if available
-				details: (error as unknown as { details: unknown }).details || {},
-			}
-			: {
+				args: error.options?.args || {},
+			};
+			//logger.error(`OrchestratorController: handleLLMError-error.options.args:`, error.options?.args);
+			//logger.error(`OrchestratorController: handleLLMError-errorDetails:`, errorDetails);
+
+			this.eventManager.emit(
+				'projectEditor:conversationError',
+				{
+					conversationId: interaction.id,
+					conversationTitle: interaction.title || '',
+					timestamp: new Date().toISOString(),
+					conversationStats: {
+						statementCount: this.statementCount,
+						statementTurnCount: this.statementTurnCount,
+						conversationTurnCount: this.conversationTurnCount,
+					},
+					error: errorDetails.message,
+					code: errorDetails.code,
+					details: errorDetails.args || {},
+				} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+			);
+			return error;
+		} else {
+			// Always log the full error for debugging
+			logger.error(`OrchestratorController: LLM communication error:`, error);
+			const errorDetails = {
 				message: String(error),
 				code: 'UNKNOWN_ERROR',
+				args: {},
 			};
-
-		this.eventManager.emit(
-			'projectEditor:conversationError',
-			{
-				conversationId: interaction.id,
-				conversationTitle: interaction.title || '',
-				timestamp: new Date().toISOString(),
-				conversationStats: {
-					statementCount: this.statementCount,
-					statementTurnCount: this.statementTurnCount,
-					conversationTurnCount: this.conversationTurnCount,
-				},
-				error: errorDetails.message,
-				code: errorDetails.code,
-				details: errorDetails.details,
-			} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
-		);
-
-		// Always log the full error for debugging
-		logger.error(`OrchestratorController: LLM communication error:`, error);
+			return createError(
+				ErrorType.API,
+				'Unknown error type.',
+				{
+					model: interaction.model,
+					//provider: this.llmProviderName,
+					conversationId: interaction.id,
+					args: {},
+				} as LLMErrorOptions,
+			);
+		}
 	}
 
 	private emitStatus(status: ApiStatus, metadata?: { toolName?: string; error?: string }) {
@@ -763,54 +780,59 @@ class OrchestratorController {
 		);
 		 */
 
-		if (!interaction.title) {
-			interaction.title = await this.generateConversationTitle(statement, interaction.id);
-			// Emit new conversation event after title is generated
-			this.eventManager.emit(
-				'projectEditor:conversationNew',
-				{
-					conversationId: interaction.id,
-					conversationTitle: interaction.title,
-					timestamp: new Date().toISOString(),
-					tokenUsageConversation: this.tokenUsageInteraction,
-					conversationStats: interaction.conversationStats,
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
-			);
-		}
+		try {
+			if (!interaction.title) {
+				interaction.title = await this.generateConversationTitle(statement, interaction.id);
+				// Emit new conversation event after title is generated
+				this.eventManager.emit(
+					'projectEditor:conversationNew',
+					{
+						conversationId: interaction.id,
+						conversationTitle: interaction.title,
+						timestamp: new Date().toISOString(),
+						tokenUsageConversation: this.tokenUsageInteraction,
+						conversationStats: interaction.conversationStats,
+					} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
+				);
+			}
 
-		// Get current conversation metrics to check objectives
-		const currentMetrics = interaction.conversationMetrics;
+			// Get current conversation metrics to check objectives
+			const currentMetrics = interaction.conversationMetrics;
 
-		// Generate conversation objective if not set
-		if (!currentMetrics.objectives?.conversation) {
-			const conversationObjective = await generateConversationObjective(
-				await this.createChatInteraction(interaction.id, 'Generate conversation objective'),
-				statement,
-			);
-			interaction.setObjectives(conversationObjective);
-			logger.debug('Set conversation objective:', conversationObjective);
-		} else {
-			// Only create statement objective on subsequent statements; not the first one
-			// Generate statement objective with context from previous assistant response
-			const previousAssistantMessage = interaction.getPreviousAssistantMessage();
-			const previousResponse = previousAssistantMessage && Array.isArray(previousAssistantMessage.content) &&
-					previousAssistantMessage.content.length > 0
-				? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
-				: undefined;
+			// Generate conversation objective if not set
+			if (!currentMetrics.objectives?.conversation) {
+				const conversationObjective = await generateConversationObjective(
+					await this.createChatInteraction(interaction.id, 'Generate conversation objective'),
+					statement,
+				);
+				interaction.setObjectives(conversationObjective);
+				logger.debug('Set conversation objective:', conversationObjective);
+			} else {
+				// Only create statement objective on subsequent statements; not the first one
+				// Generate statement objective with context from previous assistant response
+				const previousAssistantMessage = interaction.getPreviousAssistantMessage();
+				const previousResponse = previousAssistantMessage && Array.isArray(previousAssistantMessage.content) &&
+						previousAssistantMessage.content.length > 0
+					? (previousAssistantMessage.content[0] as { type: 'text'; text: string }).text
+					: undefined;
 
-			const previousObjectives = interaction.getObjectives().statement || [];
-			const previousObjective = previousObjectives[previousObjectives.length - 1];
-			logger.info('Previous objective:', previousObjective);
+				const previousObjectives = interaction.getObjectives().statement || [];
+				const previousObjective = previousObjectives[previousObjectives.length - 1];
+				logger.info('Previous objective:', previousObjective);
 
-			const statementObjective = await generateStatementObjective(
-				await this.createChatInteraction(interaction.id, 'Generate statement objective'),
-				statement,
-				currentMetrics.objectives?.conversation,
-				previousResponse,
-				previousObjective,
-			);
-			interaction.setObjectives(undefined, statementObjective);
-			logger.debug('Set statement objective:', statementObjective);
+				const statementObjective = await generateStatementObjective(
+					await this.createChatInteraction(interaction.id, 'Generate statement objective'),
+					statement,
+					currentMetrics.objectives?.conversation,
+					previousResponse,
+					previousObjective,
+				);
+				interaction.setObjectives(undefined, statementObjective);
+				logger.debug('Set statement objective:', statementObjective);
+			}
+		} catch (error) {
+			logger.info('OrchestratorController: Received error from LLM chat: ', error);
+			throw this.handleLLMError(error as Error, interaction);
 		}
 
 		await this.projectEditor.updateProjectInfo();
@@ -870,8 +892,8 @@ class OrchestratorController {
 			// Update orchestrator's stats
 			this.updateStats(interaction.id, interaction.conversationStats);
 		} catch (error) {
-			this.handleLLMError(error as Error, interaction);
-			throw error;
+			logger.info('OrchestratorController: Received error from LLM converse: ', error);
+			throw this.handleLLMError(error as Error, interaction);
 		}
 
 		// Save the conversation immediately after the first response
@@ -1016,8 +1038,7 @@ class OrchestratorController {
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
 					} catch (error) {
-						this.handleLLMError(error as Error, interaction);
-						throw error; // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
+						throw this.handleLLMError(error as Error, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
 					}
 				} else {
 					// No more tool toolResponse, exit the loop

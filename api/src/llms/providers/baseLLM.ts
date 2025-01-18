@@ -9,7 +9,7 @@ import type {
 	LLMRateLimit,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-	LLMTokenUsage,
+	//LLMTokenUsage,
 	LLMValidateResponseCallback,
 } from 'api/types.ts';
 import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
@@ -107,8 +107,8 @@ class LLM {
 			? this.createRequestCacheKey(llmProviderMessageRequest)
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
-			logger.info(`provider[${this.llmProviderName}] speakWithPlus: Caching response`);
-			const cachedResponse = await await storage.getItem(cacheKey);
+			//logger.info(`provider[${this.llmProviderName}] speakWithPlus: Checking for cached response`);
+			const cachedResponse = await storage.getItem(cacheKey);
 
 			if (cachedResponse) {
 				logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
@@ -177,7 +177,8 @@ class LLM {
 					retries++;
 				} catch (error) {
 					// Handle any unexpected errors
-					const args = isLLMError(error) ? (error.options?.args || {}) : {};
+					const args = isLLMError(error) ? (error.options || {}) : {};
+					logger.error('BaseLLM: Error calling LLM: ', { args, error });
 					throw createError(
 						ErrorType.LLM,
 						`Unexpected error calling LLM service: ${(error as Error).message}`,
@@ -314,6 +315,7 @@ class LLM {
 		const retrySpeakOptions = { ...speakOptions };
 		let retries = 0;
 		let failReason = '';
+		let failDetails = {};
 		let totalProviderRequests = 0;
 		let llmSpeakWithResponse: LLMSpeakWithResponse | null = null;
 
@@ -335,6 +337,8 @@ class LLM {
 
 				if (validationFailedReason === null) {
 					break; // Success, break out of the loop
+				} else if (validationFailedReason === 'fatal') {
+					break; // Unrecoverable failure, break out of the loop
 				}
 
 				this.modifySpeakWithInteractionOptions(interaction, retrySpeakOptions, validationFailedReason);
@@ -345,7 +349,18 @@ class LLM {
 					`provider[${this.llmProviderName}] speakWithRetry: Error calling speakWithPlus`,
 					error as Error,
 				);
-				failReason = `caught error: ${(error as Error)}`;
+				if (isLLMError(error)) {
+					if (error.options?.args?.error?.type && error.options.args.error.type === 'quota_exceeded') {
+						failReason = `Quota Exceeded: ${error.options.args.error.message}`;
+						failDetails = error.options.args.error.details;
+						break; // Unrecoverable error
+					} else {
+						failReason = `LLM error: ${error.options.args.error.message}`;
+						failDetails = error.options.args.error.details;
+					}
+				} else {
+					failReason = `caught error: ${(error as Error)}`;
+				}
 			}
 			logger.warn(
 				`provider[${this.llmProviderName}] Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,
@@ -363,13 +378,14 @@ class LLM {
 		logger.error(
 			`provider[${this.llmProviderName}] Max retries reached. Request to ${this.llmProviderName} failed.`,
 		);
+		const errorMessage = retries > 1 ? `Request failed after multiple retries. ${failReason}` : `${failReason}`;
 		throw createError(
 			ErrorType.LLM,
-			'Request failed after multiple retries.',
+			errorMessage,
 			{
 				model: interaction.model,
 				provider: this.llmProviderName,
-				args: { reason: failReason, retries: { max: maxRetries, current: retries } },
+				args: { reason: failReason, retries: { max: maxRetries, current: retries }, ...failDetails },
 				conversationId: interaction.id,
 			} as LLMErrorOptions,
 		);
