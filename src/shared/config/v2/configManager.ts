@@ -179,19 +179,24 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		await ensureDir(join(projectRoot, '.bb'));
 		await Deno.writeTextFile(configPath, stringifyYaml(updated));
 
+		const mergedConfig = mergeGlobalIntoProjectConfig(
+			await updated,
+			await this.getGlobalConfig(),
+		);
+
 		// Update cache
-		this.projectConfigs.set(projectId, updated);
+		this.projectConfigs.set(projectId, mergedConfig);
 	}
 
-	public async setProjectConfigValue(projectId: string, key: string, value: string): Promise<void> {
+	public async setProjectConfigValue(projectId: string, key: string, value: string | null): Promise<void> {
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
-		let current: ProjectConfigUpdate;
+		let current: ProjectConfig & { [key: string]: unknown };
 
 		try {
 			const content = await Deno.readTextFile(configPath);
-			current = parseYaml(content) as ProjectConfig;
+			current = parseYaml(content) as ProjectConfig & { [key: string]: unknown };
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				current = ProjectConfigDefaults;
@@ -200,8 +205,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			}
 		}
 
-		// Update the value
-		this.updateNestedValue(current, key, value);
+		if (value === null) {
+			// Remove the key when value is null (resetting to global default)
+			delete current[key];
+		} else {
+			// Update the value
+			this.updateNestedValue(current, key, value);
+		}
 
 		//if (!this.validateProjectConfig(current)) {
 		//	throw new Error('Invalid project configuration after setting value');
@@ -217,13 +227,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		this.projectConfigs.set(projectId, current);
 	}
 
-	public async setGlobalConfigValue(key: string, value: string): Promise<void> {
+	public async setGlobalConfigValue(key: string, value: string | null): Promise<void> {
 		const globalConfigPath = join(await getGlobalConfigDir(), 'config.yaml');
-		let current: GlobalConfigUpdate;
+		let current: GlobalConfig & { [key: string]: unknown };
 
 		try {
 			const content = await Deno.readTextFile(globalConfigPath);
-			current = parseYaml(content) as GlobalConfig;
+			current = parseYaml(content) as GlobalConfig & { [key: string]: unknown };
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				current = GlobalConfigDefaults;
@@ -232,8 +242,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			}
 		}
 
-		// Update the value
-		this.updateNestedValue(current, key, value);
+		if (value === null) {
+			// Remove the key when value is null (resetting to global default)
+			delete current[key];
+		} else {
+			// Update the value
+			this.updateNestedValue(current, key, value);
+		}
 
 		//if (!this.validateGlobalConfig({ ...current, version: VERSION })) {
 		//	console.error(current);
@@ -698,7 +713,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @throws Error if project not found or configuration is invalid
 	 * @internal
 	 */
-	private async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
+	public async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
 		//console.log(`ConfigManager: loadProjectConfig for ${projectId}`);
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
@@ -1614,6 +1629,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		return redactedConfig as ProjectConfig;
 	}
 
+	/*
 	private redactSensitiveInfo(obj: Record<string, any>): Record<string, any> {
 		const redactedObj: Record<string, any> = {};
 
@@ -1629,9 +1645,40 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 		return redactedObj;
 	}
+	 */
+
+	private redactSensitiveInfo(obj: Record<string, any>, parentKey = ''): Record<string, any> {
+		const redactedObj: Record<string, any> = {};
+
+		for (const [key, value] of Object.entries(obj)) {
+			const isCurrentKeySensitive = this.isSensitiveKey(key);
+			const isParentKeySensitive = this.isSensitiveKey(parentKey);
+
+			if (isCurrentKeySensitive && typeof value === 'object' && value !== null) {
+				// Preserve structure of sensitive objects (e.g., llmKeys), but redact their values
+				redactedObj[key] = Object.fromEntries(
+					Object.keys(value).map((k) => [k, '[REDACTED]']),
+				);
+			} else if (isCurrentKeySensitive) {
+				// Direct redaction for sensitive primitive values
+				redactedObj[key] = '[REDACTED]';
+			} else if (typeof value === 'object' && value !== null) {
+				// Handle nested objects
+				redactedObj[key] = isParentKeySensitive ? '[REDACTED]' : this.redactSensitiveInfo(value, key);
+			} else {
+				// Handle primitive values
+				redactedObj[key] = isParentKeySensitive ? '[REDACTED]' : value;
+			}
+		}
+
+		//console.log('ConfigManager: redactSensitiveInfo: ', redactedObj);
+		return redactedObj;
+	}
 
 	private isSensitiveKey(key: string): boolean {
 		const sensitivePatterns = [
+			/llmKeys/i,
+			/supabase\w+key/i,
 			/api[_-]?key/i,
 			/secret/i,
 			/password/i,
@@ -1672,7 +1719,15 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		target[keys[keys.length - 1]] = this.parseConfigValue(value);
 	}
 
-	private parseConfigValue(value: string): unknown {
+	private parseConfigValue(value: unknown): unknown {
+		// Log the value and its type
+		//console.info('ConfigManager: parseConfigValue:', { value, type: typeof value });
+
+		// Handle non-string values
+		if (typeof value !== 'string') {
+			return value;
+		}
+
 		// Try to parse as JSON if it looks like a complex value
 		if (
 			value.startsWith('{') || value.startsWith('[') ||
@@ -1738,6 +1793,12 @@ export function mergeGlobalIntoProjectConfig(
 	}
 	if (!projectConfig.defaultModels) {
 		projectConfig.defaultModels = globalConfig.defaultModels;
+	} else if (
+		!projectConfig.defaultModels.orchestrator ||
+		!projectConfig.defaultModels.agent ||
+		!projectConfig.defaultModels.chat
+	) {
+		projectConfig.defaultModels = { ...globalConfig.defaultModels, ...projectConfig.defaultModels };
 	}
 
 	//console.log('ConfigManager: Final mergeGlobalIntoProjectConfig', JSON.stringify(projectConfig, null, 2));

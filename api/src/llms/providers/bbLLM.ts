@@ -13,7 +13,7 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+import { ErrorType, isLLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
 	LLMCallbacks,
@@ -270,7 +270,7 @@ class BbLLM extends LLM {
 	 */
 	public override async speakWith(
 		messageParams: LLMProviderMessageRequest,
-		_interaction: LLMInteraction,
+		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
 			//logger.info('BbLLM: messageParams', messageParams);
@@ -281,6 +281,7 @@ class BbLLM extends LLM {
 			});
 			//logger.info('BbLLM: llms-bb-data', data);
 			//logger.info('BbLLM: llms-bb-error', error);
+
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.settings.api?.logLevel === 'debug1') {
 			//	interaction.conversationPersistence.writeLLMRequest({
@@ -292,24 +293,41 @@ class BbLLM extends LLM {
 			//}
 
 			if (error) {
-				logger.error('BbLLM: Error calling BB API', error);
+				//logger.error('BbLLM: Error calling BB API: ', {data, error});
+				let errorBody = {};
+				try {
+					if (error?.context) {
+						errorBody = await error.context.json();
+						//logger.error('BbLLM: Error calling BB API: ', { error, errorBody });
+					} else {
+						logger.error('BbLLM: Error calling BB API: No error body available: ', { error });
+					}
+				} catch (e) {
+					logger.error('BbLLM: Error calling BB API: Failed to parse error response: ', e);
+					logger.error('BbLLM: Error calling BB API: Original error: ', { error });
+				}
+
 				throw createError(
 					ErrorType.LLM,
 					`Received an error from BB API: `,
 					{
 						model: messageParams.model,
 						provider: this.llmProviderName,
+						...errorBody,
 					} as LLMErrorOptions,
 				);
 			}
 			if (bbResponseMessage.status.statusCode !== 200) {
-				logger.error('BbLLM: Received a non-200 from BB API', bbResponseMessage);
+				logger.error('BbLLM: Received a non-200 from BB API: ', bbResponseMessage);
 				throw createError(
 					ErrorType.LLM,
 					`Received a non-200 from BB API: `,
 					{
+						name: 'BB API Error',
 						model: messageParams.model,
 						provider: this.llmProviderName,
+						args: { bbResponse: bbResponseMessage },
+						conversationId: interaction.id,
 					} as LLMErrorOptions,
 				);
 			}
@@ -348,6 +366,7 @@ class BbLLM extends LLM {
 			return { messageResponse, messageMeta: { system: messageParams.system } };
 		} catch (err) {
 			logger.error('BbLLM: Error calling BB API', err);
+			if (isLLMError(err)) throw err;
 			throw createError(
 				ErrorType.LLM,
 				`Could not get response from BB API: ${(err as Error).message}`,

@@ -1,5 +1,5 @@
 import { forwardRef } from 'preact/compat';
-import type { Project } from '../../hooks/useProjectState.ts';
+import type { Project } from 'shared/types/project.ts';
 
 interface ProjectTriggerProps {
 	isCollapsed: boolean;

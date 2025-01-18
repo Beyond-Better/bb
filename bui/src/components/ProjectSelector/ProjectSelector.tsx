@@ -4,7 +4,7 @@ import { setConversation, setProject, useAppState } from '../../hooks/useAppStat
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import { ProjectList } from './ProjectList.tsx';
 import { ProjectTrigger } from './ProjectTrigger.tsx';
-import type { Project } from '../../hooks/useProjectState.ts';
+import type { Project } from 'shared/types/project.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 
 interface ProjectSelectorProps {
@@ -17,7 +17,7 @@ interface ProjectSelectorProps {
 export function ProjectSelector({
 	isCollapsed = false,
 	className = '',
-	placement = 'bottom',
+	placement: _placement = 'bottom',
 	triggerClassName = '',
 }: ProjectSelectorProps) {
 	const appState = useAppState();
@@ -57,13 +57,14 @@ export function ProjectSelector({
 						? projects.value.length - 1
 						: selectedIndex.value - 1;
 					break;
-				case 'Enter':
+				case 'Enter': {
 					e.preventDefault();
 					const selectedProject = projects.value[selectedIndex.value];
 					if (selectedProject) {
 						handleProjectSelect(selectedProject);
 					}
 					break;
+				}
 				case 'Escape':
 					e.preventDefault();
 					isOpen.value = false;
@@ -72,8 +73,8 @@ export function ProjectSelector({
 			}
 		};
 
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
+		globalThis.addEventListener('keydown', handleKeyDown);
+		return () => globalThis.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen.value, projects.value, selectedIndex.value]);
 
 	// Handle click outside
@@ -90,8 +91,8 @@ export function ProjectSelector({
 			}
 		};
 
-		window.addEventListener('mousedown', handleClickOutside);
-		return () => window.removeEventListener('mousedown', handleClickOutside);
+		globalThis.addEventListener('mousedown', handleClickOutside);
+		return () => globalThis.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen.value]);
 
 	const handleProjectSelect = (project: Project) => {
@@ -137,11 +138,12 @@ export function ProjectSelector({
 
 					{/* Project List */}
 					<ProjectList
-						projects={projects.value.filter((project) =>
-							searchQuery.value === '' ||
-							project.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-							project.path.toLowerCase().includes(searchQuery.value.toLowerCase())
-						)}
+						projects={projects.value
+							.filter((project) =>
+								searchQuery.value === '' ||
+								project.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+								project.path.toLowerCase().includes(searchQuery.value.toLowerCase())
+							)}
 						selectedIndex={selectedIndex.value}
 						currentProjectId={appState.value.projectId}
 						loading={loading.value}

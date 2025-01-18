@@ -1,7 +1,8 @@
 import type { JSX } from 'preact';
 
-import { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
-import type { Project } from '../hooks/useProjectState.ts';
+import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { SystemMeta } from 'shared/types/version.ts';
+import type { Project, ProjectWithSources } from 'shared/types/project.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
@@ -125,7 +126,7 @@ export class ApiClient {
 		allowedCodes: number[] = [],
 	): Promise<T | null> {
 		const url = `${this.apiUrl}${endpoint}`;
-		console.log(`APIClient: sending ${options.method || 'GET'} to: ${url}`);
+		//console.log(`APIClient: sending ${options.method || 'GET'} to: ${url}`);
 
 		try {
 			const response = await fetch(url, {
@@ -358,23 +359,27 @@ export class ApiClient {
 	}
 
 	// Project Management Methods
-	async listProjects(): Promise<{ projects: Project[] } | null> {
-		return await this.get<{ projects: Project[] }>('/api/v1/project');
+	async listProjects(): Promise<{ projects: ProjectWithSources[] } | null> {
+		return await this.get<{ projects: ProjectWithSources[] }>('/api/v1/project');
 	}
 
-	async getProject(projectId: string): Promise<{ project: Project } | null> {
-		return await this.get<{ project: Project }>(`/api/v1/project/${projectId}`, [404]);
+	async getProject(projectId: string): Promise<{ project: ProjectWithSources } | null> {
+		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, [404]);
 	}
 
-	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: Project } | null> {
-		return await this.post<{ project: Project }>('/api/v1/project', project);
+	async blankProject(): Promise<{ project: ProjectWithSources } | null> {
+		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/new`);
+	}
+
+	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: ProjectWithSources } | null> {
+		return await this.post<{ project: ProjectWithSources }>('/api/v1/project', project);
 	}
 
 	async updateProject(
 		projectId: string,
 		updates: Partial<Omit<Project, 'projectId'>>,
-	): Promise<{ project: Project } | null> {
-		return await this.put<{ project: Project }>(`/api/v1/project/${projectId}`, updates);
+	): Promise<{ project: ProjectWithSources } | null> {
+		return await this.put<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, updates);
 	}
 
 	async deleteProject(projectId: string): Promise<void> {
@@ -454,6 +459,10 @@ export class ApiClient {
 
 	async deleteConversation(id: string, projectId: string): Promise<void> {
 		await this.delete(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`, [404]);
+	}
+
+	async getMeta(): Promise<SystemMeta | null> {
+		return await this.get<{ meta: SystemMeta }>('/api/v1/meta').then((response) => response?.meta ?? null);
 	}
 
 	async getStatus(): Promise<ApiStatus | null> {

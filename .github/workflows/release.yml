@@ -36,23 +36,29 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
+          rm -f deno.lock
+          deno task update-deps
           deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bb${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
 
       - name: Build API for ${{ matrix.target }}
         run: |
           cd api
+          rm -f deno.lock
+          deno task update-deps
           deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
 
       - name: Build BUI for ${{ matrix.target }}
         run: |
           cd bui
+          rm -f deno.lock
+          deno task update-deps
           deno run -A --unstable-kv src/dev.ts build
           deno compile --include src/static --include src/_fresh --include deno.jsonc --target ${{ matrix.target }} --output ../build/bb-bui${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} -A src/main.ts
 
@@ -110,7 +116,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
@@ -219,7 +225,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 

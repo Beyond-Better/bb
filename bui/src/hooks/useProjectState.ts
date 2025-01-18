@@ -1,29 +1,18 @@
-import { computed, type Signal, signal, useSignal } from '@preact/signals';
-import { ProjectType } from 'shared/config/v2/types.ts';
+import { computed, type Signal, signal } from '@preact/signals';
 import type { AppState } from './useAppState.ts';
-
-export interface ProjectStats {
-	conversationCount: number;
-	totalTokens: number;
-	lastAccessed: string;
-}
-
-export interface Project {
-	projectId: string;
-	name: string;
-	path: string;
-	type: ProjectType;
-	stats?: ProjectStats;
-}
+import type { Project, ProjectWithSources } from 'shared/types/project.ts';
+import { toProject } from 'shared/types/project.ts';
 
 export interface ProjectState {
 	projects: Project[];
+	projectsWithSources: ProjectWithSources[];
 	loading: boolean;
 	error: string | null;
 }
 
 const initialState: ProjectState = {
 	projects: [],
+	projectsWithSources: [],
 	loading: false,
 	error: null,
 };
@@ -35,16 +24,16 @@ const loadStoredState = () => {
 
 // Update URL parameters
 const updateUrlParams = (projectId: string | null) => {
-	if (typeof window === 'undefined') return;
+	if (typeof globalThis === 'undefined') return;
 
-	const url = new URL(window.location.href);
+	const url = new URL(globalThis.location.href);
 	if (projectId) {
 		url.searchParams.set('projectId', projectId);
 	} else {
 		url.searchParams.delete('projectId');
 	}
 
-	window.history.replaceState({}, '', url.toString());
+	globalThis.history.replaceState({}, '', url.toString());
 };
 
 // Update localStorage
@@ -72,7 +61,9 @@ export function useProjectState(appState: Signal<AppState>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
+			// Get project list
 			const response = await apiClient?.listProjects();
+
 			console.log('useProjectState: loadProjects', response);
 			if (response) {
 				// If we have a selectedProjectId but it's not in the projects list,
@@ -83,7 +74,8 @@ export function useProjectState(appState: Signal<AppState>) {
 
 				projectState.value = {
 					...projectState.value,
-					projects: response.projects,
+					projects: response.projects.map(toProject),
+					projectsWithSources: response.projects,
 					loading: false,
 				};
 
@@ -101,6 +93,17 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
+	async function getBlankProject(): Promise<ProjectWithSources | undefined> {
+		const apiClient = appState.value.apiClient;
+		try {
+			const response = await apiClient?.blankProject();
+			return response?.project || undefined;
+		} catch (error) {
+			console.log('useProjectState: unable to get blank project', error);
+			return undefined;
+		}
+	}
+
 	async function createProject(project: Omit<Project, 'projectId'>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
@@ -109,7 +112,8 @@ export function useProjectState(appState: Signal<AppState>) {
 			if (response) {
 				projectState.value = {
 					...projectState.value,
-					projects: [...projectState.value.projects, response.project],
+					projects: [...projectState.value.projects, toProject(response.project)],
+					projectsWithSources: [...projectState.value.projectsWithSources, response.project],
 					loading: false,
 				};
 			}
@@ -126,11 +130,21 @@ export function useProjectState(appState: Signal<AppState>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
+			// Get current config to preserve other values
+			//const currentConfig = await apiClient?.getProjectConfig(projectId);
+
+			// Update project metadata
 			const response = await apiClient?.updateProject(projectId, updates);
+
 			if (response) {
 				projectState.value = {
 					...projectState.value,
-					projects: projectState.value.projects.map((p) => p.projectId === projectId ? response.project : p),
+					projects: projectState.value.projects.map((p) =>
+						p.projectId === projectId ? toProject(response.project) : p
+					),
+					projectsWithSources: projectState.value.projectsWithSources.map((p) =>
+						p.projectId === projectId ? response.project : p
+					),
 					loading: false,
 				};
 			}
@@ -151,6 +165,7 @@ export function useProjectState(appState: Signal<AppState>) {
 			projectState.value = {
 				...projectState.value,
 				projects: projectState.value.projects.filter((p) => p.projectId !== projectId),
+				projectsWithSources: projectState.value.projectsWithSources.filter((p) => p.projectId !== projectId),
 				loading: false,
 			};
 		} catch (error) {
@@ -263,6 +278,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		state: projectState,
 		selectedProjectId,
 		loadProjects,
+		getBlankProject,
 		createProject,
 		updateProject,
 		deleteProject,

@@ -15,6 +15,8 @@ interface FileBrowserProps {
 	viewMode?: 'column' | 'dropdown';
 	defaultExpanded?: boolean;
 	onSelectionValid?: (isValid: boolean, selectedPath?: string) => void;
+	alwaysShowPath?: boolean;
+	helpText?: string;
 }
 
 export function FileBrowser({
@@ -27,9 +29,17 @@ export function FileBrowser({
 	viewMode = 'column',
 	defaultExpanded,
 	onSelectionValid,
+	alwaysShowPath,
+	helpText,
 }: FileBrowserProps) {
 	// If using column view, render the ColumnFileBrowser
 	if (viewMode === 'column') {
+		//console.log('FileBrowser: rendering ColumnFileBrowser with props:', {
+		//	value,
+		//	rootPath,
+		//	type,
+		//	defaultExpanded,
+		//});
 		return (
 			<ColumnFileBrowser
 				value={value}
@@ -40,6 +50,8 @@ export function FileBrowser({
 				appState={appState}
 				defaultExpanded={defaultExpanded}
 				onSelectionValid={onSelectionValid}
+				alwaysShowPath={alwaysShowPath}
+				helpText={helpText}
 			/>
 		);
 	}

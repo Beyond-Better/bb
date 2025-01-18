@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.7] - 2025-01-18
+
+### Changed
+
+- Project editor has more configuration fields
+
+### Fixed
+
+- Propagating errors from LLM
+
+
 ## [0.6.6] - 2025-01-16
 
 ### Fixed

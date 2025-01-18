@@ -7,6 +7,7 @@ import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import type { SessionManager } from '../../auth/session.ts';
+import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
 	private listeners: Map<
@@ -160,11 +161,17 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}:`,
 						error,
 					);
-					this.eventManager.emit('projectEditor:conversationError', {
-						conversationId,
-						error: 'Error handling statement',
-						code: 'STATEMENT_ERROR',
-					});
+					if (!isLLMError(error)) {
+						// orchestratorController will emit conversationError for LLMError - we do it for all other types
+						const errorMessage = isError(error)
+							? `Error handling statement: ${error.message}`
+							: 'Error handling statement';
+						this.eventManager.emit('projectEditor:conversationError', {
+							conversationId,
+							error: errorMessage,
+							code: 'STATEMENT_ERROR',
+						});
+					}
 				}
 			} else if (task === 'cancel') {
 				logger.error(`WebSocketChatHandler: Cancelling statement for conversationId ${conversationId}`);
@@ -179,9 +186,12 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error cancelling operation for conversationId: ${conversationId}:`,
 						error,
 					);
+					const errorMessage = isError(error)
+						? `Error cancelling operation: ${error.message}`
+						: 'Error cancelling operation';
 					this.eventManager.emit('projectEditor:conversationError', {
 						conversationId,
-						error: 'Error cancelling operation',
+						error: errorMessage,
 						code: 'CANCELLATION_ERROR',
 					});
 				}

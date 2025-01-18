@@ -1,4 +1,4 @@
-import type { Project } from '../../hooks/useProjectState.ts';
+import type { Project } from 'shared/types/project.ts';
 import { setPath } from '../../hooks/useAppState.ts';
 
 interface ProjectListProps {
@@ -49,7 +49,7 @@ export function ProjectList({
 				<p>No projects found</p>
 				<a
 					href='/projects?new=true'
-					onClick={(e) => {
+					onClick={(_e) => {
 						setPath('/projects');
 					}}
 					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
@@ -67,7 +67,7 @@ export function ProjectList({
 				<div className='flex justify-between'>
 					<a
 						href='/projects'
-						onClick={(e) => {
+						onClick={(_e) => {
 							setPath('/projects');
 						}}
 						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
@@ -76,7 +76,7 @@ export function ProjectList({
 					</a>
 					<a
 						href='/projects?new=true'
-						onClick={(e) => {
+						onClick={(_e) => {
 							setPath('/projects');
 						}}
 						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'

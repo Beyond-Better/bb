@@ -1,5 +1,5 @@
 import { Signal } from '@preact/signals';
-import { useSignal } from '@preact/signals';
+import { signal } from '@preact/signals';
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import { FileBrowser } from '../FileBrowser.tsx';
@@ -7,6 +7,10 @@ import { FileBrowser } from '../FileBrowser.tsx';
 interface ProjectImporterProps {
 	appState: Signal<AppState>;
 }
+const findingProjects = signal(false);
+const foundProjects = signal<string[]>([]);
+const searchDirectory = signal('');
+const isDirectoryValid = signal(false);
 
 export function ProjectImporter({
 	appState,
@@ -15,11 +19,6 @@ export function ProjectImporter({
 		findV1Projects,
 		migrateAndAddProject,
 	} = useProjectState(appState);
-
-	const findingProjects = useSignal(false);
-	const foundProjects = useSignal<string[]>([]);
-	const searchDirectory = useSignal('');
-	const isDirectoryValid = useSignal(false);
 
 	const handleMigrateProject = async (projectPath: string) => {
 		try {
@@ -44,8 +43,8 @@ export function ProjectImporter({
 		findingProjects.value = true;
 		try {
 			const projects = await findV1Projects(searchDirectory.value);
-			console.log('Finding projects in:', projects);
 			foundProjects.value = projects;
+			console.log('Found projects in:', foundProjects.value);
 			findingProjects.value = false;
 		} finally {
 			findingProjects.value = false;
@@ -56,28 +55,6 @@ export function ProjectImporter({
 		<div className='mt-8 lg:mt-0 lg:w-[30rem] bg-white dark:bg-gray-800 rounded-lg p-6 lg:sticky lg:top-8 max-h-[calc(100vh-8rem)] overflow-y-auto'>
 			<div className='flex items-center justify-between mb-4'>
 				<h2 className='text-xl font-semibold dark:text-gray-200'>Import Projects</h2>
-				{
-					/* <button
-					className='text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center gap-2 text-sm'
-					onClick={() => isDirectoryValid.value = !isDirectoryValid.value}
-				>
-					<span>Browse Files</span>
-					<svg
-						xmlns='http://www.w3.org/2000/svg'
-						viewBox='0 0 20 20'
-						fill='currentColor'
-						className={`w-5 h-5 transition-transform ${
-							isDirectoryValid.value ? 'transform rotate-180' : ''
-						}`}
-					>
-						<path
-							fill-rule='evenodd'
-							d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'
-							clip-rule='evenodd'
-						/>
-					</svg>
-				</button> */
-				}
 			</div>
 
 			<div className='max-w-md space-y-4 pb-4'>
@@ -93,6 +70,7 @@ export function ProjectImporter({
 						viewMode='column'
 						appState={appState}
 						defaultExpanded={false}
+						helpText='Select the parent directory to search for your projects'
 						onSelectionValid={(isValid, selectedPath) => {
 							console.log('Directory selection changed:', { isValid, selectedPath });
 							isDirectoryValid.value = isValid;

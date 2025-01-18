@@ -1,5 +1,5 @@
 import type { Context } from '@oak/oak';
-import type { BillingPreview, Plan, Subscription } from '../../types/subscription.ts';
+import type { BillingPreview, Plan, Subscription } from 'shared/types/subscription.ts';
 import type { SessionManager } from '../../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 

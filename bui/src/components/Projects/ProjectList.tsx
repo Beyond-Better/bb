@@ -1,25 +1,29 @@
 import { Signal } from '@preact/signals';
 import { setPath } from '../../hooks/useAppState.ts';
-import { Project } from '../../hooks/useProjectState.ts';
+import { ProjectWithSources } from 'shared/types/project.ts';
+
+import { formatPathForDisplay } from '../../utils/path.utils.ts';
+import { useAppState } from '../../hooks/useAppState.ts';
 
 interface ProjectListProps {
-	projects: Signal<Project[]>;
+	projectsWithSources: Signal<ProjectWithSources[]>;
 	setSelectedProject: (projectId: string | null) => void;
-	handleEdit: (project: Project) => void;
-	handleDelete: (project: Project) => Promise<void>;
+	handleEdit: (project: ProjectWithSources) => void;
+	handleDelete: (project: ProjectWithSources) => Promise<void>;
 }
 
 export function ProjectList({
-	projects,
+	projectsWithSources,
 	setSelectedProject,
 	handleEdit,
 	handleDelete,
 }: ProjectListProps) {
+	const appState = useAppState();
 	return (
 		<div className='lg:w-[32rem] space-y-3 min-w-0'>
-			{projects.value.map((project: Project) => (
+			{projectsWithSources.value.map((projectWithSources: ProjectWithSources) => (
 				<div
-					key={project.projectId}
+					key={projectWithSources.projectId}
 					className='bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4'
 				>
 					<div className='flex items-center justify-between'>
@@ -30,18 +34,42 @@ export function ProjectList({
 								className='block'
 								onClick={(_e) => {
 									setPath('/app/chat');
-									setSelectedProject(project.projectId);
+									setSelectedProject(projectWithSources.projectId);
 								}}
 							>
 								<h3 className='text-lg font-medium text-gray-900 dark:text-gray-100 truncate'>
-									{project.name}
+									{projectWithSources.name}
 								</h3>
 								<div className='mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4'>
-									<span className='truncate'>{project.path}</span>
+									<span className='truncate flex items-center'>
+										<svg
+											xmlns='http://www.w3.org/2000/svg'
+											fill='none'
+											viewBox='0 0 24 24'
+											strokeWidth={1.5}
+											stroke='currentColor'
+											className='w-4 h-4'
+										>
+											<path
+												strokeLinecap='round'
+												strokeLinejoin='round'
+												d='M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25'
+											/>
+										</svg>
+										{projectWithSources.path !== '.' && (
+											<>
+												<span className='mx-1'>/</span>
+												{formatPathForDisplay(
+													projectWithSources.path,
+													appState.value.systemMeta?.pathSeparator,
+												)}
+											</>
+										)}
+									</span>
 									<span className='flex items-center'>
 										<span className='w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-600 mr-2'>
 										</span>
-										{project.type}
+										{projectWithSources.type}
 									</span>
 								</div>
 							</a>
@@ -50,7 +78,7 @@ export function ProjectList({
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
-									handleEdit(project);
+									handleEdit(projectWithSources);
 								}}
 								className='p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors duration-200'
 								title='Edit project'
@@ -73,7 +101,7 @@ export function ProjectList({
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
-									handleDelete(project);
+									handleDelete(projectWithSources);
 								}}
 								className='p-2 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 rounded-full hover:bg-red-50 dark:hover:bg-red-900/50 transition-colors duration-200'
 								title='Delete project'

@@ -1,7 +1,7 @@
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
-import { ApiStatus, Conversation, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
-import type { Project, ProjectStats } from '../hooks/useProjectState.ts';
+import { ApiStatus, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { ProjectStats } from 'shared/types/project.ts';
 import type { WebSocketStatus } from './websocket.types.ts';
 
 export type CacheStatus = 'active' | 'expiring' | 'inactive';

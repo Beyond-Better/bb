@@ -37,6 +37,7 @@ export interface CreateProjectData {
 	anthropicApiKey?: string;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	llmGuidelinesFile?: string;
 	defaultModels?: DefaultModels;
 	useTls?: boolean;
 }
@@ -145,6 +146,7 @@ export interface GlobalConfig {
 	version: ConfigVersion;
 	myPersonsName: string;
 	myAssistantsName: string;
+	llmGuidelinesFile?: string;
 	defaultModels: DefaultModels;
 	noBrowser: boolean;
 	api: ApiConfig;

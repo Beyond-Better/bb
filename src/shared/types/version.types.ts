@@ -24,3 +24,9 @@ export const DEFAULT_VERSION_INFO: VersionInfo = {
 	installLocation: 'system', // Default assumption
 	canAutoUpdate: false, // Default to false until confirmed
 };
+
+export interface SystemMeta {
+	os: 'windows' | 'darwin' | 'linux';
+	pathSeparator: string;
+	apiVersion: string;
+}
