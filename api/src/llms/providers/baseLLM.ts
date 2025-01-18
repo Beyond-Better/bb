@@ -315,7 +315,7 @@ class LLM {
 		const retrySpeakOptions = { ...speakOptions };
 		let retries = 0;
 		let failReason = '';
-		let failDetails = {};
+		let failDetails: Record<string, unknown> | LLMErrorOptions | undefined = {};
 		let totalProviderRequests = 0;
 		let llmSpeakWithResponse: LLMSpeakWithResponse | null = null;
 
@@ -354,9 +354,12 @@ class LLM {
 						failReason = `Quota Exceeded: ${error.options.args.error.message}`;
 						failDetails = error.options.args.error.details;
 						break; // Unrecoverable error
-					} else {
+					} else if (error.options?.args?.error) {
 						failReason = `LLM error: ${error.options.args.error.message}`;
 						failDetails = error.options.args.error.details;
+					} else {
+						failReason = `LLM error: ${error.message}`;
+						failDetails = error.options;
 					}
 				} else {
 					failReason = `caught error: ${(error as Error)}`;

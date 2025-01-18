@@ -270,7 +270,7 @@ class BbLLM extends LLM {
 	 */
 	public override async speakWith(
 		messageParams: LLMProviderMessageRequest,
-		_interaction: LLMInteraction,
+		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
 			//logger.info('BbLLM: messageParams', messageParams);
@@ -281,7 +281,7 @@ class BbLLM extends LLM {
 			});
 			//logger.info('BbLLM: llms-bb-data', data);
 			//logger.info('BbLLM: llms-bb-error', error);
-			
+
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.settings.api?.logLevel === 'debug1') {
 			//	interaction.conversationPersistence.writeLLMRequest({
@@ -294,7 +294,7 @@ class BbLLM extends LLM {
 
 			if (error) {
 				//logger.error('BbLLM: Error calling BB API: ', {data, error});
-				let errorBody = '';
+				let errorBody = {};
 				try {
 					if (error?.context) {
 						errorBody = await error.context.json();
@@ -323,9 +323,11 @@ class BbLLM extends LLM {
 					ErrorType.LLM,
 					`Received a non-200 from BB API: `,
 					{
+						name: 'BB API Error',
 						model: messageParams.model,
 						provider: this.llmProviderName,
-						response: bbResponseMessage,
+						args: { bbResponse: bbResponseMessage },
+						conversationId: interaction.id,
 					} as LLMErrorOptions,
 				);
 			}

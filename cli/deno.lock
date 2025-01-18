@@ -43,6 +43,7 @@
     "npm:@anthropic-ai/sdk@0.33.1": "0.33.1",
     "npm:@anthropic-ai/tokenizer@*": "0.0.4",
     "npm:@supabase/supabase-js@2": "2.47.12",
+    "npm:@types/node@*": "22.5.4",
     "npm:glob-to-regexp@*": "0.4.1",
     "npm:lru-cache@*": "11.0.2",
     "npm:mkcert@*": "3.2.0",

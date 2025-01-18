@@ -7,7 +7,7 @@ import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import type { SessionManager } from '../../auth/session.ts';
-import { isError, isLLMError, type LLMError } from 'api/errors/error.ts';
+import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
 	private listeners: Map<
@@ -163,7 +163,7 @@ class WebSocketChatHandler {
 					);
 					if (!isLLMError(error)) {
 						// orchestratorController will emit conversationError for LLMError - we do it for all other types
-						const errorMessage = isError()
+						const errorMessage = isError(error)
 							? `Error handling statement: ${error.message}`
 							: 'Error handling statement';
 						this.eventManager.emit('projectEditor:conversationError', {
@@ -186,7 +186,7 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error cancelling operation for conversationId: ${conversationId}:`,
 						error,
 					);
-					const errorMessage = isError()
+					const errorMessage = isError(error)
 						? `Error cancelling operation: ${error.message}`
 						: 'Error cancelling operation';
 					this.eventManager.emit('projectEditor:conversationError', {

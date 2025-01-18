@@ -37,7 +37,8 @@ import type {
 	TokenUsage,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { isLLMError, type LLMError } from 'api/errors/error.ts';
+import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
+import { createError } from 'api/utils/error.ts';
 
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
@@ -208,14 +209,9 @@ class OrchestratorController {
 		} else {
 			// Always log the full error for debugging
 			logger.error(`OrchestratorController: LLM communication error:`, error);
-			const errorDetails = {
-				message: String(error),
-				code: 'UNKNOWN_ERROR',
-				args: {},
-			};
 			return createError(
 				ErrorType.API,
-				'Unknown error type.',
+				`Unknown error type: ${error.message}`,
 				{
 					model: interaction.model,
 					//provider: this.llmProviderName,

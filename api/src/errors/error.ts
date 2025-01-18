@@ -1,7 +1,8 @@
-import type { LLMProvider } from 'api/types.ts';
+import type { BBLLMResponse, LLMProvider } from 'api/types.ts';
 import type { ConversationId } from 'shared/types.ts';
 export type { ErrorObject as AjvErrorObject } from 'ajv';
 import { Status } from '@oak/oak';
+export { isError } from 'shared/error.ts';
 
 export enum ErrorType {
 	CommandExecution = 'CommandExecution',
@@ -54,6 +55,12 @@ export interface LLMErrorOptions extends ErrorOptions {
 		status?: number;
 		retries?: { max: number; current: number };
 		reason?: string;
+		error?: {
+			type: string;
+			message: string;
+			details?: Record<string, unknown>;
+		};
+		bbResponse?: BBLLMResponse;
 	};
 	conversationId: ConversationId;
 }
