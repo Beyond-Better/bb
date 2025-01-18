@@ -18,6 +18,7 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts && deno cache src/llms/tools/*.tool/tests/tool.test.ts",
 		"install-deps": "deno install --entrypoint src/main.ts && deno install --entrypoint tests/deps.ts && deno install --entrypoint src/llms/tools/*.tool/tests/tool.test.ts"
 	},
+	"lock": false,
 	"importMap": "../import_map.json",
 	"unstable": [
 		"kv"

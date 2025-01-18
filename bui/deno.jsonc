@@ -30,6 +30,7 @@
 	"exclude": [
 		"**/src/_fresh/*"
 	],
+	"lock": false,
 	"importMap": "../import_map.json",
 	"compilerOptions": {
 		"jsx": "react-jsx",

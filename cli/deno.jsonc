@@ -14,10 +14,9 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts",
 		"install-deps": "deno install --entrypoint src/main.ts && deno install --entrypoint tests/deps.ts"
 	},
+	"lock": false,
 	"importMap": "../import_map.json",
-	"unstable": [
-		"kv"
-	],
+	"unstable": ["kv"],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -25,24 +24,15 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": [
-			"src/",
-			"tests/"
-		],
-		"exclude": [
-			"src/testdata/",
-			"src/fixtures/**/*.ts"
-		]
+		"include": ["src/", "tests/"],
+		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
 	},
 	"lint": {
 		"files": {
 			"include": []
 		},
 		"rules": {
-			"exclude": [
-				"require-await",
-				"no-var"
-			]
+			"exclude": ["require-await", "no-var"]
 		}
 	}
 }
