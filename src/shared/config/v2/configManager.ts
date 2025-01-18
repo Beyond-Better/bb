@@ -1624,6 +1624,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		return redactedConfig as ProjectConfig;
 	}
 
+	/*
 	private redactSensitiveInfo(obj: Record<string, any>): Record<string, any> {
 		const redactedObj: Record<string, any> = {};
 
@@ -1639,9 +1640,40 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 		return redactedObj;
 	}
+	 */
+
+	private redactSensitiveInfo(obj: Record<string, any>, parentKey = ''): Record<string, any> {
+		const redactedObj: Record<string, any> = {};
+
+		for (const [key, value] of Object.entries(obj)) {
+			const isCurrentKeySensitive = this.isSensitiveKey(key);
+			const isParentKeySensitive = this.isSensitiveKey(parentKey);
+
+			if (isCurrentKeySensitive && typeof value === 'object' && value !== null) {
+				// Preserve structure of sensitive objects (e.g., llmKeys), but redact their values
+				redactedObj[key] = Object.fromEntries(
+					Object.keys(value).map((k) => [k, '[REDACTED]']),
+				);
+			} else if (isCurrentKeySensitive) {
+				// Direct redaction for sensitive primitive values
+				redactedObj[key] = '[REDACTED]';
+			} else if (typeof value === 'object' && value !== null) {
+				// Handle nested objects
+				redactedObj[key] = isParentKeySensitive ? '[REDACTED]' : this.redactSensitiveInfo(value, key);
+			} else {
+				// Handle primitive values
+				redactedObj[key] = isParentKeySensitive ? '[REDACTED]' : value;
+			}
+		}
+
+		//console.log('ConfigManager: redactSensitiveInfo: ', redactedObj);
+		return redactedObj;
+	}
 
 	private isSensitiveKey(key: string): boolean {
 		const sensitivePatterns = [
+			/llmKeys/i,
+			/supabase\w+key/i,
 			/api[_-]?key/i,
 			/secret/i,
 			/password/i,
