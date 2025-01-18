@@ -96,7 +96,7 @@ function ConfigValueField<T extends string | number | undefined>({
 						value.project ? 'border-blue-300 dark:border-blue-600' : 'dark:border-gray-700'
 					} bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100`}
 				/>
-				{value.project !== null &&value.project !== undefined && (
+				{value.project !== null && value.project !== undefined && (
 					<button
 						type='button'
 						onClick={() => {
