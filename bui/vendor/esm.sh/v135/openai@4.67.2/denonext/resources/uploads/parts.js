@@ -1,0 +1,3 @@
+/* esm.sh - esbuild bundle(openai@4.67.2/resources/uploads/parts) denonext production */
+import{APIResource as i}from"/v135/openai@4.67.2/denonext/resource.js";import*as r from"/v135/openai@4.67.2/denonext/core.js";var t=class extends i{create(o,s,p){return this._client.post(`/uploads/${o}/parts`,r.multipartFormRequestOptions({body:s,...p}))}};t||(t={});export{t as Parts};
+//# sourceMappingURL=parts.js.map

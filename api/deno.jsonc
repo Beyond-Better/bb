@@ -14,8 +14,11 @@
 		"format": "deno fmt",
 		"check-format": "deno fmt --check",
 		"check-types": "deno check src/main.ts src/llms/tools/*.tool/*",
-		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts && deno cache src/llms/tools/*.tool/tests/tool.test.ts"
+		"check-types-deploy": "deno check --no-lock src/main.ts src/llms/tools/*.tool/*",
+		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts && deno cache src/llms/tools/*.tool/tests/tool.test.ts",
+		"install-deps": "deno install --entrypoint src/main.ts && deno install --entrypoint tests/deps.ts && deno install --entrypoint src/llms/tools/*.tool/tests/tool.test.ts"
 	},
+	"vendor": true,
 	"importMap": "../import_map.json",
 	"unstable": [
 		"kv"

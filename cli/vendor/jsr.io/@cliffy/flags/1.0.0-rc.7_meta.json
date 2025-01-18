@@ -1,0 +1,693 @@
+{
+  "manifest": {
+    "/test/option/unknown_test.ts": {
+      "size": 576,
+      "checksum": "sha256-773da9f0b90192cc48b33d771c46a1ccb5f9849dd272229444385f0d85dc52c3"
+    },
+    "/test/option/conflicts_test.ts": {
+      "size": 1988,
+      "checksum": "sha256-7cb239f202f38da9510fee95b692ada1790f5e27c53a7bcab929ef2c739edcd1"
+    },
+    "/types/number.ts": {
+      "size": 377,
+      "checksum": "sha256-610936e2d29de7c8c304b65489a75ebae17b005c6122c24e791fbed12444d51e"
+    },
+    "/test/option/aliases_test.ts": {
+      "size": 2180,
+      "checksum": "sha256-3709de69d57c6802d7b042213f3a41e6af4c6fe396dd37610cf82d5a28c4b383"
+    },
+    "/test/flags/dotted_options_test.ts": {
+      "size": 2782,
+      "checksum": "sha256-250f57af8263723784106c9d15a3096681f0e1652481da17e69343a64673703a"
+    },
+    "/test/option/default_test.ts": {
+      "size": 3636,
+      "checksum": "sha256-bf36118d5c53569eeb4d3f2d30985f2a5d4092d76d396c7f866479e997497cd2"
+    },
+    "/test/option/depends_test.ts": {
+      "size": 5286,
+      "checksum": "sha256-0a4018413879d5a87a9ff5a79fd01a85908ba88a84aa8cdc86db9534f040d65f"
+    },
+    "/types/string.ts": {
+      "size": 218,
+      "checksum": "sha256-e89b6a5ce322f65a894edecdc48b44956ec246a1d881f03e97bbda90dd8638c5"
+    },
+    "/types.ts": {
+      "size": 5169,
+      "checksum": "sha256-9e2f75edff2217d972fc711a21676a59dfd88378da2f1ace440ea84c07db1dcc"
+    },
+    "/test/type/integer_test.ts": {
+      "size": 2104,
+      "checksum": "sha256-af04fb7d208f022f1d8258490c57098680ae0978201227232b3f9f935d1cd4b9"
+    },
+    "/mod.ts": {
+      "size": 876,
+      "checksum": "sha256-a4bd6d3d2cdd01d2ed74da519fdadc755d8b26c4b95c3954b3f9e137e089616c"
+    },
+    "/test/option/standalone_test.ts": {
+      "size": 1172,
+      "checksum": "sha256-e50dba0ae1055846681545d7f2d8be934c4442c204c8ad251d143b75d7c6e307"
+    },
+    "/test/setting/stop_early_test.ts": {
+      "size": 2776,
+      "checksum": "sha256-18f9b2127cae43536c7dca4d81aa0d429ec8d9627dd65918cd175f485befa1c8"
+    },
+    "/test/setting/stop_on_unknown_test.ts": {
+      "size": 1201,
+      "checksum": "sha256-9d9e814c22b13a0bfd0b6c18ce1002f68ce462950cc087249754242bfef3c637"
+    },
+    "/README.md": {
+      "size": 75,
+      "checksum": "sha256-da31d61bd3b96df7dcd2f1744e895e2ca2d72648ad5c903d1cf7ba618eda07a8"
+    },
+    "/test/option/required_test.ts": {
+      "size": 2249,
+      "checksum": "sha256-63fc887b807dc1904e77ef9f493b62eeee16039132ad2edfe9a3ae1925f94ac7"
+    },
+    "/test/option/equls_sign_test.ts": {
+      "size": 2614,
+      "checksum": "sha256-6b01fc07735309d39bffb7b64579f8e7d433be9ae6ac1ace61a18c0eef1c985a"
+    },
+    "/test/option/negatable_test.ts": {
+      "size": 1309,
+      "checksum": "sha256-17896420aba180c874dfee3adaf80fbba89baaea075cf43260bd75c4b3346161"
+    },
+    "/_errors.ts": {
+      "size": 5562,
+      "checksum": "sha256-f1fbb6bfa009e7950508c9d491cfb4a5551027d9f453389606adb3f2327d048f"
+    },
+    "/test/option/requires_test.ts": {
+      "size": 2494,
+      "checksum": "sha256-36afbed7b54db2df865c99599c6574e401b0aec683727c7c8f1c26fea702360b"
+    },
+    "/_validate_flags.ts": {
+      "size": 6200,
+      "checksum": "sha256-3a509f76df56bc324df7eaf1dab882ce7d5b94e7a315aa5312b8c419862f60ad"
+    },
+    "/test/setting/option_test.ts": {
+      "size": 1070,
+      "checksum": "sha256-6d63bacb3de05beb37513a9e579482e6ade430f4b65eb72966fc016411692c88"
+    },
+    "/deno.json": {
+      "size": 82,
+      "checksum": "sha256-a9d6b7048b9c48a8972c54b103018bb11a172512c3005c0757273d5534aaf6ef"
+    },
+    "/test/setting/allow_empty_test.ts": {
+      "size": 983,
+      "checksum": "sha256-956f517f5f44de894aa613d150b006807afc7370f442807f47b7d01bb4280e69"
+    },
+    "/test/type/no_value_test.ts": {
+      "size": 1851,
+      "checksum": "sha256-6c96307150eb87197490a208889087feca6b9ba91779abac799efb9f9d52c50f"
+    },
+    "/test/type/number_test.ts": {
+      "size": 1867,
+      "checksum": "sha256-f4ee83b8aa00ef55b398a8ee7046289c7778923089c58eca4da942d861964037"
+    },
+    "/test/option/collect_test.ts": {
+      "size": 2911,
+      "checksum": "sha256-d025531a53522f05654e060f01702f9f8e20dabd8ec7a7608497a9f2a64f65fd"
+    },
+    "/types/integer.ts": {
+      "size": 380,
+      "checksum": "sha256-b60d4d590f309ddddf066782d43e4dc3799f0e7d08e5ede7dc62a5ee94b9a6d9"
+    },
+    "/test/option/value_test.ts": {
+      "size": 2669,
+      "checksum": "sha256-803f8a807a4f0da47e80fd64306f6dc87c29344ec50c6fbdc886bf41a2ec8037"
+    },
+    "/_utils.ts": {
+      "size": 2817,
+      "checksum": "sha256-8d57e1ab13def0f2d450af8a8db30b270ca3aee4962999c55ced457229d9973c"
+    },
+    "/test/option/variadic_test.ts": {
+      "size": 4241,
+      "checksum": "sha256-a6c9a9c9d258d08882330f04ab11ac993e310ada17e31ec1f0f3ffe69507a422"
+    },
+    "/test/type/boolean_test.ts": {
+      "size": 3858,
+      "checksum": "sha256-05a853ad475c4a1c4ed637416dc3c8cb902df4af76fe393d01c4f008a811f814"
+    },
+    "/LICENSE": {
+      "size": 1094,
+      "checksum": "sha256-1f4989357acfacf95ed9daf1b67fe1167fae6db7239b57a5ca3a4efd217e637e"
+    },
+    "/flags.ts": {
+      "size": 13673,
+      "checksum": "sha256-3e62c4a9756b5705aada29e7e94847001356b3a83cd18ad56f4207387a71cf51"
+    },
+    "/test/type/string_test.ts": {
+      "size": 4968,
+      "checksum": "sha256-6d359a22ef8398efbf89b2bc405ba503ce7892632fe9f4f5c49ea318e5ad48bf"
+    },
+    "/deprecated.ts": {
+      "size": 1439,
+      "checksum": "sha256-a72a35de3cc7314e5ebea605ca23d08385b218ef171c32a3f135fb4318b08126"
+    },
+    "/types/boolean.ts": {
+      "size": 465,
+      "checksum": "sha256-4c026dd66ec9c5436860dc6d0241427bdb8d8e07337ad71b33c08193428a2236"
+    }
+  },
+  "moduleGraph2": {
+    "/_utils.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              0,
+              33
+            ],
+            [
+              0,
+              45
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "jsr:/@std/text@~1.0.7/closest-string",
+          "specifierRange": [
+            [
+              1,
+              30
+            ],
+            [
+              1,
+              68
+            ]
+          ]
+        }
+      ]
+    },
+    "/deprecated.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              11,
+              7
+            ],
+            [
+              11,
+              19
+            ]
+          ]
+        }
+      ]
+    },
+    "/types.ts": {},
+    "/_validate_flags.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_utils.ts",
+          "specifierRange": [
+            [
+              0,
+              65
+            ],
+            [
+              0,
+              78
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_errors.ts",
+          "specifierRange": [
+            [
+              8,
+              7
+            ],
+            [
+              8,
+              21
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              9,
+              58
+            ],
+            [
+              9,
+              70
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              10,
+              50
+            ],
+            [
+              10,
+              62
+            ]
+          ]
+        }
+      ]
+    },
+    "/types/boolean.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../types.ts",
+          "specifierRange": [
+            [
+              0,
+              48
+            ],
+            [
+              0,
+              61
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../_errors.ts",
+          "specifierRange": [
+            [
+              1,
+              33
+            ],
+            [
+              1,
+              48
+            ]
+          ]
+        }
+      ]
+    },
+    "/flags.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_utils.ts",
+          "specifierRange": [
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              20
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_errors.ts",
+          "specifierRange": [
+            [
+              18,
+              7
+            ],
+            [
+              18,
+              21
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deprecated.ts",
+          "specifierRange": [
+            [
+              19,
+              27
+            ],
+            [
+              19,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              27,
+              7
+            ],
+            [
+              27,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./types/boolean.ts",
+          "specifierRange": [
+            [
+              28,
+              24
+            ],
+            [
+              28,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./types/number.ts",
+          "specifierRange": [
+            [
+              29,
+              23
+            ],
+            [
+              29,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./types/string.ts",
+          "specifierRange": [
+            [
+              30,
+              23
+            ],
+            [
+              30,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_validate_flags.ts",
+          "specifierRange": [
+            [
+              31,
+              30
+            ],
+            [
+              31,
+              52
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./types/integer.ts",
+          "specifierRange": [
+            [
+              32,
+              24
+            ],
+            [
+              32,
+              44
+            ]
+          ]
+        }
+      ]
+    },
+    "/types/integer.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../types.ts",
+          "specifierRange": [
+            [
+              0,
+              48
+            ],
+            [
+              0,
+              61
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../_errors.ts",
+          "specifierRange": [
+            [
+              1,
+              33
+            ],
+            [
+              1,
+              48
+            ]
+          ]
+        }
+      ]
+    },
+    "/types/string.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../types.ts",
+          "specifierRange": [
+            [
+              0,
+              48
+            ],
+            [
+              0,
+              61
+            ]
+          ]
+        }
+      ]
+    },
+    "/_errors.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_utils.ts",
+          "specifierRange": [
+            [
+              0,
+              58
+            ],
+            [
+              0,
+              71
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              1,
+              48
+            ],
+            [
+              1,
+              60
+            ]
+          ]
+        }
+      ]
+    },
+    "/mod.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./flags.ts",
+          "specifierRange": [
+            [
+              0,
+              27
+            ],
+            [
+              0,
+              39
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              12,
+              7
+            ],
+            [
+              12,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types/boolean.ts",
+          "specifierRange": [
+            [
+              13,
+              24
+            ],
+            [
+              13,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types/integer.ts",
+          "specifierRange": [
+            [
+              14,
+              24
+            ],
+            [
+              14,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types/number.ts",
+          "specifierRange": [
+            [
+              15,
+              23
+            ],
+            [
+              15,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types/string.ts",
+          "specifierRange": [
+            [
+              16,
+              23
+            ],
+            [
+              16,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./deprecated.ts",
+          "specifierRange": [
+            [
+              27,
+              7
+            ],
+            [
+              27,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./_errors.ts",
+          "specifierRange": [
+            [
+              34,
+              7
+            ],
+            [
+              34,
+              21
+            ]
+          ]
+        }
+      ]
+    },
+    "/types/number.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../types.ts",
+          "specifierRange": [
+            [
+              0,
+              48
+            ],
+            [
+              0,
+              61
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../_errors.ts",
+          "specifierRange": [
+            [
+              1,
+              33
+            ],
+            [
+              1,
+              48
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "exports": {
+    ".": "./mod.ts"
+  }
+}

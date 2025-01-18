@@ -1,0 +1,3 @@
+/* esm.sh - esbuild bundle(openai@4.67.2/resources/fine-tuning/jobs/checkpoints) denonext production */
+import{APIResource as n}from"/v135/openai@4.67.2/denonext/resource.js";import{isRequestOptions as p}from"/v135/openai@4.67.2/denonext/core.js";import{CursorPage as c}from"/v135/openai@4.67.2/denonext/pagination.js";var s=class extends n{list(o,e={},r){return p(e)?this.list(o,{},e):this._client.getAPIList(`/fine_tuning/jobs/${o}/checkpoints`,t,{query:e,...r})}},t=class extends c{};(function(i){i.FineTuningJobCheckpointsPage=t})(s||(s={}));export{s as Checkpoints,t as FineTuningJobCheckpointsPage};
+//# sourceMappingURL=checkpoints.js.map
