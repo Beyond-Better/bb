@@ -53,7 +53,7 @@ jobs:
       - name: Build site
         run: |
           cd bui/src/
-          deno task build
+          deno task fresh-build
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
