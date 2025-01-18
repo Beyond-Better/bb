@@ -21,3 +21,5 @@ dui/.vite
 */.bb/backups*
 
 docs/.obsidian
+
+node_modules/

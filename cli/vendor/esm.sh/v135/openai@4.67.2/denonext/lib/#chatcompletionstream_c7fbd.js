@@ -1,0 +1,3 @@
+/* esm.sh - esbuild bundle(openai@4.67.2/lib/ChatCompletionStreamingRunner) denonext production */
+import{ChatCompletionStream as a}from"/v135/openai@4.67.2/denonext/lib/ChatCompletionStream.js";var u=class s extends a{static fromReadableStream(r){let e=new s(null);return e._run(()=>e._fromReadableStream(r)),e}static runFunctions(r,e,t){let n=new s(null),o={...t,headers:{...t?.headers,"X-Stainless-Helper-Method":"runFunctions"}};return n._run(()=>n._runFunctions(r,e,o)),n}static runTools(r,e,t){let n=new s(e),o={...t,headers:{...t?.headers,"X-Stainless-Helper-Method":"runTools"}};return n._run(()=>n._runTools(r,e,o)),n}};export{u as ChatCompletionStreamingRunner};
+//# sourceMappingURL=ChatCompletionStreamingRunner.js.map

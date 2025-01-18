@@ -1,0 +1,398 @@
+{
+  "manifest": {
+    "/to_kebab_case_test.ts": {
+      "size": 1012,
+      "checksum": "sha256-fcd118a877500db3f3a8efa3f15dc5c9b6612368de36e8f2fc57484a93b1d196"
+    },
+    "/closest_string_test.ts": {
+      "size": 1202,
+      "checksum": "sha256-5c0a0d99839201b830b90adc68351712592a9e2ae612da92c8ad26b4d2184c0a"
+    },
+    "/_util_test.ts": {
+      "size": 4772,
+      "checksum": "sha256-0206e950451ab28f51c795306c9e77bd4404ed59890a7bb226bddde73c987a15"
+    },
+    "/to_pascal_case.ts": {
+      "size": 686,
+      "checksum": "sha256-aafd92bb8d507005be00ad8fa30fe5ccdf99740828318c3dc21a1ae10477da74"
+    },
+    "/word_similarity_sort_test.ts": {
+      "size": 1246,
+      "checksum": "sha256-05de2eb655b98a6c7453f9c6d0c6ebe6ee0ae7dbdd55dd397e60b8a6f3835da1"
+    },
+    "/compare_similarity.ts": {
+      "size": 2163,
+      "checksum": "sha256-8a2626d5c760497a1c604a29c7e98958010c4a75f77104e7525852a64b62a398"
+    },
+    "/to_kebab_case.ts": {
+      "size": 663,
+      "checksum": "sha256-0117d19e31f822edcf02fd92068cf89352c97f7b56363097db506a58bedc89d5"
+    },
+    "/unstable_slugify_test.ts": {
+      "size": 6160,
+      "checksum": "sha256-8a87793ccfa2d51b076e8b013b790c627d68a6ad8a42cded19dd7220fb9541d9"
+    },
+    "/deno.json": {
+      "size": 610,
+      "checksum": "sha256-188bbb53db61aed0b319a0f88376978ef1c6df0b4be093f9e66ecd4715b3a231"
+    },
+    "/to_snake_case.ts": {
+      "size": 663,
+      "checksum": "sha256-7149f9e9b8aeb747d596e67d43104f91dae24ca26be3c7571c23e81d346d5b84"
+    },
+    "/levenshtein_distance_test.ts": {
+      "size": 2527,
+      "checksum": "sha256-3da38ceeff9c6ef250fe706bd0fbf30ef6b6ceb692e424b404df6e94091359b7"
+    },
+    "/word_similarity_sort.ts": {
+      "size": 1895,
+      "checksum": "sha256-dbcda64ea8d805141e7566078971370b180ebc2ed2b202bdfd3052591352c7ce"
+    },
+    "/mod.ts": {
+      "size": 862,
+      "checksum": "sha256-5686d68baf00d22426f5fa6466d96c48a5ab22ec51996fee7fb31eebe4544064"
+    },
+    "/levenshtein_distance.ts": {
+      "size": 3776,
+      "checksum": "sha256-3bcbd4fc4be2d3d96b4a466c1f0f46b979d4de66153b314d5c0e666819f25dfa"
+    },
+    "/_util.ts": {
+      "size": 953,
+      "checksum": "sha256-c08dc3f73aa76583107bb221de7dacb18d77cbcdbd5eab4d75b25317e4c779ac"
+    },
+    "/to_snake_case_test.ts": {
+      "size": 1200,
+      "checksum": "sha256-7ffa8f28837b5ab22bd8ec971bca1a7f1a129e2658f2ecf5f382c07419165251"
+    },
+    "/unstable_to_constant_case.ts": {
+      "size": 798,
+      "checksum": "sha256-67a49c40fe6c31633dc8b1a738879c876376d1c1d309662a5edb86718ecd897d"
+    },
+    "/unstable_slugify.ts": {
+      "size": 4264,
+      "checksum": "sha256-14ec84dee633ad5cfa7cf62e660e7e60a8b878fe8c3dd576c19c7c3cf3b8faaa"
+    },
+    "/closest_string.ts": {
+      "size": 2267,
+      "checksum": "sha256-a7b468cd4996129c9a4f6cabbe665cc89bfbd3aa34033d20ef87ee931751aa51"
+    },
+    "/to_camel_case_test.ts": {
+      "size": 1001,
+      "checksum": "sha256-61e08b564e8185f4207b033f8246a0eeb57f114d01ac42e6196dd496b2595ada"
+    },
+    "/LICENSE": {
+      "size": 1075,
+      "checksum": "sha256-0961f97da6619d5fe9ddb98649191d5ca6e958856ea5252f4cce7c9b85513819"
+    },
+    "/unstable_to_constant_case_test.ts": {
+      "size": 960,
+      "checksum": "sha256-0e80f05002beb34d52becf0c53e4dce5e2c973395e7f29ab7280fdaadc79c95a"
+    },
+    "/to_camel_case.ts": {
+      "size": 742,
+      "checksum": "sha256-2a19d1aeab15390a25929f3c45ada720c0653329658b079a8917e98751c35348"
+    },
+    "/to_pascal_case_test.ts": {
+      "size": 1217,
+      "checksum": "sha256-8c6c7f1ab1ad06bb6fd4786804df64acb81c13cadd9c3b6d2aa0e1f93b7523b2"
+    },
+    "/compare_similarity_test.ts": {
+      "size": 697,
+      "checksum": "sha256-545336746b36610f123c6da2ca65e99d7d3bfe13d2929060994cc175a445009b"
+    }
+  },
+  "moduleGraph2": {
+    "/_util.ts": {},
+    "/word_similarity_sort.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./compare_similarity.ts",
+          "specifierRange": [
+            [
+              5,
+              7
+            ],
+            [
+              5,
+              32
+            ]
+          ]
+        }
+      ]
+    },
+    "/unstable_to_constant_case.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_util.ts",
+          "specifierRange": [
+            [
+              3,
+              29
+            ],
+            [
+              3,
+              41
+            ]
+          ]
+        }
+      ]
+    },
+    "/compare_similarity.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./levenshtein_distance.ts",
+          "specifierRange": [
+            [
+              2,
+              36
+            ],
+            [
+              2,
+              63
+            ]
+          ]
+        }
+      ]
+    },
+    "/mod.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./levenshtein_distance.ts",
+          "specifierRange": [
+            [
+              21,
+              14
+            ],
+            [
+              21,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./closest_string.ts",
+          "specifierRange": [
+            [
+              22,
+              14
+            ],
+            [
+              22,
+              35
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./compare_similarity.ts",
+          "specifierRange": [
+            [
+              23,
+              14
+            ],
+            [
+              23,
+              39
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./word_similarity_sort.ts",
+          "specifierRange": [
+            [
+              24,
+              14
+            ],
+            [
+              24,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./to_camel_case.ts",
+          "specifierRange": [
+            [
+              25,
+              14
+            ],
+            [
+              25,
+              34
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./to_kebab_case.ts",
+          "specifierRange": [
+            [
+              26,
+              14
+            ],
+            [
+              26,
+              34
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./to_pascal_case.ts",
+          "specifierRange": [
+            [
+              27,
+              14
+            ],
+            [
+              27,
+              35
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./to_snake_case.ts",
+          "specifierRange": [
+            [
+              28,
+              14
+            ],
+            [
+              28,
+              34
+            ]
+          ]
+        }
+      ]
+    },
+    "/to_kebab_case.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_util.ts",
+          "specifierRange": [
+            [
+              3,
+              29
+            ],
+            [
+              3,
+              41
+            ]
+          ]
+        }
+      ]
+    },
+    "/to_pascal_case.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_util.ts",
+          "specifierRange": [
+            [
+              3,
+              45
+            ],
+            [
+              3,
+              57
+            ]
+          ]
+        }
+      ]
+    },
+    "/to_camel_case.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_util.ts",
+          "specifierRange": [
+            [
+              3,
+              45
+            ],
+            [
+              3,
+              57
+            ]
+          ]
+        }
+      ]
+    },
+    "/unstable_slugify.ts": {},
+    "/closest_string.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./levenshtein_distance.ts",
+          "specifierRange": [
+            [
+              2,
+              36
+            ],
+            [
+              2,
+              63
+            ]
+          ]
+        }
+      ]
+    },
+    "/levenshtein_distance.ts": {},
+    "/to_snake_case.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./_util.ts",
+          "specifierRange": [
+            [
+              3,
+              29
+            ],
+            [
+              3,
+              41
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "exports": {
+    ".": "./mod.ts",
+    "./closest-string": "./closest_string.ts",
+    "./compare-similarity": "./compare_similarity.ts",
+    "./levenshtein-distance": "./levenshtein_distance.ts",
+    "./unstable-slugify": "./unstable_slugify.ts",
+    "./to-camel-case": "./to_camel_case.ts",
+    "./unstable-to-constant-case": "./unstable_to_constant_case.ts",
+    "./to-kebab-case": "./to_kebab_case.ts",
+    "./to-pascal-case": "./to_pascal_case.ts",
+    "./to-snake-case": "./to_snake_case.ts",
+    "./word-similarity-sort": "./word_similarity_sort.ts"
+  }
+}

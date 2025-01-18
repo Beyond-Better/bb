@@ -1,0 +1,99 @@
+{
+  "folders": {
+    "https://esm.sh/v135/preact-render-to-string@6.5.10/X-ZC9wcmVhY3RAMTAuMjUuMw/": "esm.sh/v135/preact-render-to-string@6.5.10/#x-zc9wcmvhy3ramtaumj_366f9"
+  },
+  "modules": {
+    "https://esm.sh/ajv@8.14.0": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/ajv@8.14.0/dist/ajv.d.ts"
+      }
+    },
+    "https://esm.sh/common-tags@1.8.2": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/@types/common-tags@~1.8/index.d.ts"
+      }
+    },
+    "https://esm.sh/diff@5.2.0": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/@types/diff@~5.2/index.d.ts"
+      }
+    },
+    "https://esm.sh/marked@14.0.0": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/marked@14.0.0/lib/marked.d.ts"
+      }
+    },
+    "https://esm.sh/md5@2.3.0": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/@types/md5@~2.3/index.d.ts"
+      }
+    },
+    "https://esm.sh/ms@2.1.3": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/@types/ms@latest/index.d.ts"
+      }
+    },
+    "https://esm.sh/openai@4.67.2": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/openai@4.67.2/index.d.mts"
+      }
+    },
+    "https://esm.sh/preact-render-to-string@6.5.10?deps=preact@10.25.3": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/preact-render-to-string@6.5.10/X-ZC9wcmVhY3RAMTAuMjUuMw/dist/index.d.ts"
+      }
+    },
+    "https://esm.sh/preact@10.25.3": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/preact@10.25.3/src/index.d.ts"
+      }
+    },
+    "https://esm.sh/preact@10.25.3/jsx-runtime": {
+      "headers": {
+        "content-type": "application/javascript; charset=utf-8",
+        "x-typescript-types": "https://esm.sh/v135/preact@10.25.3/jsx-runtime/src/index.d.ts"
+      }
+    },
+    "https://esm.sh/v135/ajv@8.14.0/dist/compile/validate/dataType.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/applicator/additionalItems.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/applicator/additionalProperties.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/applicator/anyOf.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/applicator/oneOf.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/applicator/propertyNames.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/unevaluated/unevaluatedItems.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/unevaluated/unevaluatedProperties.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/validation/dependentRequired.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/validation/limitNumber.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/validation/multipleOf.d.ts": {},
+    "https://esm.sh/v135/ajv@8.14.0/dist/vocabularies/validation/uniqueItems.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/_shims/MultipartBody.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/_shims/MultipartBody.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/AbstractChatCompletionRunner.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/AssistantStream.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/ChatCompletionRunner.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/ChatCompletionStream.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/ChatCompletionStreamingRunner.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/EventStream.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/RunnableFunction.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/Util.js": {},
+    "https://esm.sh/v135/openai@4.67.2/denonext/lib/chatCompletionUtils.js": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/AbstractChatCompletionRunner.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/AssistantStream.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/ChatCompletionRunner.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/ChatCompletionStream.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/ChatCompletionStreamingRunner.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/EventStream.d.ts": {},
+    "https://esm.sh/v135/openai@4.67.2/lib/RunnableFunction.d.ts": {},
+    "https://jsr.io/@oak/oak/17.1.3/utils/create_promise_with_resolvers.ts": {},
+    "https://jsr.io/@std/streams/1.0.8/limited_bytes_transform_stream.ts": {}
+  }
+}

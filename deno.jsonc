@@ -15,6 +15,7 @@
 		"format": "deno fmt src/ && deno task -c ./cli/deno.jsonc format && deno task -c ./bui/deno.jsonc format && deno task -c ./api/deno.jsonc format",
 		"format-deno": "deno fmt ./deno.jsonc ./cli/deno.jsonc ./bui/deno.jsonc ./api/deno.jsonc",
 		"check-types": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",
+		"check-types-deploy": "deno task -c ./cli/deno.jsonc check-types-deploy && deno task -c ./bui/deno.jsonc check-types-deploy && deno task -c ./api/deno.jsonc check-types-deploy",
 		"check-format": "deno task -c ./cli/deno.jsonc check-format && deno task -c ./bui/deno.jsonc check-format && deno task -c ./api/deno.jsonc check-format",
 		"start-bui": "deno task -c ./bui/deno.jsonc start",
 		"start-api": "deno task -c ./api/deno.jsonc start",
@@ -30,6 +31,7 @@
 		"test:config:watch": "deno test --allow-read --allow-write --allow-env --watch src/shared/config/v2/tests/",
 		"test:config:coverage": "deno test --allow-read --allow-write --allow-env --coverage=coverage src/shared/config/v2/tests/ && deno coverage coverage",
 		"update-deps": "deno task -c ./cli/deno.jsonc update-deps && deno task -c ./bui/deno.jsonc update-deps && deno task -c ./api/deno.jsonc update-deps",
+		"install-deps": "deno task -c ./cli/deno.jsonc install-deps && deno task -c ./bui/deno.jsonc install-deps && deno task -c ./api/deno.jsonc install-deps",
 		"update-version": "deno run --allow-read --allow-write --allow-run ./scripts/update_version.ts",
 		"mkcert": "deno run --allow-read --allow-write --allow-env --allow-run ./scripts/mkcert.ts"
 	},

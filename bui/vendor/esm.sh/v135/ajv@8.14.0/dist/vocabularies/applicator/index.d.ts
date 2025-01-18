@@ -1,0 +1,13 @@
+import type { ErrorNoParams, Vocabulary } from "../../types/index.d.ts";
+import { AdditionalItemsError } from "./additionalItems.d.ts";
+import { ItemsError } from "./items2020.d.ts";
+import { ContainsError } from "./contains.d.ts";
+import { DependenciesError } from "./dependencies.d.ts";
+import { PropertyNamesError } from "./propertyNames.d.ts";
+import { AdditionalPropertiesError } from "./additionalProperties.d.ts";
+import { NotKeywordError } from "./not.d.ts";
+import { AnyOfError } from "./anyOf.d.ts";
+import { OneOfError } from "./oneOf.d.ts";
+import { IfKeywordError } from "./if.d.ts";
+export default function getApplicator(draft2020?: boolean): Vocabulary;
+export type ApplicatorKeywordError = ErrorNoParams<"false schema"> | AdditionalItemsError | ItemsError | ContainsError | AdditionalPropertiesError | DependenciesError | IfKeywordError | AnyOfError | OneOfError | NotKeywordError | PropertyNamesError;

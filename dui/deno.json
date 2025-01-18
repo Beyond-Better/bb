@@ -5,6 +5,7 @@
 		"preview": "deno run -A --node-modules-dir npm:vite preview",
 		"tauri": "deno run -A npm:@tauri-apps/cli"
 	},
+	"vendor": true,
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact"

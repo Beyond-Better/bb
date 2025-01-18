@@ -1,0 +1,2204 @@
+{
+  "manifest": {
+    "/deps_test.ts": {
+      "size": 463,
+      "checksum": "sha256-0bb1189fda3847a8c450a6acf00941e9f91bb429555b6cf8c69f6d8054a0a2d5"
+    },
+    "/utils/encode_url.ts": {
+      "size": 627,
+      "checksum": "sha256-c0ed6b318eb9523adeebba32eb9acd059c0f94d3511b2b9e3b024722d1b3dfb8"
+    },
+    "/body.ts": {
+      "size": 8851,
+      "checksum": "sha256-0eb7ab9df44d1b79933463d596b5e1a4f0991c94cff591861e58a413bda3f3db"
+    },
+    "/node_shims.ts": {
+      "size": 1607,
+      "checksum": "sha256-4db1569b2b79b73f37c4d947f4aaa50a93e266d48fe67601c8a31af17a28884d"
+    },
+    "/deps.ts": {
+      "size": 2371,
+      "checksum": "sha256-b778c76e91d6d2afe6124981212b6dc3d0b195739ea01857a45396dc78812b59"
+    },
+    "/utils/decode.ts": {
+      "size": 488,
+      "checksum": "sha256-2fd843f1217872318c339006dad266d62cdb99bff84bb6adef8a4b86269f51ce"
+    },
+    "/utils/clone_state.ts": {
+      "size": 533,
+      "checksum": "sha256-cf8989ddd56816b36ada253ae0acdbd46cdf3d68dbe674d2b66c46640fab3500"
+    },
+    "/README.md": {
+      "size": 34047,
+      "checksum": "sha256-9fc54b7ee27174a0d30879887f875f34229071d2cbf0346ac2aa695a1a79dfd7"
+    },
+    "/mod.ts": {
+      "size": 4023,
+      "checksum": "sha256-38e53e01e609583e843f3e2b2677de9872d23d68939ce0de85b402e7a8db01a7"
+    },
+    "/deno.json": {
+      "size": 1275,
+      "checksum": "sha256-1e1acb3cb07f1e7eb82610cfb82a799aae575c54c96e89ada364e1d8b9cad3a9"
+    },
+    "/send.ts": {
+      "size": 9770,
+      "checksum": "sha256-28132e2ebeb0c8d4ab41624ae8f1a7adf652cfddd91e77911274cbc413499fe8"
+    },
+    "/http_server_bun.ts": {
+      "size": 5713,
+      "checksum": "sha256-cb3a66c735cd0533c4c3776b37ae627ab42344c82f91dff63e3030d9656fd3a0"
+    },
+    "/utils/consts.ts": {
+      "size": 226,
+      "checksum": "sha256-137c4f73479f5e98a13153b9305f06f0d85df3cf2aacad2c9f82d4c1f3a2f105"
+    },
+    "/utils/resolve_path.ts": {
+      "size": 2417,
+      "checksum": "sha256-aa39d54a003b38fee55f340a0cba3f93a7af85b8ddd5fbfb049a98fc0109b36d"
+    },
+    "/context.ts": {
+      "size": 11099,
+      "checksum": "sha256-345cfdaa5a2310558ee0863f2fba5f9ba648188412b16ce342c33266c085f5d3"
+    },
+    "/response.ts": {
+      "size": 12844,
+      "checksum": "sha256-75724db76f2dd782827f2dcaa00e4e1732709399bad2458c787fed2c95c4f8be"
+    },
+    "/middleware/serve.ts": {
+      "size": 9878,
+      "checksum": "sha256-efceebd70afb73bcabe0a6a8981f3d8474a2f2f30e85b46761aee49e81bd9d6a"
+    },
+    "/http_server_node.ts": {
+      "size": 5906,
+      "checksum": "sha256-9bb5291c15305b297fd634aa4c6b1d5054368f4b7a171d7c7c302c73eb2489ed"
+    },
+    "/middleware.ts": {
+      "size": 2995,
+      "checksum": "sha256-4170180fe5009d2581a0bdc995e5953b90ccb5b1c3767f3eae8a4fe238b8bd81"
+    },
+    "/types.ts": {
+      "size": 2490,
+      "checksum": "sha256-cd4ccd3e182d0cba2117cd27f560267970470ab9c0ff6556cadd73f605193be7"
+    },
+    "/http_server_native_request.ts": {
+      "size": 3611,
+      "checksum": "sha256-a4da6f4939736e6323720db2d4b0d19ff2e83f02e52ab1eea9ae80f2c047fa56"
+    },
+    "/middleware/etag.ts": {
+      "size": 2106,
+      "checksum": "sha256-eb3cb3a8862ca1990ce80b7d1c3f142c866b22d34c2f785a0e8b46bc34b91f7d"
+    },
+    "/utils/streams.ts": {
+      "size": 2830,
+      "checksum": "sha256-3da73b94681f8d27a82cc67df3f91090ec0bd6c3e9ab957af588d41ab585d923"
+    },
+    "/utils/create_promise_with_resolvers.ts": {
+      "size": 675,
+      "checksum": "sha256-de99e9a998162b929a011f8873eaf0895cf4742492b3ce6f6866d39217342523"
+    },
+    "/LICENSE": {
+      "size": 1077,
+      "checksum": "sha256-0149bc994816741c5ab55eb9469109d645a7c9efffa756cb63e95f274acb3b0d"
+    },
+    "/testing.ts": {
+      "size": 5011,
+      "checksum": "sha256-cbefaf9d21452e829999eda9b99b920df7fde3f702528a484a4433ffed20a9cf"
+    },
+    "/CHANGELOG.md": {
+      "size": 37130,
+      "checksum": "sha256-df88c8445437935cbb661e0710cf606ef5c064538e52d330417310339b1d576d"
+    },
+    "/application.ts": {
+      "size": 30977,
+      "checksum": "sha256-2bcc73b3f22a193554c9958f7080ea635db25594d25ff7944021fca5bf74adba"
+    },
+    "/http_server_native.ts": {
+      "size": 3119,
+      "checksum": "sha256-3bea00ebb9638203d2449fbf9a14a6b87f119bd45012f13282ececdf7b4c4242"
+    },
+    "/request.ts": {
+      "size": 11141,
+      "checksum": "sha256-1e7f2c338cd6889b616bbdc9e2062eac27acbffde05c685adfb1c60ecc80682a"
+    },
+    "/middleware/proxy.ts": {
+      "size": 8278,
+      "checksum": "sha256-104890bd3990fa68618c36141d56aff5f95a51deac57ce8b8b0c7a14a8fd2ea4"
+    },
+    "/utils/decode_component.ts": {
+      "size": 321,
+      "checksum": "sha256-d3e2c40ecdd2fdb79761c6e9ae224cf01a4643f7c5f4c1e0b69698d43025261b"
+    },
+    "/router.ts": {
+      "size": 44010,
+      "checksum": "sha256-d625307016e5db92a9ff187d9917093cb441a8c442c0d78d8dbdbd9575816b72"
+    },
+    "/utils/type_guards.ts": {
+      "size": 1828,
+      "checksum": "sha256-a8dbb5ab7424f0355b121537d2454f927e0ca9949262fb67ac4fbefbd5880313"
+    }
+  },
+  "moduleGraph2": {
+    "/utils/create_promise_with_resolvers.ts": {},
+    "/http_server_native.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              8,
+              40
+            ],
+            [
+              8,
+              58
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./http_server_native_request.ts",
+          "specifierRange": [
+            [
+              9,
+              30
+            ],
+            [
+              9,
+              63
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              17,
+              7
+            ],
+            [
+              17,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/create_promise_with_resolvers.ts",
+          "specifierRange": [
+            [
+              18,
+              43
+            ],
+            [
+              18,
+              85
+            ]
+          ]
+        }
+      ]
+    },
+    "/types.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              2,
+              40
+            ],
+            [
+              2,
+              58
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/decode.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../deps.ts",
+          "specifierRange": [
+            [
+              2,
+              32
+            ],
+            [
+              2,
+              44
+            ]
+          ]
+        }
+      ]
+    },
+    "/http_server_bun.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              8,
+              33
+            ],
+            [
+              8,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              15,
+              7
+            ],
+            [
+              15,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/create_promise_with_resolvers.ts",
+          "specifierRange": [
+            [
+              16,
+              43
+            ],
+            [
+              16,
+              85
+            ]
+          ]
+        }
+      ]
+    },
+    "/application.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./context.ts",
+          "specifierRange": [
+            [
+              23,
+              24
+            ],
+            [
+              23,
+              38
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              24,
+              59
+            ],
+            [
+              24,
+              70
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./http_server_native_request.ts",
+          "specifierRange": [
+            [
+              25,
+              35
+            ],
+            [
+              25,
+              68
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./middleware.ts",
+          "specifierRange": [
+            [
+              30,
+              7
+            ],
+            [
+              30,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/clone_state.ts",
+          "specifierRange": [
+            [
+              31,
+              27
+            ],
+            [
+              31,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/create_promise_with_resolvers.ts",
+          "specifierRange": [
+            [
+              32,
+              43
+            ],
+            [
+              32,
+              85
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              40,
+              7
+            ],
+            [
+              40,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/type_guards.ts",
+          "specifierRange": [
+            [
+              41,
+              41
+            ],
+            [
+              41,
+              65
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "./http_server_native_request.ts",
+          "argumentRange": [
+            [
+              703,
+              45
+            ],
+            [
+              703,
+              78
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "./http_server_native_request.ts",
+          "argumentRange": [
+            [
+              745,
+              45
+            ],
+            [
+              745,
+              78
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "./http_server_bun.ts",
+          "argumentRange": [
+            [
+              812,
+              19
+            ],
+            [
+              812,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "./http_server_node.ts",
+          "argumentRange": [
+            [
+              814,
+              19
+            ],
+            [
+              814,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "./http_server_native.ts",
+          "argumentRange": [
+            [
+              815,
+              19
+            ],
+            [
+              815,
+              44
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/encode_url.ts": {},
+    "/mod.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              103,
+              7
+            ],
+            [
+              103,
+              25
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "exportType",
+          "specifier": "./body.ts",
+          "specifierRange": [
+            [
+              104,
+              30
+            ],
+            [
+              104,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./context.ts",
+          "specifierRange": [
+            [
+              105,
+              49
+            ],
+            [
+              105,
+              63
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./http_server_native.ts",
+          "specifierRange": [
+            [
+              106,
+              43
+            ],
+            [
+              106,
+              68
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./http_server_native_request.ts",
+          "specifierRange": [
+            [
+              107,
+              35
+            ],
+            [
+              107,
+              68
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./middleware/etag.ts",
+          "specifierRange": [
+            [
+              108,
+              22
+            ],
+            [
+              108,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./middleware/proxy.ts",
+          "specifierRange": [
+            [
+              109,
+              41
+            ],
+            [
+              109,
+              64
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./middleware/serve.ts",
+          "specifierRange": [
+            [
+              115,
+              7
+            ],
+            [
+              115,
+              30
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./middleware.ts",
+          "specifierRange": [
+            [
+              122,
+              7
+            ],
+            [
+              122,
+              24
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./request.ts",
+          "specifierRange": [
+            [
+              123,
+              24
+            ],
+            [
+              123,
+              38
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./response.ts",
+          "specifierRange": [
+            [
+              124,
+              40
+            ],
+            [
+              124,
+              55
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./router.ts",
+          "specifierRange": [
+            [
+              134,
+              7
+            ],
+            [
+              134,
+              20
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./send.ts",
+          "specifierRange": [
+            [
+              135,
+              39
+            ],
+            [
+              135,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./testing.ts",
+          "specifierRange": [
+            [
+              137,
+              25
+            ],
+            [
+              137,
+              39
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              138,
+              39
+            ],
+            [
+              138,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              159,
+              7
+            ],
+            [
+              159,
+              18
+            ]
+          ]
+        }
+      ]
+    },
+    "/request.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./body.ts",
+          "specifierRange": [
+            [
+              10,
+              21
+            ],
+            [
+              10,
+              32
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              11,
+              44
+            ],
+            [
+              11,
+              55
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              20,
+              7
+            ],
+            [
+              20,
+              18
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              21,
+              60
+            ],
+            [
+              21,
+              72
+            ]
+          ]
+        }
+      ]
+    },
+    "/http_server_node.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              14,
+              7
+            ],
+            [
+              14,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/create_promise_with_resolvers.ts",
+          "specifierRange": [
+            [
+              15,
+              43
+            ],
+            [
+              15,
+              85
+            ]
+          ]
+        },
+        {
+          "type": "dynamic",
+          "argument": "node:http",
+          "argumentRange": [
+            [
+              177,
+              42
+            ],
+            [
+              177,
+              53
+            ]
+          ]
+        }
+      ]
+    },
+    "/testing.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              11,
+              40
+            ],
+            [
+              11,
+              58
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              17,
+              7
+            ],
+            [
+              17,
+              18
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./body.ts",
+          "specifierRange": [
+            [
+              18,
+              21
+            ],
+            [
+              18,
+              32
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./router.ts",
+          "specifierRange": [
+            [
+              19,
+              48
+            ],
+            [
+              19,
+              61
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./request.ts",
+          "specifierRange": [
+            [
+              20,
+              29
+            ],
+            [
+              20,
+              43
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./response.ts",
+          "specifierRange": [
+            [
+              21,
+              25
+            ],
+            [
+              21,
+              40
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/resolve_path.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../deps.ts",
+          "specifierRange": [
+            [
+              35,
+              7
+            ],
+            [
+              35,
+              19
+            ]
+          ]
+        }
+      ]
+    },
+    "/body.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              10,
+              64
+            ],
+            [
+              10,
+              75
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              11,
+              35
+            ],
+            [
+              11,
+              47
+            ]
+          ]
+        }
+      ]
+    },
+    "/context.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              12,
+              40
+            ],
+            [
+              12,
+              58
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              21,
+              7
+            ],
+            [
+              21,
+              18
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./request.ts",
+          "specifierRange": [
+            [
+              22,
+              24
+            ],
+            [
+              22,
+              38
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./response.ts",
+          "specifierRange": [
+            [
+              23,
+              25
+            ],
+            [
+              23,
+              40
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./send.ts",
+          "specifierRange": [
+            [
+              24,
+              39
+            ],
+            [
+              24,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              25,
+              60
+            ],
+            [
+              25,
+              72
+            ]
+          ]
+        }
+      ]
+    },
+    "/middleware/proxy.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../application.ts",
+          "specifierRange": [
+            [
+              8,
+              27
+            ],
+            [
+              8,
+              46
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../context.ts",
+          "specifierRange": [
+            [
+              9,
+              29
+            ],
+            [
+              9,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../deps.ts",
+          "specifierRange": [
+            [
+              10,
+              31
+            ],
+            [
+              10,
+              43
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../middleware.ts",
+          "specifierRange": [
+            [
+              11,
+              32
+            ],
+            [
+              11,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../router.ts",
+          "specifierRange": [
+            [
+              16,
+              7
+            ],
+            [
+              16,
+              21
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../utils/type_guards.ts",
+          "specifierRange": [
+            [
+              17,
+              32
+            ],
+            [
+              17,
+              57
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/clone_state.ts": {},
+    "/utils/streams.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./consts.ts",
+          "specifierRange": [
+            [
+              2,
+              27
+            ],
+            [
+              2,
+              40
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/type_guards.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../application.ts",
+          "specifierRange": [
+            [
+              2,
+              27
+            ],
+            [
+              2,
+              46
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../context.ts",
+          "specifierRange": [
+            [
+              3,
+              29
+            ],
+            [
+              3,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../router.ts",
+          "specifierRange": [
+            [
+              4,
+              48
+            ],
+            [
+              4,
+              62
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../types.ts",
+          "specifierRange": [
+            [
+              5,
+              29
+            ],
+            [
+              5,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../node_shims.ts",
+          "specifierRange": [
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              25
+            ]
+          ]
+        }
+      ]
+    },
+    "/deps.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/assert@^1.0/assert",
+          "specifierRange": [
+            [
+              6,
+              23
+            ],
+            [
+              6,
+              52
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/bytes@^1.0/concat",
+          "specifierRange": [
+            [
+              7,
+              23
+            ],
+            [
+              7,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/bytes@^1.0/copy",
+          "specifierRange": [
+            [
+              8,
+              34
+            ],
+            [
+              8,
+              60
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/crypto@^1.0/timing-safe-equal",
+          "specifierRange": [
+            [
+              9,
+              32
+            ],
+            [
+              9,
+              72
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/http@^1.0/etag",
+          "specifierRange": [
+            [
+              16,
+              7
+            ],
+            [
+              16,
+              32
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/http@^1.0/negotiation",
+          "specifierRange": [
+            [
+              21,
+              7
+            ],
+            [
+              21,
+              39
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/http@^1.0/user-agent",
+          "specifierRange": [
+            [
+              22,
+              26
+            ],
+            [
+              22,
+              57
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/io@0.224/limited-reader",
+          "specifierRange": [
+            [
+              23,
+              30
+            ],
+            [
+              23,
+              64
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/io@0.224/read-all",
+          "specifierRange": [
+            [
+              24,
+              24
+            ],
+            [
+              24,
+              52
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/media-types@^1.0/content-type",
+          "specifierRange": [
+            [
+              25,
+              28
+            ],
+            [
+              25,
+              68
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/media-types@^1.0/type-by-extension",
+          "specifierRange": [
+            [
+              26,
+              32
+            ],
+            [
+              26,
+              77
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@std/path@^1.0/",
+          "specifierRange": [
+            [
+              35,
+              7
+            ],
+            [
+              35,
+              28
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/cookie_map",
+          "specifierRange": [
+            [
+              44,
+              7
+            ],
+            [
+              44,
+              41
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/form_data",
+          "specifierRange": [
+            [
+              45,
+              39
+            ],
+            [
+              45,
+              72
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/forwarded",
+          "specifierRange": [
+            [
+              46,
+              40
+            ],
+            [
+              46,
+              73
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/http_errors",
+          "specifierRange": [
+            [
+              53,
+              7
+            ],
+            [
+              53,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/keystack",
+          "specifierRange": [
+            [
+              54,
+              25
+            ],
+            [
+              54,
+              57
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/media_types",
+          "specifierRange": [
+            [
+              55,
+              24
+            ],
+            [
+              55,
+              59
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/method",
+          "specifierRange": [
+            [
+              56,
+              47
+            ],
+            [
+              56,
+              77
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/range",
+          "specifierRange": [
+            [
+              61,
+              7
+            ],
+            [
+              61,
+              36
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/server_sent_event",
+          "specifierRange": [
+            [
+              68,
+              7
+            ],
+            [
+              68,
+              48
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "jsr:@oak/commons@^1.0/status",
+          "specifierRange": [
+            [
+              76,
+              7
+            ],
+            [
+              76,
+              37
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "export",
+          "specifier": "npm:path-to-regexp@6.2.1",
+          "specifierRange": [
+            [
+              86,
+              7
+            ],
+            [
+              86,
+              33
+            ]
+          ]
+        }
+      ]
+    },
+    "/send.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./context.ts",
+          "specifierRange": [
+            [
+              14,
+              29
+            ],
+            [
+              14,
+              43
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              29,
+              7
+            ],
+            [
+              29,
+              18
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./response.ts",
+          "specifierRange": [
+            [
+              30,
+              30
+            ],
+            [
+              30,
+              45
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/type_guards.ts",
+          "specifierRange": [
+            [
+              31,
+              23
+            ],
+            [
+              31,
+              47
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/decode.ts",
+          "specifierRange": [
+            [
+              32,
+              23
+            ],
+            [
+              32,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/resolve_path.ts",
+          "specifierRange": [
+            [
+              33,
+              28
+            ],
+            [
+              33,
+              53
+            ]
+          ]
+        }
+      ]
+    },
+    "/http_server_native_request.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./types.ts",
+          "specifierRange": [
+            [
+              7,
+              7
+            ],
+            [
+              7,
+              19
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/create_promise_with_resolvers.ts",
+          "specifierRange": [
+            [
+              8,
+              43
+            ],
+            [
+              8,
+              85
+            ]
+          ]
+        }
+      ]
+    },
+    "/middleware.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              14,
+              27
+            ],
+            [
+              14,
+              45
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./context.ts",
+          "specifierRange": [
+            [
+              15,
+              29
+            ],
+            [
+              15,
+              43
+            ]
+          ]
+        }
+      ]
+    },
+    "/node_shims.ts": {
+      "dependencies": [
+        {
+          "type": "dynamic",
+          "argument": "node:stream/web",
+          "argumentRange": [
+            [
+              50,
+              61
+            ],
+            [
+              50,
+              78
+            ]
+          ]
+        }
+      ]
+    },
+    "/response.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              10,
+              67
+            ],
+            [
+              10,
+              78
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./http_server_native_request.ts",
+          "specifierRange": [
+            [
+              11,
+              28
+            ],
+            [
+              11,
+              61
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./request.ts",
+          "specifierRange": [
+            [
+              12,
+              29
+            ],
+            [
+              12,
+              43
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/type_guards.ts",
+          "specifierRange": [
+            [
+              13,
+              50
+            ],
+            [
+              13,
+              74
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/consts.ts",
+          "specifierRange": [
+            [
+              14,
+              27
+            ],
+            [
+              14,
+              46
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/encode_url.ts",
+          "specifierRange": [
+            [
+              15,
+              26
+            ],
+            [
+              15,
+              49
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/streams.ts",
+          "specifierRange": [
+            [
+              19,
+              7
+            ],
+            [
+              19,
+              27
+            ]
+          ]
+        }
+      ]
+    },
+    "/middleware/etag.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../application.ts",
+          "specifierRange": [
+            [
+              8,
+              27
+            ],
+            [
+              8,
+              46
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../context.ts",
+          "specifierRange": [
+            [
+              9,
+              29
+            ],
+            [
+              9,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../deps.ts",
+          "specifierRange": [
+            [
+              10,
+              39
+            ],
+            [
+              10,
+              51
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../middleware.ts",
+          "specifierRange": [
+            [
+              11,
+              32
+            ],
+            [
+              11,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../utils/consts.ts",
+          "specifierRange": [
+            [
+              12,
+              27
+            ],
+            [
+              12,
+              47
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "../utils/type_guards.ts",
+          "specifierRange": [
+            [
+              13,
+              42
+            ],
+            [
+              13,
+              67
+            ]
+          ]
+        }
+      ]
+    },
+    "/router.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./application.ts",
+          "specifierRange": [
+            [
+              53,
+              27
+            ],
+            [
+              53,
+              45
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "./context.ts",
+          "specifierRange": [
+            [
+              54,
+              29
+            ],
+            [
+              54,
+              43
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./deps.ts",
+          "specifierRange": [
+            [
+              67,
+              7
+            ],
+            [
+              67,
+              18
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./middleware.ts",
+          "specifierRange": [
+            [
+              68,
+              41
+            ],
+            [
+              68,
+              58
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/decode.ts",
+          "specifierRange": [
+            [
+              69,
+              23
+            ],
+            [
+              69,
+              42
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "import",
+          "specifier": "./utils/decode_component.ts",
+          "specifierRange": [
+            [
+              70,
+              32
+            ],
+            [
+              70,
+              61
+            ]
+          ]
+        }
+      ]
+    },
+    "/utils/decode_component.ts": {},
+    "/utils/consts.ts": {},
+    "/middleware/serve.ts": {
+      "dependencies": [
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../application.ts",
+          "specifierRange": [
+            [
+              26,
+              40
+            ],
+            [
+              26,
+              59
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../context.ts",
+          "specifierRange": [
+            [
+              27,
+              29
+            ],
+            [
+              27,
+              44
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../deps.ts",
+          "specifierRange": [
+            [
+              28,
+              51
+            ],
+            [
+              28,
+              63
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../middleware.ts",
+          "specifierRange": [
+            [
+              29,
+              32
+            ],
+            [
+              29,
+              50
+            ]
+          ]
+        },
+        {
+          "type": "static",
+          "kind": "importType",
+          "specifier": "../router.ts",
+          "specifierRange": [
+            [
+              36,
+              7
+            ],
+            [
+              36,
+              21
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "exports": {
+    ".": "./mod.ts",
+    "./application": "./application.ts",
+    "./body": "./body.ts",
+    "./context": "./context.ts",
+    "./etag": "./middleware/etag.ts",
+    "./http_server_bun": "./http_server_bun.ts",
+    "./http_server_native": "./http_server_native.ts",
+    "./http_server_node": "./http_server_node.ts",
+    "./middleware": "./middleware.ts",
+    "./proxy": "./middleware/proxy.ts",
+    "./request": "./request.ts",
+    "./response": "./response.ts",
+    "./router": "./router.ts",
+    "./send": "./send.ts",
+    "./serve": "./middleware/serve.ts",
+    "./testing": "./testing.ts"
+  }
+}
