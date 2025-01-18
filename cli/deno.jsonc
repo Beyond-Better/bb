@@ -14,7 +14,6 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts",
 		"install-deps": "deno install --entrypoint src/main.ts && deno install --entrypoint tests/deps.ts"
 	},
-	"vendor": true,
 	"importMap": "../import_map.json",
 	"unstable": [
 		"kv"
