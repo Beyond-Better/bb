@@ -9,6 +9,23 @@ import globToRegExp from 'npm:glob-to-regexp';
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
+import { getContentType } from 'api/utils/contentTypes.ts';
+import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
+
+// Size limits in bytes
+export const TEXT_DISPLAY_LIMIT = 1024 * 1024; // 1MB
+export const TEXT_HARD_LIMIT = 10 * 1024 * 1024; // 10MB
+export const IMAGE_DISPLAY_LIMIT = 5 * 1024 * 1024; // 5MB
+export const IMAGE_HARD_LIMIT = 20 * 1024 * 1024; // 20MB
+
+export interface ResourceMetadata {
+	//type: 'text' | 'image';
+	mimeType: string;
+	path: string;
+	size: number;
+	lastModified?: Date;
+	error?: string | null;
+}
 
 function createMatchRegexPatterns(matchPattern: string, projectRoot: string): RegExp[] {
 	// Split the pattern by '|' to handle multiple patterns
@@ -152,6 +169,144 @@ export async function readProjectFileContent(projectRoot: string, filePath: stri
 			throw new Error(`File not found: ${fullFilePath}`);
 		}
 		throw error;
+	}
+}
+
+export interface FileLoadOptions {
+	maxSize?: number;
+	truncateAt?: number;
+}
+
+export async function getFileMetadataAbsolute(
+	fullPath: string,
+): Promise<Omit<ResourceMetadata, 'path'>> {
+	const mimeType = getContentType(fullPath);
+	//const isImage = mimeType.startsWith('image/');
+
+	try {
+		const stat = await Deno.stat(fullPath);
+		return {
+			//type: isImage ? 'image' : 'text',
+			mimeType: mimeType as LLMMessageContentPartImageBlockSourceMediaType,
+			lastModified: stat.mtime || new Date(),
+			size: stat.size,
+			//path: fullPath,
+			error: null,
+		};
+	} catch (error) {
+		logger.error(`FileHandlingUtil: Error getting metadata for ${fullPath}: ${(error as Error).message}`);
+		throw createError(
+			ErrorType.FileHandling,
+			`Failed to get file metadata: ${(error as Error).message}`,
+			{
+				name: 'get-metadata',
+				filePath: fullPath,
+				operation: 'read',
+			} as FileHandlingErrorOptions,
+		);
+	}
+}
+
+export async function getFileMetadata(
+	projectRoot: string,
+	filePath: string,
+): Promise<ResourceMetadata> {
+	const fullPath = join(projectRoot, filePath);
+	const metadata: ResourceMetadata = {
+		...await getFileMetadataAbsolute(fullPath),
+		path: filePath, // Store relative path in metadata
+	};
+	return metadata;
+}
+
+export function checkSizeLimits(size: number, isImage: boolean): {
+	exceedsHardLimit: boolean;
+	exceedsDisplayLimit: boolean;
+	truncateAt?: number;
+} {
+	if (isImage) {
+		return {
+			exceedsHardLimit: size > IMAGE_HARD_LIMIT,
+			exceedsDisplayLimit: size > IMAGE_DISPLAY_LIMIT,
+		};
+	} else {
+		return {
+			exceedsHardLimit: size > TEXT_HARD_LIMIT,
+			exceedsDisplayLimit: size > TEXT_DISPLAY_LIMIT,
+			truncateAt: size > TEXT_DISPLAY_LIMIT ? TEXT_DISPLAY_LIMIT : undefined,
+		};
+	}
+}
+
+export async function readFileWithOptions(
+	projectRoot: string,
+	filePath: string,
+	options?: FileLoadOptions,
+): Promise<{ content: string | Uint8Array; truncated?: boolean }> {
+	const fullPath = join(projectRoot, filePath);
+	const mimeType = getContentType(fullPath);
+	const isImage = mimeType.startsWith('image/');
+
+	try {
+		const stat = await Deno.stat(fullPath);
+		const sizeLimits = checkSizeLimits(stat.size, isImage);
+
+		// Check hard limit first
+		if (options?.maxSize && stat.size > options.maxSize || sizeLimits.exceedsHardLimit) {
+			throw createError(
+				ErrorType.FileHandling,
+				`File size exceeds maximum limit`,
+				{
+					name: 'read-file',
+					filePath: filePath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		// For images, we don't truncate, we either load or reject
+		if (isImage) {
+			if (sizeLimits.exceedsDisplayLimit) {
+				throw createError(
+					ErrorType.FileHandling,
+					`Image file size exceeds display limit`,
+					{
+						name: 'read-file',
+						filePath: filePath,
+						operation: 'read',
+					} as FileHandlingErrorOptions,
+				);
+			}
+			return { content: await Deno.readFile(fullPath) };
+		}
+
+		// For text files, we can truncate if needed
+		const truncateAt = options?.truncateAt || (sizeLimits.truncateAt);
+		if (truncateAt) {
+			const file = await Deno.open(fullPath);
+			const buffer = new Uint8Array(truncateAt);
+			const bytesRead = await file.read(buffer);
+			file.close();
+			if (bytesRead === null) {
+				throw new Error('Failed to read file');
+			}
+			const content = new TextDecoder().decode(buffer.subarray(0, bytesRead));
+			return { content, truncated: true };
+		}
+
+		// No truncation needed
+		return { content: await Deno.readTextFile(fullPath) };
+	} catch (error) {
+		logger.error(`FileHandlingUtil: Error reading file ${fullPath}: ${(error as Error).message}`);
+		throw createError(
+			ErrorType.FileHandling,
+			`Failed to read file: ${(error as Error).message}`,
+			{
+				name: 'read-file',
+				filePath: filePath,
+				operation: 'read',
+			} as FileHandlingErrorOptions,
+		);
 	}
 }
 

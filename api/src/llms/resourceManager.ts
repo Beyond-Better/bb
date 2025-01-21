@@ -1,62 +1,153 @@
 import type { Resource } from 'api/types.ts';
+import {
+	type FileLoadOptions,
+	getFileMetadata,
+	IMAGE_DISPLAY_LIMIT,
+	readFileWithOptions,
+	type ResourceMetadata,
+	TEXT_DISPLAY_LIMIT,
+} from 'api/utils/fileHandling.ts';
+import { logger } from 'shared/logger.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
 
 export class ResourceManager {
-	async loadResource(resource: Resource): Promise<string | Uint8Array> {
+	constructor(private projectEditor: ProjectEditor) {}
+	async loadResource(
+		resource: Resource,
+		options?: FileLoadOptions,
+	): Promise<{ content: string | Uint8Array; metadata?: ResourceMetadata; truncated?: boolean }> {
 		switch (resource.type) {
 			case 'url':
-				return this.loadUrlResource(resource.location);
+				return this.loadUrlResource(resource.location, options);
 			case 'file':
-				return this.loadFileResource(resource.location);
+				return this.loadFileResource(resource.location, options);
 			case 'memory':
-				return this.loadMemoryResource(resource.location);
+				return this.loadMemoryResource(resource.location, options);
 			case 'api':
-				return this.loadApiResource(resource.location);
+				return this.loadApiResource(resource.location, options);
 			case 'database':
-				return this.loadDatabaseResource(resource.location);
+				return this.loadDatabaseResource(resource.location, options);
 			case 'vector_search':
-				return this.loadVectorSearchResource(resource.location);
+				return this.loadVectorSearchResource(resource.location, options);
 			default:
 				throw new Error(`Unsupported resource type: ${resource.type}`);
 		}
 	}
 
-	private async loadUrlResource(url: string): Promise<string> {
+	private async loadUrlResource(
+		url: string,
+		_options?: FileLoadOptions,
+	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		const response = await fetch(url);
 		if (!response.ok) {
 			throw new Error(`Failed to fetch URL: ${url}`);
 		}
-		return await response.text();
+		const content = await response.text();
+		const contentType = response.headers.get('content-type');
+		const contentLength = response.headers.get('content-length');
+
+		return {
+			content,
+			metadata: {
+				path: url,
+				mimeType: contentType || 'text/plain',
+				size: contentLength ? parseInt(contentLength) : content.length,
+			},
+		};
 	}
 
-	private async loadFileResource(path: string): Promise<string | Uint8Array> {
+	private async loadFileResource(
+		path: string,
+		options?: FileLoadOptions,
+	): Promise<{ content: string | Uint8Array; metadata?: ResourceMetadata; truncated?: boolean }> {
 		try {
-			if (path.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-				return await Deno.readFile(path);
-			} else {
-				return await Deno.readTextFile(path);
-			}
+			// Get file metadata first
+			const metadata = await getFileMetadata(this.projectEditor.projectRoot, path);
+			const isImage = metadata.mimeType.startsWith('image/');
+
+			// Set default size limits if not provided
+			const loadOptions: FileLoadOptions = {
+				maxSize: isImage ? IMAGE_DISPLAY_LIMIT : TEXT_DISPLAY_LIMIT,
+				...options,
+			};
+
+			// Read file with options
+			const { content, truncated } = await readFileWithOptions(this.projectEditor.projectRoot, path, loadOptions);
+
+			return {
+				content,
+				metadata: {
+					//type: isImage ? 'image' : 'text',
+					path,
+					mimeType: metadata.mimeType || 'application/octet-stream',
+					size: metadata.size,
+					lastModified: metadata.lastModified,
+				},
+				truncated,
+			};
 		} catch (error) {
+			logger.error(`ResourceManager: Failed to read file: ${path}. ${(error as Error).message}`);
 			throw new Error(`Failed to read file: ${path}. ${(error as Error).message}`);
 		}
 	}
 
-	private async loadMemoryResource(_key: string): Promise<string> {
+	private async loadMemoryResource(
+		key: string,
+		_options?: FileLoadOptions,
+	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		// Implement memory resource loading logic
-		throw new Error('Memory resource loading not implemented yet');
+		return {
+			content: 'Memory resource loading not implemented yet',
+			metadata: {
+				path: key,
+				mimeType: 'text/plain',
+				size: 0,
+			},
+		};
 	}
 
-	private async loadApiResource(_endpoint: string): Promise<string> {
+	private async loadApiResource(
+		endpoint: string,
+		_options?: FileLoadOptions,
+	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		// Implement API resource loading logic
-		throw new Error('API resource loading not implemented yet');
+		return {
+			content: 'API resource loading not implemented yet',
+			metadata: {
+				path: endpoint,
+				mimeType: 'text/plain',
+				size: 0,
+			},
+		};
 	}
 
-	private async loadDatabaseResource(_query: string): Promise<string> {
+	private async loadDatabaseResource(
+		query: string,
+		_options?: FileLoadOptions,
+	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		// Implement database resource loading logic
-		throw new Error('Database resource loading not implemented yet');
+		return {
+			content: 'Database resource loading not implemented yet',
+			metadata: {
+				path: query,
+				mimeType: 'text/plain',
+				size: 0,
+			},
+		};
 	}
 
-	private async loadVectorSearchResource(_query: string): Promise<string> {
+	private async loadVectorSearchResource(
+		query: string,
+		_options?: FileLoadOptions,
+	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		// Implement vector search resource loading logic
-		throw new Error('Vector search resource loading not implemented yet');
+		return {
+			content: 'Vector search resource loading not implemented yet',
+			metadata: {
+				path: query,
+				mimeType: 'text/plain',
+				size: 0,
+			},
+		};
 	}
 }

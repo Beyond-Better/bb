@@ -12,7 +12,7 @@ import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/ll
 export interface ProjectInfo extends BaseProjectInfo {
 	projectId: string;
 }
-import OrchestratorController from '../controllers/orchestratorController.ts';
+import OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';

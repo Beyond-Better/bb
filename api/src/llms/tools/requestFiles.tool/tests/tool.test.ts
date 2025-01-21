@@ -17,7 +17,6 @@ export function isRequestFilesResponse(
 	return (
 		data !== null &&
 		typeof data === 'object' &&
-		typeof data === 'object' &&
 		'filesAdded' in data &&
 		Array.isArray(data.filesAdded) &&
 		'filesError' in data &&

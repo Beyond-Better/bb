@@ -142,6 +142,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'displayFile.tool',
+		'metadata': {
+			'name': 'display_file',
+			'description':
+				'Display the contents of a file to the user while returning only metadata to the AI assistant. The tool will show the user the file contents with appropriate formatting (syntax highlighting for text files, proper rendering for images) but the AI will only receive metadata like file size, type, and last modified date. This separation ensures user privacy while allowing the AI to track file states and metadata.',
+			'version': '1.0.0',
+			'category': 'file',
+			'enabled': true,
+			'author': 'BB Team',
+			'license': 'MIT',
+		},
+	},
+	{
 		'toolNamePath': 'vectorSearch.tool',
 		'metadata': {
 			'name': 'vector_search',

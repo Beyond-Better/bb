@@ -14,7 +14,6 @@ function isFetchWebScreenshotResponse(
 	return (
 		data !== null &&
 		typeof data === 'object' &&
-		typeof data === 'object' &&
 		'url' in data &&
 		typeof data.url === 'string'
 	);
