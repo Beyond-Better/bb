@@ -25,7 +25,6 @@ function isRunCommandResponse(
 	return (
 		data !== null &&
 		typeof data === 'object' &&
-		typeof data === 'object' &&
 		'filePath' in data &&
 		typeof data.filePath === 'string' &&
 		'lineCount' in data &&

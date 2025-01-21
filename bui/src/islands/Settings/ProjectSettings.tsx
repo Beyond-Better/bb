@@ -6,6 +6,9 @@ import { useAppState } from '../../hooks/useAppState.ts';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
+	if (!obj || (typeof obj === 'object' && Object.keys(obj).length === 0)) {
+		return '';
+	}
 	let yaml = stringifyYaml(obj);
 	const arrayPattern = /([\s\n]+)'\d+':\s*([^\n]+)/g;
 	yaml = yaml.replace(arrayPattern, '$1- $2');

@@ -1,6 +1,6 @@
 {
 	"name": "bb-cli",
-	"version": "0.6.7",
+	"version": "0.6.8",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts",
@@ -14,6 +14,7 @@
 		"update-deps": "deno cache src/main.ts && deno cache tests/deps.ts",
 		"install-deps": "deno install --entrypoint src/main.ts && deno install --entrypoint tests/deps.ts"
 	},
+	"lock": false,
 	"importMap": "../import_map.json",
 	"unstable": [
 		"kv"

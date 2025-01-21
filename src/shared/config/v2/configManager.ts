@@ -223,8 +223,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		// Write the updated config
 		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(current)));
 
+		const mergedConfig = mergeGlobalIntoProjectConfig(
+			await current,
+			await this.getGlobalConfig(),
+		);
+
 		// Update cache
-		this.projectConfigs.set(projectId, current);
+		this.projectConfigs.set(projectId, mergedConfig);
 	}
 
 	public async setGlobalConfigValue(key: string, value: string | null): Promise<void> {

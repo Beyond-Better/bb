@@ -90,7 +90,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this._maxHydratedMessagesPerFile = value;
 	}
 
-	private resourceManager: ResourceManager;
+	private resourceManager!: ResourceManager;
 	private toolUsageStats: ToolUsageStats = {
 		toolCounts: new Map(),
 		toolResults: new Map(),
@@ -103,7 +103,13 @@ class LLMConversationInteraction extends LLMInteraction {
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		super(llm, conversationId);
 		this._interactionType = 'conversation';
-		this.resourceManager = new ResourceManager();
+	}
+
+	public override async init(parentId?: ConversationId): Promise<LLMConversationInteraction> {
+		await super.init(parentId);
+		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
+		this.resourceManager = new ResourceManager(projectEditor);
+		return this;
 	}
 
 	// these methods are really just convenience aliases for tokenUsageInteraction
@@ -275,12 +281,12 @@ class LLMConversationInteraction extends LLMInteraction {
 	// 			const fullFilePath = join(projectRoot, filePath);
 	// 			logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
 	// 			try {
-	// 				const content = await this.resourceManager.loadResource({
+	// 				const resource = await this.resourceManager.loadResource({
 	// 					type: 'file',
 	// 					location: fullFilePath,
 	// 				});
-	// 				this.storeFileRevision(filePath, revisionId, content);
-	// 				return content;
+	// 				this.storeFileRevision(filePath, revisionId, resource.content);
+	// 				return resource.content;
 	// 			} catch (error) {
 	// 				throw new Error(`Failed to read file: ${fullFilePath}`);
 	// 			}
@@ -298,12 +304,12 @@ class LLMConversationInteraction extends LLMInteraction {
 				const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
 				const fullFilePath = join(projectRoot, filePath);
 				logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
-				const content = await this.resourceManager.loadResource({
+				const resource = await this.resourceManager.loadResource({
 					type: 'file',
 					location: fullFilePath,
 				});
-				await this.storeFileRevision(filePath, revisionId, content);
-				return content;
+				await this.storeFileRevision(filePath, revisionId, resource.content);
+				return resource.content;
 			}
 			logger.info(`ConversationInteraction: Returning contents of File Revision ${filePath} (${revisionId})`);
 			return content;

@@ -86,6 +86,8 @@
 		"api/types.ts": "./api/src/types.ts",
 		"api/types/llms.ts": "./api/src/types/llms.types.ts",
 		"api/editor/projectEditor.ts": "./api/src/editor/projectEditor.ts",
+		"api/controllers/orchestratorController.ts": "./api/src/controllers/orchestratorController.ts",
+		"api/controllers/agentController.ts": "./api/src/controllers/agentController.ts",
 		"api/errors/error.ts": "./api/src/errors/error.ts",
 		"api/utils/contentTypes.ts": "./api/src/utils/contentTypes.utils.ts",
 		"api/utils/fileHandling.ts": "./api/src/utils/fileHandling.utils.ts",
