@@ -127,23 +127,23 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 			<div class='border-b border-gray-200 relative'>
 				<a
 					href='/'
-					class={`flex items-center space-x-2 py-4 ${
-						isCollapsed.value ? 'pl-2 pr-5' : 'px-4'
+					class={`flex items-center space-x-2 py-2 ${
+						isCollapsed.value ? 'pl-1 pr-5' : 'px-4'
 					} transition-all duration-300`}
 				>
 					<img
 						src='/logo-dark.png'
 						alt='BB Logo'
-						className='h-6 w-6 hidden dark:block'
+						className='h-8 w-8 hidden dark:block'
 					/>
 					<img
 						src='/logo-light.png'
 						alt='BB Logo'
-						className='h-6 w-6 block dark:hidden'
+						className='h-8 w-8 block dark:hidden'
 					/>
 					{!isCollapsed.value && (
 						<div>
-							<span class='text-sm text-gray-500 dark:text-gray-400 ml-2'>Beyond Better</span>
+							<span class='text-md text-gray-500 dark:text-gray-400 ml-1'>Beyond Better</span>
 						</div>
 					)}
 				</a>
