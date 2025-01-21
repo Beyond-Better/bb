@@ -4,6 +4,9 @@ import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
+	if (!obj || (typeof obj === 'object' && Object.keys(obj).length === 0)) {
+		return '';
+	}
 	let yaml = stringifyYaml(obj);
 	const arrayPattern = /([\s\n]+)'\d+':\s*([^\n]+)/g;
 	yaml = yaml.replace(arrayPattern, '$1- $2');
@@ -589,7 +592,7 @@ export function ProjectEditor({
 							onInput={(e) => {
 								toolConfigs.value = {
 									...toolConfigs.value,
-									project: (e.target as HTMLTextAreaElement).value,
+									project: (e.target as HTMLTextAreaElement).value.trim() || null,
 								};
 							}}
 							placeholder={TOOLS_PLACEHOLDER}
