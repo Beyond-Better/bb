@@ -1,6 +1,6 @@
 {
 	"name": "bb-cli",
-	"version": "0.6.7",
+	"version": "0.6.8",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts",
@@ -16,7 +16,9 @@
 	},
 	"lock": false,
 	"importMap": "../import_map.json",
-	"unstable": ["kv"],
+	"unstable": [
+		"kv"
+	],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -24,15 +26,24 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": ["src/", "tests/"],
-		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
+		"include": [
+			"src/",
+			"tests/"
+		],
+		"exclude": [
+			"src/testdata/",
+			"src/fixtures/**/*.ts"
+		]
 	},
 	"lint": {
 		"files": {
 			"include": []
 		},
 		"rules": {
-			"exclude": ["require-await", "no-var"]
+			"exclude": [
+				"require-await",
+				"no-var"
+			]
 		}
 	}
 }

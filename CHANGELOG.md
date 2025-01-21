@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.8] - 2025-01-21
+
+### Added
+
+- new tool for display file
+
+### Fixed
+
+- fix for saving project config after edit in project settings
+- tool config shows blank text area instead of blank json
+
+
 ## [0.6.7] - 2025-01-18
 
 ### Changed
