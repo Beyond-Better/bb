@@ -264,8 +264,10 @@ export const createProject = async (
 		const projectId = await projectPersistence.createProject(storedProject);
 
 		// Update project config values
-		await configManager.setProjectConfigValue(projectId, 'type', type);
 		const configManager = await ConfigManagerV2.getInstance();
+		// For new projects, always set type and name
+		await configManager.setProjectConfigValue(projectId, 'type', type);
+		await configManager.setProjectConfigValue(projectId, 'name', name);
 		if (body.llmGuidelinesFile !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
 		}
@@ -390,7 +392,14 @@ export const updateProject = async (
 
 		// Update project config values
 		const configManager = await ConfigManagerV2.getInstance();
-		await configManager.setProjectConfigValue(projectId, 'type', type);
+		const projectConfigToChange = await configManager.loadProjectConfig(projectId);
+		// Only update type and name if different from current config
+		if (projectConfigToChange.type !== type) {
+			await configManager.setProjectConfigValue(projectId, 'type', type);
+		}
+		if (projectConfigToChange.name !== name) {
+			await configManager.setProjectConfigValue(projectId, 'name', name);
+		}
 		if (body.llmGuidelinesFile !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
 		}
