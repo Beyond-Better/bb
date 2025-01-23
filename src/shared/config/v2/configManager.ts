@@ -414,22 +414,18 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			};
 		}
 
-		console.log('createProject', { config });
+		//console.log('createProject', { config });
 
 		// Update project registry
 		await this.updateProjectRegistry(projectId, name, projectPath, type);
-
-		console.log('createProject: added to projectRegsitry');
 
 		// Save project config
 		await createBbDir(projectPath);
 		const configPath = join(projectPath, '.bb', 'config.yaml');
 		await Deno.writeTextFile(configPath, stringifyYaml(this.removeUndefined(config)));
-		console.log('createProject: created config file');
 
 		// Create .bb/ignore file
 		await createBbIgnore(projectPath);
-		console.log('createProject: created ignore file');
 
 		if (
 			(createProjectData.myPersonsName && createProjectData.myPersonsName !== globalConfig.myPersonsName) ||
@@ -678,7 +674,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			const validation = await this.validateConfig(config);
 			if (!validation.isValid) {
 				// If validation fails, return default config
-				console.log('Error: globalConfig is not valid; using default config: ', validation.errors);
+				//console.log('Error: globalConfig is not valid; using default config: ', validation.errors);
 				return {
 					version: '2.0.0',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
@@ -699,10 +695,9 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			return config;
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
-				console.log('creating globalConfig');
 				// Create and validate default config
 				await this.ensureGlobalConfig();
-				console.log('created globalConfig', this.globalConfig);
+				//console.log('created globalConfig', this.globalConfig);
 				return this.globalConfig!;
 			} else {
 				throw error;
