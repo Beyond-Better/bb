@@ -29,7 +29,7 @@ class InteractionManager {
 		logger.info('InteractionManager: Creating interaction of type: ', type);
 
 		if (type === 'conversation') {
-			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init();
+			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init(parentId);
 		} else {
 			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentId);
 		}

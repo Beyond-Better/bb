@@ -196,9 +196,8 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'delegateTasks.tool',
 		'metadata': {
 			'name': 'delegate_tasks',
-			'description':
-				'Delegate specialized tasks to child interactions. Currently supports log entry summary tasks with configurable format (short/medium/long), token limits, and metadata inclusion options. Each task includes type, target, and optional configuration.',
-			'enabled': false,
+			'description': 'Delegate specialized tasks to child agent conversations.',
+			'enabled': true,
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',

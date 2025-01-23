@@ -264,6 +264,7 @@ export const createProject = async (
 		const projectId = await projectPersistence.createProject(storedProject);
 
 		// Update project config values
+		await configManager.setProjectConfigValue(projectId, 'type', type);
 		const configManager = await ConfigManagerV2.getInstance();
 		if (body.llmGuidelinesFile !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
@@ -389,6 +390,7 @@ export const updateProject = async (
 
 		// Update project config values
 		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.setProjectConfigValue(projectId, 'type', type);
 		if (body.llmGuidelinesFile !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
 		}

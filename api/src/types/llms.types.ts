@@ -232,12 +232,13 @@ export interface Task {
 	requirements: string | InputSchema;
 }
 
-export interface Resource {
-	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
-	location: string;
+export interface CompletedTask {
+	//type: string;
+	title: string;
+	status: 'completed' | 'failed';
+	result?: string;
+	error?: string;
 }
-
-export type InputSchema = Record<string, unknown>;
 
 export type ErrorStrategy = 'fail_fast' | 'continue_on_error' | 'retry';
 
@@ -247,12 +248,12 @@ export interface ErrorHandlingConfig {
 	continueOnErrorThreshold?: number;
 }
 
-export interface DelegateTasksInput {
-	tasks: Task[];
-	sync: boolean;
-	errorConfig: ErrorHandlingConfig;
-	parentInteractionId: string;
+export interface Resource {
+	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
+	location: string;
 }
+
+export type InputSchema = Record<string, unknown>;
 
 export interface LLMSpeakWithResponse {
 	messageResponse: LLMProviderMessageResponse;

@@ -49,6 +49,8 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 
 	conversationMetrics: ConversationMetrics;
 
+	parentId?: ConversationId;
+
 	//tools?: Array<{ name: string; description: string }>;
 }
 

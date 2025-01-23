@@ -1,6 +1,11 @@
 //import type { JSX } from 'preact';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
+import type {
+	LLMToolConfig,
+	LLMToolInputSchema,
+	LLMToolLogEntryFormattedResult,
+	LLMToolRunResult,
+} from 'api/llms/llmTool.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
 	formatLogEntryToolUse as formatLogEntryToolUseBrowser,
@@ -12,59 +17,61 @@ import {
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
+//import { isError } from 'shared/error.ts';
+import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { createError, ErrorType } from 'api/utils/error.ts';
-import type { LLMToolDelegateTasksInput } from './types.ts';
-//import type InteractionManager from '../../../llms/interactions/interactionManager.ts';
-//import type { ResourceManager } from '../../../llms/resourceManager.ts';
-//import type { CapabilityManager } from '../../../llms/capabilityManager.ts';
-//import type { ErrorHandler } from '../../../llms/errorHandler.ts';
-//import type { TaskQueue } from '../../../llms/taskQueue.ts';
+//import { createError, ErrorType } from 'api/utils/error.ts';
+//import type InteractionManager from 'api/llms/interactionManager.ts';
+import type OrchestratorController from 'api/controllers/orchestratorController.ts';
+//import { ResourceManager } from '../../../llms/resourceManager.ts';
+//import { CapabilityManager } from '../../../llms/capabilityManager.ts';
+//import { ErrorHandler } from '../../../llms/errorHandler.ts';
+//import { TaskQueue } from '../../../llms/taskQueue.ts';
+import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
+import type { LLMToolDelegateTasksInput, LLMToolDelegateTasksResultData } from './types.ts';
 
 /*
-interface Task {
-	title: string;
-	background: string;
-	instructions: string;
-	resources: Resource[];
-	capabilities: string[];
-	requirements: string | InputSchema;
-}
-
-interface Resource {
-	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
-	location: string;
-}
-
-type InputSchema = Record<string, unknown>;
+ * interface Task {
+ * 	title: string;
+ * 	background: string;
+ * 	instructions: string;
+ * 	resources: Resource[];
+ * 	capabilities: string[];
+ * 	requirements: string | InputSchema;
+ * }
+ * interface Resource {
+ * 	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
+ * 	location: string;
+ * }
+ * type InputSchema = Record<string, unknown>;
  */
 
+interface LLMToolDelegateTasksConfig extends LLMToolConfig {
+	errorHandlingConfig?: ErrorHandlingConfig;
+}
+
 export default class LLMToolDelegateTasks extends LLMTool {
-	/*
-	private interactionManager: InteractionManager;
-	private resourceManager: ResourceManager;
-	private capabilityManager: CapabilityManager;
-	private errorHandler: ErrorHandler;
-	private taskQueue: TaskQueue;
+	private errorHandlingConfig: ErrorHandlingConfig;
+	//private errorHandler: ErrorHandler | undefined;
+	//private interactionManager: InteractionManager | undefined;
+	private orchestratorController: OrchestratorController | undefined;
+	//private taskQueue: TaskQueue|undefined;
+	//private resourceManager: ResourceManager | undefined;
+	//private capabilityManager: CapabilityManager | undefined;
+	//private interaction: LLMConversationInteraction | undefined;
 
-	async init(
-		interactionManager: InteractionManager,
-		resourceManager: ResourceManager,
-		capabilityManager: CapabilityManager,
-		errorHandler: ErrorHandler,
-		taskQueue: TaskQueue,
-	) {
-		super();
-
-		this.interactionManager = interactionManager;
-		this.resourceManager = resourceManager;
-		this.capabilityManager = capabilityManager;
-		this.errorHandler = errorHandler;
-		this.taskQueue = taskQueue;
-		return this;
+	constructor(name: string, description: string, toolConfig: LLMToolDelegateTasksConfig) {
+		super(name, description, toolConfig);
+		this.errorHandlingConfig = toolConfig.errorHandlingConfig ||
+			{ strategy: 'retry', maxRetries: 3, continueOnErrorThreshold: 50 };
+		//logger.debug(`LLMToolDelegateTasks: domConfig`, this.domConfig);
 	}
-	 */
+
+	// async init() {
+	// 	super();
+	// 	return this;
+	// }
+
 	get inputSchema(): LLMToolInputSchema {
 		return {
 			type: 'object',
@@ -82,7 +89,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 							},
 							instructions: {
 								type: 'string',
-								description: 'Detailed instructions for the task, provided by the orchestrator',
+								description: 'Detailed instructions for the task, provided by you as the orchestrator',
 							},
 							resources: {
 								type: 'array',
@@ -143,166 +150,159 @@ export default class LLMToolDelegateTasks extends LLMTool {
 	async runTool(
 		_interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
-		_projectEditor: ProjectEditor,
+		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { toolInput } = toolUse;
-		const { tasks: _tasks } = toolInput as LLMToolDelegateTasksInput;
+		//this.interaction = interaction;
+		this.orchestratorController = projectEditor.orchestratorController;
+		//this.interactionManager = projectEditor.orchestratorController.interactionManager;
+		//this.resourceManager = new ResourceManager();
+		//this.capabilityManager = new CapabilityManager();
+		//this.errorHandler = new ErrorHandler(this.errorHandlingConfig);
+		//this.taskQueue = new TaskQueue(this.errorHandler);
+
+		const { tasks, sync }: { tasks: Task[]; sync: boolean } = toolUse.toolInput as LLMToolDelegateTasksInput;
+		logger.info('LLMToolDelegateTasks: Input ', { tasks, sync });
 
 		try {
-			return { toolResults: [], toolResponse: '', bbResponse: '' };
-
-			/*
-            const completedTasks = [];
-            const errorMessages = [];
-            for (const task of tasks) {
-                try {
-                    if (task.type !== 'log_entry_summary') {
-                        throw new Error(`Unsupported task type: ${task.type}`);
-                    }
-
-                    // Validate target exists
-                    const targetExists = await projectEditor.fileExists(task.target);
-                    if (!targetExists) {
-                        throw new Error(`Target file not found: ${task.target}`);
-                    }
-
-                    // Read target file
-                    const fileContent = await projectEditor.readFile(task.target);
-
-                    // Get log entry from file content
-                    const logEntry = await this.parseLogEntry(fileContent);
-                    if (!logEntry) {
-                        throw new Error(`Invalid log entry format in ${task.target}`);
-                    }
-
-                    // Format options
-                    const format = task.options?.format || 'medium';
-                    const maxTokens = task.options?.maxTokens || 1000;
-                    const includeMetadata = task.options?.includeMetadata ?? true;
-
-                    // Generate summary using the log entry formatter
-                    const summary = await this.generateLogEntrySummary(
-                        logEntry,
-                        format,
-                        maxTokens,
-                        includeMetadata,
-                        interaction
-                    );
-
-                    completedTasks.push({
-                        type: task.type,
-                        target: task.target,
-                        status: 'completed',
-                        result: summary
-                    });
-
-                } catch (error) {
-                    logger.error(`Task failed: ${(error as Error).message}`);
-                    completedTasks.push({
-                        type: task.type,
-                        target: task.target,
-                        status: 'failed',
-                        error: (error as Error).message
-                    });
-                    errorMessages.push(`Failed to process ${task.target}: ${(error as Error).message}`);
-                }
-            }
-
-            const result: LLMToolDelegateTasksResult = {
-                toolResult: completedTasks,
-                bbResponse: {
-                    data: {
-                        completedTasks,
-                        errorMessages
-                    }
-                }
-            };
-
-            return {
-                toolResults: result.toolResult,
-                toolResponse: 'Tasks processed',
-                bbResponse: result.bbResponse
-            };
- */
-		} catch (error) {
-			logger.error(`LLMToolDelegateTasks error: ${(error as Error).message}`);
-			throw createError(
-				ErrorType.ToolHandling,
-				`Error executing delegated tasks: ${(error as Error).message}`,
-				// {
-				//     name: 'delegate-tasks',
-				//     operation: 'run-tool'
-				// }
+			// export interface CompletedTask {
+			// 	//type: string;
+			// 	title: string;
+			// 	status: 'completed' | 'failed';
+			// 	result?: string;
+			// 	error?: string;
+			// }
+			const completedTasks: CompletedTask[] = await this.orchestratorController!.handleAgentTasks(
+				tasks,
+				sync,
+				this.errorHandlingConfig,
 			);
-		}
-	}
 
-	/*
-	async execute(params: { tasks: Task[]; sync: boolean }): Promise<string> {
-		const { tasks, sync } = params;
+			const errorMessages: string[] = [];
+			logger.info('LLMToolDelegateTasks: Completed ', { completedTasks });
+			/*
+			for (const task of tasks) {
+				try {
 
-		if (sync) {
-			return this.executeSyncTasks(tasks);
-		} else {
-			return this.executeAsyncTasks(tasks);
-		}
-	}
+					// // Read target file
+					// const fileContent = await projectEditor.readFile(task.target);
 
-	private async executeSyncTasks(tasks: Task[]): Promise<string> {
-		const results: string[] = [];
+					// // Format options
+					// const format = task.options?.format || 'medium';
+					// const maxTokens = task.options?.maxTokens || 1000;
+					// const includeMetadata = task.options?.includeMetadata ?? true;
 
-		for (const task of tasks) {
-			try {
-				const result = await this.executeTask(task);
-				results.push(`Task '${task.title}' completed successfully: ${result}`);
-			} catch (error) {
-				await this.errorHandler.handleError((error as Error), task, 0);
+					// // Generate summary using the log entry formatter
+					// const summary = await this.generateLogEntrySummary(
+					// 	logEntry,
+					// 	format,
+					// 	maxTokens,
+					// 	includeMetadata,
+					// 	interaction,
+					// );
+
+					completedTasks.push({
+						title: task.title,
+						status: 'completed',
+						result: summary,
+					} );
+				} catch (error) {
+					logger.error(`Task failed: ${isError(error) ?error.message : 'unknwn error'}`);
+					completedTasks.push({
+						title: task.title,
+						status: 'failed',
+						error: (error as Error).message,
+					});
+					errorMessages.push(`Failed to process ${task.title}: ${(error as Error).message}`);
+				}
 			}
-		}
-
-		return results.join('\n');
-	}
-
-	private async executeAsyncTasks(tasks: Task[]): Promise<string> {
-		tasks.forEach((task) => this.taskQueue.addTask(task));
-		return 'Tasks added to the queue for asynchronous processing.';
-	}
-
-	private async executeTask(task: Task): Promise<string> {
-		// Check capabilities
-		for (const capability of task.capabilities) {
-			if (!this.capabilityManager.hasCapability(capability)) {
-				throw new Error(`Missing required capability: ${capability}`);
-			}
-		}
-
-		// Load resources
-		const loadedResources = await Promise.all(
-			task.resources.map((resource) => this.resourceManager.loadResource(resource)),
-		);
-
-		// Create child interaction
-		const childInteractionId = this.interactionManager.createInteraction('conversation');
-		const childInteraction = this.interactionManager.getInteraction(childInteractionId);
-
-		if (!childInteraction) {
-			throw new Error('Failed to create child interaction');
-		}
-
-		// Execute task in child interaction
-		const result = await childInteraction.execute({
-			background: task.background,
-			instruction: task.instructions,
-			resources: loadedResources,
-			requirements: task.requirements,
-		});
-
-		// Clean up
-		this.interactionManager.removeInteraction(childInteractionId);
-
-		return result;
-	}
  */
+
+			const toolResultContentParts: LLMMessageContentParts = completedTasks.map((
+				task: CompletedTask,
+			) => ({
+				type: 'text',
+				text: `${task.status === 'completed' ? '✅  ' : '⚠️  '} ${task.title}\n\nResult: ${task.result}${
+					task.error ? `\n\nError ${task.error}` : ''
+				}`,
+			}));
+
+			const resultData: LLMToolDelegateTasksResultData = {
+				completedTasks,
+				errorMessages,
+			};
+
+			return {
+				toolResults: toolResultContentParts,
+				toolResponse: 'Tasks processed',
+				bbResponse: {
+					data: resultData,
+				},
+			};
+		} catch (error) {
+			logger.error(`LLMToolDelegateTasks: Failed to run delegated tasks: ${(error as Error).message}`);
+
+			const toolResults = `⚠️  ${(error as Error).message}`;
+			const bbResponse = `BB failed to run delegated tasks. Error: ${(error as Error).message}`;
+			const toolResponse = `Failed to run delegated tasks. Error: ${(error as Error).message}`;
+			return { toolResults, toolResponse, bbResponse };
+			// throw createError(
+			// 	ErrorType.ToolHandling,
+			// 	`Error executing delegated tasks: ${(error as Error).message}`,
+			// 	{
+			// 	    name: 'tool run',
+			// 	    toolName: 'delegate-tasks',
+			// 	    operation: 'tool-run'
+			// 	} as ToolHandlingErrorOptions
+			// );
+		}
+	}
+
+	// 	private async executeTask(task: Task): Promise<CompletedTask> {
+	// logger.info('LLMToolDelegateTasks: executeTask ', { task }  );
+	// 		//// Check capabilities
+	// 		//for (const capability of task.capabilities) {
+	// 		//	if (!this.capabilityManager!.hasCapability(capability)) {
+	// 		//		throw new Error(`Missing required capability: ${capability}`);
+	// 		//	}
+	// 		//}
+	//
+	// 		// // Load resources
+	// 		// const loadedResources = await Promise.all(
+	// 		// 	task.resources.map((resource) => this.resourceManager!.loadResource(resource)),
+	// 		// );
+	//
+	// 		// Create child interaction
+	// 		//const childInteractionId = this.interactionManager!.createInteraction('conversation');
+	// 		//const childInteraction = this.interactionManager!.getInteraction(childInteractionId);
+	//
+	//
+	// 		// // Execute task in child interaction
+	// 		// const result = await childInteraction.execute({
+	// 		// 	background: task.background,
+	// 		// 	instruction: task.instructions,
+	// 		// 	resources: loadedResources,
+	// 		// 	requirements: task.requirements,
+	// 		// });
+	//
+	// 		// export interface ConversationResponse {
+	// 		// 	conversationId: ConversationId;
+	// 		// 	conversationTitle: string;
+	// 		// 	timestamp: string;
+	// 		// 	logEntry: ConversationLogEntry;
+	// 		// 	tokenUsageTurn: TokenUsage;
+	// 		// 	tokenUsageStatement: TokenUsage;
+	// 		// 	tokenUsageConversation: TokenUsage;
+	// 		// 	conversationStats: ConversationStats;
+	// 		// 	formattedContent?: string;
+	// 		// }
+	// 		// export interface ConversationLogEntry {
+	// 		// 	entryType: ConversationLogEntryType;
+	// 		// 	content: ConversationLogEntryContent;
+	// 		// 	thinking?: string;
+	// 		// 	toolName?: string;
+	// 		// }
+	//
+	// 	}
 
 	/*
     private async parseLogEntry(fileContent: string) {
