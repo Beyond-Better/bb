@@ -95,7 +95,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 	bui: {
 		environment: 'local',
 		buiHostname: 'localhost',
-		buiPort: 8000,
+		buiPort: 8080,
 		buiUseTls: true,
 	},
 	cli: {},
@@ -132,7 +132,7 @@ export const defaultProjectConfig: ProjectConfigSchema = {
 	bui: {
 		environment: 'local',
 		buiHostname: 'localhost',
-		buiPort: 8000,
+		buiPort: 8080,
 		buiUseTls: true,
 	},
 	cli: {},

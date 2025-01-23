@@ -47,7 +47,7 @@ export const sampleV1GlobalConfig = {
 	},
 	bui: {
 		buiHostname: 'localhost',
-		buiPort: 8000,
+		buiPort: 8080,
 		buiUseTls: true,
 	},
 	cli: {},
@@ -116,7 +116,7 @@ export const sampleV2GlobalConfig: GlobalConfig = {
 	},
 	bui: {
 		hostname: 'localhost',
-		port: 8000,
+		port: 8080,
 		tls: { useTls: true },
 	},
 	cli: {

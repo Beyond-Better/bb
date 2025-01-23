@@ -282,22 +282,22 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 
 export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	hostname: 'localhost',
-	port: 8000,
+	port: 8080,
 	tls: {
-		useTls: true,
+		useTls: false,
 	},
 	localMode: false,
 	kvSessionPath: 'auth.kv',
+};
+
+export const CliConfigDefaults: Readonly<CliConfig> = {
+	historySize: 1000,
 };
 
 export const DuiConfigDefaults: Readonly<DuiConfig> = {
 	defaultApiConfig: {},
 	projectsDirectory: './projects',
 	recentProjects: 5,
-};
-
-export const CliConfigDefaults: Readonly<CliConfig> = {
-	historySize: 1000,
 };
 
 //export const ProjectConfigDefaults: Readonly<Omit<ProjectConfig, 'version' | 'projectId' | 'name'>> = {
