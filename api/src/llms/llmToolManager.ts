@@ -187,7 +187,7 @@ class LLMToolManager {
 
 	async getTool(name: string): Promise<LLMTool | undefined> {
 		if (this.loadedTools.has(name)) {
-			logger.info(`LLMToolManager: Returning cached ${name} tool`);
+			//logger.info(`LLMToolManager: Returning cached ${name} tool`);
 			return this.loadedTools.get(name);
 		}
 
