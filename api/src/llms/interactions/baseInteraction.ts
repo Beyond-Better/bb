@@ -117,7 +117,7 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(parentId ?? this.id, projectEditor).init();
+			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor, parentId).init();
 			this.conversationLogger = await new ConversationLogger(projectId, parentId ?? this.id, logEntryHandler)
 				.init();
 			this.projectConfig = projectEditor.projectConfig;
