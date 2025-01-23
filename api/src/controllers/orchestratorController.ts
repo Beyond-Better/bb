@@ -1,61 +1,57 @@
-import * as diff from 'diff';
-
-// Hard-coded conversation token limit (192k to leave room for 8k response)
-const CONVERSATION_TOKEN_LIMIT = 192000;
-//const CONVERSATION_TOKEN_LIMIT = 64000;
-
-import type InteractionManager from 'api/llms/interactionManager.ts';
-import { interactionManager } from 'api/llms/interactionManager.ts';
-import type ProjectEditor from 'api/editor/projectEditor.ts';
-import type { ProjectInfo } from 'api/editor/projectEditor.ts';
-import type LLM from '../llms/providers/baseLLM.ts';
-import LLMFactory from '../llms/llmProvider.ts';
-import type LLMMessage from 'api/llms/llmMessage.ts';
+//import type InteractionManager from 'api/llms/interactionManager.ts';
+//import { interactionManager } from 'api/llms/interactionManager.ts';
+//import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
-import type LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
-import LLMToolManager from '../llms/llmToolManager.ts';
+//import type LLMTool from 'api/llms/llmTool.ts';
+//import type { LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
+//import LLMToolManager from '../llms/llmToolManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
+//import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import AgentController from './agentController.ts';
-import PromptManager from '../prompts/promptManager.ts';
-import EventManager from 'shared/eventManager.ts';
+//import PromptManager from '../prompts/promptManager.ts';
+//import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
-import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
-import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
+//import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+//import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
+import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
+import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
-	ConversationContinue,
+	//ConversationContinue,
 	ConversationEntry,
 	ConversationId,
-	ConversationLogEntry,
+	//ConversationLogEntry,
 	//ConversationMetrics,
 	ConversationResponse,
 	ConversationStart,
 	ConversationStats,
 	ObjectivesData,
-	TokenUsage,
+	//TokenUsage,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
-import { createError } from 'api/utils/error.ts';
+//import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
+import { isLLMError } from 'api/errors/error.ts';
+//import { createError } from 'api/utils/error.ts';
 
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
+//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import { readProjectFileContent } from 'api/utils/fileHandling.ts';
-import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import { LLMModelToProvider } from 'api/types/llms.ts';
+//import { readProjectFileContent } from 'api/utils/fileHandling.ts';
+import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+//import { LLMModelToProvider } from 'api/types/llms.ts';
 import {
 	generateConversationObjective,
-	generateConversationTitle,
+	//generateConversationTitle,
 	generateStatementObjective,
 } from '../utils/conversation.utils.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+//import { generateConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
-import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 import { getVersionInfo } from 'shared/version.ts';
+import BaseController from './baseController.ts';
+
+// Hard-coded conversation token limit (192k to leave room for 8k response)
+const CONVERSATION_TOKEN_LIMIT = 192000;
+//const CONVERSATION_TOKEN_LIMIT = 64000;
 
 function getConversationObjective(objectives?: ObjectivesData): string | undefined {
 	if (!objectives) return undefined;
@@ -111,23 +107,8 @@ function formatToolObjectivesAndStats(
 	return parts.join('\n');
 }
 
-class OrchestratorController {
-	private interactionStats: Map<ConversationId, ConversationStats> = new Map();
-	//private interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
-	private interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
-	private isCancelled: boolean = false;
-	//private currentStatus: ApiStatus = ApiStatus.IDLE;
-	private statusSequence: number = 0;
-	public interactionManager: InteractionManager;
-	public primaryInteractionId: ConversationId | null = null;
+class OrchestratorController extends BaseController {
 	private agentControllers: Map<string, AgentController> = new Map();
-	public projectConfig!: ProjectConfig;
-	public promptManager!: PromptManager;
-	public toolManager!: LLMToolManager;
-	public llmProvider!: LLM;
-	public eventManager!: EventManager;
-	private projectEditorRef!: WeakRef<ProjectEditor>;
-	//private _providerRequestCount: number = 0;
 
 	// [TODO] Keep stats and counts simple
 	// these counts and token usage are not including chat interactions
@@ -150,592 +131,9 @@ class OrchestratorController {
 	// 	outputTokens: 0,
 	// };
 
-	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
-		this.projectEditorRef = new WeakRef(projectEditor);
-		this.interactionManager = interactionManager; //new InteractionManager();
-	}
-
-	async init(): Promise<OrchestratorController> {
-		const configManager = await ConfigManagerV2.getInstance();
-		const globalConfig = await configManager.getGlobalConfig();
-		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
-		this.eventManager = EventManager.getInstance();
-		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
-
-		this.llmProvider = LLMFactory.getProvider(
-			this.getInteractionCallbacks(),
-			globalConfig.api.localMode
-				? LLMModelToProvider[this.projectConfig.defaultModels!.agent]
-				: LLMProviderEnum.BB,
-			//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
-			//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
-		);
-
+	override async init(): Promise<OrchestratorController> {
+		await super.init();
 		return this;
-	}
-
-	private handleLLMError(error: Error, interaction: LLMConversationInteraction): LLMError {
-		logger.error(`OrchestratorController: handleLLMError:`, error);
-
-		if (isLLMError(error)) {
-			// Extract useful information from the error if it's our custom error type
-			const errorDetails = {
-				message: error.message,
-				code: error.name === 'LLMError' ? 'LLM_ERROR' : 'UNKNOWN_ERROR',
-				// Include any additional error properties if available
-				args: error.options?.args || {},
-			};
-			//logger.error(`OrchestratorController: handleLLMError-error.options.args:`, error.options?.args);
-			//logger.error(`OrchestratorController: handleLLMError-errorDetails:`, errorDetails);
-
-			this.eventManager.emit(
-				'projectEditor:conversationError',
-				{
-					conversationId: interaction.id,
-					conversationTitle: interaction.title || '',
-					timestamp: new Date().toISOString(),
-					conversationStats: {
-						statementCount: this.statementCount,
-						statementTurnCount: this.statementTurnCount,
-						conversationTurnCount: this.conversationTurnCount,
-					},
-					error: errorDetails.message,
-					code: errorDetails.code,
-					details: errorDetails.args || {},
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
-			);
-			return error;
-		} else {
-			// Always log the full error for debugging
-			logger.error(`OrchestratorController: LLM communication error:`, error);
-			return createError(
-				ErrorType.API,
-				`Unknown error type: ${error.message}`,
-				{
-					model: interaction.model,
-					//provider: this.llmProviderName,
-					conversationId: interaction.id,
-					args: {},
-				} as LLMErrorOptions,
-			);
-		}
-	}
-
-	private emitStatus(status: ApiStatus, metadata?: { toolName?: string; error?: string }) {
-		if (!this.primaryInteractionId) {
-			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit status');
-			return;
-		}
-		//this.currentStatus = status;
-		this.statusSequence++;
-		this.eventManager.emit('projectEditor:progressStatus', {
-			type: 'progress_status',
-			conversationId: this.primaryInteractionId,
-			status,
-			timestamp: new Date().toISOString(),
-			statementCount: this.statementCount,
-			sequence: this.statusSequence,
-			metadata,
-		});
-		logger.warn(`OrchestratorController: Emitted progress_status: ${status}`);
-	}
-
-	private emitPromptCacheTimer() {
-		if (!this.primaryInteractionId) {
-			logger.warn('OrchestratorController: No primaryInteractionId set, cannot emit timer');
-			return;
-		}
-		this.eventManager.emit('projectEditor:promptCacheTimer', {
-			type: 'prompt_cache_timer',
-			conversationId: this.primaryInteractionId,
-			startTimestamp: Date.now(),
-			duration: 300000, // 5 minutes in milliseconds
-		});
-		logger.warn(`OrchestratorController: Emitted prompt_cache_timer`);
-	}
-
-	public get projectEditor(): ProjectEditor {
-		const projectEditor = this.projectEditorRef.deref();
-		if (!projectEditor) throw new Error('No projectEditor to deref from projectEditorRef');
-		return projectEditor;
-	}
-
-	public get primaryInteraction(): LLMConversationInteraction {
-		if (!this.primaryInteractionId) throw new Error('No primaryInteractionId set in orchestrator');
-		const primaryInteraction = this.interactionManager.getInteraction(this.primaryInteractionId);
-		if (!primaryInteraction) throw new Error('No primaryInteraction to get from interactionManager');
-		return primaryInteraction as LLMConversationInteraction;
-	}
-
-	public get statementTurnCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get statementTurnCount.');
-		}
-		return primaryInteraction.statementTurnCount;
-	}
-	public set statementTurnCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set statementTurnCount.');
-		}
-		primaryInteraction.conversationTurnCount = count;
-	}
-
-	public get conversationTurnCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get conversationTurnCount.');
-		}
-		return primaryInteraction.conversationTurnCount;
-	}
-	public set conversationTurnCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set conversationTurnCount.');
-		}
-		primaryInteraction.conversationTurnCount = count;
-	}
-
-	public get statementCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get statementCount.');
-		}
-		return primaryInteraction.statementCount;
-	}
-	public set statementCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set statementCount.');
-		}
-		primaryInteraction.statementCount = count;
-	}
-
-	public get tokenUsageInteraction(): TokenUsage {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get tokenUsageInteraction.');
-		}
-		return primaryInteraction.tokenUsageInteraction;
-	}
-	public set tokenUsageInteraction(tokenUsageInteraction: TokenUsage) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set tokenUsageInteraction.');
-		}
-		primaryInteraction.tokenUsageInteraction = tokenUsageInteraction;
-	}
-
-	public get inputTokensTotal(): number {
-		return this.tokenUsageInteraction.inputTokens;
-	}
-
-	public get outputTokensTotal(): number {
-		return this.tokenUsageInteraction.outputTokens;
-	}
-
-	public get totalTokensTotal(): number {
-		return this.tokenUsageInteraction.totalTokens;
-	}
-
-	public getAllStats(): { [key: string]: ConversationStats } {
-		const allStats: { [key: string]: ConversationStats } = {};
-		for (const [id, stats] of this.interactionStats) {
-			allStats[id] = stats;
-		}
-		return allStats;
-	}
-	public getAllTokenUsage(): { [key: string]: TokenUsage } {
-		const allTokenUsage: { [key: string]: TokenUsage } = {};
-		for (const [id, usage] of this.interactionTokenUsage) {
-			allTokenUsage[id] = usage;
-		}
-		return allTokenUsage;
-	}
-
-	private updateStats(conversationId: ConversationId, interactionStats: ConversationStats): void {
-		this.interactionStats.set(conversationId, interactionStats);
-		this.updateTotalStats();
-	}
-
-	private updateTotalStats(): void {
-		// See '[TODO] Keep stats and counts simple'
-		// this method is a no-op for now
-		//
-		// //this._providerRequestCount = 0;
-		// this.statementTurnCount = 0;
-		// this.conversationTurnCount = 0;
-		// this.statementCount = 0;
-		// //this._tokenUsageConversation = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
-		//
-		// for (const stats of this.interactionStats.values()) {
-		// 	//this._providerRequestCount += stats.providerRequestCount;
-		// 	this.statementTurnCount += stats.statementTurnCount;
-		// 	this.conversationTurnCount += stats.conversationTurnCount;
-		// 	this.statementCount += stats.statementCount;
-		// }
-		// //for (const usage of this.interactionTokenUsage.values()) {
-		// //	this._tokenUsageConversation.totalTokens += usage.totalTokens;
-		// //	this._tokenUsageConversation.inputTokens += usage.inputTokens;
-		// //	this._tokenUsageConversation.outputTokens += usage.outputTokens;
-		// //}
-	}
-
-	async initializePrimaryInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
-		this.primaryInteractionId = conversationId;
-		let interaction = await this.loadInteraction(conversationId);
-		if (!interaction) {
-			interaction = await this.createInteraction(conversationId);
-		}
-		// [TODO] `createInteraction` calls interactionManager.createInteraction which adds it to manager
-		// so let `loadInteraction` handle interactionManager.addInteraction
-		//this.interactionManager.addInteraction(interaction);
-		await this.addToolsToInteraction(interaction);
-		return interaction;
-	}
-
-	private async loadInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction | null> {
-		logger.info(`OrchestratorController: Attempting to load existing conversation: ${conversationId}`);
-		try {
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
-
-			const conversation = await persistence.loadConversation(this.llmProvider);
-			if (!conversation) {
-				logger.warn(`OrchestratorController: No conversation found for ID: ${conversationId}`);
-				return null;
-			}
-			logger.info(`OrchestratorController: Loaded existing conversation: ${conversationId}`);
-
-			//const metadata = await persistence.getMetadata();
-
-			this.interactionManager.addInteraction(conversation);
-
-			//this._providerRequestCount = conversation.providerRequestCount;
-			this.statementTurnCount = conversation.conversationStats.statementTurnCount;
-			this.conversationTurnCount = conversation.conversationStats.conversationTurnCount;
-			this.statementCount = conversation.conversationStats.statementCount;
-			this.tokenUsageInteraction = conversation.tokenUsageInteraction;
-
-			return conversation;
-		} catch (error) {
-			logger.warn(
-				`OrchestratorController: Failed to load conversation ${conversationId}: ${(error as Error).message}`,
-			);
-			logger.error(`OrchestratorController: Error details:`, error);
-			logger.debug(`OrchestratorController: Stack trace:`, (error as Error).stack);
-			return null;
-		}
-	}
-
-	async createInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
-		logger.info(`OrchestratorController: Creating new conversation: ${conversationId}`);
-		const interaction = await this.interactionManager.createInteraction(
-			'conversation',
-			conversationId,
-			this.llmProvider,
-		);
-		const systemPrompt = await this.promptManager.getPrompt('system', {
-			userDefinedContent: 'You are an AI assistant helping with code and project management.',
-			projectConfig: this.projectEditor.projectConfig,
-			interaction,
-		});
-		interaction.baseSystem = systemPrompt;
-		//logger.info(`OrchestratorController: set system prompt for: ${typeof interaction}`, interaction.baseSystem);
-		return interaction as LLMConversationInteraction;
-	}
-
-	async createAgentInteraction(parentId: ConversationId, title: string): Promise<LLMConversationInteraction> {
-		const interactionId = generateConversationId();
-		const agentInteraction = await this.interactionManager.createInteraction(
-			'conversation',
-			interactionId,
-			this.llmProvider,
-			parentId,
-		) as LLMConversationInteraction;
-		agentInteraction.title = title;
-		return agentInteraction;
-	}
-	async createChatInteraction(parentId: ConversationId, title: string): Promise<LLMChatInteraction> {
-		const interactionId = generateConversationId();
-		const chatInteraction = await this.interactionManager.createInteraction(
-			'chat',
-			interactionId,
-			this.llmProvider,
-			parentId,
-		) as LLMChatInteraction;
-		chatInteraction.title = title;
-		return chatInteraction;
-	}
-
-	async saveInitialConversationWithResponse(
-		interaction: LLMConversationInteraction,
-		currentResponse: LLMSpeakWithResponse,
-	): Promise<void> {
-		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
-			await persistence.saveConversation(interaction);
-
-			// Save system prompt and project info if running in local development
-			if (this.projectConfig.settings.api?.environment === 'localdev') {
-				const system = Array.isArray(currentResponse.messageMeta.system)
-					? currentResponse.messageMeta.system[0].text
-					: currentResponse.messageMeta.system;
-				await persistence.dumpSystemPrompt(system);
-				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
-			}
-
-			logger.info(`OrchestratorController: Saved conversation: ${interaction.id}`);
-		} catch (error) {
-			logger.error(`OrchestratorController: Error persisting the conversation:`, error);
-			throw error;
-		}
-	}
-
-	async saveConversationAfterStatement(
-		interaction: LLMConversationInteraction,
-		currentResponse: LLMSpeakWithResponse,
-	): Promise<void> {
-		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
-
-			// Include the latest stats and usage in the saved conversation
-			//interaction.conversationStats = this.interactionStats.get(interaction.id),
-			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
-
-			await persistence.saveConversation(interaction);
-
-			// Save system prompt and project info if running in local development
-			if (this.projectConfig.settings.api?.environment === 'localdev') {
-				const system = Array.isArray(currentResponse.messageMeta.system)
-					? currentResponse.messageMeta.system[0].text
-					: currentResponse.messageMeta.system;
-				await persistence.dumpSystemPrompt(system);
-				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
-			}
-		} catch (error) {
-			logger.error(`OrchestratorController: Error persisting the conversation:`, error);
-			throw error;
-		}
-	}
-
-	createAgentController(): AgentController {
-		if (!this.primaryInteractionId || !this.interactionManager.hasInteraction(this.primaryInteractionId)) {
-			throw new Error('Primary interaction not initialized or not found');
-		}
-		const agentController = new AgentController(
-			this.interactionManager,
-			this.llmProvider,
-			this.primaryInteractionId,
-		);
-		const agentInteractionId = agentController.getId();
-		this.agentControllers.set(agentInteractionId, agentController);
-		return agentController;
-	}
-
-	async manageAgentTasks(
-		tasks: Task[],
-		_sync: boolean = false,
-		errorConfig: ErrorHandlingConfig = { strategy: 'fail_fast' },
-	): Promise<void> {
-		if (!this.primaryInteractionId || !this.interactionManager.hasInteraction(this.primaryInteractionId)) {
-			throw new Error('Primary interaction not initialized or not found');
-		}
-
-		const results = await Promise.all(tasks.map(async (task) => {
-			if (!this.primaryInteractionId) throw new Error('Primary interaction not initialized or not found');
-
-			const agentInteraction = await this.createAgentInteraction(this.primaryInteractionId, task.title);
-			if (!agentInteraction) {
-				throw new Error(`Failed to create agent interaction for task: ${task.title}`);
-			}
-
-			try {
-				//////     start an agent and run handleStatement
-				/*
-				const result = await this.delegateTasksTool.execute({
-					tasks: [task],
-					sync: true,
-					errorConfig,
-					parentInteractionId: agentInteractionId,
-				});
-				this.interactionManager.setInteractionResult(agentInteractionId, result);
-				 */
-
-				return { taskTitle: task.title, result: '', error: null };
-			} catch (error) {
-				logger.error(`OrchestratorController: Error executing task: ${task.title}`, error);
-				return { taskTitle: task.title, result: null, error };
-			}
-		}));
-
-		const errors = results.filter((r) => r.error);
-		if (errors.length > 0) {
-			if (errorConfig.strategy === 'fail_fast') {
-				throw new Error(`Failed to execute tasks: ${errors.map((e) => e.taskTitle).join(', ')}`);
-			} else if (
-				errorConfig.strategy === 'continue_on_error' &&
-				errors.length > (errorConfig.continueOnErrorThreshold || 0)
-			) {
-				throw new Error(`Too many tasks failed: ${errors.length} out of ${tasks.length}`);
-			}
-		}
-
-		logger.info('OrchestratorController: Delegated tasks completed', { results });
-	}
-
-	private getInteractionCallbacks(): LLMCallbacks {
-		return {
-			PROJECT_EDITOR: () => this.projectEditor,
-			PROJECT_ID: () => this.projectEditor.projectId,
-			PROJECT_ROOT: () => this.projectEditor.projectRoot,
-			PROJECT_INFO: () => this.projectEditor.projectInfo,
-			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
-			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
-				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
-			LOG_ENTRY_HANDLER: async (
-				timestamp: string,
-				logEntry: ConversationLogEntry,
-				conversationStats: ConversationStats,
-				tokenUsageTurn: TokenUsage,
-				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: TokenUsage,
-			): Promise<void> => {
-				if (logEntry.entryType === 'answer') {
-					const statementAnswer: ConversationResponse = {
-						timestamp,
-						conversationId: this.primaryInteraction.id,
-						conversationTitle: this.primaryInteraction.title,
-						logEntry,
-						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
-					};
-					this.eventManager.emit(
-						'projectEditor:conversationAnswer',
-						statementAnswer as EventPayloadMap['projectEditor']['projectEditor:conversationAnswer'],
-					);
-				} else {
-					const conversationContinue: ConversationContinue = {
-						timestamp,
-						conversationId: this.primaryInteraction.id,
-						conversationTitle: this.primaryInteraction.title,
-						logEntry,
-						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
-					};
-					this.eventManager.emit(
-						'projectEditor:conversationContinue',
-						conversationContinue as EventPayloadMap['projectEditor']['projectEditor:conversationContinue'],
-					);
-				}
-			},
-			PREPARE_SYSTEM_PROMPT: async (system: string, interactionId: string): Promise<string> => {
-				const interaction = this.interactionManager.getInteraction(interactionId);
-				return interaction ? await interaction.prepareSytemPrompt(system) : system;
-			},
-			PREPARE_MESSAGES: async (messages: LLMMessage[], interactionId: string): Promise<LLMMessage[]> => {
-				const interaction = this.interactionManager.getInteraction(interactionId);
-				return interaction ? await interaction.prepareMessages(messages) : messages;
-			},
-			PREPARE_TOOLS: async (tools: Map<string, LLMTool>, interactionId: string): Promise<LLMTool[]> => {
-				const interaction = this.interactionManager.getInteraction(interactionId);
-				//return interaction ? await interaction.prepareTools(tools) : tools;
-				return await interaction?.prepareTools(tools) || [];
-			},
-		};
-	}
-
-	cleanupAgentInteractions(parentId: ConversationId): void {
-		const descendants = this.interactionManager.getAllDescendantInteractions(parentId);
-		for (const descendant of descendants) {
-			this.interactionManager.removeInteraction(descendant.id);
-		}
-	}
-
-	public async generateConversationTitle(statement: string, interactionId: string): Promise<string> {
-		const chatInteraction = await this.createChatInteraction(interactionId, 'Create title for conversation');
-		return generateConversationTitle(chatInteraction, statement);
-	}
-
-	private async addToolsToInteraction(interaction: LLMConversationInteraction): Promise<void> {
-		const tools = await this.toolManager.getAllTools();
-		//logger.debug(`OrchestratorController: Adding tools to interaction`, tools);
-		interaction.addTools(tools);
-	}
-
-	private extractThinkingContent(response: LLMProviderMessageResponse): string {
-		if (!response.answerContent || !Array.isArray(response.answerContent)) {
-			return '';
-		}
-
-		let thinkingContent = '';
-
-		for (const part of response.answerContent) {
-			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-				const text = part.text;
-				const thinkingMatch = text.match(/Thinking:(.*?)(?=(Human:|Assistant:|$))/s);
-				if (thinkingMatch) {
-					thinkingContent += thinkingMatch[1].trim() + '\n';
-				} else {
-					// If no specific 'Thinking:' section is found, consider the whole text as thinking content
-					thinkingContent += text.trim() + '\n';
-				}
-			}
-		}
-
-		return thinkingContent.trim();
-	}
-
-	private async handleToolUse(
-		interaction: LLMConversationInteraction,
-		toolUse: LLMAnswerToolUse,
-		_response: LLMProviderMessageResponse,
-	): Promise<{ toolResponse: LLMToolRunToolResponse }> {
-		logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`);
-		//logger.error(`OrchestratorController: Handling tool use for: ${toolUse.toolName}`, response);
-		await interaction.conversationLogger.logToolUse(
-			interaction.getLastMessageId(),
-			toolUse.toolName,
-			toolUse.toolInput,
-			interaction.conversationStats,
-			interaction.tokenUsageTurn,
-			interaction.tokenUsageStatement,
-			interaction.tokenUsageInteraction,
-		);
-
-		const {
-			messageId,
-			toolResults,
-			toolResponse,
-			bbResponse,
-			isError,
-		} = await this.toolManager.handleToolUse(
-			interaction,
-			toolUse,
-			this.projectEditor,
-		);
-		if (isError) {
-			interaction.conversationLogger.logError(messageId, `Tool Output (${toolUse.toolName}): ${toolResponse}`);
-		}
-
-		await interaction.conversationLogger.logToolResult(
-			messageId,
-			toolUse.toolName,
-			toolResults,
-			bbResponse,
-		);
-
-		return { toolResponse };
-	}
-
-	private resetStatus() {
-		this.statusSequence = 0;
-		this.emitStatus(ApiStatus.IDLE);
 	}
 
 	async handleStatement(
@@ -1165,161 +563,61 @@ class OrchestratorController {
 		return statementAnswer;
 	}
 
-	cancelCurrentOperation(conversationId: ConversationId): void {
-		logger.info(`OrchestratorController: Cancelling operation for conversation: ${conversationId}`);
-		this.isCancelled = true;
-		// TODO: Implement cancellation of current LLM call if possible
-		// This might involve using AbortController or similar mechanism
-		// depending on how the LLM provider's API is implemented
+	async createAgentController(): Promise<AgentController> {
+		if (!this.primaryInteractionId || !this.interactionManager.hasInteraction(this.primaryInteractionId)) {
+			throw new Error('Primary interaction not initialized or not found');
+		}
+		const agentController = await new AgentController(
+			this.projectEditor,
+			this.primaryInteractionId,
+		).init();
+		logger.info(
+			'OrchestratorController: createAgentController - controller has llm for: ',
+			agentController.llmProvider.llmProviderName,
+		);
+		const agentInteractionId = agentController.primaryInteractionId!;
+		this.agentControllers.set(agentInteractionId, agentController);
+		return agentController;
 	}
 
-	/*
-	private getConversationHistory(interaction: LLMConversationInteraction): ConversationEntry[] {
-		const history = interaction.getMessageHistory();
-		return history.map((message: LLMMessage) => ({
-			type: message.role,
-			timestamp: message.timestamp,
-			content: message.content,
-			conversationStats: message.conversationStats || {
-				statementCount: 0,
-				statementTurnCount: 0,
-				conversationTurnCount: 0
-			},
-			tokenUsageTurn: message.tokenUsageTurn || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			},
-			tokenUsageStatement: message.tokenUsageStatement || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			},
-			tokenUsageConversation: message.tokenUsageConversation || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			}
-		}));
+	cleanupAgentInteractions(parentId: ConversationId): void {
+		const descendants = this.interactionManager.getAllDescendantInteractions(parentId);
+		for (const descendant of descendants) {
+			this.interactionManager.removeInteraction(descendant.id);
+		}
 	}
-	 */
 
-	async logChangeAndCommit(
-		interaction: LLMConversationInteraction,
-		filePath: string | string[],
-		change: string | string[],
-	): Promise<void> {
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+	async handleAgentTasks(
+		tasks: Task[],
+		sync: boolean = false,
+		errorHandlingConfig: ErrorHandlingConfig = { strategy: 'fail_fast' },
+	): Promise<Array<CompletedTask>> {
+		if (!this.primaryInteractionId || !this.interactionManager.hasInteraction(this.primaryInteractionId)) {
+			throw new Error('Primary interaction not initialized or not found');
+		}
 
-		if (Array.isArray(filePath) && Array.isArray(change)) {
-			if (filePath.length !== change.length) {
-				throw new Error('filePath and change arrays must have the same length');
-			}
-			for (let i = 0; i < filePath.length; i++) {
-				this.projectEditor.changedFiles.add(filePath[i]);
-				this.projectEditor.changeContents.set(filePath[i], change[i]);
-				await persistence.logChange(filePath[i], change[i]);
-			}
-		} else if (typeof filePath === 'string' && typeof change === 'string') {
-			this.projectEditor.changedFiles.add(filePath);
-			this.projectEditor.changeContents.set(filePath, change);
-			await persistence.logChange(filePath, change);
+		const agentController = await this.createAgentController();
+		const errorHandler = new ErrorHandler(errorHandlingConfig);
+
+		if (sync) {
+			return await agentController.executeSyncTasks(this, tasks, errorHandler);
 		} else {
-			throw new Error('filePath and change must both be strings or both be arrays');
+			return await agentController.executeAsyncTasks(this, tasks, errorHandler);
 		}
 
-		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		if (projectConfig.type === 'git') {
-			await stageAndCommitAfterChanging(
-				interaction,
-				this.projectEditor.projectRoot,
-				this.projectEditor.changedFiles,
-				this.projectEditor.changeContents,
-				this.projectEditor,
-			);
-		}
-
-		this.projectEditor.changedFiles.clear();
-		this.projectEditor.changeContents.clear();
-	}
-
-	async deleteConversation(conversationId: ConversationId): Promise<void> {
-		logger.info(`OrchestratorController: Deleting conversation: ${conversationId}`);
-
-		try {
-			// Emit deletion event before cleanup
-			this.eventManager.emit(
-				'projectEditor:conversationDeleted',
-				{
-					conversationId,
-					timestamp: new Date().toISOString(),
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationDeleted'],
-			);
-
-			// Clean up interaction
-			this.interactionManager.removeInteraction(conversationId);
-
-			// Clean up stats and usage tracking
-			this.interactionStats.delete(conversationId);
-			this.interactionTokenUsage.delete(conversationId);
-
-			// Update total stats
-			this.updateTotalStats();
-
-			// Clean up persistence
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
-			await persistence.deleteConversation();
-
-			logger.info(`OrchestratorController: Successfully deleted conversation: ${conversationId}`);
-		} catch (error) {
-			logger.error(`OrchestratorController: Error deleting conversation: ${conversationId}`, error);
-			throw error;
-		}
-	}
-
-	async revertLastChange(): Promise<void> {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot revert change.');
-		}
-
-		const persistence = await new ConversationPersistence(primaryInteraction.id, this.projectEditor).init();
-		const changeLog = await persistence.getChangeLog();
-
-		if (changeLog.length === 0) {
-			throw new Error('No changes to revert.');
-		}
-
-		const lastChange = changeLog[changeLog.length - 1];
-		const { filePath, change } = lastChange;
-
-		try {
-			const currentContent = await Deno.readTextFile(filePath);
-
-			// Create a reverse change
-			const changeResult = diff.applyPatch(currentContent, change);
-			if (typeof changeResult === 'boolean') {
-				throw new Error('Failed to apply original change. Cannot create reverse change.');
-			}
-			const reverseChange = diff.createPatch(filePath, changeResult, currentContent);
-
-			// Apply the reverse change
-			const revertedContent = diff.applyPatch(currentContent, reverseChange);
-
-			if (revertedContent === false) {
-				throw new Error('Failed to revert change. The current file content may have changed.');
-			}
-
-			await Deno.writeTextFile(filePath, revertedContent);
-			logger.info(`OrchestratorController: Last change reverted for file: ${filePath}`);
-
-			// Remove the last change from the log
-			await persistence.removeLastChange();
-		} catch (error) {
-			logger.error(`Error reverting last change: ${(error as Error).message}`);
-			throw error;
-		}
+		// 		const errors = results.filter((r) => r.error);
+		// 		if (errors.length > 0) {
+		// 			if (errorConfig.strategy === 'fail_fast') {
+		// 				throw new Error(`Failed to execute tasks: ${errors.map((e) => e.taskTitle).join(', ')}`);
+		// 			} else if (
+		// 				errorConfig.strategy === 'continue_on_error' &&
+		// 				errors.length > (errorConfig.continueOnErrorThreshold || 0)
+		// 			) {
+		// 				throw new Error(`Too many tasks failed: ${errors.length} out of ${tasks.length}`);
+		// 			}
+		// 		}
+		//
+		// 		logger.info('OrchestratorController: Delegated tasks completed', { results });
 	}
 }
 

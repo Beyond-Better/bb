@@ -22,6 +22,13 @@ export function formatLogEntryToolUse(
 
 	const content = (
 		<div className={TOOL_SPECIFIC_STYLES.container}>
+			Task Input
+		</div>
+	);
+
+	/*
+	const content = (
+		<div className={TOOL_SPECIFIC_STYLES.container}>
 			<div className={TOOL_SPECIFIC_STYLES.taskList}>
 				{tasks.map((task, index) => (
 					<div key={index} className={TOOL_SPECIFIC_STYLES.taskItem}>
@@ -46,6 +53,7 @@ export function formatLogEntryToolUse(
 			</div>
 		</div>
 	);
+ */
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Delegate Tasks'),
@@ -61,6 +69,18 @@ export function formatLogEntryToolResult(
 	const { bbResponse } = resultContent as LLMToolDelegateTasksResult;
 	const { completedTasks, errorMessages } = bbResponse.data;
 
+	const content = (
+		<div className={TOOL_SPECIFIC_STYLES.container}>
+			Task Results
+			{errorMessages && errorMessages.length > 0 && (
+				<div className={LLMTool.TOOL_STYLES_BROWSER.status.error}>
+					{errorMessages.map((error, index) => <div key={index}>{error}</div>)}
+				</div>
+			)}
+		</div>
+	);
+
+	/*
 	const content = (
 		<div className={TOOL_SPECIFIC_STYLES.container}>
 			<div className={TOOL_SPECIFIC_STYLES.taskList}>
@@ -93,6 +113,7 @@ export function formatLogEntryToolResult(
 			</div>
 		</div>
 	);
+ */
 
 	const completedCount = completedTasks.filter((t) => t.status === 'completed').length;
 	const failedCount = completedTasks.filter((t) => t.status === 'failed').length;

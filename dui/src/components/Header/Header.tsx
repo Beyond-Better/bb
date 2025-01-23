@@ -20,7 +20,7 @@ export function Header({
 				<div className='flex items-center gap-6 flex-1'>
 					{/* Logo */}
 					<div className='flex items-center gap-2'>
-						<img src='/assets/bb-logo.png' alt='BB Logo' className='h-6 w-6' />
+						<img src='/assets/bb-logo.png' alt='BB Logo' className='h-8 w-8' />
 						<h1 className='text-lg font-bold leading-none tracking-tight'>Beyond Better</h1>
 					</div>
 				</div>

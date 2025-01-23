@@ -36,7 +36,7 @@ export class SessionManager {
 			await this.storage.initialize();
 
 			this.config = await fetchSupabaseConfig();
-			logger.info('SessionManager: initialized with config: ', this.config);
+			//logger.info('SessionManager: initialized with config: ', this.config);
 
 			// Create Supabase client with our storage
 			this.supabaseClient = createClient(this.config.url, this.config.anonKey, {

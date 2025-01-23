@@ -157,7 +157,7 @@ describe('ConfigManagerV2', () => {
 				},
 				bui: {
 					buiHostname: 'localhost',
-					buiPort: 8000,
+					buiPort: 8080,
 					buiUseTls: true,
 				},
 				cli: {
@@ -220,7 +220,7 @@ describe('ConfigManagerV2', () => {
 				},
 				bui: {
 					buiHostname: 'localhost',
-					buiPort: 8000,
+					buiPort: 8080,
 					buiUseTls: true,
 				},
 				cli: {

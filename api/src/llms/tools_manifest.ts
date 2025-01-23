@@ -146,7 +146,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'display_file',
 			'description':
-				'Display the contents of a file to the user while returning only metadata to the AI assistant. The tool will show the user the file contents with appropriate formatting (syntax highlighting for text files, proper rendering for images) but the AI will only receive metadata like file size, type, and last modified date. This separation ensures user privacy while allowing the AI to track file states and metadata.',
+				'Display the contents of a file to the user while returning only metadata to the AI assistant. IMPORTANT: Do not use this tool to return file contents to the AI assistant; instead use the request_file tool.\n\nThe tool will show the user the file contents with appropriate formatting (syntax highlighting for text files, proper rendering for images) but the AI will only receive metadata like file size, type, and last modified date. This separation ensures user privacy while allowing the AI to track file states and metadata.',
 			'version': '1.0.0',
 			'category': 'file',
 			'enabled': true,
@@ -196,8 +196,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'delegateTasks.tool',
 		'metadata': {
 			'name': 'delegate_tasks',
-			'description':
-				'Delegate specialized tasks to child interactions. Currently supports log entry summary tasks with configurable format (short/medium/long), token limits, and metadata inclusion options. Each task includes type, target, and optional configuration.',
+			'description': 'Delegate specialized tasks to child agent conversations.',
 			'enabled': false,
 			'version': '1.0.0',
 			'author': 'BB Team',
@@ -256,7 +255,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'rewrite_file',
 			'description':
-				'Completely replaces an existing file\'s contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.',
+				'Completely replaces an existing file\'s contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.\nDANGER: Completely replaces file contents.\nREQUIRED STEPS:\n1. Use request_files to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail',
 			'version': '1.0.0',
 			'category': 'FileManipulation',
 			'author': 'BB Team',

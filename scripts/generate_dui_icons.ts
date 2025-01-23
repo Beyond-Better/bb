@@ -30,7 +30,7 @@ const ICON_SIZES = {
 };
 
 async function generateIcons() {
-  const sourcePath = 'bui/src/static/logo.png';
+  const sourcePath = 'bui/src/static/icon.png';
   const targetDir = 'dui/src-tauri/icons';
 
   // Ensure the target directory exists

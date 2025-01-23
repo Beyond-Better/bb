@@ -568,22 +568,34 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						</button>
 					)}
 					{directBuiUrl && (
-						<div className='font-medium text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-3'>
-							<a
-								href={directBuiUrl}
-								onClick={async (e) => {
-									e.preventDefault();
-									try {
-										await open(directBuiUrl);
-									} catch (err) {
-										console.error('Failed to open direct BUI URL:', err);
-										alert(`Please open this URL manually: ${directBuiUrl}`);
-									}
-								}}
-								className='break-all font-mono text-sm hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer'
+						<div
+							onClick={async () => {
+								try {
+									await open(directBuiUrl);
+								} catch (err) {
+									console.error('Failed to open direct BUI URL:', err);
+									alert(`Please open this URL manually: ${directBuiUrl}`);
+								}
+							}}
+							className='font-medium text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-3 cursor-pointer transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2'
+						>
+							<svg
+								className="h-5 w-5 flex-shrink-0"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
 							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+								/>
+							</svg>
+							<span className='break-all font-mono text-sm'>
 								{directBuiUrl}
-							</a>
+							</span>
 						</div>
 					)}
 				</div>

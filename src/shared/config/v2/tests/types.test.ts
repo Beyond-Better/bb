@@ -82,7 +82,7 @@ describe('Configuration Types', () => {
 		it('should include server config fields', () => {
 			const config: BuiConfig = {
 				hostname: 'localhost',
-				port: 8000,
+				port: 8080,
 				tls: { useTls: true },
 			};
 			assertExists(config);
@@ -91,8 +91,8 @@ describe('Configuration Types', () => {
 		it('should provide correct defaults', () => {
 			const defaults = BuiConfigDefaults;
 			assertEquals(defaults.hostname, 'localhost');
-			assertEquals(defaults.port, 8000);
-			assertEquals(defaults.tls.useTls, true);
+			assertEquals(defaults.port, 8080);
+			assertEquals(defaults.tls.useTls, false);
 		});
 	});
 
@@ -161,7 +161,7 @@ describe('Configuration Types', () => {
 				},
 				bui: {
 					hostname: 'localhost',
-					port: 8000,
+					port: 8080,
 					tls: { useTls: true },
 				},
 				cli: {

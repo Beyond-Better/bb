@@ -63,7 +63,7 @@ cleanupSetup(pidFile);
 
 //const environment = globalConfig.bui.environment || 'local';
 const hostname = globalConfig.bui.hostname || 'localhost';
-const port = globalConfig.bui.port || 8000;
+const port = globalConfig.bui.port || 8080;
 const useTls = globalConfig.bui.tls?.useTls ?? true;
 
 // it appears that Deno Fresh doesn't honour the `hostname` option - it's always 'localhost'

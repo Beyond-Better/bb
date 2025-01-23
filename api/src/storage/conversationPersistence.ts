@@ -53,6 +53,7 @@ class ConversationPersistence {
 	constructor(
 		private conversationId: ConversationId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
+		private parentId?: ConversationId,
 	) {
 		//this.ensureInitialized();
 	}
@@ -288,6 +289,8 @@ class ConversationPersistence {
 
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
+				parentId: this.parentId,
+
 				//system: conversation.baseSystem,
 				temperature: conversation.temperature,
 				maxTokens: conversation.maxTokens,
@@ -647,6 +650,7 @@ class ConversationPersistence {
 			version: 1, // default version for existing conversations
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
+			parentId: undefined,
 			title: '',
 			llmProviderName: '',
 			model: '',
