@@ -184,19 +184,25 @@ pub async fn get_binary_version() -> Result<Option<String>, String> {
         return Ok(None);
     }
 
-    let version_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    
-    if version_str.starts_with("BB API version ") {
-        let raw_version = version_str["BB API version ".len()..].trim().to_string();
-        let cleaned_version = clean_version_string(&raw_version);
-        
-        match Version::parse(&cleaned_version) {
-            Ok(_) => { debug!("Successfully parsed binary version: {}", cleaned_version); Ok(Some(cleaned_version)) },
-            Err(e) => { error!("Failed to parse binary version '{}': {}", cleaned_version, e); Ok(None) }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let version_line = stdout
+        .lines()
+        .find(|line| line.trim().starts_with("BB API version "));
+
+    match version_line {
+        Some(line) => {
+            let raw_version = line["BB API version ".len()..].trim().to_string();
+            let cleaned_version = clean_version_string(&raw_version);
+            
+            match Version::parse(&cleaned_version) {
+                Ok(_) => { debug!("Successfully parsed binary version: {}", cleaned_version); Ok(Some(cleaned_version)) },
+                Err(e) => { error!("Failed to parse binary version '{}': {}", cleaned_version, e); Ok(None) }
+            }
+        },
+        None => {
+            warn!("No valid version string found in output");
+            Ok(None)
         }
-    } else {
-        warn!("Unexpected version string format: {}", version_str);
-        Ok(None)
     }
 }
 
