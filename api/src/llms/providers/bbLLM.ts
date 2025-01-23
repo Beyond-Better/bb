@@ -332,6 +332,9 @@ class BbLLM extends LLM {
 					totalTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens),
 					cacheCreationInputTokens: bbResponseMessage.usage.cacheCreationInputTokens || 0,
 					cacheReadInputTokens: bbResponseMessage.usage.cacheReadInputTokens || 0,
+					totalAllTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens +
+						(bbResponseMessage.usage.cacheCreationInputTokens || 0) +
+						(bbResponseMessage.usage.cacheReadInputTokens || 0)),
 				},
 				rateLimit: bbResponseMessage.rateLimit,
 				providerMessageResponseMeta: bbResponseMessage.status,

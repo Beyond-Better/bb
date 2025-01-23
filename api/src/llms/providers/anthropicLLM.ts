@@ -420,6 +420,9 @@ class AnthropicLLM extends LLM {
 					totalTokens: (anthropicMessage.usage.input_tokens + anthropicMessage.usage.output_tokens),
 					cacheCreationInputTokens: anthropicMessage.usage.cache_creation_input_tokens || 0,
 					cacheReadInputTokens: anthropicMessage.usage.cache_read_input_tokens || 0,
+					totalAllTokens: (anthropicMessage.usage.input_tokens + anthropicMessage.usage.output_tokens +
+						(anthropicMessage.usage.cache_creation_input_tokens || 0) +
+						(anthropicMessage.usage.cache_read_input_tokens || 0)),
 				},
 				rateLimit: {
 					requestsRemaining,

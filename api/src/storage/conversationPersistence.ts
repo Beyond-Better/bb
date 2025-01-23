@@ -287,6 +287,10 @@ class ConversationPersistence {
 			// Get token usage analysis
 			//const tokenAnalysis = await this.getTokenUsageAnalysis();
 
+			// Get current token usage analysis
+			const tokenAnalysis = await this.tokenUsagePersistence.analyzeUsage('conversation');
+
+			// Create metadata with analyzed token usage
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
 				parentId: this.parentId,
@@ -298,9 +302,19 @@ class ConversationPersistence {
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
 
+				// Store analyzed token usage in metadata
+				tokenUsageConversation: {
+					inputTokens: tokenAnalysis.totalUsage.input,
+					outputTokens: tokenAnalysis.totalUsage.output,
+					totalTokens: tokenAnalysis.totalUsage.total,
+					cacheCreationInputTokens: tokenAnalysis.totalUsage.cacheCreationInput,
+					cacheReadInputTokens: tokenAnalysis.totalUsage.cacheReadInput,
+					totalAllTokens: tokenAnalysis.totalUsage.totalAll,
+				},
+
+				// Keep turn and statement level metrics
 				tokenUsageTurn: conversation.tokenUsageTurn,
 				tokenUsageStatement: conversation.tokenUsageStatement,
-				tokenUsageConversation: conversation.tokenUsageConversation,
 
 				totalProviderRequests: conversation.totalProviderRequests,
 				//tools: conversation.getAllTools().map((tool) => ({ name: tool.name, description: tool.description })),
@@ -382,11 +396,23 @@ class ConversationPersistence {
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
+			// Get accurate token usage from analysis
+			const tokenAnalysis = await this.tokenUsagePersistence.analyzeUsage('conversation');
+
+			// Update conversation with analyzed values
+			conversation.tokenUsageConversation = {
+				inputTokens: tokenAnalysis.totalUsage.input,
+				outputTokens: tokenAnalysis.totalUsage.output,
+				totalTokens: tokenAnalysis.totalUsage.total,
+				cacheCreationInputTokens: tokenAnalysis.totalUsage.cacheCreationInput,
+				cacheReadInputTokens: tokenAnalysis.totalUsage.cacheReadInput,
+				totalAllTokens: tokenAnalysis.totalUsage.totalAll,
+			};
+
+			// Keep turn and statement usage from metadata for backward compatibility
 			conversation.tokenUsageTurn = metadata.tokenUsageTurn || ConversationPersistence.defaultTokenUsage();
 			conversation.tokenUsageStatement = metadata.tokenUsageStatement ||
 				ConversationPersistence.defaultTokenUsage();
-			conversation.tokenUsageConversation = metadata.tokenUsageConversation ||
-				ConversationPersistence.defaultConversationTokenUsage();
 
 			conversation.statementTurnCount = metadata.conversationMetrics?.statementTurnCount || 0;
 			conversation.conversationTurnCount = metadata.conversationMetrics?.conversationTurnCount || 0;
@@ -636,6 +662,7 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		};
 	}
 	static defaultTokenUsage(): TokenUsage {
@@ -643,11 +670,12 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		};
 	}
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
-			version: 1, // default version for existing conversations
+			version: 3, // default version for existing conversations
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
 			parentId: undefined,

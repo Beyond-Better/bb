@@ -221,6 +221,7 @@ class OllamaLLM extends LLM {
 					totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
 					cacheCreationInputTokens: 0, // Ollama doesn't support caching
 					cacheReadInputTokens: 0,
+					totalAllTokens: 0,
 				},
 				rateLimit: {
 					requestsRemaining: 0,

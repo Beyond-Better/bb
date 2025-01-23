@@ -111,11 +111,13 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 			// Tokens we had to process (weren't in cache)
 			inputTokens: usage?.prompt_cache_miss_tokens ?? 0,
 			outputTokens: usage?.completion_tokens ?? 0,
-			totalTokens: 0,
+			totalTokens: ((usage?.prompt_cache_miss_tokens ?? 0) + (usage?.completion_tokens ?? 0)),
 			// We're reading from cache, not creating cache entries
 			cacheCreationInputTokens: 0,
 			// Tokens we got from cache
 			cacheReadInputTokens: usage?.prompt_cache_hit_tokens ?? 0,
+			totalAllTokens: ((usage?.prompt_cache_miss_tokens ?? 0) + (usage?.completion_tokens ?? 0) +
+				(usage?.prompt_cache_hit_tokens ?? 0)),
 		};
 		transformedUsage.totalTokens = transformedUsage.inputTokens + transformedUsage.outputTokens +
 			transformedUsage.cacheCreationInputTokens + transformedUsage.cacheReadInputTokens;

@@ -283,8 +283,47 @@ export class TokenUsagePersistence {
 
 	/**
 	 * Reads all token usage records from the specified file type.
+	 *
+	 * Updates a token usage record in the appropriate file.
+	 * Since JSONL files don't support in-place updates, this will:
+	 * 1. Read all records
+	 * 2. Update the matching record
+	 * 3. Write all records back
 	 */
-	async getUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
+	async updateRecord(record: TokenUsageRecord): Promise<void> {
+		// Validate the record
+		this.validateRecord(record);
+
+		await this.ensureDirectory();
+		const filePath = record.type === 'conversation' ? this.conversationFile : this.chatsFile;
+
+		try {
+			// Read all records
+			const records = await this.getUsage(record.type);
+
+			// Find and update the matching record
+			const index = records.findIndex((r) => r.messageId === record.messageId);
+			if (index === -1) {
+				throw new Error(`Record not found with messageId: ${record.messageId}`);
+			}
+			records[index] = record;
+
+			// Write all records back
+			const content = records.map((r) => JSON.stringify(r)).join('\n') + '\n';
+			await Deno.writeTextFile(filePath, content);
+		} catch (error) {
+			throw new PersistenceError(
+				`Failed to update token usage record: ${(error as Error).message}`,
+				{
+					name: 'TokenUsagePersistenceError',
+					filePath,
+					operation: 'write',
+				},
+			);
+		}
+	}
+
+	async getUsage(type: 'conversation' | 'chat' | 'base'): Promise<TokenUsageRecord[]> {
 		try {
 			await this.ensureDirectory();
 			const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
@@ -312,7 +351,14 @@ export class TokenUsagePersistence {
 		const records = await this.getUsage(type);
 
 		const analysis: TokenUsageAnalysis = {
-			totalUsage: { input: 0, output: 0, total: 0 },
+			totalUsage: {
+				input: 0,
+				output: 0,
+				total: 0,
+				cacheCreationInput: 0,
+				cacheReadInput: 0,
+				totalAll: 0,
+			},
 			differentialUsage: { input: 0, output: 0, total: 0 },
 			cacheImpact: { potentialCost: 0, actualCost: 0, totalSavings: 0, savingsPercentage: 0 },
 			byRole: { user: 0, assistant: 0, system: 0, tool: 0 },
@@ -340,6 +386,16 @@ export class TokenUsagePersistence {
 				analysis.totalUsage.input += record.rawUsage.inputTokens || 0;
 				analysis.totalUsage.output += record.rawUsage.outputTokens || 0;
 				analysis.totalUsage.total += record.rawUsage.totalTokens || 0;
+				analysis.totalUsage.cacheCreationInput += record.rawUsage.cacheCreationInputTokens || 0;
+				analysis.totalUsage.cacheReadInput += record.rawUsage.cacheReadInputTokens || 0;
+				// legacy calc
+				// const totalAllTokens =
+				// 	(((record.rawUsage.totalTokens ?? 0) > 0 || (record.rawUsage.cacheCreationInputTokens ?? 0) > 0 ||
+				// 			(record.rawUsage.cacheReadInputTokens ?? 0) > 0) && !record.rawUsage.totalAllTokens
+				// 		? (record.rawUsage.totalTokens ?? 0) + (record.rawUsage.cacheCreationInputTokens ?? 0) +
+				// 			(record.rawUsage.cacheReadInputTokens ?? 0)
+				// 		: record.rawUsage.totalAllTokens) || 0;
+				analysis.totalUsage.totalAll += record.rawUsage.totalAllTokens || 0;
 
 				// Differential usage
 				analysis.differentialUsage.input += record.differentialUsage.inputTokens || 0;

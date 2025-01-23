@@ -20,6 +20,7 @@ export function createMockTokenUsageRecord(
 	const cacheCreationInputTokens = options.cacheCreationInputTokens ?? Math.floor(Math.random() * 100);
 	const cacheReadInputTokens = options.cacheReadInputTokens ?? Math.floor(Math.random() * 100);
 	const totalTokens = inputTokens + outputTokens;
+	const totalAllTokens = totalTokens + cacheCreationInputTokens + cacheReadInputTokens;
 	const potentialCost = totalTokens * 1.5; // Example cost calculation
 	const actualCost = potentialCost - (cacheReadInputTokens * 0.5); // Example savings calculation
 	const savings = potentialCost - actualCost;
@@ -38,6 +39,7 @@ export function createMockTokenUsageRecord(
 			totalTokens,
 			cacheCreationInputTokens,
 			cacheReadInputTokens,
+			totalAllTokens,
 		},
 		differentialUsage: {
 			inputTokens,

@@ -4,6 +4,21 @@ import { join } from '@std/path';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
 import { createBbDir, createBbIgnore, getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
+import { ConversationMigration } from 'api/storage/conversationMigration.ts';
+import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
+
+interface MigrationReport {
+	timestamp: string;
+	projectId: string;
+	projectConfig: {
+		from: string;
+		to: string;
+		success: boolean;
+		changes: Array<{ path: string[]; from: unknown; to: unknown }>;
+		errors: Array<{ path: string[]; message: string }>;
+	};
+	conversations?: ConversationMigrationResult;
+}
 import type {
 	ConfigVersion,
 	GlobalConfig,
@@ -611,7 +626,20 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				throw new Error(`Project config migration failed: ${migrationResult.errors[0]?.message}`);
 			}
 
-			// If version changed, save the migrated config
+			// Prepare migration report
+			const report: MigrationReport = {
+				timestamp: new Date().toISOString(),
+				projectId,
+				projectConfig: {
+					from: migrationResult.version.from,
+					to: migrationResult.version.to,
+					success: migrationResult.success,
+					changes: migrationResult.changes || [],
+					errors: migrationResult.errors || [],
+				},
+			};
+
+			// If version changed, save the migrated config and migrate conversations
 			if (migrationResult.version.from !== migrationResult.version.to) {
 				// Ensure .bb directory exists
 				await ensureDir(join(projectRoot, '.bb'));
@@ -628,6 +656,52 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					await this.getGlobalConfig(),
 				);
 				this.projectConfigs.set(projectId, mergedConfig);
+
+				// Migrate conversations if needed
+				try {
+					const projectRoot = await this.getProjectRoot(projectId);
+					const bbDataDir = join(projectRoot, '.bb', 'data');
+					const conversationResult = await ConversationMigration.migrateProject(bbDataDir);
+					if (conversationResult.failed > 0) {
+						console.warn(
+							`Some conversations failed to migrate: ${conversationResult.failed} failures out of ${conversationResult.total} total`,
+						);
+					}
+
+					// Add conversation results to report
+					report.conversations = conversationResult;
+
+					// Save migration report
+					const reportPath = join(projectRoot, '.bb', 'migrations.json');
+					let reports: MigrationReport[] = [];
+					try {
+						const content = await Deno.readTextFile(reportPath);
+						reports = JSON.parse(content);
+					} catch {
+						// No existing reports is fine
+					}
+					reports.push(report);
+					await Deno.writeTextFile(reportPath, JSON.stringify(reports, null, 2));
+				} catch (error) {
+					console.error(`Failed to migrate conversations: ${(error as Error).message}`);
+					// Add error to report
+					report.conversations = {
+						total: 0,
+						migrated: 0,
+						skipped: 0,
+						failed: 0,
+						results: [{
+							conversationId: 'all',
+							result: {
+								success: false,
+								version: { from: 1, to: 1 },
+								changes: [],
+								errors: [{ message: (error as Error).message }],
+							},
+						}],
+					};
+					// Don't throw - we want config migration to succeed even if conversation migration fails
+				}
 			}
 		} catch (error) {
 			if (!(error instanceof Deno.errors.NotFound)) {
