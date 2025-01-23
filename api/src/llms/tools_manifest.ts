@@ -197,7 +197,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'delegate_tasks',
 			'description': 'Delegate specialized tasks to child agent conversations.',
-			'enabled': true,
+			'enabled': false,
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',

@@ -12,9 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- external link display in dui
 
 ### Fixed
 
+- default port for bui changed in configs
+- dui handles 'corrupt' version strings from api
+- file loading in api
+- saving project type updates project config
 
 
 ## [0.6.8] - 2025-01-21

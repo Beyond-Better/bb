@@ -92,7 +92,7 @@ describe('Configuration Types', () => {
 			const defaults = BuiConfigDefaults;
 			assertEquals(defaults.hostname, 'localhost');
 			assertEquals(defaults.port, 8080);
-			assertEquals(defaults.tls.useTls, true);
+			assertEquals(defaults.tls.useTls, false);
 		});
 	});
 

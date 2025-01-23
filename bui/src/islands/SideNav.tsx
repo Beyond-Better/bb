@@ -128,7 +128,7 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 				<a
 					href='/'
 					class={`flex items-center space-x-2 py-2 ${
-						isCollapsed.value ? 'pl-1 pr-5' : 'px-4'
+						isCollapsed.value ? 'pl-2 pr-4' : 'px-4'
 					} transition-all duration-300`}
 				>
 					<img
