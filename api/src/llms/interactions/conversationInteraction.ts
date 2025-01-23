@@ -268,31 +268,6 @@ class LLMConversationInteraction extends LLMInteraction {
 		return null;
 	}
 
-	// 	public async readProjectFileContent(
-	// 		filePath: string,
-	// 		revisionId: string,
-	// 	): Promise<string | Uint8Array | undefined> {
-	// 		const content = this.getFileRevision(filePath, revisionId);
-	// 		if (content) {
-	// 			logger.info(`ConversationInteraction: Returning contents of File Revision ${filePath} (${revisionId})`);
-	// 			return content;
-	// 		} else {
-	// 			const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
-	// 			const fullFilePath = join(projectRoot, filePath);
-	// 			logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
-	// 			try {
-	// 				const resource = await this.resourceManager.loadResource({
-	// 					type: 'file',
-	// 					location: fullFilePath,
-	// 				});
-	// 				this.storeFileRevision(filePath, revisionId, resource.content);
-	// 				return resource.content;
-	// 			} catch (error) {
-	// 				throw new Error(`Failed to read file: ${fullFilePath}`);
-	// 			}
-	// 		}
-	// 	}
-
 	public async readProjectFileContent(
 		filePath: string,
 		revisionId: string,
@@ -301,12 +276,10 @@ class LLMConversationInteraction extends LLMInteraction {
 			//logger.info(`ConversationInteraction: Reading file revision from project: ${filePath}`);
 			const content = await this.getFileRevision(filePath, revisionId);
 			if (content === null) {
-				const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
-				const fullFilePath = join(projectRoot, filePath);
-				logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
+				logger.info(`ConversationInteraction: Reading contents of File ${filePath}`);
 				const resource = await this.resourceManager.loadResource({
 					type: 'file',
-					location: fullFilePath,
+					location: filePath,
 				});
 				await this.storeFileRevision(filePath, revisionId, resource.content);
 				return resource.content;
