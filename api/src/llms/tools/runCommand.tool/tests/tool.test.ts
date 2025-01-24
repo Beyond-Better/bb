@@ -42,6 +42,28 @@ function stripAnsi(str: string): string {
 }
 
 function createTestFiles(testProjectRoot: string) {
+	// Create generate_output.ts
+	const generateOutputContent = stripIndents`
+		// Generate stdout lines without extra newlines
+		const stdoutLines = [];
+		for (let i = 1; i <= 10; i++) {
+			stdoutLines.push(\`stdout line \${i}\`);
+		}
+		console.log(stdoutLines.join('\\n'));
+
+		// Generate stderr lines without extra newlines
+		const stderrLines = [];
+		for (let i = 1; i <= 5; i++) {
+			stderrLines.push(\`stderr line \${i}\`);
+		}
+		console.error(stderrLines.join('\\n'));
+	`;
+	//console.log('Creating generate_output.ts with content:\\n', generateOutputContent);
+	Deno.writeTextFileSync(
+		join(testProjectRoot, 'generate_output.ts'),
+		generateOutputContent,
+	);
+
 	// Create a simple TypeScript file
 	Deno.writeTextFileSync(join(testProjectRoot, 'test.ts'), `console.log("Hello, TypeScript!");`);
 
@@ -75,14 +97,259 @@ function createTestFiles(testProjectRoot: string) {
 	);
 }
 
+// Update type guard for truncation info
+function isRunCommandResponseWithTruncation(
+	response: unknown,
+): response is LLMToolRunCommandResponseData {
+	if (!isRunCommandResponse(response)) return false;
+
+	if (!('truncatedInfo' in response.data)) return true;
+
+	const truncatedInfo = response.data.truncatedInfo;
+	if (!truncatedInfo) return true;
+
+	if ('stdout' in truncatedInfo) {
+		const stdout = truncatedInfo.stdout;
+		if (!stdout || typeof stdout !== 'object') return false;
+		if (!('originalLines' in stdout) || typeof stdout.originalLines !== 'number') return false;
+		if (!('keptLines' in stdout) || typeof stdout.keptLines !== 'number') return false;
+	}
+
+	if ('stderr' in truncatedInfo) {
+		const stderr = truncatedInfo.stderr;
+		if (!stderr || typeof stderr !== 'object') return false;
+		if (!('originalLines' in stderr) || typeof stderr.originalLines !== 'number') return false;
+		if (!('keptLines' in stderr) || typeof stderr.keptLines !== 'number') return false;
+	}
+
+	return true;
+}
+
 const toolConfig = {
 	allowedCommands: [
 		'deno task tool:check-types-project',
 		'deno task tool:check-types-args',
 		'deno task tool:test',
 		'deno task tool:format',
+		'deno', // Added for output truncation tests
 	],
 };
+
+Deno.test({
+	name: 'RunCommandTool - Output truncation with tail only',
+	fn: async () => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+			createTestFiles(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
+			const tool = await toolManager.getTool('run_command');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-id',
+				toolName: 'run_command',
+				toolInput: {
+					command: 'deno',
+					args: ['run', 'generate_output.ts'],
+					outputTruncation: {
+						keepLines: {
+							stdout: { tail: 3 },
+							stderr: { tail: 2 },
+						},
+					},
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			console.log('Output truncation with tail only - bbResponse:', result.bbResponse);
+			console.log('Output truncation with tail only - toolResponse:', result.toolResponse);
+			console.log('Output truncation with tail only - toolResults:', result.toolResults);
+
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assert(
+				isRunCommandResponseWithTruncation(result.bbResponse),
+				'bbResponse should have the correct structure with truncation info',
+			);
+
+			if (isRunCommandResponseWithTruncation(result.bbResponse)) {
+				const { data } = result.bbResponse;
+				assert(data.truncatedInfo, 'truncatedInfo should exist');
+				assert(data.truncatedInfo.stdout, 'stdout truncation info should exist');
+				assert(data.truncatedInfo.stderr, 'stderr truncation info should exist');
+
+				// Verify stdout truncation
+				const stdout = stripAnsi(data.stdout);
+				assertStringIncludes(stdout, 'stdout line 8');
+				assertStringIncludes(stdout, 'stdout line 9');
+				assertStringIncludes(stdout, 'stdout line 10');
+				assert(!stdout.includes('stdout line 7'), 'Should not include line 7');
+				assertStringIncludes(stdout, '[...truncated');
+				assert(data.truncatedInfo.stdout.originalLines === 10, 'Should have 10 original stdout lines');
+				// Verify exact output format including trailing newline
+				assert(data.stdout.endsWith('\n'), 'Output should end with newline');
+				assert(!data.stdout.endsWith('\n\n'), 'Output should not have multiple trailing newlines');
+				assert(data.truncatedInfo.stdout.keptLines === 3, 'Should keep 3 stdout lines');
+
+				// Verify stderr truncation
+				const stderr = stripAnsi(data.stderr);
+				assertStringIncludes(stderr, 'stderr line 4');
+				assertStringIncludes(stderr, 'stderr line 5');
+				assert(!stderr.includes('stderr line 3'), 'Should not include line 3');
+				assertStringIncludes(stderr, '[...truncated');
+				assert(data.truncatedInfo.stderr.originalLines === 5, 'Should have 5 original stderr lines');
+				// Verify exact output format including trailing newline
+				assert(data.stderr.endsWith('\n'), 'Error output should end with newline');
+				assert(!data.stderr.endsWith('\n\n'), 'Error output should not have multiple trailing newlines');
+				assert(data.truncatedInfo.stderr.keptLines === 2, 'Should keep 2 stderr lines');
+			}
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'RunCommandTool - Output truncation with head and tail',
+	fn: async () => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+			createTestFiles(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
+			const tool = await toolManager.getTool('run_command');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-id',
+				toolName: 'run_command',
+				toolInput: {
+					command: 'deno',
+					args: ['run', 'generate_output.ts'],
+					outputTruncation: {
+						keepLines: {
+							stdout: { head: 2, tail: 2 },
+							stderr: { head: 1, tail: 1 },
+						},
+					},
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assert(
+				isRunCommandResponseWithTruncation(result.bbResponse),
+				'bbResponse should have the correct structure with truncation info',
+			);
+
+			if (isRunCommandResponseWithTruncation(result.bbResponse)) {
+				const { data } = result.bbResponse;
+				assert(data.truncatedInfo, 'truncatedInfo should exist');
+				assert(data.truncatedInfo.stdout, 'stdout truncation info should exist');
+				assert(data.truncatedInfo.stderr, 'stderr truncation info should exist');
+
+				// Verify stdout truncation
+				const stdout = stripAnsi(data.stdout);
+				assertStringIncludes(stdout, 'stdout line 1');
+				assertStringIncludes(stdout, 'stdout line 2');
+				assertStringIncludes(stdout, 'stdout line 9');
+				assertStringIncludes(stdout, 'stdout line 10');
+				assert(!stdout.includes('stdout line 3'), 'Should not include line 3');
+				assert(!stdout.includes('stdout line 8'), 'Should not include line 8');
+				assertStringIncludes(stdout, '[...truncated');
+				assert(data.truncatedInfo.stdout.originalLines === 10, 'Should have 10 original stdout lines');
+				assert(data.truncatedInfo.stdout.keptLines === 4, 'Should keep 4 stdout lines');
+
+				// Verify stderr truncation
+				const stderr = stripAnsi(data.stderr);
+				assertStringIncludes(stderr, 'stderr line 1');
+				assertStringIncludes(stderr, 'stderr line 5');
+				assert(!stderr.includes('stderr line 2'), 'Should not include line 2');
+				assert(!stderr.includes('stderr line 4'), 'Should not include line 4');
+				assertStringIncludes(stderr, '[...truncated');
+				assert(data.truncatedInfo.stderr.originalLines === 5, 'Should have 5 original stderr lines');
+				assert(data.truncatedInfo.stderr.keptLines === 2, 'Should keep 2 stderr lines');
+			}
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'RunCommandTool - No truncation when output is shorter than limits',
+	fn: async () => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+			createTestFiles(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor, 'run_command', toolConfig);
+			const tool = await toolManager.getTool('run_command');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-id',
+				toolName: 'run_command',
+				toolInput: {
+					command: 'deno run',
+					args: ['generate_output.ts'],
+					outputTruncation: {
+						keepLines: {
+							stdout: { head: 5, tail: 5 }, // Total 10 lines requested, output has 10 lines
+							stderr: { head: 3, tail: 3 }, // Total 6 lines requested, output has 5 lines
+						},
+					},
+				},
+			};
+
+			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const result = await tool.runTool(conversation, toolUse, projectEditor);
+
+			assert(
+				result.bbResponse && typeof result.bbResponse === 'object',
+				'bbResponse should be an object',
+			);
+			assert(
+				isRunCommandResponseWithTruncation(result.bbResponse),
+				'bbResponse should have the correct structure with truncation info',
+			);
+
+			if (isRunCommandResponseWithTruncation(result.bbResponse)) {
+				const { data } = result.bbResponse;
+
+				// Verify no truncation occurred
+				const stdout = stripAnsi(data.stdout);
+				for (let i = 1; i <= 10; i++) {
+					assertStringIncludes(stdout, `stdout line ${i}`);
+				}
+				assert(!stdout.includes('[...truncated'), 'Should not include truncation message');
+
+				const stderr = stripAnsi(data.stderr);
+				for (let i = 1; i <= 5; i++) {
+					assertStringIncludes(stderr, `stderr line ${i}`);
+				}
+				assert(!stderr.includes('[...truncated'), 'Should not include truncation message');
+
+				// Verify truncation info is not present
+				assert(!data.truncatedInfo, 'truncatedInfo should not exist when no truncation occurs');
+			}
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
 
 Deno.test({
 	name: 'RunCommandTool - Execute allowed command: deno task tool:check-types',
