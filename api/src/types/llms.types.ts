@@ -77,6 +77,7 @@ export enum LLMProvider {
 	OPENAI = 'openai',
 	DEEPSEEK = 'deepseek',
 	GROQ = 'groq',
+	OLLAMA = 'ollama',
 	UNKNOWN = '',
 }
 
@@ -86,7 +87,20 @@ export const LLMProviders = [
 	LLMProvider.OPENAI,
 	LLMProvider.DEEPSEEK,
 	LLMProvider.GROQ,
+	LLMProvider.OLLAMA,
 	LLMProvider.UNKNOWN,
+];
+
+export enum OllamaModel {
+	LLAMA2 = 'llama2',
+	CODELLAMA = 'codellama',
+	MISTRAL = 'mistral',
+}
+
+export const OllamaModels = [
+	OllamaModel.LLAMA2,
+	OllamaModel.CODELLAMA,
+	OllamaModel.MISTRAL,
 ];
 
 export const LLMProviderLabel = {
@@ -95,10 +109,12 @@ export const LLMProviderLabel = {
 	[LLMProvider.OPENAI]: 'OpenAI',
 	[LLMProvider.DEEPSEEK]: 'DeepSeek',
 	[LLMProvider.GROQ]: 'Groq',
+	[LLMProvider.OLLAMA]: 'Ollama',
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
 
 export const LLMModelsByProvider = {
+	[LLMProvider.OLLAMA]: OllamaModels,
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
@@ -127,6 +143,11 @@ export const LLMProviderModels = Object.fromEntries(
 		}),
 );
  */
+
+export interface LLMProvderClientConfig {
+	apiKey: string;
+	model?: string;
+}
 
 export type LLMTokenUsage = TokenUsage;
 /*
