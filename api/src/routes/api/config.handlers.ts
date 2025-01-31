@@ -111,6 +111,7 @@ export const getProjectConfig = async (
 ) => {
 	try {
 		const configManager = await ConfigManagerV2.getInstance();
+		await configManager.ensureLatestProjectConfig(params.id);
 		const config = await configManager.getProjectConfig(params.id);
 
 		response.status = 200;

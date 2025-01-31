@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+//import type OpenAI from 'openai';
 import { LLMProvider, OllamaModel } from 'api/types.ts';
 import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
@@ -28,8 +28,11 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 			);
 		}
 
+		this.defaultModel = OllamaModel.SMOLLM2_1_7B;
 		this.baseURL = ollamaBaseURL;
-		this.initializeOpenAIClient();
+		this.apiKey = 'ollama';
+
+		super.initializeOpenAIClient();
 	}
 
 	protected override transformUsage(usage: OllamaTokenUsage | undefined): LLMTokenUsage {
@@ -67,40 +70,6 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 		_response: Response,
 		_messageResponse: LLMProviderMessageResponse,
 	): void {}
-
-	protected override async initializeOpenAIClient() {
-		// For Ollama, we need to use a different API key configuration
-		// const apiKey = this.projectConfig.settings.api?.llmKeys?.ollama;
-		// if (!apiKey) {
-		//     throw createError(
-		//         ErrorType.LLM,
-		//         'Ollama API key is not set',
-		//         { provider: this.llmProviderName } as LLMErrorOptions
-		//     );
-		// }
-
-		// Initialize with Ollama-specific configuration
-		this.openai = new OpenAI({
-			apiKey: 'ollama',
-			baseURL: this.baseURL,
-		});
-
-		// Verify the model exists
-		try {
-			const defaultModel = OllamaModel.LLAMA3_3; // Use llama2 as default model
-			logger.info(`Initializing Ollama with default model: ${defaultModel}`);
-
-			// Could add model verification here if needed:
-			// const response = await this.openai.models.retrieve(defaultModel);
-			// logger.info(`Ollama model ${defaultModel} verified`);
-		} catch (err) {
-			throw createError(
-				ErrorType.LLM,
-				`Failed to initialize Ollama client: ${(err as Error).message}`,
-				{ provider: this.llmProviderName } as LLMErrorOptions,
-			);
-		}
-	}
 }
 
 export default OllamaLLM;

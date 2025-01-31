@@ -1,5 +1,5 @@
 /**
- * Configuration system version 2.0.0
+ * Configuration system version 2.1.0
  *
  * This module defines the type system for BB's configuration management.
  * It includes definitions for global and project-specific configurations,
@@ -82,8 +82,10 @@ export interface ServerConfig {
  * Contains provider-specific settings and credentials.
  */
 export interface LLMProviderConfig {
-  apiKey: string;
-  // Future extensibility for provider-specific settings
+	apiKey?: string;
+	defaultModel?: string;
+	baseURL?: string;
+	// Future extensibility for provider-specific settings
 }
 
 /**
@@ -107,10 +109,13 @@ export interface ApiConfig extends ServerConfig {
 	 * Includes API keys and provider settings.
 	 */
 	llmProviders?: {
+		beyondbetter?: LLMProviderConfig;
 		anthropic?: LLMProviderConfig;
 		openai?: LLMProviderConfig;
 		deepseek?: LLMProviderConfig;
-		voyageai?: LLMProviderConfig;
+		grok?: LLMProviderConfig;
+		ollama?: LLMProviderConfig;
+		google?: LLMProviderConfig;
 	};
 
 	/** @deprecated Use llmProviders instead */
@@ -167,7 +172,7 @@ export interface CliConfig {
  *
  * This is stored in the user's global config directory.
  */
-export interface GlobalConfig {
+export interface GlobalConfigV2 {
 	version: ConfigVersion;
 	myPersonsName: string;
 	myAssistantsName: string;
@@ -181,6 +186,8 @@ export interface GlobalConfig {
 	bbExeName: string;
 	bbApiExeName: string;
 }
+
+export type GlobalConfig = GlobalConfigV2;
 
 export interface RepoInfoConfigSchema {
 	ctagsAutoGenerate?: boolean;
@@ -197,9 +204,9 @@ export interface RepoInfoConfigSchema {
  *
  * This is stored in the project's .bb/config.yaml file.
  */
-export interface ProjectConfig {
-	projectId: string;
+export interface ProjectConfigV2 {
 	version: ConfigVersion;
+	projectId: string;
 	name: string;
 	type: ProjectType;
 	myPersonsName?: string;
@@ -215,6 +222,8 @@ export interface ProjectConfig {
 		dui?: Partial<DuiConfig>;
 	};
 }
+
+export type ProjectConfig = ProjectConfigV2;
 
 /**
  * Result of a configuration migration operation.
@@ -287,7 +296,7 @@ export interface IConfigManagerV2 {
 }
 
 // Default configurations
-export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
+export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
@@ -302,7 +311,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],
 	toolConfigs: {},
-	//llmKeys: {},
+	//llmProviders: {},
 };
 
 export const BuiConfigDefaults: Readonly<BuiConfig> = {
@@ -345,7 +354,7 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
-	version: '2.0.0',
+	version: '2.1.0',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
 	defaultModels: {

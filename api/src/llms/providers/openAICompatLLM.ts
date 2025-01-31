@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 //import ms from 'ms';
 
-import type {  LLMProvderClientConfig } from 'api/types.ts';
+import type { LLMProvderClientConfig } from 'api/types.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -19,30 +19,33 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRateLimit,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-	LLMRateLimit,
 	LLMTokenUsage,
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
 // Configuration interface for OpenAI-compatible providers
 export interface OpenAICompatConfig extends LLMProvderClientConfig {
-	model: string;
+	apiKey?: string;
 	baseURL?: string;
+	defaultModel: string;
 }
 
 abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 	protected openai!: OpenAI;
+	protected apiKey?: string;
 	protected baseURL?: string;
+	protected defaultModel?: string;
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
+		//this.initializeOpenAIClient(); // called by child class
 	}
 
-	protected async initializeOpenAIClient() {
-		const apiKey = this.projectConfig.settings.api?.llmKeys?.openai;
-		if (!apiKey) {
+	protected initializeOpenAIClient() {
+		if (!this.apiKey) {
 			throw createError(
 				ErrorType.LLM,
 				`${this.llmProviderName} API key is not set`,
@@ -50,7 +53,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			);
 		}
 		this.openai = new OpenAI({
-			apiKey,
+			apiKey: this.apiKey,
 			baseURL: this.baseURL,
 		});
 	}
@@ -202,9 +205,8 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		_messageResponse: LLMProviderMessageResponse,
 	): void {}
 
-	protected abstract transformRateLimit(_response: Response):LLMRateLimit;
+	protected abstract transformRateLimit(_response: Response): LLMRateLimit;
 	protected abstract transformUsage(usage: TUsage | undefined): LLMTokenUsage;
-
 
 	public override async speakWith(
 		messageRequest: LLMProviderMessageRequest,

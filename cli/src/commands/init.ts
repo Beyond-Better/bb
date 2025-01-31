@@ -35,7 +35,7 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 			path: projectRoot,
 			myPersonsName: projectConfig.myPersonsName,
 			myAssistantsName: projectConfig.myAssistantsName,
-			anthropicApiKey: projectConfig.settings.api?.llmKeys?.anthropic,
+			anthropicApiKey: projectConfig.settings.api?.llmProviders?.anthropic?.apiKey,
 			defaultModels: projectConfig.defaultModels,
 		}
 		: {
@@ -57,7 +57,7 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 		'';
 	const defaultAssistantName = existingProjectConfig.myAssistantsName;
 	const existingApiKey = existingProjectConfig.anthropicApiKey;
-	const isApiKeyRequired = !globalConfig.api.llmKeys?.anthropic;
+	const isApiKeyRequired = !globalConfig.api.llmProviders?.anthropic?.apiKey;
 
 	const answers = await prompt([
 		{
@@ -253,9 +253,13 @@ export const init = new Command()
 			// Verify that API key is set either in user config or project config
 			const finalGlobalConfig = await configManager.getGlobalConfig();
 			const projectId = await getProjectId(projectRoot);
+			//await configManager.ensureLatestProjectConfig(projectId);
 			const finalProjectConfig = await configManager.getProjectConfig(projectId);
 
-			if (!finalGlobalConfig.api?.llmKeys?.anthropic && !finalProjectConfig.settings.api?.llmKeys?.anthropic) {
+			if (
+				!finalGlobalConfig.api?.llmProviders?.anthropic?.apiKey &&
+				!finalProjectConfig.settings.api?.llmProviders?.anthropic?.apiKey
+			) {
 				throw new Error(
 					'Anthropic API key is required. Please set it in either user or project configuration.',
 				);

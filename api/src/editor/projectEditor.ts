@@ -61,9 +61,11 @@ class ProjectEditor {
 		try {
 			this.projectRoot = await this.getProjectRoot();
 			const configManager = await ConfigManagerV2.getInstance();
+			await configManager.ensureLatestProjectConfig(this.projectId);
 			this.projectConfig = await configManager.getProjectConfig(this.projectId);
 			logger.info(
 				`ProjectEditor: config for ${this.projectConfig.settings.api?.hostname}:${this.projectConfig.settings.api?.port}`,
+				// this.projectConfig,
 			);
 			this.eventManager = EventManager.getInstance();
 			this.orchestratorController = await new OrchestratorController(this).init();

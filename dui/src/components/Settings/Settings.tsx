@@ -9,7 +9,7 @@ import { useDebugMode } from '../../providers/DebugModeProvider';
 const defaultConfig: GlobalConfigValues = {
 	'api.tls.useTls': false,
 	'api.localMode': false,
-	'api.llmKeys.anthropic': '',
+	'api.llmProviders.anthropic.apiKey': '',
 	'bui.tls.useTls': false,
 	'bui.localMode': false,
 };
@@ -33,7 +33,7 @@ export function Settings(): JSX.Element {
 			const configValues: GlobalConfigValues = {
 				'api.tls.useTls': rustConfig.api?.tls?.useTls ?? false,
 				'api.localMode': rustConfig.api?.localMode ?? false,
-				'api.llmKeys.anthropic': rustConfig.api?.llmKeys?.anthropic ?? '',
+				'api.llmProviders.anthropic.apiKey': rustConfig.api?.llmProviders?.anthropic?.apiKey ?? '',
 				'bui.tls.useTls': rustConfig.bui?.tls?.useTls ?? false,
 				'bui.localMode': rustConfig.bui?.localMode ?? false,
 			};
@@ -48,10 +48,10 @@ export function Settings(): JSX.Element {
 	const validateForm = (): boolean => {
 		const newErrors: Partial<Record<keyof GlobalConfigValues, string>> = {};
 
-		const apiKey = config['api.llmKeys.anthropic'].trim();
+		const apiKey = config['api.llmProviders.anthropic.apiKey'].trim();
 		// Only validate if the key is being changed (not masked)
 		if (apiKey && !apiKey.endsWith('...') && (!apiKey.startsWith('sk-ant-api03-') || apiKey.length < 48)) {
-			newErrors['api.llmKeys.anthropic'] = 'Invalid Anthropic API key format';
+			newErrors['api.llmProviders.anthropic.apiKey'] = 'Invalid Anthropic API key format';
 		}
 
 		setErrors(newErrors);
@@ -82,11 +82,11 @@ export function Settings(): JSX.Element {
 				console.log('Updating api.localMode:', config['api.localMode']);
 				updates.push(['api.localMode', config['api.localMode'].toString()]);
 			}
-			const apiKey = config['api.llmKeys.anthropic'];
-			const originalApiKey = originalConfig['api.llmKeys.anthropic'];
+			const apiKey = config['api.llmProviders.anthropic.apiKey'];
+			const originalApiKey = originalConfig['api.llmProviders.anthropic.apiKey'];
 			if (apiKey !== originalApiKey && !apiKey.endsWith('...')) {
 				console.log('Updating API key');
-				updates.push(['api.llmKeys.anthropic', apiKey]);
+				updates.push(['api.llmProviders.anthropic.apiKey', apiKey]);
 				console.log('Updates array:', updates);
 			}
 
@@ -104,7 +104,7 @@ export function Settings(): JSX.Element {
 				'Saving updates:',
 				updates.map(([key, value]) => [
 					key,
-					key.includes('llmKeys') ? '[REDACTED]' : value,
+					key.includes('apiKey') ? '[REDACTED]' : value,
 				]),
 			);
 
@@ -235,10 +235,10 @@ export function Settings(): JSX.Element {
 									Anthropic API Key
 									<input
 										type='text'
-										value={config['api.llmKeys.anthropic']}
-										onChange={(e) => handleInputChange('api.llmKeys.anthropic', e.currentTarget.value)}
+										value={config['api.llmProviders.anthropic.apiKey']}
+										onChange={(e) => handleInputChange('api.llmProviders.anthropic.apiKey', e.currentTarget.value)}
 										className={`mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border ${
-								errors['api.llmKeys.anthropic']
+								errors['api.llmProviders.anthropic.apiKey']
 									? 'border-red-500'
 									: 'border-gray-300 dark:border-gray-600'
 							} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500`}

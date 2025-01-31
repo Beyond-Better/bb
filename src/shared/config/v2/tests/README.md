@@ -145,9 +145,9 @@ assertEquals(result.success, true);
 ### Testing Validation
 
 ```typescript
-import { sampleV2GlobalConfig } from './testUtils.ts';
+import { sampleV21GlobalConfig } from './testUtils.ts';
 
-const result = await configManager.validateConfig(sampleV2GlobalConfig);
+const result = await configManager.validateConfig(sampleV21GlobalConfig);
 assertEquals(result.isValid, true);
 ```
 

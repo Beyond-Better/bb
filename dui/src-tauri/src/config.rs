@@ -27,6 +27,20 @@ pub struct TlsConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmProviderConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmProviders {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anthropic: Option<LlmProviderConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct LlmKeys {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anthropic: Option<String>,
@@ -60,7 +74,10 @@ pub struct ApiConfig {
     #[serde(default)]
     pub local_mode: bool,
     #[serde(default)]
-    pub llm_keys: LlmKeys,
+    pub llm_providers: LlmProviders,
+    //#[serde(default)]
+    //#[deprecated(note = "Use llm_providers instead")]
+    //pub llm_keys: LlmKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -150,6 +167,22 @@ impl Default for TlsConfig {
     }
 }
 
+impl Default for LlmProviderConfig {
+    fn default() -> Self {
+        LlmProviderConfig {
+            api_key: None,
+        }
+    }
+}
+
+impl Default for LlmProviders {
+    fn default() -> Self {
+        LlmProviders {
+            anthropic: None,
+        }
+    }
+}
+
 impl Default for LlmKeys {
     fn default() -> Self {
         LlmKeys {
@@ -173,7 +206,8 @@ impl Default for ApiConfig {
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),
             environment: None,
             local_mode: false,
-            llm_keys: LlmKeys::default(),
+            llm_providers: LlmProviders::default(),
+            //llm_keys: LlmKeys::default(),
         }
     }
 }
@@ -216,7 +250,7 @@ impl Default for CliConfig {
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
-            version: "2.0.0".to_string(),  // Match TypeScript default
+            version: "2.1.0".to_string(),  // Match TypeScript default
             no_browser: false,
             api: ApiConfig::default(),
             bui: BuiConfig::default(),

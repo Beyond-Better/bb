@@ -163,8 +163,9 @@ export const LLMProviderModels = Object.fromEntries(
  */
 
 export interface LLMProvderClientConfig {
-	apiKey: string;
-	model?: string;
+	apiKey?: string;
+	defaultModel?: string;
+	baseURL?: string;
 }
 
 export type LLMTokenUsage = TokenUsage;

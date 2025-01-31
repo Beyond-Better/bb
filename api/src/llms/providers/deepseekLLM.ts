@@ -1,4 +1,4 @@
-import { OpenAI } from 'openai';
+import type OpenAI from 'openai';
 import { DeepSeekModel, LLMProvider } from 'api/types.ts';
 import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -9,8 +9,8 @@ import type LLMMessage from 'api/llms/llmMessage.ts';
 //    LLMMessageContentPartToolUseBlock,
 //} from 'api/llms/llmMessage.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
-import { createError } from 'api/utils/error.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+// import { createError } from 'api/utils/error.ts';
+// import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 // Define DeepSeek-specific types
@@ -25,10 +25,13 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
 		this.llmProviderName = LLMProvider.DEEPSEEK;
-		// DeepSeek uses their own API endpoint
-		//this.baseURL = this.projectConfig.settings.api?.llmEndpoints?.deepseek || 'https://api.deepseek.com/v1';
-		this.baseURL = 'https://api.deepseek.com/v1';
-		this.initializeOpenAIClient();
+
+		this.defaultModel = DeepSeekModel.DEEPSEEK_CHAT;
+		this.baseURL = this.projectConfig.settings.api?.llmProviders?.deepseek?.baseURL ||
+			'https://api.deepseek.com/v1';
+		this.apiKey = this.projectConfig.settings.api?.llmProviders?.deepseek?.apiKey;
+
+		super.initializeOpenAIClient();
 	}
 
 	protected override asProviderMessageType(messages: LLMMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] {
@@ -136,35 +139,6 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 		_response: Response,
 		_messageResponse: LLMProviderMessageResponse,
 	): void {}
-
-	protected override async initializeOpenAIClient() {
-		const apiKey = this.projectConfig.settings.api?.llmKeys?.deepseek;
-		if (!apiKey) {
-			throw createError(
-				ErrorType.LLM,
-				'DeepSeek API key is not set',
-				{ provider: this.llmProviderName } as LLMErrorOptions,
-			);
-		}
-
-		// Initialize with DeepSeek configuration
-		this.openai = new OpenAI({
-			apiKey,
-			baseURL: this.baseURL,
-		});
-
-		// Verify the model exists
-		try {
-			const defaultModel = DeepSeekModel.DEEPSEEK_CHAT;
-			logger.info(`Initializing DeepSeek with default model: ${defaultModel}`);
-		} catch (err) {
-			throw createError(
-				ErrorType.LLM,
-				`Failed to initialize DeepSeek client: ${(err as Error).message}`,
-				{ provider: this.llmProviderName } as LLMErrorOptions,
-			);
-		}
-	}
 }
 
 export default DeepSeekLLM;

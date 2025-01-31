@@ -66,6 +66,7 @@ export const config = new Command()
 			} else if (project) {
 				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
 				const projectId = await getProjectId(projectRoot);
+				await configManager.ensureLatestProjectConfig(projectId);
 				config = await configManager.getProjectConfig(projectId);
 				console.log(colors.bold('Project configuration:'));
 			} else {
@@ -97,6 +98,7 @@ export const config = new Command()
 			} else if (project) {
 				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
 				const projectId = await getProjectId(projectRoot);
+				await configManager.ensureLatestProjectConfig(projectId);
 				const config = await configManager.getProjectConfig(projectId);
 				value = await getConfigValue(key, config);
 			} else {

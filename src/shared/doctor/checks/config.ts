@@ -138,6 +138,7 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 
 		const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
 		const projectId = await getProjectId(projectRoot);
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
 
 		// Check global config rules

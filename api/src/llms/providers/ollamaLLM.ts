@@ -58,12 +58,13 @@ class OllamaLLM extends LLM {
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
 		this.llmProviderName = LLMProvider.OLLAMA;
+
 		this.initializeOllamaClient();
 	}
 
 	private async initializeOllamaClient() {
-		//const ollamaHost = 'http://127.0.0.1:11434'; //this.projectConfig.settings.api?.llmEndpoints?.ollama;
-		const ollamaHost = 'http://192.168.1.12:11434'; //this.projectConfig.settings.api?.llmEndpoints?.ollama;
+		const ollamaHost = this.projectConfig.settings.api?.llmProviders?.ollama?.baseURL ||
+			'http://127.0.0.1:11434';
 		if (!ollamaHost) {
 			throw createError(
 				ErrorType.LLM,

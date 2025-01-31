@@ -46,7 +46,7 @@ class AnthropicLLM extends LLM {
 
 	private initializeAnthropicClient() {
 		const clientOptions: ClientOptions = {
-			apiKey: this.projectConfig.settings.api?.llmKeys?.anthropic,
+			apiKey: this.projectConfig.settings.api?.llmProviders?.anthropic?.apiKey,
 		};
 
 		this.anthropic = new Anthropic(clientOptions);

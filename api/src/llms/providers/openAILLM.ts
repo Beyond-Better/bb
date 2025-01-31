@@ -1,12 +1,12 @@
-import OpenAI from 'openai';
+import type OpenAI from 'openai';
 import ms from 'ms';
 
 import { LLMProvider, OpenAIModel } from 'api/types.ts';
 import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
-import { createError } from 'api/utils/error.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
-import { logger } from 'shared/logger.ts';
+// import { createError } from 'api/utils/error.ts';
+// import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+// import { logger } from 'shared/logger.ts';
 
 type OpenAITokenUsage = OpenAI.CompletionUsage;
 
@@ -14,9 +14,12 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
 		this.llmProviderName = LLMProvider.OPENAI;
-		// OpenAI provider uses the default OpenAI API URL
-		this.baseURL = undefined;
-		this.initializeOpenAIClient();
+
+		this.defaultModel = OpenAIModel.GPT_4o; // Use GPT-4 as default model
+		this.baseURL = undefined; // OpenAI provider uses the default OpenAI API URL
+		this.apiKey = this.projectConfig.settings.api?.llmProviders?.openai?.apiKey;
+
+		super.initializeOpenAIClient();
 	}
 
 	protected override transformUsage(usage: OpenAITokenUsage | undefined): LLMTokenUsage {
@@ -78,35 +81,6 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 		_response: Response,
 		_messageResponse: LLMProviderMessageResponse,
 	): void {}
-
-	protected override async initializeOpenAIClient() {
-		const apiKey = this.projectConfig.settings.api?.llmKeys?.openai;
-		if (!apiKey) {
-			throw new Error('OpenAI API key is not set');
-		}
-
-		// Initialize with standard OpenAI configuration
-		this.openai = new OpenAI({
-			apiKey,
-			baseURL: this.baseURL,
-		});
-
-		// Verify the model exists
-		try {
-			const defaultModel = OpenAIModel.GPT_4o; // Use GPT-4 as default model
-			logger.info(`Initializing OpenAI with default model: ${defaultModel}`);
-
-			// Could add model verification here if needed:
-			// const response = await this.openai.models.retrieve(defaultModel);
-			// logger.info(`OpenAI model ${defaultModel} verified`);
-		} catch (err) {
-			throw createError(
-				ErrorType.LLM,
-				`Failed to initialize OpenAI client: ${(err as Error).message}`,
-				{ provider: this.llmProviderName } as LLMErrorOptions,
-			);
-		}
-	}
 }
 
 export default OpenAILLM;

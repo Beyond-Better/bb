@@ -28,12 +28,16 @@ try {
 }
 
 const configManager = await ConfigManagerV2.getInstance();
+
+// Ensure configs are at latest version
+await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
 
 let apiConfig: ApiConfig;
 
 if (projectId) {
+	await configManager.ensureLatestProjectConfig(projectId);
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 } else {
