@@ -7,7 +7,7 @@
  */
 
 // Version Management
-const CONFIG_VERSIONS = ['1.0.0', '2.0.0'] as const;
+const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0'] as const;
 /** Supported configuration versions */
 export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 
@@ -77,6 +77,19 @@ export interface ServerConfig {
  * - Tool management
  * - Cache control
  */
+/**
+ * LLM Provider configuration.
+ * Contains provider-specific settings and credentials.
+ */
+export interface LLMProviderConfig {
+  apiKey: string;
+  // Future extensibility for provider-specific settings
+}
+
+/**
+ * API server configuration.
+ * Extends base server config with API-specific settings.
+ */
 export interface ApiConfig extends ServerConfig {
 	maxTurns: number;
 	logLevel: LogLevel;
@@ -89,7 +102,18 @@ export interface ApiConfig extends ServerConfig {
 	localMode?: boolean;
 	supabaseConfigUrl?: string;
 
-	// LLM Keys
+	/**
+	 * Provider-specific LLM configurations.
+	 * Includes API keys and provider settings.
+	 */
+	llmProviders?: {
+		anthropic?: LLMProviderConfig;
+		openai?: LLMProviderConfig;
+		deepseek?: LLMProviderConfig;
+		voyageai?: LLMProviderConfig;
+	};
+
+	/** @deprecated Use llmProviders instead */
 	llmKeys?: {
 		anthropic?: string;
 		openai?: string;
@@ -305,7 +329,7 @@ export const DuiConfigDefaults: Readonly<DuiConfig> = {
 export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 	projectId: '',
 	name: '',
-	version: '2.0.0',
+	version: '2.1.0',
 	type: 'local',
 	repoInfo: { tokenLimit: 1024 },
 	useProjectApi: false,
