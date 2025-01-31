@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import ms from 'ms';
 
 import { LLMProvider, OpenAIModel } from 'api/types.ts';
-import type { LLMCallbacks, LLMProviderMessageResponse } from 'api/types.ts';
+import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -19,7 +19,7 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 		this.initializeOpenAIClient();
 	}
 
-	protected override transformUsage(usage: OpenAITokenUsage | undefined) {
+	protected override transformUsage(usage: OpenAITokenUsage | undefined): LLMTokenUsage {
 		const cachedTokens = usage?.prompt_tokens_details?.cached_tokens ?? 0;
 		const totalPromptTokens = usage?.prompt_tokens ?? 0;
 
@@ -27,41 +27,42 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 			// Tokens we had to process (total minus cached)
 			inputTokens: Math.max(0, totalPromptTokens - cachedTokens),
 			outputTokens: usage?.completion_tokens ?? 0,
+			totalTokens: 0,
 			// We're reading from cache, not creating cache entries
 			cacheCreationInputTokens: 0,
 			// Tokens we got from cache
 			cacheReadInputTokens: cachedTokens,
-			totalTokens: 0,
 		};
-		transformedUsage.totalTokens = transformedUsage.inputTokens + transformedUsage.outputTokens + transformedUsage.cacheCreationInputTokens + transformedUsage.cacheReadInputTokens;
+		transformedUsage.totalTokens = transformedUsage.inputTokens + transformedUsage.outputTokens +
+			transformedUsage.cacheCreationInputTokens + transformedUsage.cacheReadInputTokens;
 		return transformedUsage;
 	}
 
-	protected override transformRateLimit(response: Response) {
+	protected override transformRateLimit(response: Response): LLMRateLimit {
 		const headers = response.headers;
 
 		// Get rate limit information, defaulting to undefined if headers are missing
 		const requestsRemaining = headers.has('x-ratelimit-remaining-requests')
 			? Number(headers.get('x-ratelimit-remaining-requests'))
-			: undefined;
+			: 0;
 		const requestsLimit = headers.has('x-ratelimit-limit-requests')
 			? Number(headers.get('x-ratelimit-limit-requests'))
-			: undefined;
+			: 0;
 		const requestsResetMs = headers.has('x-ratelimit-reset-requests')
 			? ms(headers.get('x-ratelimit-reset-requests') || '0')
-			: undefined;
-		const requestsResetDate = requestsResetMs !== undefined ? new Date(Date.now() + requestsResetMs) : undefined;
+			: 0;
+		const requestsResetDate = requestsResetMs !== undefined ? new Date(Date.now() + requestsResetMs) : new Date();
 
 		const tokensRemaining = headers.has('x-ratelimit-remaining-tokens')
 			? Number(headers.get('x-ratelimit-remaining-tokens'))
-			: undefined;
+			: 0;
 		const tokensLimit = headers.has('x-ratelimit-limit-tokens')
 			? Number(headers.get('x-ratelimit-limit-tokens'))
-			: undefined;
+			: 0;
 		const tokensResetMs = headers.has('x-ratelimit-reset-tokens')
 			? ms(headers.get('x-ratelimit-reset-tokens') || '0')
-			: undefined;
-		const tokensResetDate = tokensResetMs !== undefined ? new Date(Date.now() + tokensResetMs) : undefined;
+			: 0;
+		const tokensResetDate = tokensResetMs !== undefined ? new Date(Date.now() + tokensResetMs) : new Date();
 
 		return {
 			requestsRemaining,
@@ -76,21 +77,7 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 	protected override processResponseMetadata(
 		_response: Response,
 		_messageResponse: LLMProviderMessageResponse,
-	): void {
-		//         // Only set rate limit information if we have at least some of the data
-		//         if (requestsRemaining !== undefined || tokensRemaining !== undefined) {
-		//             messageResponse.rateLimit = {
-		//                 requestsRemaining,
-		//                 requestsLimit,
-		//                 requestsResetDate,
-		//                 tokensRemaining,
-		//                 tokensLimit,
-		//                 tokensResetDate,
-		//             };
-		//         } else {
-		//             logger.debug('No rate limit headers found in OpenAI response');
-		//         }
-	}
+	): void {}
 
 	protected override async initializeOpenAIClient() {
 		const apiKey = this.projectConfig.settings.api?.llmKeys?.openai;

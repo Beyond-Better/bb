@@ -210,13 +210,13 @@ export interface LLMProviderMessageResponseMeta {
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
-	tools?: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
+	tools: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
 	system: string; // | LLMMessageContentPartTextBlock;
 	//prompt: string; // CNG - I think this is a deprecated attribute
 	model: string;
-	maxTokens?: number;
-	max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
-	temperature?: number;
+	maxTokens: number;
+	//max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
+	temperature: number;
 	usePromptCaching?: boolean;
 }
 

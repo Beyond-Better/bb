@@ -56,15 +56,8 @@ class LLM {
 		return result;
 	}
 
-	async prepareMessageParams(
-		_interaction: LLMInteraction,
-		_speakOptions?: LLMSpeakWithOptions,
-	): Promise<object> {
-		throw new Error("Method 'prepareMessageParams' must be implemented.");
-	}
-
 	async speakWith(
-		_messageParams: LLMProviderMessageRequest,
+		_messageRequest: LLMProviderMessageRequest,
 		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		throw new Error("Method 'speakWith' must be implemented.");
@@ -82,10 +75,69 @@ class LLM {
 		// Default implementation, can be overridden by subclasses
 	}
 
+	async asProviderMessageRequest(
+		_messageRequest: LLMProviderMessageRequest,
+		_interaction?: LLMInteraction,
+	): Promise<object> {
+		throw new Error("Method 'asProviderMessageRequest' must be implemented.");
+	}
+
+	async prepareMessageRequest(
+		interaction: LLMInteraction,
+		speakOptions?: LLMSpeakWithOptions,
+	): Promise<LLMProviderMessageRequest> {
+		//logger.debug('BaseLLM: llms-prepareMessageRequest-systemPrompt', interaction.baseSystem);
+
+		const systemPrompt = await this.invoke(
+			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
+			speakOptions?.system || interaction.baseSystem,
+			interaction.id,
+		);
+		const system = systemPrompt;
+
+		//logger.debug('BaseLLM: llms-prepareMessageRequest-tools', interaction.allTools());
+		const tools = await this.invoke(
+			LLMCallbackType.PREPARE_TOOLS,
+			speakOptions?.tools || interaction.allTools(),
+			interaction.id,
+		) || [];
+
+		const messages = await this.invoke(
+			LLMCallbackType.PREPARE_MESSAGES,
+			speakOptions?.messages || interaction.getMessages(),
+			interaction.id,
+		) || [];
+
+		const model: string = speakOptions?.model || interaction.model;
+
+		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
+			logger.error('BaseLLM: maxTokens missing from both speakOptions and interaction');
+		}
+		if (!speakOptions?.temperature && !interaction.temperature) {
+			logger.error('BaseLLM: temperature missing from both speakOptions and interaction');
+		}
+
+		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
+		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
+
+		const messageRequest: LLMProviderMessageRequest = {
+			messages,
+			system,
+			tools,
+			model,
+			maxTokens,
+			temperature,
+		};
+		//logger.debug('BaseLLM: llms-prepareMessageRequest', messageRequest);
+		//logger.dir(messageRequest);
+
+		return messageRequest;
+	}
+
 	protected createRequestCacheKey(
-		messageParams: LLMProviderMessageRequest,
+		messageRequest: LLMProviderMessageRequest,
 	): string[] {
-		const cacheKey = ['messageRequest', this.llmProviderName, md5(JSON.stringify(messageParams))];
+		const cacheKey = ['messageRequest', this.llmProviderName, md5(JSON.stringify(messageRequest))];
 		logger.info(`provider[${this.llmProviderName}] using cache key: ${cacheKey}`);
 		return cacheKey;
 	}
@@ -96,7 +148,7 @@ class LLM {
 	): Promise<LLMSpeakWithResponse> {
 		//const start = Date.now();
 
-		const llmProviderMessageRequest = await this.prepareMessageParams(
+		const messageRequest = await this.prepareMessageRequest(
 			interaction,
 			speakOptions,
 		) as LLMProviderMessageRequest;
@@ -104,7 +156,7 @@ class LLM {
 		let llmSpeakWithResponse!: LLMSpeakWithResponse;
 
 		const cacheKey = !(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)
-			? this.createRequestCacheKey(llmProviderMessageRequest)
+			? this.createRequestCacheKey(messageRequest)
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
 			//logger.info(`provider[${this.llmProviderName}] speakWithPlus: Checking for cached response`);
@@ -127,7 +179,7 @@ class LLM {
 
 			while (retries < maxRetries) {
 				try {
-					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest, interaction);
+					llmSpeakWithResponse = await this.speakWith(messageRequest, interaction);
 
 					const statusCode = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusCode;
 

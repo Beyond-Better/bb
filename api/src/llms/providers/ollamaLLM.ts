@@ -132,9 +132,9 @@ class OllamaLLM extends LLM {
 						[key]: {
 							type: typeof prop.type === 'string' ? prop.type : 'string',
 							description: prop.description || '',
-							...(Array.isArray(prop.enum) ? { enum: prop.enum } : {})
-						}
-					}), {})
+							...(Array.isArray(prop.enum) ? { enum: prop.enum } : {}),
+						},
+					}), {}),
 				},
 			},
 		}));
@@ -156,7 +156,7 @@ class OllamaLLM extends LLM {
 					//id: tool.id,
 					type: 'tool_use',
 					name: tool.function.name,
-      input: tool.function.arguments, // Don't parse, use directly
+					input: tool.function.arguments, // Don't parse, use directly
 				} as LLMMessageContentPartToolUseBlock);
 			});
 		}
