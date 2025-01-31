@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
-import ms from 'ms';
+//import ms from 'ms';
 
-import { LLMCallbackType, type LLMProvider, type LLMProvderClientConfig } from 'api/types/llms.types.ts';
+import { LLMCallbackType, type LLMProvider, type LLMProvderClientConfig } from 'api/types.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -21,7 +21,7 @@ import type {
     LLMProviderMessageResponse,
     LLMSpeakWithOptions,
     LLMSpeakWithResponse,
-} from 'api/types/llms.types.ts';
+} from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
 // Configuration interface for OpenAI-compatible providers
@@ -38,10 +38,10 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
         super(callbacks);
     }
 
-    protected abstract get providerName(): LLMProvider;
     protected abstract transformUsage(usage: TUsage | undefined): {
         inputTokens: number;
         outputTokens: number;
+        totalTokens: number;
         cacheCreationInputTokens: number;
         cacheReadInputTokens: number;
     };
@@ -51,8 +51,8 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
         if (!apiKey) {
             throw createError(
                 ErrorType.LLM,
-                `${this.providerName} API key is not set`,
-                { provider: this.providerName } as LLMErrorOptions
+                `${this.llmProviderName} API key is not set`,
+                { provider: this.llmProviderName } as LLMErrorOptions
             );
         }
         this.openai = new OpenAI({ 
@@ -62,7 +62,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
     }
 
     protected asProviderMessageType(messages: LLMMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] {
-        logger.info(`llms-${this.providerName}-asProviderMessageType-messages`, messages);
+        logger.info(`llms-${this.llmProviderName}-asProviderMessageType-messages`, messages);
         const providerMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
         messages.forEach((message, _index, _array) => {
@@ -142,7 +142,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
             }
         });
 
-        logger.info(`llms-${this.providerName}-asProviderMessageType-providerMessages`, providerMessages);
+        logger.info(`llms-${this.llmProviderName}-asProviderMessageType-providerMessages`, providerMessages);
         return providerMessages;
     }
 
@@ -214,23 +214,25 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 
     // Default empty implementation for providers that don't support rate limiting
     protected processResponseMetadata(
-        _response: OpenAI.Response<OpenAI.Chat.ChatCompletion>,
+        _response: Response,
         _messageResponse: LLMProviderMessageResponse
     ): void {}
+
+    protected transformRateLimit(_response: Response) {}
 
     public override async speakWith(
         messageParams: LLMProviderMessageRequest,
         _interaction: LLMInteraction,
     ): Promise<LLMSpeakWithResponse> {
         try {
-            logger.debug(`llms-${this.providerName}-speakWith-messageParams`, JSON.stringify(messageParams, null, 2));
+            logger.debug(`llms-${this.llmProviderName}-speakWith-messageParams`, JSON.stringify(messageParams, null, 2));
 
             const { data: openaiMessageStream, response: openaiResponse } = await this.openai.chat.completions.create(
                 messageParams as OpenAI.Chat.ChatCompletionCreateParams,
             ).withResponse();
 
             const openaiMessage = openaiMessageStream as OpenAI.Chat.ChatCompletion;
-            logger.debug(`llms-${this.providerName}-openaiMessage`, openaiMessage);
+            logger.debug(`llms-${this.llmProviderName}-openaiMessage`, openaiMessage);
 
             const messageResponse: LLMProviderMessageResponse = {
                 id: openaiMessage.id,
@@ -249,6 +251,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
                     stopSequence: '',
                 },
                 usage: this.transformUsage(openaiMessage.usage as TUsage),
+				rateLimit: this.transformRateLimit(openaiMessage),
                 extra: {
                     system_fingerprint: openaiMessage.system_fingerprint,
                     created: openaiMessage.created,
@@ -263,17 +266,17 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
             // Process provider-specific response metadata (like rate limits)
             this.processResponseMetadata(openaiResponse, messageResponse);
 
-            logger.debug(`llms-${this.providerName}-messageResponse`, messageResponse);
+            logger.debug(`llms-${this.llmProviderName}-messageResponse`, messageResponse);
 
             return { messageResponse, messageMeta: { system: messageParams.system } };
         } catch (err) {
-            logger.error(`Error calling ${this.providerName} API`, err);
+            logger.error(`Error calling ${this.llmProviderName} API`, err);
             throw createError(
                 ErrorType.LLM,
-                `Could not get response from ${this.providerName} API: ${(err as Error).message}`,
+                `Could not get response from ${this.llmProviderName} API: ${(err as Error).message}`,
                 {
                     model: messageParams.model,
-                    provider: this.providerName,
+                    provider: this.llmProviderName,
                 } as LLMErrorOptions,
             );
         }
@@ -294,7 +297,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
                 );
             } else {
                 logger.warn(
-                    `provider[${this.providerName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+                    `provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
                 );
             }
         } else if (validationFailedReason === 'Empty answer') {
@@ -306,22 +309,22 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
         if (llmProviderMessageResponse.messageStop.stopReason) {
             switch (llmProviderMessageResponse.messageStop.stopReason) {
                 case 'length':
-                    logger.warn(`provider[${this.providerName}] Response reached the maximum token limit`);
+                    logger.warn(`provider[${this.llmProviderName}] Response reached the maximum token limit`);
                     break;
                 case 'stop':
-                    logger.warn(`provider[${this.providerName}] Response reached its natural end`);
+                    logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
                     break;
                 case 'content_filter':
                     logger.warn(
-                        `provider[${this.providerName}] Response content was omitted due to a flag from provider content filters`,
+                        `provider[${this.llmProviderName}] Response content was omitted due to a flag from provider content filters`,
                     );
                     break;
                 case 'tool_calls':
-                    logger.warn(`provider[${this.providerName}] Response is using a tool`);
+                    logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
                     break;
                 default:
                     logger.info(
-                        `provider[${this.providerName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+                        `provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
                     );
             }
         }

@@ -93,6 +93,7 @@ export interface ApiConfig extends ServerConfig {
 	llmKeys?: {
 		anthropic?: string;
 		openai?: string;
+		deepseek?: string;
 		voyageai?: string;
 	};
 }

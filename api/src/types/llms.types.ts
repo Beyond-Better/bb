@@ -37,10 +37,12 @@ export const OpenAIModels = [
 ];
 
 export enum DeepSeekModel {
-	GPT_4o = 'deepseek-chat',
+	DEEPSEEK_CHAT = 'deepseek-chat',
+	DEEPSEEK_REASONER = 'deepseek-reasoner',
 }
 export const DeepSeekModels = [
-	DeepSeekModel.GPT_4o,
+	DeepSeekModel.DEEPSEEK_CHAT,
+	DeepSeekModel.DEEPSEEK_REASONER,
 ];
 
 export enum GroqModel {
@@ -85,39 +87,55 @@ export const LLMProviders = [
 	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
+	LLMProvider.OLLAMA,
 	LLMProvider.DEEPSEEK,
 	LLMProvider.GROQ,
-	LLMProvider.OLLAMA,
 	LLMProvider.UNKNOWN,
 ];
 
 export enum OllamaModel {
-	LLAMA2 = 'llama2',
-	CODELLAMA = 'codellama',
+	MISTRAL_NEMO = 'mistral-nemo',
 	MISTRAL = 'mistral',
+	DEEPSEEK_R1_14B = 'deepseek-r1:14b',
+	LLAMA3_3 = 'llama3.3',
+	LLAMA3_GROQ_TOOL_USE_70B = 'llama3-groq-tool-use:70b',
+	QWEN2_5_CODER_14B = 'qwen2.5-coder:14b',
+	QWEN2_5_CODER_32B = 'qwen2.5-coder:32b',
+	COMMAND_R = 'command-r',
+	COMMAND_R_PLUS = 'command-r-plus',
+	FIREFUNCTION_V2 = 'firefunction-v2',
+	SMOLLM2_1_7B = 'smollm2:1.7b',
 }
 
 export const OllamaModels = [
-	OllamaModel.LLAMA2,
-	OllamaModel.CODELLAMA,
+	OllamaModel.MISTRAL_NEMO,
 	OllamaModel.MISTRAL,
+	OllamaModel.DEEPSEEK_R1_14B,
+	OllamaModel.LLAMA3_3,
+	OllamaModel.LLAMA3_GROQ_TOOL_USE_70B,
+	OllamaModel.QWEN2_5_CODER_14B,
+	OllamaModel.QWEN2_5_CODER_32B,
+	OllamaModel.COMMAND_R,
+	OllamaModel.COMMAND_R_PLUS,
+	OllamaModel.FIREFUNCTION_V2,
+	OllamaModel.SMOLLM2_1_7B,
 ];
 
 export const LLMProviderLabel = {
 	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
+	[LLMProvider.OLLAMA]: 'Ollama',
 	[LLMProvider.DEEPSEEK]: 'DeepSeek',
 	[LLMProvider.GROQ]: 'Groq',
-	[LLMProvider.OLLAMA]: 'Ollama',
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
 
 export const LLMModelsByProvider = {
-	[LLMProvider.OLLAMA]: OllamaModels,
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
+	[LLMProvider.OLLAMA]: OllamaModels,
 	[LLMProvider.DEEPSEEK]: DeepSeekModels,
 	[LLMProvider.GROQ]: GroqModels,
 	[LLMProvider.UNKNOWN]: [],
