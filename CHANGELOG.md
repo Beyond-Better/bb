@@ -12,6 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+
+### Fixed
+
+
+
+## [0.6.10] - 2025-02-01
+
+### Added
+
+- created base class abstraction for OpenAI compatible providers
+- added support for Ollama
+- added support for DeepSeek
+- conversation and project migrations for version upgrades
+
+### Changed
+
+- llmKeys moved under llmProviders
+- run_command tool supports head/tail truncation for stdout/stderr
+
+### Fixed
+
+- token calculations and reporting
+
+
+## [0.6.9] - 2025-01-23
+
+### Changed
+
 - external link display in dui
 
 ### Fixed
