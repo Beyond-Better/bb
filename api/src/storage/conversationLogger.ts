@@ -142,16 +142,19 @@ export default class ConversationLogger {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		},
 		tokenUsageStatement: TokenUsage = {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		},
 		tokenUsageConversation: TokenUsage = {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		},
 	) {
 		const timestamp = this.getTimestamp();

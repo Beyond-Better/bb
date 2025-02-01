@@ -87,8 +87,8 @@ export const sampleV1ProjectConfig = {
 /**
  * Sample v2 global configuration for validation testing
  */
-export const sampleV2GlobalConfig: GlobalConfig = {
-	version: '2.0.0',
+export const sampleV21GlobalConfig: GlobalConfig = {
+	version: '2.1.0',
 	myPersonsName: 'Test User',
 	myAssistantsName: 'Claude',
 	noBrowser: false,
@@ -110,8 +110,8 @@ export const sampleV2GlobalConfig: GlobalConfig = {
 		usePromptCaching: true,
 		userToolDirectories: ['./tools'],
 		toolConfigs: {},
-		llmKeys: {
-			anthropic: 'test-key',
+		llmProviders: {
+			anthropic: { apiKey: 'test-key' },
 		},
 	},
 	bui: {
@@ -132,9 +132,9 @@ export const sampleV2GlobalConfig: GlobalConfig = {
 /**
  * Sample v2 project configuration for validation testing
  */
-export const sampleV2ProjectConfig: ProjectConfig = {
+export const sampleV21ProjectConfig: ProjectConfig = {
 	projectId: '123456789abc',
-	version: '2.0.0',
+	version: '2.1.0',
 	name: 'Test Project',
 	type: 'local',
 	repoInfo: { tokenLimit: 1024 },

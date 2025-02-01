@@ -21,6 +21,7 @@ async function enableTls(configManager: ConfigManagerV2, projectId?: string): Pr
 		const certFileName = globalConfig.api.tls?.certFile || 'localhost.pem';
 
 		// Get the config to modify (project or global)
+		if (projectId) await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = projectId ? (await configManager.getProjectConfig(projectId) ?? null) : null;
 
 		if (!await certificateFileExists(certFileName)) {

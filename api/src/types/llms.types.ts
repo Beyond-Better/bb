@@ -37,10 +37,12 @@ export const OpenAIModels = [
 ];
 
 export enum DeepSeekModel {
-	GPT_4o = 'deepseek-chat',
+	DEEPSEEK_CHAT = 'deepseek-chat',
+	DEEPSEEK_REASONER = 'deepseek-reasoner',
 }
 export const DeepSeekModels = [
-	DeepSeekModel.GPT_4o,
+	DeepSeekModel.DEEPSEEK_CHAT,
+	DeepSeekModel.DEEPSEEK_REASONER,
 ];
 
 export enum GroqModel {
@@ -77,6 +79,7 @@ export enum LLMProvider {
 	OPENAI = 'openai',
 	DEEPSEEK = 'deepseek',
 	GROQ = 'groq',
+	OLLAMA = 'ollama',
 	UNKNOWN = '',
 }
 
@@ -84,15 +87,45 @@ export const LLMProviders = [
 	LLMProvider.BB,
 	LLMProvider.ANTHROPIC,
 	LLMProvider.OPENAI,
+	LLMProvider.OLLAMA,
 	LLMProvider.DEEPSEEK,
 	LLMProvider.GROQ,
 	LLMProvider.UNKNOWN,
+];
+
+export enum OllamaModel {
+	MISTRAL_NEMO = 'mistral-nemo',
+	MISTRAL = 'mistral',
+	DEEPSEEK_R1_14B = 'deepseek-r1:14b',
+	LLAMA3_3 = 'llama3.3',
+	LLAMA3_GROQ_TOOL_USE_70B = 'llama3-groq-tool-use:70b',
+	QWEN2_5_CODER_14B = 'qwen2.5-coder:14b',
+	QWEN2_5_CODER_32B = 'qwen2.5-coder:32b',
+	COMMAND_R = 'command-r',
+	COMMAND_R_PLUS = 'command-r-plus',
+	FIREFUNCTION_V2 = 'firefunction-v2',
+	SMOLLM2_1_7B = 'smollm2:1.7b',
+}
+
+export const OllamaModels = [
+	OllamaModel.MISTRAL_NEMO,
+	OllamaModel.MISTRAL,
+	OllamaModel.DEEPSEEK_R1_14B,
+	OllamaModel.LLAMA3_3,
+	OllamaModel.LLAMA3_GROQ_TOOL_USE_70B,
+	OllamaModel.QWEN2_5_CODER_14B,
+	OllamaModel.QWEN2_5_CODER_32B,
+	OllamaModel.COMMAND_R,
+	OllamaModel.COMMAND_R_PLUS,
+	OllamaModel.FIREFUNCTION_V2,
+	OllamaModel.SMOLLM2_1_7B,
 ];
 
 export const LLMProviderLabel = {
 	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
+	[LLMProvider.OLLAMA]: 'Ollama',
 	[LLMProvider.DEEPSEEK]: 'DeepSeek',
 	[LLMProvider.GROQ]: 'Groq',
 	[LLMProvider.UNKNOWN]: 'Unknown',
@@ -102,6 +135,7 @@ export const LLMModelsByProvider = {
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
 	[LLMProvider.OPENAI]: OpenAIModels,
+	[LLMProvider.OLLAMA]: OllamaModels,
 	[LLMProvider.DEEPSEEK]: DeepSeekModels,
 	[LLMProvider.GROQ]: GroqModels,
 	[LLMProvider.UNKNOWN]: [],
@@ -127,6 +161,12 @@ export const LLMProviderModels = Object.fromEntries(
 		}),
 );
  */
+
+export interface LLMProvderClientConfig {
+	apiKey?: string;
+	defaultModel?: string;
+	baseURL?: string;
+}
 
 export type LLMTokenUsage = TokenUsage;
 /*
@@ -171,13 +211,13 @@ export interface LLMProviderMessageResponseMeta {
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
-	tools?: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
+	tools: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
 	system: string; // | LLMMessageContentPartTextBlock;
 	//prompt: string; // CNG - I think this is a deprecated attribute
 	model: string;
-	maxTokens?: number;
-	max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
-	temperature?: number;
+	maxTokens: number;
+	//max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
+	temperature: number;
 	usePromptCaching?: boolean;
 }
 

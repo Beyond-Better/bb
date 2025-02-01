@@ -2,7 +2,7 @@ use std::fs;
 use serde_yaml;
 use log::{error, info};
 
-use crate::config::{GlobalConfig, get_global_config_dir, read_global_config, get_default_log_path};
+use crate::config::{GlobalConfig, LlmProviderConfig, get_global_config_dir, read_global_config, get_default_log_path};
 
 #[tauri::command]
 pub async fn get_log_path(filename: &str) -> Result<Option<String>, String> {
@@ -96,9 +96,13 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
     let mut redacted = config.clone();
     
     // Mask the Anthropic API key if it exists and is not empty
-    if let Some(ref key) = redacted.api.llm_keys.anthropic {
-        if !key.is_empty() {
-            redacted.api.llm_keys.anthropic = Some(format!("{}...", &key[..18.min(key.len())]));
+    if let Some(ref provider) = redacted.api.llm_providers.anthropic {
+        if let Some(ref key) = provider.api_key {
+            if !key.is_empty() {
+                redacted.api.llm_providers.anthropic = Some(LlmProviderConfig {
+                    api_key: Some(format!("{}...", &key[..18.min(key.len())]))
+                });
+            }
         }
     }
     
@@ -108,7 +112,7 @@ pub async fn get_global_config() -> Result<GlobalConfig, String> {
 #[tauri::command]
 pub async fn set_global_config_value(key: String, value: String) -> Result<(), String> {
     //info!("Setting config value - Key: {}, Value: {}", key, value);
-    info!("Setting config value - Key: {}, Value: {}", key, if key.contains("api_key") || key.contains("llmKeys") {
+    info!("Setting config value - Key: {}, Value: {}", key, if key.contains("api_key") || key.contains("apiKey") {
         "[REDACTED]".to_string()
     } else {
         value.clone()
@@ -210,7 +214,7 @@ fn update_yaml_value(root: &mut serde_yaml::Value, key: &str, value: &str) -> Re
                         return Err(format!("Invalid boolean value for {}", key));
                     }
                 },
-                "api.llmKeys.anthropic" => {
+                "api.llmProviders.anthropic.apiKey" => {
                     // Only update if not masked
                     if !value.ends_with("...") {
                         mapping.insert(
@@ -252,15 +256,12 @@ fn update_config_value(config: &mut GlobalConfig, key: &str, value: &str) -> Res
             let local_mode = value.parse::<bool>().map_err(|_| "Invalid boolean for localMode".to_string())?;
             config.api.local_mode = local_mode;
         },
-        ["api", "llmKeys", "anthropic"] => {
-            //config.api.llm_keys.anthropic = Some(value.to_string());
+        ["api", "llmProviders", "anthropic", "apiKey"] => {
             // Only update if the value has changed (not masked)
             if !value.ends_with("...") {
-                //debug!("Updating Anthropic API key");
-				config.api.llm_keys.anthropic = Some(value.to_string());
-                //debug!("API key updated successfully");
-            } else {
-                //debug!("Skipping masked API key update");
+                config.api.llm_providers.anthropic = Some(LlmProviderConfig {
+                    api_key: Some(value.to_string())
+                });
             }
         },
         ["bui", "logFile"] => {

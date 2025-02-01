@@ -49,6 +49,7 @@ export const conversationChat = new Command()
 		let apiConfig: ApiConfig;
 		let apiProjectId: string | undefined = undefined;
 
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
 		if (projectConfig.useProjectApi) {
 			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;

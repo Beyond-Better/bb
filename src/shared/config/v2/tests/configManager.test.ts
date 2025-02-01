@@ -31,7 +31,7 @@ describe('ConfigManagerV2', () => {
 	describe('Global Configuration', () => {
 		it('should load default global config when none exists', async () => {
 			const config = await configManager.getGlobalConfig();
-			assertEquals(config.version, '2.0.0');
+			assertEquals(config.version, '2.1.0');
 			assertEquals(config.api.hostname, 'localhost');
 			assertEquals(config.api.port, 3162);
 		});
@@ -104,7 +104,7 @@ describe('ConfigManagerV2', () => {
 
 			assertEquals(config.name, 'Test Project');
 			assertEquals(config.type, 'local');
-			assertEquals(config.version, '2.0.0');
+			assertEquals(config.version, '2.1.0');
 		});
 
 		it('should update project config', async () => {
@@ -137,7 +137,7 @@ describe('ConfigManagerV2', () => {
 	});
 
 	describe('Migration', () => {
-		it('should migrate v1 global config to v2', async () => {
+		it('should migrate v1 global config to v21', async () => {
 			const v1Config = {
 				version: '1.0.0',
 				myPersonsName: 'TestUser',
@@ -170,7 +170,7 @@ describe('ConfigManagerV2', () => {
 
 			assertEquals(result.success, true);
 			assertEquals(result.version.from, '1.0.0');
-			assertEquals(result.version.to, '2.0.0');
+			assertEquals(result.version.to, '2.1.0');
 			assertExists(result.backupPath);
 
 			// Verify changes tracked
@@ -180,7 +180,7 @@ describe('ConfigManagerV2', () => {
 			// );
 			// assertExists(versionChange);
 			// assertEquals(versionChange.from, '1.0.0');
-			// assertEquals(versionChange.to, '2.0.0');
+			// assertEquals(versionChange.to, '2.1.0');
 			//
 			// // Check port change
 			// const portChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
@@ -199,7 +199,7 @@ describe('ConfigManagerV2', () => {
 			// assertEquals(hostnameChange.to, 'localhost');
 		});
 
-		it('should migrate v1 project config to v2', async () => {
+		it('should migrate v1 project config to v21', async () => {
 			const v1Config = {
 				version: '1.0.0',
 				project: {
@@ -233,7 +233,7 @@ describe('ConfigManagerV2', () => {
 
 			assertEquals(result.success, true);
 			assertEquals(result.version.from, '1.0.0');
-			assertEquals(result.version.to, '2.0.0');
+			assertEquals(result.version.to, '2.1.0');
 
 			// Verify structure converted to settings
 			// Check version change
@@ -242,7 +242,7 @@ describe('ConfigManagerV2', () => {
 			// );
 			// assertExists(versionChange);
 			// assertEquals(versionChange.from, '1.0.0');
-			// assertEquals(versionChange.to, '2.0.0');
+			// assertEquals(versionChange.to, '2.1.0');
 			//
 			// // Check port change
 			// const portChange = result.changes.find((c: { path: string[]; from: unknown; to: unknown }) =>
@@ -264,7 +264,7 @@ describe('ConfigManagerV2', () => {
 	describe('Validation', () => {
 		it('should validate global config structure', async () => {
 			const invalidConfig = {
-				version: '2.0.0',
+				version: '2.1.0',
 				// Missing required fields
 			};
 
@@ -275,7 +275,7 @@ describe('ConfigManagerV2', () => {
 
 		it('should validate project config structure', async () => {
 			const invalidConfig = {
-				version: '2.0.0',
+				version: '2.1.0',
 				projectId: 'invalid', // Wrong format
 				name: 'Test',
 				type: 'invalid', // Invalid type
@@ -298,7 +298,7 @@ describe('ConfigManagerV2', () => {
 
 		it('should validate component settings', async () => {
 			const config = {
-				version: '2.0.0',
+				version: '2.1.0',
 				projectId: '123456789abc',
 				name: 'Test',
 				type: 'local',

@@ -11,6 +11,37 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 	const formattedContent = stripIndents`
         ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Command:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.code(command)}
         ${
+		toolInput.outputTruncation?.keepLines
+			? stripIndents`
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Output Truncation:')}${
+				toolInput.outputTruncation.keepLines.stdout
+					? stripIndents`
+                stdout: ${
+						[
+							toolInput.outputTruncation.keepLines.stdout.head > 0 &&
+							`head: ${toolInput.outputTruncation.keepLines.stdout.head}`,
+							toolInput.outputTruncation.keepLines.stdout.tail > 0 &&
+							`tail: ${toolInput.outputTruncation.keepLines.stdout.tail}`,
+						].filter(Boolean).join(', ')
+					}`
+					: ''
+			}${
+				toolInput.outputTruncation.keepLines.stderr
+					? stripIndents`
+                stderr: ${
+						[
+							toolInput.outputTruncation.keepLines.stderr.head > 0 &&
+							`head: ${toolInput.outputTruncation.keepLines.stderr.head}`,
+							toolInput.outputTruncation.keepLines.stderr.tail > 0 &&
+							`tail: ${toolInput.outputTruncation.keepLines.stderr.tail}`,
+						].filter(Boolean).join(', ')
+					}`
+					: ''
+			}
+        `
+			: ''
+	}
+        ${
 		args.length > 0
 			? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Arguments:')} ${
 				LLMTool.TOOL_STYLES_CONSOLE.content.code(args.join(' '))
@@ -69,6 +100,24 @@ export const formatLogEntryToolResult = (
 				? stripIndents`
                 ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Error Output:')}
                 ${LLMTool.TOOL_STYLES_CONSOLE.status.error(stderr)}
+            `
+				: ''
+		}
+
+            ${
+			bbResponse.data.truncatedInfo
+				? stripIndents`
+                ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Output Truncation Info:')}${
+					bbResponse.data.truncatedInfo.stdout
+						? stripIndents`
+                    stdout: kept ${bbResponse.data.truncatedInfo.stdout.keptLines} of ${bbResponse.data.truncatedInfo.stdout.originalLines} lines`
+						: ''
+				}${
+					bbResponse.data.truncatedInfo.stderr
+						? stripIndents`
+                    stderr: kept ${bbResponse.data.truncatedInfo.stderr.keptLines} of ${bbResponse.data.truncatedInfo.stderr.originalLines} lines`
+						: ''
+				}
             `
 				: ''
 		}

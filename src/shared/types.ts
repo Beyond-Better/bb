@@ -32,6 +32,17 @@ export interface ConversationMetadata {
 	updatedAt: string;
 }
 
+/**
+ * Detailed metadata for a conversation.
+ * Note: Token usage values in metadata are derived from TokenUsagePersistence analysis
+ * and should not be considered the source of truth. Always use TokenUsagePersistence.analyzeUsage()
+ * for accurate token counts.
+ *
+ * @property tokenAnalysis - Analyzed token usage from TokenUsagePersistence
+ * @property tokenUsageTurn - Turn-level token usage (for backward compatibility)
+ * @property tokenUsageStatement - Statement-level token usage (for backward compatibility)
+ * @property tokenUsageConversation - Conversation-level token usage derived from analysis
+ */
 export interface ConversationDetailedMetadata extends ConversationMetadata {
 	tokenAnalysis?: {
 		conversation: TokenUsageAnalysis;
@@ -94,10 +105,11 @@ export type ConversationFilesMetadata = Record<string, FileMetadata>;
 export interface TokenUsage {
 	inputTokens: number;
 	outputTokens: number;
-	totalTokens: number;
+	totalTokens: number; // inputTokens + outputTokens
 	totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
+	totalAllTokens?: number; // totalTokens + cacheCreationInputTokens + cacheReadInputTokens
 }
 
 export interface TokenUsageDifferential {
@@ -144,6 +156,9 @@ export interface TokenUsageAnalysis {
 		input: number;
 		output: number;
 		total: number;
+		cacheCreationInput: number;
+		cacheReadInput: number;
+		totalAll: number;
 	};
 	differentialUsage: {
 		input: number;

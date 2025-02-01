@@ -203,63 +203,38 @@ class BbLLM extends LLM {
 		return tools;
 	}
 
-	override async prepareMessageParams(
-		interaction: LLMInteraction,
-		speakOptions?: LLMSpeakWithOptions,
+	override async asProviderMessageRequest(
+		messageRequest: LLMProviderMessageRequest,
+		_interaction?: LLMInteraction,
 	): Promise<LLMProviderMessageRequest> {
-		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-interaction.baseSystem', interaction.baseSystem);
-		const systemPrompt = await this.invoke(
-			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
-			speakOptions?.system || interaction.baseSystem,
-			interaction.id,
-		);
-		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-systemPrompt', systemPrompt);
+		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 
-		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-interaction.allTools', interaction.allTools());
-		const tools = this.asProviderToolType(
-			await this.invoke(
-				LLMCallbackType.PREPARE_TOOLS,
-				speakOptions?.tools || interaction.allTools(),
-				interaction.id,
-			),
-		);
-		logger.debug('BbLLM: llms-anthropic-prepareMessageParams-tools', tools);
+		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-interaction.allTools', messageRequest.tools);
+		const tools = this.asProviderToolType(messageRequest.tools);
+		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-tools', tools);
 
-		const messages = this.asProviderMessageType(
-			await this.invoke(
-				LLMCallbackType.PREPARE_MESSAGES,
-				speakOptions?.messages || interaction.getMessages(),
-				interaction.id,
-			),
-		);
+		const messages = this.asProviderMessageType(messageRequest.messages);
 		// Log detailed message information
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
-		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
-			logger.error('BbLLM: maxTokens missing from both speakOptions and interaction');
-		}
-		if (!speakOptions?.temperature && !interaction.temperature) {
-			logger.error('BbLLM: temperature missing from both speakOptions and interaction');
-		}
-
-		const model: string = speakOptions?.model || interaction.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
-		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
+		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
+		const maxTokens: number = messageRequest.maxTokens || 8192;
+		const temperature: number = messageRequest.temperature || 0.2;
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 
-		const messageParams: LLMProviderMessageRequest = {
+		const providerMessageRequest: LLMProviderMessageRequest = {
 			messages,
-			system: systemPrompt,
+			system: messageRequest.system,
 			tools,
 			model,
 			maxTokens,
 			temperature,
 			usePromptCaching,
 		};
-		//logger.debug('BbLLM: llms-anthropic-prepareMessageParams', messageParams);
-		//logger.dir(messageParams);
+		//logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
+		//logger.dir(providerMessageRequest);
 
-		return messageParams;
+		return providerMessageRequest;
 	}
 
 	/**
@@ -269,15 +244,20 @@ class BbLLM extends LLM {
 	 * @returns Promise<LLMProviderMessageResponse> The response from BB or an error
 	 */
 	public override async speakWith(
-		messageParams: LLMProviderMessageRequest,
+		messageRequest: LLMProviderMessageRequest,
 		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			//logger.info('BbLLM: messageParams', messageParams);
+			//logger.info('BbLLM: messageRequest', messageRequest);
+
+			const providerMessageRequest = await this.asProviderMessageRequest(
+				messageRequest,
+				interaction,
+			);
 
 			//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
 			const { data, error } = await this.supabaseClient.functions.invoke('llm-proxy', {
-				body: messageParams,
+				body: providerMessageRequest,
 			});
 			//logger.info('BbLLM: llms-bb-data', data);
 			//logger.info('BbLLM: llms-bb-error', error);
@@ -286,7 +266,7 @@ class BbLLM extends LLM {
 			//if (this.projectConfig.settings.api?.logLevel === 'debug1') {
 			//	interaction.conversationPersistence.writeLLMRequest({
 			//		messageId: bbResponseMessage.metadata.requestId,
-			//		requestBody: messageParams,
+			//		requestBody: messageRequest,
 			//		requestHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
 			//		responseMessage: bbResponseMessage,
 			//	});
@@ -311,7 +291,7 @@ class BbLLM extends LLM {
 					ErrorType.LLM,
 					`Received an error from BB API: `,
 					{
-						model: messageParams.model,
+						model: messageRequest.model,
 						provider: this.llmProviderName,
 						...errorBody,
 					} as LLMErrorOptions,
@@ -324,7 +304,7 @@ class BbLLM extends LLM {
 					`Received a non-200 from BB API: `,
 					{
 						name: 'BB API Error',
-						model: messageParams.model,
+						model: messageRequest.model,
 						provider: this.llmProviderName,
 						args: { bbResponse: bbResponseMessage },
 						conversationId: interaction.id,
@@ -352,6 +332,9 @@ class BbLLM extends LLM {
 					totalTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens),
 					cacheCreationInputTokens: bbResponseMessage.usage.cacheCreationInputTokens || 0,
 					cacheReadInputTokens: bbResponseMessage.usage.cacheReadInputTokens || 0,
+					totalAllTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens +
+						(bbResponseMessage.usage.cacheCreationInputTokens || 0) +
+						(bbResponseMessage.usage.cacheReadInputTokens || 0)),
 				},
 				rateLimit: bbResponseMessage.rateLimit,
 				providerMessageResponseMeta: bbResponseMessage.status,
@@ -363,7 +346,7 @@ class BbLLM extends LLM {
 			});
 			//logger.debug("BbLLM: llms-anthropic-messageResponse", messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageParams.system } };
+			return { messageResponse, messageMeta: { system: messageRequest.system } };
 		} catch (err) {
 			logger.error('BbLLM: Error calling BB API', err);
 			if (isLLMError(err)) throw err;
@@ -371,7 +354,7 @@ class BbLLM extends LLM {
 				ErrorType.LLM,
 				`Could not get response from BB API: ${(err as Error).message}`,
 				{
-					model: messageParams.model,
+					model: messageRequest.model,
 					provider: this.llmProviderName,
 				} as LLMErrorOptions,
 			);

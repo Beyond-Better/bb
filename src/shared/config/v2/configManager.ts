@@ -4,12 +4,29 @@ import { join } from '@std/path';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
 import { createBbDir, createBbIgnore, getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
+import { ConversationMigration } from 'api/storage/conversationMigration.ts';
+import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
+
+interface MigrationReport {
+	timestamp: string;
+	projectId: string;
+	projectConfig: {
+		from: string;
+		to: string;
+		success: boolean;
+		changes: Array<{ path: string[]; from: unknown; to: unknown }>;
+		errors: Array<{ path: string[]; message: string }>;
+	};
+	conversations?: ConversationMigrationResult;
+}
 import type {
 	ConfigVersion,
 	GlobalConfig,
+	GlobalConfigV2,
 	IConfigManagerV2,
 	MigrationResult,
 	ProjectConfig,
+	ProjectConfigV2,
 	ProjectType,
 	ValidationResult,
 } from './types.ts';
@@ -129,6 +146,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * ```
 	 */
 	public async updateGlobalConfig(updates: Partial<GlobalConfig>): Promise<void> {
+		await this.ensureLatestGlobalConfig();
 		const current = await this.getGlobalConfig();
 		const updated = { ...current, ...updates };
 
@@ -164,6 +182,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * ```
 	 */
 	public async updateProjectConfig(projectId: string, updates: Partial<ProjectConfig>): Promise<void> {
+		await this.ensureLatestProjectConfig(projectId);
 		const current = await this.getProjectConfig(projectId);
 		const updated = { ...current, ...updates };
 
@@ -189,6 +208,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	}
 
 	public async setProjectConfigValue(projectId: string, key: string, value: string | null): Promise<void> {
+		await this.ensureLatestProjectConfig(projectId);
 		const projectRoot = await this.getProjectRoot(projectId);
 		const configPath = join(projectRoot, '.bb', 'config.yaml');
 
@@ -233,6 +253,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	}
 
 	public async setGlobalConfigValue(key: string, value: string | null): Promise<void> {
+		await this.ensureLatestGlobalConfig();
 		const globalConfigPath = join(await getGlobalConfigDir(), 'config.yaml');
 		let current: GlobalConfig & { [key: string]: unknown };
 
@@ -288,7 +309,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	private async createGlobalConfig(): Promise<void> {
 		// Create and validate default config
 		const defaultConfig: GlobalConfig = {
-			version: '2.0.0',
+			version: '2.1.0',
 			myPersonsName: GlobalConfigDefaults.myPersonsName,
 			myAssistantsName: GlobalConfigDefaults.myAssistantsName,
 			defaultModels: GlobalConfigDefaults.defaultModels,
@@ -297,7 +318,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
 			api: {
 				...ApiConfigDefaults,
-				llmKeys: {},
+				llmProviders: {},
 			},
 			bui: BuiConfigDefaults,
 			cli: CliConfigDefaults,
@@ -383,7 +404,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		const globalConfig = await this.getGlobalConfig();
 		const config: ProjectConfig = {
 			projectId,
-			version: '2.0.0',
+			version: '2.1.0',
 			name,
 			type,
 			repoInfo: { tokenLimit: 1024 },
@@ -406,9 +427,9 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				...config.settings,
 				api: {
 					...config.settings?.api,
-					llmKeys: {
-						...config.settings?.api?.llmKeys,
-						anthropic: createProjectData.anthropicApiKey,
+					llmProviders: {
+						...config.settings?.api?.llmProviders,
+						anthropic: { apiKey: createProjectData.anthropicApiKey },
 					},
 				},
 			};
@@ -561,17 +582,145 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * console.log(`Backup created at: ${result.backupPath}`);
 	 * ```
 	 */
+	public async ensureLatestGlobalConfig(): Promise<void> {
+		// Get current global config
+		const config = await this.getGlobalConfig();
+
+		// Attempt migration
+		const migrationResult = await this.migrateConfig(config);
+		if (!migrationResult.success) {
+			throw new Error(`Global config migration failed: ${migrationResult.errors[0]?.message}`);
+		}
+
+		// If version changed, save the migrated config
+		if (migrationResult.version.from !== migrationResult.version.to) {
+			const configDir = await getGlobalConfigDir();
+			const configPath = join(configDir, 'config.yaml');
+
+			// Ensure config directory exists
+			await ensureDir(configDir);
+
+			// Write updated config
+			await Deno.writeTextFile(
+				configPath,
+				stringifyYaml(this.removeUndefined(migrationResult.config as GlobalConfig)),
+			);
+
+			// Update cache
+			this.globalConfig = migrationResult.config as GlobalConfig;
+		}
+	}
+
+	public async ensureLatestProjectConfig(projectId: string): Promise<void> {
+		const projectRoot = await this.getProjectRoot(projectId);
+		const configPath = join(projectRoot, '.bb', 'config.yaml');
+
+		try {
+			// Read raw project config directly from disk
+			const configContent = await Deno.readTextFile(configPath);
+			const oldConfig = parseYaml(configContent) as ProjectConfig;
+
+			// Attempt migration
+			const migrationResult = await this.migrateConfig(oldConfig);
+			if (!migrationResult.success) {
+				throw new Error(`Project config migration failed: ${migrationResult.errors[0]?.message}`);
+			}
+
+			// Prepare migration report
+			const report: MigrationReport = {
+				timestamp: new Date().toISOString(),
+				projectId,
+				projectConfig: {
+					from: migrationResult.version.from,
+					to: migrationResult.version.to,
+					success: migrationResult.success,
+					changes: migrationResult.changes || [],
+					errors: migrationResult.errors || [],
+				},
+			};
+
+			// If version changed, save the migrated config and migrate conversations
+			if (migrationResult.version.from !== migrationResult.version.to) {
+				// Ensure .bb directory exists
+				await ensureDir(join(projectRoot, '.bb'));
+
+				// Write the raw migrated config back to disk
+				await Deno.writeTextFile(
+					configPath,
+					stringifyYaml(this.removeUndefined(migrationResult.config as ProjectConfig)),
+				);
+
+				// Update cache with merged config
+				const mergedConfig = mergeGlobalIntoProjectConfig(
+					migrationResult.config as ProjectConfig,
+					await this.getGlobalConfig(),
+				);
+				this.projectConfigs.set(projectId, mergedConfig);
+
+				// Migrate conversations if needed
+				try {
+					const projectRoot = await this.getProjectRoot(projectId);
+					const bbDataDir = join(projectRoot, '.bb', 'data');
+					const conversationResult = await ConversationMigration.migrateProject(bbDataDir);
+					if (conversationResult.failed > 0) {
+						console.warn(
+							`Some conversations failed to migrate: ${conversationResult.failed} failures out of ${conversationResult.total} total`,
+						);
+					}
+
+					// Add conversation results to report
+					report.conversations = conversationResult;
+
+					// Save migration report
+					const reportPath = join(projectRoot, '.bb', 'migrations.json');
+					let reports: MigrationReport[] = [];
+					try {
+						const content = await Deno.readTextFile(reportPath);
+						reports = JSON.parse(content);
+					} catch {
+						// No existing reports is fine
+					}
+					reports.push(report);
+					await Deno.writeTextFile(reportPath, JSON.stringify(reports, null, 2));
+				} catch (error) {
+					console.error(`Failed to migrate conversations: ${(error as Error).message}`);
+					// Add error to report
+					report.conversations = {
+						total: 0,
+						migrated: 0,
+						skipped: 0,
+						failed: 0,
+						results: [{
+							conversationId: 'all',
+							result: {
+								success: false,
+								version: { from: 1, to: 1 },
+								changes: [],
+								errors: [{ message: (error as Error).message }],
+							},
+						}],
+					};
+					// Don't throw - we want config migration to succeed even if conversation migration fails
+				}
+			}
+		} catch (error) {
+			if (!(error instanceof Deno.errors.NotFound)) {
+				throw error;
+			}
+			// If config doesn't exist, that's fine - no migration needed
+		}
+	}
+
 	public async migrateConfig(
-		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfig | ProjectConfig,
+		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfigV2 | ProjectConfigV2,
 	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
-		console.log('ConfigManager: migrateConfig: ', config);
 		const result: MigrationResult = {
 			success: true, // Start with true, only set to false on error
 			version: {
 				from: this.determineConfigVersion(config),
-				to: '2.0.0',
+				to: '2.1.0',
 			},
 			changes: [],
 			errors: [],
@@ -579,11 +728,12 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		};
 
 		//console.log('ConfigManager: migrateConfig: ', result);
-		if (result.version.from === '2.0.0') {
+		if (result.version.from === '2.1.0') {
 			result.config = config as GlobalConfig;
 			return result;
 		}
 
+		console.log('ConfigManager: migrateConfig: ', config);
 		try {
 			// Determine config type
 			const configType = this.determineConfigType(config);
@@ -676,7 +826,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				// If validation fails, return default config
 				//console.log('Error: globalConfig is not valid; using default config: ', validation.errors);
 				return {
-					version: '2.0.0',
+					version: '2.1.0',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
 					myAssistantsName: GlobalConfigDefaults.myAssistantsName,
 					defaultModels: GlobalConfigDefaults.defaultModels,
@@ -685,7 +835,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
 					api: {
 						...ApiConfigDefaults,
-						llmKeys: {},
+						llmProviders: {},
 					},
 					bui: BuiConfigDefaults,
 					cli: CliConfigDefaults,
@@ -805,8 +955,12 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	}
 
 	/**
-	 * Resolves a project's ID directory from its root directory.
+	 * Resolves a project's ID from its root directory.
 	 * Uses the projects registry to map paths to IDs.
+	 * If project doesn't exist in registry then migrates project config
+	 * and updates the registry.
+	 * You probably don't want to use this method directly,
+	 * instead use `getProjectId` from `shared/dataDir.ts`.
 	 *
 	 * @param projectRoot - The unique directory of the project
 	 * @returns The ID for the project
@@ -952,10 +1106,9 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	): ConfigVersion {
 		// For v2 configs, validate version is supported
 		if (typeof config === 'object' && config !== null) {
-			//const c = config as Record<string, unknown>;
 			if ('version' in config && typeof config.version === 'string') {
 				const version = config.version;
-				if (version === '1.0.0' || version === '2.0.0') {
+				if (version === '1.0.0' || version === '2.0.0' || version === '2.1.0') {
 					return version;
 				}
 			}
@@ -1001,16 +1154,21 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		type: 'global' | 'project',
 	): Promise<GlobalConfig | ProjectConfig> {
 		const version = this.determineConfigVersion(config);
-		//console.log('ConfigManager: performMigration: ', { type, version });
+
+		if (version === '2.1.0') {
+			return config as GlobalConfig | ProjectConfig; // Already at target version
+		}
 
 		if (version === '2.0.0') {
-			return config as GlobalConfig | ProjectConfig; // Already at target version
+			return type === 'global'
+				? this.migrateGlobalConfigV20toV21(config as GlobalConfig)
+				: this.migrateProjectConfigV20toV21(config as ProjectConfig);
 		}
 
 		if (version === '1.0.0') {
 			return type === 'global'
-				? this.migrateGlobalConfigV1toV2(config as GlobalConfigV1)
-				: this.migrateProjectConfigV1toV2(config as ProjectConfigV1);
+				? this.migrateGlobalConfigV1toV21(config as GlobalConfigV1)
+				: this.migrateProjectConfigV1toV21(config as ProjectConfigV1);
 		}
 
 		throw new Error(`Unsupported config version: ${version}`);
@@ -1027,6 +1185,102 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @returns The migrated v2 configuration
 	 * @internal
 	 */
+	private migrateGlobalConfigV1toV21(config: GlobalConfigV1): GlobalConfig {
+		const v1Config = config as GlobalConfigV1;
+
+		return {
+			version: '2.1.0',
+			myPersonsName: v1Config.myPersonsName || GlobalConfigDefaults.myPersonsName,
+			myAssistantsName: v1Config.myAssistantsName || GlobalConfigDefaults.myAssistantsName,
+			defaultModels: GlobalConfigDefaults.defaultModels,
+			noBrowser: v1Config.noBrowser ?? GlobalConfigDefaults.noBrowser,
+			bbExeName: v1Config.bbExeName || 'bb',
+			bbApiExeName: v1Config.bbApiExeName || 'bb-api',
+
+			// Migrate API config
+			api: {
+				...ApiConfigDefaults,
+				hostname: v1Config.api?.apiHostname || ApiConfigDefaults.hostname,
+				port: v1Config.api?.apiPort || ApiConfigDefaults.port,
+				tls: {
+					useTls: v1Config.api?.apiUseTls ?? ApiConfigDefaults.tls.useTls,
+					keyFile: v1Config.api?.tlsKeyFile,
+					certFile: v1Config.api?.tlsCertFile,
+					rootCaFile: v1Config.api?.tlsRootCaFile,
+					keyPem: v1Config.api?.tlsKeyPem,
+					certPem: v1Config.api?.tlsCertPem,
+					rootCaPem: v1Config.api?.tlsRootCaPem,
+				},
+				maxTurns: v1Config.api?.maxTurns || ApiConfigDefaults.maxTurns,
+				logLevel: v1Config.api?.logLevel || ApiConfigDefaults.logLevel,
+				logFile: v1Config.api?.logFile,
+				logFileHydration: v1Config.api?.logFileHydration ?? ApiConfigDefaults.logFileHydration,
+				ignoreLLMRequestCache: v1Config.api?.ignoreLLMRequestCache ?? ApiConfigDefaults.ignoreLLMRequestCache,
+				usePromptCaching: v1Config.api?.usePromptCaching ?? ApiConfigDefaults.usePromptCaching,
+				userToolDirectories: v1Config.api?.userToolDirectories || ApiConfigDefaults.userToolDirectories,
+				toolConfigs: v1Config.api?.toolConfigs || ApiConfigDefaults.toolConfigs,
+				llmProviders: {
+					anthropic: v1Config.api?.anthropicApiKey ? { apiKey: v1Config.api.anthropicApiKey } : undefined,
+					openai: v1Config.api?.openaiApiKey ? { apiKey: v1Config.api.openaiApiKey } : undefined,
+					//voyageai: v1Config.api?.voyageaiApiKey ? { apiKey: v1Config.api.voyageaiApiKey } : undefined,
+				},
+			},
+
+			// Migrate BUI config
+			bui: {
+				...BuiConfigDefaults,
+				hostname: v1Config.bui?.buiHostname || BuiConfigDefaults.hostname,
+				port: v1Config.bui?.buiPort || BuiConfigDefaults.port,
+				tls: {
+					useTls: v1Config.bui?.buiUseTls ?? BuiConfigDefaults.tls.useTls,
+					keyFile: v1Config.bui?.tlsKeyFile,
+					certFile: v1Config.bui?.tlsCertFile,
+					rootCaFile: v1Config.bui?.tlsRootCaFile,
+					keyPem: v1Config.bui?.tlsKeyPem,
+					certPem: v1Config.bui?.tlsCertPem,
+					rootCaPem: v1Config.bui?.tlsRootCaPem,
+				},
+			},
+
+			// Migrate CLI config
+			cli: {
+				...CliConfigDefaults,
+				...v1Config.cli,
+			},
+
+			// Add new DUI config
+			dui: DuiConfigDefaults,
+		};
+	}
+
+	private migrateGlobalConfigV20toV21(config: GlobalConfig): GlobalConfig {
+		const v20Config = { ...config };
+
+		// Convert old API keys to new provider structure
+		v20Config.api.llmProviders = {};
+		if (v20Config.api.llmKeys && 'anthropic' in v20Config.api.llmKeys && v20Config.api.llmKeys.anthropic) {
+			v20Config.api.llmProviders.anthropic = { apiKey: v20Config.api.llmKeys.anthropic };
+			delete v20Config.api.llmKeys.anthropic;
+		}
+		if (v20Config.api.llmKeys && 'openai' in v20Config.api.llmKeys && v20Config.api.llmKeys.openai) {
+			v20Config.api.llmProviders.openai = { apiKey: v20Config.api.llmKeys.openai };
+			delete v20Config.api.llmKeys.openai;
+		}
+		if (v20Config.api.llmKeys && 'deepseek' in v20Config.api.llmKeys && v20Config.api.llmKeys.deepseek) {
+			v20Config.api.llmProviders.deepseek = { apiKey: v20Config.api.llmKeys.deepseek };
+			delete v20Config.api.llmKeys.deepseek;
+		}
+		// if (v20Config.api.llmKeys.voyageai) {
+		// 	v20Config.api.llmProviders.voyageai = { apiKey: v20Config.api.llmKeys.voyageai };
+		// 	delete v20Config.api.llmKeys.voyageai;
+		// }
+
+		// Update version
+		v20Config.version = '2.1.0';
+
+		return v20Config;
+	}
+
 	private migrateGlobalConfigV1toV2(config: GlobalConfigV1): GlobalConfig {
 		const v1Config = config as GlobalConfigV1; // Type assertion for migration
 
@@ -1106,6 +1360,113 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @returns The migrated v2 configuration
 	 * @internal
 	 */
+	private migrateProjectConfigV1toV21(config: ProjectConfigV1): ProjectConfig {
+		// Generate a new project ID if one doesn't exist
+		const projectId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+		const v1Config = config as ProjectConfigV1;
+
+		return {
+			projectId,
+			version: '2.1.0',
+			name: v1Config.project?.name || 'Unnamed Project',
+			type: v1Config.project?.type || 'local',
+			llmGuidelinesFile: v1Config.project?.llmGuidelinesFile,
+			repoInfo: {
+				...v1Config.repoInfo,
+				tokenLimit: v1Config.repoInfo?.tokenLimit ?? 1024,
+			},
+			settings: {
+				api: v1Config.api
+					? {
+						// Map old API fields to new structure
+						maxTurns: v1Config.api.maxTurns || ApiConfigDefaults.maxTurns,
+						logLevel: v1Config.api.logLevel || ApiConfigDefaults.logLevel,
+						logFileHydration: v1Config.api.logFileHydration ?? ApiConfigDefaults.logFileHydration,
+						ignoreLLMRequestCache: v1Config.api.ignoreLLMRequestCache ??
+							ApiConfigDefaults.ignoreLLMRequestCache,
+						usePromptCaching: v1Config.api.usePromptCaching ?? ApiConfigDefaults.usePromptCaching,
+						userToolDirectories: v1Config.api.userToolDirectories || ApiConfigDefaults.userToolDirectories,
+						toolConfigs: v1Config.api.toolConfigs || ApiConfigDefaults.toolConfigs,
+						hostname: v1Config.api.apiHostname || ApiConfigDefaults.hostname,
+						port: v1Config.api.apiPort || ApiConfigDefaults.port,
+						tls: {
+							useTls: v1Config.api.apiUseTls ?? ApiConfigDefaults.tls.useTls,
+							keyFile: v1Config.api.tlsKeyFile,
+							certFile: v1Config.api.tlsCertFile,
+							rootCaFile: v1Config.api.tlsRootCaFile,
+							keyPem: v1Config.api.tlsKeyPem,
+							certPem: v1Config.api.tlsCertPem,
+							rootCaPem: v1Config.api.tlsRootCaPem,
+						},
+						llmProviders: {
+							anthropic: v1Config.api.anthropicApiKey
+								? { apiKey: v1Config.api.anthropicApiKey }
+								: undefined,
+							openai: v1Config.api.openaiApiKey ? { apiKey: v1Config.api.openaiApiKey } : undefined,
+							//voyageai: v1Config.api.voyageaiApiKey ? { apiKey: v1Config.api.voyageaiApiKey } : undefined,
+						},
+					}
+					: undefined,
+				bui: v1Config.bui
+					? {
+						hostname: v1Config.bui.buiHostname || BuiConfigDefaults.hostname,
+						port: v1Config.bui.buiPort || BuiConfigDefaults.port,
+						tls: {
+							useTls: v1Config.bui.buiUseTls ?? BuiConfigDefaults.tls.useTls,
+							keyFile: v1Config.bui.tlsKeyFile,
+							certFile: v1Config.bui.tlsCertFile,
+							rootCaFile: v1Config.bui.tlsRootCaFile,
+							keyPem: v1Config.bui.tlsKeyPem,
+							certPem: v1Config.bui.tlsCertPem,
+							rootCaPem: v1Config.bui.tlsRootCaPem,
+						},
+					}
+					: undefined,
+				cli: v1Config.cli ? { ...v1Config.cli } : undefined,
+				dui: undefined, // No DUI settings in v1
+			},
+		};
+	}
+
+	private migrateProjectConfigV20toV21(config: ProjectConfig): ProjectConfig {
+		const v20Config = { ...config };
+
+		// Convert old API keys to new provider structure if they exist in settings
+		if (v20Config.settings.api) {
+			v20Config.settings.api.llmProviders = {};
+			if (
+				v20Config.settings.api.llmKeys && 'anthropic' in v20Config.settings.api.llmKeys &&
+				v20Config.settings.api.llmKeys.anthropic
+			) {
+				v20Config.settings.api.llmProviders.anthropic = { apiKey: v20Config.settings.api.llmKeys.anthropic };
+				delete v20Config.settings.api.llmKeys.anthropic;
+			}
+			if (
+				v20Config.settings.api.llmKeys && 'openai' in v20Config.settings.api.llmKeys &&
+				v20Config.settings.api.llmKeys.openai
+			) {
+				v20Config.settings.api.llmProviders.openai = { apiKey: v20Config.settings.api.llmKeys.openai };
+				delete v20Config.settings.api.llmKeys.openai;
+			}
+			if (
+				v20Config.settings.api.llmKeys && 'deepseek' in v20Config.settings.api.llmKeys &&
+				v20Config.settings.api.llmKeys.deepseek
+			) {
+				v20Config.settings.api.llmProviders.deepseek = { apiKey: v20Config.settings.api.llmKeys.deepseek };
+				delete v20Config.settings.api.llmKeys.deepseek;
+			}
+			// if (v20Config.settings.api.llmKeys.voyageai) {
+			// 	v20Config.settings.api.llmProviders.voyageai = { apiKey: v20Config.settings.api.llmKeys.voyageai };
+			// 	delete v20Config.settings.api.llmKeys.voyageai;
+			// }
+		}
+
+		// Update version
+		v20Config.version = '2.1.0';
+
+		return v20Config;
+	}
+
 	private migrateProjectConfigV1toV2(config: ProjectConfigV1): ProjectConfig {
 		// Generate a new project ID if one doesn't exist
 		const projectId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
@@ -1312,7 +1673,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		) return true;
 
 		// For v2 configs, check for required components
-		return c.version === '2.0.0' &&
+		return (c.version === '2.0.0' || c.version === '2.1.0') &&
 			!('projectId' in c) &&
 			('api' in c || 'bui' in c || 'cli' in c || 'dui' in c);
 	}
@@ -1325,7 +1686,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if ('project' in c && typeof c.project === 'object' && c.project !== null) return true;
 
 		// For v2 configs, check for required fields
-		return c.version === '2.0.0' &&
+		return (c.version === '2.0.0' || c.version === '2.1.0') &&
 			'projectId' in c &&
 			'name' in c &&
 			'type' in c &&
@@ -1372,6 +1733,31 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				value: undefined,
 			});
 		} else {
+			// Validate llmProviders if present
+			if (config.api.llmProviders) {
+				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'grok'];
+				for (const [provider, providerConfig] of Object.entries(config.api.llmProviders)) {
+					if (!validProviders.includes(provider)) {
+						result.errors.push({
+							path: ['api', 'llmProviders', provider],
+							message: `Invalid LLM provider: ${provider}`,
+							value: provider,
+						});
+					}
+					if (providerConfig && (!providerConfig.apiKey || typeof providerConfig.apiKey !== 'string')) {
+						result.errors.push({
+							path: ['api', 'llmProviders', provider, 'apiKey'],
+							message: 'API key must be a non-empty string',
+							value: providerConfig?.apiKey,
+						});
+					}
+				}
+			}
+
+			// Warn about deprecated API keys
+			//if (config.api.anthropicApiKey || config.api.openaiApiKey || config.api.voyageaiApiKey) {
+			//	console.warn('Warning: Direct API keys are deprecated. Use api.llmProviders instead.');
+			//}
 			// Validate API server settings
 			if (typeof config.api.hostname !== 'string') {
 				result.errors.push({
@@ -1531,6 +1917,31 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if (config.settings) {
 			// Validate API settings if present
 			if (config.settings.api) {
+				// Validate llmProviders if present
+				if (config.settings.api.llmProviders) {
+					const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'grok'];
+					for (const [provider, providerConfig] of Object.entries(config.settings.api.llmProviders)) {
+						if (!validProviders.includes(provider)) {
+							result.errors.push({
+								path: ['settings', 'api', 'llmProviders', provider],
+								message: `Invalid LLM provider: ${provider}`,
+								value: provider,
+							});
+						}
+						if (providerConfig && (!providerConfig.apiKey || typeof providerConfig.apiKey !== 'string')) {
+							result.errors.push({
+								path: ['settings', 'api', 'llmProviders', provider, 'apiKey'],
+								message: 'API key must be a non-empty string',
+								value: providerConfig?.apiKey,
+							});
+						}
+					}
+				}
+
+				// Warn about deprecated API keys
+				// if (config.settings.api.anthropicApiKey || config.settings.api.openaiApiKey || config.settings.api.voyageaiApiKey) {
+				// 	console.warn('Warning: Direct API keys in project settings are deprecated. Use api.llmProviders instead.');
+				// }
 				const api = config.settings.api;
 				if (api.hostname && typeof api.hostname !== 'string') {
 					result.errors.push({

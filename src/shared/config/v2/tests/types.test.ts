@@ -136,7 +136,7 @@ describe('Configuration Types', () => {
 	describe('Global Configuration', () => {
 		it('should combine all component configs', () => {
 			const config: GlobalConfig = {
-				version: '2.0.0',
+				version: '2.1.0',
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Claude',
 				defaultModels: {
@@ -192,7 +192,7 @@ describe('Configuration Types', () => {
 		it('should handle minimal config', () => {
 			const config: ProjectConfig = {
 				projectId: '123456789abc',
-				version: '2.0.0',
+				version: '2.1.0',
 				name: 'Test Project',
 				type: 'local',
 				repoInfo: { tokenLimit: 1024 },
@@ -204,7 +204,7 @@ describe('Configuration Types', () => {
 		it('should handle component overrides', () => {
 			const config: ProjectConfig = {
 				projectId: '123456789abc',
-				version: '2.0.0',
+				version: '2.1.0',
 				name: 'Test Project',
 				type: 'local',
 				repoInfo: { tokenLimit: 1024 },

@@ -28,6 +28,31 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 					{LLMTool.TOOL_TAGS_BROWSER.content.directory(cwd)}
 				</>,
 			)}
+			{toolInput.outputTruncation && LLMTool.TOOL_TAGS_BROWSER.base.box(
+				<>
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Output Truncation:')}
+					{toolInput.outputTruncation.keepLines?.stdout && (
+						<div>
+							{LLMTool.TOOL_TAGS_BROWSER.base.label('stdout:')} {[
+								toolInput.outputTruncation.keepLines.stdout.head > 0 &&
+								`head: ${toolInput.outputTruncation.keepLines.stdout.head}`,
+								toolInput.outputTruncation.keepLines.stdout.tail > 0 &&
+								`tail: ${toolInput.outputTruncation.keepLines.stdout.tail}`,
+							].filter(Boolean).join(', ')}
+						</div>
+					)}
+					{toolInput.outputTruncation.keepLines?.stderr && (
+						<div>
+							{LLMTool.TOOL_TAGS_BROWSER.base.label('stderr:')} {[
+								toolInput.outputTruncation.keepLines.stderr.head > 0 &&
+								`head: ${toolInput.outputTruncation.keepLines.stderr.head}`,
+								toolInput.outputTruncation.keepLines.stderr.tail > 0 &&
+								`tail: ${toolInput.outputTruncation.keepLines.stderr.tail}`,
+							].filter(Boolean).join(', ')}
+						</div>
+					)}
+				</>,
+			)}
 		</>,
 		`${LLMTool.TOOL_STYLES_BROWSER.base.box} ${LLMTool.TOOL_STYLES_BROWSER.content.code}`,
 	);
@@ -91,6 +116,25 @@ export const formatLogEntryToolResult = (
 						/>
 					</>,
 					`${LLMTool.TOOL_STYLES_BROWSER.base.box} ${LLMTool.TOOL_STYLES_BROWSER.status.error}`,
+				)}
+				{bbResponse.data.truncatedInfo && LLMTool.TOOL_TAGS_BROWSER.base.box(
+					<>
+						{LLMTool.TOOL_TAGS_BROWSER.base.label('Output Truncation Info:')}
+						{bbResponse.data.truncatedInfo.stdout && (
+							<div>
+								{LLMTool.TOOL_TAGS_BROWSER.base.label('stdout:')} kept{' '}
+								{bbResponse.data.truncatedInfo.stdout.keptLines} of{' '}
+								{bbResponse.data.truncatedInfo.stdout.originalLines} lines
+							</div>
+						)}
+						{bbResponse.data.truncatedInfo.stderr && (
+							<div>
+								{LLMTool.TOOL_TAGS_BROWSER.base.label('stderr:')} kept{' '}
+								{bbResponse.data.truncatedInfo.stderr.keptLines} of{' '}
+								{bbResponse.data.truncatedInfo.stderr.originalLines} lines
+							</div>
+						)}
+					</>,
 				)}
 			</>,
 			LLMTool.TOOL_STYLES_BROWSER.base.box,

@@ -44,6 +44,7 @@ export async function startApiServer(
 	const globalConfig = await configManager.getGlobalConfig();
 	let apiConfig: ApiConfig;
 	if (projectId) {
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
 		// we don't need to check projectConfig.useProjectApi here since caller
 		// is responsible for that; if we've got a projectId, we're using projectConfig
@@ -230,6 +231,7 @@ export async function getApiStatus(projectId?: string): Promise<{
 	const globalConfig = await configManager.getGlobalConfig();
 	let apiConfig: ApiConfig;
 	if (projectId) {
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
 		// we don't need to check projectConfig.useProjectApi here since caller
 		// is responsible for that; if we've got a projectId, we're using projectConfig

@@ -22,7 +22,7 @@ jobs:
         run: |
           mkdir -p .bb
           cat << EOF > .bb/config.yaml
-          version: 2.0.0
+          version: 2.1.0
           myPersonsName: bb
           myAssistantsName: Claude
           noBrowser: false
@@ -38,9 +38,9 @@ jobs:
               useTls: false
             logFile: api.log
             logLevel: info
-            llmKeys:
-              anthropic: >-
-                sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
+            llmProviders:
+              anthropic: 
+                apiKey: sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
           bui:
             environment: local
             hostname: localhost

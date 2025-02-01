@@ -36,6 +36,7 @@ export const apiStart = new Command()
 
 			let apiConfig: ApiConfig;
 			if (projectId) {
+				await configManager.ensureLatestProjectConfig(projectId);
 				const projectConfig = await configManager.getProjectConfig(projectId);
 				if (projectConfig.useProjectApi) {
 					apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;

@@ -184,6 +184,7 @@ export function useChatState(
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
+				console.log('useChatState: conversations', conversations);
 
 				// Get conversation ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -431,9 +432,20 @@ export function useChatState(
 			// Only process messages for the current conversation
 			if (data.logEntryData.conversationId !== chatState.value.conversationId) return;
 
-			// Update log entries
+			// Update log entries and conversation stats
 			chatState.value = {
 				...chatState.value,
+				conversations: chatState.value.conversations.map((conv) => {
+					if (conv.id === data.logEntryData.conversationId) {
+						return {
+							...conv,
+							tokenUsageConversation: data.logEntryData.tokenUsageConversation,
+							conversationStats: data.logEntryData.conversationStats,
+							updatedAt: data.logEntryData.timestamp,
+						};
+					}
+					return conv;
+				}),
 				logEntries: (() => {
 					const newEntries = [...chatState.value.logEntries, data.logEntryData];
 					console.debug('useChatState: Updated logEntries', {

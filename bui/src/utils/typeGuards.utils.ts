@@ -42,5 +42,6 @@ export function getDefaultTokenUsage(): TokenUsage {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
+		totalAllTokens: 0,
 	};
 }

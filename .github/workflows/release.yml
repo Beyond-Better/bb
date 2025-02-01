@@ -40,6 +40,10 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Building with Deno version
+        run: |
+          deno --version
+
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
