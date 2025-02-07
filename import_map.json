@@ -19,7 +19,7 @@
 		"common-tags": "https://esm.sh/common-tags@1.8.2",
 		"simple-git": "npm:simple-git@3.27.0",
 		"md5": "https://esm.sh/md5@2.3.0",
-		"astral": "jsr:@astral/astral@^0.4.7",
+		"astral": "jsr:@astral/astral@^0.5.2",
 		"json-schema": "https://esm.sh/v135/@types/json-schema@7.0.15/index.d.ts",
 		"@cross/deepmerge": "jsr:@cross/deepmerge@^1.0.0",
 		"@oak/commons": "jsr:@oak/commons@^1.0.0",
