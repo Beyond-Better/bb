@@ -38,4 +38,7 @@ jobs:
         run: deno task check-types
 
       - name: Run tests
-        run: deno task test
+        run: |
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          deno --version
+          deno task test
