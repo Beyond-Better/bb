@@ -34,6 +34,7 @@ import { stripIndents } from 'common-tags';
 
 class ConversationPersistence {
 	private conversationDir!: string;
+	private conversationParentDir: string | undefined;
 	private metadataPath!: string;
 	private messagesPath!: string;
 	private changeLogPath!: string;
@@ -73,6 +74,7 @@ class ConversationPersistence {
 		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
+		if (this.parentId) this.conversationParentDir = join(conversationsDir, this.parentId);
 
 		this.metadataPath = join(this.conversationDir, 'metadata.json');
 
@@ -90,8 +92,15 @@ class ConversationPersistence {
 		this.objectivesPath = join(this.conversationDir, 'objectives.json');
 		this.resourcesPath = join(this.conversationDir, 'resources.json');
 
-		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationDir).init();
-		this.llmRequestPersistence = await new LLMRequestPersistence(this.conversationDir).init();
+		// [TODO] using conversationParentDir is good for chat interactions, but agent (child conversation) interations need to keep
+		// tokenUsage with the child conversation persistence, not the parent
+		// Do we need two types of parentID, one for chats and one for sub-agents??
+		// Or maybe we need to record whether conversationPersistence is for orchestrator or agent?
+		// Do we keep agent details in same conversation directory but separate messages, metadata, and tokenUsage files for each agent?
+		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationParentDir ?? this.conversationDir)
+			.init();
+		this.llmRequestPersistence = await new LLMRequestPersistence(this.conversationParentDir ?? this.conversationDir)
+			.init();
 
 		return this;
 	}
@@ -285,10 +294,7 @@ class ConversationPersistence {
 			await this.updateConversationsMetadata(metadata);
 
 			// Get token usage analysis
-			//const tokenAnalysis = await this.getTokenUsageAnalysis();
-
-			// Get current token usage analysis
-			const tokenAnalysis = await this.tokenUsagePersistence.analyzeUsage('conversation');
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Create metadata with analyzed token usage
 			const detailedMetadata: ConversationDetailedMetadata = {
@@ -304,12 +310,12 @@ class ConversationPersistence {
 
 				// Store analyzed token usage in metadata
 				tokenUsageConversation: {
-					inputTokens: tokenAnalysis.totalUsage.input,
-					outputTokens: tokenAnalysis.totalUsage.output,
-					totalTokens: tokenAnalysis.totalUsage.total,
-					cacheCreationInputTokens: tokenAnalysis.totalUsage.cacheCreationInput,
-					cacheReadInputTokens: tokenAnalysis.totalUsage.cacheReadInput,
-					totalAllTokens: tokenAnalysis.totalUsage.totalAll,
+					inputTokens: tokenAnalysis.combined.totalUsage.input,
+					outputTokens: tokenAnalysis.combined.totalUsage.output,
+					totalTokens: tokenAnalysis.combined.totalUsage.total,
+					cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+					cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+					totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 				},
 
 				// Keep turn and statement level metrics
@@ -396,17 +402,17 @@ class ConversationPersistence {
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
-			// Get accurate token usage from analysis
-			const tokenAnalysis = await this.tokenUsagePersistence.analyzeUsage('conversation');
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Update conversation with analyzed values
 			conversation.tokenUsageConversation = {
-				inputTokens: tokenAnalysis.totalUsage.input,
-				outputTokens: tokenAnalysis.totalUsage.output,
-				totalTokens: tokenAnalysis.totalUsage.total,
-				cacheCreationInputTokens: tokenAnalysis.totalUsage.cacheCreationInput,
-				cacheReadInputTokens: tokenAnalysis.totalUsage.cacheReadInput,
-				totalAllTokens: tokenAnalysis.totalUsage.totalAll,
+				inputTokens: tokenAnalysis.combined.totalUsage.input,
+				outputTokens: tokenAnalysis.combined.totalUsage.output,
+				totalTokens: tokenAnalysis.combined.totalUsage.total,
+				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 			};
 
 			// Keep turn and statement usage from metadata for backward compatibility
@@ -605,11 +611,55 @@ class ConversationPersistence {
 		return {};
 	}
 
-	async getTokenUsageAnalysis(): Promise<{ conversation: TokenUsageAnalysis; chat: TokenUsageAnalysis }> {
+	async getTokenUsageAnalysis(): Promise<{
+		conversation: TokenUsageAnalysis;
+		chat: TokenUsageAnalysis;
+		combined: TokenUsageAnalysis;
+	}> {
 		await this.ensureInitialized();
+
+		const analyzeUsageConversation = await this.tokenUsagePersistence.analyzeUsage('conversation');
+		const analyzeUsageChat = await this.tokenUsagePersistence.analyzeUsage('chat');
+
+		const totalUsageCombined = {
+			input: analyzeUsageConversation.totalUsage.input + analyzeUsageChat.totalUsage.input,
+			output: analyzeUsageConversation.totalUsage.output + analyzeUsageChat.totalUsage.output,
+			total: analyzeUsageConversation.totalUsage.total + analyzeUsageChat.totalUsage.total,
+			cacheCreationInput: analyzeUsageConversation.totalUsage.cacheCreationInput +
+				analyzeUsageChat.totalUsage.cacheCreationInput,
+			cacheReadInput: analyzeUsageConversation.totalUsage.cacheReadInput +
+				analyzeUsageChat.totalUsage.cacheReadInput,
+			totalAll: analyzeUsageConversation.totalUsage.totalAll + analyzeUsageChat.totalUsage.totalAll,
+		};
+		const differentialUsageCombined = {
+			input: analyzeUsageConversation.differentialUsage.input + analyzeUsageChat.differentialUsage.input,
+			output: analyzeUsageConversation.differentialUsage.output + analyzeUsageChat.differentialUsage.output,
+			total: analyzeUsageConversation.differentialUsage.total + analyzeUsageChat.differentialUsage.total,
+		};
+		const cacheImpactCombined = {
+			potentialCost: analyzeUsageConversation.cacheImpact.potentialCost +
+				analyzeUsageChat.cacheImpact.potentialCost,
+			actualCost: analyzeUsageConversation.cacheImpact.actualCost + analyzeUsageChat.cacheImpact.actualCost,
+			savingsTotal: analyzeUsageConversation.cacheImpact.savingsTotal + analyzeUsageChat.cacheImpact.savingsTotal,
+			savingsPercentage: ((analyzeUsageConversation.cacheImpact.savingsPercentage +
+				analyzeUsageChat.cacheImpact.savingsPercentage) / 2),
+		};
+		const byRoleCombined = {
+			user: analyzeUsageConversation.byRole.user + analyzeUsageChat.byRole.user,
+			assistant: analyzeUsageConversation.byRole.assistant + analyzeUsageChat.byRole.assistant,
+			system: analyzeUsageConversation.byRole.system + analyzeUsageChat.byRole.system,
+			tool: analyzeUsageConversation.byRole.tool + analyzeUsageChat.byRole.tool,
+		};
+
 		return {
-			conversation: await this.tokenUsagePersistence.analyzeUsage('conversation'),
-			chat: await this.tokenUsagePersistence.analyzeUsage('chat'),
+			conversation: analyzeUsageConversation,
+			chat: analyzeUsageChat,
+			combined: {
+				totalUsage: totalUsageCombined,
+				differentialUsage: differentialUsageCombined,
+				cacheImpact: cacheImpactCombined,
+				byRole: byRoleCombined,
+			},
 		};
 	}
 

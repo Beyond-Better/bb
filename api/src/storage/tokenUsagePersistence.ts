@@ -180,7 +180,8 @@ export class TokenUsagePersistence {
 		if (
 			typeof record.cacheImpact.potentialCost !== 'number' ||
 			typeof record.cacheImpact.actualCost !== 'number' ||
-			typeof record.cacheImpact.savings !== 'number'
+			typeof record.cacheImpact.savingsTotal !== 'number' ||
+			typeof record.cacheImpact.savingsPercentage !== 'number'
 		) {
 			throw new TokenUsageValidationError(
 				'Invalid cacheImpact field types',
@@ -209,13 +210,13 @@ export class TokenUsagePersistence {
 		}
 
 		// 2. Check cache impact calculations
-		const { actualCost, potentialCost, savings } = record.cacheImpact;
+		const { actualCost, potentialCost, savingsTotal } = record.cacheImpact;
 		const cacheValidation = {
 			expectedSavings: potentialCost - actualCost,
 			actualExceedsPotential: actualCost > potentialCost,
 			incorrectSavings: false,
 		};
-		cacheValidation.incorrectSavings = Math.abs(savings - cacheValidation.expectedSavings) > 0.0001;
+		cacheValidation.incorrectSavings = Math.abs(savingsTotal - cacheValidation.expectedSavings) > 0.0001;
 
 		// Log cache validation warnings
 		if (cacheValidation.actualExceedsPotential) {
@@ -234,8 +235,8 @@ export class TokenUsagePersistence {
 			logger.warn(
 				'TokenUsagePersistence: Incorrect cache impact savings',
 				{
-					field: 'cacheImpact.savings',
-					value: { actual: savings, expected: cacheValidation.expectedSavings },
+					field: 'cacheImpact.savingsTotal',
+					value: { actual: savingsTotal, expected: cacheValidation.expectedSavings },
 					constraint: 'savings should equal potential cost minus actual cost',
 					recordId: record.messageId,
 				},
@@ -360,7 +361,7 @@ export class TokenUsagePersistence {
 				totalAll: 0,
 			},
 			differentialUsage: { input: 0, output: 0, total: 0 },
-			cacheImpact: { potentialCost: 0, actualCost: 0, totalSavings: 0, savingsPercentage: 0 },
+			cacheImpact: { potentialCost: 0, actualCost: 0, savingsTotal: 0, savingsPercentage: 0 },
 			byRole: { user: 0, assistant: 0, system: 0, tool: 0 },
 		};
 
@@ -405,7 +406,9 @@ export class TokenUsagePersistence {
 				// Cache impact
 				analysis.cacheImpact.potentialCost += record.cacheImpact.potentialCost || 0;
 				analysis.cacheImpact.actualCost += record.cacheImpact.actualCost || 0;
-				analysis.cacheImpact.totalSavings += record.cacheImpact.savings || 0;
+				analysis.cacheImpact.savingsTotal += record.cacheImpact.savingsTotal || 0;
+				// [TODO] savingsPercentage needs to be an avergage, not sum, calculated below
+				//analysis.cacheImpact.savingsPercentage += record.cacheImpact.savingsPercentage || 0;
 
 				// Usage by role - only count if we have valid rawUsage
 				if (record.role && record.rawUsage.totalTokens !== undefined) {
@@ -427,7 +430,7 @@ export class TokenUsagePersistence {
 		// Calculate cache savings percentage
 		if (analysis.cacheImpact.potentialCost > 0) {
 			analysis.cacheImpact.savingsPercentage =
-				(analysis.cacheImpact.totalSavings / analysis.cacheImpact.potentialCost) * 100;
+				(analysis.cacheImpact.savingsTotal / analysis.cacheImpact.potentialCost) * 100;
 		}
 
 		return analysis;

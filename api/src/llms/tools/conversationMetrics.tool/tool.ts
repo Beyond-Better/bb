@@ -177,7 +177,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 				cacheImpact: {
 					potentialCost: 0,
 					actualCost: 0,
-					totalSavings: 0,
+					savingsTotal: 0,
 					savingsPercentage: 0,
 				},
 				byRole: {
@@ -482,7 +482,7 @@ Token Usage:
 - Cache Impact:
   * Potential Cost: ${metrics.tokens.cacheImpact.potentialCost}
   * Actual Cost: ${metrics.tokens.cacheImpact.actualCost}
-  * Total Savings: ${metrics.tokens.cacheImpact.totalSavings}
+  * Total Savings: ${metrics.tokens.cacheImpact.savingsTotal}
   * Savings Percentage: ${metrics.tokens.cacheImpact.savingsPercentage.toFixed(2)}%
 - Average per Turn: ${metrics.tokens.averagePerTurn.toFixed(1)}
 - By Role: ${
@@ -545,7 +545,7 @@ ${
   * Output: ${metrics.chatTokens.totalUsage.output}
   * Total: ${metrics.chatTokens.totalUsage.total}
 - Cache Impact:
-  * Total Savings: ${metrics.chatTokens.cacheImpact.totalSavings}
+  * Total Savings: ${metrics.chatTokens.cacheImpact.savingsTotal}
   * Savings Percentage: ${metrics.chatTokens.cacheImpact.savingsPercentage.toFixed(2)}%
 - By Role:
   * User: ${metrics.chatTokens.byRole.user}
