@@ -65,6 +65,11 @@ pub struct ApiConfig {
     pub ignore_llm_request_cache: bool,
     #[serde(default)]
     pub use_prompt_caching: bool,
+    #[serde(rename = "supabaseConfigUrl")]
+    #[serde(default)]
+    pub supabase_config_url: String,
+    #[serde(default)]
+    pub max_turns: u32,
     #[serde(default)]
     pub user_tool_directories: Vec<String>,
     #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
@@ -91,6 +96,9 @@ pub struct BuiConfig {
     pub tls: TlsConfig,
     #[serde(default)]
     pub log_level: String,
+    #[serde(rename = "kvSessionPath")]
+    #[serde(default)]
+    pub kv_session_path: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub log_file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -128,9 +136,23 @@ pub struct CliConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct DefaultModels {
+    pub orchestrator: String,
+    pub agent: String,
+    pub chat: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct GlobalConfig {
     #[serde(default)]
     pub version: String,
+    #[serde(default)]
+    pub my_persons_name: String,
+    #[serde(default)]
+    pub my_assistants_name: String,
+    #[serde(default)]
+    pub default_models: DefaultModels,
     #[serde(rename = "noBrowser")]
     #[serde(default)]
     pub no_browser: bool,
@@ -191,6 +213,8 @@ impl Default for LlmKeys {
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (ApiConfigDefaults)
 impl Default for ApiConfig {
     fn default() -> Self {
         ApiConfig {
@@ -202,6 +226,8 @@ impl Default for ApiConfig {
             log_file_hydration: false,
             ignore_llm_request_cache: false,
             use_prompt_caching: true,
+            supabase_config_url: "https://www.beyondbetter.dev/api/v1/config/supabase".to_string(),
+            max_turns: 25,
             user_tool_directories: vec!["./tools".to_string()],
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),
             environment: None,
@@ -212,6 +238,8 @@ impl Default for ApiConfig {
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (BuiConfigDefaults)
 impl Default for BuiConfig {
     fn default() -> Self {
         BuiConfig {
@@ -220,12 +248,15 @@ impl Default for BuiConfig {
             tls: TlsConfig::default(),  // Will have useTls: false by default
             log_level: "info".to_string(),
             log_file: get_default_log_path("bui.log"),  // Platform-specific log path
+            kv_session_path: "auth.kv".to_string(),
             environment: None,
             local_mode: false,
         }
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (DuiConfigDefaults)
 impl Default for DuiConfig {
     fn default() -> Self {
         DuiConfig {
@@ -237,6 +268,8 @@ impl Default for DuiConfig {
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (CliConfigDefaults)
 impl Default for CliConfig {
     fn default() -> Self {
         CliConfig {
@@ -247,10 +280,27 @@ impl Default for CliConfig {
     }
 }
 
+// Default implementations must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (GlobalConfigDefaults.defaultModels)
+impl Default for DefaultModels {
+    fn default() -> Self {
+        DefaultModels {
+            orchestrator: "claude-3-5-sonnet-20241022".to_string(),
+            agent: "claude-3-5-sonnet-20241022".to_string(),
+            chat: "claude-3-haiku-20240307".to_string(),
+        }
+    }
+}
+
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (GlobalConfigDefaults)
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
-            version: "2.1.0".to_string(),  // Match TypeScript default
+            version: "2.1.0".to_string(),
+            my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
+            my_assistants_name: "Claude".to_string(),
+            default_models: DefaultModels::default(),  // Match TypeScript default
             no_browser: false,
             api: ApiConfig::default(),
             bui: BuiConfig::default(),

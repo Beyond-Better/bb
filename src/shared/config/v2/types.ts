@@ -296,6 +296,9 @@ export interface IConfigManagerV2 {
 }
 
 // Default configurations
+// IMPORTANT: When updating these defaults, also update the corresponding Rust defaults in:
+// dui/src-tauri/src/config.rs (impl Default for each config struct)
+// When updating these defaults, update impl Default for ApiConfig in dui/src-tauri/src/config.rs
 export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
@@ -314,6 +317,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	//llmProviders: {},
 };
 
+// When updating these defaults, update impl Default for BuiConfig in dui/src-tauri/src/config.rs
 export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	hostname: 'localhost',
 	port: 8080,
@@ -324,10 +328,12 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	kvSessionPath: 'auth.kv',
 };
 
+// When updating these defaults, update impl Default for CliConfig in dui/src-tauri/src/config.rs
 export const CliConfigDefaults: Readonly<CliConfig> = {
 	historySize: 1000,
 };
 
+// When updating these defaults, update impl Default for DuiConfig in dui/src-tauri/src/config.rs
 export const DuiConfigDefaults: Readonly<DuiConfig> = {
 	defaultApiConfig: {},
 	projectsDirectory: './projects',
@@ -336,9 +342,9 @@ export const DuiConfigDefaults: Readonly<DuiConfig> = {
 
 //export const ProjectConfigDefaults: Readonly<Omit<ProjectConfig, 'version' | 'projectId' | 'name'>> = {
 export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
+	version: '2.1.0',
 	projectId: '',
 	name: '',
-	version: '2.1.0',
 	type: 'local',
 	repoInfo: { tokenLimit: 1024 },
 	useProjectApi: false,
@@ -350,11 +356,12 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 	},
 };
 
+// When updating these defaults, update impl Default for GlobalConfig in dui/src-tauri/src/config.rs
 //export const GlobalConfigDefaults: Readonly<Omit<GlobalConfig, 'version' | 'bbExeName' | 'bbApiExeName'>> = {
 export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
+	version: '2.1.0',
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
-	version: '2.1.0',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
 	defaultModels: {

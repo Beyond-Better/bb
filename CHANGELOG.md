@@ -17,6 +17,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.11] - 2025-02-07
+
+### Fixed
+
+- validation for global config and new config missing defaultModels
+- tokenUsage for chats saved with conversation
+- token savings calculations
+
+
 ## [0.6.10] - 2025-02-01
 
 ### Added

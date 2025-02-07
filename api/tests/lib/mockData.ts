@@ -23,7 +23,8 @@ export function createMockTokenUsageRecord(
 	const totalAllTokens = totalTokens + cacheCreationInputTokens + cacheReadInputTokens;
 	const potentialCost = totalTokens * 1.5; // Example cost calculation
 	const actualCost = potentialCost - (cacheReadInputTokens * 0.5); // Example savings calculation
-	const savings = potentialCost - actualCost;
+	const savingsTotal = potentialCost - actualCost;
+	const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 	return {
 		messageId: options.messageId ?? crypto.randomUUID(),
@@ -49,7 +50,8 @@ export function createMockTokenUsageRecord(
 		cacheImpact: {
 			potentialCost,
 			actualCost,
-			savings,
+			savingsTotal,
+			savingsPercentage,
 		},
 	};
 }
