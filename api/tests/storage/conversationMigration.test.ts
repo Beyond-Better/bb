@@ -162,7 +162,8 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 			cacheImpact: {
 				potentialCost: 300,
 				actualCost: 225,
-				savings: 75,
+				savingsTotal: 75,
+				savingsPercentage: 25, // (savingsTotal / potentialCost) * 100
 			},
 		};
 		await Deno.writeTextFile(

@@ -30,7 +30,7 @@ function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResultData['to
         ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Cache Impact:')}
         Potential Cost: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.potentialCost)} tokens
         Actual Cost: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.actualCost)} tokens
-        Total Savings: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.totalSavings)} tokens
+        Total Savings: ${LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(chatMetrics.cacheImpact.savingsTotal)} tokens
         Efficiency: ${LLMTool.TOOL_STYLES_CONSOLE.content.percentage(chatMetrics.cacheImpact.savingsPercentage)} saved
 
         ${LLMTool.TOOL_STYLES_CONSOLE.base.label('By Role:')}
@@ -78,7 +78,7 @@ export const formatLogEntryToolResult = (
 			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.actualCost)
 		} tokens
               Total Savings: ${
-			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.totalSavings)
+			LLMTool.TOOL_STYLES_CONSOLE.content.tokenUsage(metrics.tokens.cacheImpact.savingsTotal)
 		} tokens
               Efficiency: ${
 			LLMTool.TOOL_STYLES_CONSOLE.content.percentage(metrics.tokens.cacheImpact.savingsPercentage)

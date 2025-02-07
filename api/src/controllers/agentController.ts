@@ -292,7 +292,7 @@ class AgentController extends BaseController {
 			logger.info('AgentController: Received error from LLM chat: ', error);
 			throw this.handleLLMError(error as Error, interaction);
 		}
- */
+		 */
 
 		const speakOptions: LLMSpeakWithOptions = {
 			//temperature: 0.7,

@@ -256,13 +256,15 @@ class LLMInteraction {
 		// Calculate actual cost with cache
 		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
 
-		// Calculate savings
-		const savings = Math.max(0, potentialCost - actualCost);
+		// Calculate savingsTotal and savingsPercentage
+		const savingsTotal = Math.max(0, potentialCost - actualCost);
+		const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 		return {
 			potentialCost,
 			actualCost,
-			savings,
+			savingsTotal,
+			savingsPercentage,
 		};
 	}
 

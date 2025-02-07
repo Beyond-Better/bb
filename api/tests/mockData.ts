@@ -33,12 +33,16 @@ export function createMockTokenUsageRecord(
 	const totalTokens = inputTokens + outputTokens;
 	const potentialCost = totalTokens;
 	const actualCost = totalTokens - (cacheReadInputTokens || 0);
-	const savings = potentialCost - actualCost;
+	const savingsTotal = potentialCost - actualCost;
+	const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 	return {
 		messageId,
 		role,
 		type,
+		statementCount: 1,
+		statementTurnCount: 1,
+		model: 'claude-sonnet',
 		timestamp: new Date().toISOString(),
 		rawUsage: {
 			inputTokens,
@@ -55,7 +59,8 @@ export function createMockTokenUsageRecord(
 		cacheImpact: {
 			potentialCost,
 			actualCost,
-			savings,
+			savingsTotal,
+			savingsPercentage,
 		},
 	};
 }
@@ -114,19 +119,24 @@ export function createMockTokenUsageRecordWithHistory(
 	// Calculate cache impact
 	const potentialCost = current.rawUsage.totalTokens;
 	const actualCost = potentialCost - (current.rawUsage.cacheReadInputTokens || 0);
-	const savings = potentialCost - actualCost;
+	const savingsTotal = potentialCost - actualCost;
+	const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 	return {
 		messageId,
 		role: current.role,
 		type,
+		statementCount: 1,
+		statementTurnCount: 1,
+		model: 'claude-sonnet',
 		timestamp: new Date().toISOString(),
 		rawUsage: current.rawUsage,
 		differentialUsage,
 		cacheImpact: {
 			potentialCost,
 			actualCost,
-			savings,
+			savingsTotal,
+			savingsPercentage,
 		},
 	};
 }
