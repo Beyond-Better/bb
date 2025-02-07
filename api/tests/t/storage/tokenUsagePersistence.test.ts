@@ -423,6 +423,7 @@ Deno.test({
 						potentialCost: Number.MAX_SAFE_INTEGER,
 						actualCost: Number.MAX_SAFE_INTEGER,
 						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				},
 			] as TokenUsageRecord[];
