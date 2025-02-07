@@ -1719,7 +1719,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		// Validate defaultModels config
 		if (!config.defaultModels) {
 			result.errors.push({
-				path: ['api'],
+				path: ['defaultModels'],
 				message: 'Default Models configuration is required',
 				value: undefined,
 			});

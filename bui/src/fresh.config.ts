@@ -9,6 +9,8 @@ import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
 
 const configManager = await ConfigManagerV2.getInstance();
+// Ensure configs are at latest version
+await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
 console.log('BUI Config: ', globalRedactedConfig);

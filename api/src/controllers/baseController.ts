@@ -86,7 +86,7 @@ class BaseController {
 		this.llmProvider = LLMFactory.getProvider(
 			this.getInteractionCallbacks(),
 			globalConfig.api.localMode
-				? LLMModelToProvider[this.projectConfig.defaultModels!.agent]
+				? LLMModelToProvider[this.projectConfig.defaultModels?.agent ?? 'claude-3-5-sonnet-20241022']
 				: LLMProviderEnum.BB,
 			//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
 			//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
