@@ -48,9 +48,10 @@ export function ProjectList({
 			<div className='p-4 text-center text-gray-500 dark:text-gray-400 text-sm'>
 				<p>No projects found</p>
 				<a
-					href='/projects?new=true'
+					href='/app/projects?new=true'
+					f-partial='/app/projects/partial?new=true'
 					onClick={(_e) => {
-						setPath('/projects');
+						setPath('/app/projects');
 					}}
 					className='mt-2 inline-block text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 				>
@@ -66,18 +67,20 @@ export function ProjectList({
 			<li className='px-4 py-2 border-t border-gray-200 dark:border-gray-700'>
 				<div className='flex justify-between'>
 					<a
-						href='/projects'
+						href='/app/projects'
+						f-partial='/app/projects/partial'
 						onClick={(_e) => {
-							setPath('/projects');
+							setPath('/app/projects');
 						}}
 						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 					>
 						Manage Projects
 					</a>
 					<a
-						href='/projects?new=true'
+						href='/app/projects?new=true'
+						f-partial='/app/projects/partial?new=true'
 						onClick={(_e) => {
-							setPath('/projects');
+							setPath('/app/projects');
 						}}
 						className='text-xs text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
 					>

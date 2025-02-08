@@ -162,7 +162,7 @@ export function useAuthState() {
 
 				return { user, session };
 			} catch (error) {
-				console.error('Verify OTP failed:', (error as Error).message);
+				console.error('useAuthState: Verify OTP failed:', (error as Error).message);
 				authState.value = {
 					...authState.value,
 					isLoading: false,
@@ -229,7 +229,7 @@ export function useAuthState() {
 
 				return { user, session };
 			} catch (error) {
-				console.error('Sign in failed:', (error as Error).message);
+				console.error('useAuthState: Sign in failed:', (error as Error).message);
 				authState.value = {
 					...authState.value,
 					isLoading: false,
@@ -284,7 +284,7 @@ export function useAuthState() {
 				};
 				return { user, session };
 			} catch (error) {
-				console.error('Sign up failed:', (error as Error).message);
+				console.error('useAuthState: Sign up failed:', (error as Error).message);
 				authState.value = {
 					...authState.value,
 					isLoading: false,
@@ -338,7 +338,7 @@ export function useAuthState() {
 				};
 				return { user: null, session: null };
 			} catch (error) {
-				console.error('Sign out failed:', (error as Error).message);
+				console.error('useAuthState: Sign out failed:', (error as Error).message);
 				authState.value = {
 					...authState.value,
 					isLoading: false,

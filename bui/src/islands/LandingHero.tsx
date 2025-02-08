@@ -1,5 +1,5 @@
 import { IS_BROWSER } from '$fresh/runtime.ts';
-import { signal, useSignal } from '@preact/signals';
+import { useSignal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 
 import { useAuthState } from '../hooks/useAuthState.ts';
@@ -34,41 +34,54 @@ if (IS_BROWSER) {
 	});
 }
 
-const isAuthorized = signal(false);
+// isAuthorized moved to component scope
 
 export default function LandingHero() {
+	const isAuthorized = useSignal(false);
 	const { authState, getSessionUser } = useAuthState();
 	const appState = useAppState();
 	const showDownload = useSignal(false);
 	//if (IS_BROWSER) console.log('LandingHero: authState', authState.value);
 
+	const checkSession = async () => {
+		//if (IS_BROWSER) {
+		//	console.log('LandingHero: checkSession:', {
+		//		isLocalMode: authState.value.isLocalMode,
+		//		isAuthorized: isAuthorized.value,
+		//	});
+		//}
+		if (authState.value.isLocalMode) {
+			isAuthorized.value = true;
+			return;
+		}
+		isAuthorized.value = false;
+
+		try {
+			const { user, error } = await getSessionUser(null, null);
+			//console.log('LandingHero: getSessionUser', { user, error });
+			if (error || !user) return;
+
+			authState.value = {
+				...authState.value,
+				user,
+			};
+			isAuthorized.value = true;
+		} catch (error) {
+			console.error('Session check failed:', error);
+		}
+	};
+
 	useEffect(() => {
 		if (!IS_BROWSER) return;
-
-		const checkSession = async () => {
-			if (authState.value.isLocalMode) {
-				isAuthorized.value = true;
-				return;
-			}
-			isAuthorized.value = false;
-
-			try {
-				const { user, error } = await getSessionUser(null, null);
-				//console.log('LandingHero: getSessionUser', { user, error });
-				if (error || !user) return;
-
-				authState.value = {
-					...authState.value,
-					user,
-				};
-				isAuthorized.value = true;
-			} catch (error) {
-				console.error('Session check failed:', error);
-			}
-		};
-
+		//if (IS_BROWSER) console.log('LandingHero: Initial mount effect');
 		checkSession();
 	}, []);
+
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+		//if (IS_BROWSER) console.log('LandingHero: isLocalMode changed to:', authState.value.isLocalMode);
+		checkSession();
+	}, [authState.value.isLocalMode]);
 
 	// Show download component after a delay if API is not connected
 	useEffect(() => {
