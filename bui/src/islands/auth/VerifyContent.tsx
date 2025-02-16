@@ -7,8 +7,7 @@ import { useAuthState } from '../../hooks/useAuthState.ts';
 // interface VerifyContentProps {}
 // export default function VerifyContent(_props: VerifyContentProps) {
 export default function VerifyContent() {
-	const { authState, verifyOtp } = useAuthState();
-	//console.log('VerifyContent: authState', authState.value);
+	const { verifyOtp } = useAuthState();
 
 	const isError = useSignal(false);
 	const isVerifying = useSignal(false);
@@ -57,7 +56,7 @@ export default function VerifyContent() {
 		};
 
 		handleVerification();
-	}, [authState.value]);
+	}, []); // Only run once on mount
 
 	return (
 		<div class='min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
