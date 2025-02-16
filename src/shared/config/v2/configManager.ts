@@ -3,7 +3,7 @@ import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
-import { createBbDir, createBbIgnore, getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
+import { createBbDir, createBbIgnore, getBbDirFromProjectRoot, getGlobalConfigDir } from 'shared/dataDir.ts';
 import { ConversationMigration } from 'api/storage/conversationMigration.ts';
 import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
 
@@ -621,7 +621,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			const oldConfig = parseYaml(configContent) as ProjectConfig;
 
 			// Attempt migration
-			const migrationResult = await this.migrateConfig(oldConfig);
+			const migrationResult = await this.migrateConfig(oldConfig, projectRoot);
 			if (!migrationResult.success) {
 				throw new Error(`Project config migration failed: ${migrationResult.errors[0]?.message}`);
 			}
@@ -713,6 +713,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 	public async migrateConfig(
 		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfigV2 | ProjectConfigV2,
+		projectRoot?: string,
 	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
@@ -739,7 +740,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			const configType = this.determineConfigType(config);
 
 			// Create backup
-			const backupPath = await this.createBackup(config, configType);
+			const backupPath = await this.createBackup(config, configType, projectRoot);
 			result.backupPath = backupPath;
 
 			// Perform migration
@@ -1015,7 +1016,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					const oldConfig = parseYaml(configContent) as ProjectConfigV1; // Type assertion for migration
 
 					// Migrate the config
-					const migrationResult = await this.migrateConfig(oldConfig);
+					const migrationResult = await this.migrateConfig(oldConfig, projectRoot);
 					if (!migrationResult.success) {
 						throw new Error(`Migration failed: ${migrationResult.errors[0]?.message}`);
 					}
@@ -1126,11 +1127,11 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @returns The path to the backup file
 	 * @internal
 	 */
-	private async createBackup(config: unknown, type: 'global' | 'project'): Promise<string> {
+	private async createBackup(config: unknown, type: 'global' | 'project', projectRoot?: string): Promise<string> {
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const backupDir = type === 'global'
-			? join(await getGlobalConfigDir(), 'backups')
-			: join(Deno.cwd(), '.bb', 'backups');
+		const backupDir = type === 'project' && projectRoot
+			? join(await getBbDirFromProjectRoot(projectRoot), 'backups')
+			: join(await getGlobalConfigDir(), 'backups');
 
 		await ensureDir(backupDir);
 		const backupPath = join(backupDir, `config-${timestamp}.yaml`);

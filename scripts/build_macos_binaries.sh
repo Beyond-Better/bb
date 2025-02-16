@@ -25,6 +25,12 @@ for TARGET in "${TARGETS[@]}"; do
     deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --unstable-kv --target $TARGET --output ../$BUILD_DIR/bb-$TARGET src/main.ts
     cd ..
 
+    # Build BUI
+    echo "Building BUI..."
+    cd bui
+    deno task fresh-build && deno compile --include src/static --include src/_fresh --include deno.jsonc --target $TARGET --output ../$BUILD_DIR/bb-bui-$TARGET -A src/main.ts
+    cd ..
+
     # Build API
     echo "Building API..."
     cd api

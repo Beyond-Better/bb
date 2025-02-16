@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.12] - 2025-02-16
+
+### Fixed
+
+- landing page auth check
+- project config migration backups
+
+
 ## [0.6.11] - 2025-02-07
 
 ### Fixed

@@ -39,13 +39,17 @@ export async function getProjectRootFromStartDir(startDir: string): Promise<stri
 }
 
 export async function getBbDir(projectId: string): Promise<string> {
+	return await getBbDirFromProjectId(projectId);
+}
+export async function getBbDirFromProjectId(projectId: string): Promise<string> {
 	const projectRoot = await getProjectRoot(projectId);
-	const bbDir = join(projectRoot, '.bb');
-	await ensureDir(bbDir);
-	return bbDir;
+	return await getBbDirFromProjectRoot(projectRoot);
 }
 export async function getBbDirFromStartDir(startDir: string): Promise<string> {
 	const projectRoot = await getProjectRootFromStartDir(startDir);
+	return await getBbDirFromProjectRoot(projectRoot);
+}
+export async function getBbDirFromProjectRoot(projectRoot: string): Promise<string> {
 	const bbDir = join(projectRoot, '.bb');
 	await ensureDir(bbDir);
 	return bbDir;

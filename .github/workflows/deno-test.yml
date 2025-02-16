@@ -38,4 +38,10 @@ jobs:
         run: deno task check-types
 
       - name: Run tests
-        run: deno task test
+        run: |
+          ## fix for fetch tool tests - set apparmor_restrict_unprivileged_userns
+          ## https://github.com/lino-levan/astral#faq
+          ## https://github.com/puppeteer/puppeteer/pull/13196
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          deno --version
+          deno task test

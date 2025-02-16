@@ -1,6 +1,6 @@
 [package]
 name = "beyond-better"
-version = "0.6.11"
+version = "0.6.12"
 description = "Beyond Better Desktop App"
 authors = ["cngarrison"]
 edition = "2021"
@@ -17,6 +17,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+#tauri = { version = "2", features = ["devtools"] }
 tauri-plugin-shell = "2"
 tauri-plugin-store = "2"
 tauri-plugin-fs = { version = "2", features = ["watch"] }

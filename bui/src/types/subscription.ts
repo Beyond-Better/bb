@@ -25,7 +25,7 @@ export interface PlanResults {
 export interface Subscription {
 	subscription_id: string;
 	plan_id: string;
-	subscription_status: 'ACTIVE' | 'CANCELED' | 'PAST_DUE' | 'INCOMPLETE';
+	subscription_status: 'ACTIVE' | 'RENEWED' | 'CANCELED' | 'PAST_DUE' | 'INCOMPLETE';
 	subscription_period_start: string;
 	subscription_period_end: string;
 	subscription_cancel_at: string;
