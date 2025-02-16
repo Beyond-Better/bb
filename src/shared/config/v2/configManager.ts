@@ -713,7 +713,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 
 	public async migrateConfig(
 		config: GlobalConfigV1 | ProjectConfigV1 | GlobalConfigV2 | ProjectConfigV2,
-		projectRoot? : string,
+		projectRoot?: string,
 	): Promise<MigrationResult> {
 		// Always start with success = true and only set to false on error
 		// This matches the test expectations where a successful migration should return success = true
@@ -1127,7 +1127,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @returns The path to the backup file
 	 * @internal
 	 */
-	private async createBackup(config: unknown, type: 'global' | 'project', projectRoot? : string,): Promise<string> {
+	private async createBackup(config: unknown, type: 'global' | 'project', projectRoot?: string): Promise<string> {
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 		const backupDir = type === 'project' && projectRoot
 			? join(await getBbDirFromProjectRoot(projectRoot), 'backups')
