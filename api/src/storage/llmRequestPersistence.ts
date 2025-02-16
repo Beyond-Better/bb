@@ -1,15 +1,13 @@
-import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { PersistenceError } from 'api/errors/error.ts';
 import type { LLMRequestRecord } from 'shared/types.ts';
-import { logger } from 'shared/logger.ts';
+//import { logger } from 'shared/logger.ts';
 
 /**
  * Handles persistence for llm request records.
  */
 export class LLMRequestPersistence {
 	private readonly llmRequestFile: string;
-	private ensuredDir: boolean = false;
 
 	constructor(private conversationDir: string) {
 		this.llmRequestFile = join(this.conversationDir, 'llmRequests.jsonl');

@@ -20,7 +20,7 @@ Returns the current user's subscription details including the full plan informat
     plan_id: string;
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
-    subscription_status: 'ACTIVE' | 'CANCELED' | 'PENDING' | 'EXPIRED';
+    subscription_status: 'ACTIVE' | 'RENEWED' | 'CANCELED' | 'PENDING' | 'EXPIRED';
     subscription_period_start: string;  // ISO timestamp
     subscription_period_end: string;    // ISO timestamp
     subscription_cancel_at: string | null;
