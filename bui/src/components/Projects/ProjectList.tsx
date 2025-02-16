@@ -9,7 +9,7 @@ interface ProjectListProps {
 	projectsWithSources: Signal<ProjectWithSources[]>;
 	setSelectedProject: (projectId: string | null) => void;
 	handleEdit: (project: ProjectWithSources) => void;
-	handleDelete: (project: ProjectWithSources) => Promise<void>;
+	handleDelete: (project: ProjectWithSources) => void;
 }
 
 export function ProjectList({

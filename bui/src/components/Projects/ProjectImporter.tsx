@@ -1,13 +1,14 @@
-import { Signal } from '@preact/signals';
-import { signal } from '@preact/signals';
+import { signal, Signal } from '@preact/signals';
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import { FileBrowser } from '../FileBrowser.tsx';
+import { ErrorMessage } from '../ErrorMessage.tsx';
 
 interface ProjectImporterProps {
 	appState: Signal<AppState>;
 }
 const findingProjects = signal(false);
+const error = signal<{ message: string } | null>(null);
 const foundProjects = signal<string[]>([]);
 const searchDirectory = signal('');
 const isDirectoryValid = signal(false);
@@ -25,10 +26,10 @@ export function ProjectImporter({
 			await migrateAndAddProject(projectPath);
 			// Remove the migrated project from the found projects list
 			foundProjects.value = foundProjects.value.filter((path) => path !== projectPath);
-		} catch (error: unknown) {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+		} catch (err: unknown) {
+			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
 			console.error(`Failed to migrate project: ${errorMessage}`);
-			alert(`Failed to migrate project: ${errorMessage}`);
+			error.value = { message: `Failed to migrate project: ${errorMessage}` };
 		}
 	};
 
@@ -36,7 +37,7 @@ export function ProjectImporter({
 		console.log('Finding projects in:', searchDirectory.value);
 
 		if (!searchDirectory.value) {
-			alert('Please select a directory to search in');
+			error.value = { message: 'Please select a directory to search in' };
 			return;
 		}
 
@@ -53,6 +54,12 @@ export function ProjectImporter({
 
 	return (
 		<div className='mt-8 lg:mt-0 lg:w-[30rem] bg-white dark:bg-gray-800 rounded-lg p-6 lg:sticky lg:top-8 max-h-[calc(100vh-8rem)] overflow-y-auto'>
+			{error.value && (
+				<ErrorMessage
+					message={error.value.message}
+					onClose={() => error.value = null}
+				/>
+			)}
 			<div className='flex items-center justify-between mb-4'>
 				<h2 className='text-xl font-semibold dark:text-gray-200'>Import Projects</h2>
 			</div>
