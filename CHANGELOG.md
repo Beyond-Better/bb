@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.13] - 2025-02-16
+
+### Fixed
+
+- stopped signup verification looping
+
+
 ## [0.6.12] - 2025-02-16
 
 ### Fixed
