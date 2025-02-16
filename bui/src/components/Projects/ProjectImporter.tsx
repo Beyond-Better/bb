@@ -1,4 +1,4 @@
-import { signal, Signal } from '@preact/signals';
+import { Signal, signal } from '@preact/signals';
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import { FileBrowser } from '../FileBrowser.tsx';

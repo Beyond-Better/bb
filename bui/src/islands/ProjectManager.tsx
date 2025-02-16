@@ -178,9 +178,9 @@ export default function ProjectManager() {
 			</div>
 			<ConfirmDialog
 				visible={showDeleteConfirm.value}
-				title="Delete Project"
+				title='Delete Project'
 				message={`Are you sure you want to delete project "${projectToDelete.value?.name || ''}"?`}
-				confirmLabel="Delete"
+				confirmLabel='Delete'
 				onConfirm={handleConfirmDelete}
 				onCancel={handleCancelDelete}
 				isDangerous={true}

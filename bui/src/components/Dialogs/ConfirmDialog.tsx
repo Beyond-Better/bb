@@ -78,39 +78,39 @@ export function ConfirmDialog({
 
 	return createPortal(
 		<div
-			className="fixed inset-0 flex items-center justify-center z-50"
+			className='fixed inset-0 flex items-center justify-center z-50'
 			style={{
 				...overlayTransition.style,
 				backgroundColor: `rgba(0, 0, 0, ${visible ? '0.5' : '0'})`,
 			}}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="dialog-title"
+			role='dialog'
+			aria-modal='true'
+			aria-labelledby='dialog-title'
 			onClick={onCancel}
 		>
 			<div
 				ref={focusTrapRef}
-				className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full shadow-xl transform"
+				className='bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full shadow-xl transform'
 				style={{
 					transform: `scale(${visible ? '1' : '0.95'})`,
 				}}
 				onClick={(e) => e.stopPropagation()}
 			>
 				<h2
-					id="dialog-title"
-					className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4"
+					id='dialog-title'
+					className='text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4'
 				>
 					{title}
 				</h2>
 
-				<p className="text-gray-600 dark:text-gray-300 mb-6">
+				<p className='text-gray-600 dark:text-gray-300 mb-6'>
 					{message}
 				</p>
 
-				<div className="flex justify-end gap-3">
+				<div className='flex justify-end gap-3'>
 					<button
 						onClick={onCancel}
-						className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+						className='px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400'
 					>
 						{cancelLabel}
 					</button>
@@ -127,6 +127,6 @@ export function ConfirmDialog({
 				</div>
 			</div>
 		</div>,
-		portalRef.current
+		portalRef.current,
 	);
 }

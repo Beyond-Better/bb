@@ -56,6 +56,7 @@ class LLM {
 		return result;
 	}
 
+	// deno-lint-ignore require-await
 	async speakWith(
 		_messageRequest: LLMProviderMessageRequest,
 		_interaction: LLMInteraction,
@@ -75,6 +76,7 @@ class LLM {
 		// Default implementation, can be overridden by subclasses
 	}
 
+	// deno-lint-ignore require-await
 	async asProviderMessageRequest(
 		_messageRequest: LLMProviderMessageRequest,
 		_interaction?: LLMInteraction,
@@ -525,6 +527,8 @@ class LLM {
 	// but not propagated via usage (only via ratelimit)
 	// This is likely a deprecated usage since llm-proxy handles proper tracking and
 	// localMode doesn't need to enforce usage tracking
+
+	// deno-lint-ignore-zz no-unused-labels
 	private async updateRateLimit(limits: LLMRateLimit): Promise<void> {
 		const currentUsage = await rateLimitManager.getRateLimit(this.llmProviderName);
 		logger.info(

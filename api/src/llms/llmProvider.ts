@@ -6,6 +6,7 @@ import BbLLM from './providers/bbLLM.ts';
 import OpenAILLM from './providers/openAILLM.ts';
 import DeepseekLLM from './providers/deepseekLLM.ts';
 import OllamaLLM from './providers/ollamaLLM.ts';
+import GoogleLLM from './providers/googleLLM.ts';
 
 class LLMFactory {
 	static getProvider(
@@ -23,6 +24,8 @@ class LLMFactory {
 				return new DeepseekLLM(interactionCallbacks);
 			case LLMProviderEnum.OLLAMA:
 				return new OllamaLLM(interactionCallbacks);
+			case LLMProviderEnum.GOOGLE:
+				return new GoogleLLM(interactionCallbacks);
 			default:
 				throw new Error(`Unsupported LLM provider: ${llmProviderName}`);
 		}
