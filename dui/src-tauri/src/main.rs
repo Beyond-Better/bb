@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use windows_sys::Win32::Foundation::HANDLE;
+
 use beyond_better_lib::{
     run
 };
