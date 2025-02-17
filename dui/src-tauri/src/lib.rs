@@ -206,6 +206,23 @@ pub fn run() {
         eprintln!("APPDATA path: {:?}", appdata);
         let tauri_app_dir = PathBuf::from(appdata).join("dev.beyondbetter.app");
         eprintln!("Tauri app directory: {:?}", tauri_app_dir);
+        
+        // Check directory permissions
+        if tauri_app_dir.exists() {
+            eprintln!("Tauri app directory exists");
+            if let Ok(metadata) = std::fs::metadata(&tauri_app_dir) {
+                eprintln!("Directory is writable: {}", metadata.permissions().readonly() == false);
+            } else {
+                eprintln!("Failed to get directory metadata");
+            }
+        } else {
+            eprintln!("Tauri app directory does not exist");
+            // Try to create it
+            match std::fs::create_dir_all(&tauri_app_dir) {
+                Ok(_) => eprintln!("Successfully created Tauri app directory"),
+                Err(e) => eprintln!("Failed to create Tauri app directory: {}", e)
+            }
+        }
     }
 
     eprintln!("Getting app log directory...");
