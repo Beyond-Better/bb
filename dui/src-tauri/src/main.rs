@@ -257,8 +257,8 @@ fn main() {
 
             // Check WebView2 Runtime registry keys
             let mut h_key = 0;
-            let key_path = CString::new("SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}").unwrap();
-            let result = RegOpenKeyExA(
+            let key_path = to_wide_string("SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}");
+            let result = RegOpenKeyExW(
                 HKEY_LOCAL_MACHINE,
                 key_path.as_ptr(),
                 0,
