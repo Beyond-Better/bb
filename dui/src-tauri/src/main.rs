@@ -151,10 +151,10 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging;
-        let title = std::ffi::CString::new("Beyond Better Startup").unwrap();
-        let msg = std::ffi::CString::new("Attempting to start Beyond Better...").unwrap();
+        let title = to_wide_string("Beyond Better Startup");
+        let msg = to_wide_string("Attempting to start Beyond Better...");
         unsafe {
-            WindowsAndMessaging::MessageBoxA(
+            WindowsAndMessaging::MessageBoxW(
                 0,
                 msg.as_ptr(),
                 title.as_ptr(),
