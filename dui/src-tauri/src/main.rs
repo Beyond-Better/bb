@@ -249,7 +249,15 @@ fn main() {
             }
 
             if !found {
-                let error_msg = "Visual C++ Redistributable 2015-2022 not found. Please install from https://aka.ms/vs/17/release/vc_redist.x64.exe";
+                let error_msg = "Beyond Better requires the Microsoft Visual C++ Redistributable 2015-2022.
+
+To fix this:
+1. Download the installer from:
+   https://aka.ms/vs/17/release/vc_redist.x64.exe
+2. Run the installer
+3. Start Beyond Better again
+
+This is a one-time installation that may be needed by other Windows applications.";
                 eprintln!("{}", error_msg);
                 panic!("{}", error_msg);
             }
