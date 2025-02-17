@@ -126,9 +126,9 @@ fn main() {
         let mut log_content = String::from("DLL Check Results:\n");
         
         for dll in dlls.iter() {
-            let dll_name = to_wide_string(dll);
+            #[cfg(target_os = "windows")]
             unsafe {
-                #[cfg(target_os = "windows")]
+                let dll_name = to_wide_string(dll);
                 #[cfg(target_os = "windows")]
                 {
                     let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
