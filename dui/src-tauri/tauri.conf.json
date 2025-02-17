@@ -56,6 +56,10 @@
       }
     },
     "windows": {
+      "webviewFixedVersionRuntime": {
+        "type": "download",
+        "version": "111.0.1661.54"
+      },
       "webviewInstallMode": {
         "type": "downloadBootstrapper",
         "silent": true,
