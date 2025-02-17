@@ -2,7 +2,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Fragment Id="BeyondBetterRegistryEntries">
     <DirectoryRef Id="INSTALLDIR">
-      <Component Id="RegistryEntries" Guid="*">
+      <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
         <!-- Application Info -->
         <RegistryKey Root="HKLM" 
                      Key="Software\BeyondBetter\DUI"
@@ -10,7 +10,7 @@
                      ForceDeleteOnUninstall="yes">
           <RegistryValue Type="string" Name="Version" Value="[ProductVersion]" KeyPath="yes"/>
           <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLDIR]"/>
-          <RegistryValue Type="string" Name="BinPath" Value="%USERPROFILE%\.bb\bin"/>
+          <RegistryValue Type="string" Name="BinPath" Value="[INSTALLDIR]bin"/>
         </RegistryKey>
 
         <!-- Add to PATH during first run -->
