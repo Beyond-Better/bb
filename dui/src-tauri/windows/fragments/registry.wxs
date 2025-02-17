@@ -1,45 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <!-- Check for WebView2 Runtime -->
-  <Property Id="WEBVIEW2RUNTIME">
-    <RegistrySearch Id="WebView2RuntimeSearch"
+  <Fragment>
+    <Property Id="WEBVIEW2RUNTIME">
+      <RegistrySearch Id="WebView2RuntimeSearch"
                     Root="HKLM"
                     Key="SOFTWARE\Microsoft\EdgeUpdate\ClientState\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
                     Type="raw" />
-  </Property>
+    </Property>
 
-  <!-- Launch condition for WebView2 Runtime -->
-  <Condition Message="This application requires the WebView2 Runtime. The installer will attempt to download and install it.">
-    <![CDATA[Installed OR WEBVIEW2RUNTIME]]>
-  </Condition>
+    <!-- Launch condition for WebView2 Runtime -->
+    <Condition Message="This application requires the WebView2 Runtime. The installer will attempt to download and install it.">
+      <![CDATA[Installed OR WEBVIEW2RUNTIME]]>
+    </Condition>
+  </Fragment>
+
+  <!-- Registry entries -->
   <Fragment>
-    <!-- WebView2 Directory Structure -->
-    <DirectoryRef Id="TARGETDIR">
-      <Directory Id="WebView2Dir" Name="webview2">
-        <Component Id="WebView2Component" Guid="*" Win64="yes">
-          <CreateFolder />
-          <RemoveFolder Id="WebView2Dir" On="uninstall" />
-        </Component>
-      </Directory>
-    </DirectoryRef>
-
     <DirectoryRef Id="TARGETDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
-
         <!-- WebView2 Runtime Info -->
-        <RegistryKey Root="HKLM"
-                     Key="Software\BeyondBetter\DUI\WebView2\FixedRuntime"
-                     ForceCreateOnInstall="yes"
-                     ForceDeleteOnUninstall="yes">
-          <RegistryValue Type="string" Name="Version" Value="111.0.1661.54"/>
-          <RegistryValue Type="string" Name="Path" Value="[INSTALLDIR]webview2"/>
-        </RegistryKey>
-
         <RegistryKey Root="HKLM"
                      Key="Software\BeyondBetter\DUI\WebView2"
                      ForceCreateOnInstall="yes"
                      ForceDeleteOnUninstall="yes">
-          <RegistryValue Type="string" Name="RuntimePath" Value="[ProgramFiles64Folder]\Microsoft\EdgeWebView\Application"/>
+          <RegistryValue Type="string" Name="RuntimePath" Value="[ProgramFiles64Folder]Microsoft\EdgeWebView\Application"/>
         </RegistryKey>
 
         <!-- Application Info -->
@@ -60,12 +45,5 @@
         </RegistryKey>
       </Component>
     </DirectoryRef>
-  </Fragment>
-
-  <!-- Features -->
-  <Fragment>
-    <Feature Id="WebView2Feature" Title="WebView2 Runtime" Level="1">
-      <ComponentRef Id="WebView2Component" />
-    </Feature>
   </Fragment>
 </Wix>
