@@ -14,6 +14,7 @@ pub mod bui;
 pub mod config;  // Make config module public
 pub mod commands;  // Make commands module public
 pub mod window_state;
+pub mod logging;
 pub mod proxy;
 
 // Re-export public items
