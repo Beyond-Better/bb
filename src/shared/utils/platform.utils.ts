@@ -36,15 +36,12 @@ export function getBBAppAssetName(version: string): string {
 	}
 }
 
-export function getSecurityInstructions(): string {
+export function getSecurityInstructions(): string | null {
 	const platform = getPlatformInfo();
 
 	switch (platform.os) {
 		case 'macos':
-			return 'When first launching the app:\n' +
-				'- Right-click the app and select "Open", or\n' +
-				'- Go to System Settings > Privacy & Security and click "Open Anyway"\n' +
-				'- This security approval is only needed once, as the app is currently unsigned';
+			return null;
 		case 'windows':
 			return 'When first launching the app, you may see a SmartScreen warning:\n' +
 				'- Click "More info"\n' +

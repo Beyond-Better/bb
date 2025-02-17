@@ -65,6 +65,8 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 
 	if (!showDownload) return <></>;
 
+	const securityInstructions = getSecurityInstructions();
+
 	return (
 		<AnimatedNotification
 			visible={true}
@@ -131,12 +133,14 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 											</a>
 										</div>
 
-										<div className='text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md'>
-											<h4 className='font-medium mb-2'>Important Security Notice</h4>
-											<pre className='whitespace-pre-wrap font-mono text-xs text-yellow-700 dark:text-yellow-400'>
-											{getSecurityInstructions()}
-											</pre>
-										</div>
+										{securityInstructions && (
+											<div className='text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md'>
+												<h4 className='font-medium mb-2'>Important Security Notice</h4>
+												<pre className='whitespace-pre-wrap font-mono text-xs text-yellow-700 dark:text-yellow-400'>
+													{securityInstructions}
+												</pre>
+											</div>
+										)}
 									</div>
 								)
 								: (

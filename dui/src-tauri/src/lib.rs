@@ -54,8 +54,11 @@ async fn start_proxy(log_dir: std::path::PathBuf) -> Result<proxy::HttpProxy, Bo
 }
 
 fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
+    // eprintln!("Getting global config directory...");
     let config_dir = get_global_config_dir()?;
+    // eprintln!("Config directory: {:?}", config_dir);
     let config_path = config_dir.join("config.yaml");
+    // eprintln!("Config path: {:?}", config_path);
 
     if !config_path.exists() {
         info!("Global config not found, creating with defaults");
@@ -189,6 +192,71 @@ fn get_app_log_dir() -> Option<PathBuf> {
 }
 
 pub fn run() {
+//    // Log startup attempt with detailed environment info
+//    eprintln!("Starting Beyond Better DUI...");
+//    if let Ok(exe_path) = std::env::current_exe() {
+//        eprintln!("Executable path: {:?}", exe_path);
+//    }
+//    if let Ok(current_dir) = std::env::current_dir() {
+//        eprintln!("Current directory: {:?}", current_dir);
+//    }
+// 
+//    // Check ProgramData permissions
+//    if let Ok(program_data) = std::env::var("ProgramData") {
+//        eprintln!("ProgramData path: {:?}", program_data);
+//        let bb_program_data = PathBuf::from(program_data).join("Beyond Better");
+//        eprintln!("Beyond Better ProgramData directory: {:?}", bb_program_data);
+//        
+//        if bb_program_data.exists() {
+//            eprintln!("ProgramData directory exists");
+//            if let Ok(metadata) = std::fs::metadata(&bb_program_data) {
+//                eprintln!("Directory is writable: {}", metadata.permissions().readonly() == false);
+//            } else {
+//                eprintln!("Failed to get ProgramData directory metadata");
+//            }
+//        } else {
+//            eprintln!("ProgramData directory does not exist");
+//            // Try to create it
+//            match std::fs::create_dir_all(&bb_program_data) {
+//                Ok(_) => eprintln!("Successfully created ProgramData directory"),
+//                Err(e) => eprintln!("Failed to create ProgramData directory: {}", e)
+//            }
+//        }
+//    }
+//    if let Ok(appdata) = std::env::var("APPDATA") {
+//        eprintln!("APPDATA path: {:?}", appdata);
+//        let tauri_app_dir = PathBuf::from(appdata).join("dev.beyondbetter.app");
+//        eprintln!("Tauri app directory: {:?}", tauri_app_dir);
+//        
+//        // Check directory permissions
+//        if tauri_app_dir.exists() {
+//            eprintln!("Tauri app directory exists");
+//            if let Ok(metadata) = std::fs::metadata(&tauri_app_dir) {
+//                eprintln!("Directory is writable: {}", metadata.permissions().readonly() == false);
+//            } else {
+//                eprintln!("Failed to get directory metadata");
+//            }
+//        } else {
+//            eprintln!("Tauri app directory does not exist");
+//            // Try to create it
+//            match std::fs::create_dir_all(&tauri_app_dir) {
+//                Ok(_) => eprintln!("Successfully created Tauri app directory"),
+//                Err(e) => eprintln!("Failed to create Tauri app directory: {}", e)
+//            }
+//        }
+//    }
+//
+//    eprintln!("Getting app log directory...");
+//    let log_dir = match get_app_log_dir() {
+//        Some(dir) => {
+//            eprintln!("Log directory: {:?}", dir);
+//            dir
+//        },
+//        None => {
+//            eprintln!("Failed to get log directory");
+//            panic!("Failed to get log directory");
+//        }
+//    };
     let log_dir = get_app_log_dir().expect("Failed to get log directory");
     std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     

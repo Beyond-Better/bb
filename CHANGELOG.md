@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.14] - 2025-02-17
+
+### Added
+
+- Signed and notarized app for macOS 
+
+### Fixed
+
+- Windows installer and logging config
+
+
 ## [0.6.13] - 2025-02-16
 
 ### Fixed

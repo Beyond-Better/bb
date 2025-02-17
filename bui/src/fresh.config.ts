@@ -49,7 +49,8 @@ const cleanupSetup = (pidFile: string | null) => {
 		};
 
 		// Handle various exit signals
-		const signals: Deno.Signal[] = ['SIGINT', 'SIGTERM'];
+		// Windows only supports SIGINT and SIGBREAK, while Unix-like systems support SIGINT and SIGTERM
+		const signals: Deno.Signal[] = Deno.build.os === 'windows' ? ['SIGINT', 'SIGBREAK'] : ['SIGINT', 'SIGTERM'];
 		for (const signal of signals) {
 			Deno.addSignalListener(signal, cleanup);
 		}

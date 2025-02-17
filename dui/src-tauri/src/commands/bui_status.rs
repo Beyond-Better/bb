@@ -10,7 +10,7 @@ const PID_FILE_NAME: &str = "bui.pid";
 const APP_NAME: &str = "dev.beyondbetter.app";
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ApiStatusCheck {
+pub struct BuiStatusCheck {
     pub pid_exists: bool,
     pub process_responds: bool,
     pub bui_responds: bool,
@@ -137,10 +137,10 @@ async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
 }
 
 #[command]
-pub async fn check_bui_status() -> Result<ApiStatusCheck, String> {
+pub async fn check_bui_status() -> Result<BuiStatusCheck, String> {
     println!("Checking Server status...");
     
-    let mut status = ApiStatusCheck {
+    let mut status = BuiStatusCheck {
         pid_exists: false,
         process_responds: false,
         bui_responds: false,
