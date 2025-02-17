@@ -123,9 +123,9 @@ fn main() {
         let mut log_content = String::from("DLL Check Results:\n");
         
         for dll in dlls.iter() {
-            let dll_name = CString::new(*dll).unwrap();
+            let dll_name = to_wide_string(dll);
             unsafe {
-                let handle = LibraryLoader::LoadLibraryA(dll_name.as_ptr());
+                let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr());
                 log_content.push_str(&format!("{}: {}\n", dll, if !handle.is_null() { "Found" } else { "Not Found" }));
                 if !handle.is_null() {
                     LibraryLoader::FreeLibrary(handle);
