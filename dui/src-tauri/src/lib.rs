@@ -263,14 +263,14 @@ pub fn run() {
     
     debug!("Starting Beyond Better DUI application");
 
-    // Initialize logging with log4rs
-    let _logging_handle = match logging::setup_app_logging(log_dir.clone()) {
-        Ok(handle) => handle,
-        Err(e) => {
-            eprintln!("Failed to setup logging: {}", e);
-            panic!("Failed to initialize logging system");
-        }
-    };
+    // Basic logging to file
+    let log_file = log_dir.join("dui.log");
+    if let Some(parent) = log_file.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+    let startup_msg = format!("[{}] Starting Beyond Better DUI...\n", timestamp);
+    let _ = std::fs::write(&log_file, startup_msg);
 
     // Ensure global config exists before starting the app
     if let Err(e) = ensure_global_config() {
