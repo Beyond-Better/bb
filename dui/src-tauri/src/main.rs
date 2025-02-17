@@ -99,8 +99,9 @@ fn main() {
                     .map(|&c| c as u8 as char).collect::<String>(),
                     if result == 0 { "Found" } else { "Not Found" }));
                 
-                if h_key != 0 {
-                    RegCloseKey(h_key);
+                    if h_key != 0 {
+                        RegCloseKey(h_key);
+                    }
                 }
             }
         }
