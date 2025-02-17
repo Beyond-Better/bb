@@ -70,8 +70,10 @@ fn main() {
         
         // Try to load some common DLLs to check dependencies
         // Check WebView2 installation
+        #[cfg(target_os = "windows")]
         let mut log_content = String::from("System Checks:\n\n");
         
+        #[cfg(target_os = "windows")]
         // Check WebView2 Registry Keys
         let webview2_keys = [
             "SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  // Machine-wide install
