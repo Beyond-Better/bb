@@ -6,6 +6,41 @@ use beyond_better_lib::{
 };
 
 fn main() {
+    // Log DLL loading information
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::System::LibraryLoader;
+        use std::ffi::CString;
+        
+        // Try to load some common DLLs to check dependencies
+        let dlls = ["VCRUNTIME140.dll", "MSVCP140.dll", "WebView2Loader.dll"];
+        let mut log_content = String::from("DLL Check Results:\n");
+        
+        for dll in dlls.iter() {
+            let dll_name = CString::new(*dll).unwrap();
+            unsafe {
+                let handle = LibraryLoader::LoadLibraryA(dll_name.as_ptr());
+                log_content.push_str(&format!("{}: {}\n", dll, if !handle.is_null() { "Found" } else { "Not Found" }));
+                if !handle.is_null() {
+                    LibraryLoader::FreeLibrary(handle);
+                }
+            }
+        }
+        
+        // Write results to a file
+        if let Ok(program_data) = std::env::var("ProgramData") {
+            let log_path = std::path::PathBuf::from(program_data)
+                .join("Beyond Better")
+                .join("dll_check.log");
+            
+            if let Some(dir) = log_path.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            
+            let _ = std::fs::write(&log_path, log_content);
+        }
+    }
+
     // Create a visible indicator that we're trying to start
     #[cfg(target_os = "windows")]
     {
