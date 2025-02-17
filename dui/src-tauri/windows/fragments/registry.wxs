@@ -3,7 +3,7 @@
   <!-- Upgrade handling -->
   <Fragment>
     <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes" />
-    <Upgrade Id="{PUT-YOUR-UPGRADE-CODE-HERE}">
+    <Upgrade Id="C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D">
       <UpgradeVersion
         Minimum="0.0.0"
         Maximum="[ProductVersion]"
