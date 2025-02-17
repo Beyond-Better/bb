@@ -60,8 +60,7 @@
         "type": "embedBootstrapper"
       },
       "wix": {
-        "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
-        "fragmentPaths": ["windows/fragments/registry.wxs"]
+        "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D"
       },
       "nsis": {
         "installMode": "both",
