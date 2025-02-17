@@ -95,6 +95,7 @@ fn main() {
                     &mut h_key
                 );
                 
+                #[cfg(target_os = "windows")]
                 log_content.push_str(&format!("  {} : {}\n", key_path.iter().take(key_path.len() - 1)
                     .map(|&c| c as u8 as char).collect::<String>(),
                     if result == 0 { "Found" } else { "Not Found" }));
