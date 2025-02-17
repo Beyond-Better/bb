@@ -3,18 +3,7 @@
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
-        <!-- Enable Windows Error Reporting for detailed crash logs -->
-        <RegistryKey Root="HKLM" 
-                     Key="Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\Beyond Better">
-          <RegistryValue Type="string" Name="DumpFolder" Value="%LOCALAPPDATA%\CrashDumps"/>
-          <RegistryValue Type="dword" Name="DumpCount" Value="10"/>
-          <RegistryValue Type="dword" Name="DumpType" Value="2"/>
-        </RegistryKey>
-        <!-- Enable Windows Installer logging -->
-        <RegistryKey Root="HKLM" 
-                     Key="Software\Policies\Microsoft\Windows\Installer">
-          <RegistryValue Type="string" Name="Logging" Value="voicewarmupx!"/>
-        </RegistryKey>
+
         <!-- Application Info -->
         <RegistryKey Root="HKLM" 
                      Key="Software\BeyondBetter\DUI"
