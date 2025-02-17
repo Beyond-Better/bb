@@ -68,6 +68,7 @@
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
+      "signingIdentity": "662F8634EFD7514D1191901F83FDD7CF2A2E7728",
       "entitlements": "macos/entitlements.plist",
       "dmg": {
         "windowSize": {

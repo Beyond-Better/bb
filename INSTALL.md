@@ -25,10 +25,6 @@ Git can be easily installed using package managers like Homebrew on macOS, Choco
    - For Intel Macs: Download `BB-dui-{version}-macos-intel.dmg`
 2. Open the downloaded .dmg file
 3. Drag the Beyond Better app to your Applications folder
-4. When first launching the app:
-   - Right-click the app and select 'Open', or
-   - Go to System Settings > Privacy & Security and click 'Open Anyway'
-   - This security approval is only needed once, as the app is currently unsigned
 
 #### Windows Installation
 1. Download the appropriate installer from the [BB Releases page](https://github.com/Beyond-Better/bb/releases):

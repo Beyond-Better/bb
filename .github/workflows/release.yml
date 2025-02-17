@@ -165,28 +165,40 @@ jobs:
           deno task build
 
       # Import and setup Apple certificates for macOS signing
-#     - name: Import Apple Developer Certificate
-#       if: matrix.platform == 'macos'
-#       env:
-#         APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-#         APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-#         KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-#       run: |
-#         echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
-#         security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-#         security default-keychain -s build.keychain
-#         security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-#         security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-#         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-#         security find-identity -v -p codesigning build.keychain
-#
-#     - name: Verify Certificate
-#       if: matrix.platform == 'macos'
-#       run: |
-#         CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Apple Development")
-#         CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-#         echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
-#         echo "Certificate imported."
+      - name: Import Apple Developer Certificate
+        if: matrix.platform == 'macos'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+      - name: Verify Certificate
+        if: matrix.platform == 'macos'
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
+          #echo "CERT_INFO: $CERT_INFO"
+          CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
+          echo "CERT_ID: $CERT_ID"
+          echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
+          echo "Certificate imported."
+
+      # Set up Apple API key for notarization
+      - name: Setup Apple API Key
+        if: matrix.platform == 'macos'
+        run: |
+          echo "${{ secrets.APPLE_API_KEY_VALUE }}" > ${{ secrets.APPLE_API_KEY_PATH }}
+          chmod 600 ${{ secrets.APPLE_API_KEY_PATH }}
 
       - name: Build DUI (Tauri)
         uses: tauri-apps/tauri-action@v0
@@ -196,9 +208,15 @@ jobs:
           # macOS signing environment variables
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
+          # API Key notarization (preferred method)
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
+          # Apple ID notarization (fallback method)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: './dui'
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
@@ -310,10 +328,6 @@ jobs:
                - Universal (Intel & Apple Silicon): Download the universal.dmg
                - Open the .dmg file
                - Drag the Beyond Better app to your Applications folder
-               - When first launching, you'll need to:
-                 * Right-click the app and select Open, or
-                 * Go to System Settings > Privacy & Security and click 'Open Anyway'
-               - This is only needed once, as the app is currently unsigned
 
                Linux:
                - Download the .AppImage file
