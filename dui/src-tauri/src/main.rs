@@ -15,6 +15,12 @@ fn main() {
     unsafe {
         use windows_sys::Win32::System::Console;
         Console::AllocConsole();
+        
+        // Helper function to convert string to UTF-16
+        fn to_wide_string(s: &str) -> Vec<u16> {
+            use std::os::windows::prelude::*;
+            std::ffi::OsStr::new(s).encode_wide().chain(Some(0)).collect()
+        }
     }
 
     // Set up Windows error handling
