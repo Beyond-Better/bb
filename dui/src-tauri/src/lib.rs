@@ -56,8 +56,11 @@ async fn start_proxy(log_dir: std::path::PathBuf) -> Result<proxy::HttpProxy, Bo
 fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("Ensuring global config exists...");
 
+    eprintln!("Getting global config directory...");
     let config_dir = get_global_config_dir()?;
+    eprintln!("Config directory: {:?}", config_dir);
     let config_path = config_dir.join("config.yaml");
+    eprintln!("Config path: {:?}", config_path);
 
     if !config_path.exists() {
         info!("Global config not found, creating with defaults");
