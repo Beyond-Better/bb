@@ -3,6 +3,11 @@
   <Fragment Id="BeyondBetterRegistryEntries">
     <DirectoryRef Id="INSTALLDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
+        <!-- Enable Windows Installer logging -->
+        <RegistryKey Root="HKLM" 
+                     Key="Software\Policies\Microsoft\Windows\Installer">
+          <RegistryValue Type="string" Name="Logging" Value="voicewarmupx!"/>
+        </RegistryKey>
         <!-- Application Info -->
         <RegistryKey Root="HKLM" 
                      Key="Software\BeyondBetter\DUI"
