@@ -126,9 +126,9 @@ fn main() {
         for dll in dlls.iter() {
             let dll_name = to_wide_string(dll);
             unsafe {
-                let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr());
-                log_content.push_str(&format!("{}: {}\n", dll, if !handle.is_null() { "Found" } else { "Not Found" }));
-                if !handle.is_null() {
+                let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
+                log_content.push_str(&format!("{}: {}\n", dll, if handle != 0 { "Found" } else { "Not Found" }));
+                if handle != 0 {
                     LibraryLoader::FreeLibrary(handle);
                 }
             }
