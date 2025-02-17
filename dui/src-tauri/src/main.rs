@@ -169,13 +169,13 @@ fn main() {
         use windows_sys::Win32::System::EventLog;
         use std::ffi::CString;
         
-        let source = CString::new("Beyond Better").unwrap();
-        let message = CString::new("Application startup attempted").unwrap();
+        let source = to_wide_string("Beyond Better");
+        let message = to_wide_string("Application startup attempted");
         
         unsafe {
-            let event_source = EventLog::RegisterEventSourceA(std::ptr::null(), source.as_ptr());
+            let event_source = EventLog::RegisterEventSourceW(std::ptr::null(), source.as_ptr());
             if !event_source.is_null() {
-                EventLog::ReportEventA(
+                EventLog::ReportEventW(
                     event_source,
                     EventLog::EVENTLOG_INFORMATION_TYPE,
                     0,
