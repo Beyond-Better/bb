@@ -75,6 +75,7 @@ fn main() {
         
         #[cfg(target_os = "windows")]
         // Check WebView2 Registry Keys
+        #[cfg(target_os = "windows")]
         let webview2_keys = [
             "SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  // Machine-wide install
             "SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"  // 32-bit on 64-bit
