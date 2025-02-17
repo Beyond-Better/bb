@@ -8,8 +8,14 @@ pub fn setup_app_logging(log_dir: PathBuf) -> std::io::Result<Handle> {
         let mut config_content = include_str!("../../config/log4rs.yaml").to_string();
         
         // Replace the path placeholders with actual paths
-        let app_log_path = log_dir.join("Beyond Better.log").to_string_lossy().to_string();
-        let proxy_log_path = log_dir.join("proxy-access.log").to_string_lossy().to_string();
+        let app_log_path = log_dir.join("Beyond Better.log")
+            .to_string_lossy()
+            .to_string()
+            .replace("\\", "\\\\");  // Escape backslashes for YAML
+        let proxy_log_path = log_dir.join("proxy-access.log")
+            .to_string_lossy()
+            .to_string()
+            .replace("\\", "\\\\");  // Escape backslashes for YAML
         
         config_content = config_content.replace(
             "path: \"Beyond Better.log\"",
