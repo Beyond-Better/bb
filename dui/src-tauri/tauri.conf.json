@@ -56,14 +56,9 @@
       }
     },
     "windows": {
-      "webviewFixedVersionRuntime": {
-        "type": "download",
-        "version": "111.0.1661.54"
-      },
       "webviewInstallMode": {
         "type": "downloadBootstrapper",
-        "silent": true,
-        "installerArgs": ["/silent", "/install"]
+        "silent": true
       },
       "wix": {
         "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
