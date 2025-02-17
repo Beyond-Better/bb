@@ -13,6 +13,16 @@
     <![CDATA[Installed OR WEBVIEW2RUNTIME]]>
   </Condition>
   <Fragment>
+    <!-- WebView2 Directory Structure -->
+    <DirectoryRef Id="TARGETDIR">
+      <Directory Id="WebView2Dir" Name="webview2">
+        <Component Id="WebView2Component" Guid="*" Win64="yes">
+          <CreateFolder />
+          <RemoveFolder Id="WebView2Dir" On="uninstall" />
+        </Component>
+      </Directory>
+    </DirectoryRef>
+
     <DirectoryRef Id="TARGETDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
 
