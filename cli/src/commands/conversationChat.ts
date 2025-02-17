@@ -225,8 +225,13 @@ export const conversationChat = new Command()
 				terminalHandler.startSpinner('Setting up...');
 
 				// Now that terminalHandler is initialized, we can add the signal listeners
+				// Windows only supports SIGINT and SIGBREAK, while Unix-like systems support SIGINT and SIGTERM
 				Deno.addSignalListener('SIGINT', handleInterrupt);
-				Deno.addSignalListener('SIGTERM', exit);
+				if (Deno.build.os === 'windows') {
+					Deno.addSignalListener('SIGBREAK', exit);
+				} else {
+					Deno.addSignalListener('SIGTERM', exit);
+				}
 
 				// 				console.log(`Waiting for 2 mins.`);
 				// 	await new Promise((resolve) => setTimeout(resolve, 120000));
