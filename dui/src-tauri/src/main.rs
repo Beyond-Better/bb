@@ -128,6 +128,7 @@ fn main() {
         for dll in dlls.iter() {
             let dll_name = to_wide_string(dll);
             unsafe {
+                #[cfg(target_os = "windows")]
                 let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
                 log_content.push_str(&format!("{}: {}\n", dll, if handle != 0 { "Found" } else { "Not Found" }));
                 if handle != 0 {
