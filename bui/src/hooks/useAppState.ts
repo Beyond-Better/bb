@@ -1,11 +1,15 @@
+import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
-import type { VersionInfo } from 'shared/types/version.ts';
+import type { SystemMeta, VersionInfo } from 'shared/types/version.ts';
+import {} from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 export interface AppState {
+	systemMeta: SystemMeta | null;
 	wsManager: WebSocketManagerApp | null;
 	apiClient: ApiClient | null;
 	status: WebSocketStatus;
@@ -13,16 +17,18 @@ export interface AppState {
 	versionInfo: VersionInfo | undefined;
 	projectId: string | null;
 	conversationId: string | null;
+	path: string;
 }
 
 // Load initial state from localStorage and URL
 const loadStoredState = () => {
 	let projectId = null;
 	let conversationId = null;
+	let path = '/';
 
-	if (typeof window !== 'undefined') {
+	if (IS_BROWSER && typeof globalThis !== 'undefined') {
 		// Check URL parameters first
-		const params = new URLSearchParams(window.location.search);
+		const params = new URLSearchParams(globalThis.location.search);
 		projectId = params.get('projectId');
 		conversationId = params.get('conversationId');
 
@@ -33,15 +39,19 @@ const loadStoredState = () => {
 		if (!conversationId) {
 			conversationId = localStorage.getItem('bb_conversationId');
 		}
+		// Get current path from location
+		path = globalThis.location.pathname;
 	}
 
 	return {
 		projectId,
 		conversationId,
+		path,
 	};
 };
 
 const appState = signal<AppState>({
+	systemMeta: null,
 	wsManager: null,
 	apiClient: null,
 	status: {
@@ -57,9 +67,9 @@ const appState = signal<AppState>({
 
 // Function to update URL parameters
 const updateUrlParams = (projectId: string | null, conversationId: string | null) => {
-	if (typeof window === 'undefined') return;
+	if (!IS_BROWSER || typeof globalThis === 'undefined') return;
 
-	const url = new URL(window.location.href);
+	const url = new URL(globalThis.location.href);
 	if (projectId) {
 		url.searchParams.set('projectId', projectId);
 	} else {
@@ -71,7 +81,7 @@ const updateUrlParams = (projectId: string | null, conversationId: string | null
 		url.searchParams.delete('conversationId');
 	}
 
-	window.history.replaceState({}, '', url.toString());
+	globalThis.history.replaceState({}, '', url.toString());
 };
 
 // Function to update localStorage
@@ -91,7 +101,41 @@ const updateLocalStorage = (projectId: string | null, conversationId: string | n
 };
 
 export function useAppState(): Signal<AppState> {
+	if (IS_BROWSER && (!appState.value.apiClient || !appState.value.wsManager)) {
+		console.log('useAppState: DOING SELF INIT - only for login or error pages!!!');
+		const apiHostname = getApiHostname();
+		const apiPort = getApiPort();
+		const apiUseTls = getApiUseTls();
+		const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
+		const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
+		console.log('useAppState: ', { apiHostname, apiPort, apiUseTls, apiUrl, wsUrl });
+
+		initializeAppState({
+			wsUrl: wsUrl,
+			apiUrl: apiUrl,
+			onMessage: (message) => {
+				console.log('useAppState: Received message:', message);
+			},
+			onError: (error) => {
+				console.error('useAppState: WebSocket error:', error);
+			},
+			onClose: () => {
+				console.log('useAppState: WebSocket closed');
+			},
+			onOpen: () => {
+				console.log('useAppState: WebSocket opened');
+			},
+		});
+	}
+
 	return appState;
+}
+
+export function setPath(path: string) {
+	appState.value = {
+		...appState.value,
+		path,
+	};
 }
 
 export function setProject(projectId: string | null) {
@@ -153,6 +197,16 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 
 	const apiClient = createApiClientManager(config.apiUrl);
 
+	// Load system metadata
+	apiClient.getMeta().then((meta) => {
+		appState.value = {
+			...appState.value,
+			systemMeta: meta,
+		};
+	}).catch((error) => {
+		console.error('AppState: Failed to load system metadata:', error);
+	});
+
 	// Update state with managers
 	appState.value = {
 		...appState.value,
@@ -213,7 +267,7 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 }
 
 export function updateAppStateHandlers(handlers: {
-	onMessage?: (message: any) => void;
+	onMessage?: (message: unknown) => void;
 	onError?: (error: Error) => void;
 	onClose?: () => void;
 	onOpen?: () => void;
@@ -246,9 +300,11 @@ export function cleanupAppState(): void {
 			isLoading: false,
 			error: null,
 		},
+		systemMeta: null,
 		error: null,
 		versionInfo: undefined,
 		projectId,
 		conversationId,
+		path: '/',
 	};
 }

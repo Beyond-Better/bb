@@ -1,9 +1,74 @@
-use std::process::Command;
 use log::{debug, info, error, warn};
 use std::path::PathBuf;
 use serde::Serialize;
+use std::fs;
+use dirs;
+use libc;
 use crate::config::read_global_config;
-use crate::commands::api_status::{check_api_status, reconcile_pid_state, save_pid};
+use crate::commands::api_status::{check_api_status, reconcile_api_pid_state, save_api_pid};
+
+#[cfg(target_os = "windows")]
+use std::os::windows::ffi::OsStrExt;
+#[cfg(target_os = "windows")]
+use std::ffi::OsStr;
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    PROCESS_INFORMATION, STARTUPINFOW, CreateProcessW,
+    NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW,
+    OpenProcess, TerminateProcess,
+};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+
+#[cfg(not(target_os = "windows"))]
+use std::process::Command;
+
+pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
+    #[cfg(target_os = "macos")]
+    {
+        dirs::home_dir().map(|home| {
+            home.join("Library")
+                .join("Logs")
+                .join(crate::config::APP_NAME)
+        })
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var("ProgramData").ok().map(|program_data| {
+            PathBuf::from(program_data)
+                .join(crate::config::APP_NAME)
+                .join("logs")
+        })
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        dirs::home_dir().map(|home| {
+            home.join(".bb")
+                .join("logs")
+        })
+    }
+}
+
+pub fn get_default_api_log_path() -> Option<PathBuf> {
+    get_default_log_dir().map(|dir| dir.join("api.log"))
+}
+
+pub fn get_api_log_path(config: &crate::config::ApiConfig) -> Option<PathBuf> {
+    if let Some(log_file) = &config.log_file {
+        if log_file.starts_with('/') || log_file.contains(":\\") {
+            // Absolute path
+            Some(PathBuf::from(log_file))
+        } else {
+            // Relative path - append to default log dir
+            get_default_log_dir().map(|dir| dir.join(log_file))
+        }
+    } else {
+        // No log file specified - use default
+        get_default_api_log_path()
+    }
+}
 
 pub(crate) fn get_bb_api_path() -> Result<PathBuf, String> {
     debug!("Starting binary search");
@@ -81,36 +146,78 @@ pub struct ApiStartResult {
 }
 
 fn verify_api_requirements() -> Result<(), String> {
-    // Check if bb-api binary exists
-    get_bb_api_path().map_err(|e| format!("BB API binary not found: {}", e))?;
+    // Only check if bb-api binary exists
+    get_bb_api_path().map(|_| ()).map_err(|e| format!("BB API binary not found: {}", e))
+}
 
-    // Check if config exists and has required values
-    let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+#[cfg(target_os = "windows")]
+fn create_process_windows(
+    executable_path: PathBuf,
+    args: Vec<String>,
+) -> Result<u32, String> {
+    use std::ptr::null_mut;
+    
+    // Convert the command line to UTF-16 for Windows API
+    let mut command_line = format!("\"{}\"", executable_path.to_string_lossy());
+    for arg in args {
+        command_line.push_str(&format!(" \"{}\"", arg));
+    }
+    let wide_command: Vec<u16> = OsStr::new(&command_line)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
 
-    // Check for Anthropic API key
-    if global_config.api.llm_keys.as_ref()
-        .and_then(|keys| keys.anthropic.as_ref())
-        .map_or(true, |key| key.trim().is_empty()) {
-        return Err("Anthropic API key not configured".to_string());
+    let mut startup_info: STARTUPINFOW = unsafe { std::mem::zeroed() };
+    startup_info.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
+    startup_info.dwFlags = 1; // STARTF_USESHOWWINDOW
+    startup_info.wShowWindow = 0; // SW_HIDE
+
+    let mut process_info: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
+
+    // Create the process with specific flags to hide the window
+    let success = unsafe {
+        CreateProcessW(
+            null_mut(), // Use command line for executable path
+            wide_command.as_ptr() as *mut u16,
+            null_mut(), // Process security attributes
+            null_mut(), // Thread security attributes
+            FALSE,     // Don't inherit handles
+            CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
+            null_mut(), // Use parent's environment
+            null_mut(), // Use parent's current directory
+            &startup_info,
+            &mut process_info,
+        )
+    };
+
+    if success == 0 {
+        return Err("Failed to create process".to_string());
     }
 
-    Ok(())
+    // Close handles we don't need
+    unsafe {
+        CloseHandle(process_info.hThread);
+        CloseHandle(process_info.hProcess);
+    }
+
+    // Return process ID
+    Ok(process_info.dwProcessId)
 }
 
 #[tauri::command]
 pub async fn start_api() -> Result<ApiStartResult, String> {
-    // Verify all requirements are met before starting
+    // Verify only that the binary exists
     if let Err(e) = verify_api_requirements() {
         return Ok(ApiStartResult {
             success: false,
             pid: None,
             error: Some(e),
-            requires_settings: true,
+            requires_settings: false,
         });
     }
 
     // First reconcile any existing state
-    reconcile_pid_state().await?;
+    reconcile_api_pid_state().await?;
 
     // Check if API is already running
     let status = check_api_status().await?;
@@ -133,44 +240,59 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
     
     info!("Found bb-api executable at: {}", bb_api_path.display());
 
-    // Build command arguments - only include valid args
+    // Build command arguments
     let mut args = Vec::new();
-    
-    // Add hostname and port
     args.push("--hostname".to_string());
     args.push(config.hostname.clone());
-    
     args.push("--port".to_string());
     args.push(config.port.to_string());
-    
-    // Add TLS configuration
     args.push("--use-tls".to_string());
     args.push(config.tls.use_tls.to_string());
-    
-    // Add log file if specified
-    if let Some(log_file) = &config.log_file {
-        args.push("--log-file".to_string());
-        args.push(log_file.clone());
+
+    // Get log file path using the consolidated logic
+    let log_path = get_api_log_path(config)
+        .ok_or_else(|| "Failed to determine log path".to_string())?;
+
+    // Ensure log directory exists
+    if let Some(parent) = log_path.parent() {
+        if let Err(e) = fs::create_dir_all(parent) {
+            error!("Failed to create log directory for {:?}: {}", log_path, e);
+            return Ok(ApiStartResult {
+                success: false,
+                pid: None,
+                error: Some(format!("Failed to create log directory: {}", e)),
+                requires_settings: false,
+            });
+        }
     }
+
+    // Add log file argument
+    args.extend_from_slice(&["--log-file".to_string(), log_path.to_string_lossy().to_string()]);
 
     info!("Starting API with command: {} {:?}", bb_api_path.display(), args);
 
-    // Convert PathBuf to string for logging
-    let bb_api_path_str = bb_api_path.to_string_lossy();
-    debug!("Starting API with command: {} {:?}", bb_api_path_str, args);
+    // Start the process using platform-specific method
+    let process_result = {
+        #[cfg(target_os = "windows")]
+        {
+            create_process_windows(bb_api_path, args).map(|pid| pid as i32)
+        }
 
-    // Spawn the process
-    let spawn_result = Command::new(bb_api_path)
-        .args(&args)
-        .spawn();
+        #[cfg(not(target_os = "windows"))]
+        {
+            match Command::new(bb_api_path).args(&args).spawn() {
+                Ok(child) => Ok(child.id() as i32),
+                Err(e) => Err(format!("Failed to start API process: {}", e)),
+            }
+        }
+    };
 
-    match spawn_result {
-        Ok(child) => {
-            let pid = child.id() as i32;
+    match process_result {
+        Ok(pid) => {
             info!("API process started with PID: {}", pid);
 
             // Save the PID immediately
-            if let Err(e) = save_pid(pid).await {
+            if let Err(e) = save_api_pid(pid).await {
                 warn!("Failed to save PID file: {}", e);
             }
             
@@ -219,7 +341,7 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
         }
         Err(e) => {
             let error_msg = format!("Failed to start API process: {}", e);
-            println!("{}", error_msg);
+            error!("{}", error_msg);
             Ok(ApiStartResult {
                 success: false,
                 pid: None,
@@ -257,14 +379,15 @@ pub async fn stop_api() -> Result<bool, String> {
 
             #[cfg(target_family = "windows")]
             {
-                match Command::new("taskkill")
-                    .args(&["/PID", &pid.to_string(), "/F"])
-                    .output()
-                {
-                    Ok(output) => output.status.success(),
-                    Err(e) => {
-                        error!("Failed to execute taskkill: {}", e);
+                const PROCESS_TERMINATE: u32 = 0x0001;
+                unsafe {
+                    let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
+                    if handle == 0 {
                         false
+                    } else {
+                        let result = TerminateProcess(handle, 1);
+                        CloseHandle(handle);
+                        result != 0
                     }
                 }
             }

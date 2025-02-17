@@ -90,7 +90,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this._maxHydratedMessagesPerFile = value;
 	}
 
-	private resourceManager: ResourceManager;
+	private resourceManager!: ResourceManager;
 	private toolUsageStats: ToolUsageStats = {
 		toolCounts: new Map(),
 		toolResults: new Map(),
@@ -103,7 +103,13 @@ class LLMConversationInteraction extends LLMInteraction {
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		super(llm, conversationId);
 		this._interactionType = 'conversation';
-		this.resourceManager = new ResourceManager();
+	}
+
+	public override async init(parentId?: ConversationId): Promise<LLMConversationInteraction> {
+		await super.init(parentId);
+		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
+		this.resourceManager = new ResourceManager(projectEditor);
+		return this;
 	}
 
 	// these methods are really just convenience aliases for tokenUsageInteraction
@@ -262,31 +268,6 @@ class LLMConversationInteraction extends LLMInteraction {
 		return null;
 	}
 
-	// 	public async readProjectFileContent(
-	// 		filePath: string,
-	// 		revisionId: string,
-	// 	): Promise<string | Uint8Array | undefined> {
-	// 		const content = this.getFileRevision(filePath, revisionId);
-	// 		if (content) {
-	// 			logger.info(`ConversationInteraction: Returning contents of File Revision ${filePath} (${revisionId})`);
-	// 			return content;
-	// 		} else {
-	// 			const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
-	// 			const fullFilePath = join(projectRoot, filePath);
-	// 			logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
-	// 			try {
-	// 				const content = await this.resourceManager.loadResource({
-	// 					type: 'file',
-	// 					location: fullFilePath,
-	// 				});
-	// 				this.storeFileRevision(filePath, revisionId, content);
-	// 				return content;
-	// 			} catch (error) {
-	// 				throw new Error(`Failed to read file: ${fullFilePath}`);
-	// 			}
-	// 		}
-	// 	}
-
 	public async readProjectFileContent(
 		filePath: string,
 		revisionId: string,
@@ -295,15 +276,13 @@ class LLMConversationInteraction extends LLMInteraction {
 			//logger.info(`ConversationInteraction: Reading file revision from project: ${filePath}`);
 			const content = await this.getFileRevision(filePath, revisionId);
 			if (content === null) {
-				const projectRoot = await this.llm.invoke(LLMCallbackType.PROJECT_ROOT);
-				const fullFilePath = join(projectRoot, filePath);
-				logger.info(`ConversationInteraction: Reading contents of File ${fullFilePath}`);
-				const content = await this.resourceManager.loadResource({
+				logger.info(`ConversationInteraction: Reading contents of File ${filePath}`);
+				const resource = await this.resourceManager.loadResource({
 					type: 'file',
-					location: fullFilePath,
+					location: filePath,
 				});
-				await this.storeFileRevision(filePath, revisionId, content);
-				return content;
+				await this.storeFileRevision(filePath, revisionId, resource.content);
+				return resource.content;
 			}
 			logger.info(`ConversationInteraction: Returning contents of File Revision ${filePath} (${revisionId})`);
 			return content;
@@ -784,6 +763,8 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		this.addMessageForUserRole({ type: 'text', text: prompt });
 
+		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`BaseInteraction: relayToolResult - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
@@ -845,6 +826,8 @@ class LLMConversationInteraction extends LLMInteraction {
 			this.conversationStats,
 		);
 
+		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 

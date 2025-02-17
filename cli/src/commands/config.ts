@@ -1,9 +1,8 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectType } from 'shared/config/v2/types.ts';
+//import type { ProjectType } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
-//import { join } from '@std/path';
 import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 
 const formatValue = (value: unknown, indent = ''): string => {
@@ -67,6 +66,7 @@ export const config = new Command()
 			} else if (project) {
 				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
 				const projectId = await getProjectId(projectRoot);
+				await configManager.ensureLatestProjectConfig(projectId);
 				config = await configManager.getProjectConfig(projectId);
 				console.log(colors.bold('Project configuration:'));
 			} else {
@@ -98,6 +98,7 @@ export const config = new Command()
 			} else if (project) {
 				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
 				const projectId = await getProjectId(projectRoot);
+				await configManager.ensureLatestProjectConfig(projectId);
 				const config = await configManager.getProjectConfig(projectId);
 				value = await getConfigValue(key, config);
 			} else {

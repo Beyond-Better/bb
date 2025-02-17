@@ -6,9 +6,10 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRateLimit,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-	LLMTokenUsage,
+	//LLMTokenUsage,
 	LLMValidateResponseCallback,
 } from 'api/types.ts';
 import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
@@ -16,15 +17,17 @@ import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractToolUseFromContent } from 'api/utils/llms.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
+import { ErrorType, isLLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
 //import { metricsService } from '../../services/metrics.service.ts';
-import kv from '../../utils/kv.utils.ts';
-import { tokenUsageManager } from '../../utils/tokenUsage.utils.ts';
+import { KVManager } from 'api/utils/kvManager.ts';
+import { rateLimitManager } from '../../utils/rateLimit.utils.ts';
 
 const ajv = new Ajv();
+//logger.debug(`LLM: Creating storage for llmCache`);
+const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
 
 class LLM {
 	public llmProviderName: LLMProviderEnum = LLMProviderEnum.ANTHROPIC;
@@ -53,15 +56,9 @@ class LLM {
 		return result;
 	}
 
-	async prepareMessageParams(
-		_interaction: LLMInteraction,
-		_speakOptions?: LLMSpeakWithOptions,
-	): Promise<object> {
-		throw new Error("Method 'prepareMessageParams' must be implemented.");
-	}
-
 	async speakWith(
-		_messageParams: LLMProviderMessageRequest,
+		_messageRequest: LLMProviderMessageRequest,
+		_interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		throw new Error("Method 'speakWith' must be implemented.");
 	}
@@ -78,10 +75,69 @@ class LLM {
 		// Default implementation, can be overridden by subclasses
 	}
 
+	async asProviderMessageRequest(
+		_messageRequest: LLMProviderMessageRequest,
+		_interaction?: LLMInteraction,
+	): Promise<object> {
+		throw new Error("Method 'asProviderMessageRequest' must be implemented.");
+	}
+
+	async prepareMessageRequest(
+		interaction: LLMInteraction,
+		speakOptions?: LLMSpeakWithOptions,
+	): Promise<LLMProviderMessageRequest> {
+		//logger.debug('BaseLLM: llms-prepareMessageRequest-systemPrompt', interaction.baseSystem);
+
+		const systemPrompt = await this.invoke(
+			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
+			speakOptions?.system || interaction.baseSystem,
+			interaction.id,
+		);
+		const system = systemPrompt;
+
+		//logger.debug('BaseLLM: llms-prepareMessageRequest-tools', interaction.allTools());
+		const tools = await this.invoke(
+			LLMCallbackType.PREPARE_TOOLS,
+			speakOptions?.tools || interaction.allTools(),
+			interaction.id,
+		) || [];
+
+		const messages = await this.invoke(
+			LLMCallbackType.PREPARE_MESSAGES,
+			speakOptions?.messages || interaction.getMessages(),
+			interaction.id,
+		) || [];
+
+		const model: string = speakOptions?.model || interaction.model;
+
+		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
+			logger.error('BaseLLM: maxTokens missing from both speakOptions and interaction');
+		}
+		if (!speakOptions?.temperature && !interaction.temperature) {
+			logger.error('BaseLLM: temperature missing from both speakOptions and interaction');
+		}
+
+		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
+		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
+
+		const messageRequest: LLMProviderMessageRequest = {
+			messages,
+			system,
+			tools,
+			model,
+			maxTokens,
+			temperature,
+		};
+		//logger.debug('BaseLLM: llms-prepareMessageRequest', messageRequest);
+		//logger.dir(messageRequest);
+
+		return messageRequest;
+	}
+
 	protected createRequestCacheKey(
-		messageParams: LLMProviderMessageRequest,
+		messageRequest: LLMProviderMessageRequest,
 	): string[] {
-		const cacheKey = ['messageRequest', this.llmProviderName, md5(JSON.stringify(messageParams))];
+		const cacheKey = ['messageRequest', this.llmProviderName, md5(JSON.stringify(messageRequest))];
 		logger.info(`provider[${this.llmProviderName}] using cache key: ${cacheKey}`);
 		return cacheKey;
 	}
@@ -92,7 +148,7 @@ class LLM {
 	): Promise<LLMSpeakWithResponse> {
 		//const start = Date.now();
 
-		const llmProviderMessageRequest = await this.prepareMessageParams(
+		const messageRequest = await this.prepareMessageRequest(
 			interaction,
 			speakOptions,
 		) as LLMProviderMessageRequest;
@@ -100,14 +156,15 @@ class LLM {
 		let llmSpeakWithResponse!: LLMSpeakWithResponse;
 
 		const cacheKey = !(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)
-			? this.createRequestCacheKey(llmProviderMessageRequest)
+			? this.createRequestCacheKey(messageRequest)
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
-			const cachedResponse = await kv.get<LLMSpeakWithResponse>(cacheKey);
+			//logger.info(`provider[${this.llmProviderName}] speakWithPlus: Checking for cached response`);
+			const cachedResponse = await storage.getItem(cacheKey);
 
-			if (cachedResponse && cachedResponse.value) {
+			if (cachedResponse) {
 				logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
-				llmSpeakWithResponse = cachedResponse.value;
+				llmSpeakWithResponse = cachedResponse;
 				llmSpeakWithResponse.messageResponse.fromCache = true;
 				//await metricsService.recordCacheMetrics({ operation: 'hit' });
 			} else {
@@ -122,22 +179,37 @@ class LLM {
 
 			while (retries < maxRetries) {
 				try {
-					llmSpeakWithResponse = await this.speakWith(llmProviderMessageRequest);
+					llmSpeakWithResponse = await this.speakWith(messageRequest, interaction);
 
-					const status = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.status;
+					const statusCode = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusCode;
 
-					if (status >= 200 && status < 300) {
+					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
-					} else if (status === 429) {
+					} else if (statusCode === 413) {
+						logger.warn(`Request is too large.`);
+						throw createError(
+							ErrorType.LLM,
+							`Error calling LLM service: ${
+								llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusText ||
+								'Request is too large'
+							}`,
+							{
+								model: interaction.model,
+								provider: this.llmProviderName,
+								args: { status: statusCode, reason: 'Request is too large' },
+								conversationId: interaction.id,
+							} as LLMErrorOptions,
+						);
+					} else if (statusCode === 429) {
 						// Rate limit exceeded
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
 							Date.now();
 						const waitTime = Math.max(rateLimit, delay);
 						logger.warn(`Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`);
 						await new Promise((resolve) => setTimeout(resolve, waitTime));
-					} else if (status >= 500) {
+					} else if (statusCode >= 500) {
 						// Server error, use exponential backoff
-						logger.warn(`Server error (${status}). Retrying in ${delay}ms.`);
+						logger.warn(`Server error (${statusCode}). Retrying in ${delay}ms.`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						delay *= 2; // Double the delay for next time
 					} else {
@@ -148,7 +220,7 @@ class LLM {
 							{
 								model: interaction.model,
 								provider: this.llmProviderName,
-								args: { status },
+								args: { status: statusCode },
 								conversationId: interaction.id,
 							} as LLMErrorOptions,
 						);
@@ -157,13 +229,15 @@ class LLM {
 					retries++;
 				} catch (error) {
 					// Handle any unexpected errors
+					const args = isLLMError(error) ? (error.options || {}) : {};
+					logger.error('BaseLLM: Error calling LLM: ', { args, error });
 					throw createError(
 						ErrorType.LLM,
 						`Unexpected error calling LLM service: ${(error as Error).message}`,
 						{
 							model: interaction.model,
 							provider: this.llmProviderName,
-							args: { reason: (error as Error) },
+							args: { ...args, reason: (error as Error).message },
 							conversationId: interaction.id,
 						} as LLMErrorOptions,
 					);
@@ -177,7 +251,10 @@ class LLM {
 					{
 						model: interaction.model,
 						provider: this.llmProviderName,
-						args: { retries: maxRetries },
+						args: {
+							retries: { max: maxRetries, current: retries },
+							reason: 'Max retries reached when calling LLM service',
+						},
 						conversationId: interaction.id,
 					} as LLMErrorOptions,
 				);
@@ -191,7 +268,9 @@ class LLM {
 			//	error: llmSpeakWithResponse.messageResponse.type === 'error' ? 'LLM request failed' : undefined,
 			//});
 
-			await this.updateTokenUsage(llmSpeakWithResponse.messageResponse.usage);
+			// [TODO] remove or properly implement token and request tracking
+			// currently just being used to record usage for most recent turn, overwriting last turn
+			//await this.updateRateLimit(llmSpeakWithResponse.messageResponse.rateLimit);
 
 			if (llmSpeakWithResponse.messageResponse.isTool) {
 				llmSpeakWithResponse.messageResponse.toolsUsed = llmSpeakWithResponse.messageResponse.toolsUsed || [];
@@ -215,13 +294,24 @@ class LLM {
 				// Process all answer parts and combine text content
 				try {
 					const combinedAnswer = extractTextFromContent(llmSpeakWithResponse.messageResponse.answerContent);
+					const toolUseAnswer = extractToolUseFromContent(llmSpeakWithResponse.messageResponse.answerContent);
 					if (combinedAnswer) {
 						llmSpeakWithResponse.messageResponse.answer = combinedAnswer;
 						logger.info(
 							`provider[${this.llmProviderName}] Extracted combined text answer:`,
 							combinedAnswer.substring(0, 100) + '...',
 						);
+					} else if (toolUseAnswer) {
+						llmSpeakWithResponse.messageResponse.answer = 'Extracted tool use';
+						logger.info(
+							`provider[${this.llmProviderName}] Extracted tool use answer:`,
+							toolUseAnswer.substring(0, 100) + '...',
+						);
 					} else {
+						logger.info(
+							`provider[${this.llmProviderName}] No valid text content found: `,
+							llmSpeakWithResponse.messageResponse.answerContent,
+						);
 						llmSpeakWithResponse.messageResponse.answer =
 							'Error: No valid text content found in LLM response';
 						llmSpeakWithResponse.messageResponse.answerContent = [{
@@ -257,7 +347,7 @@ class LLM {
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
 			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
-				await kv.set(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
+				await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}
 		}
@@ -277,6 +367,7 @@ class LLM {
 		const retrySpeakOptions = { ...speakOptions };
 		let retries = 0;
 		let failReason = '';
+		let failDetails: Record<string, unknown> | LLMErrorOptions | undefined = {};
 		let totalProviderRequests = 0;
 		let llmSpeakWithResponse: LLMSpeakWithResponse | null = null;
 
@@ -298,6 +389,8 @@ class LLM {
 
 				if (validationFailedReason === null) {
 					break; // Success, break out of the loop
+				} else if (validationFailedReason === 'fatal') {
+					break; // Unrecoverable failure, break out of the loop
 				}
 
 				this.modifySpeakWithInteractionOptions(interaction, retrySpeakOptions, validationFailedReason);
@@ -308,7 +401,21 @@ class LLM {
 					`provider[${this.llmProviderName}] speakWithRetry: Error calling speakWithPlus`,
 					error as Error,
 				);
-				failReason = `caught error: ${(error as Error)}`;
+				if (isLLMError(error)) {
+					if (error.options?.args?.error?.type && error.options.args.error.type === 'quota_exceeded') {
+						failReason = `Quota Exceeded: ${error.options.args.error.message}`;
+						failDetails = error.options.args.error.details;
+						break; // Unrecoverable error
+					} else if (error.options?.args?.error) {
+						failReason = `LLM error: ${error.options.args.error.message}`;
+						failDetails = error.options.args.error.details;
+					} else {
+						failReason = `LLM error: ${error.message}`;
+						failDetails = error.options;
+					}
+				} else {
+					failReason = `caught error: ${(error as Error)}`;
+				}
 			}
 			logger.warn(
 				`provider[${this.llmProviderName}] Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,
@@ -326,13 +433,14 @@ class LLM {
 		logger.error(
 			`provider[${this.llmProviderName}] Max retries reached. Request to ${this.llmProviderName} failed.`,
 		);
+		const errorMessage = retries > 1 ? `Request failed after multiple retries. ${failReason}` : `${failReason}`;
 		throw createError(
 			ErrorType.LLM,
-			'Request failed after multiple retries.',
+			errorMessage,
 			{
 				model: interaction.model,
 				provider: this.llmProviderName,
-				args: { reason: failReason, retries: { max: maxRetries, current: retries } },
+				args: { reason: failReason, retries: { max: maxRetries, current: retries }, ...failDetails },
 				conversationId: interaction.id,
 			} as LLMErrorOptions,
 		);
@@ -411,15 +519,35 @@ class LLM {
 		});
 	}
 
-	private async updateTokenUsage(usage: LLMTokenUsage): Promise<void> {
-		const currentUsage = await tokenUsageManager.getTokenUsage(this.llmProviderName);
+	// [TODO] remove or properly implement token and request tracking
+	// currently just being used to record usage for most recent turn, overwriting last turn
+	// tokensRemaining and requestsRemaining get extracted from LLM response headers
+	// but not propagated via usage (only via ratelimit)
+	// This is likely a deprecated usage since llm-proxy handles proper tracking and
+	// localMode doesn't need to enforce usage tracking
+	private async updateRateLimit(limits: LLMRateLimit): Promise<void> {
+		const currentUsage = await rateLimitManager.getRateLimit(this.llmProviderName);
+		logger.info(
+			`provider[${this.llmProviderName}] speakWithPlus: Checking rate limits for: ${this.llmProviderName}`,
+			//currentUsage,
+		);
 		if (currentUsage) {
 			const updatedUsage = {
 				...currentUsage,
-				requestsRemaining: currentUsage.requestsRemaining - 1,
-				tokensRemaining: currentUsage.tokensRemaining - usage.totalTokens,
+				requestsRemaining: limits.requestsRemaining,
+				tokensRemaining: limits.tokensRemaining,
 			};
-			await tokenUsageManager.updateTokenUsage(this.llmProviderName, updatedUsage);
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Updating rate limits for: ${this.llmProviderName}`,
+			//	updatedUsage,
+			//);
+			await rateLimitManager.updateRateLimit(this.llmProviderName, updatedUsage);
+		} else {
+			//logger.info(
+			//	`provider[${this.llmProviderName}] speakWithPlus: Setting rate limits for: ${this.llmProviderName}`,
+			//	limits,
+			//);
+			await rateLimitManager.updateRateLimit(this.llmProviderName, limits);
 		}
 	}
 }

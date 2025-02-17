@@ -3,8 +3,6 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use reqwest;
 use tauri::command;
-use dirs;
-use libc;
 
 use crate::config::read_global_config;
 
@@ -47,7 +45,11 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 
     #[cfg(target_os = "linux")]
     {
-        let dir = PathBuf::from("/var/run").join(APP_NAME.to_lowercase());
+        let home_dir = dirs::home_dir()
+            .ok_or_else(|| "Failed to get home directory".to_string())?;
+        let dir = home_dir
+            .join(".bb")
+            .join("run");
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create runtime directory: {}", e))?;
         Ok(dir)
@@ -55,11 +57,10 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 }
 
 fn get_pid_file_path() -> Result<PathBuf, String> {
-	// println!("Using runtime PID at: {}", get_app_runtime_dir()?.join(PID_FILE_NAME).display());
     Ok(get_app_runtime_dir()?.join(PID_FILE_NAME))
 }
 
-pub async fn save_pid(pid: i32) -> Result<(), String> {
+pub async fn save_api_pid(pid: i32) -> Result<(), String> {
     let pid_file = get_pid_file_path()?;
     fs::write(&pid_file, pid.to_string())
         .map_err(|e| format!("Failed to write PID file: {}", e))
@@ -96,12 +97,24 @@ fn check_process_exists(pid: i32) -> bool {
 
 #[cfg(target_family = "windows")]
 fn check_process_exists(pid: i32) -> bool {
-    use std::process::Command;
-    Command::new("tasklist")
-        .args(&["/FI", &format!("PID eq {}", pid), "/NH"])
-        .output()
-        .map(|output| String::from_utf8_lossy(&output.stdout).contains(&pid.to_string()))
-        .unwrap_or(false)
+    use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+    use windows_sys::Win32::System::Threading::{OpenProcess, GetExitCodeProcess};
+    
+    const PROCESS_QUERY_INFORMATION: u32 = 0x0400;
+    const STILL_ACTIVE: u32 = 259;
+
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid as u32);
+        if handle == 0 {
+            return false;
+        }
+
+        let mut exit_code: u32 = 0;
+        let result = GetExitCodeProcess(handle, &mut exit_code);
+        CloseHandle(handle);
+
+        result != 0 && exit_code == STILL_ACTIVE
+    }
 }
 
 async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
@@ -177,7 +190,7 @@ pub async fn check_api_status() -> Result<ApiStatusCheck, String> {
     Ok(status)
 }
 
-pub async fn reconcile_pid_state() -> Result<(), String> {
+pub async fn reconcile_api_pid_state() -> Result<(), String> {
     let status = check_api_status().await?;
     let pid = get_pid().await?;
 
@@ -191,7 +204,7 @@ pub async fn reconcile_pid_state() -> Result<(), String> {
         // API responds but no PID file - recover state if possible
         if let Some(pid) = status.pid {
             println!("Recovering PID file with process ID: {}", pid);
-            save_pid(pid).await?;
+            save_api_pid(pid).await?;
         }
     }
 

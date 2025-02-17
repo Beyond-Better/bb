@@ -1,5 +1,6 @@
 import { Router } from '@oak/oak';
 import {
+	blankProject,
 	createProject,
 	deleteProject,
 	findV1Projects,
@@ -15,6 +16,7 @@ projectRouter
 	.get('/', listProjects)
 	.get('/find', findV1Projects)
 	.post('/migrate', migrateProject)
+	.get('/new', blankProject)
 	.get('/:id', getProject)
 	.post('/', createProject)
 	.put('/:id', updateProject)

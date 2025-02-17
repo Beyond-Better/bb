@@ -1,5 +1,5 @@
 /**
- * Configuration system version 2.0.0
+ * Configuration system version 2.1.0
  *
  * This module defines the type system for BB's configuration management.
  * It includes definitions for global and project-specific configurations,
@@ -7,15 +7,24 @@
  */
 
 // Version Management
-const CONFIG_VERSIONS = ['1.0.0', '2.0.0'] as const;
+const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0'] as const;
 /** Supported configuration versions */
 export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 
 /** Type of project - local directory or git repository */
 export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 
-/** Available log levels for configuration */
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/** Available log levels for configuration
+ * debug and debug0 are equivalent
+ */
+
+export type LogLevel = 'debug' | 'debug0' | 'debug1' | 'debug2' | 'info' | 'warn' | 'error';
+
+export interface DefaultModels {
+	orchestrator: string;
+	agent: string;
+	chat: string;
+}
 
 export interface CreateProjectData {
 	// 	project: {
@@ -28,6 +37,8 @@ export interface CreateProjectData {
 	anthropicApiKey?: string;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	llmGuidelinesFile?: string;
+	defaultModels?: DefaultModels;
 	useTls?: boolean;
 }
 
@@ -66,6 +77,21 @@ export interface ServerConfig {
  * - Tool management
  * - Cache control
  */
+/**
+ * LLM Provider configuration.
+ * Contains provider-specific settings and credentials.
+ */
+export interface LLMProviderConfig {
+	apiKey?: string;
+	defaultModel?: string;
+	baseURL?: string;
+	// Future extensibility for provider-specific settings
+}
+
+/**
+ * API server configuration.
+ * Extends base server config with API-specific settings.
+ */
 export interface ApiConfig extends ServerConfig {
 	maxTurns: number;
 	logLevel: LogLevel;
@@ -75,11 +101,28 @@ export interface ApiConfig extends ServerConfig {
 	usePromptCaching: boolean;
 	userToolDirectories: string[];
 	toolConfigs: Record<string, unknown>;
+	localMode?: boolean;
+	supabaseConfigUrl?: string;
 
-	// LLM Keys
+	/**
+	 * Provider-specific LLM configurations.
+	 * Includes API keys and provider settings.
+	 */
+	llmProviders?: {
+		beyondbetter?: LLMProviderConfig;
+		anthropic?: LLMProviderConfig;
+		openai?: LLMProviderConfig;
+		deepseek?: LLMProviderConfig;
+		grok?: LLMProviderConfig;
+		ollama?: LLMProviderConfig;
+		google?: LLMProviderConfig;
+	};
+
+	/** @deprecated Use llmProviders instead */
 	llmKeys?: {
 		anthropic?: string;
 		openai?: string;
+		deepseek?: string;
 		voyageai?: string;
 	};
 }
@@ -89,6 +132,10 @@ export interface ApiConfig extends ServerConfig {
  * Extends base server config with BUI-specific settings.
  */
 export interface BuiConfig extends ServerConfig {
+	supabaseUrl?: string;
+	supabaseAnonKey?: string;
+	localMode?: boolean;
+	kvSessionPath?: string;
 }
 
 /**
@@ -125,10 +172,12 @@ export interface CliConfig {
  *
  * This is stored in the user's global config directory.
  */
-export interface GlobalConfig {
+export interface GlobalConfigV2 {
 	version: ConfigVersion;
 	myPersonsName: string;
 	myAssistantsName: string;
+	llmGuidelinesFile?: string;
+	defaultModels: DefaultModels;
 	noBrowser: boolean;
 	api: ApiConfig;
 	bui: BuiConfig;
@@ -137,6 +186,8 @@ export interface GlobalConfig {
 	bbExeName: string;
 	bbApiExeName: string;
 }
+
+export type GlobalConfig = GlobalConfigV2;
 
 export interface RepoInfoConfigSchema {
 	ctagsAutoGenerate?: boolean;
@@ -153,15 +204,17 @@ export interface RepoInfoConfigSchema {
  *
  * This is stored in the project's .bb/config.yaml file.
  */
-export interface ProjectConfig {
-	projectId: string;
+export interface ProjectConfigV2 {
 	version: ConfigVersion;
+	projectId: string;
 	name: string;
 	type: ProjectType;
 	myPersonsName?: string;
 	myAssistantsName?: string;
+	defaultModels?: DefaultModels;
 	llmGuidelinesFile?: string;
 	repoInfo: RepoInfoConfigSchema;
+	useProjectApi?: boolean;
 	settings: {
 		api?: Partial<ApiConfig>;
 		bui?: Partial<BuiConfig>;
@@ -169,6 +222,8 @@ export interface ProjectConfig {
 		dui?: Partial<DuiConfig>;
 	};
 }
+
+export type ProjectConfig = ProjectConfigV2;
 
 /**
  * Result of a configuration migration operation.
@@ -241,7 +296,10 @@ export interface IConfigManagerV2 {
 }
 
 // Default configurations
-export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
+// IMPORTANT: When updating these defaults, also update the corresponding Rust defaults in:
+// dui/src-tauri/src/config.rs (impl Default for each config struct)
+// When updating these defaults, update impl Default for ApiConfig in dui/src-tauri/src/config.rs
+export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
@@ -250,37 +308,46 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmKeys'>> = {
 	maxTurns: 25,
 	logLevel: 'info',
 	logFileHydration: false,
+	localMode: false,
+	supabaseConfigUrl: 'https://www.beyondbetter.dev/api/v1/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],
 	toolConfigs: {},
+	//llmProviders: {},
 };
 
+// When updating these defaults, update impl Default for BuiConfig in dui/src-tauri/src/config.rs
 export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	hostname: 'localhost',
-	port: 8000,
+	port: 8080,
 	tls: {
-		useTls: true,
+		useTls: false,
 	},
+	localMode: false,
+	kvSessionPath: 'auth.kv',
 };
 
+// When updating these defaults, update impl Default for CliConfig in dui/src-tauri/src/config.rs
+export const CliConfigDefaults: Readonly<CliConfig> = {
+	historySize: 1000,
+};
+
+// When updating these defaults, update impl Default for DuiConfig in dui/src-tauri/src/config.rs
 export const DuiConfigDefaults: Readonly<DuiConfig> = {
 	defaultApiConfig: {},
 	projectsDirectory: './projects',
 	recentProjects: 5,
 };
 
-export const CliConfigDefaults: Readonly<CliConfig> = {
-	historySize: 1000,
-};
-
 //export const ProjectConfigDefaults: Readonly<Omit<ProjectConfig, 'version' | 'projectId' | 'name'>> = {
 export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
+	version: '2.1.0',
 	projectId: '',
 	name: '',
-	version: '2.0.0',
 	type: 'local',
 	repoInfo: { tokenLimit: 1024 },
+	useProjectApi: false,
 	settings: {
 		api: ApiConfigDefaults,
 		bui: BuiConfigDefaults,
@@ -289,13 +356,19 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 	},
 };
 
+// When updating these defaults, update impl Default for GlobalConfig in dui/src-tauri/src/config.rs
 //export const GlobalConfigDefaults: Readonly<Omit<GlobalConfig, 'version' | 'bbExeName' | 'bbApiExeName'>> = {
 export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
+	version: '2.1.0',
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
-	version: '2.0.0',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
+	defaultModels: {
+		orchestrator: 'claude-3-5-sonnet-20241022',
+		agent: 'claude-3-5-sonnet-20241022',
+		chat: 'claude-3-haiku-20240307',
+	},
 	noBrowser: false,
 	api: ApiConfigDefaults,
 	bui: BuiConfigDefaults,

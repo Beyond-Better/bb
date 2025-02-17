@@ -64,12 +64,13 @@ export function MessageEntryTool({
 
 	return (
 		<>
-			<div className='bb-tool-message bg-gray-50 border border-gray-200 rounded-lg overflow-hidden'>
+			{/* <div className='bb-tool-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'> */}
+			<div className='bb-tool-message overflow-hidden'>
 				{/* Loading state */}
 				{isLoading && (
-					<div className='flex items-center justify-center py-4'>
-						<div className='animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent' />
-						<span className='ml-2 text-blue-500'>Formatting message...</span>
+					<div className='flex items-center justify-center py-4 dark:bg-gray-800'>
+						<div className='animate-spin rounded-full h-6 w-6 border-2 border-blue-500 dark:border-blue-400 border-t-transparent' />
+						<span className='ml-2 text-blue-500 dark:text-blue-400'>Formatting message...</span>
 					</div>
 				)}
 
@@ -83,7 +84,7 @@ export function MessageEntryTool({
 								/>
 							)
 							: (
-								<pre className='m-0 py-1 px-4 bg-gray-50 text-sm'>
+								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'>
 								<code
 									className="language-json hljs"
 									dangerouslySetInnerHTML={{ __html: highlighted }}
@@ -97,20 +98,20 @@ export function MessageEntryTool({
 				{!formatted?.formattedResult?.content && !isLoading && (
 					<>
 						{content.parameters && (
-							<div className='px-2 py-2 bg-gray-100 border-t border-gray-200 text-sm'>
+							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
 								<strong>Parameters:</strong>
 								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs'>
+									<pre className='text-xs dark:text-gray-300'>
 										{JSON.stringify(content.parameters, null, 2)}
 									</pre>
 								</div>
 							</div>
 						)}
 						{content.result && (
-							<div className='px-2 py-2 bg-gray-100 border-t border-gray-200 text-sm'>
+							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
 								<strong>Result:</strong>
 								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs'>
+									<pre className='text-xs dark:text-gray-300'>
 										{JSON.stringify(content.result, null, 2)}
 									</pre>
 								</div>

@@ -2,7 +2,7 @@
 import { stripIndents } from 'common-tags';
 import { writeAllSync } from '@std/io';
 import { TextLineStream } from '@std/streams';
-import { colors } from 'cliffy/ansi/mod.ts';
+import { colors } from 'cliffy/ansi/colors';
 //import { renderToString } from 'preact-render-to-string';
 
 import ConversationLogger from 'api/storage/conversationLogger.ts';
@@ -207,7 +207,7 @@ export default class ConversationLogFormatter {
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
 			};
-			const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
+			const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, totalAllTokens: 0 };
 			if (typeof typeString !== 'undefined' && typeof timestamp !== 'undefined') {
 				const type = typeString as ConversationLogEntryType;
 				return await this.formatLogEntry(

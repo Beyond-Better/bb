@@ -100,6 +100,13 @@ function getHtmlResponse(statusData: StatusData): string {
             padding: 1rem;
             margin-bottom: 1rem;
           }
+
+          .status-info {
+            background: #f3f4f6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+          }
           
           .cert-info.self-signed {
             border-left: 4px solid #d97706;
@@ -130,19 +137,11 @@ function getHtmlResponse(statusData: StatusData): string {
             font-family: ui-monospace, monospace;
           }
 
-          .old-trust-store {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            padding: 1.25rem;
-            margin: 1rem 0;
-          }
-          
           .trust-store h3 {
             margin-top: 0;
             color: #1f2937;
           }
-          
+
           .platform-command {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -185,6 +184,15 @@ function getHtmlResponse(statusData: StatusData): string {
             border-radius: 0.25rem;
             font-size: 0.875em;
           }
+
+          .config-type {
+            display: inline-block;
+            background: #e5e7eb;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.875em;
+            margin-left: 0.5rem;
+          }
           
           .cert-info {
             background: #fff;
@@ -193,13 +201,14 @@ function getHtmlResponse(statusData: StatusData): string {
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border: 1px solid #e5e7eb;
           }
-          .config-type {
-            display: inline-block;
-            background: #e5e7eb;
-            padding: 0.2rem 0.6rem;
-            border-radius: 1rem;
-            font-size: 0.875em;
-            margin-left: 0.5rem;
+
+          .cert-info h2 {
+            font-size: 1.25rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
           }
           
           .cert-source {
@@ -337,12 +346,15 @@ function getHtmlResponse(statusData: StatusData): string {
         <div class="platform-info">
           <h2>Environment</h2>
           <p>Platform: ${statusData.platformDisplay}</p>
-          <p>Configuration: ${statusData.configType} config${
+          <p>Configuration: <span class="config-type"> ${statusData.configType} config${
 		statusData.projectName ? `: ${statusData.projectName}` : ''
-	}</span>
-        </h1>
-        <p>Status: <span class="status">${statusData.status}</span></p>
+	}</span></p>
+        </div>
+
+         <div class="status-info">
+       <p>Status: <span class="status">${statusData.status}</span></p>
         <p>${statusData.message}</p>
+        </div>
 
         <div class="cert-info${statusData.tls.certType === 'self-signed' ? ' self-signed' : ''}">
           <h2>TLS Configuration</h2>
@@ -389,6 +401,7 @@ function getHtmlResponse(statusData: StatusData): string {
                 </div>`
 			}
             </div>
+
             ${
 				statusData.tls.certSource
 					? `<p>Certificate Location: <strong>${statusData.tls.certSource} config directory</strong></p>`
@@ -399,14 +412,14 @@ function getHtmlResponse(statusData: StatusData): string {
             ${statusData.tls.subject ? `<p>Subject: <code>${statusData.tls.subject}</code></p>` : ''}
             ${
 				statusData.tls.validFrom && statusData.tls.validUntil
-					? `<div class="validity-info">
+					? `
+              <div class="validity-info">
                 <p>Valid From: ${formatDate(statusData.tls.validFrom)}</p>
                 <p>Valid Until: ${formatDate(statusData.tls.validUntil)}</p>
                 ${
 						statusData.tls.expiryStatus
-							? `<p class="expiry-status" style="color: ${
-								getExpiryStatusColor(statusData.tls.expiryStatus)
-							}">
+							? `
+                  <p class="expiry-status" style="color: ${getExpiryStatusColor(statusData.tls.expiryStatus)}">
                     Status: ${getExpiryStatusText(statusData.tls.expiryStatus)}
                   </p>`
 							: ''
@@ -424,27 +437,12 @@ function getHtmlResponse(statusData: StatusData): string {
 			? `
           <div class="warning">
             <h3>Enable Secure HTTPS</h3>
-            <p>Your BB API is running without TLS encryption. To enable HTTPS:</p>
+            <p>Your BB BUI is running without TLS encryption. To enable HTTPS:</p>
             <ol>
               <li>Run: <code>bb secure on</code></li>
-              <li>Restart the API</li>
+              <li>Restart the BUI</li>
             </ol>
             <p>This will generate and install the necessary certificates for secure communication.</p>
-          </div>
-        `
-			: ''
-	}
-
-        ${
-		statusData.tls.enabled
-			? `
-          <div class="help-section">
-            <h3>Documentation & Help</h3>
-            <div class="docs-links">
-              <a href="https://beyondbetter.dev/docs/security/certificates" target="_blank">📚 Certificate Management Guide</a><br>
-              <a href="https://beyondbetter.dev/docs/security/trust-store" target="_blank">🔐 Trust Store Guide</a><br>
-              <a href="https://beyondbetter.dev/docs/security/troubleshooting" target="_blank">🔧 Security Troubleshooting</a>
-            </div>
           </div>
         `
 			: ''
@@ -480,6 +478,16 @@ function getHtmlResponse(statusData: StatusData): string {
         `
 			: ''
 	}
+
+          <div class="help-section">
+            <h3>Documentation & Help</h3>
+            <div class="docs-links">
+              <a href="https://beyondbetter.dev/docs/security/certificates" target="_blank">📚 Certificate Management Guide</a><br>
+              <a href="https://beyondbetter.dev/docs/security/trust-store" target="_blank">🔐 Trust Store Guide</a><br>
+              <a href="https://beyondbetter.dev/docs/security/troubleshooting" target="_blank">🔧 Security Troubleshooting</a>
+            </div>
+          </div>
+
       </body>
     </html>
   `;

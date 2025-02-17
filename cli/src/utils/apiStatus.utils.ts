@@ -10,7 +10,18 @@ import { logger } from 'shared/logger.ts';
 const PID_FILE_NAME = 'api.pid';
 const APP_NAME = 'dev.beyondbetter.app';
 
-async function getAppRuntimeDir(): Promise<string> {
+/* ******************
+ * API type can be either global or per-project.
+ * The type of API is defined by whether the projectId is supplied.
+ * All of the API control functions have projectId as an optional argument
+ * If projectId is supplied then API control, such as location of PID file
+ * should be relative to the projectRoot.
+ * The calling function (CLI command entry point) is responsible for
+ * ensuring the projectId is valid, so all commands here can assume that
+ * getBbDir, getProjectRoot, etc will succeed (but that's no excuse for not handling errors)
+ ****************** */
+
+export async function getAppRuntimeDir(): Promise<string> {
 	let runtimeDir: string;
 
 	if (Deno.build.os === 'darwin') {
@@ -24,8 +35,10 @@ async function getAppRuntimeDir(): Promise<string> {
 		if (!programData) throw new Error('Could not determine ProgramData directory');
 		runtimeDir = join(programData, APP_NAME, 'run');
 	} else {
-		// Linux: /var/run/dev.beyondbetter.app
-		runtimeDir = join('/var/run', APP_NAME.toLowerCase());
+		// Linux: ~/.bb/run
+		const homeDir = Deno.env.get('HOME');
+		if (!homeDir) throw new Error('Could not determine home directory');
+		runtimeDir = join(homeDir, '.bb', 'run');
 	}
 
 	await ensureDir(runtimeDir);
@@ -120,7 +133,10 @@ export async function checkApiStatus(projectId?: string): Promise<ApiStatusCheck
 			const globalConfig = await configManager.getGlobalConfig();
 			let apiConfig: ApiConfig;
 			if (projectId) {
+				await configManager.ensureLatestProjectConfig(projectId);
 				const projectConfig = await configManager.getProjectConfig(projectId);
+				// we don't need to check projectConfig.useProjectApi here since caller
+				// is responsible for that; if we've got a projectId, we're using projectConfig
 				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 			} else {
 				apiConfig = globalConfig.api;

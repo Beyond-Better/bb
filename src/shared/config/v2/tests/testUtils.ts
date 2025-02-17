@@ -47,7 +47,7 @@ export const sampleV1GlobalConfig = {
 	},
 	bui: {
 		buiHostname: 'localhost',
-		buiPort: 8000,
+		buiPort: 8080,
 		buiUseTls: true,
 	},
 	cli: {},
@@ -87,13 +87,18 @@ export const sampleV1ProjectConfig = {
 /**
  * Sample v2 global configuration for validation testing
  */
-export const sampleV2GlobalConfig: GlobalConfig = {
-	version: '2.0.0',
+export const sampleV21GlobalConfig: GlobalConfig = {
+	version: '2.1.0',
 	myPersonsName: 'Test User',
 	myAssistantsName: 'Claude',
 	noBrowser: false,
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
+	defaultModels: {
+		orchestrator: 'claude-3-5-sonnet-20241022',
+		agent: 'claude-3-5-sonnet-20241022',
+		chat: 'claude-3-haiku-20240307',
+	},
 	api: {
 		hostname: 'localhost',
 		port: 3162,
@@ -105,13 +110,13 @@ export const sampleV2GlobalConfig: GlobalConfig = {
 		usePromptCaching: true,
 		userToolDirectories: ['./tools'],
 		toolConfigs: {},
-		llmKeys: {
-			anthropic: 'test-key',
+		llmProviders: {
+			anthropic: { apiKey: 'test-key' },
 		},
 	},
 	bui: {
 		hostname: 'localhost',
-		port: 8000,
+		port: 8080,
 		tls: { useTls: true },
 	},
 	cli: {
@@ -127,11 +132,12 @@ export const sampleV2GlobalConfig: GlobalConfig = {
 /**
  * Sample v2 project configuration for validation testing
  */
-export const sampleV2ProjectConfig: ProjectConfig = {
+export const sampleV21ProjectConfig: ProjectConfig = {
 	projectId: '123456789abc',
-	version: '2.0.0',
+	version: '2.1.0',
 	name: 'Test Project',
 	type: 'local',
+	repoInfo: { tokenLimit: 1024 },
 	llmGuidelinesFile: 'guidelines.md',
 	settings: {
 		api: {
@@ -167,8 +173,8 @@ export function mockFileSystem() {
 	};
 
 	// Mock file writing
-	Deno.writeTextFile = async (path: string | URL, content: string) => {
-		files.set(path.toString(), content);
+	Deno.writeTextFile = async (path: string | URL, content: string | ReadableStream<string>) => {
+		files.set(path.toString(), content as string);
 	};
 
 	// Mock file stats

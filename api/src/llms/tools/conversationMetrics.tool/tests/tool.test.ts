@@ -186,7 +186,7 @@ Deno.test({
 				assertEquals(metrics.tokens.byRole.assistant, 150, 'Assistant token usage should be 150');
 
 				// Cache impact
-				assert(metrics.tokens.cacheImpact.totalSavings > 0, 'Should have cache savings');
+				assert(metrics.tokens.cacheImpact.savingsTotal > 0, 'Should have cache savings');
 				assert(
 					metrics.tokens.cacheImpact.actualCost < metrics.tokens.cacheImpact.potentialCost,
 					'Actual cost should be less than potential cost',

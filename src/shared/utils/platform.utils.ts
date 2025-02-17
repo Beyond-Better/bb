@@ -2,7 +2,7 @@
 export interface PlatformInfo {
 	os: 'windows' | 'macos' | 'linux';
 	arch: 'x64' | 'arm64';
-	variant?: 'intel' | 'apple-silicon'; // for macOS
+	variant?: 'universal' | 'intel' | 'apple-silicon'; // for macOS
 }
 
 export function getPlatformInfo(): PlatformInfo {
@@ -13,7 +13,7 @@ export function getPlatformInfo(): PlatformInfo {
 		return {
 			os: 'macos',
 			arch: arch === 'aarch64' ? 'arm64' : 'x64',
-			variant: arch === 'aarch64' ? 'apple-silicon' : 'intel',
+			variant: 'universal', //arch === 'aarch64' ? 'apple-silicon' : 'intel',
 		};
 	}
 

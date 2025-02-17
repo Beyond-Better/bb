@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
+import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
-import { dirname } from '@std/path';
+//import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
 import { ChatStatus, isProcessing } from '../types/chat.types.ts';
@@ -8,23 +9,33 @@ import { ApiStatus } from 'shared/types.ts';
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import { formatPathForInsertion, getTextPositions, processSuggestions } from '../utils/textHandling.utils.ts';
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
+import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
+import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
 	adjustHeight: () => void;
 }
 
+interface ErrorState {
+	message: string;
+	timestamp: number;
+	recoveryAction?: () => void;
+	recoveryMessage?: string;
+}
+
 interface ChatInputProps {
 	apiClient: ApiClient;
 	projectId: string;
 	onCancelProcessing?: () => void;
-	value: string;
+	chatInputText: Signal<string>;
 	onChange: (value: string) => void;
-	onSend: () => void;
+	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
 	status: ChatStatus;
 	disabled?: boolean;
 	maxLength?: number;
+	conversationId: string | null;
 }
 
 enum TabState {
@@ -32,8 +43,16 @@ enum TabState {
 	SUGGESTIONS = 1, // Suggestions shown (with or without selection)
 }
 
-const inputMaxCharLength = 5000;
-const inputMaxScrollHeight = 350;
+// Constants
+const INPUT_DEBOUNCE = 16; // One frame at 60fps
+const SAVE_DEBOUNCE = 1000; // 1 second
+//const SUGGESTION_DEBOUNCE = 150;
+const ERROR_DISPLAY_TIME = 10000; // 10 seconds for error messages with recovery options
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+const INPUT_MAX_CHAR_LENGTH = 25000;
+const INPUT_MAX_SCROLL_HEIGHT = 350;
 
 // Helper function to check if we should show suggestions
 const shouldShowSuggestions = (text: string, forceShow: boolean = false): boolean => {
@@ -47,32 +66,59 @@ const shouldShowSuggestions = (text: string, forceShow: boolean = false): boolea
 	return text.startsWith('/') || text.startsWith('\\');
 };
 
+// Signal-based state
+const errorState = signal<ErrorState | null>(null);
+
+const suggestions = signal<DisplaySuggestion[]>([]);
+const suggestionsError = signal<string | null>(null);
+const isLoadingSuggestions = signal<boolean>(false);
+const isShowingSuggestions = signal<boolean>(false);
+const tabState = signal<TabState>(TabState.INITIAL);
+const cursorPosition = signal<number>(0);
+const selectedIndex = signal<number>(-1);
+
+const inputMetrics = signal({
+	lastUpdateTime: 0,
+	updateCount: 0,
+	slowUpdates: 0,
+});
+const conversationIdSignal = signal<string | null>(null);
+
 export function ChatInput({
 	apiClient,
-	value,
+	chatInputText,
 	onChange,
 	onSend,
 	textareaRef: externalRef,
 	status,
 	disabled = false,
-	maxLength = inputMaxCharLength,
+	maxLength = INPUT_MAX_CHAR_LENGTH,
 	onCancelProcessing,
 	projectId,
+	conversationId,
 }: ChatInputProps) {
-	const [suggestions, setSuggestions] = useState<DisplaySuggestion[]>([]);
-	const [isShowingSuggestions, setIsShowingSuggestions] = useState(false);
-	const [cursorPosition, setCursorPosition] = useState<number>(0);
-	const [selectedIndex, setSelectedIndex] = useState<number>(-1);
-	const [tabState, setTabState] = useState<TabState>(TabState.INITIAL);
-	const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-	const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
-
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
+	const inputDebounceRef = useRef<number | null>(null);
+	const saveDebounceRef = useRef<number | null>(null);
+	const errorTimeoutRef = useRef<number | null>(null);
+	const isInitialMount = useRef(true);
+
+	const {
+		history,
+		pinnedEntries,
+		recentEntries,
+		isDropdownOpen,
+		addToHistory,
+		togglePin,
+		//saveCurrentInput,
+		//getSavedInput,
+		//clearCurrentInput,
+	} = useChatInputHistory(conversationIdSignal);
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
-		console.debug('ChatInput: fetchSuggestions called', { searchPath, tabState, forceShow });
+		console.debug('ChatInput: fetchSuggestions called', { searchPath, tabState: tabState.value, forceShow });
 		if (!apiClient) {
 			console.error('ChatInput: API client not initialized');
 			return;
@@ -82,10 +128,10 @@ export function ChatInput({
 		// Only use root path for initial empty tab press
 		let effectivePath = searchPath;
 		if (!effectivePath) {
-			if (tabState === TabState.INITIAL && forceShow) {
+			if (tabState.value === TabState.INITIAL && forceShow) {
 				// Initial tab press on empty input - show root
 				effectivePath = '/';
-			} else if (tabState !== TabState.INITIAL) {
+			} else if (tabState.value !== TabState.INITIAL) {
 				// Typing after tab - treat as search term
 				effectivePath = '';
 			}
@@ -97,18 +143,18 @@ export function ChatInput({
 		// 	effectivePath,
 		// 	forceShow,
 		// 	shouldShow,
-		// 	tabState,
+		// 	tabState:tabState.value,
 		// });
 
 		if (!shouldShow) {
-			setSuggestions([]);
-			setIsShowingSuggestions(false);
-			setTabState(TabState.INITIAL);
+			suggestions.value = [];
+			isShowingSuggestions.value = false;
+			tabState.value = TabState.INITIAL;
 			return;
 		}
 
-		setIsLoadingSuggestions(true);
-		setSuggestionsError(null);
+		isLoadingSuggestions.value = true;
+		suggestionsError.value = null;
 
 		try {
 			// console.debug('ChatInput: Fetching suggestions', { effectivePath, projectId });
@@ -124,33 +170,33 @@ export function ChatInput({
 			// console.debug('ChatInput: Setting suggestions', {
 			// 	searchPath,
 			// 	count: processedSuggestions.length,
-			// 	tabState,
+			// 	tabState:tabState.value,
 			// 	hasMore: response.hasMore,
 			// 	forceShow,
 			// });
-			setSuggestions(processedSuggestions);
-			setIsShowingSuggestions(processedSuggestions.length > 0);
+			suggestions.value = processedSuggestions;
+			isShowingSuggestions.value = processedSuggestions.length > 0;
 		} catch (error) {
 			const errorMessage = (error as Error).message || 'Failed to fetch suggestions';
 			console.error('ChatInput: Error fetching suggestions:', error);
-			setSuggestionsError(errorMessage);
-			setSuggestions([]);
-			setIsShowingSuggestions(false);
+			suggestionsError.value = errorMessage;
+			suggestions.value = [];
+			isShowingSuggestions.value = false;
 		} finally {
-			setIsLoadingSuggestions(false);
+			isLoadingSuggestions.value = false;
 		}
 	};
 
 	const debouncedFetchSuggestions = (searchPath: string, forceShow: boolean = false) => {
-		// console.debug('ChatInput: Debouncing suggestion fetch', { searchPath, forceShow, tabState });
+		// console.debug('ChatInput: Debouncing suggestion fetch', { searchPath, forceShow, tabState:tabState.value });
 		if (suggestionDebounceRef.current) {
-			window.clearTimeout(suggestionDebounceRef.current);
+			globalThis.clearTimeout(suggestionDebounceRef.current);
 		}
 		// If we're in suggestions mode but have no search path, use root
-		if (tabState === TabState.SUGGESTIONS && !searchPath) {
+		if (tabState.value === TabState.SUGGESTIONS && !searchPath) {
 			searchPath = '/';
 		}
-		suggestionDebounceRef.current = window.setTimeout(() => {
+		suggestionDebounceRef.current = globalThis.setTimeout(() => {
 			fetchSuggestions(searchPath, forceShow);
 		}, 150); // 150ms debounce delay
 	};
@@ -158,7 +204,7 @@ export function ChatInput({
 	const adjustTextareaHeight = () => {
 		if (internalTextareaRef.current) {
 			internalTextareaRef.current.style.height = 'auto';
-			const newHeight = Math.min(internalTextareaRef.current.scrollHeight, inputMaxScrollHeight);
+			const newHeight = Math.min(internalTextareaRef.current.scrollHeight, INPUT_MAX_SCROLL_HEIGHT);
 			internalTextareaRef.current.style.height = `${newHeight}px`;
 		}
 	};
@@ -178,38 +224,237 @@ export function ChatInput({
 
 	useEffect(() => {
 		adjustTextareaHeight();
-	}, [value]);
+	}, [chatInputText.value]);
 
 	// Cleanup debounce timer
 	useEffect(() => {
 		return () => {
 			if (suggestionDebounceRef.current) {
-				window.clearTimeout(suggestionDebounceRef.current);
+				globalThis.clearTimeout(suggestionDebounceRef.current);
 			}
 		};
 	}, []);
 
+	// Initialize conversation ID signal and handle saved input
+	useEffect(() => {
+		// Skip if no conversation ID
+		if (!conversationId) {
+			console.info('ChatInput: No conversation ID to initialize');
+			return;
+		}
+
+		// Update signal immediately
+		conversationIdSignal.value = conversationId;
+
+		//// Check for saved input
+		//const saved = getSavedInput();
+		//if (saved && !chatInputText.value) {
+		//	console.info('ChatInput: Found saved input to restore', {
+		//		savedLength: saved.length,
+		//	});
+		//	onChange(saved);
+		//}
+	}, [conversationId, chatInputText.value, onChange]);
+
+	// Handle initial mount
+	useEffect(() => {
+		if (!isInitialMount.current) return;
+
+		console.info('ChatInput: Initial mount', {
+			conversationId,
+			hasValue: !!chatInputText.value,
+		});
+
+		isInitialMount.current = false;
+	}, [conversationId, chatInputText.value]);
+
+	// Safe operation wrapper with rate limit handling
+	const safeOperation = async (operation: () => Promise<void> | void, errorMessage: string) => {
+		let retryCount = 0;
+
+		const executeWithRetry = async () => {
+			try {
+				await operation();
+			} catch (e) {
+				const error = e as Error;
+				// Check for rate limit error
+				if (error.message?.includes('rate limit') && retryCount < MAX_RETRIES) {
+					console.warn('ChatInput: Rate limit hit, retrying...', { retryCount });
+					retryCount++;
+					await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY * retryCount));
+					return executeWithRetry();
+				}
+				throw error;
+			}
+		};
+
+		try {
+			await executeWithRetry();
+		} catch (e) {
+			console.error('ChatInput: Operation failed:', e);
+			errorState.value = {
+				message: errorMessage,
+				timestamp: Date.now(),
+				recoveryAction: () => executeWithRetry(),
+				recoveryMessage: 'Retry',
+			};
+
+			// Don't auto-dismiss errors that have recovery actions
+			if (!errorState.value.recoveryAction && errorTimeoutRef.current) {
+				clearTimeout(errorTimeoutRef.current);
+				errorTimeoutRef.current = setTimeout(() => {
+					errorState.value = null;
+				}, ERROR_DISPLAY_TIME);
+			}
+		}
+	};
+
+	// Handle message sending
+	const handleSend = () => {
+		const currentValue = chatInputText.value;
+		console.info('ChatInput: Sending message', {
+			hasValue: !!chatInputText.value.trim(),
+			length: chatInputText.value.length,
+			conversationId,
+		});
+
+		// Validate input before sending
+		if (!currentValue.trim()) {
+			console.info('ChatInput: Nothing to send');
+			return;
+		}
+
+		safeOperation(
+			async () => {
+				try {
+					// Add to history and clear auto-save
+					console.info('ChatInput: Message sent successfully, clearing auto-save');
+					addToHistory(currentValue);
+					//clearCurrentInput();
+					await onSend();
+				} catch (e) {
+					console.error('ChatInput: Send failed:', e);
+					errorState.value = {
+						message: 'Failed to send message. Your text has been preserved.',
+						timestamp: Date.now(),
+						recoveryMessage: 'Try again',
+						recoveryAction: () => handleSend(),
+					};
+					// On error, ensure input is saved
+					console.info('ChatInput: Send failed, ensuring input is saved');
+					//saveCurrentInput(currentValue);
+					throw e;
+				}
+			},
+			'Failed to send message',
+		);
+	};
+
+	// Track cursor position
+	const handleSelect = (e: Event) => {
+		const target = e.target as HTMLTextAreaElement;
+		cursorPosition.value = target.selectionStart || 0;
+	};
+
 	const handleInput = (e: Event) => {
+		if (!conversationId) {
+			console.info('ChatInput: No conversation ID, input will not be saved');
+		}
+		const startTime = performance.now();
+
 		// Handle space key to close suggestions
 		const target = e.target as HTMLTextAreaElement;
 		if (target.value.endsWith(' ')) {
-			setIsShowingSuggestions(false);
-			setTabState(TabState.INITIAL);
-			setSelectedIndex(-1);
+			isShowingSuggestions.value = false;
+			tabState.value = TabState.INITIAL;
+			selectedIndex.value = -1;
 		}
 		const newValue = target.value;
 		const newPosition = target.selectionStart;
 		// console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
-		setCursorPosition(newPosition);
+		cursorPosition.value = newPosition;
 		onChange(newValue);
 
+		// Debounce input updates
+		if (inputDebounceRef.current) {
+			clearTimeout(inputDebounceRef.current);
+		}
+
+		inputDebounceRef.current = setTimeout(() => {
+			try {
+				batch(() => {
+					onChange(newValue);
+
+					// Track performance
+					const duration = performance.now() - startTime;
+					if (duration > 50) {
+						console.warn('ChatInput: Slow input update:', duration.toFixed(2), 'ms');
+						inputMetrics.value = {
+							...inputMetrics.value,
+							slowUpdates: inputMetrics.value.slowUpdates + 1,
+						};
+					}
+				});
+			} catch (e) {
+				console.error('ChatInput: Failed to process input:', e);
+				errorState.value = {
+					message: 'Failed to process input. Your text has been saved.',
+					timestamp: Date.now(),
+					recoveryMessage: 'Click to restore',
+					recoveryAction: () => {
+						if (newValue) {
+							onChange(newValue);
+						}
+					},
+				};
+				// Preserve input in case of error
+				//safeOperation(
+				//	() => saveCurrentInput(newValue),
+				//	'Failed to save input',
+				//);
+			}
+		}, INPUT_DEBOUNCE);
+
+		// Handle auto-save
+		const handleAutoSave = () => {
+			if (!conversationId) {
+				console.info('ChatInput: No conversation ID for auto-save');
+				return;
+			}
+
+			// Don't save empty input
+			if (!newValue.trim()) {
+				console.info('ChatInput: Empty input, skipping auto-save');
+				//clearCurrentInput();
+				return;
+			}
+
+			console.info('ChatInput: Auto-save triggered', {
+				hasValue: !!newValue.trim(),
+				length: newValue.length,
+				conversationId,
+			});
+
+			//safeOperation(
+			//	() => saveCurrentInput(newValue),
+			//	'Failed to save input',
+			//);
+		};
+
+		// Debounce auto-save
+		if (saveDebounceRef.current) {
+			clearTimeout(saveDebounceRef.current);
+		}
+
+		saveDebounceRef.current = setTimeout(handleAutoSave, SAVE_DEBOUNCE);
+
 		// Reset selection when typing
-		if (selectedIndex >= 0) {
+		if (selectedIndex.value >= 0) {
 			// console.debug('ChatInput: Clearing selection due to typing');
-			setSelectedIndex(-1);
+			selectedIndex.value = -1;
 			// Keep suggestions visible but clear selection
-			if (tabState !== TabState.INITIAL) {
-				setTabState(TabState.SUGGESTIONS);
+			if (tabState.value !== TabState.INITIAL) {
+				tabState.value = TabState.SUGGESTIONS;
 			}
 		}
 
@@ -220,7 +465,7 @@ export function ChatInput({
 
 		// console.debug('ChatInput: Processing input', {
 		// 	currentText,
-		// 	tabState,
+		// 	tabState:tabState.value,
 		// 	wordBoundaries: { start: pos.start, end: pos.end },
 		// 	cursorPosition: newPosition,
 		// });
@@ -229,35 +474,35 @@ export function ChatInput({
 		if (currentText.includes('../') || currentText.includes('..\\') || currentText.includes(' ')) {
 			// Disable suggestions for relative paths or when space is typed
 			// console.debug('ChatInput: Relative path or space detected, hiding suggestions');
-			setIsShowingSuggestions(false);
-			setTabState(TabState.INITIAL);
-			setSelectedIndex(-1);
+			isShowingSuggestions.value = false;
+			tabState.value = TabState.INITIAL;
+			selectedIndex.value = -1;
 		} else if (shouldShowSuggestions(currentText)) {
 			// Show suggestions only if text starts with / or \ (checked in shouldShowSuggestions)
-			if (tabState === TabState.INITIAL) {
-				setTabState(TabState.SUGGESTIONS);
+			if (tabState.value === TabState.INITIAL) {
+				tabState.value = TabState.SUGGESTIONS;
 			}
 			// If we're in a directory, append a slash to show its contents
-			let searchPath = currentText;
+			const searchPath = currentText;
 			// if (currentText.endsWith('/') || currentText.endsWith('\\')) {
 			// 	console.debug('ChatInput: Directory path detected, showing contents');
 			// }
-			// console.debug('ChatInput: Updating suggestions for', { searchPath, currentText, tabState });
+			// console.debug('ChatInput: Updating suggestions for', { searchPath, currentText, tabState:tabState.value });
 			debouncedFetchSuggestions(searchPath, false);
-		} else if (tabState === TabState.SUGGESTIONS && !currentText) {
+		} else if (tabState.value === TabState.SUGGESTIONS && !currentText) {
 			// If backspaced to empty while suggestions are showing, use root
 			// console.debug('ChatInput: Empty input in suggestions mode, showing root');
 			debouncedFetchSuggestions('/', true);
 		} else {
 			// Hide suggestions in all other cases
-			setIsShowingSuggestions(false);
-			setTabState(TabState.INITIAL);
-			setSelectedIndex(-1);
+			isShowingSuggestions.value = false;
+			tabState.value = TabState.INITIAL;
+			selectedIndex.value = -1;
 		}
 	};
 
 	const handleKeyPress = async (e: KeyboardEvent) => {
-		// console.debug('ChatInput: handleKeyPress', { key: e.key, altKey: e.altKey, tabState });
+		// console.debug('ChatInput: handleKeyPress', { key: e.key, altKey: e.altKey, tabState:tabState.value });
 		if (e.key === 'Tab') {
 			e.preventDefault(); // Prevent default tab behavior immediately
 
@@ -268,23 +513,23 @@ export function ChatInput({
 			// console.debug('ChatInput: Tab key detected', {
 			// 	key: e.key,
 			// 	altKey: e.altKey,
-			// 	tabState,
-			// 	selectedIndex,
-			// 	hasSuggestions: suggestions.length > 0,
-			// 	isShowingSuggestions,
+			// 	tabState:tabState.value,
+			// 	selectedIndex:selectedIndex.value,
+			// 	hasSuggestions: suggestions.value.length > 0,
+			// 	isShowingSuggestions: isShowingSuggestions.value,
 			// });
 
 			// Get current text at cursor
-			const pos = getTextPositions(value, cursorPosition);
-			const currentSearchText = value.slice(pos.start, pos.end);
-			// console.debug('ChatInput: Tab pressed', { currentSearchText, tabState, suggestions });
+			const pos = getTextPositions(chatInputText.value, cursorPosition.value);
+			const currentSearchText = chatInputText.value.slice(pos.start, pos.end);
+			// console.debug('ChatInput: Tab pressed', { currentSearchText, tabState:tabState.value, suggestions: suggestions.value });
 
 			// Handle tab based on current state
-			switch (tabState) {
-				case TabState.INITIAL:
+			switch (tabState.value) {
+				case TabState.INITIAL: {
 					// First tab press - show suggestions
 					// console.debug('ChatInput: Initial tab with text:', currentSearchText);
-					setTabState(TabState.SUGGESTIONS);
+					tabState.value = TabState.SUGGESTIONS;
 
 					// If we have text, use it as search, otherwise show root
 					const searchPath = currentSearchText || '/';
@@ -292,32 +537,35 @@ export function ChatInput({
 					await fetchSuggestions(searchPath, true);
 
 					// If we have suggestions and text, try to select best match
-					if (suggestions.length > 0 && currentSearchText) {
-						const matchIndex = suggestions.findIndex((s) =>
+					if (suggestions.value.length > 0 && currentSearchText) {
+						const matchIndex = suggestions.value.findIndex((s) =>
 							s.display.toLowerCase().startsWith(currentSearchText.toLowerCase())
 						);
 						if (matchIndex >= 0) {
-							// console.debug('ChatInput: Found matching suggestion:', suggestions[matchIndex]);
-							setSelectedIndex(matchIndex);
+							// console.debug('ChatInput: Found matching suggestion:', suggestions.value[matchIndex]);
+							selectedIndex.value = matchIndex;
 						}
 					}
 					break;
-
-				case TabState.SUGGESTIONS:
+				}
+				case TabState.SUGGESTIONS: {
 					// console.debug('ChatInput: Tab in SUGGESTIONS state', {
-					// 	selectedIndex,
-					// 	suggestionCount: suggestions.length,
-					// 	selectedItem: selectedIndex >= 0 ? suggestions[selectedIndex] : null,
-					// 	tabState,
+					// 	selectedIndex:selectedIndex.value,
+					// 	suggestionCount: suggestions.value.length,
+					// 	selectedItem: selectedIndex.value >= 0 ? suggestions.value[selectedIndex.value] : null,
+					// 	tabState:tabState.value,
 					// });
 
 					// If we have suggestions and a selected item, handle tab completion
-					if (suggestions.length > 0 && selectedIndex >= 0 && selectedIndex < suggestions.length) {
-						const selected = suggestions[selectedIndex];
+					if (
+						suggestions.value.length > 0 && selectedIndex.value >= 0 &&
+						selectedIndex.value < suggestions.value.length
+					) {
+						const selected = suggestions.value[selectedIndex.value];
 						// console.debug('ChatInput: Tab completing selected item into search', selected);
 
 						// Get current text positions
-						const pos = getTextPositions(value, cursorPosition);
+						const pos = getTextPositions(chatInputText.value, cursorPosition.value);
 						// Replace only the search text portion
 						const displayText = selected.isDirectory ? selected.path + '/' : selected.display;
 						const newText = pos.beforeText + displayText + pos.afterText;
@@ -335,61 +583,62 @@ export function ChatInput({
 					}
 
 					// No selection or no suggestions - select first item if available
-					if (suggestions.length > 0) {
+					if (suggestions.value.length > 0) {
 						// console.debug('ChatInput: Selecting first suggestion');
-						setSelectedIndex(0);
+						selectedIndex.value = 0;
 					}
 					break;
+				}
 			}
 			return;
 		}
 
-		if (isShowingSuggestions && suggestions.length > 0) {
+		if (isShowingSuggestions.value && suggestions.value.length > 0) {
 			if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 				e.preventDefault();
 				const newIndex = e.key === 'ArrowDown'
-					? (selectedIndex + 1) % suggestions.length
-					: selectedIndex <= 0
-					? suggestions.length - 1
-					: selectedIndex - 1;
-				// console.debug(`ChatInput: ${e.key} pressed, selecting suggestion`, { newIndex, tabState });
-				setSelectedIndex(newIndex);
-				setTabState(TabState.SUGGESTIONS);
+					? (selectedIndex.value + 1) % suggestions.value.length
+					: selectedIndex.value <= 0
+					? suggestions.value.length - 1
+					: selectedIndex.value - 1;
+				// console.debug(`ChatInput: ${e.key} pressed, selecting suggestion`, { newIndex, tabState:tabState.value });
+				selectedIndex.value = newIndex;
+				tabState.value = TabState.SUGGESTIONS;
 				return;
 			}
 			if (e.key === 'ArrowUp') {
 				e.preventDefault();
-				const newIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
-				// console.debug('ChatInput: Arrow up, selecting previous suggestion', { newIndex, tabState });
-				setSelectedIndex(newIndex);
+				const newIndex = selectedIndex.value <= 0 ? suggestions.value.length - 1 : selectedIndex.value - 1;
+				// console.debug('ChatInput: Arrow up, selecting previous suggestion', { newIndex, tabState:tabState.value });
+				selectedIndex.value = newIndex;
 				// Ensure we stay in SUGGESTIONS state
-				if (tabState !== TabState.SUGGESTIONS) {
-					setTabState(TabState.SUGGESTIONS);
+				if (tabState.value !== TabState.SUGGESTIONS) {
+					tabState.value = TabState.SUGGESTIONS;
 				}
 				return;
 			}
-			if (e.key === 'Enter' && selectedIndex >= 0) {
+			if (e.key === 'Enter' && selectedIndex.value >= 0) {
 				e.preventDefault();
-				const selected = suggestions[selectedIndex];
+				const selected = suggestions.value[selectedIndex.value];
 				// console.debug('ChatInput: Enter pressed on suggestion', selected);
 				if (selected.isDirectory) {
 					// For directories: complete and show contents
 					applySuggestion(selected, true, true);
 					// Reset selection and fetch directory contents
-					setSelectedIndex(-1);
+					selectedIndex.value = -1;
 					fetchSuggestions(selected.path + '/', true);
 				} else {
 					// For files: apply and close
 					applySuggestion(selected, false, false);
-					setTabState(TabState.INITIAL);
+					tabState.value = TabState.INITIAL;
 				}
 				return;
 			}
 			if (e.key === 'Escape') {
 				e.preventDefault();
 				// console.debug('ChatInput: Escape pressed, hiding suggestions');
-				setIsShowingSuggestions(false);
-				setTabState(TabState.INITIAL);
+				isShowingSuggestions.value = false;
+				tabState.value = TabState.INITIAL;
 				return;
 			}
 		}
@@ -412,20 +661,32 @@ export function ChatInput({
 			) && !disabled && !status.isLoading && !isProcessing(status)
 		) {
 			e.preventDefault();
-			onSend();
+			//onSend();
+			handleSend();
 		}
 	};
+
+	// Cleanup
+	useEffect(() => {
+		return () => {
+			[inputDebounceRef, saveDebounceRef, suggestionDebounceRef, errorTimeoutRef].forEach((ref) => {
+				if (ref.current) {
+					clearTimeout(ref.current);
+				}
+			});
+		};
+	}, []);
 
 	const applySuggestion = (
 		suggestion: DisplaySuggestion,
 		keepOpen: boolean = false,
 		isNavigating: boolean = false,
 	) => {
-		// console.debug('ChatInput: Applying suggestion', { suggestion, keepOpen, isNavigating, tabState });
+		// console.debug('ChatInput: Applying suggestion', { suggestion, keepOpen, isNavigating, tabState:tabState.value });
 		let newText: string;
 		if (isNavigating) {
 			// During navigation, just use the raw path
-			const pos = getTextPositions(value, cursorPosition);
+			const pos = getTextPositions(chatInputText.value, cursorPosition.value);
 			// Use full path for directories to maintain context
 			const displayPath = suggestion.isDirectory ? suggestion.path + '/' : suggestion.display;
 			// Replace only the current word
@@ -450,14 +711,14 @@ export function ChatInput({
 			}, 0);
 		} else {
 			// Final selection - use full formatting
-			const pos = getTextPositions(value, cursorPosition);
+			const pos = getTextPositions(chatInputText.value, cursorPosition.value);
 			// console.debug('ChatInput: Text positions for final selection', pos);
 			newText = formatPathForInsertion(suggestion.path, pos);
 			// For final selection, place cursor at end of the line
 			setTimeout(() => {
 				if (internalTextareaRef.current) {
-					const lines = newText.split('\n');
-					const lastLine = lines[lines.length - 1];
+					//const lines = newText.split('\n');
+					//const lastLine = lines[lines.length - 1];
 					const newPos: number = newText.length;
 					internalTextareaRef.current.setSelectionRange(newPos, newPos);
 				}
@@ -468,18 +729,18 @@ export function ChatInput({
 
 		if (!keepOpen) {
 			// Close suggestions for files or when explicitly closing
-			setIsShowingSuggestions(false);
-			setTabState(TabState.INITIAL);
+			isShowingSuggestions.value = false;
+			tabState.value = TabState.INITIAL;
 		} else if (suggestion.isDirectory) {
 			// For directories, immediately show their contents
 			// console.debug('ChatInput: Showing directory contents');
-			setSelectedIndex(-1);
-			setTabState(TabState.SUGGESTIONS);
+			selectedIndex.value = -1;
+			tabState.value = TabState.SUGGESTIONS;
 			// Use the full path to fetch directory contents
 			fetchSuggestions(suggestion.path + '/', true);
 		} else {
 			// For files with keepOpen, just update suggestions
-			setSelectedIndex(-1);
+			selectedIndex.value = -1;
 			const pos = getTextPositions(newText, newText.length);
 			const currentText = newText.slice(pos.start, pos.end);
 			debouncedFetchSuggestions(currentText, true);
@@ -578,7 +839,7 @@ export function ChatInput({
 	const statusInfo = getStatusInfo();
 
 	return (
-		<div className='bg-white px-4 py-2 w-full'>
+		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full'>
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}
@@ -587,18 +848,53 @@ export function ChatInput({
 				className='mx-1'
 			/>
 
+			{errorState.value && (
+				<div className='text-sm text-red-500 dark:text-red-400 mb-2 flex items-center justify-between'>
+					<span>{errorState.value.message}</span>
+					<div className='flex items-center'>
+						{errorState.value.recoveryAction && (
+							<button
+								onClick={() => {
+									errorState.value?.recoveryAction?.();
+									errorState.value = null;
+								}}
+								className='ml-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+							>
+								{errorState.value.recoveryMessage || 'Retry'}
+							</button>
+						)}
+						<button
+							onClick={() => errorState.value = null}
+							className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
+							title='Dismiss'
+						>
+							✕
+						</button>
+					</div>
+				</div>
+			)}
+
 			<div className='flex items-end space-x-3'>
 				<div className='flex-grow relative'>
 					<textarea
 						ref={internalTextareaRef}
-						value={value}
+						value={chatInputText.value}
 						onInput={handleInput}
 						onKeyDown={handleKeyPress}
-						className={`w-full px-3 py-2 border rounded-md resize-none overflow-y-auto 
-						  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+						onSelect={handleSelect}
+						onClick={() => {
+							if (isDropdownOpen.value) {
+								isDropdownOpen.value = false;
+							}
+						}}
+						className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
+						  dark:bg-gray-800 dark:text-gray-100 
+						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
-						  ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
-						  ${isProcessing(status) ? 'border-blue-200 bg-white' : ''}`}
+						  ${disabled ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
+						  ${
+							isProcessing(status) ? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800' : ''
+						}`}
 						placeholder={isProcessing(status)
 							? 'Type your message... (Statement in progress)'
 							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
@@ -606,57 +902,61 @@ export function ChatInput({
 						maxLength={maxLength}
 						disabled={disabled}
 						aria-label='Message input'
-						aria-expanded={isShowingSuggestions}
+						aria-expanded={isShowingSuggestions.value}
 						aria-haspopup='listbox'
-						aria-controls={isShowingSuggestions ? 'suggestions-list' : undefined}
-						aria-activedescendant={selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined}
+						aria-controls={isShowingSuggestions.value ? 'suggestions-list' : undefined}
+						aria-activedescendant={selectedIndex.value >= 0
+							? `suggestion-${selectedIndex.value}`
+							: undefined}
 					/>
 
-					{(isShowingSuggestions || isLoadingSuggestions || suggestionsError) && (
+					{(isShowingSuggestions.value || isLoadingSuggestions.value || suggestionsError.value) && (
 						<div
-							className='absolute z-10 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
+							className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
 							style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
 						>
-							{isLoadingSuggestions && (
-								<div className='flex items-center justify-center py-4'>
-									<LoadingSpinner size='small' color='text-blue-500' />
-									<span className='ml-2 text-gray-600'>Loading suggestions...</span>
+							{isLoadingSuggestions.value && (
+								<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
+									<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
+									<span className='ml-2 text-gray-600 dark:text-gray-300'>
+										Loading suggestions...
+									</span>
 								</div>
 							)}
 
-							{suggestionsError && (
-								<div className='text-red-500 p-3 text-sm'>
-									Error: {suggestionsError}
+							{suggestionsError.value && (
+								<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
+									Error: {suggestionsError.value}
 								</div>
 							)}
 
-							{!isLoadingSuggestions && !suggestionsError && suggestions.length > 0 && (
+							{!isLoadingSuggestions.value && !suggestionsError.value && suggestions.value.length > 0 && (
 								<ul
 									id='suggestions-list'
 									role='listbox'
 								>
-									{suggestions.map((suggestion, index) => (
+									{suggestions.value.map((suggestion, index) => (
 										<li
 											id={`suggestion-${index}`}
 											key={suggestion.path}
 											role='option'
-											aria-selected={index === selectedIndex}
+											aria-selected={index === selectedIndex.value}
 											className={`cursor-pointer py-2 pl-3 pr-9 ${
-												index === selectedIndex
+												index === selectedIndex.value
 													? 'bg-blue-600 text-white'
-													: 'text-gray-900 hover:bg-blue-600 hover:text-white'
+													: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
 											}`}
 											onClick={() => {
 												if (suggestion.isDirectory) {
 													// For directories: complete and show contents
 													applySuggestion(suggestion, true, true);
 													// Reset selection and fetch directory contents
-													setSelectedIndex(-1);
+													selectedIndex.value = -1;
 													fetchSuggestions(suggestion.path + '/', true);
 												} else {
 													// For files: apply and close
 													applySuggestion(suggestion, false, false);
-													setTabState(TabState.INITIAL);
+													tabState.value = TabState.INITIAL;
 												}
 											}}
 										>
@@ -667,7 +967,9 @@ export function ChatInput({
 												</span>
 												<span
 													className={`ml-2 truncate text-sm ${
-														index === selectedIndex ? 'text-blue-200' : 'text-gray-500'
+														index === selectedIndex.value
+															? 'text-blue-200'
+															: 'text-gray-500'
 													}`}
 												>
 													({suggestion.parent})
@@ -680,30 +982,70 @@ export function ChatInput({
 						</div>
 					)}
 
-					<div className='absolute bottom-2 right-2 flex items-center space-x-2'>
-						<span
-							className={`text-xs ${value.length > maxLength * 0.9 ? 'text-red-500' : 'text-gray-400'}`}
+					<ChatHistoryDropdown
+						pinnedEntries={pinnedEntries}
+						recentEntries={recentEntries}
+						isOpen={isDropdownOpen}
+						onSelect={(value) => {
+							console.info('ChatInput: History entry selected', { valueLength: value.length });
+							onChange(value);
+							isDropdownOpen.value = false;
+						}}
+						onTogglePin={togglePin}
+					/>
+
+					<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
+						<button
+							onClick={() => {
+								const newValue = !isDropdownOpen.value;
+								console.info('ChatInput: History toggled', {
+									wasOpen: isDropdownOpen.value,
+									nowOpen: newValue,
+									hasHistory: history.value.length > 0,
+									pinnedCount: pinnedEntries.value.length,
+									recentCount: recentEntries.value.length,
+								});
+								isDropdownOpen.value = newValue;
+							}}
+							className='p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+							title='Show history'
 						>
-							{value.length} / {maxLength}
+							<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+								/>
+							</svg>
+						</button>
+						<span
+							className={`text-xs ${
+								chatInputText.value.length > maxLength * 0.9
+									? 'text-red-500 dark:text-red-400'
+									: 'text-gray-400 dark:text-gray-500'
+							}`}
+						>
+							{chatInputText.value.length} / {maxLength}
 						</span>
 					</div>
 				</div>
 				<button
-					onClick={onSend}
+					onClick={handleSend}
 					className={`px-4 py-2 mb-1 rounded-md transition-colors 
 						focus:outline-none focus:ring-2 focus:ring-blue-500 
 						focus:ring-opacity-50 min-w-[60px] ml-2
 						${
 						isProcessing(status)
-							? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+							? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
 							: disabled
-							? 'bg-gray-300 cursor-not-allowed'
-							: 'bg-blue-500 text-white hover:bg-blue-600'
+							? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+							: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
 					}`}
 					disabled={status.isLoading || disabled || isProcessing(status)}
 					aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
 				>
-					{status.isLoading ? <LoadingSpinner size='small' color='text-white' /> : 'Send'}
+					{status.isLoading ? <LoadingSpinner size='small' color='text-white dark:text-gray-200' /> : 'Send'}
 				</button>
 			</div>
 		</div>

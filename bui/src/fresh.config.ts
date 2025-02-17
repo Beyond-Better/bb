@@ -1,15 +1,71 @@
 import { defineConfig } from '$fresh/server.ts';
 import tailwind from '$fresh/plugins/tailwind.ts';
 import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { getAppRuntimeDir } from '../../cli/src/utils/apiStatus.utils.ts';
+import { join } from '@std/path';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
+//import { authPlugin } from './plugins/auth.plugin.ts';
+import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
 
 const configManager = await ConfigManagerV2.getInstance();
+// Ensure configs are at latest version
+await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
+console.log('BUI Config: ', globalRedactedConfig);
 
-const environment = globalConfig.bui.environment || 'local';
+const writePidFile = async (): Promise<string | null> => {
+	try {
+		const runtimeDir = await getAppRuntimeDir();
+		const pidFile = join(runtimeDir, 'bui.pid');
+		//console.log(`Writing PID to ${pidFile}`);
+		await Deno.writeTextFile(pidFile, Deno.pid.toString());
+		console.log(`PID file written: ${pidFile} with PID: ${Deno.pid}`);
+		return pidFile;
+	} catch (error) {
+		console.error('Error writing PID file:', error);
+		return null;
+	}
+};
+
+const cleanupSetup = (pidFile: string | null) => {
+	try {
+		// Set up cleanup on exit
+		const cleanup = async (code: number = 0) => {
+			try {
+				if (pidFile) {
+					await Deno.remove(pidFile);
+					console.log('PID file removed');
+					Deno.exit(code);
+				} else {
+					Deno.exit(2);
+				}
+			} catch (error) {
+				console.error('Error removing PID file:', error);
+			} finally {
+				Deno.exit(1);
+			}
+		};
+
+		// Handle various exit signals
+		const signals: Deno.Signal[] = ['SIGINT', 'SIGTERM'];
+		for (const signal of signals) {
+			Deno.addSignalListener(signal, cleanup);
+		}
+		//addEventListener('unload', cleanup);
+	} catch (error) {
+		console.error('Error creating shutdown handlers:', error);
+	}
+};
+
+// Write PID file on startup
+const pidFile = await writePidFile();
+cleanupSetup(pidFile);
+
+//const environment = globalConfig.bui.environment || 'local';
 const hostname = globalConfig.bui.hostname || 'localhost';
-const port = globalConfig.bui.port || 8000;
+const port = globalConfig.bui.port || 8080;
 const useTls = globalConfig.bui.tls?.useTls ?? true;
 
 // it appears that Deno Fresh doesn't honour the `hostname` option - it's always 'localhost'
@@ -22,7 +78,7 @@ if (useTls) {
 		const startDir = Deno.cwd();
 		const projectRoot = await getProjectRootFromStartDir(startDir);
 		projectId = await getProjectId(projectRoot);
-	} catch (error) {
+	} catch (_error) {
 		projectId = undefined;
 	}
 
@@ -97,6 +153,13 @@ export default defineConfig({
 			name: 'highlight.js-theme',
 			...highlightStyles,
 		},
+		// Keep both auth plugins during transition
+		//supabaseAuthPlugin(globalConfig.bui),
+		//authPlugin(globalConfig.bui),
+		buiConfigPlugin(globalConfig.bui),
+		// 		{
+		// 			name: 'supabase_auth'
+		// 		},
 	],
 	// build: {
 	// 	esbuild: {

@@ -108,7 +108,7 @@ export const formatLogEntryToolResult = (
 								</div>,
 								<div>
 									Total Savings: {LLMTool.TOOL_TAGS_BROWSER.content.tokenUsage(
-										metrics.tokens.cacheImpact.totalSavings,
+										metrics.tokens.cacheImpact.savingsTotal,
 									)}
 								</div>,
 								<div>

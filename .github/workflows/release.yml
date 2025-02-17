@@ -36,19 +36,32 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Building with Deno version
+        run: |
+          deno --version
 
       - name: Build CLI for ${{ matrix.target }}
         run: |
           cd cli
+          deno task update-deps
           deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --target ${{ matrix.target }} --output ../build/bb${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} src/main.ts
 
       - name: Build API for ${{ matrix.target }}
         run: |
           cd api
+          deno task update-deps
           deno run --allow-read --allow-run --allow-write scripts/compile.ts --target ${{ matrix.target }} --output ../build/bb-api${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }}
+
+      - name: Build BUI for ${{ matrix.target }}
+        run: |
+          cd bui
+          deno task update-deps
+          deno run -A --unstable-kv src/dev.ts build
+          deno compile --include src/static --include src/_fresh --include deno.jsonc --target ${{ matrix.target }} --output ../build/bb-bui${{ matrix.target == 'x86_64-pc-windows-msvc' && '.exe' || '' }} -A src/main.ts
 
       - name: Create install script (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
@@ -56,7 +69,8 @@ jobs:
           echo '#!/bin/sh' > build/install.sh
           echo 'cp bb /usr/local/bin/' >> build/install.sh
           echo 'cp bb-api /usr/local/bin/' >> build/install.sh
-          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api' >> build/install.sh
+          echo 'cp bb-bui /usr/local/bin/' >> build/install.sh
+          echo 'chmod +x /usr/local/bin/bb /usr/local/bin/bb-api /usr/local/bin/bb-bui' >> build/install.sh
           chmod +x build/install.sh
 
       - name: Copy README and INSTALL
@@ -103,7 +117,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
@@ -212,7 +226,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
@@ -225,6 +239,7 @@ jobs:
 
       - name: List downloaded artifacts
         run: |
+          echo "Artifacts for version: v${{ steps.get_version.outputs.VERSION }}"
           echo "Current directory: $PWD"
           echo "Directory contents:"
           ls -la
@@ -280,7 +295,7 @@ jobs:
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
-            ${{ github.event.pull_request && github.event.pull_request.body || inputs.version && format('Version {0} release', inputs.version) || 'No release notes provided.' }}
+            ${{ github.event.pull_request && github.event.pull_request.body || (inputs.version && format('Version {0} release', inputs.version)) || 'No release notes provided.' }}
           draft: false
           prerelease: false
 

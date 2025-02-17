@@ -1,6 +1,6 @@
-import { computed, Signal } from '@preact/signals';
+import { computed } from '@preact/signals';
 import { compare, parse } from '@std/semver';
-import type { VersionCompatibility } from 'shared/types/version.ts';
+//import type { VersionCompatibility } from 'shared/types/version.ts';
 import { useAppState } from './useAppState.ts';
 
 export function useVersion() {

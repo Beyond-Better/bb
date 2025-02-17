@@ -39,9 +39,9 @@ export function VersionStatusIndicator({ className = '' }: VersionStatusIndicato
 
 	return (
 		<div
-			className={`w-2 h-2 rounded-full ${compatible ? 'bg-green-500' : 'bg-yellow-500 animate-pulse'} ${
-				className ?? ''
-			}`}
+			className={`w-2 h-2 rounded-full ${
+				compatible ? 'bg-green-500 dark:bg-green-400' : 'bg-yellow-500 dark:bg-yellow-400 animate-pulse'
+			} ${className ?? ''}`}
 			title={compatible ? 'Version compatible' : 'Version mismatch'}
 		/>
 	);

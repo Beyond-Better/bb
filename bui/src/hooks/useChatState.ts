@@ -2,13 +2,13 @@ import { useEffect } from 'preact/hooks';
 import { Signal, signal, useComputed } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { useVersion } from './useVersion.ts';
-import { type ProjectState, useProjectState } from './useProjectState.ts';
+//import { useVersion } from './useVersion.ts';
+import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
-import { isProcessing } from '../types/chat.types.ts';
-import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+//import { isProcessing } from '../types/chat.types.ts';
+//import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
@@ -34,10 +34,10 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 	isAnswerMessage: false,
 });
 
-export async function initializeChat(
+export function initializeChat(
 	config: ChatConfig,
 	appState: Signal<AppState>,
-): Promise<InitializationResult> {
+): InitializationResult {
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
@@ -57,6 +57,19 @@ export async function initializeChat(
 		wsManager,
 	};
 }
+
+// Performance tracking for state updates
+let lastStateUpdateTime = Date.now();
+const trackStateUpdate = (operation: string) => {
+	const now = Date.now();
+	const timeSinceLastUpdate = now - lastStateUpdateTime;
+	console.debug('useChatState: State update timing', {
+		operation,
+		timeSinceLastUpdate,
+		timestamp: new Date(now).toISOString(),
+	});
+	lastStateUpdateTime = now;
+};
 
 export function useChatState(
 	config: ChatConfig,
@@ -82,6 +95,7 @@ export function useChatState(
 
 	// Update chatState with computed project data
 	useEffect(() => {
+		trackStateUpdate('setState');
 		chatState.value = {
 			...chatState.value,
 			projectData: projectData.value,
@@ -146,6 +160,8 @@ export function useChatState(
 		let currentWsManager: WebSocketManager | null = null;
 
 		async function initialize() {
+			const initStart = performance.now();
+			console.debug('useChatState: Starting initialization');
 			console.log('useChatState: initialize called', {
 				mounted,
 				existingWsManager: chatState.value.wsManager?.constructor.name,
@@ -158,7 +174,7 @@ export function useChatState(
 					status: { ...chatState.value.status, isLoading: true },
 				};
 
-				const { apiClient, wsManager } = await initializeChat(config, appState);
+				const { apiClient, wsManager } = initializeChat(config, appState);
 
 				// Load conversation list before WebSocket setup
 				const conversationResponse = appState.value.projectId
@@ -168,9 +184,10 @@ export function useChatState(
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
+				console.log('useChatState: conversations', conversations);
 
 				// Get conversation ID from URL if it exists, or create a new one
-				const params = new URLSearchParams(window.location.search);
+				const params = new URLSearchParams(globalThis.location.search);
 				const urlConversationId = params.get('conversationId');
 				const conversationId = urlConversationId || chatState.value.conversationId ||
 					appState.value.conversationId || generateConversationId();
@@ -223,7 +240,11 @@ export function useChatState(
 					}
 				});
 
-				console.log('useChatState: initialization complete');
+				console.debug('useChatState: Initialization complete', {
+					// duration: initDuration.toFixed(2) + 'ms',
+					logEntriesCount: chatState.value.logEntries.length,
+					conversationsCount: chatState.value.conversations.length,
+				});
 
 				// Update final status
 				chatState.value = {
@@ -235,7 +256,7 @@ export function useChatState(
 				if (!mounted) return;
 
 				// Provide user-friendly error messages
-				let errorMessage = 'Failed to initialize chat';
+				let errorMessage = 'Failed to initialize chat - create or select a project';
 				if ((error as Error).message.includes('timeout')) {
 					errorMessage = 'Connection timed out. Please check your network and try again.';
 				} else if ((error as Error).message.includes('WebSocket')) {
@@ -328,7 +349,14 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = async (data: { msgType: string; logEntryData: any }) => {
+		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
+			const startTime = performance.now();
+			console.debug('useChatState: Processing message:', {
+				type: data.msgType,
+				currentLogEntries: chatState.value.logEntries.length,
+				timestamp: new Date().toISOString(),
+			});
+			console.debug('useChatState: Processing message:', data.msgType);
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) => p.projectId === appState.value.projectId);
 			if (!currentProject) return;
@@ -404,10 +432,29 @@ export function useChatState(
 			// Only process messages for the current conversation
 			if (data.logEntryData.conversationId !== chatState.value.conversationId) return;
 
-			// Update log entries
+			// Update log entries and conversation stats
 			chatState.value = {
 				...chatState.value,
-				logEntries: [...chatState.value.logEntries, data.logEntryData],
+				conversations: chatState.value.conversations.map((conv) => {
+					if (conv.id === data.logEntryData.conversationId) {
+						return {
+							...conv,
+							tokenUsageConversation: data.logEntryData.tokenUsageConversation,
+							conversationStats: data.logEntryData.conversationStats,
+							updatedAt: data.logEntryData.timestamp,
+						};
+					}
+					return conv;
+				}),
+				logEntries: (() => {
+					const newEntries = [...chatState.value.logEntries, data.logEntryData];
+					console.debug('useChatState: Updated logEntries', {
+						previousCount: chatState.value.logEntries.length,
+						newCount: newEntries.length,
+						processingTime: performance.now() - startTime,
+					});
+					return newEntries;
+				})(),
 			};
 
 			if (scrollIndicatorState.value.isVisible) {
@@ -420,7 +467,7 @@ export function useChatState(
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				// Update project stats for token usage
-				const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
+				// const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
 				// await updateProjectStats(currentProject.projectId, {
 				// 	conversationCount: currentProject.stats?.conversationCount || 1,
 				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
@@ -450,7 +497,7 @@ export function useChatState(
 			}
 		};
 
-		const handleVersionInfo = (versionInfo: VersionInfo) => {
+		const handleVersionInfo = (_versionInfo: VersionInfo) => {
 			if (!mounted) return;
 			// Update local state
 			//chatState.value = {
@@ -699,7 +746,7 @@ export function useChatState(
 			}
 		},
 
-		clearConversation: async () => {
+		clearConversation: () => {
 			chatState.value = {
 				...chatState.value,
 				logEntries: [],

@@ -1,9 +1,8 @@
 import { Signal } from '@preact/signals';
-
-import type { ChatState, ConversationListState } from '../types/chat.types.ts';
-// import type { Conversation } from 'shared/types.ts';
+import type { ConversationListState } from '../types/chat.types.ts';
 
 interface ConversationListProps {
+	onClose?: () => void;
 	conversationListState: Signal<ConversationListState>;
 	onSelect: (id: string) => void;
 	onNew: () => void;
@@ -33,52 +32,80 @@ export interface Conversation {
 
 export function ConversationList({
 	conversationListState,
+	onClose,
 	onSelect,
 	onNew,
 	onDelete,
 }: ConversationListProps) {
 	const isLoading = conversationListState.value.isLoading;
-	//console.log(`ConversationList: conversationListState:`, conversationListState.value);
 
 	return (
-		<div className='w-[30%] min-w-[20rem] bg-white border-r border-gray-200 flex flex-col min-h-0'>
-			<div className='p-4 border-b border-gray-200 flex-none bg-gray-50'>
-				<button
-					onClick={onNew}
-					className='w-full bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300'
-					disabled={isLoading}
-				>
-					{isLoading
-						? (
-							<>
-								<div className='animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent'>
-								</div>
-								<span>Loading...</span>
-								<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent'>
-								</div>
-							</>
-						)
-						: (
-							<>
-								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M12 6v6m0 0v6m0-6h6m-6 0H6'
-									/>
-								</svg>
-								<span>New Conversation</span>
-							</>
-						)}
-				</button>
+		<div className='flex flex-col h-full'>
+			{/* New Conversation Button */}
+			<div className='p-4 border-b border-gray-200 dark:border-gray-700 flex-none bg-gray-50 dark:bg-gray-800'>
+				<div className='flex items-center gap-2 w-full'>
+					{/* Close Button */}
+					<button
+						onClick={onNew}
+						className='flex-grow bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600'
+						disabled={isLoading}
+					>
+						{isLoading
+							? (
+								<>
+									<div className='animate-spin rounded-full h-4 w-4 border-2 border-gray-200 dark:border-gray-700 border-t-transparent'>
+									</div>
+									<span>Loading...</span>
+									<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent'>
+									</div>
+								</>
+							)
+							: (
+								<>
+									<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth={2}
+											d='M12 6v6m0 0v6m0-6h6m-6 0H6'
+										/>
+									</svg>
+									<span>New Conversation</span>
+								</>
+							)}
+					</button>
+					{onClose && (
+						<button
+							onClick={onClose}
+							className='p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors shrink-0'
+							title='Close conversation list'
+						>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								fill='none'
+								viewBox='0 0 24 24'
+								strokeWidth={1.5}
+								stroke='currentColor'
+								className='w-5 h-5'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									d='M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5'
+								/>
+							</svg>
+						</button>
+					)}
+				</div>
 			</div>
+
+			{/* Conversations List */}
 			<div className='flex-1 overflow-y-auto'>
 				{conversationListState.value.conversations.length === 0
 					? (
-						<div className='text-center text-gray-500 py-8'>
+						<div className='text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 py-8'>
 							<svg
-								className='w-12 h-12 mx-auto mb-3 text-gray-400'
+								className='w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500 dark:text-gray-500'
 								fill='none'
 								stroke='currentColor'
 								viewBox='0 0 24 24'
@@ -90,25 +117,31 @@ export function ConversationList({
 									d='M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z'
 								/>
 							</svg>
-							<p className='text-sm font-medium'>No conversations yet</p>
-							<p className='text-xs mt-1'>Start a new conversation to begin</p>
+							<p className='text-sm font-medium text-gray-500 dark:text-gray-400 dark:text-gray-400'>
+								No conversations yet
+							</p>
+							<p className='text-xs mt-1 text-gray-500 dark:text-gray-400 dark:text-gray-400'>
+								Start a new conversation to begin
+							</p>
 						</div>
 					)
 					: (
-						<ul className='space-y-2 p-2'>
+						<ul className='space-y-2 p-2 text-gray-600 dark:text-gray-300'>
 							{conversationListState.value.conversations
 								.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 								.map((conv) => (
 									<li
 										key={conv.id}
-										className={`p-4 hover:bg-gray-50 cursor-pointer transition-all duration-200 rounded-lg border group ${
-											conv.id === conversationListState.value.selectedId ? 'bg-blue-50' : ''
+										className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200 rounded-lg border dark:border-gray-700 group ${
+											conv.id === conversationListState.value.selectedId
+												? 'bg-blue-50 dark:bg-blue-900/30'
+												: ''
 										} ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
 										onClick={() => !isLoading && onSelect(conv.id)}
 									>
 										<div className='flex justify-between items-start'>
 											<h3
-												className='font-medium text-gray-900 truncate text-sm'
+												className='font-medium text-gray-900 dark:text-gray-100 dark:text-gray-100 truncate text-sm'
 												title={conv.title || 'Untitled'}
 											>
 												{conv.title || 'Untitled'}
@@ -116,7 +149,7 @@ export function ConversationList({
 											{/* Delete button - only visible on hover */}
 											<button
 												onClick={(e) => {
-													e.stopPropagation(); // Prevent conversation selection
+													e.stopPropagation();
 													if (
 														confirm(
 															`Are you sure you want to delete the conversation '${conv.title}'?`,
@@ -125,7 +158,7 @@ export function ConversationList({
 														onDelete(conv.id);
 													}
 												}}
-												className='opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 p-1 rounded transition-opacity duration-200'
+												className='opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-300 dark:hover:text-red-400 p-1 rounded transition-opacity duration-200'
 												disabled={isLoading}
 											>
 												<svg
@@ -144,7 +177,7 @@ export function ConversationList({
 												</svg>
 											</button>
 										</div>
-										<div className='grid grid-cols-2 gap-1.5 text-xs text-gray-500 mt-1'>
+										<div className='grid grid-cols-2 gap-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1'>
 											<span className='truncate'>ID: {conv.id}</span>
 											<span className='flex items-center whitespace-nowrap'>
 												<svg
@@ -170,7 +203,7 @@ export function ConversationList({
 										</div>
 										<div className='grid grid-cols-2 gap-1.5 text-xs mt-1'>
 											{conv.conversationStats && (
-												<p className='flex items-center text-blue-600'>
+												<p className='flex items-center text-blue-600 dark:text-blue-400 dark:text-blue-400'>
 													<svg
 														className='w-3.5 h-3.5 mr-1'
 														fill='none'
@@ -188,7 +221,7 @@ export function ConversationList({
 												</p>
 											)}
 											{conv.tokenUsageConversation && (
-												<p className='flex items-center text-purple-600'>
+												<p className='flex items-center text-purple-600 dark:text-purple-400 dark:text-purple-400'>
 													<svg
 														className='w-3.5 h-3.5 mr-1'
 														fill='none'

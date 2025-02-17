@@ -1,38 +1,26 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import type { RefObject } from 'preact';
-import { computed, Signal } from '@preact/signals';
+//import type { RefObject } from 'preact';
+import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
-type MouseEvent = JSX.TargetedMouseEvent<HTMLButtonElement | HTMLLIElement | HTMLDivElement>;
 import { IS_BROWSER } from '$fresh/runtime.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
-import { getDefaultTokenUsage, hasLogEntry, isConversationStart } from '../utils/typeGuards.utils.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
+import { ConversationHeader } from '../components/ConversationHeader.tsx';
 import { ConversationList } from '../components/ConversationList.tsx';
 import { Toast } from '../components/Toast.tsx';
-import { Button } from '../components/Button.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
-import { useVersion } from '../hooks/useVersion.ts';
+//import { useVersion } from '../hooks/useVersion.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
-
 import { ChatInput } from '../components/ChatInput.tsx';
-// ConversationHeader has been deprecated in favor of ChatMetadata
-// ProjectMetadata is now handled in routes/chat/index.tsx
-import { ConversationInfo } from '../components/ConversationInfo.tsx';
-import { ApiStatus } from 'shared/types.ts';
-import { ToolBar } from '../components/ToolBar.tsx';
-import type {
-	Conversation,
-	ConversationEntry,
-	ConversationLogEntry,
-	ConversationMetadata,
-	TokenUsage,
-} from 'shared/types.ts';
+//import { ToolBar } from '../components/ToolBar.tsx';
+//import { ApiStatus } from 'shared/types.ts';
+import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getUrlParams, getWsUrl } from '../utils/url.utils.ts';
+import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
 const getConversationId = () => {
@@ -40,43 +28,59 @@ const getConversationId = () => {
 	return params?.get('conversationId') || null;
 };
 
-// Project ID is now managed by useProjectState
+const INPUT_MAX_CHAR_LENGTH = 25000;
 
 interface ChatProps {
 	chatState: Signal<ChatState>;
 }
 
+// Initialize conversation list visibility state
+const isConversationListVisible = signal(false);
+const chatInputText = signal('');
+
 export default function Chat({
 	chatState,
 }: ChatProps): JSX.Element {
-	//console.log('Chat: Component mounting');
+	//console.info('Chat: Component rendering');
 	// Initialize version checking
-	const { versionCompatibility } = useVersion();
+	//const { versionCompatibility } = useVersion();
 	const appState = useAppState();
 
 	// Get project state and selectedProjectId signal
-	const { state: projectState, selectedProjectId } = useProjectState(appState);
+	//const { state: projectState, selectedProjectId } = useProjectState(appState);
+	const { selectedProjectId } = useProjectState(appState);
 	// Use projectId from selectedProjectId signal
 	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
-	const [input, setInput] = useState('');
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
+	// Refs
 	interface ChatInputRef {
 		textarea: HTMLTextAreaElement;
 		adjustHeight: () => void;
 	}
-
 	const chatInputRef = useRef<ChatInputRef>(null);
-
-	// Refs
 	const messagesEndRef = useRef<HTMLDivElement>(null);
+	// Track input changes for performance monitoring
+	//const lastInputUpdateRef = useRef<number>(Date.now());
+
+	const setInputWithTracking = (value: string) => {
+		//const now = Date.now();
+		//const timeSinceLastUpdate = now - lastInputUpdateRef.current;
+		//if (timeSinceLastUpdate < 16) { // Less than one frame at 60fps
+		//	console.debug('Chat: Rapid input updates detected:', timeSinceLastUpdate, 'ms');
+		//}
+		//lastInputUpdateRef.current = now;
+		chatInputText.value = value;
+		//console.debug('Chat: Current chatInputText length:', chatInputText.value.length);
+	};
 
 	// Initialize chat configuration
 	const apiHostname = getApiHostname();
 	const apiPort = getApiPort();
 	const apiUseTls = getApiUseTls();
+	//console.log('Chat: ', { apiHostname, apiPort, apiUseTls });
 
 	if (!apiHostname || !apiPort) {
 		return (
@@ -154,17 +158,25 @@ export default function Chat({
 	};
 
 	const sendConverse = async (retryCount = 0) => {
+		const startTime = performance.now();
+		//console.debug('Chat: Starting message send');
+		//console.debug('Chat: Sending message, length:', chatInputText.value.length);
 		// Update lastApiCallTime when sending a message
 		chatState.value.status.lastApiCallTime = Date.now();
 		chatState.value.status.cacheStatus = 'active';
-		if (!input.trim() || !chatState.value.status.isReady || isProcessing(chatState.value.status)) return;
+		if (!chatInputText.value.trim() || !chatState.value.status.isReady || isProcessing(chatState.value.status)) {
+			return;
+		}
 
-		const trimmedInput = input.trim();
+		const trimmedInput = chatInputText.value.trim();
 		const maxRetries = 3;
 
 		try {
 			await handlers.sendConverse(trimmedInput);
-			setInput('');
+			const duration = performance.now() - startTime;
+			console.info('Chat: Message send completed in', duration.toFixed(2), 'ms');
+			console.info('Chat: Clearing input');
+			setInputWithTracking('');
 		} catch (error) {
 			console.error('ChatIsland: Failed to send message:', error);
 			if (retryCount < maxRetries) {
@@ -207,7 +219,7 @@ export default function Chat({
 
 			// Handle currently selected conversation
 			if (id === chatState.value.conversationId) {
-				await handlers.clearConversation();
+				handlers.clearConversation();
 				const url = new URL(globalThis.location.href);
 				url.searchParams.delete('conversationId');
 				const hash = globalThis.location.hash;
@@ -268,7 +280,7 @@ export default function Chat({
 		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
-		setInput('');
+		chatInputText.value = '';
 
 		const handlePopState = async () => {
 			const urlConversationId = getConversationId();
@@ -346,7 +358,7 @@ export default function Chat({
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (isProcessing(chatState.value.status)) {
 				event.preventDefault();
-				return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
+				//return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
 			}
 		};
 
@@ -403,7 +415,7 @@ export default function Chat({
 	}));
 
 	return (
-		<div className='flex flex-col h-full bg-gray-50 overflow-hidden relative'>
+		<div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
 			{/* Connection status banner */}
 			<AnimatedNotification
 				visible={chatState.value.status.isConnecting && !chatState.value.status.error}
@@ -417,13 +429,13 @@ export default function Chat({
 			{/* ProjectMetadata is now handled in routes/chat/index.tsx */}
 
 			{/* Main content */}
-			<div className='flex flex-1 min-h-0'>
+			<div className='flex flex-1 min-h-0 relative overflow-hidden'>
 				{!projectId
 					? (
-						<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+						<main className='flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden w-full relative'>
+							<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400'>
 								<svg
-									className='w-12 h-12 mb-4 text-gray-400'
+									className='w-12 h-12 mb-4 text-gray-400 dark:text-gray-500'
 									fill='none'
 									stroke='currentColor'
 									viewBox='0 0 24 24'
@@ -435,67 +447,64 @@ export default function Chat({
 										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 									/>
 								</svg>
-								<p className='text-lg font-medium'>No Project selected</p>
-								<p className='text-sm'>Select a project to begin</p>
+								<p className='text-lg font-medium dark:text-gray-300'>No Project selected</p>
+								<p className='text-sm dark:text-gray-400'>Select a project to begin</p>
 							</div>
 						</main>
 					)
 					: (
 						<>
-							{/* Conversation list */}
-							<ConversationList
-								conversationListState={conversationListState}
-								onSelect={async (id) => {
-									await selectConversation(id);
-								}}
-								onNew={async () => {
-									const id = generateConversationId();
-									await selectConversation(id);
-								}}
-								onDelete={deleteConversation}
-							/>
-							{/* Chat area */}
-							<main className='flex-1 flex flex-col min-h-0 bg-white overflow-hidden w-full relative'>
-								{/* ConversationInfo and ToolBar row */}
-								<div className='py-3 px-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm'>
-									<div className='flex items-center space-x-4'>
-										{/* Messages Icon */}
-										<div className='flex items-center text-gray-500'>
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												fill='none'
-												viewBox='0 0 24 24'
-												strokeWidth={1.5}
-												stroke='currentColor'
-												className='w-6 h-6'
-											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z'
-												/>
-											</svg>
-										</div>
-										<ConversationInfo
-											logEntries={chatState.value.logEntries}
-											conversationId={chatState.value.conversationId || ''}
-											title={chatState.value.conversations.find((c: ConversationMetadata) =>
-												c.id === chatState.value.conversationId
-											)?.title}
-										/>
-									</div>
-
-									<ToolBar
-										onSendMessage={async (message) => {
-											await handlers.sendConverse(message);
+							{/* Collapsible Conversation List */}
+							<div
+								className={`absolute top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out ${
+									isConversationListVisible.value
+										? 'w-[30%] min-w-[20rem] translate-x-0'
+										: 'w-0 -translate-x-full'
+								}`}
+								style={{ zIndex: 20 }}
+							>
+								<div className='h-full w-full overflow-hidden'>
+									<ConversationList
+										conversationListState={conversationListState}
+										onSelect={async (id) => {
+											await selectConversation(id);
+											isConversationListVisible.value = false;
 										}}
-										chatInputRef={chatInputRef}
-										disabled={!chatState.value.status.isReady ||
-											isProcessing(chatState.value.status)}
-										projectId={projectId}
-										apiClient={chatState.value.apiClient!}
+										onNew={async () => {
+											const id = generateConversationId();
+											await selectConversation(id);
+											isConversationListVisible.value = false;
+										}}
+										onDelete={deleteConversation}
+										onClose={() => isConversationListVisible.value = false}
 									/>
 								</div>
+							</div>
+							{/* Chat area */}
+							<main className='flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden w-full relative'>
+								{/* ConversationHeader */}
+								<ConversationHeader
+									cacheStatus={chatState.value.status.cacheStatus}
+									status={chatState.value.status}
+									onSelect={selectConversation}
+									onNew={async () => {
+										const id = generateConversationId();
+										await selectConversation(id);
+									}}
+									onDelete={deleteConversation}
+									onToggleList={() =>
+										isConversationListVisible.value = !isConversationListVisible.value}
+									isListVisible={isConversationListVisible.value}
+									apiClient={chatState.value.apiClient!}
+									chatState={chatState}
+									onSendMessage={async (message) => {
+										await handlers.sendConverse(message);
+									}}
+									chatInputRef={chatInputRef}
+									disabled={!chatState.value.status.isReady ||
+										isProcessing(chatState.value.status)}
+									projectId={projectId}
+								/>
 
 								{/* Messages */}
 								<div className='flex-1 min-h-0 relative flex flex-col'>
@@ -552,9 +561,9 @@ export default function Chat({
 										{chatState.value.logEntries.length === 0 &&
 											!isProcessing(chatState.value.status) &&
 											(
-												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500'>
+												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400'>
 													<svg
-														className='w-12 h-12 mb-4 text-gray-400'
+														className='w-12 h-12 mb-4 text-gray-400 dark:text-gray-500'
 														fill='none'
 														stroke='currentColor'
 														viewBox='0 0 24 24'
@@ -566,8 +575,12 @@ export default function Chat({
 															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
 														/>
 													</svg>
-													<p className='text-lg font-medium'>No messages yet</p>
-													<p className='text-sm'>Type a message to begin</p>
+													<p className='text-lg font-medium dark:text-gray-300'>
+														No messages yet
+													</p>
+													<p className='text-sm dark:text-gray-400'>
+														Type a message to begin
+													</p>
 												</div>
 											)}
 										{chatState.value.logEntries.length > 0 &&
@@ -586,21 +599,22 @@ export default function Chat({
 								</div>
 
 								{/* Input area */}
-								<div className='border-t border-gray-200 flex-none bg-white flex justify-center'>
+								<div className='border-t border-gray-200 dark:border-gray-700 flex-none bg-white dark:bg-gray-800 flex justify-center'>
 									<ChatInput
-										value={input}
+										chatInputText={chatInputText}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										textareaRef={chatInputRef}
 										onChange={(value) => {
 											if (!chatState.value.status.isReady) return;
-											setInput(value.slice(0, 10000));
+											setInputWithTracking(value.slice(0, INPUT_MAX_CHAR_LENGTH));
 										}}
 										onSend={sendConverse}
 										status={chatState.value.status}
 										disabled={!chatState.value.status.isReady}
 										onCancelProcessing={handlers.cancelProcessing}
-										maxLength={10000}
+										maxLength={INPUT_MAX_CHAR_LENGTH}
+										conversationId={chatState.value.conversationId}
 									/>
 								</div>
 							</main>

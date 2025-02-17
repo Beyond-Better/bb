@@ -6,6 +6,8 @@ import type { ConversationId } from 'shared/types.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
+import type { SessionManager } from '../../auth/session.ts';
+import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
 	private listeners: Map<
@@ -19,7 +21,7 @@ class WebSocketChatHandler {
 
 	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading conversations
 
-	handleConnection(ws: WebSocket, conversationId: ConversationId) {
+	handleConnection(ws: WebSocket, conversationId: ConversationId, sessionManager: SessionManager) {
 		try {
 			// Check if there's an existing connection for this conversation ID
 			const existingConnection = this.activeConnections.get(conversationId);
@@ -55,7 +57,7 @@ class WebSocketChatHandler {
 					clearTimeout(loadTimeout);
 
 					const message = JSON.parse(event.data);
-					await this.handleMessage(conversationId, message);
+					await this.handleMessage(conversationId, message, sessionManager);
 				} catch (error) {
 					logger.error(
 						`WebSocketChatHandler: Error handling message for conversationId: ${conversationId}:`,
@@ -91,12 +93,18 @@ class WebSocketChatHandler {
 	private async handleMessage(
 		conversationId: ConversationId,
 		message: { task: string; statement: string; projectId: string; options?: { maxTurns?: number } },
+		sessionManager: SessionManager,
 	) {
 		try {
 			const { task, statement, projectId, options } = message;
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
+			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
-			const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId);
+			const projectEditor = await projectEditorManager.getOrCreateEditor(
+				conversationId,
+				projectId,
+				sessionManager,
+			);
 
 			if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
 				logger.error(
@@ -117,8 +125,8 @@ class WebSocketChatHandler {
 					);
 					this.eventManager.emit('projectEditor:conversationError', {
 						conversationId,
-						error: 'Start directory is required for greeting',
-						code: 'START_DIR_REQUIRED',
+						error: 'Project ID is required for greeting',
+						code: 'PROJECT_ID_REQUIRED',
 					});
 					return;
 				}
@@ -153,11 +161,17 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}:`,
 						error,
 					);
-					this.eventManager.emit('projectEditor:conversationError', {
-						conversationId,
-						error: 'Error handling statement',
-						code: 'STATEMENT_ERROR',
-					});
+					if (!isLLMError(error)) {
+						// orchestratorController will emit conversationError for LLMError - we do it for all other types
+						const errorMessage = isError(error)
+							? `Error handling statement: ${error.message}`
+							: 'Error handling statement';
+						this.eventManager.emit('projectEditor:conversationError', {
+							conversationId,
+							error: errorMessage,
+							code: 'STATEMENT_ERROR',
+						});
+					}
 				}
 			} else if (task === 'cancel') {
 				logger.error(`WebSocketChatHandler: Cancelling statement for conversationId ${conversationId}`);
@@ -172,9 +186,12 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error cancelling operation for conversationId: ${conversationId}:`,
 						error,
 					);
+					const errorMessage = isError(error)
+						? `Error cancelling operation: ${error.message}`
+						: 'Error cancelling operation';
 					this.eventManager.emit('projectEditor:conversationError', {
 						conversationId,
-						error: 'Error cancelling operation',
+						error: errorMessage,
 						code: 'CANCELLATION_ERROR',
 					});
 				}
@@ -387,16 +404,21 @@ const appHandler = new WebSocketAppHandler();
 // Router endpoint handlers
 export const websocketConversation = (ctx: Context) => {
 	logger.debug('WebSocketHandler: websocketConversation called from router');
+	//logger.info('WebSocketHandler: sessionManager', ctx.app.state.auth.sessionManager);
 
 	try {
 		const { id } = (ctx as RouterContext<'/conversation/:id', { id: string }>).params;
 		const conversationId: ConversationId = id;
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 
+		if (!sessionManager) {
+			ctx.throw(400, 'No session manager configured');
+		}
 		if (!ctx.isUpgradable) {
 			ctx.throw(400, 'Cannot upgrade to WebSocket');
 		}
 		const ws = ctx.upgrade();
-		chatHandler.handleConnection(ws, conversationId);
+		chatHandler.handleConnection(ws, conversationId, sessionManager);
 		ctx.response.status = 200;
 	} catch (error) {
 		logger.error(`WebSocketHandler: Error in websocketConversation: ${(error as Error).message}`, error);

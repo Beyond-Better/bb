@@ -22,7 +22,9 @@ import { logger } from 'shared/logger.ts';
 import { ensureDir } from '@std/fs';
 import { dirname, join } from '@std/path';
 
-const ACKNOWLEDGMENT_STRING = 'I confirm this is the complete file content with no omissions or placeholders';
+//const ACKNOWLEDGMENT_STRING = 'I confirm this is the complete file content with no omissions or placeholders';
+const ACKNOWLEDGMENT_STRING =
+	'I have checked for existing file contents and confirm this is the complete file content with no omissions or placeholders';
 
 function normalizeLineEndings(content: string): string {
 	return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -66,6 +68,12 @@ function validateAcknowledgment(acknowledgment: string): boolean {
 
 	return withoutPunctuation === expected;
 }
+
+// Additional Enforcement Option:
+// - Add a required parameter to rewrite_file: "existingContentChecked": boolean
+// - Add a required parameter: "contentComparison": string - must include diff or "new file"
+// - Make the tool fail if these aren't provided
+// - Force explicit acknowledgment of content changes
 
 export default class LLMToolRewriteFile extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {

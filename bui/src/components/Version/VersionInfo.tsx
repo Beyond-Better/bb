@@ -12,18 +12,22 @@ export function VersionInfo({ versionInfo, className = '' }: VersionInfoProps): 
 	return (
 		<div className={`space-y-2 ${className}`}>
 			<div className='flex items-center justify-between'>
-				<span className='text-gray-600'>Version</span>
-				<span className='font-medium'>{version}</span>
+				<span className='text-gray-600 dark:text-gray-300'>Version</span>
+				<span className='font-medium text-gray-600 dark:text-gray-300'>{version}</span>
 			</div>
 
 			<div className='flex items-center justify-between'>
-				<span className='text-gray-600'>Installation</span>
-				<span className='font-medium capitalize'>{installLocation}</span>
+				<span className='text-gray-600 dark:text-gray-300'>Installation</span>
+				<span className='font-medium text-gray-600 dark:text-gray-300 capitalize'>{installLocation}</span>
 			</div>
 
 			<div className='flex items-center justify-between'>
-				<span className='text-gray-600'>Auto-update</span>
-				<span className={`font-medium ${canAutoUpdate ? 'text-green-600' : 'text-gray-500'}`}>
+				<span className='text-gray-600 dark:text-gray-300'>Auto-update</span>
+				<span
+					className={`font-medium ${
+						canAutoUpdate ? 'text-green-600 dark:text-green-300' : 'text-gray-500 dark:text-gray-200'
+					}`}
+				>
 					{canAutoUpdate ? 'Available' : 'Not available'}
 				</span>
 			</div>
@@ -38,7 +42,7 @@ interface CompactVersionProps {
 
 export function CompactVersion({ version, className = '' }: CompactVersionProps): JSX.Element {
 	return (
-		<span className={`text-xs text-gray-500 ${className}`}>
+		<span className={`text-xs text-gray-500 dark:text-gray-200 ${className}`}>
 			v{version}
 		</span>
 	);

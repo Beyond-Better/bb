@@ -10,6 +10,7 @@ import type {
 	ConversationMetadata,
 	ConversationMetrics,
 	ConversationStats,
+	LLMRequestRecord,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
@@ -19,6 +20,7 @@ import type {
 //import type { LLMProviderSystem } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
+import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -32,6 +34,7 @@ import { stripIndents } from 'common-tags';
 
 class ConversationPersistence {
 	private conversationDir!: string;
+	private conversationParentDir: string | undefined;
 	private metadataPath!: string;
 	private messagesPath!: string;
 	private changeLogPath!: string;
@@ -45,17 +48,19 @@ class ConversationPersistence {
 	private projectInfoPath!: string;
 	private initialized: boolean = false;
 	private tokenUsagePersistence!: TokenUsagePersistence;
+	private llmRequestPersistence!: LLMRequestPersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
 		private conversationId: ConversationId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
+		private parentId?: ConversationId,
 	) {
 		//this.ensureInitialized();
 	}
 
 	private async ensureInitialized(): Promise<void> {
-		logger.info(`ConversationPersistence: Ensuring Initialized`);
+		//logger.info(`ConversationPersistence: Ensuring Initialized`);
 		if (!this.initialized) {
 			await this.init();
 			this.initialized = true;
@@ -69,6 +74,7 @@ class ConversationPersistence {
 		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
+		if (this.parentId) this.conversationParentDir = join(conversationsDir, this.parentId);
 
 		this.metadataPath = join(this.conversationDir, 'metadata.json');
 
@@ -86,7 +92,15 @@ class ConversationPersistence {
 		this.objectivesPath = join(this.conversationDir, 'objectives.json');
 		this.resourcesPath = join(this.conversationDir, 'resources.json');
 
-		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationDir).init();
+		// [TODO] using conversationParentDir is good for chat interactions, but agent (child conversation) interations need to keep
+		// tokenUsage with the child conversation persistence, not the parent
+		// Do we need two types of parentID, one for chats and one for sub-agents??
+		// Or maybe we need to record whether conversationPersistence is for orchestrator or agent?
+		// Do we keep agent details in same conversation directory but separate messages, metadata, and tokenUsage files for each agent?
+		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationParentDir ?? this.conversationDir)
+			.init();
+		this.llmRequestPersistence = await new LLMRequestPersistence(this.conversationParentDir ?? this.conversationDir)
+			.init();
 
 		return this;
 	}
@@ -251,6 +265,16 @@ class ConversationPersistence {
 		return this.tokenUsagePersistence.getUsage(type);
 	}
 
+	async writeLLMRequest(record: LLMRequestRecord): Promise<void> {
+		await this.ensureInitialized();
+		await this.llmRequestPersistence.writeLLMRequest(record);
+	}
+
+	async getLLMRequest(): Promise<LLMRequestRecord[]> {
+		await this.ensureInitialized();
+		return this.llmRequestPersistence.getLLMRequest();
+	}
+
 	async saveConversation(conversation: LLMConversationInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
@@ -270,10 +294,13 @@ class ConversationPersistence {
 			await this.updateConversationsMetadata(metadata);
 
 			// Get token usage analysis
-			//const tokenAnalysis = await this.getTokenUsageAnalysis();
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
+			// Create metadata with analyzed token usage
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
+				parentId: this.parentId,
+
 				//system: conversation.baseSystem,
 				temperature: conversation.temperature,
 				maxTokens: conversation.maxTokens,
@@ -281,9 +308,19 @@ class ConversationPersistence {
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
 
+				// Store analyzed token usage in metadata
+				tokenUsageConversation: {
+					inputTokens: tokenAnalysis.combined.totalUsage.input,
+					outputTokens: tokenAnalysis.combined.totalUsage.output,
+					totalTokens: tokenAnalysis.combined.totalUsage.total,
+					cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+					cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+					totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+				},
+
+				// Keep turn and statement level metrics
 				tokenUsageTurn: conversation.tokenUsageTurn,
 				tokenUsageStatement: conversation.tokenUsageStatement,
-				tokenUsageConversation: conversation.tokenUsageConversation,
 
 				totalProviderRequests: conversation.totalProviderRequests,
 				//tools: conversation.getAllTools().map((tool) => ({ name: tool.name, description: tool.description })),
@@ -365,11 +402,23 @@ class ConversationPersistence {
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
+
+			// Update conversation with analyzed values
+			conversation.tokenUsageConversation = {
+				inputTokens: tokenAnalysis.combined.totalUsage.input,
+				outputTokens: tokenAnalysis.combined.totalUsage.output,
+				totalTokens: tokenAnalysis.combined.totalUsage.total,
+				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+			};
+
+			// Keep turn and statement usage from metadata for backward compatibility
 			conversation.tokenUsageTurn = metadata.tokenUsageTurn || ConversationPersistence.defaultTokenUsage();
 			conversation.tokenUsageStatement = metadata.tokenUsageStatement ||
 				ConversationPersistence.defaultTokenUsage();
-			conversation.tokenUsageConversation = metadata.tokenUsageConversation ||
-				ConversationPersistence.defaultConversationTokenUsage();
 
 			conversation.statementTurnCount = metadata.conversationMetrics?.statementTurnCount || 0;
 			conversation.conversationTurnCount = metadata.conversationMetrics?.conversationTurnCount || 0;
@@ -562,11 +611,55 @@ class ConversationPersistence {
 		return {};
 	}
 
-	async getTokenUsageAnalysis(): Promise<{ conversation: TokenUsageAnalysis; chat: TokenUsageAnalysis }> {
+	async getTokenUsageAnalysis(): Promise<{
+		conversation: TokenUsageAnalysis;
+		chat: TokenUsageAnalysis;
+		combined: TokenUsageAnalysis;
+	}> {
 		await this.ensureInitialized();
+
+		const analyzeUsageConversation = await this.tokenUsagePersistence.analyzeUsage('conversation');
+		const analyzeUsageChat = await this.tokenUsagePersistence.analyzeUsage('chat');
+
+		const totalUsageCombined = {
+			input: analyzeUsageConversation.totalUsage.input + analyzeUsageChat.totalUsage.input,
+			output: analyzeUsageConversation.totalUsage.output + analyzeUsageChat.totalUsage.output,
+			total: analyzeUsageConversation.totalUsage.total + analyzeUsageChat.totalUsage.total,
+			cacheCreationInput: analyzeUsageConversation.totalUsage.cacheCreationInput +
+				analyzeUsageChat.totalUsage.cacheCreationInput,
+			cacheReadInput: analyzeUsageConversation.totalUsage.cacheReadInput +
+				analyzeUsageChat.totalUsage.cacheReadInput,
+			totalAll: analyzeUsageConversation.totalUsage.totalAll + analyzeUsageChat.totalUsage.totalAll,
+		};
+		const differentialUsageCombined = {
+			input: analyzeUsageConversation.differentialUsage.input + analyzeUsageChat.differentialUsage.input,
+			output: analyzeUsageConversation.differentialUsage.output + analyzeUsageChat.differentialUsage.output,
+			total: analyzeUsageConversation.differentialUsage.total + analyzeUsageChat.differentialUsage.total,
+		};
+		const cacheImpactCombined = {
+			potentialCost: analyzeUsageConversation.cacheImpact.potentialCost +
+				analyzeUsageChat.cacheImpact.potentialCost,
+			actualCost: analyzeUsageConversation.cacheImpact.actualCost + analyzeUsageChat.cacheImpact.actualCost,
+			savingsTotal: analyzeUsageConversation.cacheImpact.savingsTotal + analyzeUsageChat.cacheImpact.savingsTotal,
+			savingsPercentage: ((analyzeUsageConversation.cacheImpact.savingsPercentage +
+				analyzeUsageChat.cacheImpact.savingsPercentage) / 2),
+		};
+		const byRoleCombined = {
+			user: analyzeUsageConversation.byRole.user + analyzeUsageChat.byRole.user,
+			assistant: analyzeUsageConversation.byRole.assistant + analyzeUsageChat.byRole.assistant,
+			system: analyzeUsageConversation.byRole.system + analyzeUsageChat.byRole.system,
+			tool: analyzeUsageConversation.byRole.tool + analyzeUsageChat.byRole.tool,
+		};
+
 		return {
-			conversation: await this.tokenUsagePersistence.analyzeUsage('conversation'),
-			chat: await this.tokenUsagePersistence.analyzeUsage('chat'),
+			conversation: analyzeUsageConversation,
+			chat: analyzeUsageChat,
+			combined: {
+				totalUsage: totalUsageCombined,
+				differentialUsage: differentialUsageCombined,
+				cacheImpact: cacheImpactCombined,
+				byRole: byRoleCombined,
+			},
 		};
 	}
 
@@ -619,6 +712,7 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		};
 	}
 	static defaultTokenUsage(): TokenUsage {
@@ -626,13 +720,15 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			totalAllTokens: 0,
 		};
 	}
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
-			version: 1, // default version for existing conversations
+			version: 3, // default version for existing conversations
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
+			parentId: undefined,
 			title: '',
 			llmProviderName: '',
 			model: '',

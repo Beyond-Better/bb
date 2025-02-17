@@ -1,6 +1,6 @@
 import { JSX } from 'preact';
 import { useState } from 'preact/hooks';
-import { useVersion } from '../../hooks/useVersion';
+import { useVersion } from '../../hooks/useVersion.ts';
 
 interface VersionWarningProps {
   className?: string;

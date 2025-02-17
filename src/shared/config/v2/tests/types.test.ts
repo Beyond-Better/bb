@@ -82,7 +82,7 @@ describe('Configuration Types', () => {
 		it('should include server config fields', () => {
 			const config: BuiConfig = {
 				hostname: 'localhost',
-				port: 8000,
+				port: 8080,
 				tls: { useTls: true },
 			};
 			assertExists(config);
@@ -91,8 +91,8 @@ describe('Configuration Types', () => {
 		it('should provide correct defaults', () => {
 			const defaults = BuiConfigDefaults;
 			assertEquals(defaults.hostname, 'localhost');
-			assertEquals(defaults.port, 8000);
-			assertEquals(defaults.tls.useTls, true);
+			assertEquals(defaults.port, 8080);
+			assertEquals(defaults.tls.useTls, false);
 		});
 	});
 
@@ -136,9 +136,14 @@ describe('Configuration Types', () => {
 	describe('Global Configuration', () => {
 		it('should combine all component configs', () => {
 			const config: GlobalConfig = {
-				version: '2.0.0',
+				version: '2.1.0',
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Claude',
+				defaultModels: {
+					orchestrator: 'claude-3-5-sonnet-20241022',
+					agent: 'claude-3-5-sonnet-20241022',
+					chat: 'claude-3-haiku-20240307',
+				},
 				noBrowser: false,
 				bbExeName: 'bb',
 				bbApiExeName: 'bb-api',
@@ -156,7 +161,7 @@ describe('Configuration Types', () => {
 				},
 				bui: {
 					hostname: 'localhost',
-					port: 8000,
+					port: 8080,
 					tls: { useTls: true },
 				},
 				cli: {
@@ -187,7 +192,7 @@ describe('Configuration Types', () => {
 		it('should handle minimal config', () => {
 			const config: ProjectConfig = {
 				projectId: '123456789abc',
-				version: '2.0.0',
+				version: '2.1.0',
 				name: 'Test Project',
 				type: 'local',
 				repoInfo: { tokenLimit: 1024 },
@@ -199,7 +204,7 @@ describe('Configuration Types', () => {
 		it('should handle component overrides', () => {
 			const config: ProjectConfig = {
 				projectId: '123456789abc',
-				version: '2.0.0',
+				version: '2.1.0',
 				name: 'Test Project',
 				type: 'local',
 				repoInfo: { tokenLimit: 1024 },

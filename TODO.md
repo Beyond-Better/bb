@@ -1,8 +1,5 @@
 # TODO List
 
-## Interface Development
-1. Plan and design Desktop User Interface (DUI) for future development
-2. Ensure consistency across API, BUI, CLI, and future DUI interfaces
 
 ## Repository Information Management
 1. Convert projectInfo into a proper class with support for:
@@ -56,7 +53,6 @@
 1. Develop BUI-specific tools and commands
 2. Plan for DUI-specific tools and commands
 1. Create a `bb doctor` command to zip a conversation for sharing
-2. Create a summarize history tool to reduce token count and delete earlier messages
 3. Implement new tools:
    - Record memory, remember instruction/guideline
 
@@ -131,12 +127,47 @@
 46. √ Implement new tools:
    - Move files
    - Rename files
+47. √ Create a summarize history tool to reduce token count and delete earlier messages
 
+√ - setup project from BUI
+√ - project switcher in BUI
+√ - file listing (autocomplete)
+√ - only auto-scroll if already at end of the page
+√ - show version number
+√ Create tokenUsage.jsonl in conversation directory
+√ Ensure token tracking and reporting from LLM through to conversation logging is accurate
+√ Create new log type: chat - use instead of auxillary for assistant interactions
+√   - maybe combine user and assistant messages into single log entry
+√ add sub-label for auxillary messages (git commit, create title, setting objective)
+√ - change scroll indicator to green when last/answer message has arrived
+√ Enforced conversation summary when token limit is reached
+√ Click version should show detailed version info, along with option to upgrade server
+√ update prompt cache points
+√ Fix dark mode
+√ DUI:
+√  - API control
+√ Update docs on bb-site
+√ - direct download of DUI
+√ - update install instructions
+√ - docs for using DUI
+√   - project management
+√   - conversation selector
+√   - re-state to keep conversations short
+√ - explain that using (most) browsers requires API to be secure (TLS)
+√ Tool to open file (widget) in browser
 
-
-Thoughts...
-
-Pull thinking out of tool use 
-Pull <thinking> out of answer and send as summary - rest of answer is 'assistant' content
+√ Subscriptions and plans (& billing)
+√ LLM Proxy for tracking token usage per user
+√ Change plans
+√ Exclude .trash from file searching
+√ Stripe subscriptions
+√ View Usage
+√ DUI Prefs - don't require Anthropic key when not in localMode
+√ built binary for bui
+√ OpenAi support
+√ OpenAi support
+√ DUI: Linux, change from /var/log to ~/.bb and /var/run to ~/.bb (or maybe ~/.local)
+√ Chat Input history
+√ BUI: Update the settings page to get latest usage when changing page nav.
 
 

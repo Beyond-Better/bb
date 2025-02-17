@@ -32,6 +32,17 @@ export interface ConversationMetadata {
 	updatedAt: string;
 }
 
+/**
+ * Detailed metadata for a conversation.
+ * Note: Token usage values in metadata are derived from TokenUsagePersistence analysis
+ * and should not be considered the source of truth. Always use TokenUsagePersistence.analyzeUsage()
+ * for accurate token counts.
+ *
+ * @property tokenAnalysis - Analyzed token usage from TokenUsagePersistence
+ * @property tokenUsageTurn - Turn-level token usage (for backward compatibility)
+ * @property tokenUsageStatement - Statement-level token usage (for backward compatibility)
+ * @property tokenUsageConversation - Conversation-level token usage derived from analysis
+ */
 export interface ConversationDetailedMetadata extends ConversationMetadata {
 	tokenAnalysis?: {
 		conversation: TokenUsageAnalysis;
@@ -48,6 +59,8 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 	tokenUsageConversation: TokenUsage;
 
 	conversationMetrics: ConversationMetrics;
+
+	parentId?: ConversationId;
 
 	//tools?: Array<{ name: string; description: string }>;
 }
@@ -89,13 +102,20 @@ export type ConversationFilesMetadata = Record<string, FileMetadata>;
 // 	files: Map<string, FileMetadata>;
 // }
 
+/*
+ * Token usage for an individual turn
+ * totalTokens is the legacy value for input+output
+ * totalAllTokens is the value for all token used in the turn, including cache tokens
+ * TotalTokenTotal is a deprecated value that was used for sum of tokens for multiple turns
+ */
 export interface TokenUsage {
 	inputTokens: number;
 	outputTokens: number;
-	totalTokens: number;
+	totalTokens: number; // inputTokens + outputTokens
 	totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
+	totalAllTokens?: number; // totalTokens + cacheCreationInputTokens + cacheReadInputTokens
 }
 
 export interface TokenUsageDifferential {
@@ -107,7 +127,16 @@ export interface TokenUsageDifferential {
 export interface CacheImpact {
 	potentialCost: number; // Cost without cache
 	actualCost: number; // Cost with cache
-	savings: number; // Calculated savings
+	savingsTotal: number; // Calculated savings total
+	savingsPercentage: number; // Calculated savings percentage
+}
+
+export interface LLMRequestRecord {
+	messageId: string; // Links to message in messages.jsonl
+	requestBody: unknown;
+	requestHeaders: unknown;
+	responseMessage: unknown;
+	response: unknown;
 }
 
 export interface TokenUsageRecord {
@@ -130,20 +159,28 @@ export interface TokenUsageRecord {
 }
 
 export interface TokenUsageAnalysis {
+	// same structure as TokenUsage but with simplified names
 	totalUsage: {
 		input: number;
 		output: number;
 		total: number;
+		cacheCreationInput: number;
+		cacheReadInput: number;
+		totalAll: number;
 	};
+	// where totalUsage.input is count of all input tokens for all turns (messages) in history
+	// the differentialUsage.input is count of tokens for a single turn
+	// since cached tokens are only relevant (cached) for previous turns they aren't counted in differential
 	differentialUsage: {
 		input: number;
 		output: number;
 		total: number;
 	};
+	// potentialCost vs actualCost if caching wasn't used
 	cacheImpact: {
 		potentialCost: number;
 		actualCost: number;
-		totalSavings: number;
+		savingsTotal: number;
 		savingsPercentage: number;
 	};
 	byRole: {

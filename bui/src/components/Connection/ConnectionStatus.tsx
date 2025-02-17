@@ -16,7 +16,9 @@ export function ConnectionStatus({ isCollapsed, className = '' }: ConnectionStat
 			{/* Connection status indicator */}
 			<div
 				className={`w-2 h-2 rounded-full ${
-					appState.value.status.isReady ? 'bg-green-500' : 'bg-red-500 animate-pulse'
+					appState.value.status.isReady
+						? 'bg-green-500 dark:bg-green-400'
+						: 'bg-red-500 dark:bg-red-400 animate-pulse'
 				}`}
 				title={appState.value.status.isReady ? 'Connected to BB server' : 'Not connected to BB server'}
 			/>
@@ -24,7 +26,7 @@ export function ConnectionStatus({ isCollapsed, className = '' }: ConnectionStat
 			{/* Show version info when not collapsed */}
 			{!isCollapsed && (
 				<>
-					<span className='ml-2 text-sm text-gray-500'>
+					<span className='ml-2 text-sm text-gray-500 dark:text-gray-400'>
 						Server {appState.value.status.isReady ? 'Connected' : 'Not connected'}
 					</span>
 

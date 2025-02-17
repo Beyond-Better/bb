@@ -23,6 +23,7 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
+import type { LLMProviderMessageResponseRole } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -30,7 +31,7 @@ import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 
 class LLMInteraction {
@@ -48,14 +49,31 @@ class LLMInteraction {
 	// count of statements
 	protected _statementCount: number = 0;
 	// token usage for most recent turn
-	protected _tokenUsageTurn: TokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
+	protected _tokenUsageTurn: TokenUsage = {
+		totalTokens: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+		cacheCreationInputTokens: 0,
+		cacheReadInputTokens: 0,
+		totalAllTokens: 0,
+	};
 	// token usage for most recent statement
-	protected _tokenUsageStatement: TokenUsage = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
+	protected _tokenUsageStatement: TokenUsage = {
+		totalTokens: 0,
+		inputTokens: 0,
+		outputTokens: 0,
+		cacheCreationInputTokens: 0,
+		cacheReadInputTokens: 0,
+		totalAllTokens: 0,
+	};
 	// token usage for for all statements
 	protected _tokenUsageInteraction: TokenUsage = {
 		totalTokens: 0,
 		inputTokens: 0,
 		outputTokens: 0,
+		cacheCreationInputTokens: 0,
+		cacheReadInputTokens: 0,
+		totalAllTokens: 0,
 	};
 	// Task-oriented metrics
 	protected _objectives: ObjectivesData;
@@ -116,7 +134,7 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(parentId ?? this.id, projectEditor).init();
+			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor, parentId).init();
 			this.conversationLogger = await new ConversationLogger(projectId, parentId ?? this.id, logEntryHandler)
 				.init();
 			this.projectConfig = projectEditor.projectConfig;
@@ -238,13 +256,15 @@ class LLMInteraction {
 		// Calculate actual cost with cache
 		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
 
-		// Calculate savings
-		const savings = Math.max(0, potentialCost - actualCost);
+		// Calculate savingsTotal and savingsPercentage
+		const savingsTotal = Math.max(0, potentialCost - actualCost);
+		const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 		return {
 			potentialCost,
 			actualCost,
-			savings,
+			savingsTotal,
+			savingsPercentage,
 		};
 	}
 
@@ -253,6 +273,11 @@ class LLMInteraction {
 		model: string,
 	): TokenUsageRecord {
 		const lastMessage = this.getLastMessage();
+		const rawAllUsage = {
+			...tokenUsage,
+			totalAllTokens: tokenUsage.totalTokens + (tokenUsage.cacheCreationInputTokens ?? 0) +
+				(tokenUsage.cacheReadInputTokens ?? 0),
+		};
 		return {
 			messageId: this.getLastMessageId(),
 			statementCount: this.statementCount,
@@ -261,7 +286,7 @@ class LLMInteraction {
 			model,
 			role: lastMessage.role,
 			type: this.interactionType,
-			rawUsage: tokenUsage,
+			rawUsage: rawAllUsage,
 			differentialUsage: this.calculateDifferentialUsage(tokenUsage),
 			cacheImpact: this.calculateCacheImpact(tokenUsage),
 		};
@@ -294,6 +319,7 @@ class LLMInteraction {
 			this.tokenUsageInteraction.outputTokens = 0;
 			this.tokenUsageInteraction.cacheCreationInputTokens = 0;
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+			this.tokenUsageInteraction.totalAllTokens = 0;
 		}
 		if (this.statementTurnCount === 0) {
 			this.tokenUsageStatement.totalTokens = 0;
@@ -301,6 +327,7 @@ class LLMInteraction {
 			this.tokenUsageStatement.outputTokens = 0;
 			this.tokenUsageStatement.cacheCreationInputTokens = 0;
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
+			this.tokenUsageStatement.totalAllTokens = 0;
 		}
 
 		if (this.tokenUsageInteraction.cacheCreationInputTokens === undefined) {
@@ -309,11 +336,17 @@ class LLMInteraction {
 		if (this.tokenUsageInteraction.cacheReadInputTokens === undefined) {
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
 		}
+		if (this.tokenUsageInteraction.totalAllTokens === undefined) {
+			this.tokenUsageInteraction.totalAllTokens = 0;
+		}
 		if (this.tokenUsageStatement.cacheCreationInputTokens === undefined) {
 			this.tokenUsageStatement.cacheCreationInputTokens = 0;
 		}
 		if (this.tokenUsageStatement.cacheReadInputTokens === undefined) {
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
+		}
+		if (this.tokenUsageStatement.totalAllTokens === undefined) {
+			this.tokenUsageStatement.totalAllTokens = 0;
 		}
 
 		this.tokenUsageInteraction.totalTokens += tokenUsage.totalTokens;
@@ -321,12 +354,16 @@ class LLMInteraction {
 		this.tokenUsageInteraction.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageInteraction.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageInteraction.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageInteraction.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
+			tokenUsage.cacheReadInputTokens;
 
 		this.tokenUsageStatement.totalTokens += tokenUsage.totalTokens;
 		this.tokenUsageStatement.inputTokens += tokenUsage.inputTokens;
 		this.tokenUsageStatement.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageStatement.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageStatement.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageStatement.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
+			tokenUsage.cacheReadInputTokens;
 
 		this.tokenUsageTurn = tokenUsage;
 
@@ -492,6 +529,7 @@ class LLMInteraction {
 			],
 			is_error: isError,
 		} as LLMMessageContentPartToolResultBlock;
+		// logger.debug('LLMInteraction: Adding tool result', toolResult);
 
 		const lastMessage = this.getLastMessage();
 		if (lastMessage && lastMessage.role === 'user') {
@@ -550,7 +588,7 @@ class LLMInteraction {
 
 	public addMessage(
 		message: {
-			role: 'user' | 'assistant' | 'system' | 'tool';
+			role: LLMProviderMessageResponseRole;
 			content: LLMMessageContentParts;
 			conversationStats: ConversationStats;
 			id?: string;

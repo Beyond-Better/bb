@@ -13,18 +13,18 @@ export function ConversationMetadata({ logEntries, conversationId, title }: Conv
 	const tokenUsage = latestEntry?.tokenUsageConversation;
 
 	return (
-		<div className='flex items-center space-x-4 text-sm text-gray-500'>
+		<div className='flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400'>
 			{/* Conversation Title */}
 			{title && (
 				<div className='flex items-center'>
-					<span className='font-medium'>{title}</span>
+					<span className='font-medium text-gray-700 dark:text-gray-200'>{title}</span>
 				</div>
 			)}
 
 			{/* Conversation ID */}
 			{conversationId && (
 				<div className='font-mono'>
-					<span className='text-gray-400 mr-1'>ID:</span> {conversationId}
+					<span className='text-gray-400 dark:text-gray-500 mr-1'>ID:</span> {conversationId}
 				</div>
 			)}
 
@@ -32,7 +32,8 @@ export function ConversationMetadata({ logEntries, conversationId, title }: Conv
 			{tokenUsage && (
 				<div className='flex items-center space-x-3'>
 					<div>
-						<span className='text-gray-400'>Input:</span> {tokenUsage.inputTokens?.toLocaleString() || 0}
+						<span className='text-gray-400 dark:text-gray-500'>Input:</span>{' '}
+						{tokenUsage.inputTokens?.toLocaleString() || 0}
 					</div>
 					<div>
 						<span className='text-gray-400'>Output:</span> {tokenUsage.outputTokens?.toLocaleString() || 0}

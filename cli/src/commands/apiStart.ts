@@ -1,5 +1,5 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { delay } from '@std/async';
 
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
@@ -33,10 +33,17 @@ export const apiStart = new Command()
 
 			const configManager = await ConfigManagerV2.getInstance();
 			const globalConfig = await configManager.getGlobalConfig();
+
 			let apiConfig: ApiConfig;
 			if (projectId) {
+				await configManager.ensureLatestProjectConfig(projectId);
 				const projectConfig = await configManager.getProjectConfig(projectId);
-				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+				if (projectConfig.useProjectApi) {
+					apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+				} else {
+					apiConfig = globalConfig.api;
+					projectId = undefined;
+				}
 			} else {
 				apiConfig = globalConfig.api;
 			}

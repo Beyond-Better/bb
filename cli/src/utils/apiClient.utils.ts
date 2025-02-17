@@ -28,7 +28,10 @@ export default class ApiClient {
 		const globalConfig = await configManager.getGlobalConfig();
 		let apiConfig: ApiConfig;
 		if (projectId) {
+			await configManager.ensureLatestProjectConfig(projectId);
 			const projectConfig = await configManager.getProjectConfig(projectId);
+			// we don't need to check projectConfig.useProjectApi here since caller
+			// is responsible for that; if we've got a projectId, we're using projectConfig
 			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 		} else {
 			apiConfig = globalConfig.api;

@@ -53,7 +53,7 @@ export function CertificateStatusIndicator({ certInfo, className = '' }: Certifi
 		<div className={`relative inline-flex items-start gap-3 ${className}`}>
 			{/* Certificate Icon */}
 			<svg
-				className='w-4 h-4 text-gray-400 mt-0.5'
+				className='w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5'
 				fill='none'
 				stroke='currentColor'
 				viewBox='0 0 24 24'
@@ -75,13 +75,13 @@ export function CertificateStatusIndicator({ certInfo, className = '' }: Certifi
 						className={`w-2.5 h-2.5 rounded-full ${getStatusColor(certInfo.status)}`}
 						aria-hidden='true'
 					/>
-					<span className='text-sm font-medium text-gray-200'>
+					<span className='text-sm font-medium text-gray-700 dark:text-gray-200'>
 						{getStatusText(certInfo)}
 					</span>
 				</div>
 
 				{/* Certificate Details */}
-				<div className='text-xs text-gray-400 flex flex-col gap-0.5 ml-4'>
+				<div className='text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5 ml-4'>
 					<div className='grid grid-cols-[auto,1fr] gap-x-2'>
 						<span className='font-medium'>Valid from:</span>
 						<span>{new Date(certInfo.validFrom).toLocaleDateString()}</span>

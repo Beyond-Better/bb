@@ -12,6 +12,8 @@ import type { BbState } from 'api/types.ts';
 import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
+import { SessionManager } from './auth/session.ts';
+import { KVManager } from 'api/utils/kvManager.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 
@@ -26,12 +28,16 @@ try {
 }
 
 const configManager = await ConfigManagerV2.getInstance();
+
+// Ensure configs are at latest version
+await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
 
 let apiConfig: ApiConfig;
 
 if (projectId) {
+	await configManager.ensureLatestProjectConfig(projectId);
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 } else {
@@ -82,7 +88,19 @@ const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 	: useTls;
 //console.debug(`BB API starting at ${customHostname}:${customPort}`);
 
+// Initialize auth system
+const sessionManager = new SessionManager();
+await sessionManager.initialize();
+logger.info('Auth system initialized');
+
 const app = new Application<BbState>();
+
+// Set up app state
+app.state = {
+	auth: {
+		sessionManager,
+	},
+};
 
 app.use(oak_logger.logger);
 if (apiConfig.logLevel === 'debug') {
@@ -107,6 +125,21 @@ app.addEventListener('listen', ({ hostname, port, secure }: { hostname: string; 
 app.addEventListener('error', (evt: ErrorEvent) => {
 	logger.error(`Application error:`, evt.error);
 });
+
+const cleanup = async (code: number = 0) => {
+	try {
+		await KVManager.closeAll();
+		Deno.exit(code);
+	} catch (error) {
+		console.error('Error cleaning up:', error);
+	} finally {
+		Deno.exit(1);
+	}
+};
+const signals: Deno.Signal[] = ['SIGINT', 'SIGTERM'];
+for (const signal of signals) {
+	Deno.addSignalListener(signal, cleanup);
+}
 
 if (import.meta.main) {
 	let listenOpts: ListenOptions = { hostname: customHostname, port: customPort };

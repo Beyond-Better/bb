@@ -26,8 +26,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Deno
-        # uses: denoland/setup-deno@v1
-        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
+        uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
 
@@ -39,4 +38,10 @@ jobs:
         run: deno task check-types
 
       - name: Run tests
-        run: deno task test
+        run: |
+          ## fix for fetch tool tests - set apparmor_restrict_unprivileged_userns
+          ## https://github.com/lino-levan/astral#faq
+          ## https://github.com/puppeteer/puppeteer/pull/13196
+          echo 0 | sudo tee /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+          deno --version
+          deno task test

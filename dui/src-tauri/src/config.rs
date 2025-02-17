@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use dirs;
 use log::{debug, error};
 
-
 pub const APP_NAME: &str = "dev.beyondbetter.app";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -28,6 +27,27 @@ pub struct TlsConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmProviderConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_key: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmProviders {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anthropic: Option<LlmProviderConfig>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct LlmKeys {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anthropic: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct ApiConfig {
     #[serde(default)]
     pub hostname: String,
@@ -35,9 +55,6 @@ pub struct ApiConfig {
     pub port: u16,
     #[serde(default)]
     pub tls: TlsConfig,
-    #[serde(rename(serialize = "maxTurns", deserialize = "maxTurns"))]
-    #[serde(default)]
-    pub max_turns: u32,
     #[serde(default)]
     pub log_level: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -48,26 +65,24 @@ pub struct ApiConfig {
     pub ignore_llm_request_cache: bool,
     #[serde(default)]
     pub use_prompt_caching: bool,
+    #[serde(rename = "supabaseConfigUrl")]
+    #[serde(default)]
+    pub supabase_config_url: String,
+    #[serde(default)]
+    pub max_turns: u32,
     #[serde(default)]
     pub user_tool_directories: Vec<String>,
     #[serde(default, skip_serializing_if = "serde_json::Value::is_null")]
     pub tool_configs: serde_json::Value,
-    #[serde(rename(serialize = "llmKeys", deserialize = "llmKeys"))]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub llm_keys: Option<LlmKeys>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-pub struct LlmKeys {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub anthropic: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub openai: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub voyageai: Option<String>,
+    #[serde(default)]
+    pub local_mode: bool,
+    #[serde(default)]
+    pub llm_providers: LlmProviders,
+    //#[serde(default)]
+    //#[deprecated(note = "Use llm_providers instead")]
+    //pub llm_keys: LlmKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -79,6 +94,17 @@ pub struct BuiConfig {
     pub port: u16,
     #[serde(default)]
     pub tls: TlsConfig,
+    #[serde(default)]
+    pub log_level: String,
+    #[serde(rename = "kvSessionPath")]
+    #[serde(default)]
+    pub kv_session_path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub log_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub environment: Option<String>,
+    #[serde(default)]
+    pub local_mode: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -110,15 +136,23 @@ pub struct CliConfig {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct DefaultModels {
+    pub orchestrator: String,
+    pub agent: String,
+    pub chat: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct GlobalConfig {
     #[serde(default)]
     pub version: String,
-    #[serde(rename(serialize = "myPersonsName", deserialize = "myPersonsName"))]
     #[serde(default)]
     pub my_persons_name: String,
-    #[serde(rename(serialize = "myAssistantsName", deserialize = "myAssistantsName"))]
     #[serde(default)]
     pub my_assistants_name: String,
+    #[serde(default)]
+    pub default_models: DefaultModels,
     #[serde(rename = "noBrowser")]
     #[serde(default)]
     pub no_browser: bool,
@@ -136,10 +170,10 @@ pub struct GlobalConfig {
     #[serde(rename = "bbApiExeName")]
     #[serde(default)]
     pub bb_api_exe_name: String,
+    #[serde(rename = "bbBuiExeName")]
+    #[serde(default)]
+    pub bb_bui_exe_name: String,
 }
-
-// Platform-specific log path helper
-
 
 impl Default for TlsConfig {
     fn default() -> Self {
@@ -155,38 +189,74 @@ impl Default for TlsConfig {
     }
 }
 
+impl Default for LlmProviderConfig {
+    fn default() -> Self {
+        LlmProviderConfig {
+            api_key: None,
+        }
+    }
+}
+
+impl Default for LlmProviders {
+    fn default() -> Self {
+        LlmProviders {
+            anthropic: None,
+        }
+    }
+}
+
+impl Default for LlmKeys {
+    fn default() -> Self {
+        LlmKeys {
+            anthropic: None,
+        }
+    }
+}
+
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (ApiConfigDefaults)
 impl Default for ApiConfig {
     fn default() -> Self {
         ApiConfig {
             hostname: "localhost".to_string(),  // Hardcode to match TypeScript default
             port: 3162,
             tls: TlsConfig::default(),  // Will have useTls: false by default
-            max_turns: 25,
             log_level: "info".to_string(),
-            log_file: get_default_log_path(),  // Platform-specific log path
+            log_file: get_default_log_path("api.log"),  // Platform-specific log path
             log_file_hydration: false,
             ignore_llm_request_cache: false,
             use_prompt_caching: true,
+            supabase_config_url: "https://www.beyondbetter.dev/api/v1/config/supabase".to_string(),
+            max_turns: 25,
             user_tool_directories: vec!["./tools".to_string()],
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),
-            llm_keys: None,
             environment: None,
+            local_mode: false,
+            llm_providers: LlmProviders::default(),
+            //llm_keys: LlmKeys::default(),
         }
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (BuiConfigDefaults)
 impl Default for BuiConfig {
     fn default() -> Self {
-        let mut tls = TlsConfig::default();
-        tls.use_tls = true;  // BUI uses TLS by default
         BuiConfig {
             hostname: "localhost".to_string(),
-            port: 8000,  // Default BUI port
-            tls,
+            port: 8080,  // Default BUI port
+            tls: TlsConfig::default(),  // Will have useTls: false by default
+            log_level: "info".to_string(),
+            log_file: get_default_log_path("bui.log"),  // Platform-specific log path
+            kv_session_path: "auth.kv".to_string(),
+            environment: None,
+            local_mode: false,
         }
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (DuiConfigDefaults)
 impl Default for DuiConfig {
     fn default() -> Self {
         DuiConfig {
@@ -198,6 +268,8 @@ impl Default for DuiConfig {
     }
 }
 
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (CliConfigDefaults)
 impl Default for CliConfig {
     fn default() -> Self {
         CliConfig {
@@ -208,12 +280,27 @@ impl Default for CliConfig {
     }
 }
 
+// Default implementations must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (GlobalConfigDefaults.defaultModels)
+impl Default for DefaultModels {
+    fn default() -> Self {
+        DefaultModels {
+            orchestrator: "claude-3-5-sonnet-20241022".to_string(),
+            agent: "claude-3-5-sonnet-20241022".to_string(),
+            chat: "claude-3-haiku-20240307".to_string(),
+        }
+    }
+}
+
+// Default implementation must be kept in sync with TypeScript defaults in:
+// src/shared/config/v2/types.ts (GlobalConfigDefaults)
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
-            version: "2.0.0".to_string(),  // Match TypeScript default
+            version: "2.1.0".to_string(),
             my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
             my_assistants_name: "Claude".to_string(),
+            default_models: DefaultModels::default(),  // Match TypeScript default
             no_browser: false,
             api: ApiConfig::default(),
             bui: BuiConfig::default(),
@@ -221,18 +308,19 @@ impl Default for GlobalConfig {
             dui: DuiConfig::default(),
             bb_exe_name: if cfg!(target_os = "windows") { "bb.exe".to_string() } else { "bb".to_string() },
             bb_api_exe_name: if cfg!(target_os = "windows") { "bb-api.exe".to_string() } else { "bb-api".to_string() },
+            bb_bui_exe_name: if cfg!(target_os = "windows") { "bb-bui.exe".to_string() } else { "bb-bui".to_string() },
         }
     }
 }
 
-pub fn get_default_log_path() -> Option<String> {
+pub fn get_default_log_path(filename: &str) -> Option<String> {
     #[cfg(target_os = "macos")]
     {
         dirs::home_dir().map(|home| {
             home.join("Library")
                 .join("Logs")
                 .join(APP_NAME)
-                .join("api.log")
+                .join(filename)
                 .to_string_lossy()
                 .into_owned()
         })
@@ -244,7 +332,7 @@ pub fn get_default_log_path() -> Option<String> {
             PathBuf::from(program_data)
                 .join(APP_NAME)
                 .join("logs")
-                .join("api.log")
+                .join(filename)
                 .to_string_lossy()
                 .into_owned()
         })
@@ -252,7 +340,13 @@ pub fn get_default_log_path() -> Option<String> {
 
     #[cfg(target_os = "linux")]
     {
-        Some(format!("/var/log/{}/api.log", APP_NAME.to_lowercase()))
+        dirs::home_dir().map(|home| {
+            home.join(".bb")
+                .join("logs")
+                .join(filename)
+                .to_string_lossy()
+                .into_owned()
+        })
     }
 }
 
@@ -279,7 +373,6 @@ pub fn get_global_config_dir() -> Result<PathBuf, std::io::Error> {
 pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> {
     let config_dir = get_global_config_dir()?;
     let config_path = config_dir.join("config.yaml");
-    //debug!("Attempting to read config from: {:?}", config_path);
     
     // Check if config directory exists
     if !config_dir.exists() {
@@ -293,10 +386,8 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
     // Try to read the config file
     match fs::read_to_string(&config_path) {
         Ok(contents) => {
-            //debug!("Successfully read config file, contents:\n{}", contents);
             match serde_yaml::from_str(&contents) {
                 Ok(config) => {
-                    //debug!("Successfully parsed config: {:?}", config);
                     Ok(config)
                 }
                 Err(e) => {
@@ -324,11 +415,23 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
 pub async fn get_api_config() -> Result<ApiConfig, String> {
     match read_global_config() {
         Ok(config) => {
-            //debug!("Returning API config with max_turns: {}", config.api.max_turns);
             Ok(config.api)
         },
         Err(e) => {
             error!("Failed to read config for API config: {}", e);
+            Err(format!("Failed to read config: {}", e))
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn get_bui_config() -> Result<BuiConfig, String> {
+    match read_global_config() {
+        Ok(config) => {
+            Ok(config.bui)
+        },
+        Err(e) => {
+            error!("Failed to read config for BUI config: {}", e);
             Err(format!("Failed to read config: {}", e))
         }
     }

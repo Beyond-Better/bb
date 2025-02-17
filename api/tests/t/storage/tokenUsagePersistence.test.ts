@@ -21,7 +21,7 @@ import type { TokenUsageRecord } from 'shared/types.ts';
 Deno.test({
 	name: 'TokenUsagePersistence - Basic write and read operations',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -50,12 +50,10 @@ Deno.test({
 	sanitizeOps: false,
 });
 
-// Move nested tests to top level
-
 Deno.test({
 	name: 'TokenUsagePersistence - Version migration handling',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -81,7 +79,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 150,
 						actualCost: 150,
-						savings: 0,
+						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				},
 
@@ -106,7 +105,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 150,
 						actualCost: 140,
-						savings: 10,
+						savingsTotal: 10,
+						savingsPercentage: 6.6, //(savingsTotal / potentialCost) * 100
 					},
 				},
 			] as TokenUsageRecord[];
@@ -134,7 +134,8 @@ Deno.test({
 			const analysis = await tokenUsagePersistence.analyzeUsage('conversation');
 			assert(analysis.totalUsage.input > 0, 'Should calculate total input tokens');
 			assert(analysis.totalUsage.output > 0, 'Should calculate total output tokens');
-			assert(analysis.cacheImpact.totalSavings >= 0, 'Should calculate cache savings');
+			assert(analysis.cacheImpact.savingsTotal >= 0, 'Should calculate cache savings total');
+			assert(analysis.cacheImpact.savingsPercentage >= 0, 'Should calculate cache savings percentage');
 
 			// Verify role-based analysis works
 			assert(analysis.byRole.assistant > 0, 'Should track assistant role usage');
@@ -147,7 +148,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Handle file system errors',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -192,7 +193,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Concurrent storage access',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -238,7 +239,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Cache impact edge cases',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -302,7 +303,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 100,
 						actualCost: 95,
-						savings: 4, // Slightly off from expected 5
+						savingsTotal: 4, // Slightly off from expected 5
+						savingsPercentage: 4, // (savingsTotal / potentialCost) * 100
 					},
 				},
 			];
@@ -322,7 +324,7 @@ Deno.test({
 			// Verify cache impact calculations
 			assert(analysis.cacheImpact.potentialCost >= 0, 'Potential cost should be non-negative');
 			assert(analysis.cacheImpact.actualCost >= 0, 'Actual cost should be non-negative');
-			assert(analysis.cacheImpact.totalSavings >= 0, 'Total savings should be non-negative');
+			assert(analysis.cacheImpact.savingsTotal >= 0, 'Total savings should be non-negative');
 			assert(
 				analysis.cacheImpact.actualCost <= analysis.cacheImpact.potentialCost,
 				'Actual cost should not exceed potential cost',
@@ -336,7 +338,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Handle corrupted storage',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -372,7 +374,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 0,
 						actualCost: 0,
-						savings: 0,
+						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				},
 
@@ -395,7 +398,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 1,
 						actualCost: 1,
-						savings: 0,
+						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				},
 
@@ -418,7 +422,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: Number.MAX_SAFE_INTEGER,
 						actualCost: Number.MAX_SAFE_INTEGER,
-						savings: 0,
+						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				},
 			] as TokenUsageRecord[];
@@ -464,7 +469,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Real-world token usage patterns',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -508,7 +513,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 150,
 						actualCost: 150,
-						savings: 0,
+						savingsTotal: 0,
+						savingsPercentage: 0,
 					},
 				} as TokenUsageRecord,
 
@@ -553,7 +559,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Validation error handling',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -595,7 +601,8 @@ Deno.test({
 				cacheImpact: {
 					potentialCost: 10,
 					actualCost: 20, // Invalid: actual > potential
-					savings: 0,
+					savingsTotal: 0,
+					savingsPercentage: 0,
 				},
 			} as TokenUsageRecord;
 
@@ -720,7 +727,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Multiple records and sequence handling',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -765,7 +772,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Differential usage tracking',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -812,7 +819,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Validation warning vs error behavior',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -836,7 +843,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 100,
 						actualCost: 150, // Invalid: actual > potential
-						savings: -50,
+						savingsTotal: -50,
+						savingsPercentage: -50, // (savingsTotal / potentialCost) * 100
 					},
 				},
 
@@ -850,7 +858,8 @@ Deno.test({
 					cacheImpact: {
 						potentialCost: 100,
 						actualCost: 80,
-						savings: 15, // Should be 20
+						savingsTotal: 15, // Should be 20
+						savingsPercentage: 15, // Should be 20
 					},
 				},
 			];
@@ -879,7 +888,11 @@ Deno.test({
 			// Verify savings mismatch case
 			const savingsMismatchRecord = savedRecords.find((r) => r.messageId === 'savings-mismatch');
 			assert(savingsMismatchRecord, 'Should find savings mismatch record');
-			assertEquals(savingsMismatchRecord.cacheImpact.savings, 15, 'Should preserve incorrect savings value');
+			assertEquals(
+				savingsMismatchRecord.cacheImpact.savingsTotal,
+				15,
+				'Should preserve incorrect savingsTotal value',
+			);
 
 			// Test cases that should throw errors
 			const errorCases = [
@@ -942,7 +955,7 @@ Deno.test({
 Deno.test({
 	name: 'TokenUsagePersistence - Cache impact analysis',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
@@ -987,7 +1000,7 @@ Deno.test({
 					'Actual cost should not exceed potential cost',
 				);
 				assertEquals(
-					record.cacheImpact.savings,
+					record.cacheImpact.savingsTotal,
 					record.cacheImpact.potentialCost - record.cacheImpact.actualCost,
 					'Savings should be the difference between potential and actual cost',
 				);

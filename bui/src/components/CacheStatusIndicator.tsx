@@ -72,7 +72,7 @@ export function CacheStatusIndicator({ status, className = '' }: CacheStatusIndi
 			/>
 			<span className='sr-only'>{getStatusText(status)}</span>
 			<svg
-				className='w-4 h-4 text-gray-400'
+				className='w-4 h-4 text-gray-400 dark:text-gray-500'
 				fill='none'
 				stroke='currentColor'
 				viewBox='0 0 24 24'

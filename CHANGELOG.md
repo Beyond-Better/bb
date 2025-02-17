@@ -17,6 +17,289 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.13] - 2025-02-16
+
+### Fixed
+
+- stopped signup verification looping
+
+
+## [0.6.12] - 2025-02-16
+
+### Fixed
+
+- landing page auth check
+- project config migration backups
+
+
+## [0.6.11] - 2025-02-07
+
+### Fixed
+
+- validation for global config and new config missing defaultModels
+- tokenUsage for chats saved with conversation
+- token savings calculations
+
+
+## [0.6.10] - 2025-02-01
+
+### Added
+
+- created base class abstraction for OpenAI compatible providers
+- added support for Ollama
+- added support for DeepSeek
+- conversation and project migrations for version upgrades
+
+### Changed
+
+- llmKeys moved under llmProviders
+- run_command tool supports head/tail truncation for stdout/stderr
+
+### Fixed
+
+- token calculations and reporting
+
+
+## [0.6.9] - 2025-01-23
+
+### Changed
+
+- external link display in dui
+
+### Fixed
+
+- default port for bui changed in configs
+- dui handles 'corrupt' version strings from api
+- file loading in api
+- saving project type updates project config
+
+
+## [0.6.8] - 2025-01-21
+
+### Added
+
+- new tool for display file
+
+### Fixed
+
+- fix for saving project config after edit in project settings
+- tool config shows blank text area instead of blank json
+
+
+## [0.6.7] - 2025-01-18
+
+### Changed
+
+- Project editor has more configuration fields
+
+### Fixed
+
+- Propagating errors from LLM
+
+
+## [0.6.6] - 2025-01-16
+
+### Fixed
+
+- force a release for BUI build
+
+
+## [0.6.5] - 2025-01-16
+
+### Added
+
+
+### Changed
+
+- layout for project manager
+
+### Fixed
+
+- version reporting for api
+
+
+## [0.6.4] - 2025-01-13
+
+### Fixed
+
+- Chat Input regressions
+- Navigation in Project Manager
+- Propagating errors from LLM
+
+
+## [0.6.3] - 2025-01-12
+
+### Fixed
+
+- valid semantic version to keep Tauri happy
+
+## [0.6.2a] - 2025-01-12
+
+### Fixed
+
+- default config for defaultModels
+
+
+## [0.6.2] - 2025-01-12
+
+### Added
+
+- Refresh button for Subscription usage
+- Prompt history in Chat Input
+
+### Changed
+
+
+### Fixed
+
+- Location for log and run files in Linux
+- Subscription page updates when navigating away and back
+
+
+## [0.6.1] - 2025-01-12
+
+### Added
+
+- Settings in BUI for project defaults
+- [beta] Support for OpenAI provider (needs image_url instead of b64 data)
+- [alpha] Support for DeepSeek provider (not returning tool_calls message) (via llm-proxy only)
+
+### Changed
+
+- DUI control for API & BUI
+- LocalMode settings in DUI for API & BUI 
+- Redirect from login page if already logged in
+
+### Fixed
+
+- Changed KV key to fix auth session restoration in API
+
+
+## [0.6.0] - 2025-01-08
+
+### Added
+
+- user account with subscription plans
+- llm proxy to remove requirement for api key
+- support for external tools
+- dedicated log (per conversation) of LLM request/responses
+- added remove_files tool
+- binary build for BUI
+
+### Changed
+
+- docs shuffle
+- updated deps (including Anthropic SDK with GA prompt caching)
+- improved prompting to encourage use of request_files tool
+
+### Fixed
+
+- `pre` background in dark mode
+- auth handling in BUI
+
+
+## [0.5.12] - 2024-12-20
+
+### Added
+
+- http/websocket proxy in BUI to work around mixed content warnings in webview
+- persisting windows size/position
+- dark mode support
+
+
+## [0.5.11] - 2024-12-18
+
+### Added
+
+- Conversation selector on chat page
+
+### Changed
+
+- Project Manager links direct to chat page
+- Collapsed conversation list on chat page
+- Improved conversation metadata
+
+
+## [0.5.10] - 2024-12-16
+
+### Fixed
+
+- Fixed imports for Windows build of desktop app
+
+
+## [0.5.9] - 2024-12-16
+
+### Changed
+
+- Modified API process handing in Windows version of desktop app
+
+
+## [0.5.8] - 2024-12-16
+
+### Fixed
+
+- Automatic installation of binaries using Windows desktop app
+
+
+## [0.5.7] - 2024-12-16
+
+### Added
+
+- config option to set project dir for API control
+
+### Changed
+
+- updating logging in DUI
+
+
+## [0.5.6] - 2024-12-15
+
+### Added
+
+- add CSP header to BUI
+
+
+## [0.5.5] - 2024-12-15
+
+### Fixed
+
+- Install prompt in desktop app
+
+
+## [0.5.4] - 2024-12-15
+
+### Fixed
+
+- workflow syntax
+
+
+## [0.5.3] - 2024-12-15
+
+### Fixed
+
+- GitHub workflow version handling
+
+
+## [0.5.2] - 2024-12-15
+
+### Added
+
+- Chat page added to desktop app (when using api in secure/tls mode)
+- Debug mode in desktop app to allow using localhost browser interface
+
+### Changed
+
+- Desktop app changed to universal binary for macOS
+
+### Fixed
+
+- projectId (& config) is optional for many CLI commands
+- API starts automatically when launching desktop app
+- Config in desktop app verified before starting API
+- API url generation in browser app
+- Default values set for global config
+
+
 ## [0.5.1] - 2024-12-11
 
 ### Changed

@@ -10,10 +10,11 @@ import type { CreateProjectData, ProjectConfig, ProjectType } from 'shared/confi
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
+//import { Project } from 'shared/types/project.ts';
 
 export interface StoredProject {
 	name: string;
-	path: string;
+	path: string; // absolute path to project - should make it a (file) URL
 	type: ProjectType;
 	projectId: string;
 }
@@ -103,13 +104,15 @@ class ProjectPersistence {
 		}
 	}
 
-	async createProject(project: CreateProjectData): Promise<void> {
+	async createProject(project: CreateProjectData): Promise<string> {
 		await this.ensureInitialized();
 		try {
 			const configManager = await ConfigManagerV2.getInstance();
-			await configManager.createProject(project);
+			const projectId = await configManager.createProject(project);
 
-			logger.info(`ProjectPersistence: Created project for ${project.path}`);
+			logger.info(`ProjectPersistence: Created project ${projectId} for ${project.path}`);
+
+			return projectId;
 		} catch (error) {
 			logger.error(
 				`ProjectPersistence: Failed to create project for ${project.path}: ${(error as Error).message}`,

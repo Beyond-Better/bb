@@ -47,7 +47,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'search_project',
 			'description':
-				"Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. File Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project when you don't know exact file paths. For known paths, use request_files instead.",
+				"Search project files by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. File Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project for unknown file paths. For known paths, use request_files instead.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -78,7 +78,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'request_files',
 			'description':
-				'Request one or more files to be added to the conversation. Use this tool when you know the exact file paths. For discovering files, use search_project instead. Always review file contents before making suggestions or changes.',
+				"Request one or more files to be added to the conversation, even if they don't exist in the project listing. Use this tool when you know the exact file paths. For discovering files, use search_project instead. Always review file contents before making suggestions or changes.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -142,6 +142,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'displayFile.tool',
+		'metadata': {
+			'name': 'display_file',
+			'description':
+				'Display the contents of a file to the user while returning only metadata to the AI assistant. IMPORTANT: Do not use this tool to return file contents to the AI assistant; instead use the request_file tool.\n\nThe tool will show the user the file contents with appropriate formatting (syntax highlighting for text files, proper rendering for images) but the AI will only receive metadata like file size, type, and last modified date. This separation ensures user privacy while allowing the AI to track file states and metadata.',
+			'version': '1.0.0',
+			'category': 'file',
+			'enabled': true,
+			'author': 'BB Team',
+			'license': 'MIT',
+		},
+	},
+	{
 		'toolNamePath': 'vectorSearch.tool',
 		'metadata': {
 			'name': 'vector_search',
@@ -157,7 +170,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'run_command',
 			'description':
-				"Run a system command from the user-configured allow list and return the output. For security, only commands explicitly added to the allow list can be executed. Users can configure any shell commands they wish to permit. If you need a command that isn't in the allowed list, suggest that the user add it to their configuration. Commands may output to both stdout and stderr; stderr doesn't always indicate an error. Commands can be run from a specific working directory relative to the project root, which affects how relative paths in arguments are resolved. If no working directory is specified, commands run from the project root.",
+				"Run a system command from the user-configured allow list and return the output. For security, only commands explicitly added to the allow list can be executed. Users can configure any shell commands they wish to permit. If you need a command that isn't in the allowed list, suggest that the user add it to their configuration. Commands may output to both stdout and stderr; stderr doesn't always indicate an error. Commands can be run from a specific working directory relative to the project root, which affects how relative paths in arguments are resolved. If no working directory is specified, commands run from the project root. The tool supports output truncation through the outputTruncation parameter, allowing you to keep specified numbers of lines from the beginning (head) and/or end (tail) of both stdout and stderr outputs. When truncation occurs, the response includes truncatedInfo detailing how many lines were kept from the original output.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -183,8 +196,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'toolNamePath': 'delegateTasks.tool',
 		'metadata': {
 			'name': 'delegate_tasks',
-			'description':
-				'Delegate specialized tasks to child interactions. Currently supports log entry summary tasks with configurable format (short/medium/long), token limits, and metadata inclusion options. Each task includes type, target, and optional configuration.',
+			'description': 'Delegate specialized tasks to child agent conversations.',
 			'enabled': false,
 			'version': '1.0.0',
 			'author': 'BB Team',
@@ -200,6 +212,18 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+		},
+	},
+	{
+		'toolNamePath': 'removeFiles.tool',
+		'metadata': {
+			'name': 'remove_files',
+			'description':
+				'Remove files from the project, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
 		},
 	},
 	{
@@ -231,7 +255,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'rewrite_file',
 			'description':
-				'Completely replaces an existing file\'s contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.',
+				'Completely replaces an existing file\'s contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.\nDANGER: Completely replaces file contents.\nREQUIRED STEPS:\n1. Use request_files to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail',
 			'version': '1.0.0',
 			'category': 'FileManipulation',
 			'author': 'BB Team',

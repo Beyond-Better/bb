@@ -1,5 +1,5 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { colors } from 'cliffy/ansi/colors';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import {
@@ -21,6 +21,7 @@ async function enableTls(configManager: ConfigManagerV2, projectId?: string): Pr
 		const certFileName = globalConfig.api.tls?.certFile || 'localhost.pem';
 
 		// Get the config to modify (project or global)
+		if (projectId) await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = projectId ? (await configManager.getProjectConfig(projectId) ?? null) : null;
 
 		if (!await certificateFileExists(certFileName)) {

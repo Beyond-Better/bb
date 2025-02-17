@@ -253,7 +253,7 @@ Deno.test({
 				'Potential cost should be >= actual cost',
 			);
 			assertEquals(
-				analysis.conversation.cacheImpact.totalSavings,
+				analysis.conversation.cacheImpact.savingsTotal,
 				analysis.conversation.cacheImpact.potentialCost - analysis.conversation.cacheImpact.actualCost,
 				'Savings should be potential - actual cost',
 			);

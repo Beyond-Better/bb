@@ -20,9 +20,15 @@ User-facing documentation and guides for BB users.
 
 ### [development/](development/)
 Documentation for BB developers and contributors.
+- Examples
+  - [Tool Creation Example](development/examples/tool_creation_conversation.md) - Complete example of BB creating a tool
 - Reference documentation
+  - [Tool Library Reference](development/reference/tool_library.md) - Technical details of the BB Tool Library
+  - [Tools Reference](development/reference/tools.md) - Built-in tools documentation
 - Design documents
 - Implementation guides
+  - [Publishing Tools](development/guides/publishing_tools.md) - Guide to publishing tools in the BB Tool Library
+  - [Creating New Tools](development/llm/new_tool.md) - Guide to creating custom tools
 - LLM instructions
 
 ### [archive/](zarchive/)
@@ -49,5 +55,6 @@ Each subdirectory contains its own README.md with detailed information about the
   - Conversation management
   - Planning templates and examples
   - Installation and configuration guides
+  - [Custom Tools Guide](user/guides/custom_tools.md) - Using custom tools from the BB Tool Library
 - [Development Documentation](development/README.md) - Technical documentation for developers
 - [Archive](archive/README.md) - Historical documentation

@@ -1,6 +1,6 @@
-import { Command } from 'cliffy/command/mod.ts';
-import { Confirm, Input, prompt } from 'cliffy/prompt/mod.ts';
-import { colors } from 'cliffy/ansi/colors.ts';
+import { Command } from 'cliffy/command';
+import { Confirm, Input, prompt } from 'cliffy/prompt';
+import { colors } from 'cliffy/ansi/colors';
 import { logger } from 'shared/logger.ts';
 import { basename } from '@std/path';
 import { getProjectId } from 'shared/dataDir.ts';
@@ -35,7 +35,8 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 			path: projectRoot,
 			myPersonsName: projectConfig.myPersonsName,
 			myAssistantsName: projectConfig.myAssistantsName,
-			anthropicApiKey: projectConfig.settings.api?.llmKeys?.anthropic,
+			anthropicApiKey: projectConfig.settings.api?.llmProviders?.anthropic?.apiKey,
+			defaultModels: projectConfig.defaultModels,
 		}
 		: {
 			name: basename(projectRoot),
@@ -44,6 +45,11 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
 			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
 			anthropicApiKey: '',
+			defaultModels: {
+				orchestrator: 'claude-3-5-sonnet-20241022',
+				agent: 'claude-3-5-sonnet-20241022',
+				chat: 'claude-3-haiku-20240307',
+			},
 		};
 
 	const defaultProjectName = existingProjectConfig.name;
@@ -51,7 +57,7 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 		'';
 	const defaultAssistantName = existingProjectConfig.myAssistantsName;
 	const existingApiKey = existingProjectConfig.anthropicApiKey;
-	const isApiKeyRequired = !globalConfig.api.llmKeys?.anthropic;
+	const isApiKeyRequired = !globalConfig.api.llmProviders?.anthropic?.apiKey;
 
 	const answers = await prompt([
 		{
@@ -247,9 +253,13 @@ export const init = new Command()
 			// Verify that API key is set either in user config or project config
 			const finalGlobalConfig = await configManager.getGlobalConfig();
 			const projectId = await getProjectId(projectRoot);
+			//await configManager.ensureLatestProjectConfig(projectId);
 			const finalProjectConfig = await configManager.getProjectConfig(projectId);
 
-			if (!finalGlobalConfig.api?.llmKeys?.anthropic && !finalProjectConfig.settings.api?.llmKeys?.anthropic) {
+			if (
+				!finalGlobalConfig.api?.llmProviders?.anthropic?.apiKey &&
+				!finalProjectConfig.settings.api?.llmProviders?.anthropic?.apiKey
+			) {
 				throw new Error(
 					'Anthropic API key is required. Please set it in either user or project configuration.',
 				);

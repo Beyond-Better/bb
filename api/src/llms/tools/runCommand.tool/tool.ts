@@ -14,7 +14,7 @@ import {
 	formatLogEntryToolResult as formatLogEntryToolResultConsole,
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
-import type { LLMToolRunCommandInput } from './types.ts';
+import type { LLMToolRunCommandInput, OutputTruncationLines } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
@@ -95,6 +95,48 @@ export default class LLMToolRunCommand extends LLMTool {
 						`   * Building from specific source directory\n` +
 						`   * Managing dependencies in package directory`,
 				},
+				outputTruncation: {
+					type: 'object',
+					properties: {
+						keepLines: {
+							type: 'object',
+							properties: {
+								stdout: {
+									type: 'object',
+									properties: {
+										head: {
+											type: 'number',
+											description: 'Number of lines to keep from the beginning of stdout',
+											minimum: 0,
+										},
+										tail: {
+											type: 'number',
+											description: 'Number of lines to keep from the end of stdout',
+											minimum: 0,
+										},
+									},
+								},
+								stderr: {
+									type: 'object',
+									properties: {
+										head: {
+											type: 'number',
+											description: 'Number of lines to keep from the beginning of stderr',
+											minimum: 0,
+										},
+										tail: {
+											type: 'number',
+											description: 'Number of lines to keep from the end of stderr',
+											minimum: 0,
+										},
+									},
+								},
+							},
+							description:
+								'Configuration for truncating command output. Allows keeping specified numbers of lines from the beginning (head) and/or end (tail) of stdout and stderr outputs.',
+						},
+					},
+				},
 			},
 			required: ['command'],
 		};
@@ -122,7 +164,7 @@ export default class LLMToolRunCommand extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { command, args = [], cwd } = toolInput as LLMToolRunCommandInput;
+		const { command, args = [], cwd, outputTruncation } = toolInput as LLMToolRunCommandInput;
 
 		logger.info(
 			`LLMToolRunCommand: Validating command '${command}' against allowed commands:\n${
@@ -181,14 +223,40 @@ export default class LLMToolRunCommand extends LLMTool {
 
 			const { code, stdout, stderr } = await process.output();
 
-			const output = new TextDecoder().decode(stdout);
-			const errorOutput = new TextDecoder().decode(stderr);
+			const fullStdout = new TextDecoder().decode(stdout);
+			const fullStderr = new TextDecoder().decode(stderr);
+
+			const { result: truncatedStdout, truncatedInfo: stdoutTruncatedInfo } = this.truncateOutput(
+				fullStdout,
+				outputTruncation?.keepLines?.stdout,
+			);
+			const { result: truncatedStderr, truncatedInfo: stderrTruncatedInfo } = this.truncateOutput(
+				fullStderr,
+				outputTruncation?.keepLines?.stderr,
+			);
 
 			const isError = code !== 0;
-			const stderrContainsError = this.checkStderrForErrors(errorOutput, command);
+			const stderrContainsError = this.checkStderrForErrors(fullStdout, command);
 
-			const toolResults = `Command executed with exit code: ${code}\n\nOutput:\n${output}${
-				errorOutput ? `\n\nError output:\n${errorOutput}` : ''
+			const truncatedInfo = (stdoutTruncatedInfo || stderrTruncatedInfo)
+				? {
+					stdout: stdoutTruncatedInfo,
+					stderr: stderrTruncatedInfo,
+				}
+				: undefined;
+
+			const toolResults = `Command executed with exit code: ${code}\n\nOutput:\n${truncatedStdout}${
+				stdoutTruncatedInfo
+					? `\n[stdout truncated: kept ${stdoutTruncatedInfo.keptLines} of ${stdoutTruncatedInfo.originalLines} lines]`
+					: ''
+			}${
+				truncatedStderr
+					? `\n\nError output:\n${truncatedStderr}${
+						stderrTruncatedInfo
+							? `\n[stderr truncated: kept ${stderrTruncatedInfo.keptLines} of ${stderrTruncatedInfo.originalLines} lines]`
+							: ''
+					}`
+					: ''
 			}`;
 			const toolResponse = isError ? 'Command exited with non-zero status' : 'Command completed successfully';
 			const bbResponse = {
@@ -196,8 +264,9 @@ export default class LLMToolRunCommand extends LLMTool {
 					code,
 					command,
 					stderrContainsError,
-					stdout: output,
-					stderr: errorOutput,
+					stdout: truncatedStdout,
+					stderr: truncatedStderr,
+					truncatedInfo,
 				},
 			};
 
@@ -213,6 +282,52 @@ export default class LLMToolRunCommand extends LLMTool {
 				cwd,
 			});
 		}
+	}
+
+	private truncateOutput(output: string, config?: OutputTruncationLines): {
+		result: string;
+		truncatedInfo?: { originalLines: number; keptLines: number };
+	} {
+		if (!config) {
+			return { result: output };
+		}
+
+		// Trim trailing newlines before splitting to get accurate line count
+		const lines = output.trimEnd().split('\n');
+		const originalLineCount = lines.length;
+		const { head = 0, tail = 0 } = config;
+
+		// If total lines to keep is greater than available lines, return everything
+		if (head + tail >= lines.length) {
+			return { result: output };
+		}
+
+		const headLines = head > 0 ? lines.slice(0, head) : [];
+		const tailLines = tail > 0 ? lines.slice(-tail) : [];
+
+		const truncatedLines = [];
+		// Add head lines if any
+		if (headLines.length > 0) {
+			truncatedLines.push(...headLines);
+		}
+
+		// Add truncation message if we're truncating
+		if (originalLineCount > head + tail) {
+			truncatedLines.push(`[...truncated ${originalLineCount - head - tail} lines...]`);
+		}
+
+		// Add tail lines if any
+		if (tailLines.length > 0) {
+			truncatedLines.push(...tailLines);
+		}
+
+		return {
+			result: truncatedLines.join('\n') + '\n', // Add single trailing newline for consistency
+			truncatedInfo: {
+				originalLines: originalLineCount,
+				keptLines: headLines.length + tailLines.length,
+			},
+		};
 	}
 
 	private stripAnsi(str: string): string {

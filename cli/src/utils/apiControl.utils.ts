@@ -18,6 +18,17 @@ import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ApiConfig } from 'shared/config/v2/types.ts';
 import { apiFileLogPath } from 'api/utils/fileLogger.ts';
 
+/* ******************
+ * API type can be either global or per-project.
+ * The type of API is defined by whether the projectId is supplied.
+ * All of the API control functions have projectId as an optional argument
+ * If projectId is supplied then API control, such as location of PID file
+ * should be relative to the projectRoot.
+ * The calling function (CLI command entry point) is responsible for
+ * ensuring the projectId is valid, so all commands here can assume that
+ * getBbDir, getProjectRoot, etc will succeed (but that's no excuse for not handling errors)
+ ****************** */
+
 export async function startApiServer(
 	projectId: string | undefined,
 	apiHostname?: string,
@@ -33,7 +44,10 @@ export async function startApiServer(
 	const globalConfig = await configManager.getGlobalConfig();
 	let apiConfig: ApiConfig;
 	if (projectId) {
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
+		// we don't need to check projectConfig.useProjectApi here since caller
+		// is responsible for that; if we've got a projectId, we're using projectConfig
 		apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 	} else {
 		apiConfig = globalConfig.api;
@@ -50,7 +64,7 @@ export async function startApiServer(
 		return { pid: pid || 0, apiLogFilePath, listen: `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}` };
 	}
 
-	const projectRoot = projectId ? await getProjectRoot(projectId) : Deno.cwd();
+	const apiRoot = projectId ? await getProjectRoot(projectId) : Deno.cwd();
 	const apiLogFileName = apiLogFile || apiConfig.logFile || 'api.log';
 	const apiLogFilePath = await apiFileLogPath(apiLogFileName, projectId);
 	const logLevel = apiLogLevel || apiConfig.logLevel || 'info';
@@ -76,7 +90,7 @@ export async function startApiServer(
 		logger.debug(`Starting BB API as compiled binary using ${bbApiExecFile}`);
 		command = new Deno.Command(bbApiExecFile, {
 			args: ['--log-file', apiLogFilePath, ...apiHostnameArgs, ...apiPortArgs, ...apiUseTlsArgs],
-			cwd: projectRoot,
+			cwd: apiRoot,
 			stdout: 'null',
 			stderr: 'null',
 			stdin: 'null',
@@ -86,7 +100,7 @@ export async function startApiServer(
 			},
 		});
 	} else {
-		logger.info(`Starting BB API as script using ${projectRoot}/api/src/main.ts`);
+		logger.info(`Starting BB API as script using ${apiRoot}/api/src/main.ts`);
 		const cmdArgs = [
 			'run',
 			'--allow-read',
@@ -99,13 +113,13 @@ export async function startApiServer(
 		command = new Deno.Command(Deno.execPath(), {
 			args: [
 				...cmdArgs,
-				join(projectRoot, 'api/src/main.ts'),
+				join(apiRoot, 'api', 'src', 'main.ts'),
 				'--log-file',
 				apiLogFilePath,
 				...apiHostnameArgs,
 				...apiPortArgs,
 			],
-			cwd: join(projectRoot, 'api'),
+			cwd: join(apiRoot, 'api'),
 			stdout: 'null',
 			stderr: 'null',
 			stdin: 'null',
@@ -217,7 +231,10 @@ export async function getApiStatus(projectId?: string): Promise<{
 	const globalConfig = await configManager.getGlobalConfig();
 	let apiConfig: ApiConfig;
 	if (projectId) {
+		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
+		// we don't need to check projectConfig.useProjectApi here since caller
+		// is responsible for that; if we've got a projectId, we're using projectConfig
 		apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
 	} else {
 		apiConfig = globalConfig.api;

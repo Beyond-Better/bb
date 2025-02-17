@@ -12,28 +12,30 @@ interface ErrorHandlingConfig {
 export class ErrorHandler {
 	constructor(private config: ErrorHandlingConfig) {}
 
-	async handleError(error: Error, task: Task, retryCount: number): Promise<void> {
+	async handleError(error: Error, task: Task, retryCount: number): Promise<Error> {
 		switch (this.config.strategy) {
 			case 'fail_fast':
-				throw error;
+				return error;
 			case 'continue_on_error':
 				// Log error and continue
 				logger.error(`Error in task ${task.title}:`, error);
 				if (this.config.continueOnErrorThreshold && retryCount >= this.config.continueOnErrorThreshold) {
-					throw new Error(`Exceeded continue on error threshold for task ${task.title}`);
+					return new Error(`Exceeded continue on error threshold for task ${task.title}`);
 				}
-				break;
+				return new Error(`continue: threshold not exceeded for task ${task.title}`);
+				//break;
 			case 'retry':
 				if (retryCount < (this.config.maxRetries || 3)) {
 					// Retry the task
 					logger.warn(`Retrying task ${task.title}. Attempt ${retryCount + 1}`);
 					// Implement retry logic here
+					return new Error(`Max retries exceeded for task ${task.title}`);
 				} else {
-					throw new Error(`Max retries exceeded for task ${task.title}`);
+					return new Error(`continue: retries allowed for task ${task.title}`);
 				}
-				break;
+				//break;
 			default:
-				throw new Error(`Unknown error strategy: ${this.config.strategy}`);
+				return new Error(`Unknown error strategy: ${this.config.strategy}`);
 		}
 	}
 

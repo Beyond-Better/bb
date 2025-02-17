@@ -39,19 +39,26 @@ export async function getProjectRootFromStartDir(startDir: string): Promise<stri
 }
 
 export async function getBbDir(projectId: string): Promise<string> {
+	return await getBbDirFromProjectId(projectId);
+}
+export async function getBbDirFromProjectId(projectId: string): Promise<string> {
 	const projectRoot = await getProjectRoot(projectId);
-	const bbDir = join(projectRoot, '.bb');
-	await ensureDir(bbDir);
-	return bbDir;
+	return await getBbDirFromProjectRoot(projectRoot);
 }
 export async function getBbDirFromStartDir(startDir: string): Promise<string> {
 	const projectRoot = await getProjectRootFromStartDir(startDir);
+	return await getBbDirFromProjectRoot(projectRoot);
+}
+export async function getBbDirFromProjectRoot(projectRoot: string): Promise<string> {
 	const bbDir = join(projectRoot, '.bb');
 	await ensureDir(bbDir);
 	return bbDir;
 }
 
 export async function getGlobalConfigDir(): Promise<string> {
+	const customConfigDir = Deno.env.get('BB_GLOBAL_CONFIG_DIR'); // used for testing - don't rely on it for other purposes
+	if (customConfigDir) return customConfigDir;
+
 	const globalConfigDir = Deno.build.os === 'windows' ? (join(Deno.env.get('APPDATA') || '', 'bb')) : (
 		join(Deno.env.get('HOME') || '', '.config', 'bb')
 	);
@@ -232,6 +239,24 @@ export async function removeFromBbDataDir(projectId: string, filename: string): 
 			throw error;
 		}
 	}
+}
+
+export async function resolveProjectFilePath(projectId: string, filePath: string): Promise<string> {
+	if (filePath.startsWith('/')) {
+		return filePath;
+	}
+
+	const projectRoot = await getProjectRoot(projectId);
+	logger.info(`resolveProjectFilePath: checking ${filePath} in ${projectRoot}`);
+	if (projectRoot) {
+		const projectPath = join(projectRoot, filePath);
+		logger.info(`resolveProjectFilePath: checking ${projectPath}`);
+		if (await exists(projectPath)) {
+			return projectPath;
+		}
+	}
+
+	throw new Error(`File not found: ${filePath}`);
 }
 
 export async function resolveFilePath(filePath: string): Promise<string> {

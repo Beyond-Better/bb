@@ -13,7 +13,9 @@ import {
 import { FileHandlingError } from 'api/errors/error.ts';
 import type { LLMToolRewriteFileResponseData } from '../types.ts';
 
-const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete file content with no omissions or placeholders';
+//const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete file content with no omissions or placeholders';
+const VALID_ACKNOWLEDGEMENT =
+	'I have checked for existing file contents and confirm this is the complete file content with no omissions or placeholders';
 
 // Type guard function
 function isRunCommandResponse(
@@ -24,7 +26,6 @@ function isRunCommandResponse(
 		: null;
 	return (
 		data !== null &&
-		typeof data === 'object' &&
 		typeof data === 'object' &&
 		'filePath' in data &&
 		typeof data.filePath === 'string' &&

@@ -1,4 +1,4 @@
-import { Command } from 'cliffy/command/mod.ts';
+import { Command } from 'cliffy/command';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 
 import { init } from './commands/init.ts';

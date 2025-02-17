@@ -1,0 +1,91 @@
+<thinking>
+Let me analyze potential additional safeguards, considering both technical and cognitive aspects:
+
+1. Content Validation Safeguards:
+- Require explicit listing of sections being modified
+- Add checksum/hash validation of unchanged sections
+- Enforce minimum content preservation percentage
+- Add "diff preview" before confirming changes
+- Require explanation of any significant line count changes
+
+2. Structural Safeguards:
+- Break rewrite operations into smaller, targeted operations:
+  ```typescript
+  // Instead of rewrite_file:
+  insert_after_imports()
+  modify_section("return statement")
+  add_component()
+  ```
+- Force separate steps for deletion vs addition
+- Require explicit marking of preserved sections with unique identifiers
+
+3. Process Safeguards:
+- Add a "dry run" mode showing impact before actual changes
+- Require confirmation of both added AND preserved content
+- Add a "content regions" system:
+  ```typescript
+  <preserve id="imports">
+    [existing imports]
+  </preserve>
+  <modify id="new-imports">
+    [new imports]
+  </modify>
+  <preserve id="main-content">
+    [existing content]
+  </preserve>
+  ```
+
+4. Cognitive Safeguards:
+- Require explicit reasoning about content preservation
+- Add a "preservation checklist" that must be completed:
+  ```typescript
+  preservation_checklist: {
+    importsPreserved: boolean,
+    mainLogicPreserved: boolean,
+    onlyTargetedChanges: boolean,
+    lineCountExplained: boolean
+  }
+  ```
+- Force comparison of before/after structure
+
+5. Tool Design Safeguards:
+- Split large rewrites into mandatory smaller operations
+- Add "content regions" that must be explicitly marked as preserved or modified
+- Require explicit handling of each major section
+- Add automatic backup/restore for failed operations
+
+6. Validation Requirements:
+- Require explanation if content drops below 80% of original
+- Force review of removed lines before accepting changes
+- Add semantic validation of preserved functionality
+- Require mapping of old-to-new content relationships
+
+Example of a more robust rewrite operation:
+```typescript
+modifyFile.tool
+{
+  "filePath": "file.ts",
+  "operations": "
+{
+      preserveSections: [
+        { id: "imports", lines: "1-50", hash: "..." },
+        { id: "main-logic", lines: "51-400", hash: "..." }
+      ],
+      modifySections: [
+        { id: "new-imports", after: "imports", content: "..." },
+        { id: "version-display", after: "return-statement", content: "..." }
+      ],
+      preservationChecklist: {
+        importsPreserved: true,
+        mainLogicPreserved: true,
+        onlyTargetedChanges: true,
+        lineCountExplained: true
+      },
+      contentValidation: {
+        minPreservationPercent: 80,
+        requireDiffExplanation: true,
+        autoBackup: true
+      }
+    }
+  "
+}

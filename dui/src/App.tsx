@@ -1,10 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { ServerControl } from './components/ServerControl/ServerControl';
-import { BuiView } from './components/BuiView/BuiView';
 import { LogViewer } from './components/LogViewer/LogViewer';
 import { Header } from './components/Header/Header';
 import { Settings } from './components/Settings/Settings';
 import { VersionProvider } from './providers/VersionProvider';
+import { DebugModeProvider } from './providers/DebugModeProvider';
 import { VersionUpgradePrompt } from './components/VersionUpgradePrompt/VersionUpgradePrompt';
 import { useEffect, useState } from 'preact/hooks';
 import { ApiStatus } from './types/ApiStatus';
@@ -17,7 +17,8 @@ function App() {
 	const [isInitialized, setIsInitialized] = useState(false);
 
 	const checkAndInitialize = async () => {
-		// Note: Config and binary checks removed until Tauri commands are implemented
+		// VersionProvider handles all version and binary checks
+		// Just set initialization status
 		setIsInitialized(true);
 	};
 
@@ -41,11 +42,12 @@ function App() {
 	};
 
 	const handleStatusChange = (status: any) => {
-		if (status.error) {
+		// console.log('status', status);
+		if (status.api.error || status.bui.error) {
 			setServerStatus(ApiStatus.Error);
-		} else if (status.api_responds) {
+		} else if (status.api.service_responds && status.bui.service_responds) {
 			setServerStatus(ApiStatus.Ready);
-		} else if (status.process_responds) {
+		} else if (status.api.process_responds || status.bui.process_responds) {
 			setServerStatus(ApiStatus.Processing);
 		} else {
 			setServerStatus(ApiStatus.Error);
@@ -58,28 +60,29 @@ function App() {
 
 	return (
 		<VersionProvider>
-			<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-				<Header
-					serverStatus={serverStatus}
-					isConnected={isConnected}
-					onNavigate={navigate}
-				/>
-				<main className='container mx-auto px-4 py-8'>
-					<VersionUpgradePrompt />
-					{currentRoute === '/' && (
-						<>
-							<ServerControl
-								onStatusChange={handleStatusChange}
-								onConnectionChange={handleConnectionChange}
-								onNavigate={navigate}
+			<DebugModeProvider>
+				<div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+					<Header
+						serverStatus={serverStatus}
+						isConnected={isConnected}
+						onNavigate={navigate}
+					/>
+					<main className='container mx-auto px-4 py-8'>
+						<VersionUpgradePrompt />
+						{currentRoute === '/' && (
+							<>
+								<ServerControl
+									onStatusChange={handleStatusChange}
+									onConnectionChange={handleConnectionChange}
+									onNavigate={navigate}
 								/>
-							{/*<LogViewer className="max-w-2xl mx-auto" />*/}
-						</>
-					)}
-					{currentRoute === '/settings' && <Settings />}
-					{currentRoute === '/bui' && <BuiView serverStatus={serverStatus} />}
-				</main>
-			</div>
+								{/*<LogViewer className="max-w-2xl mx-auto" />*/}
+							</>
+						)}
+						{currentRoute === '/settings' && <Settings />}
+					</main>
+				</div>
+			</DebugModeProvider>
 		</VersionProvider>
 	);
 }
