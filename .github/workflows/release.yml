@@ -189,7 +189,7 @@ jobs:
           CERT_INFO=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application")
           echo "CERT_INFO: $CERT_INFO"
           #CERT_ID=$(echo "$CERT_INFO" | awk -F'"' '{print $2}')
-          CERT_ID=$(echo "$CERT_INFO" | awk '{print $1}')
+          CERT_ID=$(echo "$CERT_INFO" | awk '{print $2}')
           echo "CERT_ID: $CERT_ID"
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
           echo "Certificate imported."
