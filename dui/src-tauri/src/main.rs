@@ -6,6 +6,34 @@ use beyond_better_lib::{
 };
 
 fn main() {
+    // Try to write to Windows Event Log
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::System::EventLog;
+        use std::ffi::CString;
+        
+        let source = CString::new("Beyond Better").unwrap();
+        let message = CString::new("Application startup attempted").unwrap();
+        
+        unsafe {
+            let event_source = EventLog::RegisterEventSourceA(std::ptr::null(), source.as_ptr());
+            if !event_source.is_null() {
+                EventLog::ReportEventA(
+                    event_source,
+                    EventLog::EVENTLOG_INFORMATION_TYPE,
+                    0,
+                    0,
+                    std::ptr::null(),
+                    1,
+                    0,
+                    &message.as_ptr(),
+                    std::ptr::null(),
+                );
+                EventLog::DeregisterEventSource(event_source);
+            }
+        }
+    }
+
     // Create a startup log file in a known location
     if let Ok(program_data) = std::env::var("ProgramData") {
         let log_path = std::path::PathBuf::from(program_data)
