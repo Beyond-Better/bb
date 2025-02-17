@@ -64,7 +64,6 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::System::LibraryLoader;
-        use std::ffi::CString;
         
         // Try to load some common DLLs to check dependencies
         // Check WebView2 installation
