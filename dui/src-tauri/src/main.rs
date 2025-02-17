@@ -47,10 +47,10 @@ fn main() {
             }
             
             // Show error message box
-            let title = std::ffi::CString::new("Beyond Better Error").unwrap();
-            let msg = std::ffi::CString::new(msg).unwrap();
+            let title = to_wide_string("Beyond Better Error");
+            let msg = to_wide_string(&msg);
             unsafe {
-                WindowsAndMessaging::MessageBoxA(
+                WindowsAndMessaging::MessageBoxW(
                     0,
                     msg.as_ptr(),
                     title.as_ptr(),
