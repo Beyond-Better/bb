@@ -202,6 +202,29 @@ pub fn run() {
     if let Ok(current_dir) = std::env::current_dir() {
         eprintln!("Current directory: {:?}", current_dir);
     }
+
+    // Check ProgramData permissions
+    if let Ok(program_data) = std::env::var("ProgramData") {
+        eprintln!("ProgramData path: {:?}", program_data);
+        let bb_program_data = PathBuf::from(program_data).join("Beyond Better");
+        eprintln!("Beyond Better ProgramData directory: {:?}", bb_program_data);
+        
+        if bb_program_data.exists() {
+            eprintln!("ProgramData directory exists");
+            if let Ok(metadata) = std::fs::metadata(&bb_program_data) {
+                eprintln!("Directory is writable: {}", metadata.permissions().readonly() == false);
+            } else {
+                eprintln!("Failed to get ProgramData directory metadata");
+            }
+        } else {
+            eprintln!("ProgramData directory does not exist");
+            // Try to create it
+            match std::fs::create_dir_all(&bb_program_data) {
+                Ok(_) => eprintln!("Successfully created ProgramData directory"),
+                Err(e) => eprintln!("Failed to create ProgramData directory: {}", e)
+            }
+        }
+    }
     if let Ok(appdata) = std::env::var("APPDATA") {
         eprintln!("APPDATA path: {:?}", appdata);
         let tauri_app_dir = PathBuf::from(appdata).join("dev.beyondbetter.app");
