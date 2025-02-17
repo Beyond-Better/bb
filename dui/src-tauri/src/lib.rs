@@ -1,5 +1,5 @@
 use tauri_plugin_fs;
-use log::{debug, info, warn, error};
+// Basic logging with eprintln
 use tauri::Manager;
 use std::sync::Arc;
 use tokio::sync::RwLock;
