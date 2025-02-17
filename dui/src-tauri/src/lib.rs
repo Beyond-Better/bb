@@ -198,7 +198,17 @@ pub fn run() {
         eprintln!("Current directory: {:?}", current_dir);
     }
 
-    let log_dir = get_app_log_dir().expect("Failed to get log directory");
+    eprintln!("Getting app log directory...");
+    let log_dir = match get_app_log_dir() {
+        Some(dir) => {
+            eprintln!("Log directory: {:?}", dir);
+            dir
+        },
+        None => {
+            eprintln!("Failed to get log directory");
+            panic!("Failed to get log directory");
+        }
+    };
     std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     
     debug!("Starting Beyond Better DUI application");
