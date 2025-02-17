@@ -3,13 +3,6 @@
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
       <Component Id="RegistryEntries" Guid="*">
-        <!-- Application Registration -->
-        <RegistryKey Root="HKLM" 
-                     Key="Software\Microsoft\Windows\CurrentVersion\App Paths\BeyondBetter.exe">
-          <RegistryValue Type="string" Value="[INSTALLDIR]Beyond Better.exe"/>
-          <RegistryValue Type="string" Name="Path" Value="[INSTALLDIR]"/>
-        </RegistryKey>
-
         <!-- Application Info -->
         <RegistryKey Root="HKLM" 
                      Key="Software\BeyondBetter\DUI"
