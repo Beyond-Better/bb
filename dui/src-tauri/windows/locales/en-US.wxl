@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <WixLocalization Culture="en-US" xmlns="http://schemas.microsoft.com/wix/2006/localization">
-  <String Id="LaunchApp">Launch Beyond Better DUI</String>
-  <String Id="DowngradeErrorMessage">A newer version of Beyond Better DUI is already installed.</String>
-  <String Id="PathEnvVarFeature">Add Beyond Better DUI to the system PATH</String>
-  <String Id="InstallAppFeature">Install Beyond Better DUI</String>
+  <String Id="LaunchApp">Launch Beyond Better</String>
+  <String Id="DowngradeErrorMessage">A newer version of Beyond Better is already installed.</String>
+  <String Id="PathEnvVarFeature">Add Beyond Better to the system PATH</String>
+  <String Id="InstallAppFeature">Install Beyond Better</String>
   <String Id="InstallBinariesFeature">Install BB binaries</String>
-  <String Id="InstallDirDlgDescription">Choose the folder in which to install Beyond Better DUI.</String>
+  <String Id="InstallDirDlgDescription">Choose the folder in which to install Beyond Better.</String>
   <String Id="InstallDirDlgTitle">Installation Folder</String>
-  <String Id="InstallDirDlgFolderLabel">Install Beyond Better DUI to:</String>
-  <String Id="WelcomeDlgTitle">Welcome to the Beyond Better DUI Setup Wizard</String>
-  <String Id="WelcomeDlgDescription">This wizard will guide you through the installation of Beyond Better DUI, a desktop manager for the BB AI assistant.</String>
-  <String Id="ExitDialogTitle">Beyond Better DUI Installation Complete</String>
+  <String Id="InstallDirDlgFolderLabel">Install Beyond Better to:</String>
+  <String Id="WelcomeDlgTitle">Welcome to the Beyond Better Setup Wizard</String>
+  <String Id="WelcomeDlgDescription">This wizard will guide you through the installation of Beyond Better, a desktop manager for the BB AI assistant.</String>
+  <String Id="ExitDialogTitle">Beyond Better Installation Complete</String>
   <String Id="ExitDialogDescription">The installation was completed successfully.</String>
-  <String Id="CancelDlgTitle">Beyond Better DUI Installation Cancelled</String>
+  <String Id="CancelDlgTitle">Beyond Better Installation Cancelled</String>
   <String Id="CancelDlgDescription">Setup was interrupted. Your system has not been modified.</String>
 </WixLocalization>
