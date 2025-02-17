@@ -134,7 +134,8 @@ fn main() {
                     let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
                     log_content.push_str(&format!("{}: {}\n", dll, if handle != 0 { "Found" } else { "Not Found" }));
                     if handle != 0 {
-                    LibraryLoader::FreeLibrary(handle);
+                        LibraryLoader::FreeLibrary(handle);
+                    }
                 }
             }
         }
