@@ -46,6 +46,24 @@ fn main() {
             }
         }
         
+        log_content.push_str("\nEnvironment Variables:\n");
+        let important_vars = ["PATH", "ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA", "APPDATA", "SystemRoot"];
+        for var in important_vars.iter() {
+            if let Ok(value) = std::env::var(var) {
+                log_content.push_str(&format!("  {}: {}\n", var, value));
+            } else {
+                log_content.push_str(&format!("  {}: Not Found\n", var));
+            }
+        }
+
+        log_content.push_str("\nProcess Information:\n");
+        if let Ok(exe_path) = std::env::current_exe() {
+            log_content.push_str(&format!("  Executable Path: {:?}\n", exe_path));
+        }
+        if let Ok(current_dir) = std::env::current_dir() {
+            log_content.push_str(&format!("  Current Directory: {:?}\n", current_dir));
+        }
+
         log_content.push_str("\nDLL Checks:\n");
         let dlls = ["VCRUNTIME140.dll", "MSVCP140.dll", "WebView2Loader.dll"];
         let mut log_content = String::from("DLL Check Results:\n");
