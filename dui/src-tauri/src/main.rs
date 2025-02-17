@@ -10,7 +10,7 @@ use beyond_better_lib::{
 
 #[cfg(target_os = "windows")]
 fn to_wide_string(s: &str) -> Vec<u16> {
-    use std::os::windows::prelude::*;
+    use std::os::windows::ffi::OsStrExt;
     std::ffi::OsStr::new(s).encode_wide().chain(Some(0)).collect()
 }
 
