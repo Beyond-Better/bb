@@ -6,6 +6,17 @@ use beyond_better_lib::{
 };
 
 fn main() {
+    // Force immediate console output
+    println!("Starting Beyond Better - stdout test");
+    eprintln!("Starting Beyond Better - stderr test");
+    
+    // Ensure we have a console window
+    #[cfg(target_os = "windows")]
+    unsafe {
+        use windows_sys::Win32::System::Console;
+        Console::AllocConsole();
+    }
+
     // Set up Windows error handling
     #[cfg(target_os = "windows")]
     {
