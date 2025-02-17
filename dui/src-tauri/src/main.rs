@@ -5,6 +5,12 @@ use beyond_better_lib::{
     run
 };
 
+#[cfg(target_os = "windows")]
+fn to_wide_string(s: &str) -> Vec<u16> {
+    use std::os::windows::prelude::*;
+    std::ffi::OsStr::new(s).encode_wide().chain(Some(0)).collect()
+}
+
 fn main() {
     // Force immediate console output
     println!("Starting Beyond Better - stdout test");
