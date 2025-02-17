@@ -6,6 +6,43 @@ use beyond_better_lib::{
 };
 
 fn main() {
+    // Set up Windows error handling
+    #[cfg(target_os = "windows")]
+    {
+        use std::panic;
+        use windows_sys::Win32::UI::WindowsAndMessaging;
+        
+        // Set up panic handler
+        panic::set_hook(Box::new(|panic_info| {
+            let msg = format!("Application panic: {}\n\nLocation: {:?}", 
+                panic_info.payload().downcast_ref::<String>().cloned().unwrap_or_else(|| 
+                    panic_info.payload().downcast_ref::<&str>().copied().unwrap_or("<unknown error>")
+                    .to_string()),
+                panic_info.location()
+            );
+            
+            // Write to file
+            if let Ok(program_data) = std::env::var("ProgramData") {
+                let log_path = std::path::PathBuf::from(program_data)
+                    .join("Beyond Better")
+                    .join("crash.log");
+                let _ = std::fs::write(&log_path, &msg);
+            }
+            
+            // Show error message box
+            let title = std::ffi::CString::new("Beyond Better Error").unwrap();
+            let msg = std::ffi::CString::new(msg).unwrap();
+            unsafe {
+                WindowsAndMessaging::MessageBoxA(
+                    0,
+                    msg.as_ptr(),
+                    title.as_ptr(),
+                    WindowsAndMessaging::MB_OK | WindowsAndMessaging::MB_ICONERROR
+                );
+            }
+        }));
+    }
+
     // Log DLL loading information
     #[cfg(target_os = "windows")]
     {
