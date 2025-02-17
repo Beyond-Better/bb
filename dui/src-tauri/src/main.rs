@@ -174,18 +174,18 @@ fn main() {
         let message = to_wide_string("Application startup attempted");
         
         unsafe {
-            let event_source = EventLog::RegisterEventSourceW(std::ptr::null(), source.as_ptr());
-            if !event_source.is_null() {
+            let event_source = EventLog::RegisterEventSourceW(std::ptr::null_mut(), source.as_ptr());
+            if event_source != 0 {
                 EventLog::ReportEventW(
                     event_source,
                     EventLog::EVENTLOG_INFORMATION_TYPE,
                     0,
                     0,
-                    std::ptr::null(),
+                    std::ptr::null_mut(),
                     1,
                     0,
                     &message.as_ptr(),
-                    std::ptr::null(),
+                    std::ptr::null_mut(),
                 );
                 EventLog::DeregisterEventSource(event_source);
             }
