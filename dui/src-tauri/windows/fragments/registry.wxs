@@ -1,28 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <!-- Upgrade handling -->
-  <!-- 
-    IMPORTANT: This upgrade code must match the one in tauri.conf.json and remain constant across all versions.
-    It is used by Windows Installer to:
-    1. Identify the application for updates
-    2. Handle upgrade/downgrade scenarios
-    3. Manage removal of previous versions
-    DO NOT change this unless you intentionally want to break the upgrade path.
-  -->
-  <Fragment>
-    <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes" />
-    <Upgrade Id="C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D">
-      <UpgradeVersion
-        Minimum="0.0.0"
-        Maximum="[ProductVersion]"
-        Property="PREVIOUSVERSIONSINSTALLED"
-        IncludeMinimum="yes"
-        IncludeMaximum="no" />
-    </Upgrade>
-    <InstallExecuteSequence>
-      <RemoveExistingProducts After="InstallInitialize" />
-    </InstallExecuteSequence>
-  </Fragment>
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
       <Component Id="RegistryEntries" Guid="*">
