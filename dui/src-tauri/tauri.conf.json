@@ -10,6 +10,10 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "dangerousRemoteMode": true
+    },
     "windows": [
       {
         "label": "main",
