@@ -31,22 +31,22 @@ async fn start_proxy(log_dir: std::path::PathBuf) -> Result<proxy::HttpProxy, Bo
     // Check if proxy is needed based on TLS configuration
     let config = read_global_config()?;
 
-    debug!("Initializing proxy server");
+    eprintln!("Initializing proxy server");
     let proxy = proxy::HttpProxy::new(log_dir).await?;
 
     if !config.api.tls.use_tls {
-        debug!("Starting proxy server (TLS disabled)");
+        eprintln!("Starting proxy server (TLS disabled)");
         if let Err(e) = proxy.start().await {
-            error!("Failed to start proxy server: {}", e);
+            eprintln!("Failed to start proxy server: {}", e);
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 format!("Failed to start proxy server: {}", e)
             )));
         }
-        info!("Proxy server started successfully");
+        eprintln!("Proxy server started successfully");
     } else {
-        debug!("Proxy not needed - API is in TLS mode");
-        info!("API using TLS, direct HTTPS connections will be used");
+        eprintln!("Proxy not needed - API is in TLS mode");
+        eprintln!("API using TLS, direct HTTPS connections will be used");
     }
 
     Ok(proxy)
@@ -62,7 +62,7 @@ fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("Config path: {:?}", config_path);
 
     if !config_path.exists() {
-        info!("Global config not found, creating with defaults");
+        eprintln!("Global config not found, creating with defaults");
         
         // Create config directory if it doesn't exist
         if !config_dir.exists() {
@@ -73,14 +73,14 @@ fn ensure_global_config() -> Result<(), Box<dyn std::error::Error>> {
         let default_config = crate::config::GlobalConfig::default();
         let yaml = serde_yaml::to_string(&default_config)?;
         fs::write(config_path, yaml)?;
-        info!("Created default global config");
+        eprintln!("Created default global config");
     }
 
     Ok(())
 }
 
 async fn start_services_if_needed() -> Result<(), String> {
-    debug!("Checking API and BUI startup conditions");
+    eprintln!("Checking API and BUI startup conditions");
 
     // Try status check with retries
     let max_status_attempts = 3;
@@ -93,10 +93,10 @@ async fn start_services_if_needed() -> Result<(), String> {
                 break;
             }
             Err(e) if attempt == max_status_attempts => {
-                warn!("Failed to check services status after {} attempts: {}", max_status_attempts, e);
+                eprintln!("Failed to check services status after {} attempts: {}", max_status_attempts, e);
             }
             Err(e) => {
-                debug!("Services status check attempt {}/{} failed: {}", attempt, max_status_attempts, e);
+                eprintln!("Services status check attempt {}/{} failed: {}", attempt, max_status_attempts, e);
                 std::thread::sleep(Duration::from_millis(500));
             }
         }
@@ -104,51 +104,51 @@ async fn start_services_if_needed() -> Result<(), String> {
 
     if let Some(status) = services_status {
         if status.api.service_responds && status.bui.service_responds {
-            info!("All services are already running");
+            eprintln!("All services are already running");
             return Ok(());
         }
-        debug!("Services not running (API: {}, BUI: {})", status.api.service_responds, status.bui.service_responds);
+        eprintln!("Services not running (API: {}, BUI: {})", status.api.service_responds, status.bui.service_responds);
 
         // Start API if it's not running
         if !status.api.service_responds {
-            info!("Starting API automatically");
+            eprintln!("Starting API automatically");
             let api_result = crate::start_api().await;
             if let Err(e) = api_result {
-                error!("Failed to start API: {}", e);
+                eprintln!("Failed to start API: {}", e);
                 return Err(e);
             }
             let api_result = api_result.unwrap();
             if !api_result.success {
                 let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
-                warn!("API start returned false: {}", error);
+                eprintln!("API start returned false: {}", error);
                 return Err("API failed to start".to_string());
             }
         }
 
         // Start BUI if it's not running
         if !status.bui.service_responds {
-            info!("Starting BUI automatically");
+            eprintln!("Starting BUI automatically");
             let bui_result = crate::start_bui().await;
             if let Err(e) = bui_result {
-                error!("Failed to start BUI: {}", e);
+                eprintln!("Failed to start BUI: {}", e);
                 return Err(e);
             }
             let bui_result = bui_result.unwrap();
             if !bui_result.success {
                 let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
-                warn!("BUI start returned false: {}", error);
+                eprintln!("BUI start returned false: {}", error);
                 return Err("BUI failed to start".to_string());
             }
         }
     } else {
         // If we couldn't get status, try starting both services
-        info!("Could not determine service status, attempting to start both services");
+        eprintln!("Could not determine service status, attempting to start both services");
         
         // Start API
         let api_result = crate::start_api().await?;
         if !api_result.success {
             let error = api_result.error.unwrap_or_else(|| "Unknown error".to_string());
-            warn!("API start returned false: {}", error);
+            eprintln!("API start returned false: {}", error);
             return Err("API failed to start".to_string());
         }
 
@@ -156,7 +156,7 @@ async fn start_services_if_needed() -> Result<(), String> {
         let bui_result = crate::start_bui().await?;
         if !bui_result.success {
             let error = bui_result.error.unwrap_or_else(|| "Unknown error".to_string());
-            warn!("BUI start returned false: {}", error);
+            eprintln!("BUI start returned false: {}", error);
             return Err("BUI failed to start".to_string());
         }
     }
@@ -260,7 +260,7 @@ pub fn run() {
     };
     std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     
-    debug!("Starting Beyond Better DUI application");
+    eprintln!("Starting Beyond Better DUI application");
 
     // Basic logging to file
     let log_file = log_dir.join("dui.log");
@@ -273,27 +273,27 @@ pub fn run() {
 
     // Ensure global config exists before starting the app
     if let Err(e) = ensure_global_config() {
-        warn!("Failed to ensure global config: {}", e);
+        eprintln!("Failed to ensure global config: {}", e);
     }
 
     // Try to start services if needed
     tauri::async_runtime::block_on(async {
         if let Err(e) = start_services_if_needed().await {
-            warn!("Failed to start services: {}", e);
+            eprintln!("Failed to start services: {}", e);
         }
     });
 
     // Start proxy server if needed
-    debug!("Initializing proxy state");
+    eprintln!("Initializing proxy state");
     let proxy_state = match tauri::async_runtime::block_on(async {
         start_proxy(log_dir.clone()).await
     }) {
         Ok(proxy) => {
-            info!("Proxy server initialized");
+            eprintln!("Proxy server initialized");
             Arc::new(RwLock::new(proxy))
         },
         Err(e) => {
-            error!("Failed to initialize proxy server: {}", e);
+            eprintln!("Failed to initialize proxy server: {}", e);
             panic!("Failed to initialize proxy server: {}", e);
         }
     };
@@ -338,7 +338,7 @@ pub fn run() {
                 // Set up window state event handlers
                 window_state::setup_window_state_handler(&main_window);
             } else {
-                warn!("Main window not found");
+                eprintln!("Main window not found");
             }
 
             Ok(())
