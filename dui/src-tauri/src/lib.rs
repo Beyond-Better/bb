@@ -202,6 +202,11 @@ pub fn run() {
     if let Ok(current_dir) = std::env::current_dir() {
         eprintln!("Current directory: {:?}", current_dir);
     }
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        eprintln!("APPDATA path: {:?}", appdata);
+        let tauri_app_dir = PathBuf::from(appdata).join("dev.beyondbetter.app");
+        eprintln!("Tauri app directory: {:?}", tauri_app_dir);
+    }
 
     eprintln!("Getting app log directory...");
     let log_dir = match get_app_log_dir() {
