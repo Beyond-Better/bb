@@ -149,6 +149,7 @@ fn main() {
             }
         }
         
+        #[cfg(target_os = "windows")]
         // Write results to a file
         if let Ok(program_data) = std::env::var("ProgramData") {
             let log_path = std::path::PathBuf::from(program_data)
