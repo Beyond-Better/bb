@@ -63,9 +63,7 @@
       },
       "wix": {
         "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
-        "prerequisites": {
-          "visualStudioRuntime": true
-        }
+        "fragmentPaths": ["windows/fragments/registry.wxs"]
       },
       "nsis": {
         "installMode": "both",
