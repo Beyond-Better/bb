@@ -18,6 +18,14 @@
 
         <!-- WebView2 Runtime Info -->
         <RegistryKey Root="HKLM"
+                     Key="Software\BeyondBetter\DUI\WebView2\FixedRuntime"
+                     ForceCreateOnInstall="yes"
+                     ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Name="Version" Value="111.0.1661.54"/>
+          <RegistryValue Type="string" Name="Path" Value="[INSTALLDIR]webview2"/>
+        </RegistryKey>
+
+        <RegistryKey Root="HKLM"
                      Key="Software\BeyondBetter\DUI\WebView2"
                      ForceCreateOnInstall="yes"
                      ForceDeleteOnUninstall="yes">
