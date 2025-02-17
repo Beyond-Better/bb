@@ -6,6 +6,22 @@ use beyond_better_lib::{
 };
 
 fn main() {
+    // Create a visible indicator that we're trying to start
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging;
+        let title = std::ffi::CString::new("Beyond Better Startup").unwrap();
+        let msg = std::ffi::CString::new("Attempting to start Beyond Better...").unwrap();
+        unsafe {
+            WindowsAndMessaging::MessageBoxA(
+                0,
+                msg.as_ptr(),
+                title.as_ptr(),
+                WindowsAndMessaging::MB_OK | WindowsAndMessaging::MB_ICONINFORMATION
+            );
+        }
+    }
+
     // Try to write to Windows Event Log
     #[cfg(target_os = "windows")]
     {
