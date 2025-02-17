@@ -249,7 +249,7 @@ fn main() {
 
         unsafe {
             // Initialize COM
-            let hr = CoInitializeEx(std::ptr::null(), COINIT_MULTITHREADED);
+            let hr = CoInitializeEx(std::ptr::null_mut(), COINIT_MULTITHREADED);
             if hr < 0 {
                 let error_msg = format!("Failed to initialize COM: {}", hr);
                 eprintln!("{}", error_msg);
