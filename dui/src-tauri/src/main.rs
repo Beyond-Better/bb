@@ -202,6 +202,37 @@ fn main() {
         let _ = std::fs::write(&log_path, startup_msg);
     }
     
+    // Check Visual C++ Redistributable
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::System::Registry::*;
+        use std::ffi::CString;
+
+        unsafe {
+            let mut h_key = 0;
+            let vcredist_keys = [
+                "SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64",
+                "SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64"
+            ];
+
+            let mut found = false;
+            for key_path in vcredist_keys.iter() {
+                let key_path = CString::new(*key_path).unwrap();
+                if RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_path.as_ptr(), 0, KEY_READ, &mut h_key) == 0 {
+                    found = true;
+                    RegCloseKey(h_key);
+                    break;
+                }
+            }
+
+            if !found {
+                let error_msg = "Visual C++ Redistributable 2015-2022 not found. Please install from https://aka.ms/vs/17/release/vc_redist.x64.exe";
+                eprintln!("{}", error_msg);
+                panic!("{}", error_msg);
+            }
+        }
+    }
+
     // Check WebView2 before starting Tauri
     #[cfg(target_os = "windows")]
     {
