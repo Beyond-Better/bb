@@ -15,6 +15,7 @@ pub struct AccessLogEntry {
     pub error: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct AccessLogger {
     log_file: PathBuf,
     debug_mode: Arc<RwLock<bool>>,
