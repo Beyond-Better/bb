@@ -129,8 +129,10 @@ fn main() {
 
         log_content.push_str("\nDLL Checks:\n");
         let dlls = ["VCRUNTIME140.dll", "MSVCP140.dll", "WebView2Loader.dll"];
+        #[cfg(target_os = "windows")]
         let mut log_content = String::from("DLL Check Results:\n");
         
+        #[cfg(target_os = "windows")]
         for dll in dlls.iter() {
             #[cfg(target_os = "windows")]
             unsafe {
