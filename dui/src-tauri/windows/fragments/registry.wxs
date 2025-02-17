@@ -61,4 +61,11 @@
       </Component>
     </DirectoryRef>
   </Fragment>
+
+  <!-- Features -->
+  <Fragment>
+    <Feature Id="WebView2Feature" Title="WebView2 Runtime" Level="1">
+      <ComponentRef Id="WebView2Component" />
+    </Feature>
+  </Fragment>
 </Wix>
