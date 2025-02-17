@@ -1,6 +1,7 @@
-use std::path::PathBuf;
 use chrono::{DateTime, Utc};
-use serde::{self, Deserialize, Serialize};
+use log::{debug};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -17,54 +18,31 @@ pub struct AccessLogEntry {
 
 #[derive(Debug)]
 pub struct AccessLogger {
-    log_file: PathBuf,
     debug_mode: Arc<RwLock<bool>>,
 }
 
 impl AccessLogger {
-    pub fn new(log_dir: PathBuf, debug_mode: Arc<RwLock<bool>>) -> std::io::Result<Self> {
-        let log_file = log_dir.join("access.log");
-        
-        // Ensure directory exists
-        if let Some(parent) = log_file.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        
-        Ok(Self { 
-            log_file,
-            debug_mode,
-        })
+    pub fn new(_log_dir: PathBuf, debug_mode: Arc<RwLock<bool>>) -> std::io::Result<Self> {
+        Ok(Self { debug_mode })
     }
 
-    pub async fn log_request(&mut self, entry: &AccessLogEntry) -> std::io::Result<()> {
-        let log_line = if *self.debug_mode.read().await {
-            format!(
-                "[{}] {} {} {} {}ms -> {} {}\n",
-                entry.timestamp,
-                entry.method,
-                entry.path,
-                entry.status,
-                entry.duration_ms,
-                entry.target,
-                entry.error.as_deref().unwrap_or("-")
-            )
-        } else {
-            format!(
-                "[{}] {} {} {} {}ms\n",
-                entry.timestamp,
-                entry.method,
-                entry.path,
-                entry.status,
-                entry.duration_ms
-            )
-        };
-        
-        // Append to log file
-        if let Ok(mut content) = std::fs::read_to_string(&self.log_file) {
-            content.push_str(&log_line);
-            std::fs::write(&self.log_file, content)
-        } else {
-            std::fs::write(&self.log_file, log_line)
+    pub async fn log_request(&self, entry: &AccessLogEntry) -> std::io::Result<()> {
+        let message = format!(
+            "{} {} {} {}ms -> {}{}",
+            entry.method,
+            entry.path,
+            entry.status,
+            entry.duration_ms,
+            entry.target,
+            entry.error.as_ref().map(|e| format!(" ({})", e)).unwrap_or_default()
+        );
+
+        // In non-debug mode, only log errors or non-200 responses
+        if *self.debug_mode.read().await || entry.status >= 400 || entry.error.is_some() {
+            debug!("Proxy access: {}", message);
+            log::info!(target: "proxy", "{}", message);
         }
+
+        Ok(())
     }
 }
