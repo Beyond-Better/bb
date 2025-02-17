@@ -201,14 +201,15 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ env.CERT_ID }}
         with:
           projectPath: './dui'
-          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }} --debug
+          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
+          #args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }} --debug
 
       # Process and upload build artifacts
       - name: Process build artifacts
         shell: bash
         run: |
-          #BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/release/bundle"
-          BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/debug/bundle"
+          BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/release/bundle"
+          #BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/debug/bundle"
           echo "Build output directory contents:"
           ls -R "$BUNDLE_DIR" || echo "No bundle directory found"
 
