@@ -195,7 +195,8 @@ jobs:
 
       # Set up Apple API key for notarization (if provided)
       - name: Setup Apple API Key
-        if: matrix.platform == 'macos' && secrets.APPLE_API_KEY_VALUE
+        #if: matrix.platform == 'macos' && secrets.APPLE_API_KEY_VALUE
+        if: matrix.platform == 'macos'
         run: |
           echo "${{ secrets.APPLE_API_KEY_VALUE }}" > ${{ secrets.APPLE_API_KEY_PATH }}
           chmod 600 ${{ secrets.APPLE_API_KEY_PATH }}
