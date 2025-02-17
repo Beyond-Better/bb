@@ -185,7 +185,6 @@ fn main() {
     #[cfg(target_os = "windows")]
     {
         use windows_sys::Win32::System::EventLog;
-        use std::ffi::CString;
         
         let source = to_wide_string("Beyond Better");
         let message = to_wide_string("Application startup attempted");
