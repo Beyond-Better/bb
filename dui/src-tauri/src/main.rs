@@ -13,6 +13,40 @@ fn main() {
         use std::ffi::CString;
         
         // Try to load some common DLLs to check dependencies
+        // Check WebView2 installation
+        let mut log_content = String::from("System Checks:\n\n");
+        
+        // Check WebView2 Registry Keys
+        let webview2_keys = [
+            "SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  // Machine-wide install
+            "SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"  // 32-bit on 64-bit
+        ];
+        
+        log_content.push_str("WebView2 Runtime Check:\n");
+        for key_path in webview2_keys.iter() {
+            use windows_sys::Win32::System::Registry::*;
+            let key_path_c = CString::new(*key_path).unwrap();
+            let mut h_key = 0;
+            
+            unsafe {
+                let result = RegOpenKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    key_path_c.as_ptr(),
+                    0,
+                    KEY_READ,
+                    &mut h_key
+                );
+                
+                log_content.push_str(&format!("  {} : {}\n", key_path, 
+                    if result == 0 { "Found" } else { "Not Found" }));
+                
+                if h_key != 0 {
+                    RegCloseKey(h_key);
+                }
+            }
+        }
+        
+        log_content.push_str("\nDLL Checks:\n");
         let dlls = ["VCRUNTIME140.dll", "MSVCP140.dll", "WebView2Loader.dll"];
         let mut log_content = String::from("DLL Check Results:\n");
         
