@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Upgrade handling -->
+  <Fragment>
+    <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes" />
+    <Upgrade Id="{PUT-YOUR-UPGRADE-CODE-HERE}">
+      <UpgradeVersion
+        Minimum="0.0.0"
+        Maximum="[ProductVersion]"
+        Property="PREVIOUSVERSIONSINSTALLED"
+        IncludeMinimum="yes"
+        IncludeMaximum="no" />
+    </Upgrade>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize" />
+    </InstallExecuteSequence>
+  </Fragment>
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
       <Component Id="RegistryEntries" Guid="*">
