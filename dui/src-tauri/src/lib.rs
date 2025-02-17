@@ -189,6 +189,15 @@ fn get_app_log_dir() -> Option<PathBuf> {
 }
 
 pub fn run() {
+    // Log startup attempt with detailed environment info
+    eprintln!("Starting Beyond Better DUI...");
+    if let Ok(exe_path) = std::env::current_exe() {
+        eprintln!("Executable path: {:?}", exe_path);
+    }
+    if let Ok(current_dir) = std::env::current_dir() {
+        eprintln!("Current directory: {:?}", current_dir);
+    }
+
     let log_dir = get_app_log_dir().expect("Failed to get log directory");
     std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     
