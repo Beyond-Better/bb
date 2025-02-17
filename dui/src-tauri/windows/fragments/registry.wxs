@@ -1,13 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Check for WebView2 Runtime -->
+  <Fragment>
+    <Property Id="WEBVIEW2RUNTIME">
+      <RegistrySearch Id="WebView2RuntimeSearch"
+                    Root="HKLM"
+                    Key="SOFTWARE\Microsoft\EdgeUpdate\ClientState\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                    Type="raw" />
+    </Property>
+
+    <!-- Launch condition for WebView2 Runtime -->
+    <Condition Message="This application requires the WebView2 Runtime. The installer will attempt to download and install it.">
+      <![CDATA[Installed OR WEBVIEW2RUNTIME]]>
+    </Condition>
+  </Fragment>
+
+  <!-- Registry entries -->
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
-      <Component Id="RegistryEntries" Guid="*">
-        <!-- Application Registration -->
-        <RegistryKey Root="HKLM" 
-                     Key="Software\Microsoft\Windows\CurrentVersion\App Paths\BeyondBetter.exe">
-          <RegistryValue Type="string" Value="[INSTALLDIR]Beyond Better.exe"/>
-          <RegistryValue Type="string" Name="Path" Value="[INSTALLDIR]"/>
+      <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
+        <!-- WebView2 Runtime Info -->
+        <RegistryKey Root="HKLM"
+                     Key="Software\BeyondBetter\DUI\WebView2"
+                     ForceCreateOnInstall="yes"
+                     ForceDeleteOnUninstall="yes">
+          <RegistryValue Type="string" Name="RuntimePath" Value="[ProgramFiles64Folder]Microsoft\EdgeWebView\Application"/>
         </RegistryKey>
 
         <!-- Application Info -->
@@ -16,8 +33,8 @@
                      ForceCreateOnInstall="yes"
                      ForceDeleteOnUninstall="yes">
           <RegistryValue Type="string" Name="Version" Value="[ProductVersion]" KeyPath="yes"/>
-          <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLDIR]"/>
-          <RegistryValue Type="string" Name="BinPath" Value="%USERPROFILE%\.bb\bin"/>
+          <RegistryValue Type="string" Name="InstallPath" Value="[TARGETDIR]"/>
+          <RegistryValue Type="string" Name="BinPath" Value="[TARGETDIR]bin"/>
         </RegistryKey>
 
         <!-- Add to PATH during first run -->
