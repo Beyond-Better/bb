@@ -171,7 +171,7 @@ jobs:
           MACOSX_DEPLOYMENT_TARGET: "10.13"
         with:
           projectPath: './dui'
-          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
+          args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }} --debug
 
       # Process and upload build artifacts
       - name: Process build artifacts
