@@ -15,53 +15,7 @@ fn to_wide_string(s: &str) -> Vec<u16> {
 }
 
 fn main() {
-    // Force immediate console output
-    println!("Starting Beyond Better - stdout test");
-    eprintln!("Starting Beyond Better - stderr test");
-    
-    // Ensure we have a console window
-    #[cfg(target_os = "windows")]
-    unsafe {
-        use windows_sys::Win32::System::Console;
-        Console::AllocConsole();
-    }
 
-    // Set up Windows error handling
-    #[cfg(target_os = "windows")]
-    {
-        use std::panic;
-        use windows_sys::Win32::UI::WindowsAndMessaging;
-        
-        // Set up panic handler
-        panic::set_hook(Box::new(|panic_info| {
-            let msg = format!("Application panic: {}\n\nLocation: {:?}", 
-                panic_info.payload().downcast_ref::<String>().cloned().unwrap_or_else(|| 
-                    panic_info.payload().downcast_ref::<&str>().copied().unwrap_or("<unknown error>")
-                    .to_string()),
-                panic_info.location()
-            );
-            
-            // Write to file
-            if let Ok(program_data) = std::env::var("ProgramData") {
-                let log_path = std::path::PathBuf::from(program_data)
-                    .join("Beyond Better")
-                    .join("crash.log");
-                let _ = std::fs::write(&log_path, &msg);
-            }
-            
-            // Show error message box
-            let title = to_wide_string("Beyond Better Error");
-            let msg = to_wide_string(&msg);
-            unsafe {
-                WindowsAndMessaging::MessageBoxW(
-                    0,
-                    msg.as_ptr(),
-                    title.as_ptr(),
-                    WindowsAndMessaging::MB_OK | WindowsAndMessaging::MB_ICONERROR
-                );
-            }
-        }));
-    }
 
     // Only check for WebView2 as it's required for the app
     #[cfg(target_os = "windows")]
