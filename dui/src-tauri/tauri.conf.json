@@ -59,7 +59,6 @@
         // IMPORTANT: This upgrade code must remain constant across all versions of the application.
         // It is used by Windows Installer to identify the application for updates and should never change
         // unless you intentionally want to break the upgrade path.
-        "template": "main.wxs",
         "license": null,
         "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
         "languages": ["en-US"],
