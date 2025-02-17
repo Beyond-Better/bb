@@ -79,13 +79,13 @@ fn main() {
         log_content.push_str("WebView2 Runtime Check:\n");
         for key_path in webview2_keys.iter() {
             use windows_sys::Win32::System::Registry::*;
-            let key_path_c = CString::new(*key_path).unwrap();
+            let key_path = to_wide_string(key_path);
             let mut h_key = 0;
             
             unsafe {
-                let result = RegOpenKeyExA(
+                let result = RegOpenKeyExW(
                     HKEY_LOCAL_MACHINE,
-                    key_path_c.as_ptr(),
+                    key_path.as_ptr(),
                     0,
                     KEY_READ,
                     &mut h_key
