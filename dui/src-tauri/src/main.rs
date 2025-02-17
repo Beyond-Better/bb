@@ -130,7 +130,9 @@ fn main() {
             unsafe {
                 #[cfg(target_os = "windows")]
                 let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
+                #[cfg(target_os = "windows")]
                 log_content.push_str(&format!("{}: {}\n", dll, if handle != 0 { "Found" } else { "Not Found" }));
+                #[cfg(target_os = "windows")]
                 if handle != 0 {
                     LibraryLoader::FreeLibrary(handle);
                 }
