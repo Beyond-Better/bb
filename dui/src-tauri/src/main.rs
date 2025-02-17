@@ -63,105 +63,30 @@ fn main() {
         }));
     }
 
-    // Log DLL loading information
+    // Only check for WebView2 as it's required for the app
     #[cfg(target_os = "windows")]
     {
-        use windows_sys::Win32::System::LibraryLoader;
+        use windows_sys::Win32::System::Registry::*;
+        let webview2_key = "SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}";
+        let key_path = to_wide_string(webview2_key);
+        let mut h_key = 0;
         
-        // Try to load some common DLLs to check dependencies
-        // Check WebView2 installation
-        #[cfg(target_os = "windows")]
-        let mut log_content = String::from("System Checks:\n\n");
-        
-        #[cfg(target_os = "windows")]
-        // Check WebView2 Registry Keys
-        #[cfg(target_os = "windows")]
-        let webview2_keys = [
-            "SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}",  // Machine-wide install
-            "SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"  // 32-bit on 64-bit
-        ];
-        
-        log_content.push_str("WebView2 Runtime Check:\n");
-        for key_path in webview2_keys.iter() {
-            use windows_sys::Win32::System::Registry::*;
-            #[cfg(target_os = "windows")]
-            {
-                let key_path = to_wide_string(key_path);
-                let mut h_key = 0;
-                
-                unsafe {
-                let result = RegOpenKeyExW(
-                    HKEY_LOCAL_MACHINE,
-                    key_path.as_ptr(),
-                    0,
-                    KEY_READ,
-                    &mut h_key
-                );
-                
-                #[cfg(target_os = "windows")]
-                log_content.push_str(&format!("  {} : {}\n", key_path.iter().take(key_path.len() - 1)
-                    .map(|&c| c as u8 as char).collect::<String>(),
-                    if result == 0 { "Found" } else { "Not Found" }));
-                
-                    if h_key != 0 {
-                        RegCloseKey(h_key);
-                    }
-                }
-            }
-        }
-        
-        log_content.push_str("\nEnvironment Variables:\n");
-        let important_vars = ["PATH", "ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA", "APPDATA", "SystemRoot"];
-        for var in important_vars.iter() {
-            if let Ok(value) = std::env::var(var) {
-                log_content.push_str(&format!("  {}: {}\n", var, value));
-            } else {
-                log_content.push_str(&format!("  {}: Not Found\n", var));
-            }
-        }
-
-        log_content.push_str("\nProcess Information:\n");
-        if let Ok(exe_path) = std::env::current_exe() {
-            log_content.push_str(&format!("  Executable Path: {:?}\n", exe_path));
-        }
-        if let Ok(current_dir) = std::env::current_dir() {
-            log_content.push_str(&format!("  Current Directory: {:?}\n", current_dir));
-        }
-
-        log_content.push_str("\nDLL Checks:\n");
-        #[cfg(target_os = "windows")]
-        let dlls = ["VCRUNTIME140.dll", "MSVCP140.dll", "WebView2Loader.dll"];
-        #[cfg(target_os = "windows")]
-        let mut log_content = String::from("DLL Check Results:\n");
-        
-        #[cfg(target_os = "windows")]
-        for dll in dlls.iter() {
-            #[cfg(target_os = "windows")]
-            unsafe {
-                let dll_name = to_wide_string(dll);
-                #[cfg(target_os = "windows")]
-                {
-                    let handle = LibraryLoader::LoadLibraryW(dll_name.as_ptr()) as HANDLE;
-                    log_content.push_str(&format!("{}: {}\n", dll, if handle != 0 { "Found" } else { "Not Found" }));
-                    if handle != 0 {
-                        LibraryLoader::FreeLibrary(handle);
-                    }
-                }
-            }
-        }
-        
-        #[cfg(target_os = "windows")]
-        // Write results to a file
-        if let Ok(program_data) = std::env::var("ProgramData") {
-            let log_path = std::path::PathBuf::from(program_data)
-                .join("Beyond Better")
-                .join("dll_check.log");
+        unsafe {
+            let result = RegOpenKeyExW(
+                HKEY_LOCAL_MACHINE,
+                key_path.as_ptr(),
+                0,
+                KEY_READ,
+                &mut h_key
+            );
             
-            if let Some(dir) = log_path.parent() {
-                let _ = std::fs::create_dir_all(dir);
+            if result != 0 {
+                eprintln!("WebView2 Runtime not found. Please install from https://developer.microsoft.com/en-us/microsoft-edge/webview2/");
             }
             
-            let _ = std::fs::write(&log_path, log_content);
+            if h_key != 0 {
+                RegCloseKey(h_key);
+            }
         }
     }
 
