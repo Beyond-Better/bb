@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Fragment Id="BeyondBetterRegistryEntries">
+  <Fragment>
     <DirectoryRef Id="INSTALLDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
         <!-- Enable Windows Error Reporting for detailed crash logs -->
