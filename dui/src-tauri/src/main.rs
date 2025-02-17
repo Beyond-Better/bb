@@ -217,7 +217,7 @@ fn main() {
 
             let mut found = false;
             for key_path in vcredist_keys.iter() {
-                let key_path = CString::new(*key_path).unwrap();
+                let key_path = std::ffi::OsStr::new(*key_path).encode_wide().chain(Some(0)).collect::<Vec<_>>();
                 if RegOpenKeyExA(HKEY_LOCAL_MACHINE, key_path.as_ptr(), 0, KEY_READ, &mut h_key) == 0 {
                     found = true;
                     RegCloseKey(h_key);
