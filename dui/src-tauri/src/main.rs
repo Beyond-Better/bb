@@ -202,5 +202,48 @@ fn main() {
         let _ = std::fs::write(&log_path, startup_msg);
     }
     
+    // Check WebView2 before starting Tauri
+    #[cfg(target_os = "windows")]
+    {
+        use windows_sys::Win32::System::Com::*;
+        use windows_sys::Win32::System::Registry::*;
+        use std::ffi::CString;
+
+        unsafe {
+            // Initialize COM
+            let hr = CoInitializeEx(std::ptr::null(), COINIT_MULTITHREADED);
+            if hr < 0 {
+                let error_msg = format!("Failed to initialize COM: {}", hr);
+                eprintln!("{}", error_msg);
+                panic!("{}", error_msg);
+            }
+
+            // Check WebView2 Runtime registry keys
+            let mut h_key = 0;
+            let key_path = CString::new("SOFTWARE\\Microsoft\\EdgeUpdate\\ClientState\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}").unwrap();
+            let result = RegOpenKeyExA(
+                HKEY_LOCAL_MACHINE,
+                key_path.as_ptr(),
+                0,
+                KEY_READ,
+                &mut h_key
+            );
+
+            if result != 0 {
+                let error_msg = "WebView2 Runtime not found. Please install WebView2 Runtime from https://developer.microsoft.com/en-us/microsoft-edge/webview2/";
+                eprintln!("{}", error_msg);
+                panic!("{}", error_msg);
+            }
+
+            if h_key != 0 {
+                RegCloseKey(h_key);
+            }
+
+            CoUninitialize();
+        }
+    }
+
+    // If we get here, try to start the app
+    eprintln!("Starting Tauri application...");
     run();
 }
