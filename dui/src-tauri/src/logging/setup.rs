@@ -29,11 +29,17 @@ pub fn setup_app_logging(log_dir: PathBuf) -> std::io::Result<Handle> {
         // Update the roller patterns with full paths
         config_content = config_content.replace(
             "pattern: \"Beyond Better.{}.log\"",
-            &format!("pattern: \"{}.{{}}.log\"", log_dir.join("Beyond Better").to_string_lossy())
+            &format!("pattern: \"{}.{{}}.log\"", log_dir.join("Beyond Better")
+                .to_string_lossy()
+                .to_string()
+                .replace("\\", "\\\\"))
         );
         config_content = config_content.replace(
             "pattern: \"proxy-access.{}.log\"",
-            &format!("pattern: \"{}.{{}}.log\"", log_dir.join("proxy-access").to_string_lossy())
+            &format!("pattern: \"{}.{{}}.log\"", log_dir.join("proxy-access")
+                .to_string_lossy()
+                .to_string()
+                .replace("\\", "\\\\"))
         );
         
         std::fs::write(&config_path, config_content)?;
