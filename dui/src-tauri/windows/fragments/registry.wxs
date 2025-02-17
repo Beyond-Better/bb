@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <!-- Check for WebView2 Runtime -->
+  <Property Id="WEBVIEW2RUNTIME">
+    <RegistrySearch Id="WebView2RuntimeSearch"
+                    Root="HKLM"
+                    Key="SOFTWARE\Microsoft\EdgeUpdate\ClientState\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+                    Type="raw" />
+  </Property>
+
+  <!-- Launch condition for WebView2 Runtime -->
+  <Condition Message="This application requires the WebView2 Runtime. The installer will attempt to download and install it.">
+    <![CDATA[Installed OR WEBVIEW2RUNTIME]]>
+  </Condition>
   <Fragment>
     <DirectoryRef Id="TARGETDIR">
       <Component Id="BBRegistryEntries" Guid="*" Win64="yes">
