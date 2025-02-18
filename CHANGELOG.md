@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.15] - 2025-02-18
+
+### Changed
+
+- tool descriptions
+
+### Fixed
+
+- change glob to regex lib to fix windows path globbing
+
+
 ## [0.6.14] - 2025-02-17
 
 ### Added

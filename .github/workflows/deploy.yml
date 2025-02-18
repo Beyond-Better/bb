@@ -90,12 +90,12 @@ jobs:
             sudo /usr/bin/rsync -avz --delete $TEMP_DEPLOY_PATH/ $DEPLOY_PATH/
 
             # Set correct ownership and permissions
-            echo /bin/chown -R www-data:www-data $DEPLOY_PATH/
-            sudo /bin/chown -R www-data:www-data $DEPLOY_PATH/
-            echo /usr/bin/find $DEPLOY_PATH/ -type d -exec /bin/chmod 755 {} \;
-            sudo /usr/bin/find $DEPLOY_PATH/ -type d -exec /bin/chmod 755 {} \;
-            echo /usr/bin/find $DEPLOY_PATH/ -type f -exec /bin/chmod 644 {} \;
-            sudo /usr/bin/find $DEPLOY_PATH/ -type f -exec /bin/chmod 644 {} \;
+            echo /usr/bin/chown -R www-data:www-data $DEPLOY_PATH/
+            sudo /usr/bin/chown -R www-data:www-data $DEPLOY_PATH/
+            echo /usr/bin/find $DEPLOY_PATH/ -type d -exec /usr/bin/chmod 755 {} \;
+            sudo /usr/bin/find $DEPLOY_PATH/ -type d -exec /usr/bin/chmod 755 {} \;
+            echo /usr/bin/find $DEPLOY_PATH/ -type f -exec /usr/bin/chmod 644 {} \;
+            sudo /usr/bin/find $DEPLOY_PATH/ -type f -exec /usr/bin/chmod 644 {} \;
 
             # Clean up temporary directory
             rm -rf $TEMP_DEPLOY_PATH

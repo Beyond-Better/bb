@@ -49,21 +49,7 @@ export default class LLMToolDisplayFile extends LLMTool {
 			properties: {
 				filePath: {
 					type: 'string',
-					description: 'The path of the file to display, relative to the project root. The tool will:\n' +
-						'1. Read and display the file contents based on type:\n' +
-						'   * Text files: Displayed with syntax highlighting when possible\n' +
-						'   * Images: Displayed inline with appropriate sizing\n' +
-						'   * Other formats: Shows metadata and format information\n' +
-						'\n' +
-						'2. Size Limits:\n' +
-						'   * Text files: 1MB display limit, 10MB hard limit\n' +
-						'   * Images: 5MB display limit, 20MB hard limit\n' +
-						'   * Files exceeding limits show truncated content or error\n' +
-						'\n' +
-						'3. Format Support:\n' +
-						'   * Text: All text formats including code and markdown\n' +
-						'   * Images: All browser-supported formats (PNG, JPEG, GIF, etc.)\n' +
-						'   * Other: Basic metadata display\n',
+					description: 'The path of the file to display, relative to the project root.',
 				},
 			},
 			required: ['filePath'],
@@ -113,8 +99,9 @@ export default class LLMToolDisplayFile extends LLMTool {
 			};
 
 			const toolResults =
-				`File: ${filePath} - Size: ${displayResult.metadata.size} - MimeType: ${displayResult.metadata.mimeType} - LastModified: ${displayResult.metadata.lastModified}`;
-			const toolResponse = `Displayed file: ${filePath}`;
+				`File: ${filePath} - Size: ${displayResult.metadata.size} - MimeType: ${displayResult.metadata.mimeType} - LastModified: ${displayResult.metadata.lastModified} - Content: <not displayed here>`;
+			const toolResponse =
+				`Displayed file: ${filePath}\nThe file has been displayed for the user only, and you have been provided with the metadata of the file. Since this tool is for benefit of the user you are not being shown the content.`;
 
 			return {
 				toolResults,
