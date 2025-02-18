@@ -3,8 +3,7 @@ import { join, normalize, relative, resolve } from '@std/path';
 import { LRUCache } from 'npm:lru-cache';
 import { exists, walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
-import globToRegExp from 'npm:glob-to-regexp';
-//import { globToRegExp } from '@std/path';
+import { globToRegExp } from '@std/path';
 
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
