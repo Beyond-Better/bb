@@ -1,3 +1,4 @@
+// DEPRECATED
 import { useEffect, useState } from 'preact/hooks';
 import { getWindow } from '@tauri-apps/api/window';
 import { ApiStatus } from '../../types/ApiStatus';
@@ -8,7 +9,7 @@ interface BuiViewProps {
 
 export function BuiView({ serverStatus }: BuiViewProps) {
   const [error, setError] = useState<string | null>(null);
-  const buiUrl = 'https://chat.bbai.tips';
+  const buiUrl = 'https://chat.beyondbetter.dev';
 
   useEffect(() => {
     if (serverStatus === ApiStatus.Ready) {

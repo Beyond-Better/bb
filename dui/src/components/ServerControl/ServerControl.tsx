@@ -1,12 +1,74 @@
 import { useEffect, useState } from 'preact/hooks';
-import { GlobalConfig, ServerStartResult, ServerStatus, ServiceStartResult } from '../../types/api';
+import { GlobalConfig, ServerStartResult, ServerStatus } from '../../types/api';
 import { open } from '@tauri-apps/plugin-shell';
-import { getAllWebviewWindows, PhysicalPosition, PhysicalSize, WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { load } from '@tauri-apps/plugin-store';
+import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { invoke } from '@tauri-apps/api/core';
 import { generateWebviewBuiUrl } from '../../utils/url';
 import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
-import { checkServerStatus, getApiLogPath, getBuiLogPath, getGlobalConfig, startServer, stopServer } from '../../utils/api';
+import {
+	checkServerStatus,
+	getApiLogPath,
+	getBuiLogPath,
+	getGlobalConfig,
+	startServer,
+	stopServer,
+} from '../../utils/api';
+import { loadWindowState, saveWindowState, setupWindowStateHandlers } from '../../utils/window';
+
+const CHAT_WINDOW_LABEL = 'bb_chat';
+
+interface ChatWebviewOptions {
+	url?: string;
+	title?: string;
+	width?: number;
+	height?: number;
+	x?: number;
+	y?: number;
+	scaleFactor?: number;
+	visible?: boolean;
+	focus?: boolean;
+	center?: boolean;
+	resizable?: boolean;
+	decorations?: boolean;
+	skipTaskbar?: boolean;
+}
+
+// Default window dimensions - these match the Rust defaults in window_state.rs
+const DEFAULT_WINDOW_SIZE_LOGICAL = {
+	width: 800, // Chat window logical size
+	height: 650,
+	x: null as number | null,
+	y: null as number | null,
+	scaleFactor: globalThis.devicePixelRatio || 2.0, // Default to common HiDPI scaling
+};
+
+// Ensure chat window is visible on screen
+const ensureWindowVisible = (options: ChatWebviewOptions): ChatWebviewOptions => {
+	const screenWidth = globalThis.screen.availWidth;
+	const screenHeight = globalThis.screen.availHeight;
+
+	// If position would put window off screen, adjust it
+	if (options.x !== undefined && options.width !== undefined) {
+		if (options.x + options.width > screenWidth) {
+			options.x = Math.max(0, screenWidth - options.width);
+		}
+	}
+	if (options.y !== undefined && options.height !== undefined) {
+		if (options.y + options.height > screenHeight) {
+			options.y = Math.max(0, screenHeight - options.height);
+		}
+	}
+
+	return options;
+};
+const DEFAULT_WINDOW_SIZE_PHYSICAL = {
+	width: DEFAULT_WINDOW_SIZE_LOGICAL.width * DEFAULT_WINDOW_SIZE_LOGICAL.scaleFactor,
+	height: DEFAULT_WINDOW_SIZE_LOGICAL.height * DEFAULT_WINDOW_SIZE_LOGICAL.scaleFactor,
+	x: null as number | null,
+	y: null as number | null,
+	scaleFactor: globalThis.devicePixelRatio || 2.0, // Match logical default
+};
 
 // Constants for polling intervals
 const NORMAL_POLL_INTERVAL = 15000; // 15 seconds for normal operation
@@ -16,14 +78,6 @@ interface ServerControlProps {
 	onStatusChange?: (status: ServerStatus) => void;
 	onConnectionChange?: (isConnected: boolean) => void;
 	onNavigate: (path: string) => void;
-}
-
-interface WindowState {
-	width: number;
-	height: number;
-	x: number;
-	y: number;
-	scaleFactor: number;
 }
 
 export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }: ServerControlProps) {
@@ -57,20 +111,17 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
 	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
 	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
-	const [chatWindowState, setChatWindowState] = useState<WindowState>({
-		width: 800,
-		height: 600,
-		x: 50,
-		y: 50,
-		scaleFactor: 1,
-	});
+	const [isVisible, setIsVisible] = useState(true);
 
 	// Check initial window state
 	useEffect(() => {
 		const checkWindow = async () => {
+			if (debugMode) console.info('[DEBUG] Checking initial window state');
 			try {
 				const windows = await getAllWebviewWindows();
-				const chatWindow = windows.find((w) => w.label === 'bb_chat');
+				const chatWindow = windows.find((w) => w.label === CHAT_WINDOW_LABEL);
+				if (debugMode) console.info('[DEBUG] Found existing chat window:', chatWindow?.label);
+				if (debugMode) console.info('[DEBUG] Checking for existing chat window:', chatWindow);
 				setIsChatWindowOpen(!!chatWindow);
 			} catch (error) {
 				console.error('Error checking window state:', error);
@@ -80,75 +131,86 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	}, []);
 
 	// Update BUI URL when globalConfig or debug mode changes
-	useEffect(async () => {
-		//const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
-		const direct = `${globalConfig.bui.tls.useTls ? 'https' : 'http'}://${globalConfig.bui.hostname}:${globalConfig.bui.port}`
-		setDirectBuiUrl(direct);
-		// Set proxy target based on debug mode
-		if (globalConfig?.api && !globalConfig.api.tls.useTls) {
-			try {
-				await setProxyTarget(direct);
-				console.debug('Set proxy target to:', direct);
-			} catch (err) {
-				console.error('Failed to set proxy target:', err);
-			}
-		}
+	useEffect(() => {
+		const updateBuiUrl = async () => {
+			if (!globalConfig?.bui) return;
 
-		console.debug('URL effect triggered with:', { globalConfig, debugMode });
-		if (globalConfig?.api) {
-			const apiConfig = globalConfig.api;
-			const buiConfig = globalConfig.bui;
-			if (!globalConfig.api.tls.useTls) {
-				// Only get proxy info if TLS is disabled
-				console.debug('Getting proxy info...', { globalConfig, debugMode });
+			//const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
+			const direct = `${
+				globalConfig.bui.tls.useTls ? 'https' : 'http'
+			}://${globalConfig.bui.hostname}:${globalConfig.bui.port}`;
+			setDirectBuiUrl(direct);
+
+			// Set proxy target based on debug mode
+			if (globalConfig?.api && !globalConfig.api.tls.useTls) {
 				try {
-					console.debug('About to call getProxyInfo...');
-					const proxyInfo = await getProxyInfo();
-					console.debug('Received proxy info:', proxyInfo);
-					setProxyInfo(proxyInfo);
-					console.debug(`Using proxy on port ${proxyInfo.port} with target ${proxyInfo.target}`);
-					const url = generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMode });
-					console.debug('Setting BUI URL with proxy:', url);
-					setWebviewBuiUrl(url);
+					await setProxyTarget(direct);
+					if (debugMode) console.info('[DEBUG] Set proxy target to:', direct);
 				} catch (err) {
-					console.error('Failed to get proxy info:', err);
-					console.debug('Error details:', {
-						message: err.message,
-						stack: err.stack,
-						error: err,
-					});
-					// Fallback to direct connection
-					const url = generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode });
-					console.debug('Setting BUI URL without proxy:', url);
-					setWebviewBuiUrl(url);
+					console.error('Failed to set proxy target:', err);
 				}
-			} else {
-				// Use direct connection with TLS
-				console.debug('Using direct HTTPS connection');
-				setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode }));
 			}
-		}
+
+			if (debugMode) console.info('[DEBUG] URL effect triggered with:', { globalConfig, debugMode });
+
+			if (globalConfig?.api) {
+				const apiConfig = globalConfig.api;
+				const buiConfig = globalConfig.bui;
+				if (!globalConfig.api.tls.useTls) {
+					if (debugMode) console.info('[DEBUG] Getting proxy info...', { globalConfig, debugMode });
+					try {
+						const proxyInfo = await getProxyInfo();
+						if (debugMode) {
+							console.info('[DEBUG] Received proxy info:', proxyInfo);
+							console.info(
+								`[DEBUG] Using proxy on port ${proxyInfo.port} with target ${proxyInfo.target}`,
+							);
+						}
+						setProxyInfo(proxyInfo);
+						const url = generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMode });
+						if (debugMode) console.info('[DEBUG] Setting BUI URL with proxy:', url);
+						setWebviewBuiUrl(url);
+					} catch (err) {
+						console.error('Failed to get proxy info:', err);
+						if (debugMode) {
+							if (err instanceof Error) {
+								console.info('[DEBUG] Error details:', {
+									message: err.message,
+									stack: err.stack,
+									error: err,
+								});
+							} else {
+								console.info('[DEBUG] Error details:', {
+									error: err,
+								});
+							}
+						}
+						const url = generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode });
+						if (debugMode) console.info('[DEBUG] Setting BUI URL without proxy:', url);
+						setWebviewBuiUrl(url);
+					}
+				} else {
+					if (debugMode) console.info('[DEBUG] Using direct HTTPS connection');
+					setWebviewBuiUrl(generateWebviewBuiUrl({ apiConfig, buiConfig, debugMode }));
+				}
+			}
+		};
+
+		updateBuiUrl();
 	}, [globalConfig, debugMode]);
 
-	const [isVisible, setIsVisible] = useState(true);
-
+	// Handle window visibility
 	useEffect(() => {
-		// Handle visibility change
-		const handleVisibilityChange = () => {
-			setIsVisible(!document.hidden);
-		};
-
+		const handleVisibilityChange = () => setIsVisible(!document.hidden);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
-		return () => {
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-		};
+		return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
 	}, []);
 
 	// Reload chat window when server status changes (including TLS changes)
 	useEffect(() => {
 		const reloadChatWindow = async () => {
 			if (status.all_services_ready && webviewBuiUrl) {
-				console.debug('Reloading BB Chat with webview URL:', webviewBuiUrl);
+				if (debugMode) console.info('[DEBUG] Reloading BB Chat with webview URL:', webviewBuiUrl);
 				try {
 					await handleReloadChat();
 				} catch (error) {
@@ -160,6 +222,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		reloadChatWindow();
 	}, [status.all_services_ready, webviewBuiUrl]);
 
+	// Initialize configuration and status
 	useEffect(() => {
 		const init = async () => {
 			try {
@@ -196,26 +259,18 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			updateStatus();
 
 			// Set up the polling interval
-			interval = setInterval(async () => {
-				await updateStatus();
-			}, pollingInterval);
+			interval = setInterval(updateStatus, pollingInterval);
 		}
 
 		return () => {
-			if (interval) {
-				clearInterval(interval);
-			}
+			if (interval) clearInterval(interval);
 		};
 	}, [pollingInterval, isVisible]);
 
 	// Update parent components when status changes
 	useEffect(() => {
-		if (onStatusChange) {
-			onStatusChange(status);
-		}
-		if (onConnectionChange) {
-			onConnectionChange(status.all_services_ready);
-		}
+		if (onStatusChange) onStatusChange(status);
+		if (onConnectionChange) onConnectionChange(status.all_services_ready);
 	}, [status, onStatusChange, onConnectionChange]);
 
 	const updateStatus = async () => {
@@ -234,7 +289,9 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			}
 		} catch (err) {
 			console.error('Status check error:', err);
-			setError(`Failed to check server status: ${err.message || 'Unknown error'}`);
+			setError(
+				`Failed to check server status: ${(err instanceof Error) ? (err.message || 'Unknown error') : err}`,
+			);
 			// Use faster polling when there are issues
 			setPollingInterval(STARTUP_POLL_INTERVAL);
 			setStatus({
@@ -243,14 +300,14 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					process_responds: false,
 					service_responds: false,
 					pid: null,
-					error: err.message || 'Unknown error',
+					error: (err instanceof Error) ? (err.message || 'Unknown error') : err,
 				},
 				bui: {
 					pid_exists: false,
 					process_responds: false,
 					service_responds: false,
 					pid: null,
-					error: err.message || 'Unknown error',
+					error: (err instanceof Error) ? (err.message || 'Unknown error') : err,
 				},
 				all_services_ready: false,
 			});
@@ -273,7 +330,9 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		} catch (err) {
 			console.error('Toggle error:', err);
 			setError(
-				`Failed to ${status.all_services_ready ? 'stop' : 'start'} services: ${err.message || 'Unknown error'}`,
+				`Failed to ${status.all_services_ready ? 'stop' : 'start'} services: ${
+					(err instanceof Error) ? (err.message || 'Unknown error') : err
+				}`,
 			);
 		} finally {
 			setIsLoading(false);
@@ -294,7 +353,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 		try {
 			// Start both services
-			const result = await startServer();
+			const result: ServerStartResult = await startServer();
 			if (!result.all_services_ready) {
 				if (result.api.requires_settings || result.bui.requires_settings) {
 					setError('Configuration required');
@@ -325,7 +384,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			throw new Error('Services started but not responding after 5 seconds');
 		} catch (err) {
 			console.error('Start services error:', err);
-			setError(`Failed to start services: ${err.message || 'Unknown error'}`);
+			setError(`Failed to start services: ${(err instanceof Error) ? (err.message || 'Unknown error') : err}`);
 			// Try to get current status
 			await updateStatus();
 		}
@@ -360,110 +419,141 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			throw new Error('Services stop requested but still responding after 5 seconds');
 		} catch (err) {
 			console.error('Stop services error:', err);
-			setError(`Failed to stop services: ${err.message || 'Unknown error'}`);
+			setError(`Failed to stop services: ${(err instanceof Error) ? (err.message || 'Unknown error') : err}`);
 			// Try to get current status
 			await updateStatus();
 		}
 	};
 
-	const loadWindowState = async () => {
-		try {
-			const store = await load('bb-window-state.json', { autoSave: true });
-			const state = await store.get('chatWindow');
-			console.debug('Loaded chat window state:', state);
-			return state || {
-				width: 1200,
-				height: 800,
-				x: null,
-				y: null,
-				scaleFactor: 1,
-			};
-		} catch (error) {
-			console.error('Error loading window state:', error);
-			return {
-				width: 1200,
-				height: 800,
-				x: null,
-				y: null,
-				scaleFactor: 1,
-			};
-		}
-	};
-
-	const saveWindowState = async (window: WebviewWindow) => {
-		try {
-			const position = await window.outerPosition();
-			const size = await window.outerSize();
-			const scaleFactor = await window.scaleFactor();
-			const windowState = {
-				width: size.width,
-				height: size.height,
-				x: position.x,
-				y: position.y,
-				scaleFactor,
-			};
-			setChatWindowState(windowState);
-			const store = await load('bb-window-state.json', { autoSave: true });
-			console.debug('Saving chat window state:', windowState);
-			await store.set('chatWindow', windowState);
-		} catch (error) {
-			console.error('Error saving window state:', error);
-		}
-	};
-
-	const handleReloadChat = async () => {
-		const setupWindowListeners = (window: WebviewWindow) => {
-			window.once('tauri://created', () => {
-				console.log('BB Chat window created');
-				setIsChatWindowOpen(true);
-			});
-			window.once('tauri://error', (e) => {
-				console.error('Error creating BB Chat window:', e);
-				setIsChatWindowOpen(false);
-			});
-			window.once('tauri://destroyed', () => {
-				console.log('BB Chat window closed');
-				setIsChatWindowOpen(false);
-			});
-			window.listen('tauri://move', async () => {
-				await saveWindowState(window);
-			});
-			window.listen('tauri://resize', async () => {
-				await saveWindowState(window);
-			});
-		};
-
+	const handleReloadChat = async (): Promise<void> => {
 		if (!status.all_services_ready) {
-			console.debug('Services not ready, skipping chat reload');
+			if (debugMode) console.info('[DEBUG] Services not ready, skipping chat reload');
 			return;
 		}
 
-		console.info('Reloading BB Chat with webview URL:', webviewBuiUrl);
+		if (debugMode) console.info('[DEBUG] Reloading BB Chat with URL:', webviewBuiUrl);
+
 		try {
+			// Find and close existing window
 			const windows = await getAllWebviewWindows();
-			const chatWindow = windows.find((w) => w.label === 'bb_chat');
-			if (chatWindow) {
-				// If window exists, close it and create a new one
-				await saveWindowState(chatWindow);
-				await chatWindow.close();
+			const chatWindow = windows.find((w) => w.label === CHAT_WINDOW_LABEL);
+
+			if (debugMode) {
+				console.info('[DEBUG] Window state check:', {
+					existingWindows: windows.map((w) => w.label),
+					foundChatWindow: chatWindow?.label,
+				});
 			}
-			// Create new window
-			const windowState = await loadWindowState();
-			console.log('windowState', windowState);
-			const newWindow = new WebviewWindow('bb_chat', {
+
+			// Save state of existing window before closing
+			if (chatWindow) {
+				if (debugMode) console.info('[DEBUG] Found existing chat window, saving state before closing');
+				try {
+					await saveWindowState(chatWindow, true); // Force save on window close
+					if (debugMode) console.info('[DEBUG] Successfully saved chat window state');
+					await chatWindow.close();
+					if (debugMode) console.info('[DEBUG] Existing chat window closed');
+				} catch (error) {
+					console.error('[ERROR] Error handling existing window:', error);
+				}
+			}
+
+			// Load saved state before creating window
+			let windowStateLogical;
+			let windowStatePhysical;
+			try {
+				//if (debugMode) console.info('[DEBUG] Loading saved window state');
+				windowStateLogical = await loadWindowState(CHAT_WINDOW_LABEL, true); // Use logical size
+				windowStatePhysical = await loadWindowState(CHAT_WINDOW_LABEL, false); // Use logical size
+				if (debugMode) console.info('[DEBUG] Loaded window state (physical):', windowStatePhysical);
+			} catch (error) {
+				console.error('[ERROR] Failed to load window state:', error);
+				if (debugMode) console.info('[DEBUG] Using default window state');
+				windowStateLogical = DEFAULT_WINDOW_SIZE_LOGICAL;
+				windowStatePhysical = DEFAULT_WINDOW_SIZE_PHYSICAL;
+			}
+
+			// Create window centered initially
+			if (debugMode) {
+				console.info('[DEBUG] Creating chat window with state (physical):', {
+					width: windowStatePhysical.width,
+					height: windowStatePhysical.height,
+					x: windowStatePhysical.x,
+					y: windowStatePhysical.y,
+					scaleFactor: windowStatePhysical.scale_factor,
+				});
+			}
+
+			let options: ChatWebviewOptions = {
 				url: webviewBuiUrl,
 				title: 'BB Chat',
-				width: windowState.width / windowState.scaleFactor,
-				height: windowState.height / windowState.scaleFactor,
-				x: windowState.x / windowState.scaleFactor,
-				y: windowState.y / windowState.scaleFactor,
-				center: windowState.x === null,
+				width: windowStateLogical.width,
+				height: windowStateLogical.height,
+				//center: true, // Always create centered, will move after
 				resizable: true,
 				decorations: true,
+				skipTaskbar: false,
+			};
+
+			// Only set position if we have both coordinates
+			if (windowStateLogical.x !== null && windowStateLogical.y !== null) {
+				if (debugMode) {
+					console.info('[DEBUG] Will apply position after window creation (physical):', {
+						x: windowStateLogical.x,
+						y: windowStateLogical.y,
+						scaleFactor: windowStateLogical.scale_factor,
+					});
+				}
+				options.x = windowStateLogical.x;
+				options.y = windowStateLogical.y;
+			}
+
+			if (debugMode) console.info('[DEBUG] Creating chat window with original options:', options);
+			// Ensure window will be visible on screen
+			options = ensureWindowVisible(options);
+
+			if (debugMode) console.info('[DEBUG] Creating chat window with validated options:', options);
+			const newWindow = new WebviewWindow(CHAT_WINDOW_LABEL, options);
+
+			// Set up window lifecycle handlers
+			if (debugMode) console.info('[DEBUG] Setting up window handlers');
+
+			newWindow.once('tauri://created', async () => {
+				if (debugMode) console.info('[DEBUG] Chat window created');
+				setIsChatWindowOpen(true);
+
+				// Apply window state using Rust command
+				if (windowStatePhysical.x !== null && windowStatePhysical.y !== null) {
+					if (debugMode) console.info('[DEBUG] Applying window state via Rust command');
+					try {
+						await invoke('apply_window_state', {
+							windowLabel: CHAT_WINDOW_LABEL,
+							state: windowStatePhysical,
+						});
+						if (debugMode) console.info('[DEBUG] Window state applied successfully');
+					} catch (error) {
+						console.error('[ERROR] Failed to apply window state:', error);
+					}
+				}
+
+				// Set up state handlers after window is ready
+				if (debugMode) console.info('[DEBUG] Setting up window state handlers');
+				setupWindowStateHandlers(newWindow);
 			});
-			setupWindowListeners(newWindow);
+
+			newWindow.once('tauri://error', (e) => {
+				if (debugMode) console.info('[DEBUG] Chat window error event fired:', e);
+				setIsChatWindowOpen(false);
+				console.error('[ERROR] Failed to create chat window:', e);
+			});
+
+			newWindow.once('tauri://destroyed', () => {
+				if (debugMode) console.info('[DEBUG] Chat window destroyed event fired');
+				setIsChatWindowOpen(false);
+			});
 		} catch (error) {
-			console.error('Error managing chat window:', error);
+			console.error('[ERROR] Failed to manage chat window:', error);
+			if (debugMode) console.info('[DEBUG] Chat window management error:', error);
 		}
 	};
 
@@ -542,30 +632,32 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
 					{globalConfig && (
-						<button
-							onClick={handleReloadChat}
-							disabled={!status.all_services_ready}
-							className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-								status.all_services_ready
-									? 'bg-blue-600 hover:bg-blue-700'
-									: 'bg-gray-400 cursor-not-allowed'
-							} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
-						>
-							<svg
-								className='w-5 h-5 mr-2'
-								fill='none'
-								stroke='currentColor'
-								viewBox='0 0 24 24'
+						<div className='flex gap-2'>
+							<button
+								onClick={handleReloadChat}
+								disabled={!status.all_services_ready}
+								className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+									status.all_services_ready
+										? 'bg-blue-600 hover:bg-blue-700'
+										: 'bg-gray-400 cursor-not-allowed'
+								} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800`}
 							>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
-								/>
-							</svg>
-							{isChatWindowOpen ? 'Reload Chat' : 'Open Chat'}
-						</button>
+								<svg
+									className='w-5 h-5 mr-2'
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+								>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
+									/>
+								</svg>
+								{isChatWindowOpen ? 'Reload Chat' : 'Open Chat'}
+							</button>
+						</div>
 					)}
 					{directBuiUrl && (
 						<div
@@ -580,17 +672,17 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							className='font-medium text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded p-3 cursor-pointer transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-2'
 						>
 							<svg
-								className="h-5 w-5 flex-shrink-0"
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
+								className='h-5 w-5 flex-shrink-0'
+								xmlns='http://www.w3.org/2000/svg'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
 							>
 								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
+									strokeLinecap='round'
+									strokeLinejoin='round'
 									strokeWidth={2}
-									d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+									d='M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14'
 								/>
 							</svg>
 							<span className='break-all font-mono text-sm'>
@@ -674,7 +766,9 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 								{/* BUI Status */}
 								<div className='grid grid-cols-6 gap-y-4 mt-4'>
-									<div className='col-span-6 font-bold text-lg mb-1'>BUI Status <span className="ml-2 text-sm">(Browser User Interface)</span></div>
+									<div className='col-span-6 font-bold text-lg mb-1'>
+										BUI Status <span className='ml-2 text-sm'>(Browser User Interface)</span>
+									</div>
 									<div className='font-bold'>Host:</div>
 									<div>{globalConfig.bui.hostname}</div>
 									<div className='font-bold'>Port:</div>
@@ -694,7 +788,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										</>
 									)}
 								</div>
-
 							</div>
 						)}
 					</div>

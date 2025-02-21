@@ -17,6 +17,8 @@ const defaultConfig: GlobalConfigValues = {
 export function Settings(): JSX.Element {
 	const [config, setConfig] = useState<GlobalConfigValues>(defaultConfig);
 	const { debugMode, setDebugMode } = useDebugMode();
+	const [proxyDebugMode, setProxyDebugMode] = useState(false);
+	
 	const [originalConfig, setOriginalConfig] = useState<GlobalConfigValues>(defaultConfig);
 	const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 	const [errors, setErrors] = useState<Partial<Record<keyof GlobalConfigValues, string>>>({});
@@ -26,6 +28,14 @@ export function Settings(): JSX.Element {
 	}, []);
 
 	const loadConfig = async () => {
+		// Load debug modes
+		try {
+			const duidebugMode = await invoke<boolean>('get_dui_debug_mode');
+			setDebugMode(duidebugMode);
+			console.debug('Loaded DUI debug mode:', duidebugMode);
+		} catch (err) {
+			console.error('Failed to load DUI debug mode:', err);
+		}
 		console.log('Loading config...');
 		try {
 			const rustConfig = await invoke<RustGlobalConfig>('get_global_config');
@@ -68,6 +78,13 @@ export function Settings(): JSX.Element {
 	};
 
 	const handleSave = async () => {
+		// Save debug mode state if changed
+		try {
+			await invoke('set_dui_debug_mode', { debugMode });
+		} catch (err) {
+			console.error('Failed to save debug mode:', err);
+		}
+
 		if (!validateForm()) return;
 
 		try {
@@ -124,10 +141,19 @@ export function Settings(): JSX.Element {
 		}
 	};
 
-	const handleResetDefaults = () => {
+	const handleResetDefaults = async () => {
 		setConfig(defaultConfig);
-		setDebugMode(false);
 		setErrors({});
+		
+		// Reset debug modes
+		try {
+			await invoke('set_dui_debug_mode', { debugMode: false });
+			setDebugMode(false);
+			await setProxyDebugMode(false);
+			setProxyDebugMode(false);
+		} catch (err) {
+			console.error('Failed to reset debug modes:', err);
+		}
 	};
 
 	const handleRestartConfirm = async () => {
@@ -288,14 +314,15 @@ export function Settings(): JSX.Element {
 							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
 								<input
 									type='checkbox'
-									checked={debugMode}
+									checked={proxyDebugMode}
 									onChange={async (e) => {
-										setDebugMode(e.currentTarget.checked);
+										const newMode = e.currentTarget.checked;
 										try {
-											await setProxyDebugMode(e.currentTarget.checked);
-											console.debug('Debug mode set successfully');
+											await setProxyDebugMode(newMode);
+											setProxyDebugMode(newMode);
+											console.debug('Proxy debug mode set to:', newMode);
 										} catch (err) {
-											console.error('Failed to set debug mode:', err);
+											console.error('Failed to set proxy debug mode:', err);
 										}
 									}}
 									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
@@ -303,6 +330,36 @@ export function Settings(): JSX.Element {
 								Local Proxy Mode
 								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
 									Use localhost for development
+								</span>
+							</label>
+						</div>
+					</div>
+				</div>
+
+				{/* Debug Settings Section */}
+				<div className='space-y-4'>
+					<h3 className='text-lg font-semibold dark:text-white'>Debug Settings</h3>
+					<div className='grid grid-cols-2 gap-4'>
+						<div>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+								<input
+									type='checkbox'
+									checked={debugMode}
+									onChange={async (e) => {
+									const newMode = e.currentTarget.checked;
+									try {
+										await invoke('set_dui_debug_mode', { debugMode: newMode });
+										setDebugMode(newMode);
+										console.debug('Debug mode set to:', newMode);
+									} catch (err) {
+										console.error('Failed to set debug mode:', err);
+									}
+								}}
+									className='h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-2'
+								/>
+								Debug Mode
+								<span className='block ml-6 text-sm font-normal text-gray-600 dark:text-gray-400'>
+									Enable additional debug logging
 								</span>
 							</label>
 						</div>

@@ -14,8 +14,11 @@
       {
         "label": "main",
         "title": "BB Server",
-        "width": 800,
-        "height": 600
+        "width": 700,
+        "height": 480,
+        "center": false,
+        "x": 100,
+        "y": 100
       }
     ],
     "security": {
