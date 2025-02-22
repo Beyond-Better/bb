@@ -3,7 +3,12 @@
 		"dev": "deno run -A --node-modules-dir npm:vite",
 		"build": "deno run -A --node-modules-dir npm:vite build",
 		"preview": "deno run -A --node-modules-dir npm:vite preview",
-		"tauri": "deno run -A npm:@tauri-apps/cli"
+		"tauri": "deno run -A npm:@tauri-apps/cli",
+		"create-unsigned-config": "deno run -A scripts/create_unsigned_config.ts",
+		"tauri-dev": "deno task create-unsigned-config && deno task tauri dev --config src-tauri/tauri.dev.conf.json",
+		"tauri-build": "deno task create-unsigned-config && deno task tauri build --config src-tauri/tauri.dev.conf.json",
+		"tauri-signed-default": "APPLE_SIGNING_IDENTITY=662F8634EFD7514D1191901F83FDD7CF2A2E7728 APPLE_CERTIFICATE_PASSWORD=$(../scripts/get_dui_cert_password.sh) deno run -A npm:@tauri-apps/cli",
+		"tauri-signed": "APPLE_SIGNING_IDENTITY=662F8634EFD7514D1191901F83FDD7CF2A2E7728 APPLE_CERTIFICATE_PASSWORD=$(../scripts/get_dui_cert_password.sh) APPLE_KEYCHAIN=~/Library/Keychains/codesigning.keychain APPLE_KEYCHAIN_PASSWORD=$(../scripts/get_codesigning_keychain_password.sh) deno run -A npm:@tauri-apps/cli"
 	},
 	"vendor": true,
 	"compilerOptions": {
