@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.16] - 2025-02-23
+
+### Added
+
+- Provider support for Google Gemini [beta]
+
+### Changed
+
+
+### Fixed
+
+- switched to custom confirmation dialogs to fix missing webview native dialogs
+- rewrote window size & positioning logic and state handling - respects multiple displays
+
+
 ## [0.6.15] - 2025-02-18
 
 ### Changed
