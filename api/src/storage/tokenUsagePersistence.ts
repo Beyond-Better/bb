@@ -263,8 +263,8 @@ export class TokenUsagePersistence {
 			);
 		}
 
-			// Validate record - structural errors will throw, value errors will log
-			this.validateRecord(record);
+		// Validate record - structural errors will throw, value errors will log
+		this.validateRecord(record);
 
 		await this.ensureDirectory();
 		const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
