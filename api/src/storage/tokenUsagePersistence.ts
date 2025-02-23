@@ -24,6 +24,7 @@ export class TokenUsagePersistence {
 	 * Initializes the token usage directory structure.
 	 * Creates the tokenUsage directory if it doesn't exist.
 	 */
+	// deno-lint-ignore require-await
 	async init(): Promise<TokenUsagePersistence> {
 		return this;
 	}
@@ -262,8 +263,8 @@ export class TokenUsagePersistence {
 			);
 		}
 
-		// Validate record - structural errors will throw, value errors will log
-		this.validateRecord(record);
+			// Validate record - structural errors will throw, value errors will log
+			this.validateRecord(record);
 
 		await this.ensureDirectory();
 		const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;

@@ -80,9 +80,6 @@ pub struct ApiConfig {
     pub local_mode: bool,
     #[serde(default)]
     pub llm_providers: LlmProviders,
-    //#[serde(default)]
-    //#[deprecated(note = "Use llm_providers instead")]
-    //pub llm_keys: LlmKeys,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -110,6 +107,8 @@ pub struct BuiConfig {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct DuiConfig {
+    #[serde(default)]
+    pub debug_mode: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub environment: Option<String>,
     #[serde(rename = "defaultApiConfig")]
@@ -213,16 +212,14 @@ impl Default for LlmKeys {
     }
 }
 
-// Default implementation must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (ApiConfigDefaults)
 impl Default for ApiConfig {
     fn default() -> Self {
         ApiConfig {
-            hostname: "localhost".to_string(),  // Hardcode to match TypeScript default
+            hostname: "localhost".to_string(),
             port: 3162,
-            tls: TlsConfig::default(),  // Will have useTls: false by default
+            tls: TlsConfig::default(),
             log_level: "info".to_string(),
-            log_file: get_default_log_path("api.log"),  // Platform-specific log path
+            log_file: get_default_log_path("api.log"),
             log_file_hydration: false,
             ignore_llm_request_cache: false,
             use_prompt_caching: true,
@@ -233,21 +230,18 @@ impl Default for ApiConfig {
             environment: None,
             local_mode: false,
             llm_providers: LlmProviders::default(),
-            //llm_keys: LlmKeys::default(),
         }
     }
 }
 
-// Default implementation must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (BuiConfigDefaults)
 impl Default for BuiConfig {
     fn default() -> Self {
         BuiConfig {
             hostname: "localhost".to_string(),
-            port: 8080,  // Default BUI port
-            tls: TlsConfig::default(),  // Will have useTls: false by default
+            port: 8080,
+            tls: TlsConfig::default(),
             log_level: "info".to_string(),
-            log_file: get_default_log_path("bui.log"),  // Platform-specific log path
+            log_file: get_default_log_path("bui.log"),
             kv_session_path: "auth.kv".to_string(),
             environment: None,
             local_mode: false,
@@ -255,33 +249,28 @@ impl Default for BuiConfig {
     }
 }
 
-// Default implementation must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (DuiConfigDefaults)
 impl Default for DuiConfig {
     fn default() -> Self {
         DuiConfig {
+            debug_mode: false,
             environment: None,
             default_api_config: serde_json::Value::Object(serde_json::Map::new()),
-            projects_directory: "./projects".to_string(),  // Match TypeScript default
-            recent_projects: 5,  // Match TypeScript default
+            projects_directory: "./projects".to_string(),
+            recent_projects: 5,
         }
     }
 }
 
-// Default implementation must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (CliConfigDefaults)
 impl Default for CliConfig {
     fn default() -> Self {
         CliConfig {
             environment: None,
             default_editor: None,
-            history_size: 1000,  // Match TypeScript default
+            history_size: 1000,
         }
     }
 }
 
-// Default implementations must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (GlobalConfigDefaults.defaultModels)
 impl Default for DefaultModels {
     fn default() -> Self {
         DefaultModels {
@@ -292,15 +281,13 @@ impl Default for DefaultModels {
     }
 }
 
-// Default implementation must be kept in sync with TypeScript defaults in:
-// src/shared/config/v2/types.ts (GlobalConfigDefaults)
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
             version: "2.1.0".to_string(),
             my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
             my_assistants_name: "Claude".to_string(),
-            default_models: DefaultModels::default(),  // Match TypeScript default
+            default_models: DefaultModels::default(),
             no_browser: false,
             api: ApiConfig::default(),
             bui: BuiConfig::default(),
@@ -352,14 +339,12 @@ pub fn get_default_log_path(filename: &str) -> Option<String> {
 
 pub fn get_global_config_dir() -> Result<PathBuf, std::io::Error> {
     let config_dir = if cfg!(target_os = "windows") {
-        // On Windows, use %APPDATA%\bb
         dirs::config_dir().ok_or_else(|| {
             let err = std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find AppData directory");
             error!("AppData directory not found");
             err
         })?.join("bb")
     } else {
-        // On Unix systems (Linux/macOS), use ~/.config/bb
         dirs::home_dir().ok_or_else(|| {
             let err = std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find home directory");
             error!("Home directory not found");
@@ -374,7 +359,6 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
     let config_dir = get_global_config_dir()?;
     let config_path = config_dir.join("config.yaml");
     
-    // Check if config directory exists
     if !config_dir.exists() {
         debug!("Config directory does not exist: {:?}", config_dir);
         fs::create_dir_all(&config_dir).map_err(|e| {
@@ -383,7 +367,6 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
         })?;
     }
     
-    // Try to read the config file
     match fs::read_to_string(&config_path) {
         Ok(contents) => {
             match serde_yaml::from_str(&contents) {
@@ -409,6 +392,28 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
             Err(Box::new(e))
         }
     }
+}
+
+#[tauri::command]
+pub fn get_dui_debug_mode() -> bool {
+    match read_global_config() {
+        Ok(config) => config.dui.debug_mode,
+        Err(_) => false
+    }
+}
+
+#[tauri::command]
+pub async fn set_dui_debug_mode(debug_mode: bool) -> Result<(), String> {
+    let config_dir = get_global_config_dir().map_err(|e| e.to_string())?;
+    let config_path = config_dir.join("config.yaml");
+    
+    let mut config = read_global_config().map_err(|e| e.to_string())?;
+    config.dui.debug_mode = debug_mode;
+    
+    let yaml = serde_yaml::to_string(&config).map_err(|e| e.to_string())?;
+    fs::write(config_path, yaml).map_err(|e| e.to_string())?;
+    
+    Ok(())
 }
 
 #[tauri::command]

@@ -45,6 +45,17 @@ export const DeepSeekModels = [
 	DeepSeekModel.DEEPSEEK_REASONER,
 ];
 
+export enum GoogleModel {
+	GOOGLE_GEMINI_15_FLASH = 'gemini-1.5-flash',
+	GOOGLE_GEMINI_20_FLASH = 'gemini-2.0-flash',
+	//GOOGLE_GEMINI_20_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
+}
+export const GoogleModels = [
+	GoogleModel.GOOGLE_GEMINI_15_FLASH,
+	GoogleModel.GOOGLE_GEMINI_20_FLASH,
+	//GoogleModel.GOOGLE_GEMINI_20_FLASH_THINKING_EXP,
+];
+
 export enum GroqModel {
 	GROQ_LLAMA3_8B = 'llama3-8b-8192',
 	GROQ_LLAMA3_70B = 'llama3-70b-8192',
@@ -56,41 +67,6 @@ export const GroqModels = [
 	GroqModel.GROQ_LLAMA3_70B,
 	GroqModel.GROQ_MIXTRAL_8X7B,
 	GroqModel.GROQ_GEMMA_7B,
-];
-
-export const BbModels = [
-	// 	AnthropicModel.CLAUDE_3_HAIKU,
-	// 	AnthropicModel.CLAUDE_3_SONNET,
-	// 	AnthropicModel.CLAUDE_3_5_SONNET,
-	// 	AnthropicModel.CLAUDE_3_OPUS,
-	// 	OpenAIModel.GPT_4o,
-	// 	OpenAIModel.GPT_4_TURBO,
-	// 	OpenAIModel.GPT_4,
-	// 	OpenAIModel.GPT_35_TURBO,
-	// 	GroqModel.GROQ_LLAMA3_8B,
-	// 	GroqModel.GROQ_LLAMA3_70B,
-	// 	GroqModel.GROQ_MIXTRAL_8X7B,
-	// 	GroqModel.GROQ_GEMMA_7B,
-];
-
-export enum LLMProvider {
-	BB = 'beyond-better',
-	ANTHROPIC = 'anthropic',
-	OPENAI = 'openai',
-	DEEPSEEK = 'deepseek',
-	GROQ = 'groq',
-	OLLAMA = 'ollama',
-	UNKNOWN = '',
-}
-
-export const LLMProviders = [
-	LLMProvider.BB,
-	LLMProvider.ANTHROPIC,
-	LLMProvider.OPENAI,
-	LLMProvider.OLLAMA,
-	LLMProvider.DEEPSEEK,
-	LLMProvider.GROQ,
-	LLMProvider.UNKNOWN,
 ];
 
 export enum OllamaModel {
@@ -121,12 +97,50 @@ export const OllamaModels = [
 	OllamaModel.SMOLLM2_1_7B,
 ];
 
+export const BbModels = [
+	// 	AnthropicModel.CLAUDE_3_HAIKU,
+	// 	AnthropicModel.CLAUDE_3_SONNET,
+	// 	AnthropicModel.CLAUDE_3_5_SONNET,
+	// 	AnthropicModel.CLAUDE_3_OPUS,
+	// 	OpenAIModel.GPT_4o,
+	// 	OpenAIModel.GPT_4_TURBO,
+	// 	OpenAIModel.GPT_4,
+	// 	OpenAIModel.GPT_35_TURBO,
+	// 	GroqModel.GROQ_LLAMA3_8B,
+	// 	GroqModel.GROQ_LLAMA3_70B,
+	// 	GroqModel.GROQ_MIXTRAL_8X7B,
+	// 	GroqModel.GROQ_GEMMA_7B,
+];
+
+export enum LLMProvider {
+	BB = 'beyond-better',
+	ANTHROPIC = 'anthropic',
+	OPENAI = 'openai',
+	DEEPSEEK = 'deepseek',
+	GOOGLE = 'google',
+	GROQ = 'groq',
+	OLLAMA = 'ollama',
+	UNKNOWN = '',
+}
+
+export const LLMProviders = [
+	LLMProvider.BB,
+	LLMProvider.ANTHROPIC,
+	LLMProvider.OPENAI,
+	LLMProvider.OLLAMA,
+	LLMProvider.DEEPSEEK,
+	LLMProvider.GOOGLE,
+	LLMProvider.GROQ,
+	LLMProvider.UNKNOWN,
+];
+
 export const LLMProviderLabel = {
 	[LLMProvider.BB]: 'Beyond Better',
 	[LLMProvider.ANTHROPIC]: 'Anthropic',
 	[LLMProvider.OPENAI]: 'OpenAI',
 	[LLMProvider.OLLAMA]: 'Ollama',
 	[LLMProvider.DEEPSEEK]: 'DeepSeek',
+	[LLMProvider.GOOGLE]: 'Google',
 	[LLMProvider.GROQ]: 'Groq',
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
@@ -137,6 +151,7 @@ export const LLMModelsByProvider = {
 	[LLMProvider.OPENAI]: OpenAIModels,
 	[LLMProvider.OLLAMA]: OllamaModels,
 	[LLMProvider.DEEPSEEK]: DeepSeekModels,
+	[LLMProvider.GOOGLE]: GoogleModels,
 	[LLMProvider.GROQ]: GroqModels,
 	[LLMProvider.UNKNOWN]: [],
 };

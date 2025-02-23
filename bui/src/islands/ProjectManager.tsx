@@ -1,4 +1,5 @@
 import { useComputed, useSignal } from '@preact/signals';
+import { ConfirmDialog } from '../components/Dialogs/ConfirmDialog.tsx';
 import { useEffect } from 'preact/hooks';
 import { PageContainer } from '../components/PageContainer.tsx';
 import { ProjectEditor } from '../components/Projects/ProjectEditor.tsx';
@@ -24,6 +25,8 @@ export default function ProjectManager() {
 	const showEditor = useSignal(false);
 	const editingProject = useSignal<Project | undefined>(undefined);
 	const editingProjectWithSources = useSignal<ProjectWithSources | undefined>(undefined);
+	const showDeleteConfirm = useSignal(false);
+	const projectToDelete = useSignal<ProjectWithSources | undefined>(undefined);
 	const loading = useComputed(() => projectState.value.loading);
 	const error = useComputed(() => projectState.value.error);
 	//const projects = useComputed(() => projectState.value.projects);
@@ -50,10 +53,22 @@ export default function ProjectManager() {
 		showEditor.value = true;
 	};
 
-	const handleDelete = async (projectWithSources: ProjectWithSources) => {
-		if (confirm(`Are you sure you want to delete project "${projectWithSources.name}"?`)) {
-			await deleteProject(projectWithSources.projectId);
+	const handleDelete = (projectWithSources: ProjectWithSources) => {
+		projectToDelete.value = projectWithSources;
+		showDeleteConfirm.value = true;
+	};
+
+	const handleConfirmDelete = async () => {
+		if (projectToDelete.value) {
+			await deleteProject(projectToDelete.value.projectId);
+			showDeleteConfirm.value = false;
+			projectToDelete.value = undefined;
 		}
+	};
+
+	const handleCancelDelete = () => {
+		showDeleteConfirm.value = false;
+		projectToDelete.value = undefined;
 	};
 
 	const handleEditorSave = () => {
@@ -161,6 +176,15 @@ export default function ProjectManager() {
 					</div>
 				</PageContainer>
 			</div>
+			<ConfirmDialog
+				visible={showDeleteConfirm.value}
+				title='Delete Project'
+				message={`Are you sure you want to delete project "${projectToDelete.value?.name || ''}"?`}
+				confirmLabel='Delete'
+				onConfirm={handleConfirmDelete}
+				onCancel={handleCancelDelete}
+				isDangerous={true}
+			/>
 		</div>
 	);
 }

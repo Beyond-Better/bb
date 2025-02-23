@@ -8,6 +8,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+vendor
 dist
 dist-ssr
 *.local
@@ -22,3 +23,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated config files
+src-tauri/tauri.dev.conf.json

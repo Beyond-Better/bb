@@ -203,6 +203,7 @@ class BbLLM extends LLM {
 		return tools;
 	}
 
+	// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
 		_interaction?: LLMInteraction,

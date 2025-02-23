@@ -20,12 +20,13 @@ pub mod proxy;
 // Re-export public items
 pub use crate::api::{start_api, stop_api};
 pub use crate::bui::{start_bui, stop_bui};
-pub use crate::config::{read_global_config, get_api_config, get_bui_config, ApiConfig, BuiConfig};
+pub use crate::config::{read_global_config, get_api_config, get_bui_config, ApiConfig, BuiConfig, get_dui_debug_mode, set_dui_debug_mode};
 pub use crate::commands::server_status::check_server_status;
 pub use crate::commands::version::{get_binary_version, get_version_info, check_version_compatibility};
 pub use crate::commands::upgrade::{perform_install, perform_upgrade};
 pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path, get_bui_log_path};
 pub use crate::commands::proxy::{get_proxy_info, set_proxy_target, set_debug_mode, start_proxy_server, stop_proxy_server};
+pub use crate::window_state::{load_window_state, save_window_state, setup_window_state_handler, apply_window_state};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 async fn start_proxy(log_dir: std::path::PathBuf) -> Result<proxy::HttpProxy, Box<dyn std::error::Error>> {
@@ -191,6 +192,33 @@ fn get_app_log_dir() -> Option<PathBuf> {
     }
 }
 
+async fn setup_windows(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+//    // Set up macOS menu
+//    #[cfg(target_os = "macos")]
+//    {
+//        // For macOS, let Tauri handle the menu creation using the productName from tauri.conf.json
+//        // and the Info.plist template
+//        use tauri::menu::Menu;
+//        if let Ok(menu) = Menu::default(&app.handle()) {
+//            let _ = app.set_menu(menu);
+//        }
+//    }
+
+    // Set up window state
+	//if let Some(main_window) = app.webview_windows().get("main") {
+    if let Some(main_window) = app.get_webview_window("main") {
+        // Load and apply saved window state
+        let state = window_state::load_window_state("main".to_string(), app.handle().clone(), Some(false)).await?; // Use physical pixels for DUI window
+        window_state::apply_window_state_internal(&main_window, &state);
+
+        // Set up window state event handlers
+        window_state::setup_window_state_handler_internal(&main_window);
+    } else {
+        warn!("Main window not found");
+    }
+    Ok(())
+}
+
 pub fn run() {
 //    // Log startup attempt with detailed environment info
 //    eprintln!("Starting Beyond Better DUI...");
@@ -323,25 +351,22 @@ pub fn run() {
             set_proxy_target,
             set_debug_mode,
             start_proxy_server,
-            stop_proxy_server
+            stop_proxy_server,
+            get_dui_debug_mode,
+            set_dui_debug_mode,
+            load_window_state,
+            save_window_state,
+            setup_window_state_handler,
+            apply_window_state
         ])
         .manage(proxy_state)
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
-            if let Some(main_window) = app.webview_windows().get("main") {
-                // Load and apply saved window state
-                let state = window_state::load_window_state(&main_window);
-                window_state::apply_window_state(&main_window, &state);
-
-                // Set up window state event handlers
-                window_state::setup_window_state_handler(&main_window);
-            } else {
-                warn!("Main window not found");
-            }
-
-            Ok(())
+            tauri::async_runtime::block_on(async {
+                setup_windows(app).await
+            })
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -22,6 +22,7 @@ import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
+import { isTokenUsageValidationError } from 'api/errors/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
@@ -257,7 +258,22 @@ class ConversationPersistence {
 
 	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
 		await this.ensureInitialized();
-		await this.tokenUsagePersistence.writeUsage(record, type);
+		try {
+			await this.tokenUsagePersistence.writeUsage(record, type);
+		} catch (error) {
+			if (isTokenUsageValidationError(error)) {
+				logger.error(
+					`ConversationPersistence: TokenUsage validation failed: ${error.options.field} - ${error.options.constraint}`,
+				);
+			} else {
+				logger.error(
+					`ConversationPersistence: TokenUsage validation failed - Unknown error type: ${
+						(error instanceof Error) ? error.message : error
+					}`,
+				);
+				throw error;
+			}
+		}
 	}
 
 	async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
