@@ -176,9 +176,26 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -l build.keychain
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security set-key-partition-list -S "apple-tool:,apple:,codesign:,security:" -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychain -s build.keychain
           security find-identity -v -p codesigning build.keychain
+
+#       - name: Import Apple Developer Certificate
+#         if: matrix.platform == 'macos'
+#         env:
+#           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+#           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+#           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+#         run: |
+#           echo $APPLE_CERTIFICATE | base64 --decode > certificate.p12
+#           security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+#           security default-keychain -s build.keychain
+#           security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+#           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+#           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+#           security find-identity -v -p codesigning build.keychain
 
       - name: Verify Certificate
         if: matrix.platform == 'macos'
@@ -199,6 +216,12 @@ jobs:
         run: |
           echo "${{ secrets.APPLE_API_KEY_VALUE }}" > ${{ secrets.APPLE_API_KEY_PATH }}
           chmod 600 ${{ secrets.APPLE_API_KEY_PATH }}
+
+      - name: Clear Existing Signatures
+        if: matrix.platform == 'macos'
+        run: |
+          find ./dui/src-tauri/target -name "*.app" -exec codesign --remove-signature "{}" \; || true
+          find ./dui/src-tauri/target -name "beyond-better" -exec codesign --remove-signature "{}" \; || true
 
       - name: Build DUI (Tauri)
         uses: tauri-apps/tauri-action@v0
