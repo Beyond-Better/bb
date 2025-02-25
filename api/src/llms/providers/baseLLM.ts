@@ -129,6 +129,7 @@ class LLM {
 			model,
 			maxTokens,
 			temperature,
+			extendedThinking: speakOptions?.extendedThinking,
 		};
 		//logger.debug('BaseLLM: llms-prepareMessageRequest', messageRequest);
 		//logger.dir(messageRequest);

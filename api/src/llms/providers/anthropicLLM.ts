@@ -7,7 +7,6 @@ import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type {
-	LLMMessageContentPart,
 	LLMMessageContentParts,
 	LLMMessageContentPartTextBlock,
 } from 'api/llms/llmMessage.ts';
@@ -21,10 +20,14 @@ import type {
 	LLMProviderMessageResponse,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
+	//LLMExtendedThinkingOptions,
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
-type AnthropicBlockParam = Anthropic.Messages.ContentBlockParam;
+// Define a more specific type for Anthropic content blocks that includes our custom properties
+type AnthropicContentBlock = Anthropic.Messages.ContentBlockParam & {
+	cache_control?: { type: string };
+};
 type AnthropicBlockParamOrString =
 	| string
 	| Anthropic.Messages.ContentBlockParam;
@@ -90,19 +93,29 @@ class AnthropicLLM extends LLM {
 					summary.push(`${indent}Is Error: ${part.is_error || false}`);
 
 					// Check if any nested content has file content
-					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPart) =>
-						nestedPart.type === 'text' &&
-						typeof nestedPart.text === 'string' &&
-						(this.hasFileMetadata(nestedPart.text) ||
-							(nestedPart.text.startsWith('Note: File') &&
-								nestedPart.text.includes('is up-to-date')))
-					);
+					// Use a more specific type for the content parts
+					const fileContentParts = part.content.filter((nestedPart) => {
+						// Check if it's a text block
+						if (nestedPart.type !== 'text') return false;
+						
+						// Safe access to text property using type guard
+						const textBlock = nestedPart as Anthropic.Messages.TextBlockParam;
+						if (typeof textBlock.text !== 'string') return false;
+						
+						// Check for file metadata or file note
+						return this.hasFileMetadata(textBlock.text) || 
+							(textBlock.text.startsWith('Note: File') && textBlock.text.includes('is up-to-date'));
+					});
+
 					if (fileContentParts.length > 0) {
 						summary.push(`${indent}Files in this tool_result:`);
-						fileContentParts.forEach((p: LLMMessageContentPart) => {
-							if (p.type === 'text' && typeof p.text === 'string') {
-								if (p.text.startsWith('Note: File')) {
-									const match = p.text.match(
+						fileContentParts.forEach((p) => {
+							// Use a more specific type for the content part
+							const textBlock = p as Anthropic.Messages.TextBlockParam;
+							// We've already filtered for text blocks with string text
+							if (textBlock.type === 'text' && typeof textBlock.text === 'string') {
+								if (textBlock.text.startsWith('Note: File')) {
+									const match = textBlock.text.match(
 										/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
 									);
 									if (match) {
@@ -112,9 +125,9 @@ class AnthropicLLM extends LLM {
 											} with revision ${match[4]})`,
 										);
 									}
-								} else if (this.hasFileMetadata(p.text)) {
+								} else if (this.hasFileMetadata(textBlock.text)) {
 									try {
-										const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadataText = textBlock.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
 										const metadata = JSON.parse(metadataText);
 										summary.push(
 											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -183,14 +196,21 @@ class AnthropicLLM extends LLM {
 				}
 
 				// Check for cache_control
-				if (part && typeof part === 'object' && 'cache_control' in part) {
-					const cacheControl = (part as AnthropicBlockParam).cache_control;
+				// Only certain content types support cache_control (not thinking blocks)
+				if (part && typeof part === 'object' && part.type !== 'thinking' && part.type !== 'redacted_thinking') {
+					const hasCache = 'cache_control' in part;
+					if (hasCache) {
+					// Use a more specific type assertion
+					const cacheControl = (part as AnthropicContentBlock).cache_control;
 					summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
 					if (!messagesWithCache.includes(index + 1)) {
 						messagesWithCache.push(index + 1);
 					}
+					} else {
+						summary.push(`${indent}Has cache_control: no`);
+					}
 				} else {
-					summary.push(`${indent}Has cache_control: no`);
+					summary.push(`${indent}Has cache_control: no (not supported for this content type)`);
 				}
 			};
 
@@ -238,7 +258,8 @@ class AnthropicLLM extends LLM {
 						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
 					}
 				} else if (typeof prevContent === 'string') {
-					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' }, citations: [] }];
+					// For string content, we don't have existing citations, so use empty array
+content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' }, citations: [] }];
 				} else {
 					// Only add cache_control to supported content types (not thinking blocks)
 					if (prevContent.type !== 'thinking' && prevContent.type !== 'redacted_thinking') {
@@ -304,14 +325,18 @@ class AnthropicLLM extends LLM {
 			system,
 			tools,
 			model,
-// 			thinking: {
-// 			  type: "enabled",
-// 			  budget_tokens: 4000
-// 			},
 			max_tokens: maxTokens,
 			temperature,
 			//betas: ["output-128k-2025-02-19"],
 			stream: false,
+			
+			// Add extended thinking support if enabled in the request
+			...(messageRequest.extendedThinking?.enabled ? {
+				thinking: {
+					type: "enabled",
+					budget_tokens: messageRequest.extendedThinking.budgetTokens || 4000
+				}
+			} : {}),
 		};
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
@@ -382,7 +407,9 @@ class AnthropicLLM extends LLM {
 				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
 					anthropicMessage.content = [anthropicMessage.content];
 				} else if (typeof anthropicMessage.content === 'string') {
-					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
+					// For string content from Anthropic, we don't have existing citations
+// String content doesn't have citations, so use empty array
+anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
 				} else {
 					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM', citations: [] }];
 				}

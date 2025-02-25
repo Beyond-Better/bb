@@ -8,10 +8,18 @@ import type {
 import type { ConversationStats } from 'shared/types.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
+export interface LLMMessageTextCitation {
+	start: number;
+	end: number;
+	text: string;
+	url?: string;
+}
+
 export interface LLMMessageContentPartTextBlock {
 	messageId?: string;
 	type: 'text';
 	text: string;
+	citations?: LLMMessageTextCitation[];
 }
 
 export interface LLMMessageContentPartImageBlock {
@@ -66,6 +74,8 @@ export type LLMMessageContentPartType =
 	| 'developer'; // openai // will be converted to `developer` role by openAILLM
 // 	| 'tool_calls' // openai // use `tool_use` will be converted to `tool_calls` part of `assistant` role by openAILLM
 // 	| 'tool'; // openai // use `tool_result` will be converted to `tool` role by openAILLM
+
+export type { LLMMessageTextCitation };
 
 export type LLMMessageContentPart =
 	| LLMMessageContentPartTextBlock

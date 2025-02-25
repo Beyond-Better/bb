@@ -10,6 +10,7 @@ export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llm
 
 export enum AnthropicModel {
 	CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-20241022',
+	CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-20250219',
 	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
 	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',
 	CLAUDE_3_SONNET = 'claude-3-sonnet-20240229',
@@ -46,14 +47,14 @@ export const DeepSeekModels = [
 ];
 
 export enum GoogleModel {
-	GOOGLE_GEMINI_15_FLASH = 'gemini-1.5-flash',
-	GOOGLE_GEMINI_20_FLASH = 'gemini-2.0-flash',
-	//GOOGLE_GEMINI_20_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
+	GOOGLE_GEMINI_1_5_FLASH = 'gemini-1.5-flash',
+	GOOGLE_GEMINI_2_0_FLASH = 'gemini-2.0-flash',
+	//GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
 }
 export const GoogleModels = [
-	GoogleModel.GOOGLE_GEMINI_15_FLASH,
-	GoogleModel.GOOGLE_GEMINI_20_FLASH,
-	//GoogleModel.GOOGLE_GEMINI_20_FLASH_THINKING_EXP,
+	GoogleModel.GOOGLE_GEMINI_1_5_FLASH,
+	GoogleModel.GOOGLE_GEMINI_2_0_FLASH,
+	//GoogleModel.GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP,
 ];
 
 export enum GroqModel {
@@ -223,6 +224,28 @@ export interface LLMProviderMessageResponseMeta {
 	statusText: string;
 }
 
+/**
+ * Options for extended thinking capability in Claude 3.7 Sonnet
+ * 
+ * Note on design choice: While the Anthropic API uses `type: "enabled"` in the `thinking` parameter,
+ * we use `enabled: boolean` in our interface to make it clearer whether the feature is turned on or off.
+ * When converting to the API format, we set `type: "enabled"` when `enabled` is true.
+ * This separation makes the API more intuitive for our users by distinguishing the concept of
+ * "is this feature on?" from the specific API implementation detail.
+ */
+export interface LLMExtendedThinkingOptions {
+	/**
+	 * Whether extended thinking is enabled
+	 */
+	enabled: boolean;
+	
+	/**
+	 * The maximum number of tokens Claude is allowed to use for its internal reasoning process
+	 * Minimum is 1,024 tokens
+	 */
+	budgetTokens: number;
+}
+
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
@@ -234,6 +257,10 @@ export interface LLMProviderMessageRequest {
 	//max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
 	temperature: number;
 	usePromptCaching?: boolean;
+	/**
+	 * Extended thinking options for Claude 3.7 Sonnet
+	 */
+	extendedThinking?: LLMExtendedThinkingOptions;
 }
 
 export type LLMProviderMessageResponseType = 'message' | 'error';
@@ -277,6 +304,10 @@ export interface LLMSpeakWithOptions {
 	maxTokens?: number;
 	temperature?: number;
 	validateResponseCallback?: LLMValidateResponseCallback;
+	/**
+	 * Extended thinking options for Claude 3.7 Sonnet
+	 */
+	extendedThinking?: LLMExtendedThinkingOptions;
 }
 
 export interface Task {
