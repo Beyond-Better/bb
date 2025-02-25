@@ -105,6 +105,15 @@ export interface ApiConfig extends ServerConfig {
 	supabaseConfigUrl?: string;
 
 	/**
+	 * Extended thinking configuration for Claude models
+	 * Controls whether Claude shows its step-by-step reasoning process
+	 */
+	extendedThinking?: {
+		enabled: boolean;
+		budgetTokens: number;
+	};
+
+	/**
 	 * Provider-specific LLM configurations.
 	 * Includes API keys and provider settings.
 	 */
@@ -314,6 +323,10 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],
 	toolConfigs: {},
+	extendedThinking: {
+		enabled: true,
+		budgetTokens: 4000,
+	},
 	//llmProviders: {},
 };
 
@@ -365,8 +378,8 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
 	defaultModels: {
-		orchestrator: 'claude-3-5-sonnet-20241022',
-		agent: 'claude-3-5-sonnet-20241022',
+		orchestrator: 'claude-3-7-sonnet-20250219',
+		agent: 'claude-3-7-sonnet-20250219',
 		chat: 'claude-3-haiku-20240307',
 	},
 	noBrowser: false,
