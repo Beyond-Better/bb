@@ -36,6 +36,7 @@ interface ChatInputProps {
 	disabled?: boolean;
 	maxLength?: number;
 	conversationId: string | null;
+	extendedThinkingEnabled?: boolean;
 }
 
 enum TabState {
@@ -77,6 +78,9 @@ const tabState = signal<TabState>(TabState.INITIAL);
 const cursorPosition = signal<number>(0);
 const selectedIndex = signal<number>(-1);
 
+// Extended thinking state
+const extendedThinkingEnabled = signal<boolean>(true);
+
 const inputMetrics = signal({
 	lastUpdateTime: 0,
 	updateCount: 0,
@@ -96,6 +100,7 @@ export function ChatInput({
 	onCancelProcessing,
 	projectId,
 	conversationId,
+	extendedThinkingEnabled: initialExtendedThinking = true,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
@@ -245,6 +250,9 @@ export function ChatInput({
 
 		// Update signal immediately
 		conversationIdSignal.value = conversationId;
+		
+		// Initialize extended thinking state
+		extendedThinkingEnabled.value = initialExtendedThinking;
 
 		//// Check for saved input
 		//const saved = getSavedInput();
@@ -316,6 +324,7 @@ export function ChatInput({
 			hasValue: !!chatInputText.value.trim(),
 			length: chatInputText.value.length,
 			conversationId,
+			extendedThinking: extendedThinkingEnabled.value,
 		});
 
 		// Validate input before sending
@@ -1030,23 +1039,35 @@ export function ChatInput({
 						</span>
 					</div>
 				</div>
-				<button
-					onClick={handleSend}
-					className={`px-4 py-2 mb-1 rounded-md transition-colors 
-						focus:outline-none focus:ring-2 focus:ring-blue-500 
-						focus:ring-opacity-50 min-w-[60px] ml-2
-						${
-						isProcessing(status)
-							? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-							: disabled
-							? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
-							: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
-					}`}
-					disabled={status.isLoading || disabled || isProcessing(status)}
-					aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
-				>
-					{status.isLoading ? <LoadingSpinner size='small' color='text-white dark:text-gray-200' /> : 'Send'}
-				</button>
+				<div className="flex items-center">
+					<button
+						onClick={() => extendedThinkingEnabled.value = !extendedThinkingEnabled.value}
+						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${extendedThinkingEnabled.value ? 'bg-purple-500 dark:bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
+						title={extendedThinkingEnabled.value ? 'Extended thinking enabled' : 'Extended thinking disabled'}
+						aria-label={extendedThinkingEnabled.value ? 'Disable extended thinking' : 'Enable extended thinking'}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+						</svg>
+					</button>
+					<button
+						onClick={handleSend}
+						className={`px-4 py-2 mb-1 rounded-md transition-colors 
+							focus:outline-none focus:ring-2 focus:ring-blue-500 
+							focus:ring-opacity-50 min-w-[60px] ml-2
+							${
+							isProcessing(status)
+								? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+								: disabled
+								? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+								: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
+						}`}
+						disabled={status.isLoading || disabled || isProcessing(status)}
+						aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
+					>
+						{status.isLoading ? <LoadingSpinner size='small' color='text-white dark:text-gray-200' /> : 'Send'}
+					</button>
+				</div>
 			</div>
 		</div>
 	);

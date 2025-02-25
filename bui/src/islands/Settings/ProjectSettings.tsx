@@ -20,6 +20,8 @@ interface FormState {
 	myAssistantsName: string;
 	maxTurns: number;
 	toolConfigs: string;
+	extendedThinkingEnabled: boolean;
+	extendedThinkingBudget: number;
 }
 
 interface FormErrors {
@@ -27,6 +29,8 @@ interface FormErrors {
 	myAssistantsName?: string;
 	maxTurns?: string;
 	toolConfigs?: string;
+	extendedThinkingEnabled?: string;
+	extendedThinkingBudget?: string;
 }
 
 const loading = signal(true);
@@ -113,6 +117,8 @@ export default function ProjectSettings() {
 		myAssistantsName: '',
 		maxTurns: 50,
 		toolConfigs: '',
+		extendedThinkingEnabled: true,
+		extendedThinkingBudget: 4000,
 	});
 
 	// Load initial config
@@ -128,6 +134,8 @@ export default function ProjectSettings() {
 						toolConfigs: config.api.toolConfigs && Object.keys(config.api.toolConfigs).length > 0
 							? formatYaml(config.api.toolConfigs)
 							: '',
+						extendedThinkingEnabled: config.api.extendedThinking?.enabled ?? true,
+						extendedThinkingBudget: config.api.extendedThinking?.budgetTokens ?? 4000,
 					});
 				}
 			} catch (error) {
@@ -140,7 +148,7 @@ export default function ProjectSettings() {
 		loadConfig();
 	}, [appState.value.apiClient]);
 
-	const validateField = (name: keyof FormState, value: string | number): string | undefined => {
+	const validateField = (name: keyof FormState, value: string | number | boolean): string | undefined => {
 		switch (name) {
 			case 'myPersonsName':
 			case 'myAssistantsName':
@@ -152,6 +160,13 @@ export default function ProjectSettings() {
 				const turns = Number(value);
 				if (isNaN(turns) || turns < 1 || turns > 100 || !Number.isInteger(turns)) {
 					return 'Must be a positive integer between 1 and 100';
+				}
+				break;
+			}
+			case 'extendedThinkingBudget': {
+				const budget = Number(value);
+				if (isNaN(budget) || budget < 1024 || !Number.isInteger(budget)) {
+					return 'Must be a positive integer of at least 1024 tokens';
 				}
 				break;
 			}
@@ -172,7 +187,15 @@ export default function ProjectSettings() {
 		field: keyof FormState,
 	) => {
 		const target = e.target as HTMLInputElement | HTMLTextAreaElement;
-		const value = field === 'maxTurns' ? Number(target.value) : target.value;
+		let value: string | number | boolean;
+		
+		if (field === 'maxTurns' || field === 'extendedThinkingBudget') {
+			value = Number(target.value);
+		} else if (field === 'extendedThinkingEnabled') {
+			value = (target as HTMLInputElement).checked;
+		} else {
+			value = target.value;
+		}
 
 		// Update form state
 		setFormState((prev) => ({ ...prev, [field]: value }));
@@ -208,6 +231,9 @@ export default function ProjectSettings() {
 			// Parse YAML to validate and save entire toolConfigs
 			const toolConfigsObject = formState.toolConfigs.trim() ? parseYaml(formState.toolConfigs) : {};
 			await appState.value.apiClient?.updateGlobalConfig('api.toolConfigs', JSON.stringify(toolConfigsObject));
+			// Update extended thinking settings
+			await appState.value.apiClient?.updateGlobalConfig('api.extendedThinking.enabled', formState.extendedThinkingEnabled.toString());
+			await appState.value.apiClient?.updateGlobalConfig('api.extendedThinking.budgetTokens', formState.extendedThinkingBudget.toString());
 
 			// Show success message
 			// TODO: Add toast notification system
@@ -324,6 +350,64 @@ export default function ProjectSettings() {
 						<p class='mt-2 text-base text-red-600 dark:text-red-400'>
 							{formErrors.value.maxTurns}
 						</p>
+					)}
+				</div>
+
+				{/* Extended Thinking */}
+				<div class='mb-8'>
+					<div class='flex items-center justify-between'>
+						<label
+							for='extendedThinkingEnabled'
+							class='block text-base font-medium text-gray-700 dark:text-gray-300'
+						>
+							Extended Thinking
+						</label>
+						<div class='relative inline-block w-12 mr-2 align-middle select-none'>
+							<input
+								type='checkbox'
+								id='extendedThinkingEnabled'
+								checked={formState.extendedThinkingEnabled}
+								onChange={(e) => handleInputChange(e, 'extendedThinkingEnabled')}
+								class='toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer'
+							/>
+							<label
+								for='extendedThinkingEnabled'
+								class='toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer'
+							></label>
+						</div>
+					</div>
+					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+						Enables Claude to show its step-by-step reasoning process for complex tasks
+					</p>
+
+					{formState.extendedThinkingEnabled && (
+						<div class='mt-4'>
+							<label
+								for='extendedThinkingBudget'
+								class='block text-sm font-medium text-gray-700 dark:text-gray-300'
+							>
+								Thinking Budget (tokens)
+							</label>
+							<p class='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+								Maximum tokens Claude can use for reasoning (minimum 1,024)
+							</p>
+							<div class='max-w-[200px]'>
+								<input
+									type='number'
+									id='extendedThinkingBudget'
+									min='1024'
+									step='1000'
+									value={formState.extendedThinkingBudget}
+									onChange={(e) => handleInputChange(e, 'extendedThinkingBudget')}
+									class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm px-3 py-2'
+								/>
+							</div>
+							{formErrors.value.extendedThinkingBudget && (
+								<p class='mt-2 text-sm text-red-600 dark:text-red-400'>
+									{formErrors.value.extendedThinkingBudget}
+								</p>
+							)}
+						</div>
 					)}
 				</div>
 

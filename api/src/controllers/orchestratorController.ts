@@ -261,6 +261,10 @@ class OrchestratorController extends BaseController {
 		const speakOptions: LLMSpeakWithOptions = {
 			//temperature: 0.7,
 			//maxTokens: 1000,
+			extendedThinking: this.projectConfig.settings.api?.extendedThinking ?? {
+				enabled: true,
+				budgetTokens: 4000,
+			},
 		};
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
