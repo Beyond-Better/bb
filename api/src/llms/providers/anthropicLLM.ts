@@ -233,11 +233,19 @@ class AnthropicLLM extends LLM {
 				if (Array.isArray(prevContent)) {
 					content = [...prevContent];
 					const lastBlock = content[content.length - 1];
-					content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					// Only add cache_control to supported content types (not thinking blocks)
+					if (lastBlock.type !== 'thinking' && lastBlock.type !== 'redacted_thinking') {
+						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					}
 				} else if (typeof prevContent === 'string') {
-					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
+					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' }, citations: [] }];
 				} else {
-					content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					// Only add cache_control to supported content types (not thinking blocks)
+					if (prevContent.type !== 'thinking' && prevContent.type !== 'redacted_thinking') {
+						content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					} else {
+						content = [{ ...prevContent }];
+					}
 				}
 			} else {
 				content =
@@ -259,6 +267,7 @@ class AnthropicLLM extends LLM {
 		} as Anthropic.Tool));
 	}
 
+	// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
 		_interaction?: LLMInteraction,
@@ -295,8 +304,13 @@ class AnthropicLLM extends LLM {
 			system,
 			tools,
 			model,
+// 			thinking: {
+// 			  type: "enabled",
+// 			  budget_tokens: 4000
+// 			},
 			max_tokens: maxTokens,
 			temperature,
+			//betas: ["output-128k-2025-02-19"],
 			stream: false,
 		};
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
@@ -318,6 +332,7 @@ class AnthropicLLM extends LLM {
 		try {
 			//logger.dir(messageRequest);
 
+// 			const providerMessageRequest: Anthropic.MessageCreateParams = await this.asProviderMessageRequest(
 			const providerMessageRequest: Anthropic.MessageCreateParams = await this.asProviderMessageRequest(
 				messageRequest,
 				interaction,
@@ -328,7 +343,7 @@ class AnthropicLLM extends LLM {
 			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
 				providerMessageRequest,
 				{
-					headers: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
+					headers: { 'anthropic-beta': 'output-128k-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
 				},
 			).withResponse();
 
@@ -367,16 +382,16 @@ class AnthropicLLM extends LLM {
 				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
 					anthropicMessage.content = [anthropicMessage.content];
 				} else if (typeof anthropicMessage.content === 'string') {
-					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content }];
+					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
 				} else {
-					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM' }];
+					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM', citations: [] }];
 				}
 			}
 
 			// Ensure content array is not empty
 			if (anthropicMessage.content.length === 0) {
 				logger.error('AnthropicLLM: !!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
-				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM' }];
+				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM', citations: [] }];
 			}
 
 			const headers = anthropicResponse?.headers;
