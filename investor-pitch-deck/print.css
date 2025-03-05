@@ -1,0 +1,138 @@
+/* Print-friendly styles for the BB Investor Pitch Deck */
+
+@page {
+    size: letter landscape;
+    margin: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+}
+
+.slide {
+    page-break-after: always;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 2.5em;
+    color: #2d3748;
+    margin-bottom: 0.5em;
+}
+
+h2 {
+    font-size: 2em;
+    color: #2d3748;
+    margin-bottom: 0.5em;
+    border-bottom: 2px solid #4299e1;
+    padding-bottom: 0.3em;
+}
+
+h3 {
+    font-size: 1.5em;
+    color: #2d3748;
+}
+
+.highlight {
+    color: #4299e1;
+}
+
+.subtitle {
+    font-size: 1.2em;
+    color: #718096;
+    margin-bottom: 2em;
+}
+
+.box {
+    background-color: #f7fafc;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.flex-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.flex-item {
+    flex: 1;
+    min-width: 300px;
+    margin: 10px;
+}
+
+.team-member {
+    background-color: #f7fafc;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 250px;
+}
+
+.metric {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #4299e1;
+    margin: 0;
+}
+
+.metric-label {
+    font-size: 1em;
+    color: #718096;
+}
+
+ul {
+    padding-left: 20px;
+}
+
+li {
+    margin-bottom: 10px;
+}
+
+.quote {
+    font-style: italic;
+    background-color: #f7fafc;
+    border-left: 4px solid #4299e1;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+    background-color: #f7fafc;
+}
+
+.logo {
+    font-size: 3em;
+    font-weight: bold;
+    color: #4299e1;
+    margin-bottom: 0.3em;
+}
+
+.center-text {
+    text-align: center;
+}
