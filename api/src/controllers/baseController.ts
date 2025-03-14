@@ -445,22 +445,9 @@ class BaseController {
 			return '';
 		}
 
-		let thinkingContent = '';
-
-		for (const part of response.answerContent) {
-			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-				const text = part.text;
-				const thinkingMatch = text.match(/Thinking:(.*?)(?=(Human:|Assistant:|$))/s);
-				if (thinkingMatch) {
-					thinkingContent += thinkingMatch[1].trim() + '\n';
-				} else {
-					// If no specific 'Thinking:' section is found, consider the whole text as thinking content
-					thinkingContent += text.trim() + '\n';
-				}
-			}
-		}
-
-		return thinkingContent.trim();
+		// Use the ThinkingExtractor utility for consistent extraction
+		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
+		return extractThinkingFromContent(response.answerContent);
 	}
 
 	protected async handleToolUse(

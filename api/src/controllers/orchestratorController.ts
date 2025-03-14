@@ -35,7 +35,8 @@ import { isLLMError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 //import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 //import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.utils.ts';
+import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
 //import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 //import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -527,14 +528,9 @@ class OrchestratorController extends BaseController {
 		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
-		// Extract thinking content from answer using global regex
-		let assistantThinking = '';
-		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
-		let match;
-		while ((match = thinkingRegex.exec(answer)) !== null) {
-			assistantThinking += match[1].trim() + '\n';
-		}
-		assistantThinking = assistantThinking.trim();
+		// Extract thinking content using our standardized extractor
+		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
+		const assistantThinking = answer ? ThinkingExtractor.extractFromString(answer).thinking : '';
 
 		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);
 		//logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);

@@ -4,6 +4,7 @@ import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import type LLM from '../llms/providers/baseLLM.ts';
+import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
 import type { ConversationId } from 'shared/types.ts';
 import type { CompletedTask, Task } from 'api/types/llms.ts';
 import type { ErrorHandler } from '../llms/errorHandler.ts';
@@ -537,14 +538,9 @@ class AgentController extends BaseController {
 		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
-		// Extract thinking content from answer using global regex
-		let assistantThinking = '';
-		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
-		let match;
-		while ((match = thinkingRegex.exec(answer)) !== null) {
-			assistantThinking += match[1].trim() + '\n';
-		}
-		assistantThinking = assistantThinking.trim();
+		// Extract thinking content using our standardized extractor
+		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
+		const assistantThinking = answer ? ThinkingExtractor.extractFromString(answer).thinking : '';
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
