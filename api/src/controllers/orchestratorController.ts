@@ -7,7 +7,7 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import LLMToolManager from '../llms/llmToolManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
-import AgentController from './agentController.ts';
+import AgentController from 'api/controllers/agentController.ts';
 //import PromptManager from '../prompts/promptManager.ts';
 //import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
@@ -35,8 +35,7 @@ import { isLLMError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 //import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 //import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.utils.ts';
-import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 //import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 //import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -324,6 +323,7 @@ class OrchestratorController extends BaseController {
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
 							textContent,
+							thinkingContent,
 							conversationStats,
 							interaction.tokenUsageTurn,
 							interaction.tokenUsageStatement,
@@ -529,8 +529,9 @@ class OrchestratorController extends BaseController {
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
 		// Extract thinking content using our standardized extractor
-		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
-		const assistantThinking = answer ? ThinkingExtractor.extractFromString(answer).thinking : '';
+		const assistantThinking = currentResponse.messageResponse.answerContent
+			? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
+			: '';
 
 		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);
 		//logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
@@ -553,6 +554,7 @@ class OrchestratorController extends BaseController {
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
 			answer,
+			assistantThinking,
 			statementAnswer.conversationStats,
 			statementAnswer.tokenUsageTurn,
 			statementAnswer.tokenUsageStatement,

@@ -82,19 +82,6 @@ export default function Chat({
 	const apiUseTls = getApiUseTls();
 	//console.log('Chat: ', { apiHostname, apiPort, apiUseTls });
 
-	if (!apiHostname || !apiPort) {
-		return (
-			<div className='flex items-center justify-center h-screen'>
-				<AnimatedNotification
-					visible={true}
-					type='error'
-				>
-					<span>Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port</span>
-				</AnimatedNotification>
-			</div>
-		);
-	}
-
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
@@ -414,6 +401,19 @@ export default function Chat({
 		isLoading: chatState.value.status.isLoading,
 	}));
 
+	if (!apiHostname || !apiPort) {
+		return (
+			<div className='flex items-center justify-center h-screen'>
+				<AnimatedNotification
+					visible
+					type='error'
+				>
+					<span>Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port</span>
+				</AnimatedNotification>
+			</div>
+		);
+	}
+
 	return (
 		<div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
 			{/* Connection status banner */}
@@ -510,6 +510,7 @@ export default function Chat({
 								<div className='flex-1 min-h-0 relative flex flex-col'>
 									{scrollIndicatorState.value.isVisible && (
 										<button
+											type='button'
 											onClick={() => {
 												if (messagesEndRef.current) {
 													messagesEndRef.current.scrollTo({
@@ -640,6 +641,7 @@ export default function Chat({
 				<div className='flex items-center justify-between'>
 					<span>{chatState.value.status.error}</span>
 					<button
+						type='button'
 						onClick={() => handlers.clearError()}
 						className='ml-4 text-red-700 hover:text-red-800'
 						aria-label='Dismiss error'

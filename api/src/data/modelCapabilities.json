@@ -85,7 +85,7 @@
       },
       "defaults": {
         "temperature": 0.7,
-        "maxTokens": 8192
+        "maxTokens": 16384
       },
       "constraints": {
         "temperature": { "min": 0.0, "max": 1.0 }

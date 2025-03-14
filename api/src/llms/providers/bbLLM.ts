@@ -24,6 +24,7 @@ import type {
 } from 'api/types.ts';
 import type { BBLLMResponse } from 'api/types/llms.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 
 type LLMMessageContentPartOrString =
 	| string
@@ -203,10 +204,9 @@ class BbLLM extends LLM {
 		return tools;
 	}
 
-	// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<LLMProviderMessageRequest> {
 		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 
@@ -218,10 +218,39 @@ class BbLLM extends LLM {
 		// Log detailed message information
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
-		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = messageRequest.maxTokens || 8192;
-		const temperature: number = messageRequest.temperature || 0.2;
+		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET;
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
+
+		// Resolve parameters using model capabilities
+		let temperature: number;
+		let maxTokens: number;
+		if (interaction) {
+			const resolved = await interaction.resolveModelParameters(
+				LLMProvider.ANTHROPIC,
+				messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET,
+				messageRequest.maxTokens,
+				messageRequest.temperature,
+			);
+			//const maxTokens: number = 16384;
+			maxTokens = resolved.maxTokens;
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				this.llmProviderName,
+				model,
+				messageRequest.maxTokens,
+			);
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = messageRequest.extendedThinking?.enabled ? 1 : capabilitiesManager.resolveTemperature(
+				this.llmProviderName,
+				model,
+				messageRequest.temperature,
+			);
+		}
 
 		const providerMessageRequest: LLMProviderMessageRequest = {
 			messages,

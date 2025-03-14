@@ -4,7 +4,6 @@ import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import type LLM from '../llms/providers/baseLLM.ts';
-import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
 import type { ConversationId } from 'shared/types.ts';
 import type { CompletedTask, Task } from 'api/types/llms.ts';
 import type { ErrorHandler } from '../llms/errorHandler.ts';
@@ -16,7 +15,8 @@ import type {
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
+
 import BaseController from './baseController.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
@@ -140,6 +140,7 @@ class AgentController extends BaseController {
 		interaction.addTools(tools.filter((tool) => tool.name !== 'delegate_tasks'));
 	}
 
+	// deno-lint-ignore require-await
 	async reportToOrchestrator(): Promise<unknown> { // Replace 'any' with appropriate return type
 		// Implement reporting logic here
 		return null;
@@ -357,6 +358,7 @@ class AgentController extends BaseController {
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
 							textContent,
+							thinkingContent,
 							conversationStats,
 							interaction.tokenUsageTurn,
 							interaction.tokenUsageStatement,
@@ -539,12 +541,12 @@ class AgentController extends BaseController {
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
 		// Extract thinking content using our standardized extractor
-		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
-		const assistantThinking = answer ? ThinkingExtractor.extractFromString(answer).thinking : '';
+		const assistantThinking = currentResponse.messageResponse.answerContent ? extractThinkingFromContent(currentResponse.messageResponse.answerContent) : '';
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
 			answer,
+			assistantThinking,
 			{
 				statementCount: this.statementCount,
 				statementTurnCount: this.statementTurnCount,

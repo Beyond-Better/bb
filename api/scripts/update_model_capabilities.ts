@@ -146,7 +146,7 @@ class ModelCapabilitiesFetcher {
 				console.log(`Fetching capabilities for ${provider}...`);
 				await this.fetchProviderCapabilities(provider);
 			} catch (error) {
-				console.error(`Error fetching capabilities for ${provider}:`, isError(error) ? error.message: error);
+				console.error(`Error fetching capabilities for ${provider}:`, isError(error) ? error.message : error);
 			}
 		}
 
@@ -167,7 +167,7 @@ class ModelCapabilitiesFetcher {
 				console.log(`Loaded existing capabilities from ${this.config.outputPath}`);
 			}
 		} catch (error) {
-			console.warn(`Could not load existing capabilities: ${isError(error) ? error.message: error}`);
+			console.warn(`Could not load existing capabilities: ${isError(error) ? error.message : error}`);
 			this.allCapabilities = {};
 		}
 	}
@@ -188,7 +188,7 @@ class ModelCapabilitiesFetcher {
 
 			console.log(`Saved capabilities to ${this.config.outputPath}`);
 		} catch (error) {
-			console.error(`Error saving capabilities: ${isError(error) ? error.message: error}`);
+			console.error(`Error saving capabilities: ${isError(error) ? error.message : error}`);
 		}
 	}
 
@@ -412,7 +412,7 @@ class ModelCapabilitiesFetcher {
 			const models = data.data;
 
 			// Filter to get the main models we're interested in
-			const relevantModels = models.filter((model: {id:string}) => {
+			const relevantModels = models.filter((model: { id: string }) => {
 				const id = model.id.toLowerCase();
 				return (id.includes('gpt-4') || id.includes('gpt-3.5')) &&
 					!id.includes('vision') && // We'll handle vision models separately
@@ -436,7 +436,7 @@ class ModelCapabilitiesFetcher {
 	/**
 	 * Register an OpenAI model with its capabilities
 	 */
-	 // deno-lint-ignore require-await
+	// deno-lint-ignore require-await
 	private async registerOpenAIModel(modelId: string): Promise<void> {
 		// Map of known models to their capabilities
 		const modelInfo: Partial<Record<string, Partial<ModelCapabilities>>> = {
@@ -558,23 +558,23 @@ class ModelCapabilitiesFetcher {
 					basePrice: 0.0002, // Default price, should be updated when known
 				},
 				currency: 'USD',
-				effectiveDate: new Date().toISOString().split('T')[0]
+				effectiveDate: new Date().toISOString().split('T')[0],
 			},
 			supportedFeatures: {
 				functionCalling: false,
 				json: false,
 				streaming: true,
-				vision: false
+				vision: false,
 			},
 			defaults: {
 				temperature: 0.7,
-				maxTokens: 2048
+				maxTokens: 2048,
 			},
 			constraints: {
-				temperature: { min: 0.0, max: 1.0 }
+				temperature: { min: 0.0, max: 1.0 },
 			},
 			systemPromptBehavior: 'optional',
-			modality: 'text'
+			modality: 'text',
 		};
 
 		if (info) {
@@ -583,7 +583,7 @@ class ModelCapabilitiesFetcher {
 				modelId,
 				provider: 'openai',
 				source: 'api+documentation',
-				lastUpdated: new Date().toISOString()
+				lastUpdated: new Date().toISOString(),
 			};
 
 			// Then merge, allowing info to override defaults
@@ -696,7 +696,7 @@ class ModelCapabilitiesFetcher {
 					console.warn(`Could not validate Google AI models: ${response.statusText}`);
 				}
 			} catch (error) {
-				console.warn(`Error validating Google AI access: ${isError(error) ? error.message: error}`);
+				console.warn(`Error validating Google AI access: ${isError(error) ? error.message : error}`);
 			}
 		}
 	}

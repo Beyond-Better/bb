@@ -6,6 +6,8 @@
  * as well as component-specific settings for API, BUI, CLI, and DUI.
  */
 
+import { LLMProvider } from 'api/types/llms.ts';
+
 // Version Management
 const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0'] as const;
 /** Supported configuration versions */
@@ -135,15 +137,14 @@ export interface ApiConfig extends ServerConfig {
 	 * Provider-specific LLM configurations.
 	 * Includes API keys and provider settings.
 	 */
-	llmProviders?: {
-		beyondbetter?: LLMProviderConfig;
-		anthropic?: LLMProviderConfig;
-		openai?: LLMProviderConfig;
-		deepseek?: LLMProviderConfig;
-		grok?: LLMProviderConfig;
-		ollama?: LLMProviderConfig;
-		google?: LLMProviderConfig;
-	};
+	llmProviders?: Partial<Record<LLMProvider, LLMProviderConfig>>;
+	// 	[LLMProvider.BB]?: LLMProviderConfig;
+	// 	[LLMProvider.ANTHROPIC]?: LLMProviderConfig;
+	// 	[LLMProvider.OPENAI]?: LLMProviderConfig;
+	// 	[LLMProvider.DEEPSEEK]?: LLMProviderConfig;
+	// 	[LLMProvider.GOOGLE]?: LLMProviderConfig;
+	// 	[LLMProvider.GROQ]?: LLMProviderConfig;
+	// 	[LLMProvider.OLLAMA]?: LLMProviderConfig;
 
 	/** @deprecated Use llmProviders instead */
 	llmKeys?: {

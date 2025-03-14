@@ -22,6 +22,19 @@ export interface LLMMessageContentPartTextBlock {
 	citations?: LLMMessageTextCitation[];
 }
 
+export interface LLMMessageContentPartThinkingBlock {
+	messageId?: string;
+	type: 'thinking';
+	thinking: string;
+	signature?: string;
+}
+
+export interface LLMMessageContentPartRedactedThinkingBlock {
+	messageId?: string;
+	type: 'redacted_thinking';
+	data: string;
+}
+
 export interface LLMMessageContentPartImageBlock {
 	messageId?: string;
 	type: 'image';
@@ -66,6 +79,8 @@ export interface LLMMessageContentPartToolResultBlock {
 
 export type LLMMessageContentPartType =
 	| 'text'
+	| 'thinking'
+	| 'redacted_thinking'
 	| 'image'
 	| 'audio' // openai
 	| 'tool_use'
@@ -75,10 +90,10 @@ export type LLMMessageContentPartType =
 // 	| 'tool_calls' // openai // use `tool_use` will be converted to `tool_calls` part of `assistant` role by openAILLM
 // 	| 'tool'; // openai // use `tool_result` will be converted to `tool` role by openAILLM
 
-export type { LLMMessageTextCitation };
-
 export type LLMMessageContentPart =
 	| LLMMessageContentPartTextBlock
+	| LLMMessageContentPartThinkingBlock
+	| LLMMessageContentPartRedactedThinkingBlock
 	| LLMMessageContentPartImageBlock
 	| LLMMessageContentPartAudioBlock
 	| LLMMessageContentPartToolUseBlock

@@ -4,6 +4,7 @@ import md5 from 'md5';
 import { LLMCallbackType, LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type {
 	LLMCallbacks,
+	LLMExtendedThinkingOptions,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
 	LLMRateLimit,
@@ -121,6 +122,8 @@ class LLM {
 
 		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
 		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
+		const extendedThinking: LLMExtendedThinkingOptions = speakOptions?.extendedThinking ||
+			interaction.extendedThinking || { enabled: false, budgetTokens: 0 };
 
 		const messageRequest: LLMProviderMessageRequest = {
 			messages,
@@ -129,7 +132,7 @@ class LLM {
 			model,
 			maxTokens,
 			temperature,
-			extendedThinking: speakOptions?.extendedThinking,
+			extendedThinking,
 		};
 		//logger.debug('BaseLLM: llms-prepareMessageRequest', messageRequest);
 		//logger.dir(messageRequest);

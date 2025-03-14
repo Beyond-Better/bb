@@ -39,7 +39,7 @@ import { createError } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-//import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractThinkingFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithResponse } from 'api/types.ts';
 import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -446,7 +446,6 @@ class BaseController {
 		}
 
 		// Use the ThinkingExtractor utility for consistent extraction
-		const { extractThinkingFromContent } = await import('api/utils/llms.utils.ts');
 		return extractThinkingFromContent(response.answerContent);
 	}
 
@@ -506,6 +505,7 @@ class BaseController {
 			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
 			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
+			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,

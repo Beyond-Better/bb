@@ -11,7 +11,7 @@ import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
@@ -291,10 +291,10 @@ class AnthropicLLM extends LLM {
 		} as Anthropic.Tool));
 	}
 
-	// deno-lint-ignore require-await
+	//// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
@@ -320,16 +320,37 @@ class AnthropicLLM extends LLM {
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = 16384;
-		//// Resolve maxTokens using model capabilities manager
-const resolved = await interaction.resolveModelParameters(
-	LLMProvider.ANTHROPIC,
-	messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET,
-	messageRequest.maxTokens
-);
-const maxTokens: number = resolved.maxTokens;
-		// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
+
+		// Resolve parameters using model capabilities
+		let temperature: number;
+		let maxTokens: number;
+		if (interaction) {
+			const resolved = await interaction.resolveModelParameters(
+				LLMProvider.ANTHROPIC,
+				messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET,
+				messageRequest.maxTokens,
+				messageRequest.temperature,
+			);
+			//const maxTokens: number = 16384;
+			maxTokens = resolved.maxTokens;
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				this.llmProviderName,
+				model,
+				messageRequest.maxTokens,
+			);
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = messageRequest.extendedThinking?.enabled ? 1 : capabilitiesManager.resolveTemperature(
+				this.llmProviderName,
+				model,
+				messageRequest.temperature,
+			);
+		}
 
 		const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = {
 			messages,
@@ -338,7 +359,7 @@ const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resol
 			model,
 			max_tokens: maxTokens,
 			temperature,
-			betas: ['output-128k-2025-02-19'],
+			betas: ['output-128k-2025-02-19','token-efficient-tools-2025-02-19'],
 			stream: false,
 
 			// Add extended thinking support if enabled in the request
@@ -351,7 +372,7 @@ const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resol
 				}
 				: {}),
 		};
-		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
+		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
 
 		return providerMessageRequest;
@@ -370,10 +391,11 @@ const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resol
 		try {
 			//logger.dir(messageRequest);
 
-			const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = await this.asProviderMessageRequest(
-				messageRequest,
-				interaction,
-			);
+			const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = await this
+				.asProviderMessageRequest(
+					messageRequest,
+					interaction,
+				);
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
@@ -383,7 +405,7 @@ const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resol
 					{
 						headers: {
 							'anthropic-beta':
-								'output-128k-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15',
+								'output-128k-2025-02-19,token-efficient-tools-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15',
 						},
 					},
 				).withResponse();

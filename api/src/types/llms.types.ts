@@ -114,7 +114,7 @@ export const BbModels = [
 ];
 
 export enum LLMProvider {
-	BB = 'beyond-better',
+	BB = 'beyondbetter',
 	ANTHROPIC = 'anthropic',
 	OPENAI = 'openai',
 	DEEPSEEK = 'deepseek',
@@ -177,6 +177,7 @@ export const LLMProviderModels = Object.fromEntries(
 		}),
 );
  */
+
 
 export interface LLMProvderClientConfig {
 	apiKey?: string;

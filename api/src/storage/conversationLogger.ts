@@ -10,6 +10,7 @@ import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
 import type {
 	LLMToolFormatterDestination,
 	LLMToolInputSchema,
@@ -210,14 +211,20 @@ export default class ConversationLogger {
 	async logAssistantMessage(
 		messageId: string,
 		message: string,
+		thinking: string,
 		conversationStats: ConversationStats,
 		tokenUsageTurn: TokenUsage,
 		tokenUsageStatement: TokenUsage,
 		tokenUsageConversation: TokenUsage,
 	) {
+
 		await this.logEntry(
 			messageId,
-			{ entryType: 'assistant', content: message },
+			{ 
+				entryType: 'assistant', 
+				content: message, 
+				thinking: thinking,
+			},
 			conversationStats,
 			tokenUsageTurn,
 			tokenUsageStatement,
@@ -228,14 +235,20 @@ export default class ConversationLogger {
 	async logAnswerMessage(
 		messageId: string,
 		answer: string,
+		assistantThinking: string,
 		conversationStats: ConversationStats,
 		tokenUsageTurn: TokenUsage,
 		tokenUsageStatement: TokenUsage,
 		tokenUsageConversation: TokenUsage,
 	) {
+
 		await this.logEntry(
 			messageId,
-			{ entryType: 'answer', content: answer },
+			{ 
+				entryType: 'answer', 
+				content: answer, 
+				thinking: assistantThinking,
+			},
 			conversationStats,
 			tokenUsageTurn,
 			tokenUsageStatement,

@@ -1,5 +1,5 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-import type { LLMMessageContentPart, LLMMessageContentPartThinkingBlock } from 'api/llms/llmMessage.ts';
+import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
 import { ThinkingExtractor } from './thinkingExtractor.ts';
 
 export const getContentArrayFromToolResult = (toolRunResultContent: LLMToolRunResultContent): string[] => {
@@ -52,7 +52,7 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 			if (part.type === 'thinking') {
 				continue;
 			}
-			
+
 			if ('text' in part) {
 				// Remove any <thinking> tags from text parts
 				const cleanText = part.text.replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
@@ -74,10 +74,10 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 			}
 		}
 	}
-	
+
 	// Remove any remaining <thinking> tags that might be in the combined text
 	combinedText = combinedText.replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
-	
+
 	return combinedText.trim();
 };
 
@@ -87,13 +87,13 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
  * @param answerContent Array of message content parts from LLM response
  * @returns Extracted thinking content as a string
  */
-export const extractThinkingFromContent = (answerContent: LLMMessageContentPart[]): string => {
-	if (!Array.isArray(answerContent)) {
-		throw new Error('answerContent must be an array');
-	}
+export const extractThinkingFromContent = (answerContent: LLMMessageContentPart[] | string): string => {
+	//if (!Array.isArray(answerContent)) {
+	//	throw new Error('answerContent must be an array');
+	//}
 
 	// Use the ThinkingExtractor to handle all thinking formats consistently
-	return ThinkingExtractor.extractFromContentParts(answerContent).thinking;
+	return ThinkingExtractor.extract(answerContent).thinking;
 };
 
 /**

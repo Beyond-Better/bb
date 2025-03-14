@@ -333,6 +333,7 @@ export const addFiles: Prompt = {
 		description: 'Prompt for adding files to the conversation',
 		version: '1.0.0',
 	},
+	// deno-lint-ignore require-await
 	getContent: async ({ fileList }) =>
 		stripIndents`
 		  The following files have been added to the conversation:
@@ -349,6 +350,7 @@ export const gitCommitMessage: Prompt = {
 		description: 'Prompt for creating a git commit message',
 		version: '1.0.0',
 	},
+	// deno-lint-ignore require-await
 	getContent: async ({ changedFiles }) => {
 		return stripIndents`
 		  Generate a concise, single-line git commit message in past tense describing the purpose of the changes in the provided diffs. If necessary, add a blank line followed by a brief detailed explanation. Respond with only the commit message, without any additional text.

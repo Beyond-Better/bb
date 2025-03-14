@@ -20,7 +20,7 @@ import type {
 } from 'api/types/llms.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -63,6 +63,7 @@ class OllamaLLM extends LLM {
 		this.initializeOllamaClient();
 	}
 
+	// deno-lint-ignore require-await
 	private async initializeOllamaClient() {
 		const ollamaHost = this.projectConfig.settings.api?.llmProviders?.ollama?.baseURL ||
 			'http://127.0.0.1:11434';

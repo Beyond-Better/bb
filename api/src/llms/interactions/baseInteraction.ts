@@ -2,7 +2,7 @@
 //import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
-import { LLMCallbackType } from 'api/types.ts';
+import { LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider } from 'api/types.ts';
 import type {
 	CacheImpact,
 	ConversationId,
@@ -16,7 +16,6 @@ import type {
 	ToolStats,
 } from 'shared/types.ts';
 import type {
-	LLMExtendedThinkingOptions,
 	LLMMessageContentPart,
 	LLMMessageContentPartImageBlock,
 	LLMMessageContentParts,
@@ -34,8 +33,8 @@ import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
-import { InteractionPreferences } from 'api/types/modelCapabilities.types.ts';
-import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
+import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 
 class LLMInteraction {
 	public id: string;
@@ -728,12 +727,12 @@ class LLMInteraction {
 		switch (this._interactionType) {
 			case 'chat':
 				return {
-					temperature: 0.7,  // More creative for chat
-					maxTokens: 4096,  // Limited for chat
+					temperature: 0.7, // More creative for chat
+					maxTokens: 4096, // Limited for chat
 				};
 			case 'conversation':
 				return {
-					temperature: 0.2,  // More precise for conversation
+					temperature: 0.2, // More precise for conversation
 					maxTokens: 16384, // Higher for conversation to allow more detailed responses
 				};
 			default:
@@ -747,45 +746,45 @@ class LLMInteraction {
 	/**
 	 * Resolve model parameters using the ModelCapabilitiesManager
 	 * This applies the proper parameter resolution hierarchy
-	 * 
+	 *
 	 * @param provider The LLM provider
 	 * @param model The model ID
 	 * @param explicitMaxTokens Optional explicit maxTokens value
-	 * @param explicitTemperature Optional explicit temperature value 
+	 * @param explicitTemperature Optional explicit temperature value
 	 * @returns Resolved parameters object with maxTokens and temperature
 	 */
-	public async resolveModelParameters(provider: string, model: string, explicitMaxTokens?: number, explicitTemperature?: number): Promise<{maxTokens: number, temperature: number}> {
-		const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-		
-		// Initialize if not done already
-		if (!capabilitiesManager['initialized']) {
-			await capabilitiesManager.initialize();
-		}
+	public async resolveModelParameters(
+		provider: LLMProvider,
+		model: string,
+		explicitMaxTokens?: number,
+		explicitTemperature?: number,
+	): Promise<{ maxTokens: number; temperature: number }> {
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
 		// Get user preferences from project config
 		const userPreferences = this.projectConfig?.settings?.api?.llmProviders?.[provider]?.userPreferences;
-		
+
 		// Get interaction-specific preferences
 		const interactionPreferences = this.getInteractionPreferences();
-		
+
 		// Resolve maxTokens with proper priority
 		const maxTokens = capabilitiesManager.resolveMaxTokens(
 			provider,
 			model,
 			explicitMaxTokens || this._maxTokens,
 			userPreferences?.maxTokens,
-			interactionPreferences.maxTokens
+			interactionPreferences.maxTokens,
 		);
-		
+
 		// Resolve temperature with proper priority
 		const temperature = capabilitiesManager.resolveTemperature(
 			provider,
 			model,
 			explicitTemperature || this._temperature,
 			userPreferences?.temperature,
-			interactionPreferences.temperature
+			interactionPreferences.temperature,
 		);
-		
+
 		return { maxTokens, temperature };
 	}
 
@@ -798,7 +797,7 @@ class LLMInteraction {
 	}
 
 	get extendedThinking(): LLMExtendedThinkingOptions {
-		return this._extendedThinking;
+		return this._extendedThinking || { enabled: false, budgetTokens: 1024 };
 	}
 	set extendedThinking(extendedThinking: LLMExtendedThinkingOptions) {
 		this._extendedThinking = extendedThinking;
