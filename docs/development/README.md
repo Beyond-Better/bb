@@ -11,6 +11,7 @@ Core implementation documentation and guidelines:
 - [Conversation Management](reference/conversation_management.md) - Conversation feature implementation
 - [Objectives System](reference/objectives_system.md) - System architecture and implementation
 - [Tool I/O](reference/tool_io.md) - Tool interaction and I/O handling
+- [Model Capabilities System](model-capabilities-system.md) - LLM model capabilities management
 
 ### [design/](design/)
 Design specifications and architecture documents:

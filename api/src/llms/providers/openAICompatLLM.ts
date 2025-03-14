@@ -15,6 +15,7 @@ import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
 import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
@@ -177,14 +178,42 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<OpenAI.Chat.ChatCompletionCreateParams> {
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
 		const model: string = messageRequest.model;
-		const maxTokens: number = messageRequest.maxTokens;
-		const temperature: number = messageRequest.temperature;
+		
+		// Resolve parameters using model capabilities if interaction is provided
+		let maxTokens: number;
+		let temperature: number;
+		
+		if (interaction) {
+			const resolved = await interaction.resolveModelParameters(
+				this.llmProviderName,
+				model,
+				messageRequest.maxTokens,
+				messageRequest.temperature
+			);
+			maxTokens = resolved.maxTokens;
+			temperature = resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = ModelCapabilitiesManager.getInstance();
+			await capabilitiesManager.initialize();
+			
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				this.llmProviderName,
+				model,
+				messageRequest.maxTokens
+			);
+			temperature = capabilitiesManager.resolveTemperature(
+				this.llmProviderName,
+				model,
+				messageRequest.temperature
+			);
+		}
 		const systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam = { role: 'system', content: system };
 
 		const providerMessageRequest: OpenAI.Chat.ChatCompletionCreateParams = {

@@ -81,10 +81,28 @@ export interface ServerConfig {
  * LLM Provider configuration.
  * Contains provider-specific settings and credentials.
  */
+/**
+ * User-configurable model preferences
+ * Allows users to set their preferred defaults for model parameters
+ */
+export interface UserModelPreferences {
+	temperature?: number;
+	maxTokens?: number;
+	topP?: number;
+	frequencyPenalty?: number;
+	presencePenalty?: number;
+	responseFormat?: string;
+}
+
 export interface LLMProviderConfig {
 	apiKey?: string;
 	defaultModel?: string;
 	baseURL?: string;
+	/**
+	 * User-configured model preferences
+	 * These override model defaults but can be overridden by explicit request values
+	 */
+	userPreferences?: UserModelPreferences;
 	// Future extensibility for provider-specific settings
 }
 

@@ -3,6 +3,7 @@ import { LLMProvider, OllamaModel } from 'api/types.ts';
 import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 

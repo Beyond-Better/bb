@@ -6,14 +6,12 @@ import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts'
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type {
-	LLMMessageContentParts,
-	LLMMessageContentPartTextBlock,
-} from 'api/llms/llmMessage.ts';
+import type { LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
 import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
@@ -97,13 +95,13 @@ class AnthropicLLM extends LLM {
 					const fileContentParts = part.content.filter((nestedPart) => {
 						// Check if it's a text block
 						if (nestedPart.type !== 'text') return false;
-						
+
 						// Safe access to text property using type guard
 						const textBlock = nestedPart as Anthropic.Messages.TextBlockParam;
 						if (typeof textBlock.text !== 'string') return false;
-						
+
 						// Check for file metadata or file note
-						return this.hasFileMetadata(textBlock.text) || 
+						return this.hasFileMetadata(textBlock.text) ||
 							(textBlock.text.startsWith('Note: File') && textBlock.text.includes('is up-to-date'));
 					});
 
@@ -200,12 +198,12 @@ class AnthropicLLM extends LLM {
 				if (part && typeof part === 'object' && part.type !== 'thinking' && part.type !== 'redacted_thinking') {
 					const hasCache = 'cache_control' in part;
 					if (hasCache) {
-					// Use a more specific type assertion
-					const cacheControl = (part as AnthropicContentBlock).cache_control;
-					summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
-					if (!messagesWithCache.includes(index + 1)) {
-						messagesWithCache.push(index + 1);
-					}
+						// Use a more specific type assertion
+						const cacheControl = (part as AnthropicContentBlock).cache_control;
+						summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
+						if (!messagesWithCache.includes(index + 1)) {
+							messagesWithCache.push(index + 1);
+						}
 					} else {
 						summary.push(`${indent}Has cache_control: no`);
 					}
@@ -259,7 +257,12 @@ class AnthropicLLM extends LLM {
 					}
 				} else if (typeof prevContent === 'string') {
 					// For string content, we don't have existing citations, so use empty array
-content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' }, citations: [] }];
+					content = [{
+						type: 'text',
+						text: prevContent,
+						cache_control: { type: 'ephemeral' },
+						citations: [],
+					}];
 				} else {
 					// Only add cache_control to supported content types (not thinking blocks)
 					if (prevContent.type !== 'thinking' && prevContent.type !== 'redacted_thinking') {
@@ -292,7 +295,7 @@ content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral'
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
 		_interaction?: LLMInteraction,
-	): Promise<Anthropic.MessageCreateParams> {
+	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const system = messageRequest.system
@@ -317,28 +320,38 @@ content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral'
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = messageRequest.maxTokens || 8192;
-		const temperature: number = messageRequest.temperature || 0.2;
+		const maxTokens: number = 16384;
+		//// Resolve maxTokens using model capabilities manager
+const resolved = await interaction.resolveModelParameters(
+	LLMProvider.ANTHROPIC,
+	messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET,
+	messageRequest.maxTokens
+);
+const maxTokens: number = resolved.maxTokens;
+		// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+const temperature: number = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
 
-		const providerMessageRequest: Anthropic.Messages.MessageCreateParams = {
+		const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = {
 			messages,
 			system,
 			tools,
 			model,
 			max_tokens: maxTokens,
 			temperature,
-			//betas: ["output-128k-2025-02-19"],
+			betas: ['output-128k-2025-02-19'],
 			stream: false,
-			
+
 			// Add extended thinking support if enabled in the request
-			...(messageRequest.extendedThinking?.enabled ? {
-				thinking: {
-					type: "enabled",
-					budget_tokens: messageRequest.extendedThinking.budgetTokens || 4000
+			...(messageRequest.extendedThinking?.enabled
+				? {
+					thinking: {
+						type: 'enabled',
+						budget_tokens: messageRequest.extendedThinking.budgetTokens || 4000,
+					},
 				}
-			} : {}),
+				: {}),
 		};
-		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
+		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
 
 		return providerMessageRequest;
@@ -357,20 +370,23 @@ content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral'
 		try {
 			//logger.dir(messageRequest);
 
-// 			const providerMessageRequest: Anthropic.MessageCreateParams = await this.asProviderMessageRequest(
-			const providerMessageRequest: Anthropic.MessageCreateParams = await this.asProviderMessageRequest(
+			const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = await this.asProviderMessageRequest(
 				messageRequest,
 				interaction,
 			);
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-				providerMessageRequest,
-				{
-					headers: { 'anthropic-beta': 'output-128k-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
-				},
-			).withResponse();
+			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.beta.messages
+				.create(
+					providerMessageRequest,
+					{
+						headers: {
+							'anthropic-beta':
+								'output-128k-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15',
+						},
+					},
+				).withResponse();
 
 			const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
@@ -408,10 +424,14 @@ content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral'
 					anthropicMessage.content = [anthropicMessage.content];
 				} else if (typeof anthropicMessage.content === 'string') {
 					// For string content from Anthropic, we don't have existing citations
-// String content doesn't have citations, so use empty array
-anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
+					// String content doesn't have citations, so use empty array
+					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
 				} else {
-					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM', citations: [] }];
+					anthropicMessage.content = [{
+						type: 'text',
+						text: 'Error: Invalid response format from LLM',
+						citations: [],
+					}];
 				}
 			}
 

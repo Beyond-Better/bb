@@ -20,6 +20,7 @@ import type {
 } from 'api/types/llms.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -167,13 +168,36 @@ class OllamaLLM extends LLM {
 
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<OllamaChatRequest> {
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
 		const model: string = messageRequest.model || OllamaModel.SMOLLM2_1_7B;
-		const temperature: number = messageRequest.temperature;
+		
+		// Resolve parameters using model capabilities
+		let temperature: number;
+		
+		if (interaction) {
+			// Use interaction to resolve parameters with proper priority
+			const resolved = await interaction.resolveModelParameters(
+				this.llmProviderName,
+				model,
+				undefined, // Ollama doesn't use maxTokens
+				messageRequest.temperature
+			);
+			temperature = resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = ModelCapabilitiesManager.getInstance();
+			await capabilitiesManager.initialize();
+			
+			temperature = capabilitiesManager.resolveTemperature(
+				this.llmProviderName,
+				model,
+				messageRequest.temperature
+			);
+		}
 
 		return {
 			model,

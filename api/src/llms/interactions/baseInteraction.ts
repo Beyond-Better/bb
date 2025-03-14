@@ -16,6 +16,7 @@ import type {
 	ToolStats,
 } from 'shared/types.ts';
 import type {
+	LLMExtendedThinkingOptions,
 	LLMMessageContentPart,
 	LLMMessageContentPartImageBlock,
 	LLMMessageContentParts,
@@ -33,6 +34,8 @@ import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
+import { InteractionPreferences } from 'api/types/modelCapabilities.types.ts';
+import { ModelCapabilitiesManager } from 'api/utils/modelCapabilitiesManager.ts';
 
 class LLMInteraction {
 	public id: string;
@@ -89,6 +92,7 @@ class LLMInteraction {
 	public llm: LLM;
 	protected messages: LLMMessage[] = [];
 	protected tools: Map<string, LLMTool> = new Map();
+	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
 	protected _baseSystem: string = '';
 	public conversationPersistence!: ConversationPersistence;
 	public conversationLogger!: ConversationLogger;
@@ -96,7 +100,7 @@ class LLMInteraction {
 
 	private _model: string = '';
 
-	protected _maxTokens: number = 8192;
+	protected _maxTokens: number = 16384; //8192;
 	protected _temperature: number = 0.2;
 	protected _currentPrompt: string = '';
 
@@ -714,12 +718,90 @@ class LLMInteraction {
 		this._maxTokens = value;
 	}
 
+	/**
+	 * Get the interaction-specific parameter preferences
+	 * These preferences are used in the model parameter resolution pipeline
+	 * @returns The interaction preferences for this type of interaction
+	 */
+	public getInteractionPreferences(): InteractionPreferences {
+		// Base implementation returns preferences appropriate for the interaction type
+		switch (this._interactionType) {
+			case 'chat':
+				return {
+					temperature: 0.7,  // More creative for chat
+					maxTokens: 4096,  // Limited for chat
+				};
+			case 'conversation':
+				return {
+					temperature: 0.2,  // More precise for conversation
+					maxTokens: 16384, // Higher for conversation to allow more detailed responses
+				};
+			default:
+				return {
+					temperature: 0.5,
+					maxTokens: 8192,
+				};
+		}
+	}
+
+	/**
+	 * Resolve model parameters using the ModelCapabilitiesManager
+	 * This applies the proper parameter resolution hierarchy
+	 * 
+	 * @param provider The LLM provider
+	 * @param model The model ID
+	 * @param explicitMaxTokens Optional explicit maxTokens value
+	 * @param explicitTemperature Optional explicit temperature value 
+	 * @returns Resolved parameters object with maxTokens and temperature
+	 */
+	public async resolveModelParameters(provider: string, model: string, explicitMaxTokens?: number, explicitTemperature?: number): Promise<{maxTokens: number, temperature: number}> {
+		const capabilitiesManager = ModelCapabilitiesManager.getInstance();
+		
+		// Initialize if not done already
+		if (!capabilitiesManager['initialized']) {
+			await capabilitiesManager.initialize();
+		}
+
+		// Get user preferences from project config
+		const userPreferences = this.projectConfig?.settings?.api?.llmProviders?.[provider]?.userPreferences;
+		
+		// Get interaction-specific preferences
+		const interactionPreferences = this.getInteractionPreferences();
+		
+		// Resolve maxTokens with proper priority
+		const maxTokens = capabilitiesManager.resolveMaxTokens(
+			provider,
+			model,
+			explicitMaxTokens || this._maxTokens,
+			userPreferences?.maxTokens,
+			interactionPreferences.maxTokens
+		);
+		
+		// Resolve temperature with proper priority
+		const temperature = capabilitiesManager.resolveTemperature(
+			provider,
+			model,
+			explicitTemperature || this._temperature,
+			userPreferences?.temperature,
+			interactionPreferences.temperature
+		);
+		
+		return { maxTokens, temperature };
+	}
+
 	get temperature(): number {
 		return this._temperature;
 	}
 
 	set temperature(value: number) {
 		this._temperature = value;
+	}
+
+	get extendedThinking(): LLMExtendedThinkingOptions {
+		return this._extendedThinking;
+	}
+	set extendedThinking(extendedThinking: LLMExtendedThinkingOptions) {
+		this._extendedThinking = extendedThinking;
 	}
 
 	addTool(tool: LLMTool): void {

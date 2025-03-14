@@ -4,6 +4,7 @@
 	"exports": "./src/main.ts",
 	"tasks": {
 		"tool:test": "deno test --allow-all $DENO_ARGS",
+		"update-model-capabilities": "deno run --allow-net --allow-read --allow-write --allow-env ../scripts/update_model_capabilities.ts",
 		"start": "DENO_TLS_CA_STORE=system deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"dev": "DENO_TLS_CA_STORE=system deno run --watch --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"debug": "DENO_TLS_CA_STORE=system LOG_LEVEL=debug deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
