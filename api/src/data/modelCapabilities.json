@@ -1,317 +1,327 @@
 {
-  "anthropic": {
-    "claude-3-5-sonnet-20241022": {
-      "contextWindow": 200000,
-      "maxOutputTokens": 128000,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.000003,
-          "cachedPrice": 0.00000015
-        },
-        "outputTokens": {
-          "basePrice": 0.000015
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-10-22"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "responseSpeed": "medium"
-    },
-    "claude-3-5-haiku-20241022": {
-      "contextWindow": 200000,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00000025,
-          "cachedPrice": 0.0000000125
-        },
-        "outputTokens": {
-          "basePrice": 0.00000125
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-10-22"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "responseSpeed": "fast"
-    },
-    "claude-3-7-sonnet-20250219": {
-      "contextWindow": 200000,
-      "maxOutputTokens": 128000,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.000005,
-          "cachedPrice": 0.00000025
-        },
-        "outputTokens": {
-          "basePrice": 0.000025
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-04-25"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "extendedThinking": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 16384
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-10-01",
-      "responseSpeed": "medium"
-    },
-    "claude-3-haiku-20240307": {
-      "contextWindow": 200000,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00000025,
-          "cachedPrice": 0.0000000125
-        },
-        "outputTokens": {
-          "basePrice": 0.00000125
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-03-07"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "responseSpeed": "fast"
-    },
-    "claude-3-opus-20240229": {
-      "contextWindow": 200000,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.000015,
-          "cachedPrice": 0.00000075
-        },
-        "outputTokens": {
-          "basePrice": 0.000075
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-02-29"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "responseSpeed": "slow"
-    }
-  },
-  "openai": {
-    "gpt-4o": {
-      "contextWindow": 128000,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00001
-        },
-        "outputTokens": {
-          "basePrice": 0.00003
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-05-13"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 2.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-10-01",
-      "responseSpeed": "medium"
-    },
-    "gpt-4-turbo": {
-      "contextWindow": 128000,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00001
-        },
-        "outputTokens": {
-          "basePrice": 0.00003
-        },
-        "currency": "USD",
-        "effectiveDate": "2023-11-06"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 2.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-04-01",
-      "responseSpeed": "medium"
-    },
-    "gpt-3.5-turbo": {
-      "contextWindow": 16385,
-      "maxOutputTokens": 4096,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.0000005
-        },
-        "outputTokens": {
-          "basePrice": 0.0000015
-        },
-        "currency": "USD",
-        "effectiveDate": "2023-11-06"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 2.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2021-09-01",
-      "responseSpeed": "fast"
-    }
-  },
-  "google": {
-    "gemini-1.5-flash": {
-      "contextWindow": 1000000,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00000035
-        },
-        "outputTokens": {
-          "basePrice": 0.0000014
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-03-15"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "responseSpeed": "fast"
-    },
-    "gemini-2.0-flash": {
-      "contextWindow": 1000000,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": {
-          "basePrice": 0.00000035
-        },
-        "outputTokens": {
-          "basePrice": 0.0000014
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-08-15"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-03-01",
-      "responseSpeed": "fast"
-    }
-  }
+	"anthropic": {
+		"claude-3-5-sonnet-20241022": {
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000003,
+					"cachedPrice": 0.00000015
+				},
+				"outputTokens": {
+					"basePrice": 0.000015
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-10-22"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"responseSpeed": "medium"
+		},
+		"claude-3-5-haiku-20241022": {
+			"contextWindow": 200000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000025,
+					"cachedPrice": 0.0000000125
+				},
+				"outputTokens": {
+					"basePrice": 0.00000125
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-10-22"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"responseSpeed": "fast"
+		},
+		"claude-3-7-sonnet-20250219": {
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000005,
+					"cachedPrice": 0.00000025
+				},
+				"outputTokens": {
+					"basePrice": 0.000025
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-04-25"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-10-01",
+			"responseSpeed": "medium"
+		},
+		"claude-3-haiku-20240307": {
+			"contextWindow": 200000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000025,
+					"cachedPrice": 0.0000000125
+				},
+				"outputTokens": {
+					"basePrice": 0.00000125
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-03-07"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"responseSpeed": "fast"
+		},
+		"claude-3-opus-20240229": {
+			"contextWindow": 200000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000015,
+					"cachedPrice": 0.00000075
+				},
+				"outputTokens": {
+					"basePrice": 0.000075
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-02-29"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"responseSpeed": "slow"
+		}
+	},
+	"openai": {
+		"gpt-4o": {
+			"contextWindow": 128000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00001
+				},
+				"outputTokens": {
+					"basePrice": 0.00003
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-05-13"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-10-01",
+			"responseSpeed": "medium"
+		},
+		"gpt-4-turbo": {
+			"contextWindow": 128000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00001
+				},
+				"outputTokens": {
+					"basePrice": 0.00003
+				},
+				"currency": "USD",
+				"effectiveDate": "2023-11-06"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-04-01",
+			"responseSpeed": "medium"
+		},
+		"gpt-3.5-turbo": {
+			"contextWindow": 16385,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.0000005
+				},
+				"outputTokens": {
+					"basePrice": 0.0000015
+				},
+				"currency": "USD",
+				"effectiveDate": "2023-11-06"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2021-09-01",
+			"responseSpeed": "fast"
+		}
+	},
+	"google": {
+		"gemini-1.5-flash": {
+			"contextWindow": 1000000,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000035
+				},
+				"outputTokens": {
+					"basePrice": 0.0000014
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-03-15"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"responseSpeed": "fast"
+		},
+		"gemini-2.0-flash": {
+			"contextWindow": 1000000,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000035
+				},
+				"outputTokens": {
+					"basePrice": 0.0000014
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-08-15"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-03-01",
+			"responseSpeed": "fast"
+		}
+	}
 }

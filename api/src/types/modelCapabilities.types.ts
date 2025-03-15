@@ -46,6 +46,7 @@ export interface ModelCapabilities {
 		streaming: boolean;
 		vision: boolean;
 		extendedThinking?: boolean; // For models that support separate thinking steps
+		promptCaching?: boolean; // For models that support separate thinking steps
 		multimodal?: boolean; // For models supporting multiple modalities
 	};
 

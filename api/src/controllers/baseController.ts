@@ -31,6 +31,7 @@ import type {
 	ConversationStats,
 	//ObjectivesData,
 	TokenUsage,
+	TokenUsageStats,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -413,6 +414,9 @@ class BaseController {
 			//interaction.conversationStats = this.interactionStats.get(interaction.id),
 			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
 
+			// Include the latest requestParams in the saved conversation
+			interaction.requestParams = currentResponse.messageMeta.requestParams;
+
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
@@ -461,9 +465,7 @@ class BaseController {
 			toolUse.toolName,
 			toolUse.toolInput,
 			interaction.conversationStats,
-			interaction.tokenUsageTurn,
-			interaction.tokenUsageStatement,
-			interaction.tokenUsageInteraction,
+			interaction.tokenUsageStats,
 		);
 
 		const {
@@ -510,10 +512,10 @@ class BaseController {
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
-				tokenUsageTurn: TokenUsage,
-				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: TokenUsage,
+				tokenUsageStats: TokenUsageStats,
+				requestParams: LLMRequestParams,
 			): Promise<void> => {
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: ConversationResponse = {
 						timestamp,
@@ -521,9 +523,8 @@ class BaseController {
 						conversationTitle: this.primaryInteraction.title,
 						logEntry,
 						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
+						tokenUsageStats,
+						requestParams,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationAnswer',
@@ -536,9 +537,8 @@ class BaseController {
 						conversationTitle: this.primaryInteraction.title,
 						logEntry,
 						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
+						tokenUsageStats,
+						requestParams,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationContinue',

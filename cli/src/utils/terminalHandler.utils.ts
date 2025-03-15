@@ -397,11 +397,13 @@ export class TerminalHandler {
 				statementTurnCount: 1,
 				conversationTurnCount: 1,
 			},
-			tokenUsageStatement = {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				totalAllTokens: 0,
+			tokenUsageStats = {
+				tokenUsageStatement: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					totalAllTokens: 0,
+				},
 			},
 		} = data;
 		//conversationId = data.conversationId;
@@ -428,7 +430,7 @@ export class TerminalHandler {
 					//this.highlightOutput(formattedContent),
 					formattedContent,
 					conversationStats,
-					tokenUsageStatement,
+					tokenUsageStats.tokenUsageStatement,
 					logEntry.toolName,
 				);
 
@@ -464,11 +466,13 @@ export class TerminalHandler {
 		const {
 			conversationTitle,
 			conversationStats = data.conversationStats, //{ statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
-			tokenUsageStatement = {
-				inputTokens: data.tokenUsageStatement.inputTokens,
-				outputTokens: data.tokenUsageStatement.outputTokens,
-				totalTokens: data.tokenUsageStatement.totalTokens,
-				totalAllTokens: data.tokenUsageStatement.totalAllTokens,
+			tokenUsageStats = {
+				tokenUsageStatement: {
+					inputTokens: data.tokenUsageStats.tokenUsageStatement.inputTokens,
+					outputTokens: data.tokenUsageStats.tokenUsageStatement.outputTokens,
+					totalTokens: data.tokenUsageStats.tokenUsageStatement.totalTokens,
+					totalAllTokens: data.tokenUsageStats.tokenUsageStatement.totalAllTokens,
+				},
 			},
 		} = data;
 
@@ -480,7 +484,7 @@ export class TerminalHandler {
 			timestamp,
 			this.highlightOutput(answer),
 			conversationStats,
-			tokenUsageStatement,
+			tokenUsageStats.tokenUsageStatement,
 		);
 		console.log(formattedEntry);
 
@@ -490,7 +494,7 @@ export class TerminalHandler {
 		const idShort = conversationId?.substring(0, 8) || '';
 		const titleShort = conversationTitle?.substring(0, isNarrow ? 10 : 20) || '';
 
-		//logger.debug(`Preparing summary line with conversationStats: ${JSON.stringify(conversationStats)}, tokenUsage: ${JSON.stringify(tokenUsageStatement)}`);
+		//logger.debug(`Preparing summary line with conversationStats: ${JSON.stringify(conversationStats)}, tokenUsage: ${JSON.stringify(tokenUsageStats.tokenUsageStatement)}`);
 		const summaryLine = [
 			colors.cyan(isNarrow ? 'C' : 'Conv'),
 			colors.yellow(isNarrow ? `${idShort}` : `ID:${idShort}`),
@@ -503,11 +507,21 @@ export class TerminalHandler {
 					? `TT${conversationStats.conversationTurnCount}`
 					: `TT:${conversationStats.conversationTurnCount}`,
 			),
-			colors.red(isNarrow ? `↓${tokenUsageStatement.inputTokens}` : `In:${tokenUsageStatement.inputTokens}`),
-			colors.yellow(
-				isNarrow ? `↑${tokenUsageStatement.outputTokens}` : `Out:${tokenUsageStatement.outputTokens}`,
+			colors.red(
+				isNarrow
+					? `↓${tokenUsageStats.tokenUsageStatement.inputTokens}`
+					: `In:${tokenUsageStats.tokenUsageStatement.inputTokens}`,
 			),
-			colors.green(isNarrow ? `Σ${tokenUsageStatement.totalTokens}` : `Tot:${tokenUsageStatement.totalTokens}`),
+			colors.yellow(
+				isNarrow
+					? `↑${tokenUsageStats.tokenUsageStatement.outputTokens}`
+					: `Out:${tokenUsageStats.tokenUsageStatement.outputTokens}`,
+			),
+			colors.green(
+				isNarrow
+					? `Σ${tokenUsageStats.tokenUsageStatement.totalTokens}`
+					: `Tot:${tokenUsageStats.tokenUsageStatement.totalTokens}`,
+			),
 			colors.cyan(isNarrow ? `${titleShort}` : `Title:${titleShort}`),
 		].join('  '); // Two spaces between each item
 
@@ -528,10 +542,10 @@ export class TerminalHandler {
 		const { conversationId, conversationStats, conversationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
 		const tokenUsageConversation: TokenUsage = {
-			inputTokens: response.tokenUsageStatement.inputTokens,
-			outputTokens: response.tokenUsageStatement.outputTokens,
-			totalTokens: response.tokenUsageStatement.totalTokens,
-			totalAllTokens: response.tokenUsageStatement.totalAllTokens,
+			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
+			outputTokens: response.tokenUsageStats.tokenUsageStatement.outputTokens,
+			totalTokens: response.tokenUsageStats.tokenUsageStatement.totalTokens,
+			totalAllTokens: response.tokenUsageStats.tokenUsageStatement.totalAllTokens,
 		};
 
 		if (options.json) {

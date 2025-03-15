@@ -150,8 +150,8 @@ export function MessageEntry({
 	const entryType =
 		(hasLogEntry(logEntryData) ? logEntryData.logEntry.entryType : 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
-	const tokenUsageTurn = 'tokenUsageTurn' in logEntryData ? logEntryData.tokenUsageTurn : getDefaultTokenUsage();
-	const tokenUsageConversation = logEntryData.tokenUsageConversation || getDefaultTokenUsage();
+	const tokenUsageTurn = 'tokenUsageStats' in logEntryData ? logEntryData.tokenUsageStats.tokenUsageTurn : getDefaultTokenUsage();
+	const tokenUsageConversation = 'tokenUsageStats' in logEntryData ? logEntryData.tokenUsageStats.tokenUsageConversation : getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
 		? messageIcons[entryType as keyof typeof messageIcons]

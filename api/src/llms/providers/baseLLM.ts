@@ -1,7 +1,8 @@
 import Ajv from 'ajv';
 import md5 from 'md5';
 
-import { LLMCallbackType, LLMProvider as LLMProviderEnum } from 'api/types.ts';
+//import { LLMCallbackType, LLMProvider as LLMProviderEnum } from 'api/types.ts';
+import { LLMCallbackType, LLMProvider } from 'api/types.ts';
 import type {
 	LLMCallbacks,
 	LLMExtendedThinkingOptions,
@@ -31,7 +32,7 @@ const ajv = new Ajv();
 const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
 
 class LLM {
-	public llmProviderName: LLMProviderEnum = LLMProviderEnum.ANTHROPIC;
+	public llmProviderName: LLMProvider = LLMProvider.ANTHROPIC;
 	public maxSpeakRetries: number = 3;
 	public requestCacheExpiry: number = 3 * (1000 * 60 * 60 * 24); // 3 days in milliseconds
 	private callbacks: LLMCallbacks;

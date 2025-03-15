@@ -21,6 +21,7 @@ import type {
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
 	LLMRateLimit,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
@@ -293,7 +294,21 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 
 			logger.debug(`llms-${this.llmProviderName}-messageResponse`, messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			// Include request parameters in messageMeta
+			const requestParams: LLMRequestParams = {
+				model: messageRequest.model,
+				maxTokens: providerMessageRequest.max_tokens!,
+				temperature: providerMessageRequest.temperature!,
+				extendedThinking: messageRequest.extendedThinking,
+			};
+
+			return { 
+				messageResponse, 
+				messageMeta: { 
+					system: messageRequest.system,
+					requestParams
+				} 
+			};
 		} catch (err) {
 			logger.error(`Error calling ${this.llmProviderName} API`, err);
 			throw createError(

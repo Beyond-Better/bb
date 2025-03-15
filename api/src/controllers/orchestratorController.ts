@@ -26,6 +26,7 @@ import type {
 	ConversationStats,
 	ObjectivesData,
 	//TokenUsage,
+	//TokenUsageStats,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -249,7 +250,9 @@ class OrchestratorController extends BaseController {
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageConversation: this.tokenUsageInteraction,
+			tokenUsageStats: {
+				tokenUsageConversation: this.tokenUsageInteraction,
+			},
 			conversationHistory: [], //this.getConversationHistory(interaction),
 			versionInfo,
 		};
@@ -325,9 +328,12 @@ class OrchestratorController extends BaseController {
 							textContent,
 							thinkingContent,
 							conversationStats,
-							interaction.tokenUsageTurn,
-							interaction.tokenUsageStatement,
-							interaction.tokenUsageInteraction,
+							{
+								tokenUsageTurn: interaction.tokenUsageTurn,
+								tokenUsageStatement: interaction.tokenUsageStatement,
+								tokenUsageConversation: interaction.tokenUsageInteraction,
+							},
+							currentResponse.messageMeta.requestParams,
 						);
 					}
 
@@ -546,19 +552,21 @@ class OrchestratorController extends BaseController {
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
-			tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
-			tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			tokenUsageStats: {
+				tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
+				tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
+				tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			},
 		};
+		//logger.info(`OrchestratorController: statementAnswer-tokenUsageStats:`, statementAnswer.tokenUsageStats);
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
 			answer,
 			assistantThinking,
 			statementAnswer.conversationStats,
-			statementAnswer.tokenUsageTurn,
-			statementAnswer.tokenUsageStatement,
-			statementAnswer.tokenUsageConversation,
+			statementAnswer.tokenUsageStats,
+			currentResponse.messageMeta.requestParams,
 		);
 
 		this.resetStatus();

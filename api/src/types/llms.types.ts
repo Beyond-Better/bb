@@ -19,6 +19,7 @@ export enum AnthropicModel {
 export const AnthropicModels = [
 	AnthropicModel.CLAUDE_3_5_HAIKU,
 	AnthropicModel.CLAUDE_3_5_SONNET,
+	AnthropicModel.CLAUDE_3_7_SONNET,
 	AnthropicModel.CLAUDE_3_HAIKU,
 	//AnthropicModel.CLAUDE_3_SONNET,
 	AnthropicModel.CLAUDE_3_OPUS,
@@ -287,9 +288,21 @@ export interface LLMProviderMessageResponse {
 	createdAt?: Date;
 	updatedAt?: Date;
 }
+
 export type LLMProviderSystem = string | LLMMessageContentPart;
+
+export interface LLMRequestParams {
+	model: string;
+	temperature: number;
+	maxTokens: number;
+	extendedThinking?: LLMExtendedThinkingOptions;
+	usePromptCaching?: boolean;
+	// Add any other relevant request parameters
+}
+
 export interface LLMProviderMessageMeta {
 	system: LLMProviderSystem;
+	requestParams?: LLMRequestParams;
 }
 
 export type LLMValidateResponseCallback = (
@@ -373,6 +386,7 @@ export interface BBLLMResponseMetadata {
 	role: 'assistant' | 'user';
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
+	requestParams?: LLMRequestParams;
 }
 
 // also in api/types/llms.ts

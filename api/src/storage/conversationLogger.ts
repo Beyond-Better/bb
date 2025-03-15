@@ -5,8 +5,9 @@ import { renderToString } from 'preact-render-to-string';
 
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
-import type { ConversationId, ConversationStats, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, ConversationStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
@@ -75,9 +76,8 @@ export default class ConversationLogger {
 			timestamp: string,
 			logEntry: ConversationLogEntry,
 			conversationStats: ConversationStats,
-			tokenUsageTurn: TokenUsage,
-			tokenUsageStatement: TokenUsage,
-			tokenUsageConversation: TokenUsage,
+			tokenUsageStats: TokenUsageStats,
+			requestParams: LLMRequestParams,
 		) => Promise<void>,
 	) {}
 
@@ -139,24 +139,27 @@ export default class ConversationLogger {
 		messageId: string,
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats = { statementCount: 0, statementTurnCount: 0, conversationTurnCount: 0 },
-		tokenUsageTurn: TokenUsage = {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			totalAllTokens: 0,
+		tokenUsageStats: TokenUsageStats = {
+			tokenUsageTurn: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				totalAllTokens: 0,
+			},
+			tokenUsageStatement: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				totalAllTokens: 0,
+			},
+			tokenUsageConversation: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				totalAllTokens: 0,
+			},
 		},
-		tokenUsageStatement: TokenUsage = {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			totalAllTokens: 0,
-		},
-		tokenUsageConversation: TokenUsage = {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			totalAllTokens: 0,
-		},
+		requestParams?: LLMRequestParams,
 	) {
 		const timestamp = this.getTimestamp();
 
@@ -166,9 +169,8 @@ export default class ConversationLogger {
 				timestamp,
 				logEntry,
 				conversationStats,
-				tokenUsageTurn,
-				tokenUsageStatement,
-				tokenUsageConversation,
+				tokenUsageStats,
+				requestParams,
 			);
 		} catch (error) {
 			logger.error('Error in logEntryHandler:', error);
@@ -178,9 +180,8 @@ export default class ConversationLogger {
 			timestamp,
 			logEntry,
 			conversationStats,
-			tokenUsageTurn,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		);
 		try {
 			await this.appendToRawLog(rawEntry);
@@ -193,9 +194,8 @@ export default class ConversationLogger {
 			timestamp,
 			logEntry,
 			conversationStats,
-			tokenUsageTurn,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		});
 		try {
 			await this.appendToJsonLog(jsonEntry);
@@ -213,22 +213,19 @@ export default class ConversationLogger {
 		message: string,
 		thinking: string,
 		conversationStats: ConversationStats,
-		tokenUsageTurn: TokenUsage,
-		tokenUsageStatement: TokenUsage,
-		tokenUsageConversation: TokenUsage,
+		tokenUsageStats: TokenUsageStats,
+		requestParams?: LLMRequestParams,
 	) {
-
 		await this.logEntry(
 			messageId,
-			{ 
-				entryType: 'assistant', 
-				content: message, 
+			{
+				entryType: 'assistant',
+				content: message,
 				thinking: thinking,
 			},
 			conversationStats,
-			tokenUsageTurn,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		);
 	}
 
@@ -237,22 +234,19 @@ export default class ConversationLogger {
 		answer: string,
 		assistantThinking: string,
 		conversationStats: ConversationStats,
-		tokenUsageTurn: TokenUsage,
-		tokenUsageStatement: TokenUsage,
-		tokenUsageConversation: TokenUsage,
+		tokenUsageStats: TokenUsageStats,
+		requestParams?: LLMRequestParams,
 	) {
-
 		await this.logEntry(
 			messageId,
-			{ 
-				entryType: 'answer', 
-				content: answer, 
+			{
+				entryType: 'answer',
+				content: answer,
 				thinking: assistantThinking,
 			},
 			conversationStats,
-			tokenUsageTurn,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		);
 	}
 
@@ -260,17 +254,15 @@ export default class ConversationLogger {
 		messageId: string,
 		message: string | AuxiliaryChatContent,
 		conversationStats?: ConversationStats,
-		tokenUsageTurn?: TokenUsage,
-		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: TokenUsage,
+		tokenUsageStats?: TokenUsageStats,
+		requestParams?: LLMRequestParams,
 	) {
 		await this.logEntry(
 			messageId,
 			{ entryType: 'auxiliary', content: message },
 			conversationStats,
-			tokenUsageTurn,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		);
 	}
 
@@ -279,18 +271,16 @@ export default class ConversationLogger {
 		toolName: string,
 		toolInput: LLMToolInputSchema,
 		conversationStats: ConversationStats,
-		tokenUsageTurn: TokenUsage,
-		tokenUsageStatement: TokenUsage,
-		tokenUsageConversation: TokenUsage,
+		tokenUsageStats: TokenUsageStats,
+		requestParams?: LLMRequestParams,
 	) {
 		try {
 			await this.logEntry(
 				messageId,
 				{ entryType: 'tool_use', content: toolInput, toolName },
 				conversationStats,
-				tokenUsageTurn,
-				tokenUsageStatement,
-				tokenUsageConversation,
+				tokenUsageStats,
+				requestParams,
 			);
 		} catch (error) {
 			logger.error('Error in logEntry for logToolUse:', error);
@@ -327,9 +317,8 @@ export default class ConversationLogger {
 		timestamp: string,
 		logEntry: ConversationLogEntry,
 		_conversationStats: ConversationStats,
-		_tokenUsage: TokenUsage,
-		_tokenUsageStatement?: TokenUsage,
-		_tokenUsageConversation?: TokenUsage,
+		_tokenUsageStats: TokenUsageStats,
+		_requestParams: LLMRequestParams,
 	): Promise<string> {
 		// [TODO] add token usage to header line
 		const formattedContent = await this.logEntryFormatterManager.formatLogEntry(
@@ -351,17 +340,15 @@ export default class ConversationLogger {
 		timestamp: string,
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats,
-		tokenUsage: TokenUsage,
-		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: TokenUsage,
+		tokenUsageStats: TokenUsageStats,
+		requestParams: LLMRequestParams,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
 			timestamp,
 			logEntry,
 			conversationStats,
-			tokenUsage,
-			tokenUsageStatement,
-			tokenUsageConversation,
+			tokenUsageStats,
+			requestParams,
 		);
 		// Ensure entry ends with a single newline and the separator
 		rawEntry = rawEntry.trimEnd() + '\n' + ConversationLogger.getEntrySeparator() + '\n';

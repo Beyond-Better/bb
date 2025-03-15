@@ -19,6 +19,7 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types.ts';
@@ -226,8 +227,8 @@ class BbLLM extends LLM {
 		let maxTokens: number;
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
-				LLMProvider.ANTHROPIC,
-				messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET,
+				this.llmProviderName,
+				model,
 				messageRequest.maxTokens,
 				messageRequest.temperature,
 			);
@@ -251,7 +252,7 @@ class BbLLM extends LLM {
 				messageRequest.temperature,
 			);
 		}
-
+		//if (model !== 'claude-3-haiku-20240307') maxTokens = 16384;
 		const providerMessageRequest: LLMProviderMessageRequest = {
 			messages,
 			system: messageRequest.system,
@@ -376,7 +377,22 @@ class BbLLM extends LLM {
 			});
 			//logger.debug("BbLLM: llms-anthropic-messageResponse", messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			// Include request parameters in messageMeta
+			const requestParams: LLMRequestParams = bbResponseMessage.metadata.requestParams || {
+				model: messageRequest.model,
+				maxTokens: providerMessageRequest.maxTokens,
+				temperature: providerMessageRequest.temperature,
+				extendedThinking: messageRequest.extendedThinking,
+				usePromptCaching: providerMessageRequest.usePromptCaching
+			};
+
+			return { 
+				messageResponse, 
+				messageMeta: { 
+					system: messageRequest.system,
+					requestParams
+				} 
+			};
 		} catch (err) {
 			logger.error('BbLLM: Error calling BB API', err);
 			if (isLLMError(err)) throw err;

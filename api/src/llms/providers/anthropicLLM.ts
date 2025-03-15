@@ -16,6 +16,7 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	//LLMExtendedThinkingOptions,
@@ -528,7 +529,22 @@ class AnthropicLLM extends LLM {
 			});
 			//logger.debug("AnthropicLLM: llms-anthropic-messageResponse", messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			// Include request parameters in messageMeta
+			const requestParams: LLMRequestParams = {
+				model: messageRequest.model,
+				maxTokens: providerMessageRequest.max_tokens!,
+				temperature: providerMessageRequest.temperature!,
+				extendedThinking: messageRequest.extendedThinking,
+				usePromptCaching: this.projectConfig.settings.api?.usePromptCaching ?? true
+			};
+
+			return { 
+				messageResponse, 
+				messageMeta: { 
+					system: messageRequest.system,
+					requestParams
+				} 
+			};
 		} catch (err) {
 			logger.error('AnthropicLLM: Error calling Anthropic API', err);
 			throw createError(

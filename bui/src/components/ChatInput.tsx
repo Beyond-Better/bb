@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
+import { type LLMRequestParams } from '../types/llm.types.ts';
+import type { ModelCapabilities } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
@@ -29,6 +31,8 @@ interface ChatInputProps {
 	projectId: string;
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
+	chatInputOptions: Signal<LLMRequestParams>;
+	modelCapabilities?: Signal<ModelCapabilities | null>;
 	onChange: (value: string) => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
@@ -36,7 +40,6 @@ interface ChatInputProps {
 	disabled?: boolean;
 	maxLength?: number;
 	conversationId: string | null;
-	extendedThinkingEnabled?: boolean;
 }
 
 enum TabState {
@@ -78,8 +81,8 @@ const tabState = signal<TabState>(TabState.INITIAL);
 const cursorPosition = signal<number>(0);
 const selectedIndex = signal<number>(-1);
 
-// Extended thinking state
-const extendedThinkingEnabled = signal<boolean>(true);
+// State for options panel visibility
+const isOptionsOpen = signal<boolean>(false);
 
 const inputMetrics = signal({
 	lastUpdateTime: 0,
@@ -91,6 +94,8 @@ const conversationIdSignal = signal<string | null>(null);
 export function ChatInput({
 	apiClient,
 	chatInputText,
+	chatInputOptions,
+	modelCapabilities,
 	onChange,
 	onSend,
 	textareaRef: externalRef,
@@ -100,7 +105,6 @@ export function ChatInput({
 	onCancelProcessing,
 	projectId,
 	conversationId,
-	extendedThinkingEnabled: initialExtendedThinking = true,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
@@ -250,9 +254,6 @@ export function ChatInput({
 
 		// Update signal immediately
 		conversationIdSignal.value = conversationId;
-		
-		// Initialize extended thinking state
-		extendedThinkingEnabled.value = initialExtendedThinking;
 
 		//// Check for saved input
 		//const saved = getSavedInput();
@@ -324,7 +325,7 @@ export function ChatInput({
 			hasValue: !!chatInputText.value.trim(),
 			length: chatInputText.value.length,
 			conversationId,
-			extendedThinking: extendedThinkingEnabled.value,
+			chatInputOptions: chatInputOptions.value,
 		});
 
 		// Validate input before sending
@@ -848,7 +849,7 @@ export function ChatInput({
 	const statusInfo = getStatusInfo();
 
 	return (
-		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full'>
+		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full relative'>
 			<InputStatusBar
 				visible={statusInfo.visible}
 				message={statusInfo.message}
@@ -1039,15 +1040,32 @@ export function ChatInput({
 						</span>
 					</div>
 				</div>
-				<div className="flex items-center">
+				<div className='flex items-center'>
 					<button
-						onClick={() => extendedThinkingEnabled.value = !extendedThinkingEnabled.value}
-						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${extendedThinkingEnabled.value ? 'bg-purple-500 dark:bg-purple-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
-						title={extendedThinkingEnabled.value ? 'Extended thinking enabled' : 'Extended thinking disabled'}
-						aria-label={extendedThinkingEnabled.value ? 'Disable extended thinking' : 'Enable extended thinking'}
+						onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
+						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
+						title='Chat Options'
+						aria-label='Chat Options'
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							className='h-5 w-5'
+							fill='none'
+							viewBox='0 0 24 24'
+							stroke='currentColor'
+						>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								strokeWidth={2}
+								d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+							/>
+							<path
+								strokeLinecap='round'
+								strokeLinejoin='round'
+								strokeWidth={2}
+								d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
+							/>
 						</svg>
 					</button>
 					<button
@@ -1065,10 +1083,177 @@ export function ChatInput({
 						disabled={status.isLoading || disabled || isProcessing(status)}
 						aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
 					>
-						{status.isLoading ? <LoadingSpinner size='small' color='text-white dark:text-gray-200' /> : 'Send'}
+						{status.isLoading
+							? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
+							: 'Send'}
 					</button>
 				</div>
 			</div>
+
+			{/* LLM Options Panel */}
+			{isOptionsOpen.value && (
+				<div className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'>
+					<div className='flex justify-between items-center mb-3'>
+						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
+						<button
+							onClick={() => isOptionsOpen.value = false}
+							className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+						>
+							<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M6 18L18 6M6 6l12 12'
+								/>
+							</svg>
+						</button>
+					</div>
+
+					<div className='space-y-3'>
+						{/* Model */}
+						<div className='space-y-1'>
+							<label className='text-sm text-gray-700 dark:text-gray-300'>
+								Model: {chatInputOptions.value.model}
+							</label>
+						</div>
+
+						{/* Max Tokens slider */}
+						<div className='space-y-1'>
+							<div className='flex justify-between'>
+								<label className='text-sm text-gray-700 dark:text-gray-300'>
+									Max Tokens: {chatInputOptions.value.maxTokens}
+								</label>
+							</div>
+							<input
+								type='range'
+								min='1000'
+								max={modelCapabilities?.value?.maxOutputTokens || 100000}
+								step='1000'
+								value={chatInputOptions.value.maxTokens}
+								onChange={(e) => {
+									const newOptions = { ...chatInputOptions.value };
+									newOptions.maxTokens = parseInt(e.target.value, 10);
+									chatInputOptions.value = newOptions;
+								}}
+								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+							/>
+						</div>
+
+						{/* Temperature slider */}
+						<div className='space-y-1'>
+							<div className='flex justify-between'>
+								<label className='text-sm text-gray-700 dark:text-gray-300'>
+									Temperature: {chatInputOptions.value.temperature.toFixed(1)}
+								</label>
+							</div>
+							<input
+								type='range'
+								min={modelCapabilities?.value?.constraints?.temperature?.min || 0}
+								max={modelCapabilities?.value?.constraints?.temperature?.max || 1}
+								step='0.1'
+								value={chatInputOptions.value.temperature}
+								onChange={(e) => {
+									const newOptions = { ...chatInputOptions.value };
+									newOptions.temperature = parseFloat(e.target.value);
+									chatInputOptions.value = newOptions;
+								}}
+								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+							/>
+						</div>
+
+						{/* Extended Thinking Toggle */}
+						{(!modelCapabilities?.value ||
+							modelCapabilities.value.supportedFeatures?.extendedThinking !== false) && (
+							<div className='flex items-center justify-between'>
+								<label className='text-sm text-gray-700 dark:text-gray-300'>Extended Thinking</label>
+								<div className='relative inline-block w-12 align-middle select-none'>
+									<input
+										type='checkbox'
+										checked={chatInputOptions.value.extendedThinking?.enabled || false}
+										onChange={(e) => {
+											const newOptions = { ...chatInputOptions.value };
+											if (!newOptions.extendedThinking) {
+												newOptions.extendedThinking = {
+													enabled: e.target.checked,
+													budgetTokens: 4096,
+												};
+											} else {
+												newOptions.extendedThinking.enabled = e.target.checked;
+											}
+											chatInputOptions.value = newOptions;
+										}}
+										className='sr-only'
+										id='toggle-extended-thinking'
+									/>
+									<label
+										htmlFor='toggle-extended-thinking'
+										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+											chatInputOptions.value.extendedThinking?.enabled
+												? 'bg-blue-500'
+												: 'bg-gray-300 dark:bg-gray-600'
+										}`}
+									>
+										<span
+											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+												chatInputOptions.value.extendedThinking?.enabled
+													? 'translate-x-6'
+													: 'translate-x-0'
+											}`}
+										/>
+									</label>
+								</div>
+							</div>
+						)}
+
+						{/* Prompt Caching Toggle */}
+						{(!modelCapabilities?.value ||
+							modelCapabilities.value.supportedFeatures?.promptCaching !== false) && (
+							<div className='flex items-center justify-between'>
+								<label className='text-sm text-gray-700 dark:text-gray-300'>Use Prompt Caching</label>
+								<div className='relative inline-block w-12 align-middle select-none'>
+									<input
+										type='checkbox'
+										checked={chatInputOptions.value.usePromptCaching !== false}
+										onChange={(e) => {
+											const newOptions = { ...chatInputOptions.value };
+											newOptions.usePromptCaching = e.target.checked;
+											chatInputOptions.value = newOptions;
+										}}
+										className='sr-only'
+										id='toggle-prompt-caching'
+									/>
+									<label
+										htmlFor='toggle-prompt-caching'
+										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+											chatInputOptions.value.usePromptCaching !== false
+												? 'bg-blue-500'
+												: 'bg-gray-300 dark:bg-gray-600'
+										}`}
+									>
+										<span
+											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+												chatInputOptions.value.usePromptCaching !== false
+													? 'translate-x-6'
+													: 'translate-x-0'
+											}`}
+										/>
+									</label>
+								</div>
+							</div>
+						)}
+
+						{/* Model information - display context window and provider info */}
+						{modelCapabilities?.value && (
+							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>
+									Context window: {(modelCapabilities.value.contextWindow / 1000).toFixed(0)}K tokens
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

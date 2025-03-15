@@ -74,6 +74,7 @@ export interface ModelCapabilities {
 		streaming: boolean;
 		vision: boolean;
 		extendedThinking?: boolean;
+		promptCaching?: boolean;
 		multimodal?: boolean;
 	};
 
@@ -258,6 +259,7 @@ class ModelCapabilitiesFetcher {
 					json: true,
 					streaming: true,
 					vision: true,
+					promptCaching: true,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -300,6 +302,7 @@ class ModelCapabilitiesFetcher {
 					json: true,
 					streaming: true,
 					vision: true,
+					promptCaching: true,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -343,6 +346,7 @@ class ModelCapabilitiesFetcher {
 					streaming: true,
 					vision: true,
 					extendedThinking: true,
+					promptCaching: true,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -461,6 +465,7 @@ class ModelCapabilitiesFetcher {
 					streaming: true,
 					vision: true,
 					multimodal: true,
+					promptCaching: false,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -495,6 +500,7 @@ class ModelCapabilitiesFetcher {
 					json: true,
 					streaming: true,
 					vision: false,
+					promptCaching: false,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -528,6 +534,7 @@ class ModelCapabilitiesFetcher {
 					json: true,
 					streaming: true,
 					vision: false,
+					promptCaching: false,
 				},
 				defaults: {
 					temperature: 0.7,
@@ -565,6 +572,7 @@ class ModelCapabilitiesFetcher {
 				json: false,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -623,6 +631,7 @@ class ModelCapabilitiesFetcher {
 				streaming: true,
 				vision: true,
 				multimodal: true,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -664,6 +673,7 @@ class ModelCapabilitiesFetcher {
 				streaming: true,
 				vision: true,
 				multimodal: true,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -729,6 +739,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -768,6 +779,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.5,
@@ -814,6 +826,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -853,6 +866,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -892,6 +906,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -935,6 +950,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,
@@ -971,6 +987,7 @@ class ModelCapabilitiesFetcher {
 				json: true,
 				streaming: true,
 				vision: false,
+				promptCaching: false,
 			},
 			defaults: {
 				temperature: 0.7,

@@ -1,15 +1,17 @@
 import { JSX } from 'preact';
 import type { RefObject } from 'preact';
 import { Signal, signal, useComputed } from '@preact/signals';
+import { useState } from 'preact/hooks';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { ChatState, ChatStatus } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
 import type { ConversationMetadata } from 'shared/types.ts';
-import type { ApiClient } from '../utils/apiClient.utils.ts';
+import type { ModelCapabilities,ApiClient } from '../utils/apiClient.utils.ts';
 import { ConversationSelector } from './ConversationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
+import { ModelInfoPanel } from './ModelInfoPanel.tsx';
 
 // Initialize collapse state signal from localStorage if available, otherwise default to true
 const getInitialCollapsedState = () => {
@@ -36,6 +38,7 @@ interface ConversationHeaderProps {
 	onToggleList: () => void;
 	isListVisible: boolean;
 	chatState: Signal<ChatState>;
+	modelCapabilities?: Signal<ModelCapabilities | null>;
 	onSendMessage: (message: string) => Promise<void>;
 	chatInputRef: RefObject<ChatInputRef>;
 	disabled: boolean;
@@ -52,22 +55,79 @@ export function ConversationHeader({
 	onToggleList,
 	isListVisible,
 	chatState,
+	modelCapabilities,
 	onSendMessage,
 	chatInputRef,
 	disabled,
 	projectId,
 	apiClient,
 }: ConversationHeaderProps): JSX.Element {
+	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
 	const currentConversation = useComputed(() =>
 		chatState.value.conversations.find((c) => c.id === chatState.value.conversationId)
 	);
 
+	// Find the latest assistant message that might have request params
+	const getModelInfo = () => {
+		if (!currentConversation.value) {
+			return {
+				model: 'Unknown',
+				provider: 'Unknown',
+			};
+		}
+
+		const logEntries = chatState.value.logEntries || [];
+		//console.log('ConversationHeader: getModelInfo', {logEntries});
+		const assistantEntries = logEntries.filter((entry) =>
+			entry.logEntry.entryType === 'assistant' || entry.logEntry.entryType === 'tool_use' || entry.logEntry.entryType === 'answer'
+		);
+
+		// Find the most recent entry with tokenUsageTurn
+		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageTurn || entry.tokenUsageStats?.tokenUsageTurn);
+
+		return {
+			model: currentConversation.value.model || 'Unknown',
+			provider: currentConversation.value.llmProviderName || 'Unknown',
+			requestParams: currentConversation.value.requestParams,
+			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageTurn || entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
+			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
+		};
+	};
+
+	// Find the latest assistant message that might have request params
+	const getModelInfo = () => {
+		if (!currentConversation.value) {
+			return {
+				model: 'Unknown',
+				provider: 'Unknown',
+			};
+		}
+
+		const logEntries = chatState.value.logEntries || [];
+		//console.log('ConversationHeader: getModelInfo', {logEntries});
+		const assistantEntries = logEntries.filter((entry) =>
+			entry.logEntry.entryType === 'assistant' || entry.logEntry.entryType === 'tool_use' || entry.logEntry.entryType === 'answer'
+		);
+
+		// Find the most recent entry with tokenUsageTurn
+		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageTurn || entry.tokenUsageStats?.tokenUsageTurn);
+
+		return {
+			model: currentConversation.value.model || 'Unknown',
+			provider: currentConversation.value.llmProviderName || 'Unknown',
+			requestParams: currentConversation.value.requestParams,
+			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageTurn || entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
+			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
+		};
+	};
+
 	return (
-		<header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 shadow-sm'>
+		<header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 shadow-sm relative'>
 			<div className='flex justify-between items-center'>
 				<div className='flex items-center space-x-8'>
 					{/* Toggle List Button */}
 					<button
+						type='button'
 						onClick={() => {
 							onToggleList();
 							isCollapsed.value = !isCollapsed.value;
@@ -183,9 +243,47 @@ export function ConversationHeader({
 												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 											/>
 										</svg>
-										{currentConversation.value.tokenUsageConversation?.totalAllTokens
+										{currentConversation.value.tokenUsageStats?.tokenUsageConversation
+											?.totalAllTokens
 											?.toLocaleString() ||
 											0} tokens
+									</div>
+									<div className='flex items-center mr-4'>
+										<button
+											type='button'
+											onClick={() => setIsModelInfoOpen(!isModelInfoOpen)}
+											className='flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-lg'
+											title='View model information'
+										>
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												className='h-5 w-5'
+												fill='none'
+												viewBox='0 0 24 24'
+												stroke='currentColor'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													strokeWidth={1.5}
+													d='M13 10V3L4 14h7v7l9-11h-7z'
+												/>
+											</svg>
+											<span className='text-sm hidden md:inline'>Model Info</span>
+											<svg
+												className='w-4 h-4 ml-1'
+												fill='none'
+												viewBox='0 0 24 24'
+												stroke='currentColor'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													strokeWidth={2}
+													d='M19 9l-7 7-7-7'
+												/>
+											</svg>
+										</button>
 									</div>
 								</>
 							)}
@@ -203,6 +301,13 @@ export function ConversationHeader({
 					/>
 				</div>
 			</div>
+			{/* Model Info Panel */}
+			<ModelInfoPanel
+				isOpen={isModelInfoOpen}
+				onClose={() => setIsModelInfoOpen(false)}
+				modelInfo={getModelInfo()}
+				modelCapabilities={modelCapabilities}
+			/>
 		</header>
 	);
 }

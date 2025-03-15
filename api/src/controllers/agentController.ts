@@ -360,9 +360,11 @@ class AgentController extends BaseController {
 							textContent,
 							thinkingContent,
 							conversationStats,
-							interaction.tokenUsageTurn,
-							interaction.tokenUsageStatement,
-							interaction.tokenUsageInteraction,
+							{
+								tokenUsageTurn: interaction.tokenUsageTurn,
+								tokenUsageStatement: interaction.tokenUsageStatement,
+								tokenUsageConversation: interaction.tokenUsageInteraction,
+							},
 						);
 					}
 
@@ -541,7 +543,9 @@ class AgentController extends BaseController {
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
 		// Extract thinking content using our standardized extractor
-		const assistantThinking = currentResponse.messageResponse.answerContent ? extractThinkingFromContent(currentResponse.messageResponse.answerContent) : '';
+		const assistantThinking = currentResponse.messageResponse.answerContent
+			? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
+			: '';
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
@@ -552,9 +556,12 @@ class AgentController extends BaseController {
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			this.primaryInteraction.tokenUsageTurn,
-			this.primaryInteraction.tokenUsageStatement,
-			this.primaryInteraction.tokenUsageInteraction,
+			{
+				tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
+				tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
+				tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			},
+			currentResponse.messageMeta.requestParams,
 		);
 
 		const completedTask: CompletedTask = {

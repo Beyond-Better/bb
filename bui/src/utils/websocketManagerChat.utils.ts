@@ -6,6 +6,7 @@ import type {
 	ConversationStats,
 	TokenUsage,
 } from 'shared/types.ts';
+import type { LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
 
 interface WebSocketMessage {
@@ -13,6 +14,7 @@ interface WebSocketMessage {
 	projectId: string;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement: string;
+	requestParams?: LLMRequestParams;
 }
 
 interface WebSocketResponse {
@@ -103,7 +105,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.socket.send(JSON.stringify(message));
 	}
 
-	async sendConverse(message: string): Promise<void> {
+	async sendConverse(message: string, requestParams?: LLMRequestParams): Promise<void> {
 		if (!this.socket || !this.conversationId || !this._status.isReady) {
 			throw new Error('WebSocket is not ready');
 		}
@@ -113,6 +115,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			projectId: this.projectId,
 			task: 'converse',
 			statement: message,
+			requestParams,
 		};
 
 		this.socket.send(JSON.stringify(wsMessage));
@@ -143,20 +146,23 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					conversationTitle: '',
 					timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
-					tokenUsageTurn: msgData.data.tokenUsageTurn || {
-						totalTokens: 0,
-						inputTokens: 0,
-						outputTokens: 0,
-					},
-					tokenUsageStatement: msgData.data.tokenUsageStatement || {
-						totalTokens: 0,
-						inputTokens: 0,
-						outputTokens: 0,
-					},
-					tokenUsageConversation: msgData.data.tokenUsageConversation || {
-						totalTokens: 0,
-						inputTokens: 0,
-						outputTokens: 0,
+					requestParams: msgData.data.requestParams,
+					tokenUsageStats: {
+						tokenUsageTurn: msgData.data.tokenUsageStats.tokenUsageTurn || {
+							totalTokens: 0,
+							inputTokens: 0,
+							outputTokens: 0,
+						},
+						tokenUsageStatement: msgData.data.tokenUsageStats.tokenUsageStatement || {
+							totalTokens: 0,
+							inputTokens: 0,
+							outputTokens: 0,
+						},
+						tokenUsageConversation: msgData.data.tokenUsageStats.tokenUsageConversation || {
+							totalTokens: 0,
+							inputTokens: 0,
+							outputTokens: 0,
+						},
 					},
 					conversationStats: msgData.data.conversationStats || {
 						statementCount: 0,

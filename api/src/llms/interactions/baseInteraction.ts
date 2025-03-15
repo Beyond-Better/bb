@@ -13,6 +13,7 @@ import type {
 	TokenUsage,
 	TokenUsageDifferential,
 	TokenUsageRecord,
+	TokenUsageStats,
 	ToolStats,
 } from 'shared/types.ts';
 import type {
@@ -103,6 +104,14 @@ class LLMInteraction {
 	protected _temperature: number = 0.2;
 	protected _currentPrompt: string = '';
 
+	protected _requestParams: LLMRequestParams = {
+		model: '',
+		temperature: 0,
+		maxTokens: 0,
+		extendedThinking: { enabled: false, budgetTokens: 0 },
+		usePromptCaching: false,
+	};
+
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		this.id = conversationId ?? generateConversationId();
 		this.llm = llm;
@@ -122,18 +131,16 @@ class LLMInteraction {
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
-				tokenUsageTurn: TokenUsage,
-				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: TokenUsage,
+				tokenUsageStats: TokenUsageStats,
+				requestParams: LLMRequestParams,
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
 					timestamp,
 					logEntry,
 					conversationStats,
-					tokenUsageTurn,
-					tokenUsageStatement,
-					tokenUsageConversation,
+					tokenUsageStats,
+					requestParams,
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
@@ -163,6 +170,26 @@ class LLMInteraction {
 		this._statementCount = stats.statementCount;
 		this._statementTurnCount = stats.statementTurnCount;
 		this._conversationTurnCount = stats.conversationTurnCount;
+	}
+
+	public get tokenUsageStats(): TokenUsageStats {
+		return {
+			tokenUsageTurn: this._tokenUsageTurn,
+			tokenUsageStatement: this._tokenUsageStatement,
+			tokenUsageConversation: this._tokenUsageInteraction,
+		};
+	}
+	public set tokenUsageStats(stats: TokenUsageStats) {
+		this._tokenUsageTurn = stats.tokenUsageTurn;
+		this._tokenUsageStatement = stats.tokenUsageStatement;
+		this._tokenUsageInteraction = stats.tokenUsageConversation;
+	}
+
+	public get requestParams(): LLMRequestParams {
+		return this._requestParams;
+	}
+	public set requestParams(requestParams: LLMRequestParams) {
+		this._requestParams = requestParams;
 	}
 
 	public get totalProviderRequests(): number {

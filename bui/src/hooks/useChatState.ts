@@ -7,6 +7,7 @@ import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
+import type { LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
 //import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
@@ -74,6 +75,7 @@ const trackStateUpdate = (operation: string) => {
 export function useChatState(
 	config: ChatConfig,
 	chatState: Signal<ChatState>,
+	chatInputOptions?: Signal<LLMRequestParams>,
 ): [ChatHandlers, Signal<ScrollIndicatorState>] {
 	// Get project state
 	const appState = useAppState();
@@ -384,7 +386,8 @@ export function useChatState(
 					conversations: [...chatState.value.conversations, {
 						id: data.logEntryData.conversationId,
 						title: data.logEntryData.conversationTitle,
-						tokenUsageConversation: data.logEntryData.tokenUsageConversation,
+						tokenUsageStats: data.logEntryData.tokenUsageStats,
+						requestParams: data.logEntryData.requestParams,
 						conversationStats: data.logEntryData.conversationStats,
 						createdAt: data.logEntryData.timestamp,
 						updatedAt: data.logEntryData.timestamp,
@@ -439,8 +442,9 @@ export function useChatState(
 					if (conv.id === data.logEntryData.conversationId) {
 						return {
 							...conv,
-							tokenUsageConversation: data.logEntryData.tokenUsageConversation,
+							tokenUsageStats: data.logEntryData.tokenUsageStats,
 							conversationStats: data.logEntryData.conversationStats,
+							requestParams: data.logEntryData.requestParams,
 							updatedAt: data.logEntryData.timestamp,
 						};
 					}
@@ -467,12 +471,22 @@ export function useChatState(
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				// Update project stats for token usage
-				// const tokenUsage = data.logEntryData.tokenUsage?.totalTokens || 0;
+				// const tokenUsage = data.logEntryData.tokenUsageStats.tokenUsage?.totalTokens || 0;
 				// await updateProjectStats(currentProject.projectId, {
 				// 	conversationCount: currentProject.stats?.conversationCount || 1,
 				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
 				// 	lastAccessed: new Date().toISOString(),
 				// });
+
+				// Update chatInputOptions with the request parameters from the response if available
+				if (chatInputOptions && data.logEntryData.requestParams) {
+					console.info('useChatState: Updating options from message response', data.logEntryData.requestParams);
+					chatInputOptions.value = {
+						...chatInputOptions.value,
+						...data.logEntryData.requestParams
+					};
+				}
+
 				chatState.value = {
 					...chatState.value,
 					status: {
@@ -653,7 +667,7 @@ export function useChatState(
 		},
 		 */
 
-		sendConverse: async (message: string) => {
+		sendConverse: async (message: string, requestParams?: LLMRequestParams) => {
 			if (!chatState.value.wsManager) {
 				console.error('sendConverse: wsManager is null');
 				throw new Error('Chat system is not initialized');
@@ -672,7 +686,7 @@ export function useChatState(
 					console.error('sendConverse: wsManager is null before sending message');
 					throw new Error('Chat WebSocket manager was lost during message send');
 				}
-				await chatState.value.wsManager.sendConverse(message);
+				await chatState.value.wsManager.sendConverse(message, requestParams);
 			} catch (error) {
 				console.error('Failed to send message:', error);
 				chatState.value = {

@@ -7,6 +7,7 @@
 
 //import { join } from '@std/path';
 import type { LLMProvider } from 'api/types.ts';
+import { LLMModelToProvider } from 'api/types/llms.ts';
 import type {
 	InteractionPreferences,
 	ModelCapabilities,
@@ -151,6 +152,48 @@ export class ModelCapabilitiesManager {
 	public async refreshCapabilities(): Promise<void> {
 		// TODO: In the future, implement fetching updated capabilities from BB server
 		// For now, we'll just use the built-in capabilities
+	}
+
+	/**
+	 * Gets capabilities for a specific model using its ID, automatically determining the provider
+	 * 
+	 * @param modelId The model identifier
+	 * @returns Model capabilities object, or default capabilities if not found
+	 */
+	public getModelCapabilitiesById(modelId: string): ModelCapabilities {
+		// Determine the provider from the model ID
+		const provider = LLMModelToProvider[modelId];
+		
+		if (!provider) {
+			logger.warn(`ModelCapabilitiesManager: No provider found for model ${modelId}, using defaults`);
+			return { ...DEFAULT_MODEL_CAPABILITIES };
+		}
+		
+		// Use the standard method once we have the provider
+		return this.getModelCapabilities(provider, modelId);
+	}
+
+	/**
+	 * Gets all available models and their capabilities
+	 * 
+	 * @returns Array of models with their capabilities
+	 */
+	public getAllModels(): Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> {
+		if (!this.initialized) {
+			logger.warn('ModelCapabilitiesManager: Accessing before initialization, using defaults');
+			return [];
+		}
+		
+		// Loop through all providers and models
+		const allModels: Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> = [];
+		
+		// Get all models from LLMModelToProvider mapping
+		for (const [modelId, provider] of Object.entries(LLMModelToProvider)) {
+			const capabilities = this.getModelCapabilities(provider, modelId);
+			allModels.push({ modelId, provider, capabilities });
+		}
+		
+		return allModels;
 	}
 
 	/**
