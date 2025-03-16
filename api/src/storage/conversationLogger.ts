@@ -77,7 +77,7 @@ export default class ConversationLogger {
 			logEntry: ConversationLogEntry,
 			conversationStats: ConversationStats,
 			tokenUsageStats: TokenUsageStats,
-			requestParams: LLMRequestParams,
+			requestParams?: LLMRequestParams,
 		) => Promise<void>,
 	) {}
 
@@ -318,7 +318,7 @@ export default class ConversationLogger {
 		logEntry: ConversationLogEntry,
 		_conversationStats: ConversationStats,
 		_tokenUsageStats: TokenUsageStats,
-		_requestParams: LLMRequestParams,
+		_requestParams?: LLMRequestParams,
 	): Promise<string> {
 		// [TODO] add token usage to header line
 		const formattedContent = await this.logEntryFormatterManager.formatLogEntry(
@@ -341,7 +341,7 @@ export default class ConversationLogger {
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats,
 		tokenUsageStats: TokenUsageStats,
-		requestParams: LLMRequestParams,
+		requestParams?: LLMRequestParams,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
 			timestamp,

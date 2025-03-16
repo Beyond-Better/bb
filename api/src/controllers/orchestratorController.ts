@@ -13,7 +13,7 @@ import AgentController from 'api/controllers/agentController.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 //import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
-import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
+import type { CompletedTask, ErrorHandlingConfig, Task, LLMRequestParams } from 'api/types/llms.ts';
 import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	//ConversationContinue,
@@ -141,6 +141,7 @@ class OrchestratorController extends BaseController {
 		statement: string,
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
+		requestParams?: LLMRequestParams,
 	): Promise<ConversationResponse> {
 		this.isCancelled = false;
 		this.resetStatus();
@@ -185,7 +186,12 @@ class OrchestratorController extends BaseController {
 						conversationId: interaction.id,
 						conversationTitle: interaction.title,
 						timestamp: new Date().toISOString(),
-						tokenUsageConversation: this.tokenUsageInteraction,
+						tokenUsageStats: {
+							//tokenUsageConversation: this.tokenUsageInteraction,
+							tokenUsageConversation: interaction.tokenUsageInteraction,
+							tokenUsageStatement: interaction.tokenUsageStatement,
+							tokenUsageTurn: interaction.tokenUsageTurn,
+						},
 						conversationStats: interaction.conversationStats,
 					} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
 				);
@@ -251,7 +257,10 @@ class OrchestratorController extends BaseController {
 				conversationTurnCount: this.conversationTurnCount,
 			},
 			tokenUsageStats: {
-				tokenUsageConversation: this.tokenUsageInteraction,
+				//tokenUsageConversation: this.tokenUsageInteraction,
+				tokenUsageConversation: interaction.tokenUsageInteraction,
+				tokenUsageStatement: interaction.tokenUsageStatement,
+				tokenUsageTurn: interaction.tokenUsageTurn,
 			},
 			conversationHistory: [], //this.getConversationHistory(interaction),
 			versionInfo,
@@ -262,13 +271,15 @@ class OrchestratorController extends BaseController {
 		);
 
 		const speakOptions: LLMSpeakWithOptions = {
-			//temperature: 0.7,
-			//maxTokens: 1000,
-			extendedThinking: this.projectConfig.settings.api?.extendedThinking ?? {
-				enabled: true,
-				budgetTokens: 4000,
-			},
+			...requestParams,
+			// //temperature: 0.7,
+			// //maxTokens: 1000,
+			// extendedThinking: this.projectConfig.settings.api?.extendedThinking ?? {
+			// 	enabled: true,
+			// 	budgetTokens: 4000,
+			// },
 		};
+		logger.info(`OrchestratorController: Calling conversation.converse with speakOptions: `, speakOptions);
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
 		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop

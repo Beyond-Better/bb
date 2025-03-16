@@ -5,7 +5,6 @@ import { existsWithinProject, isPathWithinProject } from 'api/utils/fileHandling
 import { generateFileListing } from 'api/utils/projectListing.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
-import type { FileMetadata } from 'shared/types.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 
 // Extend ProjectInfo to include projectId
@@ -17,7 +16,8 @@ import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import type { ConversationId, ConversationResponse } from 'shared/types.ts';
+import type { ConversationId, ConversationResponse, FileMetadata } from 'shared/types.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import {
 	getBbDataDir,
@@ -171,7 +171,8 @@ class ProjectEditor {
 	async handleStatement(
 		statement: string,
 		conversationId: ConversationId,
-		options?: { maxTurns?: number; model?: string },
+		options?: { maxTurns?: number },
+		requestParams?: LLMRequestParams,
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
@@ -181,6 +182,7 @@ class ProjectEditor {
 			statement,
 			conversationId,
 			options,
+			requestParams,
 		);
 		return statementAnswer;
 	}

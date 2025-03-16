@@ -51,32 +51,33 @@ export interface ApiStatus {
 
 // Model capability types
 export interface ModelCapabilities {
-  contextWindow: number;
-  maxOutputTokens: number;
-  pricing?: Record<string, unknown>;
-  supportedFeatures: {
-    extendedThinking?: boolean;
-    promptCaching?: boolean;
-    [key: string]: boolean | undefined;
-  };
-  defaults?: Record<string, unknown>;
-  constraints?: {
-    temperature?: { min: number; max: number };
-    [key: string]: { min: number; max: number } | undefined;
-  };
-  systemPromptBehavior?: string;
-  [key: string]: unknown;
+	contextWindow: number;
+	maxOutputTokens: number;
+	pricing?: Record<string, unknown>;
+	supportedFeatures: {
+		extendedThinking?: boolean;
+		promptCaching?: boolean;
+		[key: string]: boolean | undefined;
+	};
+	defaults?: Record<string, unknown>;
+	constraints?: {
+		temperature?: { min: number; max: number };
+		[key: string]: { min: number; max: number } | undefined;
+	};
+	systemPromptBehavior?: string;
+	[key: string]: unknown;
 }
 
 export interface ModelDetails {
-  id: string;
-  provider: string;
-  providerLabel: string;
-  capabilities: ModelCapabilities;
+	id: string;
+	displayName: string;
+	provider: string;
+	providerLabel: string;
+	capabilities: ModelCapabilities;
 }
 
 export interface ModelResponse {
-  model: ModelDetails;
+	model: ModelDetails;
 }
 
 interface ConversationResponse {

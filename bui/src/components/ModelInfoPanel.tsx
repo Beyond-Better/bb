@@ -1,7 +1,7 @@
 import { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
-import type { ModelCapabilities } from '../utils/apiClient.utils.ts';
+import type { ModelDetails } from '../utils/apiClient.utils.ts';
 import type { LLMRequestParams } from '../types/llm.types.ts';
 import type { TokenUsage } from 'shared/types.ts';
 
@@ -15,14 +15,15 @@ interface ModelInfoPanelProps {
 		tokenUsageConversation?: TokenUsage;
 		tokenUsageTurn?: TokenUsage;
 	};
-	modelCapabilities?: Signal<ModelCapabilities | null>;
+	modelData: Signal<ModelDetails | null>;
 }
 
-export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelCapabilities }: ModelInfoPanelProps): JSX.Element {
+export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelInfoPanelProps): JSX.Element {
 	if (!isOpen) return <></>; // Don't render if not open
 
 	//console.log(`ModelInfoPanel: ${isOpen ? 'Open' : 'Closed'}`);
-	//console.log(`ModelInfoPanel:`, modelInfo);
+	//console.log(`ModelInfoPanel:`, {modelInfo});
+	console.log(`ModelInfoPanel:`, {modelData: modelData.value});
 	const { model, provider, requestParams, tokenUsageTurn, tokenUsageConversation } = modelInfo;
 
 	// Extract request parameters or use defaults
@@ -32,7 +33,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelCapabilities }
 	const promptCaching = requestParams?.usePromptCaching ?? false;
 
 	// Extract token usage values
-	const contextWindow = modelCapabilities.value.contextWindow;
+	const contextWindow = modelData.value?.capabilities.contextWindow || 0;
 	const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
 	const tokenLimit = contextWindow;
 	const tokenPercentage = tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
@@ -55,7 +56,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelCapabilities }
 				{/* Header */}
 				<div className='flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-3'>
 					<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-						Model: {model} ({provider}) - {(contextWindow / 1000).toFixed(0)}K tokens
+						Model: {modelData.value?.displayName} ({modelData.value?.providerLabel}) - {(contextWindow / 1000).toFixed(0)}K tokens
 					</h3>
 					<button
 						type='button'

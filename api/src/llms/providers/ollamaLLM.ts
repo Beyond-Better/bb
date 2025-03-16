@@ -182,19 +182,19 @@ class OllamaLLM extends LLM {
 		if (interaction) {
 			// Use interaction to resolve parameters with proper priority
 			const resolved = await interaction.resolveModelParameters(
-				this.llmProviderName,
 				model,
-				undefined, // Ollama doesn't use maxTokens
-				messageRequest.temperature
+				{
+					//maxTokens: messageRequest.maxTokens,  // Ollama doesn't use maxTokens
+					temperature: messageRequest.temperature,
+				},
+				LLMProvider.OLLAMA,
 			);
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-			await capabilitiesManager.initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 			
 			temperature = capabilitiesManager.resolveTemperature(
-				this.llmProviderName,
 				model,
 				messageRequest.temperature
 			);

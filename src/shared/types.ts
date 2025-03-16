@@ -1,4 +1,4 @@
-import type { LLMProviderMessageMeta, LLMProviderMessageResponse,LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMProviderMessageMeta, LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
@@ -24,7 +24,8 @@ export interface ConversationMetadata {
 	conversationStats: ConversationStats;
 	conversationMetrics?: ConversationMetrics;
 	//tokenUsageConversation?: TokenUsage;
-	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn', 'tokenUsageStatement'> ;
+	//tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'>;
+	tokenUsageStats: TokenUsageStats;
 	requestParams?: LLMRequestParams;
 
 	llmProviderName: string;
@@ -57,9 +58,9 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 	totalProviderRequests: number;
 
 	tokenUsageStats: TokenUsageStats;
-// 	tokenUsageTurn: TokenUsage;
-// 	tokenUsageStatement: TokenUsage;
-// 	tokenUsageConversation: TokenUsage;
+	// 	tokenUsageTurn: TokenUsage;
+	// 	tokenUsageStatement: TokenUsage;
+	// 	tokenUsageConversation: TokenUsage;
 
 	conversationMetrics: ConversationMetrics;
 
@@ -78,9 +79,9 @@ export interface Conversation {
 	conversationStats: ConversationStats;
 	conversationMetrics?: ConversationMetrics;
 	tokenUsageStats: TokenUsageStats;
-// 	tokenUsageTurn: TokenUsage;
-// 	tokenUsageStatement: TokenUsage;
-// 	tokenUsageConversation: TokenUsage;
+	// 	tokenUsageTurn: TokenUsage;
+	// 	tokenUsageStatement: TokenUsage;
+	// 	tokenUsageConversation: TokenUsage;
 
 	//tools?: Array<{ name: string; description: string }>;
 	model: string;
@@ -252,13 +253,15 @@ export interface ConversationStart {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	timestamp: string;
-	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn', 'tokenUsageStatement'> & {
-		tokenUsageStatement?: TokenUsage;
-	};
+// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
+// 		tokenUsageStatement?: TokenUsage;
+// 	};
+	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
 	conversationHistory: ConversationEntry[];
 	formattedContent?: string;
 	versionInfo: VersionInfo;
+	logEntry?: ConversationLogEntry;
 }
 
 export interface ConversationContinue {
@@ -276,8 +279,10 @@ export interface ConversationNew {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	timestamp: string;
-	tokenUsageConversation: TokenUsage;
+	//tokenUsageConversation: TokenUsage;
+	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
+	requestParams?: LLMRequestParams;
 }
 
 export interface ConversationDeleted {

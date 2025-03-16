@@ -1,6 +1,7 @@
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { ApiStatus, ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { LLMRequestParams } from '../types/llm.types.ts';
 import type { ProjectStats } from 'shared/types/project.ts';
 import type { WebSocketStatus } from './websocket.types.ts';
 
@@ -50,7 +51,7 @@ export interface ChatConfig {
 
 export interface ChatHandlers {
 	clearError: () => void;
-	sendConverse: (message: string) => Promise<void>;
+	sendConverse: (message: string, requestParams?: LLMRequestParams) => Promise<void>;
 	selectConversation: (id: string) => Promise<void>;
 	clearConversation: () => void;
 	cancelProcessing: () => Promise<void>;

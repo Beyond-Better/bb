@@ -7,6 +7,7 @@
  * Interface for model capabilities including context limits, pricing, and feature support
  */
 export interface ModelCapabilities {
+	displayName: string;
 	// Context window and token limits
 	contextWindow: number; // Total context window size (input + output)
 	maxInputTokens?: number; // Max tokens for input (if different from context window)
@@ -57,6 +58,7 @@ export interface ModelCapabilities {
 		frequencyPenalty?: number;
 		presencePenalty?: number;
 		maxTokens: number; // Default max tokens for generation
+		extendedThinking?: boolean;
 		responseFormat?: string;
 	};
 
@@ -85,6 +87,7 @@ export interface ModelCapabilities {
 export interface InteractionPreferences {
 	maxTokens?: number;
 	temperature?: number;
+		extendedThinking?: boolean;
 	topP?: number;
 	frequencyPenalty?: number;
 	presencePenalty?: number;
@@ -97,6 +100,7 @@ export interface InteractionPreferences {
 export interface UserModelPreferences {
 	temperature?: number;
 	maxTokens?: number;
+		extendedThinking?: boolean;
 	topP?: number;
 	frequencyPenalty?: number;
 	presencePenalty?: number;

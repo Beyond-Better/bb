@@ -189,30 +189,37 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		// Resolve parameters using model capabilities if interaction is provided
 		let maxTokens: number;
 		let temperature: number;
+		//let extendedThinking: boolean;
 		
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
-				this.llmProviderName,
 				model,
-				messageRequest.maxTokens,
-				messageRequest.temperature
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					//extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
 			);
 			maxTokens = resolved.maxTokens;
 			temperature = resolved.temperature;
+			//extendedThinking = resolved.extendedThinking;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-			await capabilitiesManager.initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 			
 			maxTokens = capabilitiesManager.resolveMaxTokens(
-				this.llmProviderName,
 				model,
-				messageRequest.maxTokens
+				messageRequest.maxTokens,
 			);
+
+			// extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			// 	model,
+			// 	messageRequest.extendedThinking?.enabled,
+			// );
+
 			temperature = capabilitiesManager.resolveTemperature(
-				this.llmProviderName,
 				model,
-				messageRequest.temperature
+				messageRequest.temperature,
 			);
 		}
 		const systemMessage: OpenAI.Chat.ChatCompletionSystemMessageParam = { role: 'system', content: system };

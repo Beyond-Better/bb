@@ -8,7 +8,7 @@ import { isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
 import type { ConversationMetadata } from 'shared/types.ts';
-import type { ModelCapabilities,ApiClient } from '../utils/apiClient.utils.ts';
+import type { ApiClient, ModelDetails } from '../utils/apiClient.utils.ts';
 import { ConversationSelector } from './ConversationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
 import { ModelInfoPanel } from './ModelInfoPanel.tsx';
@@ -38,7 +38,7 @@ interface ConversationHeaderProps {
 	onToggleList: () => void;
 	isListVisible: boolean;
 	chatState: Signal<ChatState>;
-	modelCapabilities?: Signal<ModelCapabilities | null>;
+	modelData: Signal<ModelDetails | null>;
 	onSendMessage: (message: string) => Promise<void>;
 	chatInputRef: RefObject<ChatInputRef>;
 	disabled: boolean;
@@ -55,7 +55,7 @@ export function ConversationHeader({
 	onToggleList,
 	isListVisible,
 	chatState,
-	modelCapabilities,
+	modelData,
 	onSendMessage,
 	chatInputRef,
 	disabled,
@@ -79,17 +79,18 @@ export function ConversationHeader({
 		const logEntries = chatState.value.logEntries || [];
 		//console.log('ConversationHeader: getModelInfo', {logEntries});
 		const assistantEntries = logEntries.filter((entry) =>
-			entry.logEntry.entryType === 'assistant' || entry.logEntry.entryType === 'tool_use' || entry.logEntry.entryType === 'answer'
+			entry.logEntry?.entryType === 'assistant' || entry.logEntry?.entryType === 'tool_use' ||
+			entry.logEntry?.entryType === 'answer'
 		);
 
 		// Find the most recent entry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageTurn || entry.tokenUsageStats?.tokenUsageTurn);
+		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageStats?.tokenUsageTurn);
 
 		return {
 			model: currentConversation.value.model || 'Unknown',
 			provider: currentConversation.value.llmProviderName || 'Unknown',
 			requestParams: currentConversation.value.requestParams,
-			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageTurn || entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
+			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
 			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
 		};
 	};
@@ -110,13 +111,13 @@ export function ConversationHeader({
 		);
 
 		// Find the most recent entry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageTurn || entry.tokenUsageStats?.tokenUsageTurn);
+		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageStats?.tokenUsageTurn);
 
 		return {
 			model: currentConversation.value.model || 'Unknown',
 			provider: currentConversation.value.llmProviderName || 'Unknown',
 			requestParams: currentConversation.value.requestParams,
-			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageTurn || entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
+			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
 			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
 		};
 	};
@@ -306,7 +307,7 @@ export function ConversationHeader({
 				isOpen={isModelInfoOpen}
 				onClose={() => setIsModelInfoOpen(false)}
 				modelInfo={getModelInfo()}
-				modelCapabilities={modelCapabilities}
+				modelData={modelData}
 			/>
 		</header>
 	);

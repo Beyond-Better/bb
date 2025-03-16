@@ -298,6 +298,7 @@ class AnthropicLLM extends LLM {
 		interaction?: LLMInteraction,
 	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
+		logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest', messageRequest);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const system = messageRequest.system
 			? [
@@ -325,29 +326,38 @@ class AnthropicLLM extends LLM {
 		// Resolve parameters using model capabilities
 		let temperature: number;
 		let maxTokens: number;
+		let extendedThinking: boolean;
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
-				LLMProvider.ANTHROPIC,
 				messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET,
-				messageRequest.maxTokens,
-				messageRequest.temperature,
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
+				LLMProvider.ANTHROPIC,
 			);
-			//const maxTokens: number = 16384;
+
 			maxTokens = resolved.maxTokens;
+			extendedThinking = resolved.extendedThinking;
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
+			temperature = extendedThinking ? 1 : resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
 			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
-				this.llmProviderName,
 				model,
 				messageRequest.maxTokens,
 			);
+
+			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+				model,
+				messageRequest.extendedThinking?.enabled,
+			);
+
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = messageRequest.extendedThinking?.enabled ? 1 : capabilitiesManager.resolveTemperature(
-				this.llmProviderName,
+			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -360,15 +370,15 @@ class AnthropicLLM extends LLM {
 			model,
 			max_tokens: maxTokens,
 			temperature,
-			betas: ['output-128k-2025-02-19','token-efficient-tools-2025-02-19'],
+			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19'],
 			stream: false,
 
 			// Add extended thinking support if enabled in the request
-			...(messageRequest.extendedThinking?.enabled
+			...(extendedThinking
 				? {
 					thinking: {
 						type: 'enabled',
-						budget_tokens: messageRequest.extendedThinking.budgetTokens || 4000,
+						budget_tokens: messageRequest.extendedThinking?.budgetTokens || 4000,
 					},
 				}
 				: {}),
@@ -535,15 +545,15 @@ class AnthropicLLM extends LLM {
 				maxTokens: providerMessageRequest.max_tokens!,
 				temperature: providerMessageRequest.temperature!,
 				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: this.projectConfig.settings.api?.usePromptCaching ?? true
+				usePromptCaching: this.projectConfig.settings.api?.usePromptCaching ?? true,
 			};
 
-			return { 
-				messageResponse, 
-				messageMeta: { 
+			return {
+				messageResponse,
+				messageMeta: {
 					system: messageRequest.system,
-					requestParams
-				} 
+					requestParams,
+				},
 			};
 		} catch (err) {
 			logger.error('AnthropicLLM: Error calling Anthropic API', err);

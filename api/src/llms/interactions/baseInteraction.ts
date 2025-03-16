@@ -24,7 +24,7 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import type { LLMProviderMessageResponseRole } from 'api/types/llms.ts';
+import { LLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -104,13 +104,14 @@ class LLMInteraction {
 	protected _temperature: number = 0.2;
 	protected _currentPrompt: string = '';
 
-	protected _requestParams: LLMRequestParams = {
-		model: '',
-		temperature: 0,
-		maxTokens: 0,
-		extendedThinking: { enabled: false, budgetTokens: 0 },
-		usePromptCaching: false,
-	};
+	protected _requestParams?: LLMRequestParams;
+	// 	protected _requestParams: LLMRequestParams = {
+	// 		model: '',
+	// 		temperature: 0,
+	// 		maxTokens: 0,
+	// 		extendedThinking: { enabled: false, budgetTokens: 0 },
+	// 		usePromptCaching: false,
+	// 	};
 
 	constructor(llm: LLM, conversationId?: ConversationId) {
 		this.id = conversationId ?? generateConversationId();
@@ -132,7 +133,7 @@ class LLMInteraction {
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
-				requestParams: LLMRequestParams,
+				requestParams?: LLMRequestParams,
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
@@ -185,10 +186,10 @@ class LLMInteraction {
 		this._tokenUsageInteraction = stats.tokenUsageConversation;
 	}
 
-	public get requestParams(): LLMRequestParams {
+	public get requestParams(): LLMRequestParams | undefined {
 		return this._requestParams;
 	}
-	public set requestParams(requestParams: LLMRequestParams) {
+	public set requestParams(requestParams: LLMRequestParams | undefined) {
 		this._requestParams = requestParams;
 	}
 
@@ -756,16 +757,19 @@ class LLMInteraction {
 				return {
 					temperature: 0.7, // More creative for chat
 					maxTokens: 4096, // Limited for chat
+					extendedThinking: false,
 				};
 			case 'conversation':
 				return {
 					temperature: 0.2, // More precise for conversation
 					maxTokens: 16384, // Higher for conversation to allow more detailed responses
+					extendedThinking: true,
 				};
 			default:
 				return {
 					temperature: 0.5,
 					maxTokens: 8192,
+					extendedThinking: false,
 				};
 		}
 	}
@@ -781,38 +785,55 @@ class LLMInteraction {
 	 * @returns Resolved parameters object with maxTokens and temperature
 	 */
 	public async resolveModelParameters(
-		provider: LLMProvider,
 		model: string,
-		explicitMaxTokens?: number,
-		explicitTemperature?: number,
-	): Promise<{ maxTokens: number; temperature: number }> {
+		parameters: {
+			maxTokens?: number;
+			temperature?: number;
+			extendedThinking?: boolean;
+		},
+		provider?: LLMProvider,
+	): Promise<{ maxTokens: number; temperature: number; extendedThinking:boolean }> {
 		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
+		const effectiveProvider = provider || LLMModelToProvider[model];
 		// Get user preferences from project config
-		const userPreferences = this.projectConfig?.settings?.api?.llmProviders?.[provider]?.userPreferences;
+		const userPreferences = this.projectConfig?.settings?.api?.llmProviders?.[effectiveProvider]?.userPreferences;
 
 		// Get interaction-specific preferences
 		const interactionPreferences = this.getInteractionPreferences();
 
+		const explicitMaxTokens = parameters.maxTokens;
+		const explicitTemperature = parameters.temperature;
+		const explicitExtendedThinking = parameters.extendedThinking;
+
 		// Resolve maxTokens with proper priority
 		const maxTokens = capabilitiesManager.resolveMaxTokens(
-			provider,
 			model,
-			explicitMaxTokens || this._maxTokens,
+			explicitMaxTokens, // || this._maxTokens,
 			userPreferences?.maxTokens,
 			interactionPreferences.maxTokens,
+			provider,
 		);
 
 		// Resolve temperature with proper priority
 		const temperature = capabilitiesManager.resolveTemperature(
-			provider,
 			model,
-			explicitTemperature || this._temperature,
+			explicitTemperature, // || this._temperature,
 			userPreferences?.temperature,
 			interactionPreferences.temperature,
+			provider,
 		);
 
-		return { maxTokens, temperature };
+		// Resolve temperature with proper priority
+		const extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			model,
+			explicitExtendedThinking, // || this._extendedThinking.enabled,
+			userPreferences?.extendedThinking,
+			interactionPreferences.extendedThinking,
+			provider,
+		);
+
+		return { maxTokens, temperature, extendedThinking };
 	}
 
 	get temperature(): number {

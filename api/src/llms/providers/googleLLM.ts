@@ -392,32 +392,38 @@ class GoogleLLM extends LLM {
 		// Resolve parameters using model capabilities
 		let maxTokens: number;
 		let temperature: number;
+		//let extendedThinking: boolean;
 		
 		if (interaction) {
 			// Use interaction to resolve parameters with proper priority
 			const resolved = await interaction.resolveModelParameters(
-				this.llmProviderName,
 				model,
-				messageRequest.maxTokens,
-				messageRequest.temperature
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					//extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
+				LLMProvider.GOOGLE,
 			);
 			maxTokens = resolved.maxTokens;
+			//extendedThinking = resolved.extendedThinking;
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-			await capabilitiesManager.initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 			
 			maxTokens = capabilitiesManager.resolveMaxTokens(
-				this.llmProviderName,
 				model,
-				messageRequest.maxTokens
+				messageRequest.maxTokens,
 			);
 			temperature = capabilitiesManager.resolveTemperature(
-				this.llmProviderName,
 				model,
-				messageRequest.temperature
+				messageRequest.temperature,
 			);
+			//extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			//	model,
+			//	messageRequest.extendedThinking?.enabled,
+			//);
 		}
 
 		// Prepare the request with appropriate configuration

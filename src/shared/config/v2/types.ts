@@ -90,6 +90,7 @@ export interface ServerConfig {
 export interface UserModelPreferences {
 	temperature?: number;
 	maxTokens?: number;
+	extendedThinking?: boolean;
 	topP?: number;
 	frequencyPenalty?: number;
 	presencePenalty?: number;

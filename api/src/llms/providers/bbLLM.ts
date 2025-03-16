@@ -225,29 +225,36 @@ class BbLLM extends LLM {
 		// Resolve parameters using model capabilities
 		let temperature: number;
 		let maxTokens: number;
+		let extendedThinking: boolean;
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
-				this.llmProviderName,
 				model,
-				messageRequest.maxTokens,
-				messageRequest.temperature,
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
 			);
-			//const maxTokens: number = 16384;
+
 			maxTokens = resolved.maxTokens;
+			extendedThinking = resolved.extendedThinking;
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = messageRequest.extendedThinking?.enabled ? 1 : resolved.temperature;
+			temperature = extendedThinking ? 1 : resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
 			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
-				this.llmProviderName,
 				model,
 				messageRequest.maxTokens,
 			);
+
+			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+				model,
+				messageRequest.extendedThinking?.enabled,
+			);
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = messageRequest.extendedThinking?.enabled ? 1 : capabilitiesManager.resolveTemperature(
-				this.llmProviderName,
+			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -261,6 +268,7 @@ class BbLLM extends LLM {
 			maxTokens,
 			temperature,
 			usePromptCaching,
+			extendedThinking: { enabled: extendedThinking, budgetTokens: 4000 },
 		};
 		//logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
@@ -383,15 +391,15 @@ class BbLLM extends LLM {
 				maxTokens: providerMessageRequest.maxTokens,
 				temperature: providerMessageRequest.temperature,
 				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: providerMessageRequest.usePromptCaching
+				usePromptCaching: providerMessageRequest.usePromptCaching,
 			};
 
-			return { 
-				messageResponse, 
-				messageMeta: { 
+			return {
+				messageResponse,
+				messageMeta: {
 					system: messageRequest.system,
-					requestParams
-				} 
+					requestParams,
+				},
 			};
 		} catch (err) {
 			logger.error('BbLLM: Error calling BB API', err);

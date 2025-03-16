@@ -14,6 +14,7 @@ interface WebSocketMessage {
 	projectId: string;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement: string;
+	options?: { maxTurns?: number };
 	requestParams?: LLMRequestParams;
 }
 
@@ -31,10 +32,13 @@ interface WebSocketResponse {
 	data: {
 		logEntry?: any;
 		conversationTitle?: string;
-		tokenUsageTurn?: TokenUsage;
-		tokenUsageStatement?: TokenUsage;
-		tokenUsageConversation?: TokenUsage;
+		tokenUsageStats: {
+			tokenUsageTurn?: TokenUsage;
+			tokenUsageStatement?: TokenUsage;
+			tokenUsageConversation?: TokenUsage;
+		};
 		conversationStats?: ConversationStats;
+		requestParams: LLMRequestParams;
 		error?: string;
 	};
 }
@@ -115,7 +119,8 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			projectId: this.projectId,
 			task: 'converse',
 			statement: message,
-			requestParams,
+			options: { }, // statement options
+			requestParams, // LLM request params
 		};
 
 		this.socket.send(JSON.stringify(wsMessage));

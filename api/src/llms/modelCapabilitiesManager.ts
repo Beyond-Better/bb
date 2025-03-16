@@ -8,11 +8,7 @@
 //import { join } from '@std/path';
 import type { LLMProvider } from 'api/types.ts';
 import { LLMModelToProvider } from 'api/types/llms.ts';
-import type {
-	InteractionPreferences,
-	ModelCapabilities,
-	UserModelPreferences,
-} from 'api/types/modelCapabilities.ts';
+import type { InteractionPreferences, ModelCapabilities, UserModelPreferences } from 'api/types/modelCapabilities.ts';
 import { logger } from 'shared/logger.ts';
 import { isError } from 'api/errors/error.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
@@ -26,6 +22,7 @@ import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'j
 
 // Default capabilities for fallback
 const DEFAULT_MODEL_CAPABILITIES: ModelCapabilities = {
+	displayName: 'Claude',
 	contextWindow: 100000,
 	maxOutputTokens: 4096,
 	pricing: {
@@ -43,10 +40,13 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilities = {
 		json: false,
 		streaming: true,
 		vision: false,
+		extendedThinking: false,
+		promptCaching: false,
 	},
 	defaults: {
 		temperature: 0.7,
 		maxTokens: 4096,
+		extendedThinking: false,
 	},
 	constraints: {
 		temperature: { min: 0.0, max: 1.0 },
@@ -128,6 +128,7 @@ export class ModelCapabilitiesManager {
 
 				// Check required properties
 				const requiredProps = [
+					'displayName',
 					'contextWindow',
 					'maxOutputTokens',
 					'pricing',
@@ -155,27 +156,8 @@ export class ModelCapabilitiesManager {
 	}
 
 	/**
-	 * Gets capabilities for a specific model using its ID, automatically determining the provider
-	 * 
-	 * @param modelId The model identifier
-	 * @returns Model capabilities object, or default capabilities if not found
-	 */
-	public getModelCapabilitiesById(modelId: string): ModelCapabilities {
-		// Determine the provider from the model ID
-		const provider = LLMModelToProvider[modelId];
-		
-		if (!provider) {
-			logger.warn(`ModelCapabilitiesManager: No provider found for model ${modelId}, using defaults`);
-			return { ...DEFAULT_MODEL_CAPABILITIES };
-		}
-		
-		// Use the standard method once we have the provider
-		return this.getModelCapabilities(provider, modelId);
-	}
-
-	/**
 	 * Gets all available models and their capabilities
-	 * 
+	 *
 	 * @returns Array of models with their capabilities
 	 */
 	public getAllModels(): Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> {
@@ -183,48 +165,55 @@ export class ModelCapabilitiesManager {
 			logger.warn('ModelCapabilitiesManager: Accessing before initialization, using defaults');
 			return [];
 		}
-		
+
 		// Loop through all providers and models
 		const allModels: Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> = [];
-		
+
 		// Get all models from LLMModelToProvider mapping
 		for (const [modelId, provider] of Object.entries(LLMModelToProvider)) {
 			const capabilities = this.getModelCapabilities(provider, modelId);
 			allModels.push({ modelId, provider, capabilities });
 		}
-		
+
 		return allModels;
 	}
 
 	/**
-	 * Gets capabilities for a specific provider/model combination
+	 * Gets capabilities for a specific model, with optional provider override
 	 *
-	 * @param provider The LLM provider
 	 * @param model The model identifier
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns Model capabilities object, or default capabilities if not found
 	 */
-	public getModelCapabilities(provider: string, model: string): ModelCapabilities {
+	public getModelCapabilities(model: string, provider?: string): ModelCapabilities {
 		if (!this.initialized) {
 			logger.warn('ModelCapabilitiesManager: Accessing before initialization, using defaults');
 			return { ...DEFAULT_MODEL_CAPABILITIES };
 		}
 
+		// Determine provider from model if not provided
+		const effectiveProvider = provider || LLMModelToProvider[model];
+		if (!effectiveProvider) {
+			logger.warn(`ModelCapabilitiesManager: No provider found for model ${model}, using defaults`);
+			return { ...DEFAULT_MODEL_CAPABILITIES };
+		}
+
 		// Check cache first
-		const cacheKey = `${provider}:${model}`;
+		const cacheKey = `${effectiveProvider}:${model}`;
 		if (this.cache.has(cacheKey)) {
 			return this.cache.get(cacheKey)!;
 		}
 
 		// Try to get from loaded capabilities
-		const providerCaps = this.capabilities[provider];
+		const providerCaps = this.capabilities[effectiveProvider];
 		if (!providerCaps) {
-			logger.warn(`ModelCapabilitiesManager: No capabilities found for provider ${provider}`);
+			logger.warn(`ModelCapabilitiesManager: No capabilities found for provider ${effectiveProvider}`);
 			return { ...DEFAULT_MODEL_CAPABILITIES };
 		}
 
 		const modelCaps = providerCaps[model];
 		if (!modelCaps) {
-			logger.warn(`ModelCapabilitiesManager: No capabilities found for model ${provider}/${model}`);
+			logger.warn(`ModelCapabilitiesManager: No capabilities found for model ${effectiveProvider}/${model}`);
 			return { ...DEFAULT_MODEL_CAPABILITIES };
 		}
 
@@ -236,17 +225,17 @@ export class ModelCapabilitiesManager {
 	/**
 	 * Checks if a model supports a specific feature
 	 *
-	 * @param provider The LLM provider
 	 * @param model The model identifier
 	 * @param feature The feature to check
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns True if the feature is supported, false otherwise
 	 */
 	public supportsFeature(
-		provider: string,
 		model: string,
 		feature: keyof ModelCapabilities['supportedFeatures'],
+		provider?: string,
 	): boolean {
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 		return !!(capabilities.supportedFeatures && capabilities.supportedFeatures[feature]);
 	}
 
@@ -259,38 +248,38 @@ export class ModelCapabilitiesManager {
 	 * 5. Global fallback default
 	 *
 	 * @param paramName The parameter name to resolve
-	 * @param provider The LLM provider
 	 * @param model The model identifier
 	 * @param explicitValue The explicit value from the request
 	 * @param userPreference The user-configured preference
 	 * @param interactionPreference The interaction-specific preference
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns The resolved parameter value
 	 */
 	public resolveParameter<T>(
 		paramName: keyof ModelCapabilities['defaults'],
-		provider: string,
 		model: string,
 		explicitValue?: T,
 		userPreference?: T,
 		interactionPreference?: T,
+		provider?: string,
 	): T {
 		// If explicitly provided, use that value
 		if (explicitValue !== undefined) {
-			return this.validateParameterValue(paramName, provider, model, explicitValue);
+			return this.validateParameterValue(paramName, model, explicitValue, provider);
 		}
 
 		// If user has configured a preference, use that
 		if (userPreference !== undefined) {
-			return this.validateParameterValue(paramName, provider, model, userPreference);
+			return this.validateParameterValue(paramName, model, userPreference, provider);
 		}
 
 		// If interaction has a specific preference, use that
 		if (interactionPreference !== undefined) {
-			return this.validateParameterValue(paramName, provider, model, interactionPreference);
+			return this.validateParameterValue(paramName, model, interactionPreference, provider);
 		}
 
 		// Otherwise use the model's default value
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 		const defaultValue = capabilities.defaults[paramName as keyof ModelCapabilities['defaults']];
 
 		return defaultValue as unknown as T;
@@ -299,31 +288,31 @@ export class ModelCapabilitiesManager {
 	/**
 	 * Resolves the temperature parameter with validation
 	 *
-	 * @param provider The LLM provider
 	 * @param model The model identifier
 	 * @param explicitValue The explicit temperature from the request
 	 * @param userPreference The user-configured temperature preference
 	 * @param interactionPreference The interaction-specific temperature preference
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns The resolved temperature value
 	 */
 	public resolveTemperature(
-		provider: string,
 		model: string,
 		explicitValue?: number,
 		userPreference?: number,
 		interactionPreference?: number,
+		provider?: string,
 	): number {
 		const temperature = this.resolveParameter<number>(
 			'temperature',
-			provider,
 			model,
 			explicitValue,
 			userPreference,
 			interactionPreference,
+			provider,
 		);
 
 		// Validate against model constraints
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 		const { min, max } = capabilities.constraints.temperature;
 		return Math.max(min, Math.min(max, temperature));
 	}
@@ -331,50 +320,81 @@ export class ModelCapabilitiesManager {
 	/**
 	 * Resolves the maxTokens parameter with validation
 	 *
-	 * @param provider The LLM provider
 	 * @param model The model identifier
 	 * @param explicitValue The explicit maxTokens from the request
 	 * @param userPreference The user-configured maxTokens preference
 	 * @param interactionPreference The interaction-specific maxTokens preference
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns The resolved maxTokens value
 	 */
 	public resolveMaxTokens(
-		provider: string,
 		model: string,
 		explicitValue?: number,
 		userPreference?: number,
 		interactionPreference?: number,
+		provider?: string,
 	): number {
 		const requestedTokens = this.resolveParameter<number>(
 			'maxTokens',
-			provider,
 			model,
 			explicitValue,
 			userPreference,
 			interactionPreference,
+			provider,
 		);
 
 		// Ensure tokens don't exceed the model's maximum
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 		return Math.min(requestedTokens, capabilities.maxOutputTokens);
+	}
+
+	/**
+	 * Resolves the extendedThinking parameter with validation
+	 *
+	 * @param model The model identifier
+	 * @param explicitValue The explicit extendedThinking from the request
+	 * @param userPreference The user-configured extendedThinking preference
+	 * @param interactionPreference The interaction-specific extendedThinking preference
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
+	 * @returns The resolved extendedThinking value
+	 */
+	public resolveExtendedThinking(
+		model: string,
+		explicitValue?: boolean,
+		userPreference?: boolean,
+		interactionPreference?: boolean,
+		provider?: string,
+	): boolean {
+		const wantsExtendedThinking = this.resolveParameter<boolean | undefined>(
+			'extendedThinking',
+			model,
+			explicitValue,
+			userPreference,
+			interactionPreference,
+			provider,
+		);
+
+		// Ensure tokens don't exceed the model's maximum
+		const capabilities = this.getModelCapabilities(model, provider);
+		return wantsExtendedThinking ?? capabilities.supportedFeatures.extendedThinking ?? false;
 	}
 
 	/**
 	 * Validates and normalizes parameter values based on model constraints
 	 *
 	 * @param parameter The parameter name
-	 * @param provider The LLM provider
 	 * @param model The model identifier
 	 * @param value The parameter value to validate
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns The validated parameter value
 	 */
 	private validateParameterValue<T>(
 		parameter: keyof ModelCapabilities['defaults'],
-		provider: string,
 		model: string,
 		value: T,
+		provider?: string,
 	): T {
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 
 		// Handle special cases that need validation
 		if (parameter === 'temperature') {
@@ -389,6 +409,12 @@ export class ModelCapabilitiesManager {
 			return Math.min(maxAllowed, tokens > 0 ? tokens : maxAllowed) as unknown as T;
 		}
 
+		if (parameter === 'extendedThinking') {
+			const extendedThinkingAllowed = capabilities.supportedFeatures.extendedThinking;
+			const extendedThinking = value as unknown as boolean;
+			return (extendedThinkingAllowed ? extendedThinking : false) as unknown as T;
+		}
+
 		// For other parameters, just return as is
 		return value;
 	}
@@ -397,16 +423,16 @@ export class ModelCapabilitiesManager {
 	 * Gets appropriate interaction preferences for a model
 	 *
 	 * @param interactionType The type of interaction
-	 * @param provider The LLM provider
 	 * @param model The model identifier
+	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
 	 * @returns Appropriate interaction preferences for the model
 	 */
 	public getInteractionPreferences(
 		interactionType: string,
-		provider: string,
 		model: string,
+		provider?: string,
 	): InteractionPreferences {
-		const capabilities = this.getModelCapabilities(provider, model);
+		const capabilities = this.getModelCapabilities(model, provider);
 		const responseSpeed = capabilities.responseSpeed || 'medium';
 
 		// Base preferences depending on interaction type
@@ -415,6 +441,7 @@ export class ModelCapabilitiesManager {
 				return {
 					temperature: 0.7, // More creative for chat
 					maxTokens: Math.min(4096, capabilities.maxOutputTokens), // Limited for chat
+					extendedThinking: false,
 				};
 
 			case 'conversation':
@@ -422,12 +449,14 @@ export class ModelCapabilitiesManager {
 				if (responseSpeed === 'fast') {
 					return {
 						temperature: 0.2, // More precise
-						maxTokens: Math.min(8192, capabilities.maxOutputTokens),
+						maxTokens: Math.min(4096, capabilities.maxOutputTokens),
+						extendedThinking: false,
 					};
 				} else {
 					return {
 						temperature: 0.2, // More precise
 						maxTokens: Math.min(16384, capabilities.maxOutputTokens), // Higher for detailed conversation
+						extendedThinking: true,
 					};
 				}
 
@@ -436,6 +465,7 @@ export class ModelCapabilitiesManager {
 				return {
 					temperature: capabilities.defaults.temperature,
 					maxTokens: capabilities.defaults.maxTokens,
+					extendedThinking: capabilities.supportedFeatures.extendedThinking,
 				};
 		}
 	}

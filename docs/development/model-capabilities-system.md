@@ -57,10 +57,10 @@ The system resolves parameters using this priority order:
 ```typescript
 // Access the interaction's resolve method
 const resolved = await interaction.resolveModelParameters(
-  LLMProvider.ANTHROPIC,
   model,
   explicitMaxTokens, // Optional, can be undefined
-  explicitTemperature // Optional, can be undefined
+  explicitTemperature, // Optional, can be undefined
+  LLMProvider.ANTHROPIC, // Optional, can be undefined
 );
 
 // Use the resolved parameters
@@ -71,19 +71,16 @@ const temperature = resolved.temperature;
 ### Checking Model Capabilities
 
 ```typescript
-const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-await capabilitiesManager.initialize();
+const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
 // Check if a model supports specific features
 const supportsFunctions = capabilitiesManager.supportsFeature(
-  'anthropic',
   'claude-3-5-sonnet-20241022',
   'functionCalling'
 );
 
 // Get full capabilities for a model
 const capabilities = capabilitiesManager.getModelCapabilities(
-  'anthropic',
   'claude-3-5-sonnet-20241022'
 );
 ```

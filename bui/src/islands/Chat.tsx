@@ -4,7 +4,7 @@ import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { LLMRequestParams } from '../types/llm.types.ts';
-import type { ModelCapabilities, ModelResponse } from '../utils/apiClient.utils.ts';
+import type { ModelDetails, ModelResponse } from '../utils/apiClient.utils.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
@@ -34,28 +34,28 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 
 // Default LLM request options
 const defaultOptions: LLMRequestParams = {
-  model: "claude-3-7-sonnet-20250219",
-  temperature: 0.7,
-  maxTokens: 8192,
-  extendedThinking: {
-    enabled: true,
-    budgetTokens: 4096
-  },
-  usePromptCaching: true
+	model: 'claude-3-7-sonnet-20250219',
+	temperature: 0.7,
+	maxTokens: 8192,
+	extendedThinking: {
+		enabled: true,
+		budgetTokens: 4096,
+	},
+	usePromptCaching: true,
 };
 
 // Helper to get options from conversation or defaults
 const getOptionsFromConversation = (conversationId: string | null, conversations: any[]): LLMRequestParams => {
-  if (!conversationId) return defaultOptions;
-  
-  const conversation = conversations.find(conv => conv.id === conversationId);
-  if (!conversation || !conversation.requestParams) return defaultOptions;
-  
-  // Return conversation params with fallbacks to defaults
-  return {
-    ...defaultOptions,
-    ...conversation.requestParams
-  };
+	if (!conversationId) return defaultOptions;
+
+	const conversation = conversations.find((conv) => conv.id === conversationId);
+	if (!conversation || !conversation.requestParams) return defaultOptions;
+
+	// Return conversation params with fallbacks to defaults
+	return {
+		...defaultOptions,
+		...conversation.requestParams,
+	};
 };
 
 interface ChatProps {
@@ -65,8 +65,8 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<LLMRequestParams>({...defaultOptions});
-const modelCapabilities = signal<ModelCapabilities>({});
+const chatInputOptions = signal<LLMRequestParams>({ ...defaultOptions });
+const modelData = signal<ModelDetails | null>(null);
 
 export default function Chat({
 	chatState,
@@ -270,15 +270,15 @@ export default function Chat({
 			// Update options based on the selected conversation
 			chatInputOptions.value = getOptionsFromConversation(id, chatState.value.conversations);
 			console.info('Chat: Updated options for selected conversation', id, chatInputOptions.value);
-			
+
 			// Fetch model capabilities for the selected model
 			const modelName = chatInputOptions.value.model;
 			if (modelName && chatState.value.apiClient) {
 				try {
-					const modelData = await chatState.value.apiClient.getModelCapabilities(modelName);
-					if (modelData) {
-						modelCapabilities.value = modelData.model.capabilities;
-						console.info('Chat: Updated model capabilities', modelCapabilities.value);
+					const modelResponse = await chatState.value.apiClient.getModelCapabilities(modelName);
+					if (modelResponse) {
+						modelData.value = modelResponse.model;
+						console.info('Chat: Updated model capabilities', modelData.value);
 					}
 				} catch (error) {
 					console.error('Chat: Failed to fetch model capabilities', error);
@@ -321,22 +321,22 @@ export default function Chat({
 		// Initialize options from current conversation
 		if (chatState.value.conversationId) {
 			chatInputOptions.value = getOptionsFromConversation(
-				chatState.value.conversationId, 
-				chatState.value.conversations
+				chatState.value.conversationId,
+				chatState.value.conversations,
 			);
 			console.info('Chat: Initialized options from conversation', chatInputOptions.value);
-			
+
 			// Fetch model capabilities for the current model
 			const modelName = chatInputOptions.value.model;
 			if (modelName && chatState.value.apiClient) {
 				chatState.value.apiClient.getModelCapabilities(modelName)
-					.then(modelData => {
-						if (modelData) {
-							modelCapabilities.value = modelData.model.capabilities;
-							console.info('Chat: Loaded model capabilities', modelCapabilities.value);
+					.then((modelResponse) => {
+						if (modelResponse) {
+							modelData.value = modelResponse.model;
+							console.info('Chat: Loaded model capabilities', modelData.value);
 						}
 					})
-					.catch(error => console.error('Chat: Failed to fetch model capabilities', error));
+					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
 			}
 		}
 
@@ -567,9 +567,9 @@ export default function Chat({
 									isListVisible={isConversationListVisible.value}
 									apiClient={chatState.value.apiClient!}
 									chatState={chatState}
-									modelCapabilities={modelCapabilities}
+									modelData={modelData}
 									onSendMessage={async (message) => {
-										await handlers.sendConverse(message);
+										await handlers.sendConverse(message, chatInputOptions.value);
 									}}
 									chatInputRef={chatInputRef}
 									disabled={!chatState.value.status.isReady ||
@@ -675,7 +675,7 @@ export default function Chat({
 									<ChatInput
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}
-										modelCapabilities={modelCapabilities}
+										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										textareaRef={chatInputRef}

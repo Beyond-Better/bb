@@ -19,7 +19,7 @@ import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse,LLMRequestParams } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	//ConversationEntry,
@@ -513,7 +513,7 @@ class BaseController {
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
-				requestParams: LLMRequestParams,
+				requestParams?: LLMRequestParams,
 			): Promise<void> => {
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
 				if (logEntry.entryType === 'answer') {

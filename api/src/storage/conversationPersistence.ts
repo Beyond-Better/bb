@@ -18,7 +18,7 @@ import type {
 	TokenUsageRecord,
 	TokenUsageStats,
 } from 'shared/types.ts';
-//import type { LLMProviderSystem } from 'api/types/llms.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
@@ -244,6 +244,10 @@ class ConversationPersistence {
 				tokenUsageStats: {
 					tokenUsageConversation: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
 				},
 			})),
 			totalCount,
@@ -567,6 +571,10 @@ class ConversationPersistence {
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
 				},
 			};
 		} else {
@@ -581,6 +589,10 @@ class ConversationPersistence {
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
 				},
 			});
 		}

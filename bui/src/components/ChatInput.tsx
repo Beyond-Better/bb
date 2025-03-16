@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
+import type { TargetedEvent } from 'preact/compat';
 import { type LLMRequestParams } from '../types/llm.types.ts';
-import type { ModelCapabilities } from '../utils/apiClient.utils.ts';
+import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
@@ -32,7 +33,7 @@ interface ChatInputProps {
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
 	chatInputOptions: Signal<LLMRequestParams>;
-	modelCapabilities?: Signal<ModelCapabilities | null>;
+	modelData?: Signal<ModelDetails | null>;
 	onChange: (value: string) => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
@@ -95,7 +96,7 @@ export function ChatInput({
 	apiClient,
 	chatInputText,
 	chatInputOptions,
-	modelCapabilities,
+	modelData,
 	onChange,
 	onSend,
 	textareaRef: externalRef,
@@ -1114,7 +1115,7 @@ export function ChatInput({
 						{/* Model */}
 						<div className='space-y-1'>
 							<label className='text-sm text-gray-700 dark:text-gray-300'>
-								Model: {chatInputOptions.value.model}
+								Model: {modelData?.value?.displayName} ({modelData?.value?.providerLabel}) {/*({chatInputOptions.value.model})*/}
 							</label>
 						</div>
 
@@ -1128,12 +1129,14 @@ export function ChatInput({
 							<input
 								type='range'
 								min='1000'
-								max={modelCapabilities?.value?.maxOutputTokens || 100000}
+								max={modelData?.value?.capabilities.maxOutputTokens || 100000}
 								step='1000'
 								value={chatInputOptions.value.maxTokens}
-								onChange={(e) => {
+								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+									if (!e.target) return;
+									const input = e.target as HTMLInputElement;
 									const newOptions = { ...chatInputOptions.value };
-									newOptions.maxTokens = parseInt(e.target.value, 10);
+									newOptions.maxTokens = parseInt(input.value, 10);
 									chatInputOptions.value = newOptions;
 								}}
 								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
@@ -1149,13 +1152,15 @@ export function ChatInput({
 							</div>
 							<input
 								type='range'
-								min={modelCapabilities?.value?.constraints?.temperature?.min || 0}
-								max={modelCapabilities?.value?.constraints?.temperature?.max || 1}
+								min={modelData?.value?.capabilities.constraints?.temperature?.min || 0}
+								max={modelData?.value?.capabilities.constraints?.temperature?.max || 1}
 								step='0.1'
 								value={chatInputOptions.value.temperature}
-								onChange={(e) => {
+								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+									if (!e.target) return;
+									const input = e.target as HTMLInputElement;
 									const newOptions = { ...chatInputOptions.value };
-									newOptions.temperature = parseFloat(e.target.value);
+									newOptions.temperature = parseFloat(input.value);
 									chatInputOptions.value = newOptions;
 								}}
 								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
@@ -1163,8 +1168,8 @@ export function ChatInput({
 						</div>
 
 						{/* Extended Thinking Toggle */}
-						{(!modelCapabilities?.value ||
-							modelCapabilities.value.supportedFeatures?.extendedThinking !== false) && (
+						{(!modelData?.value ||
+							modelData.value.capabilities.supportedFeatures?.extendedThinking !== false) && (
 							<div className='flex items-center justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>Extended Thinking</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
@@ -1172,14 +1177,16 @@ export function ChatInput({
 										type='checkbox'
 										checked={chatInputOptions.value.extendedThinking?.enabled || false}
 										onChange={(e) => {
+											if (!e.target) return;
+											const input = e.target as HTMLInputElement;
 											const newOptions = { ...chatInputOptions.value };
 											if (!newOptions.extendedThinking) {
 												newOptions.extendedThinking = {
-													enabled: e.target.checked,
+													enabled: input.checked,
 													budgetTokens: 4096,
 												};
 											} else {
-												newOptions.extendedThinking.enabled = e.target.checked;
+												newOptions.extendedThinking.enabled = input.checked;
 											}
 											chatInputOptions.value = newOptions;
 										}}
@@ -1207,8 +1214,8 @@ export function ChatInput({
 						)}
 
 						{/* Prompt Caching Toggle */}
-						{(!modelCapabilities?.value ||
-							modelCapabilities.value.supportedFeatures?.promptCaching !== false) && (
+						{(!modelData?.value ||
+							modelData.value.capabilities.supportedFeatures?.promptCaching !== false) && (
 							<div className='flex items-center justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>Use Prompt Caching</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
@@ -1216,8 +1223,10 @@ export function ChatInput({
 										type='checkbox'
 										checked={chatInputOptions.value.usePromptCaching !== false}
 										onChange={(e) => {
+											if (!e.target) return;
+											const input = e.target as HTMLInputElement;
 											const newOptions = { ...chatInputOptions.value };
-											newOptions.usePromptCaching = e.target.checked;
+											newOptions.usePromptCaching = input.checked;
 											chatInputOptions.value = newOptions;
 										}}
 										className='sr-only'
@@ -1244,10 +1253,10 @@ export function ChatInput({
 						)}
 
 						{/* Model information - display context window and provider info */}
-						{modelCapabilities?.value && (
+						{modelData?.value && (
 							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
 								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Context window: {(modelCapabilities.value.contextWindow / 1000).toFixed(0)}K tokens
+									Context window: {(modelData.value.capabilities.contextWindow / 1000).toFixed(0)}K tokens
 								</div>
 							</div>
 						)}

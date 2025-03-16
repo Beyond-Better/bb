@@ -82,10 +82,11 @@ export const listModels = async (
         // Get all available models from LLMModelToProvider mapping
         const allModels = Object.entries(LLMModelToProvider).map(([modelId, provider]) => {
             // Get model capabilities
-            const capabilities = capabilitiesManager.getModelCapabilities(provider, modelId);
+            const capabilities = capabilitiesManager.getModelCapabilities(modelId, provider);
             
             return {
                 id: modelId,
+                displayName: capabilities.displayName,
                 provider,
                 providerLabel: LLMProviderLabel[provider] || 'Unknown',
                 contextWindow: capabilities.contextWindow,
@@ -165,25 +166,26 @@ export const getModelCapabilities = async (
         // Get the model ID from params
         const modelId = params.modelId;
         
-        // Look up the provider for this model
-        const provider = LLMModelToProvider[modelId];
+        // Initialize the model capabilities manager
+        const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
         
-        if (!provider) {
+        // Get the model's capabilities
+        const capabilities = capabilitiesManager.getModelCapabilities(modelId);
+                
+        if (!capabilities) {
             response.status = 404;
             response.body = { error: `Model not found: ${modelId}` };
             return;
         }
         
-        // Initialize the model capabilities manager
-        const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
-        
-        // Get the model's capabilities
-        const capabilities = capabilitiesManager.getModelCapabilities(provider, modelId);
-        
+        // Look up the provider for this model
+        const provider = LLMModelToProvider[modelId];
+
         response.status = 200;
         response.body = {
             model: {
                 id: modelId,
+                displayName: capabilities.displayName,
                 provider,
                 providerLabel: LLMProviderLabel[provider] || 'Unknown',
                 capabilities,
