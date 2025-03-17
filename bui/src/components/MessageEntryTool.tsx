@@ -86,13 +86,11 @@ export function MessageEntryTool({
 							)
 							: (
 								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'>
+								// deno-lint-ignore react-no-danger
 								<code
 									className="language-json hljs"
-								// deno-lint-ignore react-no-danger
 									dangerouslySetInnerHTML={{ __html: highlighted }}
 								/>
-								// deno-lint-ignore react-no-danger
-
 								</pre>
 							)}
 					</div>

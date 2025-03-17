@@ -133,10 +133,12 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 			updatedAt: new Date().toISOString(),
 			llmProviderName: 'test',
 			model: 'test',
-			tokenUsageConversation: {
-				inputTokens: 100,
-				outputTokens: 200,
-				totalTokens: 300,
+			tokenUsageStats: {
+				tokenUsageConversation: {
+					inputTokens: 100,
+					outputTokens: 200,
+					totalTokens: 300,
+				},
 			},
 		};
 		await Deno.writeTextFile(metadataPath, JSON.stringify(v1Metadata));

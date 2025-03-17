@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.6.17] - 2025-03-17
+
+### Added
+
+- Support for Claude 3.7 and extended thinking (reasoning)
+- Model capabilities system 
+- Passing LLM response metadata to frontend (BUI)
+- Config panel for controlling conversation options
+- Info panel for current model details and settings
+
+### Changed
+
+- Improved display of thinking process extracted from LLM
+- Structured metadata provided to LLM for each statement and tool turn
+
+### Fixed
+
+- Fixed display of tokens counts for statements vs conversation
+
+
 ## [0.6.16] - 2025-02-23
 
 ### Added

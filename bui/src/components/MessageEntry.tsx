@@ -150,8 +150,12 @@ export function MessageEntry({
 	const entryType =
 		(hasLogEntry(logEntryData) ? logEntryData.logEntry.entryType : 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
-	const tokenUsageTurn = 'tokenUsageStats' in logEntryData ? logEntryData.tokenUsageStats.tokenUsageTurn : getDefaultTokenUsage();
-	const tokenUsageConversation = 'tokenUsageStats' in logEntryData ? logEntryData.tokenUsageStats.tokenUsageConversation : getDefaultTokenUsage();
+	const tokenUsageTurn = 'tokenUsageStats' in logEntryData
+		? logEntryData.tokenUsageStats.tokenUsageTurn
+		: getDefaultTokenUsage();
+	const tokenUsageConversation = 'tokenUsageStats' in logEntryData
+		? logEntryData.tokenUsageStats.tokenUsageConversation
+		: getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
 		? messageIcons[entryType as keyof typeof messageIcons]
@@ -213,13 +217,11 @@ export function MessageEntry({
 		return (
 			<div className='overflow-x-auto'>
 				<pre className='whitespace-pre rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4'>
+					// deno-lint-ignore react-no-danger
 					<code
 						className="language-json hljs"
-						// deno-lint-ignore react-no-danger
 						dangerouslySetInnerHTML={{ __html: highlighted }}
 					/>
-				// deno-lint-ignore react-no-danger
-
 				</pre>
 			</div>
 		);
