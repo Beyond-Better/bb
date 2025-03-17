@@ -19,11 +19,13 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types.ts';
 import type { BBLLMResponse } from 'api/types/llms.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 
 type LLMMessageContentPartOrString =
 	| string
@@ -203,10 +205,9 @@ class BbLLM extends LLM {
 		return tools;
 	}
 
-	// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<LLMProviderMessageRequest> {
 		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 
@@ -218,11 +219,47 @@ class BbLLM extends LLM {
 		// Log detailed message information
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
-		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = messageRequest.maxTokens || 8192;
-		const temperature: number = messageRequest.temperature || 0.2;
+		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET;
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 
+		// Resolve parameters using model capabilities
+		let temperature: number;
+		let maxTokens: number;
+		let extendedThinking: boolean;
+		if (interaction) {
+			const resolved = await interaction.resolveModelParameters(
+				model,
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
+			);
+
+			maxTokens = resolved.maxTokens;
+			extendedThinking = resolved.extendedThinking;
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = extendedThinking ? 1 : resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				model,
+				messageRequest.maxTokens,
+			);
+
+			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+				model,
+				messageRequest.extendedThinking?.enabled,
+			);
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
+				model,
+				messageRequest.temperature,
+			);
+		}
+		//if (model !== 'claude-3-haiku-20240307') maxTokens = 16384;
 		const providerMessageRequest: LLMProviderMessageRequest = {
 			messages,
 			system: messageRequest.system,
@@ -231,6 +268,7 @@ class BbLLM extends LLM {
 			maxTokens,
 			temperature,
 			usePromptCaching,
+			extendedThinking: { enabled: extendedThinking, budgetTokens: 4000 },
 		};
 		//logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
@@ -347,7 +385,22 @@ class BbLLM extends LLM {
 			});
 			//logger.debug("BbLLM: llms-anthropic-messageResponse", messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			// Include request parameters in messageMeta
+			const requestParams: LLMRequestParams = bbResponseMessage.metadata.requestParams || {
+				model: messageRequest.model,
+				maxTokens: providerMessageRequest.maxTokens,
+				temperature: providerMessageRequest.temperature,
+				extendedThinking: messageRequest.extendedThinking,
+				usePromptCaching: providerMessageRequest.usePromptCaching,
+			};
+
+			return {
+				messageResponse,
+				messageMeta: {
+					system: messageRequest.system,
+					requestParams,
+				},
+			};
 		} catch (err) {
 			logger.error('BbLLM: Error calling BB API', err);
 			if (isLLMError(err)) throw err;

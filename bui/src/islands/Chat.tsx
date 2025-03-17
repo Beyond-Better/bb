@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
+import { LLMRequestParams } from '../types/llm.types.ts';
+import type { ModelDetails, ModelResponse } from '../utils/apiClient.utils.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
@@ -30,6 +32,32 @@ const getConversationId = () => {
 
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
+// Default LLM request options
+const defaultOptions: LLMRequestParams = {
+	model: 'claude-3-7-sonnet-20250219',
+	temperature: 0.7,
+	maxTokens: 8192,
+	extendedThinking: {
+		enabled: true,
+		budgetTokens: 4096,
+	},
+	usePromptCaching: true,
+};
+
+// Helper to get options from conversation or defaults
+const getOptionsFromConversation = (conversationId: string | null, conversations: any[]): LLMRequestParams => {
+	if (!conversationId) return defaultOptions;
+
+	const conversation = conversations.find((conv) => conv.id === conversationId);
+	if (!conversation || !conversation.requestParams) return defaultOptions;
+
+	// Return conversation params with fallbacks to defaults
+	return {
+		...defaultOptions,
+		...conversation.requestParams,
+	};
+};
+
 interface ChatProps {
 	chatState: Signal<ChatState>;
 }
@@ -37,6 +65,8 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
+const chatInputOptions = signal<LLMRequestParams>({ ...defaultOptions });
+const modelData = signal<ModelDetails | null>(null);
 
 export default function Chat({
 	chatState,
@@ -82,19 +112,6 @@ export default function Chat({
 	const apiUseTls = getApiUseTls();
 	//console.log('Chat: ', { apiHostname, apiPort, apiUseTls });
 
-	if (!apiHostname || !apiPort) {
-		return (
-			<div className='flex items-center justify-center h-screen'>
-				<AnimatedNotification
-					visible={true}
-					type='error'
-				>
-					<span>Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port</span>
-				</AnimatedNotification>
-			</div>
-		);
-	}
-
 	const config: ChatConfig = {
 		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
 		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
@@ -106,7 +123,7 @@ export default function Chat({
 	};
 
 	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
-	const [handlers, scrollIndicatorState] = useChatState(config, chatState);
+	const [handlers, scrollIndicatorState] = useChatState(config, chatState, chatInputOptions);
 
 	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
 
@@ -172,7 +189,8 @@ export default function Chat({
 		const maxRetries = 3;
 
 		try {
-			await handlers.sendConverse(trimmedInput);
+			// Pass the options from the signal to the handler
+			await handlers.sendConverse(trimmedInput, chatInputOptions.value);
 			const duration = performance.now() - startTime;
 			console.info('Chat: Message send completed in', duration.toFixed(2), 'ms');
 			console.info('Chat: Clearing input');
@@ -249,6 +267,24 @@ export default function Chat({
 			await handlers.selectConversation(id);
 			setConversation(id);
 
+			// Update options based on the selected conversation
+			chatInputOptions.value = getOptionsFromConversation(id, chatState.value.conversations);
+			console.info('Chat: Updated options for selected conversation', id, chatInputOptions.value);
+
+			// Fetch model capabilities for the selected model
+			const modelName = chatInputOptions.value.model;
+			if (modelName && chatState.value.apiClient) {
+				try {
+					const modelResponse = await chatState.value.apiClient.getModelCapabilities(modelName);
+					if (modelResponse) {
+						modelData.value = modelResponse.model;
+						console.info('Chat: Updated model capabilities', modelData.value);
+					}
+				} catch (error) {
+					console.error('Chat: Failed to fetch model capabilities', error);
+				}
+			}
+
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
 			//url.searchParams.set('conversationId', id);
@@ -281,6 +317,28 @@ export default function Chat({
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
+
+		// Initialize options from current conversation
+		if (chatState.value.conversationId) {
+			chatInputOptions.value = getOptionsFromConversation(
+				chatState.value.conversationId,
+				chatState.value.conversations,
+			);
+			console.info('Chat: Initialized options from conversation', chatInputOptions.value);
+
+			// Fetch model capabilities for the current model
+			const modelName = chatInputOptions.value.model;
+			if (modelName && chatState.value.apiClient) {
+				chatState.value.apiClient.getModelCapabilities(modelName)
+					.then((modelResponse) => {
+						if (modelResponse) {
+							modelData.value = modelResponse.model;
+							console.info('Chat: Loaded model capabilities', modelData.value);
+						}
+					})
+					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
+			}
+		}
 
 		const handlePopState = async () => {
 			const urlConversationId = getConversationId();
@@ -414,6 +472,19 @@ export default function Chat({
 		isLoading: chatState.value.status.isLoading,
 	}));
 
+	if (!apiHostname || !apiPort) {
+		return (
+			<div className='flex items-center justify-center h-screen'>
+				<AnimatedNotification
+					visible
+					type='error'
+				>
+					<span>Missing required URL parameters. Expected format: #apiHostname=host&apiPort=port</span>
+				</AnimatedNotification>
+			</div>
+		);
+	}
+
 	return (
 		<div className='flex flex-col h-full bg-gray-50 dark:bg-gray-900 overflow-hidden relative'>
 			{/* Connection status banner */}
@@ -456,12 +527,11 @@ export default function Chat({
 						<>
 							{/* Collapsible Conversation List */}
 							<div
-								className={`absolute top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out ${
+								className={`absolute top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out z-40 ${
 									isConversationListVisible.value
 										? 'w-[30%] min-w-[20rem] translate-x-0'
 										: 'w-0 -translate-x-full'
 								}`}
-								style={{ zIndex: 20 }}
 							>
 								<div className='h-full w-full overflow-hidden'>
 									<ConversationList
@@ -497,8 +567,9 @@ export default function Chat({
 									isListVisible={isConversationListVisible.value}
 									apiClient={chatState.value.apiClient!}
 									chatState={chatState}
+									modelData={modelData}
 									onSendMessage={async (message) => {
-										await handlers.sendConverse(message);
+										await handlers.sendConverse(message, chatInputOptions.value);
 									}}
 									chatInputRef={chatInputRef}
 									disabled={!chatState.value.status.isReady ||
@@ -510,6 +581,7 @@ export default function Chat({
 								<div className='flex-1 min-h-0 relative flex flex-col'>
 									{scrollIndicatorState.value.isVisible && (
 										<button
+											type='button'
 											onClick={() => {
 												if (messagesEndRef.current) {
 													messagesEndRef.current.scrollTo({
@@ -602,6 +674,8 @@ export default function Chat({
 								<div className='border-t border-gray-200 dark:border-gray-700 flex-none bg-white dark:bg-gray-800 flex justify-center'>
 									<ChatInput
 										chatInputText={chatInputText}
+										chatInputOptions={chatInputOptions}
+										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										textareaRef={chatInputRef}
@@ -640,6 +714,7 @@ export default function Chat({
 				<div className='flex items-center justify-between'>
 					<span>{chatState.value.status.error}</span>
 					<button
+						type='button'
 						onClick={() => handlers.clearError()}
 						className='ml-4 text-red-700 hover:text-red-800'
 						aria-label='Dismiss error'

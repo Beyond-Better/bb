@@ -6,25 +6,27 @@ import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts'
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type {
-	LLMMessageContentPart,
-	LLMMessageContentParts,
-	LLMMessageContentPartTextBlock,
-} from 'api/llms/llmMessage.ts';
+import type { LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
+	//LLMExtendedThinkingOptions,
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
-type AnthropicBlockParam = Anthropic.Messages.ContentBlockParam;
+// Define a more specific type for Anthropic content blocks that includes our custom properties
+type AnthropicContentBlock = Anthropic.Messages.ContentBlockParam & {
+	cache_control?: { type: string };
+};
 type AnthropicBlockParamOrString =
 	| string
 	| Anthropic.Messages.ContentBlockParam;
@@ -90,19 +92,29 @@ class AnthropicLLM extends LLM {
 					summary.push(`${indent}Is Error: ${part.is_error || false}`);
 
 					// Check if any nested content has file content
-					const fileContentParts = part.content.filter((nestedPart: LLMMessageContentPart) =>
-						nestedPart.type === 'text' &&
-						typeof nestedPart.text === 'string' &&
-						(this.hasFileMetadata(nestedPart.text) ||
-							(nestedPart.text.startsWith('Note: File') &&
-								nestedPart.text.includes('is up-to-date')))
-					);
+					// Use a more specific type for the content parts
+					const fileContentParts = part.content.filter((nestedPart) => {
+						// Check if it's a text block
+						if (nestedPart.type !== 'text') return false;
+
+						// Safe access to text property using type guard
+						const textBlock = nestedPart as Anthropic.Messages.TextBlockParam;
+						if (typeof textBlock.text !== 'string') return false;
+
+						// Check for file metadata or file note
+						return this.hasFileMetadata(textBlock.text) ||
+							(textBlock.text.startsWith('Note: File') && textBlock.text.includes('is up-to-date'));
+					});
+
 					if (fileContentParts.length > 0) {
 						summary.push(`${indent}Files in this tool_result:`);
-						fileContentParts.forEach((p: LLMMessageContentPart) => {
-							if (p.type === 'text' && typeof p.text === 'string') {
-								if (p.text.startsWith('Note: File')) {
-									const match = p.text.match(
+						fileContentParts.forEach((p) => {
+							// Use a more specific type for the content part
+							const textBlock = p as Anthropic.Messages.TextBlockParam;
+							// We've already filtered for text blocks with string text
+							if (textBlock.type === 'text' && typeof textBlock.text === 'string') {
+								if (textBlock.text.startsWith('Note: File')) {
+									const match = textBlock.text.match(
 										/Note: File (.*?) \(revision: (\w+)\) content is up-to-date from turn (\d+) \(revision: (\w+)\)/,
 									);
 									if (match) {
@@ -112,9 +124,9 @@ class AnthropicLLM extends LLM {
 											} with revision ${match[4]})`,
 										);
 									}
-								} else if (this.hasFileMetadata(p.text)) {
+								} else if (this.hasFileMetadata(textBlock.text)) {
 									try {
-										const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadataText = textBlock.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
 										const metadata = JSON.parse(metadataText);
 										summary.push(
 											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -183,14 +195,21 @@ class AnthropicLLM extends LLM {
 				}
 
 				// Check for cache_control
-				if (part && typeof part === 'object' && 'cache_control' in part) {
-					const cacheControl = (part as AnthropicBlockParam).cache_control;
-					summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
-					if (!messagesWithCache.includes(index + 1)) {
-						messagesWithCache.push(index + 1);
+				// Only certain content types support cache_control (not thinking blocks)
+				if (part && typeof part === 'object' && part.type !== 'thinking' && part.type !== 'redacted_thinking') {
+					const hasCache = 'cache_control' in part;
+					if (hasCache) {
+						// Use a more specific type assertion
+						const cacheControl = (part as AnthropicContentBlock).cache_control;
+						summary.push(`${indent}Has cache_control: yes (${cacheControl?.type})`);
+						if (!messagesWithCache.includes(index + 1)) {
+							messagesWithCache.push(index + 1);
+						}
+					} else {
+						summary.push(`${indent}Has cache_control: no`);
 					}
 				} else {
-					summary.push(`${indent}Has cache_control: no`);
+					summary.push(`${indent}Has cache_control: no (not supported for this content type)`);
 				}
 			};
 
@@ -233,11 +252,25 @@ class AnthropicLLM extends LLM {
 				if (Array.isArray(prevContent)) {
 					content = [...prevContent];
 					const lastBlock = content[content.length - 1];
-					content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					// Only add cache_control to supported content types (not thinking blocks)
+					if (lastBlock.type !== 'thinking' && lastBlock.type !== 'redacted_thinking') {
+						content[content.length - 1] = { ...lastBlock, cache_control: { type: 'ephemeral' } };
+					}
 				} else if (typeof prevContent === 'string') {
-					content = [{ type: 'text', text: prevContent, cache_control: { type: 'ephemeral' } }];
+					// For string content, we don't have existing citations, so use empty array
+					content = [{
+						type: 'text',
+						text: prevContent,
+						cache_control: { type: 'ephemeral' },
+						citations: [],
+					}];
 				} else {
-					content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					// Only add cache_control to supported content types (not thinking blocks)
+					if (prevContent.type !== 'thinking' && prevContent.type !== 'redacted_thinking') {
+						content = [{ ...prevContent, cache_control: { type: 'ephemeral' } }];
+					} else {
+						content = [{ ...prevContent }];
+					}
 				}
 			} else {
 				content =
@@ -259,11 +292,13 @@ class AnthropicLLM extends LLM {
 		} as Anthropic.Tool));
 	}
 
+	//// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
-	): Promise<Anthropic.MessageCreateParams> {
+		interaction?: LLMInteraction,
+	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
+		logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest', messageRequest);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const system = messageRequest.system
 			? [
@@ -287,19 +322,68 @@ class AnthropicLLM extends LLM {
 		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
-		const maxTokens: number = messageRequest.maxTokens || 8192;
-		const temperature: number = messageRequest.temperature || 0.2;
 
-		const providerMessageRequest: Anthropic.Messages.MessageCreateParams = {
+		// Resolve parameters using model capabilities
+		let temperature: number;
+		let maxTokens: number;
+		let extendedThinking: boolean;
+		if (interaction) {
+			const resolved = await interaction.resolveModelParameters(
+				messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET,
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
+				LLMProvider.ANTHROPIC,
+			);
+
+			maxTokens = resolved.maxTokens;
+			extendedThinking = resolved.extendedThinking;
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = extendedThinking ? 1 : resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				model,
+				messageRequest.maxTokens,
+			);
+
+			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+				model,
+				messageRequest.extendedThinking?.enabled,
+			);
+
+			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
+			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
+				model,
+				messageRequest.temperature,
+			);
+		}
+
+		const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = {
 			messages,
 			system,
 			tools,
 			model,
 			max_tokens: maxTokens,
 			temperature,
+			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19'],
 			stream: false,
+
+			// Add extended thinking support if enabled in the request
+			...(extendedThinking
+				? {
+					thinking: {
+						type: 'enabled',
+						budget_tokens: messageRequest.extendedThinking?.budgetTokens || 4000,
+					},
+				}
+				: {}),
 		};
-		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
+		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
 
 		return providerMessageRequest;
@@ -318,19 +402,24 @@ class AnthropicLLM extends LLM {
 		try {
 			//logger.dir(messageRequest);
 
-			const providerMessageRequest: Anthropic.MessageCreateParams = await this.asProviderMessageRequest(
-				messageRequest,
-				interaction,
-			);
+			const providerMessageRequest: Anthropic.Beta.Messages.MessageCreateParams = await this
+				.asProviderMessageRequest(
+					messageRequest,
+					interaction,
+				);
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-				providerMessageRequest,
-				{
-					headers: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
-				},
-			).withResponse();
+			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.beta.messages
+				.create(
+					providerMessageRequest,
+					{
+						headers: {
+							'anthropic-beta':
+								'output-128k-2025-02-19,token-efficient-tools-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15',
+						},
+					},
+				).withResponse();
 
 			const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
@@ -367,16 +456,22 @@ class AnthropicLLM extends LLM {
 				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
 					anthropicMessage.content = [anthropicMessage.content];
 				} else if (typeof anthropicMessage.content === 'string') {
-					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content }];
+					// For string content from Anthropic, we don't have existing citations
+					// String content doesn't have citations, so use empty array
+					anthropicMessage.content = [{ type: 'text', text: anthropicMessage.content, citations: [] }];
 				} else {
-					anthropicMessage.content = [{ type: 'text', text: 'Error: Invalid response format from LLM' }];
+					anthropicMessage.content = [{
+						type: 'text',
+						text: 'Error: Invalid response format from LLM',
+						citations: [],
+					}];
 				}
 			}
 
 			// Ensure content array is not empty
 			if (anthropicMessage.content.length === 0) {
 				logger.error('AnthropicLLM: !!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty');
-				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM' }];
+				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM', citations: [] }];
 			}
 
 			const headers = anthropicResponse?.headers;
@@ -444,7 +539,22 @@ class AnthropicLLM extends LLM {
 			});
 			//logger.debug("AnthropicLLM: llms-anthropic-messageResponse", messageResponse);
 
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			// Include request parameters in messageMeta
+			const requestParams: LLMRequestParams = {
+				model: messageRequest.model,
+				maxTokens: providerMessageRequest.max_tokens!,
+				temperature: providerMessageRequest.temperature!,
+				extendedThinking: messageRequest.extendedThinking,
+				usePromptCaching: this.projectConfig.settings.api?.usePromptCaching ?? true,
+			};
+
+			return {
+				messageResponse,
+				messageMeta: {
+					system: messageRequest.system,
+					requestParams,
+				},
+			};
 		} catch (err) {
 			logger.error('AnthropicLLM: Error calling Anthropic API', err);
 			throw createError(

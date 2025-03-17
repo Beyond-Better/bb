@@ -3,6 +3,7 @@ import type { Context, RouterContext } from '@oak/oak';
 import { projectEditorManager } from '../../editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { ConversationId } from 'shared/types.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
@@ -92,11 +93,17 @@ class WebSocketChatHandler {
 
 	private async handleMessage(
 		conversationId: ConversationId,
-		message: { task: string; statement: string; projectId: string; options?: { maxTurns?: number } },
+		message: {
+			task: string;
+			statement: string;
+			projectId: string;
+			options?: { maxTurns?: number }; // statement options
+			requestParams: LLMRequestParams; // LLM request params
+		},
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, options } = message;
+			const { task, statement, projectId, options, requestParams } = message;
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
@@ -155,7 +162,7 @@ class WebSocketChatHandler {
 				return;
 			} else if (task === 'converse') {
 				try {
-					await projectEditor?.handleStatement(statement, conversationId, options);
+					await projectEditor?.handleStatement(statement, conversationId, options, requestParams);
 				} catch (error) {
 					logger.error(
 						`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}:`,

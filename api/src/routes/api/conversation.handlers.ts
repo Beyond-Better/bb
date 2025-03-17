@@ -113,8 +113,7 @@ export const chatConversation = async (
 			logEntry: result.logEntry,
 			conversationTitle: result.conversationTitle,
 			conversationStats: result.conversationStats,
-			tokenUsageStatement: result.tokenUsageStatement,
-			tokenUsageConversation: result.tokenUsageConversation,
+			tokenUsageStats: result.tokenUsageStats,
 		};
 	} catch (error) {
 		logger.error(
@@ -203,7 +202,9 @@ export const getConversation = async (
 				conversationTurnCount: interaction.conversationTurnCount,
 				statementCount: interaction.statementCount,
 			},
-			tokenUsageConversation: interaction.tokenUsageInteraction,
+			tokenUsageStats: {
+				tokenUsageConversation: interaction.tokenUsageInteraction,
+			},
 		};
 	} catch (error) {
 		logger.error(`ConversationHandler: Error in getConversation: ${(error as Error).message}`);
@@ -354,7 +355,8 @@ export const listConversations = async (
 				llmProviderName: conv.llmProviderName,
 				model: conv.model,
 				conversationStats: conv.conversationStats,
-				tokenUsageConversation: conv.tokenUsageConversation,
+				tokenUsageStats: conv.tokenUsageStats,
+				requestParams: conv.requestParams,
 			})),
 			pagination: {
 				page: page,

@@ -8,10 +8,31 @@ import type {
 import type { ConversationStats } from 'shared/types.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
+export interface LLMMessageTextCitation {
+	start: number;
+	end: number;
+	text: string;
+	url?: string;
+}
+
 export interface LLMMessageContentPartTextBlock {
 	messageId?: string;
 	type: 'text';
 	text: string;
+	citations?: LLMMessageTextCitation[];
+}
+
+export interface LLMMessageContentPartThinkingBlock {
+	messageId?: string;
+	type: 'thinking';
+	thinking: string;
+	signature?: string;
+}
+
+export interface LLMMessageContentPartRedactedThinkingBlock {
+	messageId?: string;
+	type: 'redacted_thinking';
+	data: string;
 }
 
 export interface LLMMessageContentPartImageBlock {
@@ -58,6 +79,8 @@ export interface LLMMessageContentPartToolResultBlock {
 
 export type LLMMessageContentPartType =
 	| 'text'
+	| 'thinking'
+	| 'redacted_thinking'
 	| 'image'
 	| 'audio' // openai
 	| 'tool_use'
@@ -69,6 +92,8 @@ export type LLMMessageContentPartType =
 
 export type LLMMessageContentPart =
 	| LLMMessageContentPartTextBlock
+	| LLMMessageContentPartThinkingBlock
+	| LLMMessageContentPartRedactedThinkingBlock
 	| LLMMessageContentPartImageBlock
 	| LLMMessageContentPartAudioBlock
 	| LLMMessageContentPartToolUseBlock

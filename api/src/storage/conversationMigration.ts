@@ -260,7 +260,7 @@ export class ConversationMigration {
 
 			// 2. Update conversation metadata
 			const tokenAnalysis: TokenUsageAnalysis = await tokenUsagePersistence.analyzeUsage('conversation');
-			metadata.tokenUsageConversation = {
+			metadata.tokenUsageStats.tokenUsageConversation = {
 				inputTokens: tokenAnalysis.totalUsage.input,
 				outputTokens: tokenAnalysis.totalUsage.output,
 				totalTokens: tokenAnalysis.totalUsage.total,

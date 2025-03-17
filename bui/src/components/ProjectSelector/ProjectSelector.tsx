@@ -116,7 +116,7 @@ export function ProjectSelector({
 			{isOpen.value && (
 				<div
 					ref={popoverRef}
-					className='absolute z-30 bg-white dark:bg-gray-800 border-x border-b border-blue-500 dark:border-blue-400 rounded-b-lg shadow-lg overflow-hidden w-full'
+					className='absolute z-50 bg-white dark:bg-gray-800 border-x border-b border-blue-500 dark:border-blue-400 rounded-b-lg shadow-lg overflow-hidden w-full'
 					style={{
 						top: '100%',
 						left: 0,

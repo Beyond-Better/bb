@@ -29,6 +29,7 @@ Documentation for BB developers and contributors.
 - Implementation guides
   - [Publishing Tools](development/guides/publishing_tools.md) - Guide to publishing tools in the BB Tool Library
   - [Creating New Tools](development/llm/new_tool.md) - Guide to creating custom tools
+  - [Model Capabilities System](development/model-capabilities-system.md) - Documentation for the model capabilities management system
 - LLM instructions
 
 ### [archive/](zarchive/)

@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.6.16",
+	"version": "0.6.17",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"tool:test": "deno test --allow-all $DENO_ARGS",
@@ -9,6 +9,7 @@
 		"debug": "DENO_TLS_CA_STORE=system LOG_LEVEL=debug deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"test": "DENO_TLS_CA_STORE=system deno test --allow-read --allow-write --allow-run --allow-net --allow-env --allow-import  tests/  tests/t/llms/tools/index.ts",
 		"generate-tools-manifest": "deno run --allow-read --allow-write scripts/generate_core_tools_manifest.ts && deno fmt ./src/llms/tools_manifest.ts",
+		"update-model-capabilities": "deno run --allow-net --allow-read --allow-write --allow-env scripts/update_model_capabilities.ts",
 		"build": "deno run --allow-read --allow-run --allow-write scripts/compile.ts",
 		"build-local": "deno task generate-tools-manifest && deno compile --allow-env --allow-net --allow-read --allow-run --allow-write --output ../build/bb-api src/main.ts",
 		"format": "deno fmt",

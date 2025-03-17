@@ -15,7 +15,8 @@ import type {
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
+
 import BaseController from './baseController.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
@@ -139,6 +140,7 @@ class AgentController extends BaseController {
 		interaction.addTools(tools.filter((tool) => tool.name !== 'delegate_tasks'));
 	}
 
+	// deno-lint-ignore require-await
 	async reportToOrchestrator(): Promise<unknown> { // Replace 'any' with appropriate return type
 		// Implement reporting logic here
 		return null;
@@ -313,7 +315,32 @@ class AgentController extends BaseController {
 			this.emitStatus(ApiStatus.LLM_PROCESSING);
 			this.emitPromptCacheTimer();
 
-			currentResponse = await interaction.converse(statement, speakOptions);
+			// Create metadata object with task information
+			const metadata = {
+				system: {
+					timestamp: new Date().toISOString(),
+					os: Deno.build.os,
+					//bb_version: (await getVersionInfo()).version,
+					// Add: git_branch, git_commit
+				},
+				task: {
+					title: task.title,
+					type: 'agent_task',
+				},
+				conversation: {
+					counts: {
+						statements: this.statementCount,
+						statement_turns: this.statementTurnCount,
+						conversation_turns: this.conversationTurnCount,
+						//max_turns_per_statement: 15,
+					},
+				},
+				resources: { // Add this section
+					files_active: interaction.getFiles().size,
+				},
+			};
+
+			currentResponse = await interaction.converse(statement, metadata, speakOptions);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('AgentController: Received response from LLM');
@@ -356,10 +383,13 @@ class AgentController extends BaseController {
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
 							textContent,
+							thinkingContent,
 							conversationStats,
-							interaction.tokenUsageTurn,
-							interaction.tokenUsageStatement,
-							interaction.tokenUsageInteraction,
+							{
+								tokenUsageTurn: interaction.tokenUsageTurn,
+								tokenUsageStatement: interaction.tokenUsageStatement,
+								tokenUsageConversation: interaction.tokenUsageInteraction,
+							},
 						);
 					}
 
@@ -462,7 +492,36 @@ class AgentController extends BaseController {
 						this.emitStatus(ApiStatus.LLM_PROCESSING);
 						this.emitPromptCacheTimer();
 
-						currentResponse = await interaction.relayToolResult(statement, speakOptions);
+						// Update metadata with current information
+						const toolMetadata = {
+							system: {
+								timestamp: new Date().toISOString(),
+								os: Deno.build.os,
+								//bb_version: (await getVersionInfo()).version,
+								// Add: git_branch, git_commit
+							},
+							task: {
+								title: task.title,
+								type: 'agent_task',
+							},
+							conversation: {
+								counts: {
+									statements: this.statementCount,
+									statement_turns: this.statementTurnCount,
+									conversation_turns: this.conversationTurnCount,
+									//max_turns_per_statement: 15,
+								},
+								turn: {
+									number: loopTurnCount,
+									max: maxTurns,
+								},
+							},
+							resources: { // Add this section
+								files_active: interaction.getFiles().size,
+							},
+						};
+
+						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
 
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('AgentController: tool response', currentResponse);
@@ -537,26 +596,26 @@ class AgentController extends BaseController {
 		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
-		// Extract thinking content from answer using global regex
-		let assistantThinking = '';
-		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
-		let match;
-		while ((match = thinkingRegex.exec(answer)) !== null) {
-			assistantThinking += match[1].trim() + '\n';
-		}
-		assistantThinking = assistantThinking.trim();
+		// Extract thinking content using our standardized extractor
+		const assistantThinking = currentResponse.messageResponse.answerContent
+			? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
+			: '';
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
 			answer,
+			assistantThinking,
 			{
 				statementCount: this.statementCount,
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			this.primaryInteraction.tokenUsageTurn,
-			this.primaryInteraction.tokenUsageStatement,
-			this.primaryInteraction.tokenUsageInteraction,
+			{
+				tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
+				tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
+				tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			},
+			currentResponse.messageMeta.requestParams,
 		);
 
 		const completedTask: CompletedTask = {

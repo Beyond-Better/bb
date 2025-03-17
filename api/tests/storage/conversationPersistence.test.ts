@@ -60,21 +60,21 @@ Deno.test('ConversationPersistence.defaultMetadata returns correct structure', (
 	assertEquals(typeof metadata.updatedAt, 'string', 'updatedAt should be string');
 
 	// Check token usage structure
-	assertEquals(metadata.tokenUsageTurn, {
+	assertEquals(metadata.tokenUsageStats.tokenUsageTurn, {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
 		totalAllTokens: 0,
 	}, 'tokenUsageTurn should have correct structure and defaults');
 
-	assertEquals(metadata.tokenUsageStatement, {
+	assertEquals(metadata.tokenUsageStats.tokenUsageStatement, {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
 		totalAllTokens: 0,
 	}, 'tokenUsageStatement should have correct structure and defaults');
 
-	assertEquals(metadata.tokenUsageConversation, {
+	assertEquals(metadata.tokenUsageStats.tokenUsageConversation, {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,

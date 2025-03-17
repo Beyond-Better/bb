@@ -7,13 +7,13 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import LLMToolManager from '../llms/llmToolManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
-import AgentController from './agentController.ts';
+import AgentController from 'api/controllers/agentController.ts';
 //import PromptManager from '../prompts/promptManager.ts';
 //import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 //import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
-import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
+import type { CompletedTask, ErrorHandlingConfig, LLMRequestParams, Task } from 'api/types/llms.ts';
 import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	//ConversationContinue,
@@ -26,6 +26,7 @@ import type {
 	ConversationStats,
 	ObjectivesData,
 	//TokenUsage,
+	//TokenUsageStats,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -35,7 +36,7 @@ import { isLLMError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 //import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 //import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 //import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 //import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -140,6 +141,7 @@ class OrchestratorController extends BaseController {
 		statement: string,
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
+		requestParams?: LLMRequestParams,
 	): Promise<ConversationResponse> {
 		this.isCancelled = false;
 		this.resetStatus();
@@ -184,7 +186,12 @@ class OrchestratorController extends BaseController {
 						conversationId: interaction.id,
 						conversationTitle: interaction.title,
 						timestamp: new Date().toISOString(),
-						tokenUsageConversation: this.tokenUsageInteraction,
+						tokenUsageStats: {
+							//tokenUsageConversation: this.tokenUsageInteraction,
+							tokenUsageConversation: interaction.tokenUsageInteraction,
+							tokenUsageStatement: interaction.tokenUsageStatement,
+							tokenUsageTurn: interaction.tokenUsageTurn,
+						},
 						conversationStats: interaction.conversationStats,
 					} as EventPayloadMap['projectEditor']['projectEditor:conversationNew'],
 				);
@@ -249,7 +256,12 @@ class OrchestratorController extends BaseController {
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageConversation: this.tokenUsageInteraction,
+			tokenUsageStats: {
+				//tokenUsageConversation: this.tokenUsageInteraction,
+				tokenUsageConversation: interaction.tokenUsageInteraction,
+				tokenUsageStatement: interaction.tokenUsageStatement,
+				tokenUsageTurn: interaction.tokenUsageTurn,
+			},
 			conversationHistory: [], //this.getConversationHistory(interaction),
 			versionInfo,
 		};
@@ -259,9 +271,15 @@ class OrchestratorController extends BaseController {
 		);
 
 		const speakOptions: LLMSpeakWithOptions = {
-			//temperature: 0.7,
-			//maxTokens: 1000,
+			...requestParams,
+			// //temperature: 0.7,
+			// //maxTokens: 1000,
+			// extendedThinking: this.projectConfig.settings.api?.extendedThinking ?? {
+			// 	enabled: true,
+			// 	budgetTokens: 4000,
+			// },
 		};
+		logger.info(`OrchestratorController: Calling conversation.converse with speakOptions: `, speakOptions);
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
 		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
@@ -277,7 +295,36 @@ class OrchestratorController extends BaseController {
 			this.emitStatus(ApiStatus.LLM_PROCESSING);
 			this.emitPromptCacheTimer();
 
-			currentResponse = await interaction.converse(statement, speakOptions);
+			// Create metadata object with useful context
+			const metadata = {
+				system: {
+					timestamp: new Date().toISOString(),
+					os: Deno.build.os,
+					//bb_version: (await getVersionInfo()).version,
+					// Add: git_branch, git_commit
+				},
+				conversation: {
+					//goal: 'Determine the optimal approach...', // Add this
+					//current_objective: 'Implement the metadata...', // Add this
+					counts: {
+						statements: this.statementCount,
+						statement_turns: this.statementTurnCount,
+						conversation_turns: this.conversationTurnCount,
+						//max_turns_per_statement: 15,
+					},
+				},
+				resources: { // Add this section
+					files_active: interaction.getFiles().size,
+				},
+				//tools: { // see formatToolObjectivesAndStats for example of toolStats
+				//	recent: [
+				//		{ name: 'search_project', success: true, count: 2 },
+				//		{ name: 'request_files', success: true, count: 1 },
+				//	],
+				//},
+			};
+
+			currentResponse = await interaction.converse(statement, metadata, speakOptions);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
@@ -319,10 +366,14 @@ class OrchestratorController extends BaseController {
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
 							textContent,
+							thinkingContent,
 							conversationStats,
-							interaction.tokenUsageTurn,
-							interaction.tokenUsageStatement,
-							interaction.tokenUsageInteraction,
+							{
+								tokenUsageTurn: interaction.tokenUsageTurn,
+								tokenUsageStatement: interaction.tokenUsageStatement,
+								tokenUsageConversation: interaction.tokenUsageInteraction,
+							},
+							currentResponse.messageMeta.requestParams,
 						);
 					}
 
@@ -427,7 +478,34 @@ class OrchestratorController extends BaseController {
 						this.emitStatus(ApiStatus.LLM_PROCESSING);
 						this.emitPromptCacheTimer();
 
-						currentResponse = await interaction.relayToolResult(statement, speakOptions);
+						// Update metadata with current information
+						const toolMetadata = {
+							system: {
+								timestamp: new Date().toISOString(),
+								os: Deno.build.os,
+								//bb_version: (await getVersionInfo()).version,
+								// Add: git_branch, git_commit
+							},
+							conversation: {
+								//goal: 'Determine the optimal approach...', // Add this
+								//current_objective: 'Implement the metadata...', // Add this
+								counts: {
+									statements: this.statementCount,
+									statement_turns: this.statementTurnCount,
+									conversation_turns: this.conversationTurnCount,
+									//max_turns_per_statement: 15,
+								},
+								turn: {
+									number: loopTurnCount,
+									max: maxTurns,
+								},
+							},
+							resources: { // Add this section
+								files_active: interaction.getFiles().size,
+							},
+						};
+
+						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
 
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
@@ -523,14 +601,10 @@ class OrchestratorController extends BaseController {
 		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
 		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
 
-		// Extract thinking content from answer using global regex
-		let assistantThinking = '';
-		const thinkingRegex = /<thinking>(.*?)<\/thinking>/gs;
-		let match;
-		while ((match = thinkingRegex.exec(answer)) !== null) {
-			assistantThinking += match[1].trim() + '\n';
-		}
-		assistantThinking = assistantThinking.trim();
+		// Extract thinking content using our standardized extractor
+		const assistantThinking = currentResponse.messageResponse.answerContent
+			? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
+			: '';
 
 		//logger.info(`OrchestratorController: Extracted answer: ${answer}`);
 		//logger.info(`OrchestratorController: Extracted assistantThinking: ${assistantThinking}`);
@@ -545,18 +619,21 @@ class OrchestratorController extends BaseController {
 				statementTurnCount: this.statementTurnCount,
 				conversationTurnCount: this.conversationTurnCount,
 			},
-			tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
-			tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
-			tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			tokenUsageStats: {
+				tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
+				tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
+				tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+			},
 		};
+		//logger.info(`OrchestratorController: statementAnswer-tokenUsageStats:`, statementAnswer.tokenUsageStats);
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
 			answer,
+			assistantThinking,
 			statementAnswer.conversationStats,
-			statementAnswer.tokenUsageTurn,
-			statementAnswer.tokenUsageStatement,
-			statementAnswer.tokenUsageConversation,
+			statementAnswer.tokenUsageStats,
+			currentResponse.messageMeta.requestParams,
 		);
 
 		this.resetStatus();

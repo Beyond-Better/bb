@@ -20,6 +20,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
 			<div className='flex items-center'>
 				{error.value.recoveryAction && (
 					<button
+						type='button'
 						onClick={() => {
 							error.value?.recoveryAction?.();
 							error.value = null;
@@ -30,6 +31,7 @@ export function ErrorDisplay({ error }: ErrorDisplayProps) {
 					</button>
 				)}
 				<button
+					type='button'
 					onClick={() => error.value = null}
 					className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
 					title='Dismiss'

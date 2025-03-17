@@ -45,6 +45,7 @@ import type {
 } from 'api/types/llms.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
+import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -373,12 +374,12 @@ class GoogleLLM extends LLM {
 		return candidate.content.parts?.some((part) => 'functionCall' in part) || false;
 	}
 
-	// deno-lint-ignore require-await
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		_interaction?: LLMInteraction,
+		interaction?: LLMInteraction,
 	): Promise<GenerateContentRequest> {
 		const contents = this.asProviderMessageType(messageRequest.messages);
+		const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_0_FLASH;
 
 		// System instruction needs to be wrapped in a Content object
 		const systemContent: Content | undefined = messageRequest.system
@@ -388,14 +389,51 @@ class GoogleLLM extends LLM {
 			}
 			: undefined;
 
+		// Resolve parameters using model capabilities
+		let maxTokens: number;
+		let temperature: number;
+		//let extendedThinking: boolean;
+
+		if (interaction) {
+			// Use interaction to resolve parameters with proper priority
+			const resolved = await interaction.resolveModelParameters(
+				model,
+				{
+					maxTokens: messageRequest.maxTokens,
+					temperature: messageRequest.temperature,
+					//extendedThinking: messageRequest.extendedThinking?.enabled,
+				},
+				LLMProvider.GOOGLE,
+			);
+			maxTokens = resolved.maxTokens;
+			//extendedThinking = resolved.extendedThinking;
+			temperature = resolved.temperature;
+		} else {
+			// Fallback if interaction is not provided
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+			maxTokens = capabilitiesManager.resolveMaxTokens(
+				model,
+				messageRequest.maxTokens,
+			);
+			temperature = capabilitiesManager.resolveTemperature(
+				model,
+				messageRequest.temperature,
+			);
+			//extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			//	model,
+			//	messageRequest.extendedThinking?.enabled,
+			//);
+		}
+
 		// Prepare the request with appropriate configuration
 		const request: GenerateContentRequest = {
 			//contents: systemContent ? [systemContent, ...contents] : contents,
 			contents,
 			systemInstruction: systemContent,
 			generationConfig: {
-				temperature: messageRequest.temperature,
-				maxOutputTokens: messageRequest.maxTokens,
+				temperature: temperature,
+				maxOutputTokens: maxTokens,
 			},
 			//stream: false
 		};
@@ -431,7 +469,7 @@ class GoogleLLM extends LLM {
 			logger.debug('llms-google-speakWith-messageRequest', JSON.stringify(messageRequest, null, 2));
 
 			const providerMessageRequest = await this.asProviderMessageRequest(messageRequest, interaction);
-			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_20_FLASH;
+			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_0_FLASH;
 
 			const result = await this.google.getGenerativeModel({ model }).generateContent(providerMessageRequest);
 			logger.info('llms-google-result', result);

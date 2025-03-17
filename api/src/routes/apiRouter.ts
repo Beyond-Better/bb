@@ -10,6 +10,7 @@ import {
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';
+import { getModelCapabilities, listModels } from './api/model.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
@@ -37,6 +38,9 @@ apiRouter
 	.use(requireAuth(protectedPaths))
 	.get('/v1/status', getStatus)
 	.get('/v1/meta', getMeta)
+	// Model capabilities endpoints
+	.get('/v1/model', listModels)
+	.get('/v1/model/:modelId', getModelCapabilities)
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
 	.get('/v1/ws/conversation/:id', websocketConversation)

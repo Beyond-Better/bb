@@ -31,6 +31,14 @@ marked.setOptions({
 	breaks: true,
 });
 
+// Add TypeScript declaration for our global functions
+declare global {
+	interface Window {
+		bbToggleThinking: (header: HTMLElement) => void;
+		bbHandleThinkingKeyDown: (event: KeyboardEvent, header: HTMLElement) => void;
+	}
+}
+
 export function MessageEntry({
 	logEntryData,
 	index,
@@ -83,6 +91,37 @@ export function MessageEntry({
 		});
 	}, [conversationId, index]);
 
+	// Define global functions (once) for thinking block toggle functionality
+	// deno-lint-ignore no-explicit-any
+	if (!(globalThis as any).bbToggleThinking) {
+		// Main toggle function called from onclick handler
+		// deno-lint-ignore no-explicit-any
+		(globalThis as any).bbToggleThinking = (header: HTMLElement) => {
+			if (!header) return;
+
+			const container = header.closest('.bb-thinking-container');
+			const content = container?.querySelector('.bb-thinking-content');
+			const icon = container?.querySelector('.bb-thinking-icon');
+
+			if (content && icon) {
+				const isHidden = content.classList.contains('hidden');
+				content.classList.toggle('hidden');
+				icon.classList.toggle('rotate-90');
+				header.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+			}
+		};
+
+		// Keyboard handler for accessibility
+		// deno-lint-ignore no-explicit-any
+		(globalThis as any).bbHandleThinkingKeyDown = (event: KeyboardEvent, header: HTMLElement) => {
+			if (event.key === 'Enter' || event.key === ' ') {
+				event.preventDefault();
+				// deno-lint-ignore no-explicit-any
+				(globalThis as any).bbToggleThinking(header);
+			}
+		};
+	}
+
 	// Keyboard navigation
 	useEffect(() => {
 		const handleKeyPress = (e: KeyboardEvent) => {
@@ -111,8 +150,12 @@ export function MessageEntry({
 	const entryType =
 		(hasLogEntry(logEntryData) ? logEntryData.logEntry.entryType : 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
-	const tokenUsageTurn = 'tokenUsageTurn' in logEntryData ? logEntryData.tokenUsageTurn : getDefaultTokenUsage();
-	const tokenUsageConversation = logEntryData.tokenUsageConversation || getDefaultTokenUsage();
+	const tokenUsageTurn = 'tokenUsageStats' in logEntryData
+		? logEntryData.tokenUsageStats.tokenUsageTurn
+		: getDefaultTokenUsage();
+	const tokenUsageConversation = 'tokenUsageStats' in logEntryData
+		? logEntryData.tokenUsageStats.tokenUsageConversation
+		: getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
 		? messageIcons[entryType as keyof typeof messageIcons]
@@ -128,7 +171,7 @@ export function MessageEntry({
 					type={entryType === 'tool_use' ? 'input' : 'output'}
 					toolName={logEntryData.logEntry.toolName || 'Unknown Tool'}
 					content={logEntryData.logEntry.content}
-					onCopy={handleCopy}
+					//onCopy={handleCopy}
 					apiClient={apiClient}
 					projectId={projectId}
 					logEntry={logEntryData.logEntry}
@@ -140,6 +183,7 @@ export function MessageEntry({
 			return (
 				<div
 					className='prose max-w-none dark:prose-invert'
+					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
 				/>
 			);
@@ -149,6 +193,7 @@ export function MessageEntry({
 			return (
 				<div
 					className='prose max-w-none dark:prose-invert'
+					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: logEntryData.formattedContent }}
 				/>
 			);
@@ -159,6 +204,7 @@ export function MessageEntry({
 			return (
 				<div
 					className='prose max-w-none dark:prose-invert'
+					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: marked.parse(content).toString() }}
 				/>
 			);
@@ -171,6 +217,7 @@ export function MessageEntry({
 		return (
 			<div className='overflow-x-auto'>
 				<pre className='whitespace-pre rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4'>
+					// deno-lint-ignore react-no-danger
 					<code
 						className="language-json hljs"
 						dangerouslySetInnerHTML={{ __html: highlighted }}
@@ -189,6 +236,7 @@ export function MessageEntry({
 			>
 				{/* Header */}
 				<button
+					type='button'
 					onClick={toggleExpanded}
 					className={`w-full flex items-center justify-between p-2 ${styles.header.border} ${styles.header.bg} border-b hover:bg-opacity-75 dark:hover:bg-opacity-50 transition-colors duration-200`}
 					aria-controls={`message-content-${index}`}
@@ -200,6 +248,7 @@ export function MessageEntry({
 							{formatted?.formattedResult?.title
 								? (
 									<span
+										// deno-lint-ignore react-no-danger
 										dangerouslySetInnerHTML={{ __html: formatted.formattedResult.title as string }}
 									/>
 								)
@@ -218,6 +267,7 @@ export function MessageEntry({
 						{formatted?.formattedResult?.subtitle && (
 							<span
 								className={`text-sm text-gray-600 dark:text-gray-400 truncate max-w-md`}
+								// deno-lint-ignore react-no-danger
 								dangerouslySetInnerHTML={{ __html: formatted.formattedResult.subtitle as string }}
 							/>
 						)}
@@ -226,10 +276,12 @@ export function MessageEntry({
 						{formatted?.formattedResult?.preview && (
 							<span
 								className={`text-sm text-gray-700 dark:text-gray-300 truncate max-w-md`}
+								// deno-lint-ignore react-no-danger
 								dangerouslySetInnerHTML={{ __html: formatted.formattedResult.preview as string }}
 							/>
 						)}
 						<button
+							type='button'
 							onClick={(e) => {
 								e.stopPropagation();
 								handleCopy(

@@ -49,6 +49,37 @@ export interface ApiStatus {
 	projectName?: string;
 }
 
+// Model capability types
+export interface ModelCapabilities {
+	contextWindow: number;
+	maxOutputTokens: number;
+	pricing?: Record<string, unknown>;
+	supportedFeatures: {
+		extendedThinking?: boolean;
+		promptCaching?: boolean;
+		[key: string]: boolean | undefined;
+	};
+	defaults?: Record<string, unknown>;
+	constraints?: {
+		temperature?: { min: number; max: number };
+		[key: string]: { min: number; max: number } | undefined;
+	};
+	systemPromptBehavior?: string;
+	[key: string]: unknown;
+}
+
+export interface ModelDetails {
+	id: string;
+	displayName: string;
+	provider: string;
+	providerLabel: string;
+	capabilities: ModelCapabilities;
+}
+
+export interface ModelResponse {
+	model: ModelDetails;
+}
+
 interface ConversationResponse {
 	id: string;
 	title: string;
@@ -526,6 +557,11 @@ export class ApiClient {
 			`/api/v1/format_log_entry/browser/${entryType}`,
 			{ logEntry, projectId },
 		);
+	}
+
+	// Get model capabilities from the API
+	async getModelCapabilities(modelName: string): Promise<ModelResponse | null> {
+		return await this.get<ModelResponse>(`/api/v1/model/${encodeURIComponent(modelName)}`);
 	}
 }
 

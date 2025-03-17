@@ -1,6 +1,6 @@
 import { JSX } from 'preact';
-import { useEffect } from 'preact/hooks';
-import { signal } from '@preact/signals';
+// import { useEffect } from 'preact/hooks';
+// import { signal } from '@preact/signals';
 
 /*
 interface TimerState {

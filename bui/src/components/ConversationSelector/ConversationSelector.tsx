@@ -58,17 +58,19 @@ export function ConversationSelector({
 
 		const handleKeyDown = (e: KeyboardEvent) => {
 			switch (e.key) {
-				case 'ArrowDown':
+				case 'ArrowDown': {
 					e.preventDefault();
 					selectedIndex.value = (selectedIndex.value + 1) % displayedConversations.value.length;
 					break;
-				case 'ArrowUp':
+				}
+				case 'ArrowUp': {
 					e.preventDefault();
 					selectedIndex.value = selectedIndex.value - 1 < 0
 						? displayedConversations.value.length - 1
 						: selectedIndex.value - 1;
 					break;
-				case 'Enter':
+				}
+				case 'Enter': {
 					e.preventDefault();
 					const selectedConversation = displayedConversations.value[selectedIndex.value];
 					if (selectedConversation) {
@@ -76,16 +78,18 @@ export function ConversationSelector({
 						isOpen.value = false;
 					}
 					break;
-				case 'Escape':
+				}
+				case 'Escape': {
 					e.preventDefault();
 					isOpen.value = false;
 					triggerRef.current?.focus();
 					break;
+				}
 			}
 		};
 
-		window.addEventListener('keydown', handleKeyDown);
-		return () => window.removeEventListener('keydown', handleKeyDown);
+		globalThis.addEventListener('keydown', handleKeyDown);
+		return () => globalThis.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen.value, displayedConversations.value, selectedIndex.value]);
 
 	// Handle click outside
@@ -102,8 +106,8 @@ export function ConversationSelector({
 			}
 		};
 
-		window.addEventListener('mousedown', handleClickOutside);
-		return () => window.removeEventListener('mousedown', handleClickOutside);
+		globalThis.addEventListener('mousedown', handleClickOutside);
+		return () => globalThis.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen.value]);
 
 	return (
@@ -160,6 +164,7 @@ export function ConversationSelector({
 
 			{/* New Conversation Button */}
 			<button
+				type='button'
 				onClick={onNew}
 				className='bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium flex items-center gap-2 border border-gray-300 dark:border-gray-600 h-[40px]'
 			>

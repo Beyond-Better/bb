@@ -17,14 +17,14 @@ export function isConversationStart(entry: ConversationEntry): entry is Conversa
  * Type guard to check if an entry is a ConversationContinue
  */
 export function isConversationContinue(entry: ConversationEntry): entry is ConversationContinue {
-	return 'logEntry' in entry && 'tokenUsageTurn' in entry;
+	return 'logEntry' in entry && 'tokenUsageStats' in entry;
 }
 
 /**
  * Type guard to check if an entry is a ConversationResponse
  */
 export function isConversationResponse(entry: ConversationEntry): entry is ConversationResponse {
-	return 'logEntry' in entry && !('tokenUsageTurn' in entry);
+	return 'logEntry' in entry && !('tokenUsageStats' in entry);
 }
 
 /**

@@ -19,7 +19,7 @@ import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	//ConversationEntry,
@@ -31,6 +31,7 @@ import type {
 	ConversationStats,
 	//ObjectivesData,
 	TokenUsage,
+	TokenUsageStats,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -39,7 +40,7 @@ import { createError } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-//import { extractTextFromContent } from 'api/utils/llms.ts';
+import { extractThinkingFromContent } from 'api/utils/llms.ts';
 import { readProjectFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithResponse } from 'api/types.ts';
 import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -413,6 +414,9 @@ class BaseController {
 			//interaction.conversationStats = this.interactionStats.get(interaction.id),
 			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
 
+			// Include the latest requestParams in the saved conversation
+			interaction.requestParams = currentResponse.messageMeta.requestParams;
+
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
@@ -445,22 +449,8 @@ class BaseController {
 			return '';
 		}
 
-		let thinkingContent = '';
-
-		for (const part of response.answerContent) {
-			if (typeof part === 'object' && 'type' in part && part.type === 'text' && 'text' in part) {
-				const text = part.text;
-				const thinkingMatch = text.match(/Thinking:(.*?)(?=(Human:|Assistant:|$))/s);
-				if (thinkingMatch) {
-					thinkingContent += thinkingMatch[1].trim() + '\n';
-				} else {
-					// If no specific 'Thinking:' section is found, consider the whole text as thinking content
-					thinkingContent += text.trim() + '\n';
-				}
-			}
-		}
-
-		return thinkingContent.trim();
+		// Use the ThinkingExtractor utility for consistent extraction
+		return extractThinkingFromContent(response.answerContent);
 	}
 
 	protected async handleToolUse(
@@ -475,9 +465,7 @@ class BaseController {
 			toolUse.toolName,
 			toolUse.toolInput,
 			interaction.conversationStats,
-			interaction.tokenUsageTurn,
-			interaction.tokenUsageStatement,
-			interaction.tokenUsageInteraction,
+			interaction.tokenUsageStats,
 		);
 
 		const {
@@ -519,14 +507,15 @@ class BaseController {
 			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
 			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
+			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
-				tokenUsageTurn: TokenUsage,
-				tokenUsageStatement: TokenUsage,
-				tokenUsageConversation: TokenUsage,
+				tokenUsageStats: TokenUsageStats,
+				requestParams?: LLMRequestParams,
 			): Promise<void> => {
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: ConversationResponse = {
 						timestamp,
@@ -534,9 +523,8 @@ class BaseController {
 						conversationTitle: this.primaryInteraction.title,
 						logEntry,
 						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
+						tokenUsageStats,
+						requestParams,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationAnswer',
@@ -549,9 +537,8 @@ class BaseController {
 						conversationTitle: this.primaryInteraction.title,
 						logEntry,
 						conversationStats,
-						tokenUsageTurn,
-						tokenUsageStatement,
-						tokenUsageConversation,
+						tokenUsageStats,
+						requestParams,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationContinue',

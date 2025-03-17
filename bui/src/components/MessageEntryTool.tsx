@@ -16,10 +16,10 @@ interface MessageEntryToolProps {
 }
 
 export function MessageEntryTool({
-	type,
-	toolName,
+	//type,
+	//toolName,
 	content,
-	onCopy,
+	//onCopy,
 	apiClient,
 	projectId,
 	logEntry,
@@ -55,12 +55,12 @@ export function MessageEntryTool({
 	const formattedContent = JSON.stringify(content, null, 2);
 	const highlighted = hljs.highlight(formattedContent, { language: 'json' }).value;
 
-	const handleCopy = () => {
-		if (onCopy) {
-			onCopy(formattedContent);
-			setShowToast(true);
-		}
-	};
+	//const handleCopy = () => {
+	//	if (onCopy) {
+	//		onCopy(formattedContent);
+	//		setShowToast(true);
+	//	}
+	//};
 
 	return (
 		<>
@@ -80,11 +80,13 @@ export function MessageEntryTool({
 						{formatted?.formattedResult?.content
 							? (
 								<div
+									// deno-lint-ignore react-no-danger
 									dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
 								/>
 							)
 							: (
 								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'>
+								// deno-lint-ignore react-no-danger
 								<code
 									className="language-json hljs"
 									dangerouslySetInnerHTML={{ __html: highlighted }}

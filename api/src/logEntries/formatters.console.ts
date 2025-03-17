@@ -10,20 +10,13 @@ export const formatLogEntryPreview = (preview: string): string => {
 };
 
 export const formatLogEntryContent = (logEntry: ConversationLogEntry): string => {
+	// Format the main content
 	const contentArray: Array<{ type: string; content: string }> = formatContentParts(logEntry.content);
-	return contentArray
+	const mainContent = contentArray
 		.map((item) => {
 			if (item.type === 'text') {
-				// Process thinking and prompt tags for console
+				// Process prompt tags for console
 				let processedContent = item.content;
-
-				// Handle thinking blocks
-				processedContent = processedContent.replace(/<thinking>([\s\S]*?)<\/thinking>/g, (_, p1) => {
-					const lines = p1.split('\n').map((line: string) => line.trim());
-					const firstLine = '💭 *thinking...* ' + lines[0];
-					return [firstLine, ...lines.slice(1)].join('\n');
-				});
-				processedContent = processedContent.replace(/<thinking>/g, '');
 
 				// Handle prompt blocks
 				processedContent = processedContent.replace(/<prompt>([\s\S]*?)<\/prompt>/g, (_, p1) => {
@@ -41,6 +34,16 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 			return '';
 		})
 		.join('\n');
+
+	// Format the thinking content if it exists
+	if (logEntry.thinking) {
+		const lines = logEntry.thinking.split('\n').map((line: string) => line.trim());
+		const firstLine = '💭 *thinking...* \n' + lines[0];
+		const thinkingContent = [firstLine, ...lines.slice(1)].join('\n');
+		return thinkingContent + '\n\n' + mainContent;
+	}
+
+	return mainContent;
 };
 
 function formatContentParts(

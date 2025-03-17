@@ -160,6 +160,30 @@ All endpoints may return appropriate HTTP status codes for various error conditi
 
 Detailed error messages will be provided in the response body when applicable.
 
+## Model Capabilities System
+
+The BB API includes a comprehensive model capabilities system that manages defaults, constraints, and pricing information for different LLM models.
+
+### Features
+
+- Canonical storage for model capabilities and constraints
+- Parameter resolution with a priority hierarchy
+- Optimized defaults for different interaction types
+- Automatic parameter validation
+- Support for user preferences through configuration
+
+### Integration
+
+The model capabilities system is integrated with the conversation endpoints and automatically resolves appropriate parameter values when making LLM requests.
+
+For detailed documentation on the model capabilities system, including:
+- How to use it in your code
+- How to set user preferences
+- How to update model capabilities data
+- How to add new models
+
+See the [Model Capabilities System Documentation](./development/model-capabilities-system.md).
+
 ## Authentication
 
 The current implementation does not include authentication. It is designed for local use only. Ensure proper security measures are in place when deploying this API in a production environment.

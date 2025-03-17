@@ -16,8 +16,9 @@ import type {
 	TokenUsage,
 	TokenUsageAnalysis,
 	TokenUsageRecord,
+	TokenUsageStats,
 } from 'shared/types.ts';
-//import type { LLMProviderSystem } from 'api/types/llms.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
@@ -238,8 +239,16 @@ class ConversationPersistence {
 				...conv,
 				conversationStats: (conv as ConversationMetadata).conversationStats ||
 					ConversationPersistence.defaultConversationStats(),
-				tokenUsageConversation: (conv as ConversationMetadata).tokenUsageConversation ||
-					ConversationPersistence.defaultConversationTokenUsage(),
+				requestParams: (conv as ConversationMetadata).requestParams ||
+					ConversationPersistence.defaultRequestParams(),
+				tokenUsageStats: {
+					tokenUsageConversation: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageConversation ||
+						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
+				},
 			})),
 			totalCount,
 		};
@@ -302,6 +311,8 @@ class ConversationPersistence {
 				title: conversation.title,
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
+				tokenUsageStats: conversation.tokenUsageStats,
+				requestParams: conversation.requestParams,
 				llmProviderName: conversation.llmProviderName,
 				model: conversation.model,
 				createdAt: new Date().toISOString(),
@@ -324,19 +335,23 @@ class ConversationPersistence {
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
 
-				// Store analyzed token usage in metadata
-				tokenUsageConversation: {
-					inputTokens: tokenAnalysis.combined.totalUsage.input,
-					outputTokens: tokenAnalysis.combined.totalUsage.output,
-					totalTokens: tokenAnalysis.combined.totalUsage.total,
-					cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
-					cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
-					totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
-				},
+				requestParams: conversation.requestParams,
 
-				// Keep turn and statement level metrics
-				tokenUsageTurn: conversation.tokenUsageTurn,
-				tokenUsageStatement: conversation.tokenUsageStatement,
+				// Store analyzed token usage in metadata
+				tokenUsageStats: {
+					tokenUsageConversation: {
+						inputTokens: tokenAnalysis.combined.totalUsage.input,
+						outputTokens: tokenAnalysis.combined.totalUsage.output,
+						totalTokens: tokenAnalysis.combined.totalUsage.total,
+						cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+						cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+						totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+					},
+
+					// Keep turn and statement level metrics
+					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn,
+					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement,
+				},
 
 				totalProviderRequests: conversation.totalProviderRequests,
 				//tools: conversation.getAllTools().map((tool) => ({ name: tool.name, description: tool.description })),
@@ -416,13 +431,15 @@ class ConversationPersistence {
 			conversation.conversationStats = metadata.conversationStats;
 			//conversation.conversationMetrics = metadata.conversationMetrics;
 
+			conversation.requestParams = metadata.requestParams;
+
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
 			// Get token usage analysis
 			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Update conversation with analyzed values
-			conversation.tokenUsageConversation = {
+			conversation.tokenUsageStats.tokenUsageConversation = {
 				inputTokens: tokenAnalysis.combined.totalUsage.input,
 				outputTokens: tokenAnalysis.combined.totalUsage.output,
 				totalTokens: tokenAnalysis.combined.totalUsage.total,
@@ -432,8 +449,9 @@ class ConversationPersistence {
 			};
 
 			// Keep turn and statement usage from metadata for backward compatibility
-			conversation.tokenUsageTurn = metadata.tokenUsageTurn || ConversationPersistence.defaultTokenUsage();
-			conversation.tokenUsageStatement = metadata.tokenUsageStatement ||
+			conversation.tokenUsageStats.tokenUsageTurn = metadata.tokenUsageStats?.tokenUsageTurn ||
+				ConversationPersistence.defaultTokenUsage();
+			conversation.tokenUsageStats.tokenUsageStatement = metadata.tokenUsageStats?.tokenUsageStatement ||
 				ConversationPersistence.defaultTokenUsage();
 
 			conversation.statementTurnCount = metadata.conversationMetrics?.statementTurnCount || 0;
@@ -524,7 +542,7 @@ class ConversationPersistence {
 		conversation: ConversationMetadata & {
 			conversationStats?: ConversationStats;
 			conversationMetrics?: ConversationMetrics;
-			tokenUsageConversation?: TokenUsage;
+			tokenUsageStats?: TokenUsageStats;
 		},
 	): Promise<void> {
 		await this.ensureInitialized();
@@ -548,8 +566,16 @@ class ConversationPersistence {
 					ConversationPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
 					ConversationPersistence.defaultConversationMetrics(),
-				tokenUsageConversation: conversation.tokenUsageConversation ||
-					ConversationPersistence.defaultConversationTokenUsage(),
+				requestParams: conversation.requestParams ||
+					ConversationPersistence.defaultRequestParams(),
+				tokenUsageStats: {
+					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
+						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
+				},
 			};
 		} else {
 			conversations.push({
@@ -558,8 +584,16 @@ class ConversationPersistence {
 					ConversationPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
 					ConversationPersistence.defaultConversationMetrics(),
-				tokenUsageConversation: conversation.tokenUsageConversation ||
-					ConversationPersistence.defaultConversationTokenUsage(),
+				requestParams: conversation.requestParams ||
+					ConversationPersistence.defaultRequestParams(),
+				tokenUsageStats: {
+					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
+						ConversationPersistence.defaultConversationTokenUsage(),
+					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
+						ConversationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
+						ConversationPersistence.defaultTokenUsage(),
+				},
 			});
 		}
 
@@ -739,6 +773,15 @@ class ConversationPersistence {
 			totalAllTokens: 0,
 		};
 	}
+	static defaultRequestParams(): LLMRequestParams {
+		return {
+			model: '',
+			temperature: 0,
+			maxTokens: 0,
+			extendedThinking: { enabled: false, budgetTokens: 0 },
+			usePromptCaching: false,
+		};
+	}
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
 			version: 3, // default version for existing conversations
@@ -757,9 +800,13 @@ class ConversationPersistence {
 
 			totalProviderRequests: 0,
 
-			tokenUsageTurn: ConversationPersistence.defaultTokenUsage(),
-			tokenUsageStatement: ConversationPersistence.defaultTokenUsage(),
-			tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
+			tokenUsageStats: {
+				tokenUsageTurn: ConversationPersistence.defaultTokenUsage(),
+				tokenUsageStatement: ConversationPersistence.defaultTokenUsage(),
+				tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
+			},
+
+			requestParams: ConversationPersistence.defaultRequestParams(),
 
 			conversationStats: ConversationPersistence.defaultConversationStats(),
 			conversationMetrics: ConversationPersistence.defaultConversationMetrics(),

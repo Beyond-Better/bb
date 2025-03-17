@@ -63,9 +63,7 @@ class LLMChatInteraction extends LLMInteraction {
 			this.getLastMessageId(),
 			auxiliaryContent,
 			this.conversationStats,
-			this.tokenUsageTurn,
-			this.tokenUsageStatement,
-			this.tokenUsageInteraction,
+			this.tokenUsageStats,
 		);
 
 		return response;

@@ -59,10 +59,12 @@ Deno.test('ConversationMigration.readMetadata', async (t) => {
 			updatedAt: new Date().toISOString(),
 			llmProviderName: 'test',
 			model: 'test',
-			tokenUsageConversation: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
+			tokenUsageStats: {
+				tokenUsageConversation: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+				},
 			},
 		} as ConversationMetadata;
 		await Deno.writeTextFile(metadataPath, JSON.stringify(testData));
@@ -131,10 +133,12 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 			updatedAt: new Date().toISOString(),
 			llmProviderName: 'test',
 			model: 'test',
-			tokenUsageConversation: {
-				inputTokens: 100,
-				outputTokens: 200,
-				totalTokens: 300,
+			tokenUsageStats: {
+				tokenUsageConversation: {
+					inputTokens: 100,
+					outputTokens: 200,
+					totalTokens: 300,
+				},
 			},
 		};
 		await Deno.writeTextFile(metadataPath, JSON.stringify(v1Metadata));
@@ -184,7 +188,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 		const updatedMetadata = await ConversationMigration['readMetadata'](metadataPath);
 		assertEquals(updatedMetadata.version, 3, 'Metadata version should be 3');
 		assertEquals(
-			updatedMetadata.tokenUsageConversation?.totalAllTokens,
+			updatedMetadata.tokenUsageStats.tokenUsageConversation?.totalAllTokens,
 			375, // 300 + 50 + 25
 			'totalAllTokens should be sum of totalTokens + cache tokens',
 		);

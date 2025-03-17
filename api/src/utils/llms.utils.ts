@@ -1,5 +1,6 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPart } from 'api/llms/llmMessage.ts';
+import { ThinkingExtractor } from './thinkingExtractor.ts';
 
 export const getContentArrayFromToolResult = (toolRunResultContent: LLMToolRunResultContent): string[] => {
 	if (Array.isArray(toolRunResultContent)) {
@@ -32,6 +33,13 @@ export const getTextContent = (content: LLMMessageContentPart): string => {
  * @param answerContent Array of message content parts from LLM response
  * @returns Combined text content from all parts
  */
+/**
+ * Extract text content from an LLM response's answerContent array.
+ * Combines all text parts and handles non-text content appropriately.
+ * Excludes thinking content and removes <thinking> tags from text parts.
+ * @param answerContent Array of message content parts from LLM response
+ * @returns Combined text content from all parts, excluding thinking content
+ */
 export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): string => {
 	if (!Array.isArray(answerContent)) {
 		throw new Error('answerContent must be an array');
@@ -40,8 +48,15 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 	let combinedText = '';
 	for (const part of answerContent) {
 		if (part && typeof part === 'object') {
+			// Skip thinking blocks completely
+			if (part.type === 'thinking') {
+				continue;
+			}
+
 			if ('text' in part) {
-				combinedText += part.text;
+				// Remove any <thinking> tags from text parts
+				const cleanText = part.text.replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
+				combinedText += cleanText;
 			} else {
 				// Handle non-text content
 				const contentType = part.type || 'unknown';
@@ -59,9 +74,33 @@ export const extractTextFromContent = (answerContent: LLMMessageContentPart[]): 
 			}
 		}
 	}
+
+	// Remove any remaining <thinking> tags that might be in the combined text
+	combinedText = combinedText.replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
+
 	return combinedText.trim();
 };
 
+/**
+ * Extract thinking content from an LLM response's answerContent array.
+ * Uses ThinkingExtractor to handle all supported thinking formats.
+ * @param answerContent Array of message content parts from LLM response
+ * @returns Extracted thinking content as a string
+ */
+export const extractThinkingFromContent = (answerContent: LLMMessageContentPart[] | string): string => {
+	//if (!Array.isArray(answerContent)) {
+	//	throw new Error('answerContent must be an array');
+	//}
+
+	// Use the ThinkingExtractor to handle all thinking formats consistently
+	return ThinkingExtractor.extract(answerContent).thinking;
+};
+
+/**
+ * Extract tool use content from an LLM response's answerContent array.
+ * @param answerContent Array of message content parts from LLM response
+ * @returns Tool use content as a string
+ */
 export const extractToolUseFromContent = (answerContent: LLMMessageContentPart[]): string => {
 	if (!Array.isArray(answerContent)) {
 		throw new Error('answerContent must be an array');
