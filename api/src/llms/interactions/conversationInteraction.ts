@@ -755,13 +755,21 @@ class LLMConversationInteraction extends LLMInteraction {
 	// the caller is responsible for adding to conversationLogger
 	async relayToolResult(
 		prompt: string,
+		metadata: Record<string, any>,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
 			speakOptions = {} as LLMSpeakWithOptions;
 		}
 
-		this.addMessageForUserRole({ type: 'text', text: prompt });
+		const contentParts: LLMMessageContentParts = [
+			{
+				type: 'text',
+				text: `__METADATA__ ${JSON.stringify(metadata)}`
+			},
+			{ type: 'text', text: prompt }
+		];
+		this.addMessageForUserRole(contentParts);
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
 		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
@@ -780,6 +788,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	// converse is called for first turn in a statement; subsequent turns call relayToolResult
 	public async converse(
 		prompt: string,
+		metadata: Record<string, any>,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMSpeakWithResponse> {
 		// Statement count is now incremented at the beginning of the method
@@ -819,7 +828,15 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 
 		//logger.debug(`ConversationInteraction: converse - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
-		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });
+		const contentParts: LLMMessageContentParts = [
+			{
+				type: 'text',
+				text: JSON.stringify({ __metadata: metadata }),
+				
+			},
+			{ type: 'text', text: prompt }
+		];
+		const messageId = this.addMessageForUserRole(contentParts);
 		this.conversationLogger.logUserMessage(
 			messageId,
 			prompt,

@@ -315,7 +315,32 @@ class AgentController extends BaseController {
 			this.emitStatus(ApiStatus.LLM_PROCESSING);
 			this.emitPromptCacheTimer();
 
-			currentResponse = await interaction.converse(statement, speakOptions);
+			// Create metadata object with task information
+			const metadata = {
+				system: {
+					timestamp: new Date().toISOString(),
+					os: Deno.build.os,
+					//bb_version: (await getVersionInfo()).version,
+					// Add: git_branch, git_commit
+				},
+				task: {
+					title: task.title,
+					type: 'agent_task',
+				},
+				conversation: {
+					counts: {
+						statements: this.statementCount,
+						statement_turns: this.statementTurnCount,
+						conversation_turns: this.conversationTurnCount,
+						//max_turns_per_statement: 15,
+					},
+				},
+				resources: { // Add this section
+					files_active: interaction.getFiles().size,
+				},
+			};
+
+			currentResponse = await interaction.converse(statement, metadata, speakOptions);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('AgentController: Received response from LLM');
@@ -467,7 +492,36 @@ class AgentController extends BaseController {
 						this.emitStatus(ApiStatus.LLM_PROCESSING);
 						this.emitPromptCacheTimer();
 
-						currentResponse = await interaction.relayToolResult(statement, speakOptions);
+						// Update metadata with current information
+						const toolMetadata = {
+							system: {
+								timestamp: new Date().toISOString(),
+								os: Deno.build.os,
+								//bb_version: (await getVersionInfo()).version,
+								// Add: git_branch, git_commit
+							},
+							task: {
+								title: task.title,
+								type: 'agent_task',
+							},
+							conversation: {
+								counts: {
+									statements: this.statementCount,
+									statement_turns: this.statementTurnCount,
+									conversation_turns: this.conversationTurnCount,
+									//max_turns_per_statement: 15,
+								},
+								turn: {
+									number: loopTurnCount,
+									max: maxTurns,
+								},
+							},
+							resources: { // Add this section
+								files_active: interaction.getFiles().size,
+							},
+						};
+
+						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
 
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('AgentController: tool response', currentResponse);

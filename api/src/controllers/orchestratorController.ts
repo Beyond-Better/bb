@@ -13,7 +13,7 @@ import AgentController from 'api/controllers/agentController.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 //import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
-import type { CompletedTask, ErrorHandlingConfig, Task, LLMRequestParams } from 'api/types/llms.ts';
+import type { CompletedTask, ErrorHandlingConfig, LLMRequestParams, Task } from 'api/types/llms.ts';
 import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	//ConversationContinue,
@@ -295,7 +295,36 @@ class OrchestratorController extends BaseController {
 			this.emitStatus(ApiStatus.LLM_PROCESSING);
 			this.emitPromptCacheTimer();
 
-			currentResponse = await interaction.converse(statement, speakOptions);
+			// Create metadata object with useful context
+			const metadata = {
+				system: {
+					timestamp: new Date().toISOString(),
+					os: Deno.build.os,
+					//bb_version: (await getVersionInfo()).version,
+					// Add: git_branch, git_commit
+				},
+				conversation: {
+					//goal: 'Determine the optimal approach...', // Add this
+					//current_objective: 'Implement the metadata...', // Add this
+					counts: {
+						statements: this.statementCount,
+						statement_turns: this.statementTurnCount,
+						conversation_turns: this.conversationTurnCount,
+						//max_turns_per_statement: 15,
+					},
+				},
+				resources: { // Add this section
+					files_active: interaction.getFiles().size,
+				},
+				//tools: { // see formatToolObjectivesAndStats for example of toolStats
+				//	recent: [
+				//		{ name: 'search_project', success: true, count: 2 },
+				//		{ name: 'request_files', success: true, count: 1 },
+				//	],
+				//},
+			};
+
+			currentResponse = await interaction.converse(statement, metadata, speakOptions);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
@@ -449,7 +478,34 @@ class OrchestratorController extends BaseController {
 						this.emitStatus(ApiStatus.LLM_PROCESSING);
 						this.emitPromptCacheTimer();
 
-						currentResponse = await interaction.relayToolResult(statement, speakOptions);
+						// Update metadata with current information
+						const toolMetadata = {
+							system: {
+								timestamp: new Date().toISOString(),
+								os: Deno.build.os,
+								//bb_version: (await getVersionInfo()).version,
+								// Add: git_branch, git_commit
+							},
+							conversation: {
+								//goal: 'Determine the optimal approach...', // Add this
+								//current_objective: 'Implement the metadata...', // Add this
+								counts: {
+									statements: this.statementCount,
+									statement_turns: this.statementTurnCount,
+									conversation_turns: this.conversationTurnCount,
+									//max_turns_per_statement: 15,
+								},
+								turn: {
+									number: loopTurnCount,
+									max: maxTurns,
+								},
+							},
+							resources: { // Add this section
+								files_active: interaction.getFiles().size,
+							},
+						};
+
+						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
 
 						this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('OrchestratorController: tool response', currentResponse);
