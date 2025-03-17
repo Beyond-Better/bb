@@ -388,12 +388,12 @@ class GoogleLLM extends LLM {
 				parts: [{ text: messageRequest.system }],
 			}
 			: undefined;
-		
+
 		// Resolve parameters using model capabilities
 		let maxTokens: number;
 		let temperature: number;
 		//let extendedThinking: boolean;
-		
+
 		if (interaction) {
 			// Use interaction to resolve parameters with proper priority
 			const resolved = await interaction.resolveModelParameters(
@@ -411,7 +411,7 @@ class GoogleLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
-			
+
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,

@@ -65,59 +65,59 @@ import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
  *         description: Internal server error
  */
 export const listModels = async (
-    { request, response }: { request: Context['request']; response: Context['response'] },
+	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
-    try {
-        logger.info('ModelHandler: listModels called');
-        
-        // Initialize the model capabilities manager
-        const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-        await capabilitiesManager.initialize();
-        
-        // Parse pagination parameters
-        const url = new URL(request.url);
-        const page = parseInt(url.searchParams.get('page') || '1');
-        const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
-        
-        // Get all available models from LLMModelToProvider mapping
-        const allModels = Object.entries(LLMModelToProvider).map(([modelId, provider]) => {
-            // Get model capabilities
-            const capabilities = capabilitiesManager.getModelCapabilities(modelId, provider);
-            
-            return {
-                id: modelId,
-                displayName: capabilities.displayName,
-                provider,
-                providerLabel: LLMProviderLabel[provider] || 'Unknown',
-                contextWindow: capabilities.contextWindow,
-                responseSpeed: capabilities.responseSpeed || 'medium',
-            };
-        });
-        
-        // Apply pagination
-        const total = allModels.length;
-        const startIndex = (page - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        const paginatedModels = allModels.slice(startIndex, endIndex);
-        
-        // Calculate pagination metadata
-        const pageCount = Math.ceil(total / pageSize);
-        
-        response.status = 200;
-        response.body = {
-            models: paginatedModels,
-            pagination: {
-                total,
-                page,
-                pageSize,
-                pageCount,
-            }
-        };
-    } catch (error) {
-        logger.error(`ModelHandler: Error in listModels: ${(error as Error).message}`);
-        response.status = 500;
-        response.body = { error: 'Failed to list models', details: (error as Error).message };
-    }
+	try {
+		logger.info('ModelHandler: listModels called');
+
+		// Initialize the model capabilities manager
+		const capabilitiesManager = ModelCapabilitiesManager.getInstance();
+		await capabilitiesManager.initialize();
+
+		// Parse pagination parameters
+		const url = new URL(request.url);
+		const page = parseInt(url.searchParams.get('page') || '1');
+		const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+
+		// Get all available models from LLMModelToProvider mapping
+		const allModels = Object.entries(LLMModelToProvider).map(([modelId, provider]) => {
+			// Get model capabilities
+			const capabilities = capabilitiesManager.getModelCapabilities(modelId, provider);
+
+			return {
+				id: modelId,
+				displayName: capabilities.displayName,
+				provider,
+				providerLabel: LLMProviderLabel[provider] || 'Unknown',
+				contextWindow: capabilities.contextWindow,
+				responseSpeed: capabilities.responseSpeed || 'medium',
+			};
+		});
+
+		// Apply pagination
+		const total = allModels.length;
+		const startIndex = (page - 1) * pageSize;
+		const endIndex = startIndex + pageSize;
+		const paginatedModels = allModels.slice(startIndex, endIndex);
+
+		// Calculate pagination metadata
+		const pageCount = Math.ceil(total / pageSize);
+
+		response.status = 200;
+		response.body = {
+			models: paginatedModels,
+			pagination: {
+				total,
+				page,
+				pageSize,
+				pageCount,
+			},
+		};
+	} catch (error) {
+		logger.error(`ModelHandler: Error in listModels: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to list models', details: (error as Error).message };
+	}
 };
 
 /**
@@ -158,42 +158,42 @@ export const listModels = async (
  *         description: Internal server error
  */
 export const getModelCapabilities = async (
-    { params, response }: { params: { modelId: string }; response: Context['response'] },
+	{ params, response }: { params: { modelId: string }; response: Context['response'] },
 ) => {
-    try {
-        //logger.info(`ModelHandler: getModelCapabilities called for model ${params.modelId}`);
-        
-        // Get the model ID from params
-        const modelId = params.modelId;
-        
-        // Initialize the model capabilities manager
-        const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
-        
-        // Get the model's capabilities
-        const capabilities = capabilitiesManager.getModelCapabilities(modelId);
-                
-        if (!capabilities) {
-            response.status = 404;
-            response.body = { error: `Model not found: ${modelId}` };
-            return;
-        }
-        
-        // Look up the provider for this model
-        const provider = LLMModelToProvider[modelId];
+	try {
+		//logger.info(`ModelHandler: getModelCapabilities called for model ${params.modelId}`);
 
-        response.status = 200;
-        response.body = {
-            model: {
-                id: modelId,
-                displayName: capabilities.displayName,
-                provider,
-                providerLabel: LLMProviderLabel[provider] || 'Unknown',
-                capabilities,
-            }
-        };
-    } catch (error) {
-        logger.error(`ModelHandler: Error in getModelCapabilities: ${(error as Error).message}`);
-        response.status = 500;
-        response.body = { error: 'Failed to get model capabilities', details: (error as Error).message };
-    }
+		// Get the model ID from params
+		const modelId = params.modelId;
+
+		// Initialize the model capabilities manager
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+
+		// Get the model's capabilities
+		const capabilities = capabilitiesManager.getModelCapabilities(modelId);
+
+		if (!capabilities) {
+			response.status = 404;
+			response.body = { error: `Model not found: ${modelId}` };
+			return;
+		}
+
+		// Look up the provider for this model
+		const provider = LLMModelToProvider[modelId];
+
+		response.status = 200;
+		response.body = {
+			model: {
+				id: modelId,
+				displayName: capabilities.displayName,
+				provider,
+				providerLabel: LLMProviderLabel[provider] || 'Unknown',
+				capabilities,
+			},
+		};
+	} catch (error) {
+		logger.error(`ModelHandler: Error in getModelCapabilities: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to get model capabilities', details: (error as Error).message };
+	}
 };

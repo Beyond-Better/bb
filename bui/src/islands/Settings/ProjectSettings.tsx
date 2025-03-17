@@ -188,7 +188,7 @@ export default function ProjectSettings() {
 	) => {
 		const target = e.target as HTMLInputElement | HTMLTextAreaElement;
 		let value: string | number | boolean;
-		
+
 		if (field === 'maxTurns' || field === 'extendedThinkingBudget') {
 			value = Number(target.value);
 		} else if (field === 'extendedThinkingEnabled') {
@@ -232,8 +232,14 @@ export default function ProjectSettings() {
 			const toolConfigsObject = formState.toolConfigs.trim() ? parseYaml(formState.toolConfigs) : {};
 			await appState.value.apiClient?.updateGlobalConfig('api.toolConfigs', JSON.stringify(toolConfigsObject));
 			// Update extended thinking settings
-			await appState.value.apiClient?.updateGlobalConfig('api.extendedThinking.enabled', formState.extendedThinkingEnabled.toString());
-			await appState.value.apiClient?.updateGlobalConfig('api.extendedThinking.budgetTokens', formState.extendedThinkingBudget.toString());
+			await appState.value.apiClient?.updateGlobalConfig(
+				'api.extendedThinking.enabled',
+				formState.extendedThinkingEnabled.toString(),
+			);
+			await appState.value.apiClient?.updateGlobalConfig(
+				'api.extendedThinking.budgetTokens',
+				formState.extendedThinkingBudget.toString(),
+			);
 
 			// Show success message
 			// TODO: Add toast notification system
@@ -373,7 +379,8 @@ export default function ProjectSettings() {
 							<label
 								for='extendedThinkingEnabled'
 								class='toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer'
-							></label>
+							>
+							</label>
 						</div>
 					</div>
 					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>

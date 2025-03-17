@@ -87,7 +87,7 @@ export interface ModelCapabilities {
 export interface InteractionPreferences {
 	maxTokens?: number;
 	temperature?: number;
-		extendedThinking?: boolean;
+	extendedThinking?: boolean;
 	topP?: number;
 	frequencyPenalty?: number;
 	presencePenalty?: number;
@@ -100,7 +100,7 @@ export interface InteractionPreferences {
 export interface UserModelPreferences {
 	temperature?: number;
 	maxTokens?: number;
-		extendedThinking?: boolean;
+	extendedThinking?: boolean;
 	topP?: number;
 	frequencyPenalty?: number;
 	presencePenalty?: number;

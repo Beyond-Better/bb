@@ -253,9 +253,9 @@ export interface ConversationStart {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	timestamp: string;
-// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
-// 		tokenUsageStatement?: TokenUsage;
-// 	};
+	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
+	// 		tokenUsageStatement?: TokenUsage;
+	// 	};
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
 	conversationHistory: ConversationEntry[];

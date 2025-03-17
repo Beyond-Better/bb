@@ -185,12 +185,12 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
 		const model: string = messageRequest.model;
-		
+
 		// Resolve parameters using model capabilities if interaction is provided
 		let maxTokens: number;
 		let temperature: number;
 		//let extendedThinking: boolean;
-		
+
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
 				model,
@@ -206,7 +206,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
-			
+
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
@@ -309,12 +309,12 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 				extendedThinking: messageRequest.extendedThinking,
 			};
 
-			return { 
-				messageResponse, 
-				messageMeta: { 
+			return {
+				messageResponse,
+				messageMeta: {
 					system: messageRequest.system,
-					requestParams
-				} 
+					requestParams,
+				},
 			};
 		} catch (err) {
 			logger.error(`Error calling ${this.llmProviderName} API`, err);

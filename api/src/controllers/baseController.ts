@@ -19,7 +19,7 @@ import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse,LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	//ConversationEntry,

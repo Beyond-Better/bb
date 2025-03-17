@@ -35,24 +35,22 @@ export const formatLogEntryPreview = (preview: string): string => {
 
 export const formatLogEntryContent = (logEntry: ConversationLogEntry): string => {
 	let formattedThinking = '';
-	
+
 	// Format the thinking content if it exists in the logEntry
 	if (logEntry.thinking) {
 		const processedThinking = logEntry.thinking.split('\n')
 			.map((line: string) => line.trim())
 			.join('\n');
 		const lines = processedThinking.split('\n');
-		const processedLines = lines.map((line: string) => 
-			escapeHtmlEntities(line)
-		).join('\n');
-		
+		const processedLines = lines.map((line: string) => escapeHtmlEntities(line)).join('\n');
+
 		// Calculate metrics for the thinking content
 		const wordCount = processedThinking.split(/\s+/).filter(Boolean).length;
-		
+
 		// Calculate reading time (more granular for short content)
 		let readingTimeDisplay = '';
 		const readingTimeSeconds = (wordCount / 200) * 60; // 200 words per minute = 3.33 words per second
-		
+
 		if (readingTimeSeconds < 60) {
 			// For content under 1 minute, display in 10-second intervals
 			const secondsRounded = Math.max(10, Math.round(readingTimeSeconds / 10) * 10); // Round to nearest 10 seconds, minimum 10 seconds
@@ -62,16 +60,16 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 			const readingTimeMinutes = Math.round(readingTimeSeconds / 60);
 			readingTimeDisplay = `~${readingTimeMinutes} min read`;
 		}
-		
+
 		// Determine qualitative size indicator with descriptive context
 		let sizeIndicator = '';
 		if (wordCount < 50) sizeIndicator = 'Brief thought process';
 		else if (wordCount < 200) sizeIndicator = 'Standard thought process';
 		else sizeIndicator = 'Detailed thought process';
-		
+
 		// Create tooltip with detailed metrics
 		const tooltipContent = `${wordCount} words \u00b7 ${readingTimeDisplay}`;
-		
+
 		formattedThinking = '\n<div class="bb-thinking-container mb-6">\n' +
 			'<div class="bb-thinking-header flex items-center justify-between cursor-pointer p-2 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-300 dark:border-blue-700 rounded-tr" role="button" aria-expanded="false" tabindex="0" onclick="globalThis.bbToggleThinking(this)" onkeydown="globalThis.bbHandleThinkingKeyDown(event, this)">' +
 			'<div class="flex items-center">' +

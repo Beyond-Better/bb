@@ -480,10 +480,13 @@ export function useChatState(
 
 				// Update chatInputOptions with the request parameters from the response if available
 				if (chatInputOptions && data.logEntryData.requestParams) {
-					console.info('useChatState: Updating options from message response', data.logEntryData.requestParams);
+					console.info(
+						'useChatState: Updating options from message response',
+						data.logEntryData.requestParams,
+					);
 					chatInputOptions.value = {
 						...chatInputOptions.value,
-						...data.logEntryData.requestParams
+						...data.logEntryData.requestParams,
 					};
 				}
 

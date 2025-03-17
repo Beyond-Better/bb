@@ -36,7 +36,8 @@ export function ConversationInfo({ logEntries = [], conversationId, title }: Con
 					total: 200000, // TODO: Get from actual token limits
 					//current: logEntries[logEntries.length].tokenUsageConversation?.totalTokens || 0,
 					current: logEntries.reduce(
-						(sum, entry) => sum + ((entry as ConversationContinue).tokenUsageStats.tokenUsageTurn?.totalTokens || 0),
+						(sum, entry) =>
+							sum + ((entry as ConversationContinue).tokenUsageStats.tokenUsageTurn?.totalTokens || 0),
 						0,
 					),
 				},

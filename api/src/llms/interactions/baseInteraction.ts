@@ -792,7 +792,7 @@ class LLMInteraction {
 			extendedThinking?: boolean;
 		},
 		provider?: LLMProvider,
-	): Promise<{ maxTokens: number; temperature: number; extendedThinking:boolean }> {
+	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
 		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
 
 		const effectiveProvider = provider || LLMModelToProvider[model];

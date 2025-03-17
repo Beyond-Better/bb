@@ -1115,7 +1115,8 @@ export function ChatInput({
 						{/* Model */}
 						<div className='space-y-1'>
 							<label className='text-sm text-gray-700 dark:text-gray-300'>
-								Model: {modelData?.value?.displayName} ({modelData?.value?.providerLabel}) {/*({chatInputOptions.value.model})*/}
+								Model: {modelData?.value?.displayName} ({modelData?.value?.providerLabel}){' '}
+								{/*({chatInputOptions.value.model})*/}
 							</label>
 						</div>
 
@@ -1256,7 +1257,8 @@ export function ChatInput({
 						{modelData?.value && (
 							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
 								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Context window: {(modelData.value.capabilities.contextWindow / 1000).toFixed(0)}K tokens
+									Context window:{' '}
+									{(modelData.value.capabilities.contextWindow / 1000).toFixed(0)}K tokens
 								</div>
 							</div>
 						)}

@@ -355,8 +355,8 @@ export const listConversations = async (
 				llmProviderName: conv.llmProviderName,
 				model: conv.model,
 				conversationStats: conv.conversationStats,
-				tokenUsageStats:  conv.tokenUsageStats,
-				requestParams:  conv.requestParams,
+				tokenUsageStats: conv.tokenUsageStats,
+				requestParams: conv.requestParams,
 			})),
 			pagination: {
 				page: page,

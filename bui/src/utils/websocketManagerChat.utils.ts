@@ -119,7 +119,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			projectId: this.projectId,
 			task: 'converse',
 			statement: message,
-			options: { }, // statement options
+			options: {}, // statement options
 			requestParams, // LLM request params
 		};
 

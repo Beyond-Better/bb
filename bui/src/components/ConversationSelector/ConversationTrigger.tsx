@@ -12,7 +12,7 @@ export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTri
 	({ conversation, isOpen, onClick, className = '' }, ref) => {
 		return (
 			<button
-				type="button"
+				type='button'
 				ref={ref}
 				onClick={onClick}
 				className={`flex items-center justify-between w-full gap-2 px-4 py-2 ${

@@ -95,33 +95,6 @@ export function ConversationHeader({
 		};
 	};
 
-	// Find the latest assistant message that might have request params
-	const getModelInfo = () => {
-		if (!currentConversation.value) {
-			return {
-				model: 'Unknown',
-				provider: 'Unknown',
-			};
-		}
-
-		const logEntries = chatState.value.logEntries || [];
-		//console.log('ConversationHeader: getModelInfo', {logEntries});
-		const assistantEntries = logEntries.filter((entry) =>
-			entry.logEntry.entryType === 'assistant' || entry.logEntry.entryType === 'tool_use' || entry.logEntry.entryType === 'answer'
-		);
-
-		// Find the most recent entry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageStats?.tokenUsageTurn);
-
-		return {
-			model: currentConversation.value.model || 'Unknown',
-			provider: currentConversation.value.llmProviderName || 'Unknown',
-			requestParams: currentConversation.value.requestParams,
-			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
-			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
-		};
-	};
-
 	return (
 		<header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 shadow-sm relative'>
 			<div className='flex justify-between items-center'>

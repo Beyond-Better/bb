@@ -23,7 +23,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 
 	//console.log(`ModelInfoPanel: ${isOpen ? 'Open' : 'Closed'}`);
 	//console.log(`ModelInfoPanel:`, {modelInfo});
-	console.log(`ModelInfoPanel:`, {modelData: modelData.value});
+	console.log(`ModelInfoPanel:`, { modelData: modelData.value });
 	const { model, provider, requestParams, tokenUsageTurn, tokenUsageConversation } = modelInfo;
 
 	// Extract request parameters or use defaults
@@ -56,7 +56,8 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 				{/* Header */}
 				<div className='flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-3'>
 					<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-						Model: {modelData.value?.displayName} ({modelData.value?.providerLabel}) - {(contextWindow / 1000).toFixed(0)}K tokens
+						Model: {modelData.value?.displayName} ({modelData.value?.providerLabel}) -{' '}
+						{(contextWindow / 1000).toFixed(0)}K tokens
 					</h3>
 					<button
 						type='button'

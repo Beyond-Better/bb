@@ -179,7 +179,6 @@ export const LLMProviderModels = Object.fromEntries(
 );
  */
 
-
 export interface LLMProvderClientConfig {
 	apiKey?: string;
 	defaultModel?: string;
@@ -228,7 +227,7 @@ export interface LLMProviderMessageResponseMeta {
 
 /**
  * Options for extended thinking capability in Claude 3.7 Sonnet
- * 
+ *
  * Note on design choice: While the Anthropic API uses `type: "enabled"` in the `thinking` parameter,
  * we use `enabled: boolean` in our interface to make it clearer whether the feature is turned on or off.
  * When converting to the API format, we set `type: "enabled"` when `enabled` is true.
@@ -240,7 +239,7 @@ export interface LLMExtendedThinkingOptions {
 	 * Whether extended thinking is enabled
 	 */
 	enabled: boolean;
-	
+
 	/**
 	 * The maximum number of tokens Claude is allowed to use for its internal reasoning process
 	 * Minimum is 1,024 tokens

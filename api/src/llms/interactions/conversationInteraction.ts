@@ -765,9 +765,9 @@ class LLMConversationInteraction extends LLMInteraction {
 		const contentParts: LLMMessageContentParts = [
 			{
 				type: 'text',
-				text: `__METADATA__ ${JSON.stringify(metadata)}`
+				text: `__METADATA__ ${JSON.stringify(metadata)}`,
 			},
-			{ type: 'text', text: prompt }
+			{ type: 'text', text: prompt },
 		];
 		this.addMessageForUserRole(contentParts);
 
@@ -832,9 +832,8 @@ class LLMConversationInteraction extends LLMInteraction {
 			{
 				type: 'text',
 				text: JSON.stringify({ __metadata: metadata }),
-				
 			},
-			{ type: 'text', text: prompt }
+			{ type: 'text', text: prompt },
 		];
 		const messageId = this.addMessageForUserRole(contentParts);
 		this.conversationLogger.logUserMessage(

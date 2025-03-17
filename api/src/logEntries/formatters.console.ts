@@ -34,7 +34,7 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 			return '';
 		})
 		.join('\n');
-	
+
 	// Format the thinking content if it exists
 	if (logEntry.thinking) {
 		const lines = logEntry.thinking.split('\n').map((line: string) => line.trim());
@@ -42,7 +42,7 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 		const thinkingContent = [firstLine, ...lines.slice(1)].join('\n');
 		return thinkingContent + '\n\n' + mainContent;
 	}
-	
+
 	return mainContent;
 };
 

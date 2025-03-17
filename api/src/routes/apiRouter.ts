@@ -10,7 +10,7 @@ import {
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';
-import { listModels, getModelCapabilities } from './api/model.handlers.ts';
+import { getModelCapabilities, listModels } from './api/model.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
