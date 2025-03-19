@@ -121,7 +121,7 @@ class LLM {
 			logger.error('BaseLLM: temperature missing from both speakOptions and interaction');
 		}
 
-		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 8192;
+		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 16384;
 		const temperature: number = speakOptions?.temperature || interaction.temperature || 0.2;
 		const extendedThinking: LLMExtendedThinkingOptions = speakOptions?.extendedThinking ||
 			interaction.extendedThinking || { enabled: false, budgetTokens: 0 };

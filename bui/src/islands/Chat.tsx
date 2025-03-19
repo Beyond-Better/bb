@@ -18,6 +18,7 @@ import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
 //import { useVersion } from '../hooks/useVersion.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
 import { ChatInput } from '../components/ChatInput.tsx';
+import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
 import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
@@ -36,7 +37,7 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 const defaultOptions: LLMRequestParams = {
 	model: 'claude-3-7-sonnet-20250219',
 	temperature: 0.7,
-	maxTokens: 8192,
+	maxTokens: 16384,
 	extendedThinking: {
 		enabled: true,
 		budgetTokens: 4096,
@@ -633,26 +634,11 @@ export default function Chat({
 										{chatState.value.logEntries.length === 0 &&
 											!isProcessing(chatState.value.status) &&
 											(
-												<div className='flex flex-col items-center justify-center min-h-[400px] text-gray-500 dark:text-gray-400'>
-													<svg
-														className='w-12 h-12 mb-4 text-gray-400 dark:text-gray-500'
-														fill='none'
-														stroke='currentColor'
-														viewBox='0 0 24 24'
-													>
-														<path
-															strokeLinecap='round'
-															strokeLinejoin='round'
-															strokeWidth={2}
-															d='M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'
-														/>
-													</svg>
-													<p className='text-lg font-medium dark:text-gray-300'>
-														No messages yet
-													</p>
-													<p className='text-sm dark:text-gray-400'>
-														Type a message to begin
-													</p>
+												<div className='flex flex-col items-center justify-center min-h-[400px] px-6 py-8'>
+													<ConversationStateEmpty
+														setInputWithTracking={setInputWithTracking}
+														chatInputRef={chatInputRef}
+													/>
 												</div>
 											)}
 										{chatState.value.logEntries.length > 0 &&
