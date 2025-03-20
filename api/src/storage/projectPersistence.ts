@@ -7,7 +7,8 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
 import type { CreateProjectData, ProjectConfig, ProjectType } from 'shared/config/v2/types.ts';
-import { getGlobalConfigDir } from 'shared/dataDir.ts';
+import type { FileMetadata } from 'shared/types.ts';
+import { getGlobalConfigDir, getProjectRoot } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
 //import { Project } from 'shared/types/project.ts';
@@ -325,6 +326,32 @@ class ProjectPersistence {
 					operation: 'read',
 				} as FileHandlingErrorOptions,
 			);
+		}
+	}
+
+	/**
+	 * Lists all uploaded files in a project
+	 */
+	async listUploadedProjectFiles(projectId: string): Promise<Omit<FileMetadata, 'path'>[]> {
+		try {
+			const projectRoot = await getProjectRoot(projectId);
+			const uploadsDir = join(projectRoot, '.uploads');
+			const indexPath = join(uploadsDir, '.metadata', 'index.json');
+
+			// If uploads directory or index doesn't exist yet, return empty array
+			if (!(await exists(uploadsDir)) || !(await exists(indexPath))) {
+				return [];
+			}
+
+			// Read and parse the index file
+			const content = await Deno.readTextFile(indexPath);
+			const index = JSON.parse(content);
+
+			// Return array of metadata objects (excluding full paths for security)
+			return Object.values(index);
+		} catch (error) {
+			logger.error(`ProjectPersistence: Failed to list uploaded files: ${error}`);
+			return [];
 		}
 	}
 }

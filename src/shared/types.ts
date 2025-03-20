@@ -89,6 +89,13 @@ export interface Conversation {
 	updatedAt: string;
 }
 
+export interface FileForConversation {
+	fileName: string;
+	metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
+}
+
+export type FilesForConversation = Array<FileForConversation>;
+
 export interface FileMetadata {
 	type: 'text' | 'image';
 	mimeType?: LLMMessageContentPartImageBlockSourceMediaType;

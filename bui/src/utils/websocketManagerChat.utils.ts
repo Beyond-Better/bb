@@ -6,7 +6,7 @@ import type {
 	ConversationStats,
 	TokenUsage,
 } from 'shared/types.ts';
-import type { LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
 
 interface WebSocketMessage {
@@ -16,6 +16,7 @@ interface WebSocketMessage {
 	statement: string;
 	options?: { maxTurns?: number };
 	requestParams?: LLMRequestParams;
+	filesToAttach?: string[];
 }
 
 interface WebSocketResponse {
@@ -109,10 +110,22 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.socket.send(JSON.stringify(message));
 	}
 
-	async sendConverse(message: string, requestParams?: LLMRequestParams): Promise<void> {
+	async sendConverse(
+		message: string,
+		requestParams?: LLMRequestParams,
+		attachedFiles?: LLMAttachedFiles,
+	): Promise<void> {
 		if (!this.socket || !this.conversationId || !this._status.isReady) {
 			throw new Error('WebSocket is not ready');
 		}
+
+		// Get file IDs for successfully uploaded files
+		const filesToAttach = attachedFiles
+			? attachedFiles
+				.filter((file: LLMAttachedFile) => file.uploadStatus === 'complete' && file.fileId)
+				.map((file: LLMAttachedFile) => file.fileId!)
+				.filter(Boolean)
+			: [];
 
 		const wsMessage: WebSocketMessage = {
 			conversationId: this.conversationId,
@@ -121,6 +134,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			statement: message,
 			options: {}, // statement options
 			requestParams, // LLM request params
+			filesToAttach,
 		};
 
 		this.socket.send(JSON.stringify(wsMessage));

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
-import { type LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
@@ -33,6 +33,7 @@ interface ChatInputProps {
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
 	chatInputOptions: Signal<LLMRequestParams>;
+	attachedFiles: Signal<LLMAttachedFiles>;
 	modelData?: Signal<ModelDetails | null>;
 	onChange: (value: string) => void;
 	onSend: () => Promise<void>;
@@ -96,6 +97,7 @@ export function ChatInput({
 	apiClient,
 	chatInputText,
 	chatInputOptions,
+	attachedFiles,
 	modelData,
 	onChange,
 	onSend,
@@ -219,6 +221,225 @@ export function ChatInput({
 		}
 	};
 
+	const validateFile = (file: File): boolean => {
+		// For phase 1, only accept image files
+		if (!file.type.startsWith('image/')) {
+			errorState.value = {
+				message: 'Only image files are supported in this phase',
+				timestamp: Date.now(),
+			};
+			return false;
+		}
+
+		// Check file size (5MB limit)
+		const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+		if (file.size > maxSize) {
+			errorState.value = {
+				message: 'File exceeds maximum size of 5MB',
+				timestamp: Date.now(),
+			};
+			return false;
+		}
+
+		// Check if maximum number of files reached
+		if (attachedFiles.value.length >= 10) {
+			errorState.value = {
+				message: 'Maximum of 10 files per message reached',
+				timestamp: Date.now(),
+			};
+			return false;
+		}
+
+		return true;
+	};
+
+	// Add upload function
+	const uploadFile = async (file: File, fileId: string): Promise<string | undefined> => {
+		if (!apiClient) {
+			console.error('ChatInput: uploadFile - API client not initialized');
+			return;
+		}
+		try {
+			// Create a copy of the array to avoid direct mutation
+			const updatedFiles = [...attachedFiles.value];
+			const fileIndex = updatedFiles.findIndex((f) => f.id === fileId);
+			if (fileIndex === -1) return;
+
+			updatedFiles[fileIndex] = {
+				...updatedFiles[fileIndex],
+				uploadStatus: 'uploading',
+			};
+			attachedFiles.value = updatedFiles;
+
+			// Create FormData
+			const formData = new FormData();
+			formData.append('file', file);
+			formData.append('projectId', projectId);
+
+			// Use XMLHttpRequest for progress tracking
+			return new Promise<string | undefined>((resolve, reject) => {
+				const xhr = new XMLHttpRequest();
+				xhr.open('POST', `${apiClient.baseUrl}/api/v1/files`);
+
+				// // Add auth headers
+				// const headers = apiClient.getAuthHeaders();
+				// Object.keys(headers).forEach(key => {
+				//   xhr.setRequestHeader(key, headers[key]);
+				// });
+
+				// Track progress
+				xhr.upload.onprogress = (event) => {
+					if (event.lengthComputable) {
+						const progress = Math.round((event.loaded / event.total) * 100);
+						const updatedFiles = [...attachedFiles.value];
+						const fileIndex = updatedFiles.findIndex((f) => f.id === fileId);
+						if (fileIndex !== -1) {
+							updatedFiles[fileIndex] = {
+								...updatedFiles[fileIndex],
+								uploadProgress: progress,
+							};
+							attachedFiles.value = updatedFiles;
+						}
+					}
+				};
+
+				xhr.onload = () => {
+					if (xhr.status >= 200 && xhr.status < 300) {
+						try {
+							const response = JSON.parse(xhr.responseText);
+							const updatedFiles = [...attachedFiles.value];
+							const fileIndex = updatedFiles.findIndex((f) => f.id === fileId);
+
+							if (fileIndex !== -1) {
+								updatedFiles[fileIndex] = {
+									...updatedFiles[fileIndex],
+									uploadStatus: 'complete',
+									fileId: response.fileId,
+									uploadProgress: 100,
+								};
+								attachedFiles.value = updatedFiles;
+							}
+
+							resolve(response.fileId);
+						} catch (e) {
+							reject(new Error(`Invalid response: ${e instanceof Error ? e.message : 'Unknown error'}`));
+						}
+					} else {
+						reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+					}
+				};
+
+				xhr.onerror = () => {
+					reject(new Error('Network error during upload'));
+				};
+
+				xhr.send(formData);
+			});
+		} catch (error) {
+			console.error('ChatInput: File upload failed', error);
+
+			// Update status to error
+			const updatedFiles = [...attachedFiles.value];
+			const fileIndex = updatedFiles.findIndex((f) => f.id === fileId);
+			if (fileIndex !== -1) {
+				updatedFiles[fileIndex] = {
+					...updatedFiles[fileIndex],
+					uploadStatus: 'error',
+				};
+				attachedFiles.value = updatedFiles;
+			}
+
+			return undefined;
+		}
+	};
+
+	// Add file processing function
+	const processFile = async (file: File) => {
+		// Create unique ID for tracking
+		const fileId = crypto.randomUUID();
+
+		// Create preview URL for images
+		const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined;
+
+		// Add to attached files with initial status
+		attachedFiles.value = [
+			...attachedFiles.value,
+			{
+				id: fileId,
+				file,
+				name: file.name || `pasted-file-${fileId}`,
+				type: file.type,
+				size: file.size,
+				previewUrl,
+				uploadStatus: 'uploading',
+				uploadProgress: 0,
+			},
+		];
+
+		console.info('ChatInput: File attached', {
+			id: fileId,
+			type: file.type,
+			size: file.size,
+			name: file.name,
+			totalAttached: attachedFiles.value.length,
+		});
+
+		// Start upload immediately
+		try {
+			const uploadedFileId = await uploadFile(file, fileId);
+			console.info('ChatInput: File uploaded successfully', {
+				id: fileId,
+				uploadedFileId,
+			});
+			return uploadedFileId;
+		} catch (error) {
+			console.error('ChatInput: File upload failed', error);
+			errorState.value = {
+				message: 'Failed to upload file. Please try again.',
+				timestamp: Date.now(),
+			};
+			return undefined;
+		}
+	};
+
+	// Add paste event handling
+	useEffect(() => {
+		const textarea = internalTextareaRef.current;
+		if (!textarea) return;
+
+		const handlePaste = async (e: ClipboardEvent) => {
+			// Check if clipboard contains file data
+			const items = e.clipboardData?.items;
+			if (!items) return;
+
+			let hasProcessedFile = false;
+
+			for (let i = 0; i < items.length; i++) {
+				// For now, only process image files (first phase)
+				if (items[i].type.indexOf('image') !== -1) {
+					const file = items[i].getAsFile();
+					if (file && validateFile(file)) {
+						hasProcessedFile = true;
+						await processFile(file);
+						e.preventDefault(); // Prevent default paste behavior
+					}
+				}
+			}
+		};
+
+		// Register event listener
+		textarea.addEventListener('paste', handlePaste);
+
+		// Cleanup
+		return () => {
+			textarea.removeEventListener('paste', handlePaste);
+			// Release any object URLs to prevent memory leaks
+			attachedFiles.value
+				.filter((f: LLMAttachedFile) => f.previewUrl)
+				.forEach((f: LLMAttachedFile) => URL.revokeObjectURL(f.previewUrl!));
+		};
+	}, [internalTextareaRef.current, projectId, apiClient]);
+
 	useEffect(() => {
 		if (internalTextareaRef.current) {
 			const ref: ChatInputRef = {
@@ -322,11 +543,31 @@ export function ChatInput({
 	// Handle message sending
 	const handleSend = () => {
 		const currentValue = chatInputText.value;
+
+		// Check if any files are still uploading
+		const stillUploading = attachedFiles.value.some((file: LLMAttachedFile) => file.uploadStatus === 'uploading');
+
+		if (stillUploading) {
+			errorState.value = {
+				message: 'Please wait for all files to finish uploading',
+				timestamp: Date.now(),
+			};
+			return;
+		}
+
+		// Get file IDs for successfully uploaded files
+		const fileIds = attachedFiles.value
+			.filter((file: LLMAttachedFile) => file.uploadStatus === 'complete' && file.fileId)
+			.map((file: LLMAttachedFile) => file.fileId!)
+			.filter(Boolean);
+
 		console.info('ChatInput: Sending message', {
 			hasValue: !!chatInputText.value.trim(),
 			length: chatInputText.value.length,
 			conversationId,
 			chatInputOptions: chatInputOptions.value,
+			hasFiles: fileIds.length > 0,
+			fileCount: fileIds.length,
 		});
 
 		// Validate input before sending
@@ -342,7 +583,14 @@ export function ChatInput({
 					console.info('ChatInput: Message sent successfully, clearing auto-save');
 					addToHistory(currentValue);
 					//clearCurrentInput();
+
 					await onSend();
+
+					// Clear attached files and their previews
+					attachedFiles.value
+						.filter((f: LLMAttachedFile) => f.previewUrl)
+						.forEach((f: LLMAttachedFile) => URL.revokeObjectURL(f.previewUrl!));
+					attachedFiles.value = [];
 				} catch (e) {
 					console.error('ChatInput: Send failed:', e);
 					errorState.value = {
@@ -882,6 +1130,80 @@ export function ChatInput({
 							✕
 						</button>
 					</div>
+				</div>
+			)}
+
+			{attachedFiles.value.length > 0 && (
+				<div className='mt-0 flex flex-wrap gap-2 max-w-full overflow-x-auto pt-2 pb-2'>
+					{attachedFiles.value.map((file) => (
+						<div key={file.id} className='relative group'>
+							{file.type.startsWith('image/') && file.previewUrl
+								? (
+									// Image preview
+									<div className='relative'>
+										<img
+											src={file.previewUrl}
+											alt={file.name}
+											className='h-16 w-auto rounded border border-gray-300 dark:border-gray-700 object-cover'
+										/>
+										<div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate'>
+											{(file.size / 1024).toFixed(0)} KB
+										</div>
+									</div>
+								)
+								: (
+									// Generic file preview (for future non-image support)
+									<div className='h-16 w-16 flex flex-col items-center justify-center rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'>
+										<div className='text-2xl'>📄</div>
+										<div className='text-xs truncate max-w-full px-1'>
+											{(file.size / 1024).toFixed(0)} KB
+										</div>
+									</div>
+								)}
+
+							{/* Upload progress indicator */}
+							{file.uploadStatus === 'uploading' && (
+								<div className='absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center'>
+									<div className='w-full px-2'>
+										<div className='h-1 bg-gray-300 rounded-full overflow-hidden'>
+											<div
+												className='h-full bg-blue-500'
+												style={{ width: `${file.uploadProgress}%` }}
+											/>
+										</div>
+										<div className='text-white text-xs mt-1 text-center'>
+											{file.uploadProgress}%
+										</div>
+									</div>
+								</div>
+							)}
+
+							{/* Error indicator */}
+							{file.uploadStatus === 'error' && (
+								<div className='absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center'>
+									<div className='text-white text-xs text-center'>
+										Upload failed
+									</div>
+								</div>
+							)}
+
+							{/* Remove button */}
+							<button
+								onClick={() => {
+									// Release object URL if it exists
+									if (file.previewUrl) {
+										URL.revokeObjectURL(file.previewUrl);
+									}
+									// Remove from state
+									attachedFiles.value = attachedFiles.value.filter((f) => f.id !== file.id);
+								}}
+								className='absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 dark:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center'
+								title='Remove file'
+							>
+								×
+							</button>
+						</div>
+					))}
 				</div>
 			)}
 
