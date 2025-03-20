@@ -40,9 +40,6 @@ export const addFile = async (
 
 		const projectId = formData.get('projectId') as string;
 		const file = formData.get('file');
-		const isFileObject = (value: unknown): value is File => {
-			return value !== null && typeof value === 'object' && 'size' in value && 'name' in value;
-		};
 		const description = formData.get('description') ? String(formData.get('description')) : '';
 		const tags = formData.has('tags') && formData.get('tags') ? JSON.parse(String(formData.get('tags'))) : [];
 
@@ -58,14 +55,17 @@ export const addFile = async (
 			return;
 		}
 
-		// Validate file size (5MB limit)
-		const maxSize = 5 * 1024 * 1024; // 5MB
+		const isFileObject = (value: unknown): value is File => {
+			return value !== null && typeof value === 'object' && 'size' in value && 'name' in value;
+		};
 		if (!isFileObject(file)) {
 			response.status = 400;
 			response.body = { error: 'Invalid file format' };
 			return;
 		}
 
+		// Validate file size (5MB limit)
+		const maxSize = 5 * 1024 * 1024; // 5MB
 		if (file.size > maxSize) {
 			response.status = 400;
 			response.body = { error: 'File exceeds maximum size of 5MB' };

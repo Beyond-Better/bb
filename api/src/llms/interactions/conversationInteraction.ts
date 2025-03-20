@@ -2,7 +2,7 @@ import { join } from '@std/path';
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId, FileMetadata, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, FileMetadata, FilesForConversation, TokenUsage } from 'shared/types.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -790,7 +790,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		prompt: string,
 		metadata: Record<string, any>,
 		speakOptions?: LLMSpeakWithOptions,
-		attachedFiles?: string[],
+		attachedFiles?: FilesForConversation,
 	): Promise<LLMSpeakWithResponse> {
 		// Statement count is now incremented at the beginning of the method
 		if (!speakOptions) {
@@ -833,7 +833,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				return {
 					'type': 'text',
 					'text': `File added: ${fileToAdd.fileName}`,
-				};
+				} as LLMMessageContentPartTextBlock;
 			})
 			: [];
 		//logger.debug(`ConversationInteraction: converse - calling addMessageForUserRole for turn ${this._statementTurnCount}` );

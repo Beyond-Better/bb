@@ -192,7 +192,7 @@ export default function Chat({
 
 		try {
 			// Pass the options from the signal to the handler
-			await handlers.sendConverse(trimmedInput, chatInputOptions.value, attachedFiles.value);
+			await handlers.sendConverse(trimmedInput, chatInputOptions.value);
 			const duration = performance.now() - startTime;
 			console.info('Chat: Message send completed in', duration.toFixed(2), 'ms');
 			console.info('Chat: Clearing input');

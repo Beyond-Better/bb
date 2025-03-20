@@ -16,7 +16,7 @@ import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import type { ConversationId, ConversationResponse, FileMetadata } from 'shared/types.ts';
+import type { ConversationId, ConversationResponse, FileMetadata, FilesForConversation } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import {
@@ -193,14 +193,7 @@ class ProjectEditor {
 	// only existing files can be prepared and added, otherwise call rewrite_file tools with createIfMissing:true
 	async prepareFilesForConversation(
 		fileNames: string[],
-	): Promise<
-		Array<
-			{
-				fileName: string;
-				metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
-			}
-		>
-	> {
+	): Promise<FilesForConversation> {
 		const filesAdded: Array<
 			{
 				fileName: string;

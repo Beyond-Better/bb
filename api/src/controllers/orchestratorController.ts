@@ -24,6 +24,8 @@ import type {
 	ConversationResponse,
 	ConversationStart,
 	ConversationStats,
+	FileMetadata,
+	FilesForConversation,
 	ObjectivesData,
 	//TokenUsage,
 	//TokenUsageStats,
@@ -239,12 +241,7 @@ class OrchestratorController extends BaseController {
 			throw this.handleLLMError(error as Error, interaction);
 		}
 
-		const attachedFiles: Array<
-			{
-				fileName: string;
-				metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
-			}
-		> = [];
+		const attachedFiles: FilesForConversation = [];
 
 		logger.info(`OrchestratorController: filesToAttach`, { filesToAttach });
 		// Process any attached files

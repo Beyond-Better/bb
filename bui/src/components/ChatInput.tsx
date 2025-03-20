@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
-import { type LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
@@ -322,7 +322,7 @@ export function ChatInput({
 
 							resolve(response.fileId);
 						} catch (e) {
-							reject(new Error(`Invalid response: ${e.message}`));
+							reject(new Error(`Invalid response: ${e instanceof Error ? e.message : 'Unknown error'}`));
 						}
 					} else {
 						reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
@@ -435,8 +435,8 @@ export function ChatInput({
 			textarea.removeEventListener('paste', handlePaste);
 			// Release any object URLs to prevent memory leaks
 			attachedFiles.value
-				.filter((f) => f.previewUrl)
-				.forEach((f) => URL.revokeObjectURL(f.previewUrl!));
+				.filter((f: LLMAttachedFile) => f.previewUrl)
+				.forEach((f: LLMAttachedFile) => URL.revokeObjectURL(f.previewUrl!));
 		};
 	}, [internalTextareaRef.current, projectId, apiClient]);
 
@@ -545,7 +545,7 @@ export function ChatInput({
 		const currentValue = chatInputText.value;
 
 		// Check if any files are still uploading
-		const stillUploading = attachedFiles.value.some((file) => file.uploadStatus === 'uploading');
+		const stillUploading = attachedFiles.value.some((file: LLMAttachedFile) => file.uploadStatus === 'uploading');
 
 		if (stillUploading) {
 			errorState.value = {
@@ -557,8 +557,8 @@ export function ChatInput({
 
 		// Get file IDs for successfully uploaded files
 		const fileIds = attachedFiles.value
-			.filter((file) => file.uploadStatus === 'complete' && file.fileId)
-			.map((file) => file.fileId!)
+			.filter((file: LLMAttachedFile) => file.uploadStatus === 'complete' && file.fileId)
+			.map((file: LLMAttachedFile) => file.fileId!)
 			.filter(Boolean);
 
 		console.info('ChatInput: Sending message', {
@@ -588,8 +588,8 @@ export function ChatInput({
 
 					// Clear attached files and their previews
 					attachedFiles.value
-						.filter((f) => f.previewUrl)
-						.forEach((f) => URL.revokeObjectURL(f.previewUrl!));
+						.filter((f: LLMAttachedFile) => f.previewUrl)
+						.forEach((f: LLMAttachedFile) => URL.revokeObjectURL(f.previewUrl!));
 					attachedFiles.value = [];
 				} catch (e) {
 					console.error('ChatInput: Send failed:', e);

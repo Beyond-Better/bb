@@ -7,7 +7,8 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
 import type { CreateProjectData, ProjectConfig, ProjectType } from 'shared/config/v2/types.ts';
-import { getGlobalConfigDir } from 'shared/dataDir.ts';
+import type { FileMetadata } from 'shared/types.ts';
+import { getGlobalConfigDir, getProjectRoot } from 'shared/dataDir.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ProjectConfigSchema as ProjectConfigV1 } from 'shared/configSchema.ts';
 //import { Project } from 'shared/types/project.ts';
@@ -333,8 +334,8 @@ class ProjectPersistence {
 	 */
 	async listUploadedProjectFiles(projectId: string): Promise<Omit<FileMetadata, 'path'>[]> {
 		try {
-			const projectPath = await this.getProjectDirectory(projectId);
-			const uploadsDir = join(projectPath, '.uploads');
+			const projectRoot = await getProjectRoot(projectId);
+			const uploadsDir = join(projectRoot, '.uploads');
 			const indexPath = join(uploadsDir, '.metadata', 'index.json');
 
 			// If uploads directory or index doesn't exist yet, return empty array

@@ -15,14 +15,30 @@ export default function SignupContent() {
 				{/* Signup indicator bar */}
 				<div class='flex justify-center mb-2'>
 					<div class='inline-flex rounded-t-lg overflow-hidden border-b-2'>
-						<a href='/auth/login' class='bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-5 py-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors'>LOG IN</a>
+						<a
+							href='/auth/login'
+							class='bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-5 py-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors'
+						>
+							LOG IN
+						</a>
 						<div class='bg-green-600 text-white px-5 py-2 font-bold cursor-default'>SIGN UP</div>
 					</div>
 				</div>
-				
+
 				<div class='flex justify-center'>
-					<svg xmlns='http://www.w3.org/2000/svg' class='h-10 w-10 text-green-600' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-						<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' />
+					<svg
+						xmlns='http://www.w3.org/2000/svg'
+						class='h-10 w-10 text-green-600'
+						fill='none'
+						viewBox='0 0 24 24'
+						stroke='currentColor'
+					>
+						<path
+							stroke-linecap='round'
+							stroke-linejoin='round'
+							stroke-width='2'
+							d='M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'
+						/>
 					</svg>
 				</div>
 				<h2 class='mt-2 text-center text-3xl font-extrabold text-gray-900 dark:text-white'>
@@ -32,9 +48,23 @@ export default function SignupContent() {
 					Already have an account?
 				</p>
 				<div class='flex justify-center mt-2'>
-					<a href='/auth/login' class='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'>
-						<svg xmlns='http://www.w3.org/2000/svg' class='h-5 w-5 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-							<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' />
+					<a
+						href='/auth/login'
+						class='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							class='h-5 w-5 mr-2'
+							fill='none'
+							viewBox='0 0 24 24'
+							stroke='currentColor'
+						>
+							<path
+								stroke-linecap='round'
+								stroke-linejoin='round'
+								stroke-width='2'
+								d='M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1'
+							/>
 						</svg>
 						Log in to existing account
 					</a>

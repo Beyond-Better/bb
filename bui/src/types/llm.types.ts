@@ -44,7 +44,9 @@ export interface LLMRequestParams {
 	usePromptCaching?: boolean;
 }
 
-const LLMAttachedFiles = Array<{
+export type LLMAttachedFiles = Array<LLMAttachedFile>;
+
+export interface LLMAttachedFile {
 	id: string;
 	fileId?: string; // Set after successful upload
 	file: File;
@@ -54,4 +56,4 @@ const LLMAttachedFiles = Array<{
 	size: number;
 	uploadStatus: 'uploading' | 'complete' | 'error';
 	uploadProgress: number;
-}>;
+}

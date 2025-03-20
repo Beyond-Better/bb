@@ -187,15 +187,15 @@ class LLM {
 					try {
 						// Decompress the data using DecompressionStream
 						const stream = new DecompressionStream('gzip');
-						
+
 						// Create a readable stream from the compressed data
 						const readableStream = new ReadableStream({
-						  start(controller) {
-						    controller.enqueue(cachedItem.data);
-						    controller.close();
-						  }
+							start(controller) {
+								controller.enqueue(cachedItem.data);
+								controller.close();
+							},
 						});
-						
+
 						// Get decompressed data
 						const decompressedData = await new Response(readableStream.pipeThrough(stream)).text();
 						llmSpeakWithResponse = JSON.parse(decompressedData) as LLMSpeakWithResponse;
@@ -409,20 +409,22 @@ class LLM {
 						// Compress the data using CompressionStream
 						const encoder = new TextEncoder();
 						const uint8Array = encoder.encode(serialized);
-						
+
 						// Create a compression stream
 						const stream = new CompressionStream('gzip');
-						
+
 						// Create a readable stream from the uint8array and pipe through compression
 						const readableStream = new ReadableStream({
-						  start(controller) {
-						    controller.enqueue(uint8Array);
-						    controller.close();
-						  }
+							start(controller) {
+								controller.enqueue(uint8Array);
+								controller.close();
+							},
 						});
-						
+
 						// Collect compressed chunks
-						const compressed = await new Response(readableStream.pipeThrough(stream)).arrayBuffer().then(buffer => new Uint8Array(buffer));
+						const compressed = await new Response(readableStream.pipeThrough(stream)).arrayBuffer().then(
+							(buffer) => new Uint8Array(buffer),
+						);
 						const compressedSize = compressed.byteLength;
 
 						// Check if compressed data is still too large
