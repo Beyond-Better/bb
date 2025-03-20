@@ -38,10 +38,13 @@ export const addFile = async (
 	try {
 		const formData = await request.body.formData();
 
-		const projectId = formData.get('projectId');
+		const projectId = formData.get('projectId') as string;
 		const file = formData.get('file');
-		const description = formData.get('description') || '';
-		const tags = formData.has('tags') ? JSON.parse(formData.get('tags')) : [];
+		const isFileObject = (value: unknown): value is File => {
+			return value !== null && typeof value === 'object' && 'size' in value && 'name' in value;
+		};
+		const description = formData.get('description') ? String(formData.get('description')) : '';
+		const tags = formData.has('tags') && formData.get('tags') ? JSON.parse(String(formData.get('tags'))) : [];
 
 		if (!projectId) {
 			response.status = 400;
@@ -57,6 +60,12 @@ export const addFile = async (
 
 		// Validate file size (5MB limit)
 		const maxSize = 5 * 1024 * 1024; // 5MB
+		if (!isFileObject(file)) {
+			response.status = 400;
+			response.body = { error: 'Invalid file format' };
+			return;
+		}
+
 		if (file.size > maxSize) {
 			response.status = 400;
 			response.body = { error: 'File exceeds maximum size of 5MB' };
@@ -76,23 +85,24 @@ export const addFile = async (
 
 		// Generate a unique filename
 		const fileId = crypto.randomUUID();
-		const originalExt = file.name ? extname(file.name) : '';
+		const originalExt = isFileObject(file) && file.name ? extname(file.name) : '';
 		const ext = originalExt ||
-			(file.type?.startsWith('image/') ? `.${file.type.split('/')[1]}` : '.bin');
+			(isFileObject(file) && file.type?.startsWith('image/') ? `.${file.type.split('/')[1]}` : '.bin');
 
 		const filename = `${fileId}${ext}`;
-		const sanitizedName = file.name
-			? file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-			: `uploaded-file-${fileId}${ext}`;
+		const sanitizedName = isFileObject(file) && file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, '_') : `uploaded-file-${fileId}${ext}`;
 
 		// Write file to project uploads directory
 		const filePath = join(uploadsDir, filename);
+		if (!isFileObject(file)) {
+			throw new Error('File is not a valid File object');
+		}
 		const fileBuffer = await file.arrayBuffer();
 		const fileArray = new Uint8Array(fileBuffer);
 		await Deno.writeFile(filePath, fileArray);
 
 		// Determine MIME type and if it's an image
-		const mimeType = file.contentType || getContentType(sanitizedName);
+		const mimeType = isFileObject(file) && 'type' in file ? file.type : getContentType(sanitizedName);
 		const isImage = mimeType.startsWith('image/');
 
 		// Create metadata for the file
@@ -100,11 +110,11 @@ export const addFile = async (
 			id: fileId,
 			name: sanitizedName,
 			relativePath: `.uploads/${filename}`,
-			size: file.size,
+			size: isFileObject(file) ? file.size : 0,
 			type: isImage ? 'image' : 'text',
 			mimeType: mimeType,
 			uploadedAt: new Date().toISOString(),
-			description,
+			description: String(description),
 			tags,
 		};
 
@@ -177,7 +187,7 @@ export const removeFile = async (
 		const metadata = JSON.parse(metadataContent);
 
 		// Remove physical file
-		const filePath = join(projectRoot, '.uploads', filename);
+		const filePath = join(projectRoot, '.uploads', metadata.name);
 		if (await exists(filePath)) {
 			await Deno.remove(filePath);
 		}
