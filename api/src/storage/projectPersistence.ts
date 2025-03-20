@@ -327,6 +327,32 @@ class ProjectPersistence {
 			);
 		}
 	}
+
+	/**
+	 * Lists all uploaded files in a project
+	 */
+	async listUploadedProjectFiles(projectId: string): Promise<Omit<FileMetadata, 'path'>[]> {
+		try {
+			const projectPath = await this.getProjectDirectory(projectId);
+			const uploadsDir = join(projectPath, '.uploads');
+			const indexPath = join(uploadsDir, '.metadata', 'index.json');
+
+			// If uploads directory or index doesn't exist yet, return empty array
+			if (!(await exists(uploadsDir)) || !(await exists(indexPath))) {
+				return [];
+			}
+
+			// Read and parse the index file
+			const content = await Deno.readTextFile(indexPath);
+			const index = JSON.parse(content);
+
+			// Return array of metadata objects (excluding full paths for security)
+			return Object.values(index);
+		} catch (error) {
+			logger.error(`ProjectPersistence: Failed to list uploaded files: ${error}`);
+			return [];
+		}
+	}
 }
 
 export default ProjectPersistence;

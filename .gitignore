@@ -10,6 +10,7 @@ tags.ignore
 */.DS_Store
 
 .trash/
+.uploads/
 
 bui-orig*
 bui-rewrite*

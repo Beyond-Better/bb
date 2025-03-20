@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { computed, Signal, signal } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
-import { LLMRequestParams } from '../types/llm.types.ts';
+import { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { ModelDetails, ModelResponse } from '../utils/apiClient.utils.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
@@ -68,6 +68,7 @@ const isConversationListVisible = signal(false);
 const chatInputText = signal('');
 const chatInputOptions = signal<LLMRequestParams>({ ...defaultOptions });
 const modelData = signal<ModelDetails | null>(null);
+const attachedFiles = signal<LLMAttachedFiles>([]);
 
 export default function Chat({
 	chatState,
@@ -191,7 +192,7 @@ export default function Chat({
 
 		try {
 			// Pass the options from the signal to the handler
-			await handlers.sendConverse(trimmedInput, chatInputOptions.value);
+			await handlers.sendConverse(trimmedInput, chatInputOptions.value, attachedFiles.value);
 			const duration = performance.now() - startTime;
 			console.info('Chat: Message send completed in', duration.toFixed(2), 'ms');
 			console.info('Chat: Clearing input');
@@ -661,6 +662,7 @@ export default function Chat({
 									<ChatInput
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}
+										attachedFiles={attachedFiles}
 										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}

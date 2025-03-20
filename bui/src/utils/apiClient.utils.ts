@@ -185,6 +185,10 @@ export class ApiClient {
 		}
 	}
 
+	public get baseUrl() {
+		return this.apiUrl;
+	}
+
 	async get<T>(endpoint: string, allowedCodes: number[] = []): Promise<T | null> {
 		return await this.request<T>(endpoint, {}, allowedCodes);
 	}

@@ -49,6 +49,8 @@ import {
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import BaseController from './baseController.ts';
+import { join } from '@std/path';
+import { exists } from '@std/fs';
 
 // Hard-coded conversation token limit (192k to leave room for 8k response)
 const CONVERSATION_TOKEN_LIMIT = 192000;
@@ -142,6 +144,7 @@ class OrchestratorController extends BaseController {
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
 		requestParams?: LLMRequestParams,
+		filesToAttach?: string[], // Array of file IDs
 	): Promise<ConversationResponse> {
 		this.isCancelled = false;
 		this.resetStatus();
@@ -236,6 +239,44 @@ class OrchestratorController extends BaseController {
 			throw this.handleLLMError(error as Error, interaction);
 		}
 
+		const attachedFiles: Array<
+			{
+				fileName: string;
+				metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
+			}
+		> = [];
+
+		logger.info(`OrchestratorController: filesToAttach`, { filesToAttach });
+		// Process any attached files
+		if (filesToAttach && filesToAttach.length > 0) {
+			const projectId = this.projectEditor.projectId;
+			const projectPath = await this.projectEditor.getProjectRoot();
+
+			// Get file metadata and add to conversation
+			for (const fileId of filesToAttach) {
+				try {
+					// Find file in project uploads
+					const metadataPath = join(projectPath, '.uploads', '.metadata', `${fileId}.json`);
+					if (await exists(metadataPath)) {
+						const metadataContent = await Deno.readTextFile(metadataPath);
+						const fileMetadata = JSON.parse(metadataContent);
+
+						// Get the full file path
+						const filePath = join(projectPath, fileMetadata.relativePath);
+
+						// Prepare file for conversation
+						attachedFiles.push(
+							...await this.projectEditor.prepareFilesForConversation([fileMetadata.relativePath]),
+						);
+					}
+				} catch (error) {
+					logger.error(`Failed to add file ${fileId} to conversation: ${(error as Error).message}`);
+					// Continue with other files
+				}
+			}
+		}
+		//logger.info(`OrchestratorController: attachedFiles`, { attachedFiles });
+
 		await this.projectEditor.updateProjectInfo();
 
 		// // handled by `converse` in interaction
@@ -324,7 +365,7 @@ class OrchestratorController extends BaseController {
 				//},
 			};
 
-			currentResponse = await interaction.converse(statement, metadata, speakOptions);
+			currentResponse = await interaction.converse(statement, metadata, speakOptions, attachedFiles);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');

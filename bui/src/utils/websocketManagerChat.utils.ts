@@ -109,10 +109,20 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.socket.send(JSON.stringify(message));
 	}
 
-	async sendConverse(message: string, requestParams?: LLMRequestParams): Promise<void> {
+	async sendConverse(
+		message: string,
+		requestParams?: LLMRequestParams,
+		attachedFiles?: LLMAttachedFiles,
+	): Promise<void> {
 		if (!this.socket || !this.conversationId || !this._status.isReady) {
 			throw new Error('WebSocket is not ready');
 		}
+
+		// Get file IDs for successfully uploaded files
+		const filesToAttach = attachedFiles
+			.filter((file) => file.uploadStatus === 'complete' && file.fileId)
+			.map((file) => file.fileId!)
+			.filter(Boolean);
 
 		const wsMessage: WebSocketMessage = {
 			conversationId: this.conversationId,
@@ -121,6 +131,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			statement: message,
 			options: {}, // statement options
 			requestParams, // LLM request params
+			filesToAttach,
 		};
 
 		this.socket.send(JSON.stringify(wsMessage));

@@ -99,11 +99,12 @@ class WebSocketChatHandler {
 			projectId: string;
 			options?: { maxTurns?: number }; // statement options
 			requestParams: LLMRequestParams; // LLM request params
+			filesToAttach?: string[]; // Array of file IDs to include in message
 		},
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, options, requestParams } = message;
+			const { task, statement, projectId, options, requestParams, filesToAttach } = message;
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
@@ -162,7 +163,13 @@ class WebSocketChatHandler {
 				return;
 			} else if (task === 'converse') {
 				try {
-					await projectEditor?.handleStatement(statement, conversationId, options, requestParams);
+					await projectEditor?.handleStatement(
+						statement,
+						conversationId,
+						options,
+						requestParams,
+						filesToAttach,
+					);
 				} catch (error) {
 					logger.error(
 						`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}:`,

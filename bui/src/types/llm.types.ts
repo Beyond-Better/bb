@@ -43,3 +43,15 @@ export interface LLMRequestParams {
 	 */
 	usePromptCaching?: boolean;
 }
+
+const LLMAttachedFiles = Array<{
+	id: string;
+	fileId?: string; // Set after successful upload
+	file: File;
+	name: string;
+	type: string;
+	previewUrl?: string; // For images
+	size: number;
+	uploadStatus: 'uploading' | 'complete' | 'error';
+	uploadProgress: number;
+}>;

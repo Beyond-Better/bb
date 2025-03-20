@@ -790,6 +790,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		prompt: string,
 		metadata: Record<string, any>,
 		speakOptions?: LLMSpeakWithOptions,
+		attachedFiles?: string[],
 	): Promise<LLMSpeakWithResponse> {
 		// Statement count is now incremented at the beginning of the method
 		if (!speakOptions) {
@@ -827,12 +828,21 @@ class LLMConversationInteraction extends LLMInteraction {
 			);
 		}
 
+		const filesToAdd = attachedFiles
+			? attachedFiles.map((fileToAdd) => {
+				return {
+					'type': 'text',
+					'text': `File added: ${fileToAdd.fileName}`,
+				};
+			})
+			: [];
 		//logger.debug(`ConversationInteraction: converse - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
 		const contentParts: LLMMessageContentParts = [
 			{
 				type: 'text',
 				text: JSON.stringify({ __metadata: metadata }),
 			},
+			...filesToAdd,
 			{ type: 'text', text: prompt },
 		];
 		const messageId = this.addMessageForUserRole(contentParts);
@@ -841,6 +851,14 @@ class LLMConversationInteraction extends LLMInteraction {
 			prompt,
 			this.conversationStats,
 		);
+
+		// Add files to conversation if preparation succeeded
+		if (attachedFiles && attachedFiles.length > 0) {
+			await this.addFilesForMessage(
+				attachedFiles,
+				messageId,
+			);
+		}
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
 		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;

@@ -105,6 +105,7 @@
 		"api/llms/chatInteraction.ts": "./api/src/llms/interactions/chatInteraction.ts",
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
 		"api/llms/modelCapabilitiesManager.ts": "./api/src/llms/modelCapabilitiesManager.ts",
+		"api/llms/resourceManager.ts": "./api/src/llms/resourceManager.ts",
 		"api/logEntries/types.ts": "./api/src/logEntries/types.ts",
 		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",

@@ -173,6 +173,7 @@ class ProjectEditor {
 		conversationId: ConversationId,
 		options?: { maxTurns?: number },
 		requestParams?: LLMRequestParams,
+		filesToAttach?: string[],
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
@@ -183,6 +184,7 @@ class ProjectEditor {
 			conversationId,
 			options,
 			requestParams,
+			filesToAttach,
 		);
 		return statementAnswer;
 	}

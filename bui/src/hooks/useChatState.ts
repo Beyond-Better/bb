@@ -7,7 +7,7 @@ import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
-import type { LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
 //import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
@@ -670,7 +670,7 @@ export function useChatState(
 		},
 		 */
 
-		sendConverse: async (message: string, requestParams?: LLMRequestParams) => {
+		sendConverse: async (message: string, requestParams?: LLMRequestParams, attachedFiles?: LLMAttachedFiles) => {
 			if (!chatState.value.wsManager) {
 				console.error('sendConverse: wsManager is null');
 				throw new Error('Chat system is not initialized');
@@ -689,7 +689,7 @@ export function useChatState(
 					console.error('sendConverse: wsManager is null before sending message');
 					throw new Error('Chat WebSocket manager was lost during message send');
 				}
-				await chatState.value.wsManager.sendConverse(message, requestParams);
+				await chatState.value.wsManager.sendConverse(message, requestParams, attachedFiles);
 			} catch (error) {
 				console.error('Failed to send message:', error);
 				chatState.value = {
