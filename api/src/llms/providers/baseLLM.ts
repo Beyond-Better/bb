@@ -29,7 +29,19 @@ import { rateLimitManager } from '../../utils/rateLimit.utils.ts';
 
 const ajv = new Ajv();
 //logger.debug(`LLM: Creating storage for llmCache`);
-const storage = await new KVManager<LLMSpeakWithResponse>({ prefix: 'llmCache' }).init();
+const storage = await new KVManager<LLMSpeakWithResponse | CompressedCacheItem>({ prefix: 'llmCache' }).init();
+
+// Size threshold for compression (in bytes)
+const COMPRESSION_THRESHOLD = 30000; // ~30KB
+
+// Maximum size for KV storage (in bytes)
+const KV_MAX_SIZE = 65000; // Just under the 65536 limit
+
+// Interface for compressed cache items
+interface CompressedCacheItem {
+	compressed: true;
+	data: Uint8Array;
+}
 
 class LLM {
 	public llmProviderName: LLMProvider = LLMProvider.ANTHROPIC;
@@ -167,13 +179,42 @@ class LLM {
 			: [];
 		if (!(this.projectConfig.settings.api?.ignoreLLMRequestCache ?? false)) {
 			//logger.info(`provider[${this.llmProviderName}] speakWithPlus: Checking for cached response`);
-			const cachedResponse = await storage.getItem(cacheKey);
+			const cachedItem = await storage.getItem(cacheKey);
 
-			if (cachedResponse) {
-				logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
-				llmSpeakWithResponse = cachedResponse;
-				llmSpeakWithResponse.messageResponse.fromCache = true;
-				//await metricsService.recordCacheMetrics({ operation: 'hit' });
+			if (cachedItem) {
+				// Check if the cached item is compressed
+				if ('compressed' in cachedItem && cachedItem.compressed === true) {
+					try {
+						// Decompress the data using DecompressionStream
+						const stream = new DecompressionStream('gzip');
+						
+						// Create a readable stream from the compressed data
+						const readableStream = new ReadableStream({
+						  start(controller) {
+						    controller.enqueue(cachedItem.data);
+						    controller.close();
+						  }
+						});
+						
+						// Get decompressed data
+						const decompressedData = await new Response(readableStream.pipeThrough(stream)).text();
+						llmSpeakWithResponse = JSON.parse(decompressedData) as LLMSpeakWithResponse;
+						logger.info(
+							`provider[${this.llmProviderName}] speakWithPlus: Using decompressed cached response`,
+						);
+					} catch (error) {
+						logger.error(`provider[${this.llmProviderName}] Failed to decompress cached response:`, error);
+						// Continue to generate a new response
+					}
+				} else {
+					// Regular uncompressed response
+					logger.info(`provider[${this.llmProviderName}] speakWithPlus: Using cached response`);
+					llmSpeakWithResponse = cachedItem as LLMSpeakWithResponse;
+				}
+				if (llmSpeakWithResponse) {
+					llmSpeakWithResponse.messageResponse.fromCache = true;
+					//await metricsService.recordCacheMetrics({ operation: 'hit' });
+				}
 			} else {
 				//await metricsService.recordCacheMetrics({ operation: 'miss' });
 			}
@@ -354,7 +395,78 @@ class LLM {
 			llmSpeakWithResponse.messageResponse.fromCache = false;
 
 			if (!this.projectConfig.settings.api?.ignoreLLMRequestCache) {
-				await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
+				try {
+					// Serialize the response
+					const serialized = JSON.stringify(llmSpeakWithResponse);
+					const serializedSize = new TextEncoder().encode(serialized).length;
+
+					// Check if we need to compress based on size
+					if (serializedSize > COMPRESSION_THRESHOLD) {
+						logger.info(
+							`provider[${this.llmProviderName}] Large response detected (${serializedSize} bytes), applying compression`,
+						);
+
+						// Compress the data using CompressionStream
+						const encoder = new TextEncoder();
+						const uint8Array = encoder.encode(serialized);
+						
+						// Create a compression stream
+						const stream = new CompressionStream('gzip');
+						
+						// Create a readable stream from the uint8array and pipe through compression
+						const readableStream = new ReadableStream({
+						  start(controller) {
+						    controller.enqueue(uint8Array);
+						    controller.close();
+						  }
+						});
+						
+						// Collect compressed chunks
+						const compressed = await new Response(readableStream.pipeThrough(stream)).arrayBuffer().then(buffer => new Uint8Array(buffer));
+						const compressedSize = compressed.byteLength;
+
+						// Check if compressed data is still too large
+						if (compressedSize > KV_MAX_SIZE) {
+							logger.warn(
+								`⚠️ CACHING FAILURE: Response too large even after compression (${compressedSize} bytes)`,
+							);
+							logger.warn(
+								`⚠️ CACHING FAILURE: Original size: ${serializedSize} bytes, compressed size: ${compressedSize} bytes`,
+							);
+							logger.warn(
+								`⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
+							);
+						} else {
+							// Store the compressed data with a marker
+							const compressedItem: CompressedCacheItem = {
+								compressed: true,
+								data: compressed,
+							};
+							await storage.setItem(cacheKey, compressedItem, { expireIn: this.requestCacheExpiry });
+							logger.info(
+								`provider[${this.llmProviderName}] Cached compressed response (${serializedSize} → ${compressedSize} bytes, ${
+									Math.round((compressedSize / serializedSize) * 100)
+								}%)`,
+							);
+						}
+					} else {
+						// Store uncompressed for small responses
+						await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
+						logger.info(
+							`provider[${this.llmProviderName}] Cached uncompressed response (${serializedSize} bytes)`,
+						);
+					}
+				} catch (error) {
+					if (error instanceof TypeError && error.message.includes('Value too large')) {
+						logger.error(`⚠️ CACHING FAILURE: Maximum KV size exceeded when caching response`);
+						logger.error(
+							`⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
+						);
+					} else {
+						// Log but don't throw to prevent disrupting the main flow
+						logger.error(`provider[${this.llmProviderName}] Error caching response:`, error);
+					}
+				}
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
 			}
 		}
