@@ -385,7 +385,7 @@ export class TerminalHandler {
 
 	public async displayConversationContinue(
 		data: ConversationContinue,
-		_conversationId?: ConversationId,
+		conversationId: ConversationId,
 		expectingMoreInput: boolean = false,
 	): Promise<void> {
 		// Ensure all optional properties are handled
@@ -406,7 +406,7 @@ export class TerminalHandler {
 				},
 			},
 		} = data;
-		//conversationId = data.conversationId;
+		conversationId = data.conversationId;
 
 		if (!logEntry) {
 			console.log('Entry has no content', data);
@@ -416,7 +416,7 @@ export class TerminalHandler {
 		try {
 			const formatterResponse = await this.apiClient.post(
 				`/api/v1/format_log_entry/console/${logEntry.entryType}`,
-				{ logEntry, projectId: this.projectId },
+				{ logEntry, projectId: this.projectId, conversationId },
 			);
 
 			if (!formatterResponse.ok) {

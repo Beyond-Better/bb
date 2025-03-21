@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useRef } from 'preact/hooks';
 import { batch, type Signal, signal } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
@@ -412,14 +412,14 @@ export function ChatInput({
 			const items = e.clipboardData?.items;
 			if (!items) return;
 
-			let hasProcessedFile = false;
+			//let hasProcessedFile = false;
 
 			for (let i = 0; i < items.length; i++) {
 				// For now, only process image files (first phase)
 				if (items[i].type.indexOf('image') !== -1) {
 					const file = items[i].getAsFile();
 					if (file && validateFile(file)) {
-						hasProcessedFile = true;
+						//hasProcessedFile = true;
 						await processFile(file);
 						e.preventDefault(); // Prevent default paste behavior
 					}
@@ -1113,6 +1113,7 @@ export function ChatInput({
 					<div className='flex items-center'>
 						{errorState.value.recoveryAction && (
 							<button
+								type='button'
 								onClick={() => {
 									errorState.value?.recoveryAction?.();
 									errorState.value = null;
@@ -1123,6 +1124,7 @@ export function ChatInput({
 							</button>
 						)}
 						<button
+							type='button'
 							onClick={() => errorState.value = null}
 							className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
 							title='Dismiss'
@@ -1189,6 +1191,7 @@ export function ChatInput({
 
 							{/* Remove button */}
 							<button
+								type='button'
 								onClick={() => {
 									// Release object URL if it exists
 									if (file.previewUrl) {
@@ -1329,6 +1332,7 @@ export function ChatInput({
 
 					<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
 						<button
+							type='button'
 							onClick={() => {
 								const newValue = !isDropdownOpen.value;
 								console.info('ChatInput: History toggled', {
@@ -1365,6 +1369,7 @@ export function ChatInput({
 				</div>
 				<div className='flex items-center'>
 					<button
+						type='button'
 						onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
 						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
 						title='Chat Options'
@@ -1392,6 +1397,7 @@ export function ChatInput({
 						</svg>
 					</button>
 					<button
+						type='button'
 						onClick={handleSend}
 						className={`px-4 py-2 mb-1 rounded-md transition-colors 
 							focus:outline-none focus:ring-2 focus:ring-blue-500 
@@ -1419,6 +1425,7 @@ export function ChatInput({
 					<div className='flex justify-between items-center mb-3'>
 						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
 						<button
+							type='button'
 							onClick={() => isOptionsOpen.value = false}
 							className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
 						>

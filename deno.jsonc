@@ -17,6 +17,7 @@
 		"check-types": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",
 		"check-types-deploy": "deno task -c ./cli/deno.jsonc check-types-deploy && deno task -c ./bui/deno.jsonc check-types-deploy && deno task -c ./api/deno.jsonc check-types-deploy",
 		"check-format": "deno task -c ./cli/deno.jsonc check-format && deno task -c ./bui/deno.jsonc check-format && deno task -c ./api/deno.jsonc check-format",
+		"generate-tools-manifest": "deno task -c ./api/deno.jsonc generate-tools-manifest",
 		"start-bui": "deno task -c ./bui/deno.jsonc start",
 		"start-api": "deno task -c ./api/deno.jsonc start",
 		"start-api-dev": "deno task -c ./api/deno.jsonc dev",

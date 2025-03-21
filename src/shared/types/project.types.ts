@@ -1,4 +1,4 @@
-import { DefaultModels, ProjectType, RepoInfoConfigSchema } from 'shared/config/v2/types.ts';
+import { DefaultModels, MCPServerConfig, ProjectType, RepoInfoConfigSchema } from 'shared/config/v2/types.ts';
 
 export interface Project {
 	projectId: string;
@@ -15,6 +15,7 @@ export interface Project {
 		api?: {
 			maxTurns?: number;
 			toolConfigs?: Record<string, unknown>;
+			mcpServers?: MCPServerConfig[];
 		};
 	};
 }
@@ -37,6 +38,7 @@ export interface ProjectWithSources
 		api: {
 			maxTurns: ConfigValue<number | undefined>;
 			toolConfigs: ConfigValue<Record<string, unknown> | undefined>;
+			mcpServers: ConfigValue<MCPServerConfig[] | undefined>;
 		};
 	};
 }

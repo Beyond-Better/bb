@@ -33,6 +33,8 @@ import * as $LandingHero from './islands/LandingHero.tsx';
 import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $Settings from './islands/Settings.tsx';
+import * as $Settings_MCPServerItem from './islands/Settings/MCPServerItem.tsx';
+import * as $Settings_MCPServersSection from './islands/Settings/MCPServersSection.tsx';
 import * as $Settings_ProjectSettings from './islands/Settings/ProjectSettings.tsx';
 import * as $Settings_SubscriptionSettings from './islands/Settings/SubscriptionSettings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
@@ -83,6 +85,8 @@ const manifest = {
 		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,
 		'./islands/ProjectManager.tsx': $ProjectManager,
 		'./islands/Settings.tsx': $Settings,
+		'./islands/Settings/MCPServerItem.tsx': $Settings_MCPServerItem,
+		'./islands/Settings/MCPServersSection.tsx': $Settings_MCPServersSection,
 		'./islands/Settings/ProjectSettings.tsx': $Settings_ProjectSettings,
 		'./islands/Settings/SubscriptionSettings.tsx': $Settings_SubscriptionSettings,
 		'./islands/SideNav.tsx': $SideNav,

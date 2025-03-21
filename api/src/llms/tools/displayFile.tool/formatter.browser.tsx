@@ -52,9 +52,7 @@ function formatContent(result: DisplayResult) {
 		<div className={TOOL_SPECIFIC_STYLES.contentContainer}>
 			{result.type === 'text' && (
 				<>
-					<pre className={TOOL_SPECIFIC_STYLES.textContent}>
-                        {result.content}
-					</pre>
+					<pre className={TOOL_SPECIFIC_STYLES.textContent}>{result.content}</pre>
 					{result.truncated && (
 						<div className={TOOL_SPECIFIC_STYLES.truncated}>
 							Content truncated due to size. Showing first 1MB of file.

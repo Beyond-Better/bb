@@ -97,6 +97,14 @@ export interface UserModelPreferences {
 	responseFormat?: string;
 }
 
+export interface MCPServerConfig {
+	id: string;
+	name?: string;
+	command: string;
+	args?: string[];
+	env?: Record<string, string>;
+}
+
 export interface LLMProviderConfig {
 	apiKey?: string;
 	defaultModel?: string;
@@ -124,6 +132,8 @@ export interface ApiConfig extends ServerConfig {
 	toolConfigs: Record<string, unknown>;
 	localMode?: boolean;
 	supabaseConfigUrl?: string;
+
+	mcpServers?: Array<MCPServerConfig>;
 
 	/**
 	 * Extended thinking configuration for Claude models

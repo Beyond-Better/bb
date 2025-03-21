@@ -15,6 +15,7 @@ import OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { SessionManager } from '../auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { MCPManager } from 'api/mcp/mcpManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import type { ConversationId, ConversationResponse, FileMetadata, FilesForConversation } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
@@ -35,6 +36,7 @@ class ProjectEditor {
 	public orchestratorController!: OrchestratorController;
 	public projectConfig!: ProjectConfig;
 	public eventManager!: EventManager;
+	public mcpManager!: MCPManager;
 	public sessionManager: SessionManager;
 	public projectId: string;
 	public projectRoot: string;
@@ -68,6 +70,10 @@ class ProjectEditor {
 				// this.projectConfig,
 			);
 			this.eventManager = EventManager.getInstance();
+
+			// Initialize MCP Manager
+			this.mcpManager = await new MCPManager(this.projectConfig).init();
+
 			this.orchestratorController = await new OrchestratorController(this).init();
 
 			logger.info(`ProjectEditor: initialized for ${this.projectId}`);
@@ -78,6 +84,7 @@ class ProjectEditor {
 			);
 			throw error;
 		}
+
 		return this;
 	}
 

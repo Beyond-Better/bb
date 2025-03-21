@@ -1,8 +1,8 @@
 import {
 	APIError,
-	type CommandExecutionErrorOptions,
 	ErrorType,
 	ErrorTypes,
+	ExternalServiceError,
 	FileChangeError,
 	FileHandlingError,
 	FileMoveError,
@@ -20,7 +20,9 @@ import {
 export { ErrorType };
 import type {
 	APIErrorOptions,
+	CommandExecutionErrorOptions,
 	ErrorOptions,
+	ExternalServiceErrorOptions,
 	FileHandlingErrorOptions,
 	LLMErrorOptions,
 	LLMRateLimitErrorOptions,
@@ -45,6 +47,7 @@ export const createError = (
 		| FileHandlingErrorOptions
 		| ToolHandlingErrorOptions
 		| VectorSearchErrorOptions
+		| ExternalServiceErrorOptions
 		| CommandExecutionErrorOptions,
 ): Error => {
 	if (!ErrorTypes.includes(errorType)) {
@@ -85,6 +88,8 @@ export const createError = (
 			return new VectorSearchError(message, options as VectorSearchErrorOptions);
 		case ErrorType.CommandExecution:
 			return new Error(message); // You might want to create a specific CommandExecutionError class
+		case ErrorType.ExternalServiceError:
+			return new ExternalServiceError(message, options as ExternalServiceErrorOptions);
 		default:
 			return new Error(`Unknown error type: ${errorType} - ${message}`);
 	}

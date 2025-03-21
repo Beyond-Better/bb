@@ -1,7 +1,10 @@
 import { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiClient } from '../utils/apiClient.utils.ts';
-import type { ConversationEntry, ConversationLogEntry } from 'shared/types.ts';
+import type {
+	ConversationEntry,
+	//ConversationLogEntry
+} from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getDefaultTokenUsage, hasLogEntry } from '../utils/typeGuards.utils.ts';
 import { marked } from 'marked';
@@ -66,6 +69,7 @@ export function MessageEntry({
 					logEntryData.logEntry.entryType,
 					logEntryData.logEntry,
 					projectId,
+					conversationId,
 				);
 				if (response) {
 					setFormatted(response);
@@ -76,7 +80,7 @@ export function MessageEntry({
 		};
 
 		fetchFormatted();
-	}, [logEntryData, apiClient, projectId]);
+	}, [logEntryData, apiClient, projectId, conversationId]);
 
 	const handleCopy = (text: string) => {
 		onCopy(text);
@@ -174,6 +178,7 @@ export function MessageEntry({
 					//onCopy={handleCopy}
 					apiClient={apiClient}
 					projectId={projectId}
+					conversationId={conversationId}
 					logEntry={logEntryData.logEntry}
 				/>
 			);
@@ -216,11 +221,8 @@ export function MessageEntry({
 
 		return (
 			<div className='overflow-x-auto'>
-				<pre className='whitespace-pre rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4'>
-					// deno-lint-ignore react-no-danger
-					<code
+				<pre className='whitespace-pre rounded-lg bg-gray-50 dark:bg-gray-900 dark:bg-gray-900 p-4'><code dangerouslySetInnerHTML={{ __html: highlighted }}
 						className="language-json hljs"
-						dangerouslySetInnerHTML={{ __html: highlighted }}
 					/>
 				</pre>
 			</div>

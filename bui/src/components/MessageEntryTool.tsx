@@ -12,6 +12,7 @@ interface MessageEntryToolProps {
 	onCopy?: (text: string) => void;
 	apiClient?: ApiClient;
 	projectId?: string;
+	conversationId?: string;
 	logEntry?: ConversationLogEntry;
 }
 
@@ -22,6 +23,7 @@ export function MessageEntryTool({
 	//onCopy,
 	apiClient,
 	projectId,
+	conversationId,
 	logEntry,
 }: MessageEntryToolProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
@@ -30,7 +32,7 @@ export function MessageEntryTool({
 
 	// Format content using API if available
 	useEffect(() => {
-		if (!apiClient || !projectId || !logEntry) return;
+		if (!apiClient || !projectId || !conversationId || !logEntry) return;
 
 		const fetchFormatting = async () => {
 			setIsLoading(true);
@@ -39,6 +41,7 @@ export function MessageEntryTool({
 					logEntry.entryType,
 					logEntry,
 					projectId,
+					conversationId,
 				);
 				setFormatted(response);
 			} catch (error) {
@@ -49,7 +52,7 @@ export function MessageEntryTool({
 		};
 
 		fetchFormatting();
-	}, [apiClient, projectId, logEntry]);
+	}, [apiClient, projectId, conversationId, logEntry]);
 
 	// Default JSON formatting as fallback
 	const formattedContent = JSON.stringify(content, null, 2);
@@ -79,17 +82,15 @@ export function MessageEntryTool({
 					<div className='overflow-x-auto'>
 						{formatted?.formattedResult?.content
 							? (
+								// deno-lint-ignore react-no-danger
 								<div
-									// deno-lint-ignore react-no-danger
 									dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
 								/>
 							)
 							: (
-								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'>
 								// deno-lint-ignore react-no-danger
-								<code
+								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'><code dangerouslySetInnerHTML={{ __html: highlighted }}
 									className="language-json hljs"
-									dangerouslySetInnerHTML={{ __html: highlighted }}
 								/>
 								</pre>
 							)}
@@ -103,8 +104,7 @@ export function MessageEntryTool({
 							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
 								<strong>Parameters:</strong>
 								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs dark:text-gray-300'>
-										{JSON.stringify(content.parameters, null, 2)}
+									<pre className='text-xs dark:text-gray-300'>{JSON.stringify(content.parameters, null, 2)}
 									</pre>
 								</div>
 							</div>
@@ -113,8 +113,7 @@ export function MessageEntryTool({
 							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
 								<strong>Result:</strong>
 								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs dark:text-gray-300'>
-										{JSON.stringify(content.result, null, 2)}
+									<pre className='text-xs dark:text-gray-300'>{JSON.stringify(content.result, null, 2)}
 									</pre>
 								</div>
 							</div>

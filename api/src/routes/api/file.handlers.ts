@@ -90,7 +90,9 @@ export const addFile = async (
 			(isFileObject(file) && file.type?.startsWith('image/') ? `.${file.type.split('/')[1]}` : '.bin');
 
 		const filename = `${fileId}${ext}`;
-		const sanitizedName = isFileObject(file) && file.name ? file.name.replace(/[^a-zA-Z0-9._-]/g, '_') : `uploaded-file-${fileId}${ext}`;
+		const sanitizedName = isFileObject(file) && file.name
+			? file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+			: `uploaded-file-${fileId}${ext}`;
 
 		// Write file to project uploads directory
 		const filePath = join(uploadsDir, filename);

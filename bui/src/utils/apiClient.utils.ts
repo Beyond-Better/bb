@@ -399,7 +399,9 @@ export class ApiClient {
 	}
 
 	async getProject(projectId: string): Promise<{ project: ProjectWithSources } | null> {
-		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, [404]);
+		const result = await this.get<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, [404]);
+		console.log('APIClient.getProject response:', JSON.stringify(result, null, 2));
+		return result;
 	}
 
 	async blankProject(): Promise<{ project: ProjectWithSources } | null> {
@@ -538,7 +540,9 @@ export class ApiClient {
 	}
 
 	async getProjectConfig(projectId: string): Promise<ProjectConfig | null> {
-		return await this.get<ProjectConfig>(`/api/v1/config/project/${projectId}`);
+		const result = await this.get<ProjectConfig>(`/api/v1/config/project/${projectId}`);
+		console.log('APIClient.getProjectConfig response:', JSON.stringify(result, null, 2));
+		return result;
 	}
 
 	async updateProjectConfig(projectId: string, key: string, value: string): Promise<ConfigUpdateResponse | null> {
@@ -556,10 +560,11 @@ export class ApiClient {
 		entryType: string,
 		logEntry: unknown,
 		projectId: string,
+		conversationId: string,
 	): Promise<LogEntryFormatResponse | null> {
 		return await this.post<LogEntryFormatResponse>(
 			`/api/v1/format_log_entry/browser/${entryType}`,
-			{ logEntry, projectId },
+			{ logEntry, projectId, conversationId },
 		);
 	}
 

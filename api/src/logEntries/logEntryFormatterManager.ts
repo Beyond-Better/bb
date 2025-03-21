@@ -8,6 +8,7 @@ import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 import type { AuxiliaryChatContent, LogEntryFormattedResult, LogEntryTitleData } from 'api/logEntries/types.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
 import {
 	formatLogEntryContent as formatLogEntryContentForConsole,
 	formatLogEntryPreview as formatLogEntryPreviewForConsole,
@@ -22,15 +23,18 @@ import {
 export default class LogEntryFormatterManager {
 	private toolManager!: LLMToolManager;
 	private globalConfig!: GlobalConfig;
+	private projectConfig: ProjectConfig;
 
 	constructor(
-		private projectConfig: ProjectConfig,
-	) {}
+		private projectEditor: ProjectEditor,
+	) {
+		this.projectConfig = projectEditor.projectConfig;
+	}
 
 	public async init(): Promise<LogEntryFormatterManager> {
 		const configManager = await ConfigManagerV2.getInstance();
 		this.globalConfig = await configManager.getGlobalConfig();
-		this.toolManager = await new LLMToolManager(this.projectConfig).init();
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core', this.projectEditor.mcpManager).init(); // Pass MCPManager to LLMToolManager
 		//logger.debug(`LogEntryFormatterManager: Initialized toolManager:`, this.toolManager.getAllToolsMetadata());
 		return this;
 	}
