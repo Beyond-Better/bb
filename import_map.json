@@ -38,6 +38,7 @@
 		"date-fns": "https://esm.sh/date-fns@4.1.0",
 		"ansi_up": "https://esm.sh/ansi_up@6.0.2",
 		"deno_dom": "jsr:@b-fuze/deno-dom@^0.1.48/wasm-noinit",
+		"imagemagick": "https://deno.land/x/imagemagick_deno@0.0.31/mod.ts",
 		"dir": "https://deno.land/x/dir@1.5.2/mod.ts",
 
 		"$fresh/": "https://deno.land/x/fresh@1.7.3/",
