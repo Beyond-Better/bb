@@ -80,7 +80,7 @@ class BaseController {
 		const configManager = await ConfigManagerV2.getInstance();
 		const globalConfig = await configManager.getGlobalConfig();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core', this.projectEditor.mcpManager).init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
 

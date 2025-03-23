@@ -1,0 +1,9 @@
+{
+	"name": "mcp",
+	"description": "Executes tools using Model Context Protocol",
+	"version": "1.0.0",
+	"enabled": false,
+	"author": "BB Team",
+	"license": "MIT",
+	"category": "integration"
+}

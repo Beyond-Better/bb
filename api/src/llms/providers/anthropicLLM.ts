@@ -298,7 +298,7 @@ class AnthropicLLM extends LLM {
 		interaction?: LLMInteraction,
 	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
-		logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest', messageRequest);
+		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest', messageRequest);
 		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
 		const system = messageRequest.system
 			? [

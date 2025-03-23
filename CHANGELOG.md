@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.7.0] - 2025-03-23
+
+### Added
+
+- Added support for MCP servers, with UI configuration panels
+
+### Changed
+
+
+### Fixed
+
+- whitespace before pre/code blocks
+
+
 ## [0.6.18] - 2025-03-20
 
 ### Added

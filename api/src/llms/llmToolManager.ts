@@ -3,9 +3,16 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
-import type { LLMToolRunBbResponse, LLMToolRunResultContent, LLMToolRunToolResponse } from 'api/llms/llmTool.ts';
+import type LLMToolMCP from './tools/mcp.tool/tool.ts';
+import type {
+	LLMToolInputSchema,
+	LLMToolRunBbResponse,
+	LLMToolRunResultContent,
+	LLMToolRunToolResponse,
+} from 'api/llms/llmTool.ts';
 
 import { createError, ErrorType } from 'api/utils/error.ts';
+import type { LLMToolMCPConfig } from './tools/mcp.tool/types.ts';
 import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
@@ -16,6 +23,7 @@ import { isAbsolute, join } from '@std/path';
 import { exists } from '@std/fs';
 
 import { CORE_TOOLS } from './tools_manifest.ts';
+import type { MCPManager } from 'api/mcp/mcpManager.ts';
 
 export interface ToolUsageStats {
 	toolCounts: Map<string, number>; // Track usage count per tool
@@ -30,6 +38,7 @@ export interface ToolUsageStats {
 export interface ToolMetadata {
 	name: string;
 	version: string;
+	type: 'internal' | 'mcp';
 	author: string;
 	license: string;
 	description: string;
@@ -40,6 +49,7 @@ export interface ToolMetadata {
 	mutates?: boolean; //defaults to true
 	error?: string;
 	config?: unknown;
+	mcpData?: LLMToolMCPConfig;
 	examples?: Array<{ description: string; input: unknown }>;
 }
 
@@ -47,33 +57,42 @@ export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creati
 
 class LLMToolManager {
 	private toolMetadata: Map<string, ToolMetadata> = new Map();
+	private toolNameToIdMap: Map<string, string> = new Map();
 	private loadedTools: Map<string, LLMTool> = new Map();
 	private projectConfig: ProjectConfig;
 	private bbDir: string | undefined;
 	private globalConfigDir: string | undefined;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
+	private mcpManager?: MCPManager;
 
 	constructor(
 		projectConfig: ProjectConfig,
 		toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[] = 'core',
+		mcpManager?: MCPManager,
 	) {
 		this.projectConfig = projectConfig;
 		this.toolSet = toolSet;
+		this.mcpManager = mcpManager;
 	}
 
 	async init() {
 		this.bbDir = await getBbDir(this.projectConfig.projectId);
 		this.globalConfigDir = await getGlobalConfigDir();
-		await this.loadToolMetadata(this.projectConfig.settings.api?.userToolDirectories || []);
+		await this.loadInternalToolsMetadata(this.projectConfig.settings.api?.userToolDirectories || []);
+		if (this.mcpManager) await this.loadMCPToolsMetadata(await this.mcpManager!.getServers());
 
 		return this;
 	}
 
-	private async loadToolMetadata(directories: string[]) {
+	private async loadInternalToolsMetadata(directories: string[]): Promise<void> {
 		for (const coreTool of CORE_TOOLS) {
+			// Don't load mcp tool as an internal tool
+			if (coreTool.metadata.name === 'mcp') continue;
+			//if (!this.isToolEnabled(coreTool.metadata)) continue;
 			const toolNamePath = join('tools', coreTool.toolNamePath);
 			coreTool.metadata.path = toolNamePath;
-			logger.debug(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
+			if (!coreTool.metadata.type) coreTool.metadata.type = 'internal';
+			//logger.info(`LLMToolManager: Setting metadata for CORE tool ${coreTool.toolNamePath}`);
 			this.toolMetadata.set(coreTool.metadata.name, coreTool.metadata);
 		}
 
@@ -115,6 +134,7 @@ class LLMToolManager {
 								const metadataInfoPath = join(toolPath, 'info.json');
 								const metadata: ToolMetadata = JSON.parse(await Deno.readTextFile(metadataInfoPath));
 								metadata.path = toolPath;
+								if (!metadata.type) metadata.type = 'internal';
 
 								if (this.isToolInSet(metadata)) {
 									//logger.info(`LLMToolManager: Tool ${metadata.name} is available in tool set`);
@@ -155,6 +175,58 @@ class LLMToolManager {
 		}
 	}
 
+	private async loadMCPToolsMetadata(serverIds: string[]): Promise<void> {
+		try {
+			logger.info(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
+
+			// For each MCP server (keyed by mcpServerConfig.id), load its tools
+			for (const serverId of serverIds) {
+				const mcpTools = await this.mcpManager!.listTools(serverId);
+				const mcpServerConfig = this.mcpManager!.getMCPServerConfiguration(serverId);
+				//logger.info(`LLMToolManager: Found ${mcpTools.length} tools in MCP server ${serverId}`);
+				if (!mcpServerConfig) {
+					logger.error(`LLMToolManager: Error loading MCP config for: ${serverId}`);
+					continue;
+				}
+
+				// Register each tool with a unique ID
+				for (const mcpTool of mcpTools) {
+					const toolId = `mcp:${serverId}:${mcpTool.name}`;
+					const displayName = `${mcpTool.name}_${mcpServerConfig.name || mcpServerConfig.id}`;
+					const llmToolName = `${mcpTool.name}_${mcpServerConfig.id}`;
+
+					// Add the MCP tool metadata
+					this.toolMetadata.set(toolId, {
+						name: llmToolName, // LLM will see and use this name
+						description: `${mcpTool.description || `MCP Tool ${displayName}`} (${
+							mcpServerConfig.name || mcpServerConfig.id
+						})`,
+						version: '1.0.0',
+						author: 'MCP Server',
+						license: 'MIT',
+						path: 'tools/mcp.tool',
+						enabled: true,
+						type: 'mcp',
+						mcpData: {
+							serverId,
+							toolId,
+							toolName: mcpTool.name, // server's internal tool name (same across server instances)
+							inputSchema: mcpTool.inputSchema as LLMToolInputSchema,
+							description: mcpTool.description || 'MCP Tool',
+						},
+					});
+
+					// Create reverse mapping from display name to internal ID
+					this.toolNameToIdMap.set(llmToolName, toolId);
+
+					//logger.debug(`LLMToolManager: Registered MCP tool ${mcpTool.name} from server ${serverId}`);
+				}
+			}
+		} catch (error) {
+			logger.error(`LLMToolManager: Error loading MCP tools: ${(error as Error).message}`);
+		}
+	}
+
 	private isToolInSet(metadata: ToolMetadata): boolean {
 		const metadataSets = metadata.toolSets
 			? (Array.isArray(metadata.toolSets) ? metadata.toolSets : [metadata.toolSets])
@@ -191,7 +263,11 @@ class LLMToolManager {
 			return this.loadedTools.get(name);
 		}
 
-		const metadata = this.toolMetadata.get(name);
+		// Check if this is an aliased name that maps to an internal ID
+		const toolId = this.toolNameToIdMap.get(name);
+		const toolIdOrName = toolId || name;
+
+		const metadata = this.toolMetadata.get(toolIdOrName);
 		if (!metadata) {
 			logger.warn(`LLMToolManager: Tool ${name} not found`);
 			return undefined;
@@ -206,14 +282,40 @@ class LLMToolManager {
 			const toolPath = isAbsolute(metadata.path!)
 				? join(metadata.path!, 'tool.ts')
 				: join('.', metadata.path!, 'tool.ts');
-			logger.debug(`LLMToolManager: Tool ${name} is loading from ${toolPath}`);
+			const toolConfig = this.projectConfig.settings.api?.toolConfigs?.[name] || {};
+
+			logger.debug(`LLMToolManager: Tool ${toolIdOrName} is loading from ${toolPath}`);
 			const module = await import(new URL(toolPath, import.meta.url).href);
-			const tool = await new module.default(
+			const tool: LLMTool | LLMToolMCP = await new module.default(
 				metadata.name,
 				metadata.description,
-				this.projectConfig.settings.api?.toolConfigs?.[name] || {},
+				toolConfig,
 			).init();
-			logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
+			//logger.debug(`LLMToolManager: Loaded Tool ${tool.name}`);
+
+			// Handle MCP tools specially
+			if (metadata.type === 'mcp' && metadata.mcpData && this.mcpManager) {
+				logger.debug(`LLMToolManager: MCP Tool ${toolIdOrName} is loading from ${toolPath}`);
+				//logger.info(`LLMToolManager: MCP Tool ${toolIdOrName} is loading from ${toolPath}`, metadata);
+
+				// // Create config for MCP tool
+				// const mcpToolConfig: LLMToolMCPConfig = {
+				// 	serverId: metadata.mcpData.serverId,
+				// 	toolName: metadata.mcpData.toolName,
+				// 	inputSchema: metadata.mcpData.inputSchema,
+				// 	description: metadata.mcpData.description,
+				// };
+				// logger.info(`LLMToolManager: MCP Tool ${name} config`, mcpToolConfig);
+
+				// Setup the MCP tool
+				(tool as LLMToolMCP).toolName = metadata.mcpData.toolName; // server's internal tool name (same across server instances)
+				(tool as LLMToolMCP).serverId = metadata.mcpData.serverId;
+				(tool as LLMToolMCP).mcpManager = this.mcpManager;
+				(tool as LLMToolMCP).inputSchema = metadata.mcpData.inputSchema;
+
+				//logger.debug(`LLMToolManager: Setup MCP Tool ${(tool as LLMToolMCP).toolName}`, {serverId: (tool as LLMToolMCP).serverId});
+			}
+
 			this.loadedTools.set(name, tool);
 			return tool;
 		} catch (error) {
@@ -232,6 +334,7 @@ class LLMToolManager {
 		const tools: LLMTool[] = [];
 		for (const metadata of this.toolMetadata.values()) {
 			if (enabledOnly && this.isToolEnabled(metadata)) {
+				//logger.info(`LLMToolManager: Getting Tool ${metadata.name}`, metadata);
 				const tool = await this.getTool(metadata.name);
 				if (tool) {
 					tools.push(tool);

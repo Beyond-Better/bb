@@ -4,6 +4,7 @@ import type { JSX } from 'preact';
 import { renderToString } from 'preact-render-to-string';
 
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 import type { ConversationId, ConversationStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
@@ -68,9 +69,10 @@ export default class ConversationLogger {
 		error: 'Error',
 	};
 	private logEntryFormatterManager!: LogEntryFormatterManager;
+	private projectId: string;
 
 	constructor(
-		private projectId: string,
+		private projectEditor: ProjectEditor,
 		private conversationId: ConversationId,
 		private logEntryHandler: (
 			timestamp: string,
@@ -79,11 +81,12 @@ export default class ConversationLogger {
 			tokenUsageStats: TokenUsageStats,
 			requestParams?: LLMRequestParams,
 		) => Promise<void>,
-	) {}
+	) {
+		this.projectId = projectEditor.projectId;
+	}
 
 	async init(): Promise<ConversationLogger> {
-		const projectConfig = await configManager.getProjectConfig(this.projectId);
-		this.logEntryFormatterManager = await new LogEntryFormatterManager(projectConfig).init();
+		this.logEntryFormatterManager = await new LogEntryFormatterManager(this.projectEditor).init();
 
 		this.conversationLogsDir = await ConversationLogger.getLogFileDirPath(this.projectId, this.conversationId);
 

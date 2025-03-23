@@ -127,7 +127,7 @@ class LLMInteraction {
 
 	public async init(parentId?: ConversationId): Promise<LLMInteraction> {
 		try {
-			const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
+			//const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
 			const logEntryHandler = async (
 				timestamp: string,
 				logEntry: ConversationLogEntry,
@@ -146,7 +146,7 @@ class LLMInteraction {
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor, parentId).init();
-			this.conversationLogger = await new ConversationLogger(projectId, parentId ?? this.id, logEntryHandler)
+			this.conversationLogger = await new ConversationLogger(projectEditor, parentId ?? this.id, logEntryHandler)
 				.init();
 			this.projectConfig = projectEditor.projectConfig;
 		} catch (error) {
@@ -398,11 +398,11 @@ class LLMInteraction {
 
 		this.tokenUsageTurn = tokenUsage;
 
-		logger.error('LLMInteraction: updateTotals - ', {
-			tokenUsageInteraction: this.tokenUsageInteraction,
-			tokenUsageStatement: this.tokenUsageStatement,
-			tokenUsageTurn: this.tokenUsageTurn,
-		});
+		// logger.error('LLMInteraction: updateTotals - ', {
+		// 	tokenUsageInteraction: this.tokenUsageInteraction,
+		// 	tokenUsageStatement: this.tokenUsageStatement,
+		// 	tokenUsageTurn: this.tokenUsageTurn,
+		// });
 
 		this.statementTurnCount++;
 		this.conversationTurnCount++;

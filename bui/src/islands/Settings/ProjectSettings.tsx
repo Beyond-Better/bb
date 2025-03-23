@@ -3,6 +3,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
+import { MCPServerConfig } from 'shared/config/v2/types.ts';
+import MCPConfigModal from '../../components/MCPConfigModal.tsx';
+import MCPServersOverview from '../../components/MCPServersOverview.tsx';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -22,6 +25,8 @@ interface FormState {
 	toolConfigs: string;
 	extendedThinkingEnabled: boolean;
 	extendedThinkingBudget: number;
+	mcpServers: MCPServerConfig[];
+	activeTab: string;
 }
 
 interface FormErrors {
@@ -31,11 +36,36 @@ interface FormErrors {
 	toolConfigs?: string;
 	extendedThinkingEnabled?: string;
 	extendedThinkingBudget?: string;
+	mcpServers?: string;
+	activeTab?: string;
 }
 
 const loading = signal(true);
 const formErrors = signal<FormErrors>({});
 const showSensitive = signal(false);
+const dirtyTabs = signal<Set<string>>(new Set());
+const showHelper = signal(true);
+
+const SUB_TABS = [
+	{
+		id: 'general',
+		label: 'General',
+		icon:
+			'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75',
+	},
+	{
+		id: 'tools',
+		label: 'Tools',
+		icon:
+			'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z',
+	},
+	{
+		id: 'models',
+		label: 'Models',
+		icon:
+			'M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5',
+	},
+];
 
 // Helper function to check if YAML contains sensitive values
 function hasSensitiveValues(yaml: string): boolean {
@@ -119,7 +149,12 @@ export default function ProjectSettings() {
 		toolConfigs: '',
 		extendedThinkingEnabled: true,
 		extendedThinkingBudget: 4000,
+		mcpServers: [],
+		activeTab: 'general',
 	});
+
+	// State for managing MCP server modal
+	const [showMCPModal, setShowMCPModal] = useState(false);
 
 	// Load initial config
 	useEffect(() => {
@@ -136,6 +171,8 @@ export default function ProjectSettings() {
 							: '',
 						extendedThinkingEnabled: config.api.extendedThinking?.enabled ?? true,
 						extendedThinkingBudget: config.api.extendedThinking?.budgetTokens ?? 4000,
+						mcpServers: config.api.mcpServers || [],
+						activeTab: 'general',
 					});
 				}
 			} catch (error) {
@@ -148,7 +185,15 @@ export default function ProjectSettings() {
 		loadConfig();
 	}, [appState.value.apiClient]);
 
-	const validateField = (name: keyof FormState, value: string | number | boolean): string | undefined => {
+	const validateField = (
+		name: keyof FormState,
+		value: string | number | boolean | MCPServerConfig[] | string,
+	): string | undefined => {
+		// Skip validation for these types
+		if (name === 'mcpServers' || name === 'activeTab') {
+			return undefined;
+		}
+
 		switch (name) {
 			case 'myPersonsName':
 			case 'myAssistantsName':
@@ -240,6 +285,14 @@ export default function ProjectSettings() {
 				'api.extendedThinking.budgetTokens',
 				formState.extendedThinkingBudget.toString(),
 			);
+			// Update MCP servers
+			await appState.value.apiClient?.updateGlobalConfig(
+				'api.mcpServers',
+				JSON.stringify(formState.mcpServers),
+			);
+
+			// Reset dirty tabs state
+			dirtyTabs.value = new Set();
 
 			// Show success message
 			// TODO: Add toast notification system
@@ -248,6 +301,22 @@ export default function ProjectSettings() {
 			console.error('Failed to update settings:', error);
 			// TODO: Add error toast notification
 		}
+	};
+
+	const handleTabChange = (tabId: string) => {
+		// If switching from a tab with unsaved changes, show a brief toast message
+		if (dirtyTabs.value.has(formState.activeTab)) {
+			console.log(`Changes in ${formState.activeTab} preserved`);
+			// Here you could add a toast notification
+		}
+
+		setFormState({ ...formState, activeTab: tabId });
+	};
+
+	const markTabDirty = (tabId: string) => {
+		const updated = new Set(dirtyTabs.value);
+		updated.add(tabId);
+		dirtyTabs.value = updated;
 	};
 
 	if (loading.value) {
@@ -274,195 +343,325 @@ export default function ProjectSettings() {
 					</p>
 				</div>
 			</div>
-			<form onSubmit={handleSubmit} class='max-w-4xl'>
-				{/* Names Section */}
-				<div class='mb-8'>
-					<div class='grid grid-cols-2 gap-6'>
-						{/* User's Name */}
-						<div>
-							<label
-								for='myPersonsName'
-								class='block text-base font-medium text-gray-700 dark:text-gray-300'
-							>
-								Your Name
-							</label>
-							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-								The name the assistant will use when referring to you in conversations
-							</p>
-							<input
-								type='text'
-								id='myPersonsName'
-								value={formState.myPersonsName}
-								onChange={(e) => handleInputChange(e, 'myPersonsName')}
-								class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
-							/>
-							{formErrors.value.myPersonsName && (
-								<p class='mt-2 text-base text-red-600 dark:text-red-400'>
-									{formErrors.value.myPersonsName}
-								</p>
-							)}
-						</div>
 
-						{/* Assistant's Name */}
-						<div>
-							<label
-								for='myAssistantsName'
-								class='block text-base font-medium text-gray-700 dark:text-gray-300'
-							>
-								Assistant's Name
-							</label>
-							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-								What the AI assistant will call itself during conversations
-							</p>
-							<input
-								type='text'
-								id='myAssistantsName'
-								value={formState.myAssistantsName}
-								onChange={(e) => handleInputChange(e, 'myAssistantsName')}
-								class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
-							/>
-							{formErrors.value.myAssistantsName && (
-								<p class='mt-2 text-base text-red-600 dark:text-red-400'>
-									{formErrors.value.myAssistantsName}
-								</p>
-							)}
-						</div>
-					</div>
-				</div>
-
-				{/* Max Turns */}
-				<div class='mb-8'>
-					<label
-						for='maxTurns'
-						class='block text-base font-medium text-gray-700 dark:text-gray-300'
+			{showHelper.value && (
+				<div class='mb-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 flex justify-between items-center'>
+					<p class='text-sm text-blue-700 dark:text-blue-300'>
+						You can freely switch between tabs - your changes are preserved until you save or cancel
+					</p>
+					<button
+						type='button'
+						onClick={() => showHelper.value = false}
+						class='text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
 					>
-						Maximum Turns
-					</label>
-					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-						Limits tool uses per statement to prevent infinite loops and control token usage
-					</p>
-					<div class='max-w-[200px]'>
-						<input
-							type='number'
-							id='maxTurns'
-							min='1'
-							max='100'
-							value={formState.maxTurns}
-							onChange={(e) => handleInputChange(e, 'maxTurns')}
-							class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
-						/>
-					</div>
-					{formErrors.value.maxTurns && (
-						<p class='mt-2 text-base text-red-600 dark:text-red-400'>
-							{formErrors.value.maxTurns}
-						</p>
-					)}
+						Got it
+					</button>
 				</div>
+			)}
 
-				{/* Extended Thinking */}
-				<div class='mb-8'>
-					<div class='flex items-center justify-between'>
-						<label
-							for='extendedThinkingEnabled'
-							class='block text-base font-medium text-gray-700 dark:text-gray-300'
-						>
-							Extended Thinking
-						</label>
-						<div class='relative inline-block w-12 mr-2 align-middle select-none'>
-							<input
-								type='checkbox'
-								id='extendedThinkingEnabled'
-								checked={formState.extendedThinkingEnabled}
-								onChange={(e) => handleInputChange(e, 'extendedThinkingEnabled')}
-								class='toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer'
-							/>
-							<label
-								for='extendedThinkingEnabled'
-								class='toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer'
+			{dirtyTabs.value.size > 0 && (
+				<div class='mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-2 text-sm text-yellow-700 dark:text-yellow-300'>
+					You have unsaved changes in {Array.from(dirtyTabs.value).join(', ')}
+				</div>
+			)}
+
+			<div class='mb-4 border-b border-gray-200 dark:border-gray-700'>
+				<ul class='flex flex-wrap -mb-px text-sm font-medium text-center'>
+					{SUB_TABS.map((tab) => (
+						<li class='mr-2' key={tab.id}>
+							<button
+								type='button'
+								onClick={() => handleTabChange(tab.id)}
+								class={`inline-flex items-center p-4 border-b-2 rounded-t-lg group ${
+									formState.activeTab === tab.id
+										? 'text-blue-600 border-blue-600 dark:text-blue-500 dark:border-blue-500'
+										: 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300'
+								}`}
 							>
-							</label>
+								<svg
+									class={`w-4 h-4 mr-2 ${
+										formState.activeTab === tab.id
+											? 'text-blue-600 dark:text-blue-500'
+											: 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
+									}`}
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+									xmlns='http://www.w3.org/2000/svg'
+								>
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d={tab.icon}
+									/>
+								</svg>
+								{tab.label}
+								{dirtyTabs.value.has(tab.id) && (
+									<span class='flex w-2 h-2 bg-blue-500 rounded-full ml-1.5'></span>
+								)}
+							</button>
+						</li>
+					))}
+				</ul>
+			</div>
+
+			<form onSubmit={handleSubmit} class='max-w-4xl'>
+				{/* Tab Content */}
+				{formState.activeTab === 'general' && (
+					<div className='general-tab'>
+						{/* Names Section */}
+						<div class='mb-8'>
+							<div class='grid grid-cols-2 gap-6'>
+								{/* User's Name */}
+								<div>
+									<label
+										for='myPersonsName'
+										class='block text-base font-medium text-gray-700 dark:text-gray-300'
+									>
+										Your Name
+									</label>
+									<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+										The name the assistant will use when referring to you in conversations
+									</p>
+									<input
+										type='text'
+										id='myPersonsName'
+										value={formState.myPersonsName}
+										onChange={(e) => {
+											handleInputChange(e, 'myPersonsName');
+											markTabDirty('general');
+										}}
+										class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
+									/>
+									{formErrors.value.myPersonsName && (
+										<p class='mt-2 text-base text-red-600 dark:text-red-400'>
+											{formErrors.value.myPersonsName}
+										</p>
+									)}
+								</div>
+
+								{/* Assistant's Name */}
+								<div>
+									<label
+										for='myAssistantsName'
+										class='block text-base font-medium text-gray-700 dark:text-gray-300'
+									>
+										Assistant's Name
+									</label>
+									<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+										What the AI assistant will call itself during conversations
+									</p>
+									<input
+										type='text'
+										id='myAssistantsName'
+										value={formState.myAssistantsName}
+										onChange={(e) => {
+											handleInputChange(e, 'myAssistantsName');
+											markTabDirty('general');
+										}}
+										class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
+									/>
+									{formErrors.value.myAssistantsName && (
+										<p class='mt-2 text-base text-red-600 dark:text-red-400'>
+											{formErrors.value.myAssistantsName}
+										</p>
+									)}
+								</div>
+							</div>
 						</div>
-					</div>
-					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-						Enables Claude to show its step-by-step reasoning process for complex tasks
-					</p>
 
-					{formState.extendedThinkingEnabled && (
-						<div class='mt-4'>
+						{/* Max Turns */}
+						<div class='mb-8'>
 							<label
-								for='extendedThinkingBudget'
-								class='block text-sm font-medium text-gray-700 dark:text-gray-300'
+								for='maxTurns'
+								class='block text-base font-medium text-gray-700 dark:text-gray-300'
 							>
-								Thinking Budget (tokens)
+								Maximum Turns
 							</label>
-							<p class='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-								Maximum tokens Claude can use for reasoning (minimum 1,024)
+							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+								Limits tool uses per statement to prevent infinite loops and control token usage
 							</p>
 							<div class='max-w-[200px]'>
 								<input
 									type='number'
-									id='extendedThinkingBudget'
-									min='1024'
-									step='1000'
-									value={formState.extendedThinkingBudget}
-									onChange={(e) => handleInputChange(e, 'extendedThinkingBudget')}
-									class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm px-3 py-2'
+									id='maxTurns'
+									min='1'
+									max='100'
+									value={formState.maxTurns}
+									onChange={(e) => {
+										handleInputChange(e, 'maxTurns');
+										markTabDirty('general');
+									}}
+									class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-base px-3 py-2'
 								/>
 							</div>
-							{formErrors.value.extendedThinkingBudget && (
-								<p class='mt-2 text-sm text-red-600 dark:text-red-400'>
-									{formErrors.value.extendedThinkingBudget}
+							{formErrors.value.maxTurns && (
+								<p class='mt-2 text-base text-red-600 dark:text-red-400'>
+									{formErrors.value.maxTurns}
 								</p>
 							)}
 						</div>
-					)}
-				</div>
 
-				{/* Tool Configs */}
-				<div class='mb-8'>
-					<label
-						for='toolConfigs'
-						class='block text-base font-medium text-gray-700 dark:text-gray-300'
-					>
-						Tool Configurations (YAML)
-					</label>
-					{hasSensitiveValues(formState.toolConfigs) && (
-						<button
-							type='button'
-							onClick={() => showSensitive.value = !showSensitive.value}
-							class='ml-2 inline-flex items-center px-2 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-						>
-							{showSensitive.value
-								? 'Hide Configuration'
-								: 'Edit Configuration (Contains Sensitive Values)'}
-						</button>
-					)}
-					<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-						Configures behavior of the assistant's tools like allowed commands and API keys. Each tool can
-						have its own settings.
-					</p>
-					<textarea
-						id='toolConfigs'
-						rows={10}
-						value={hasSensitiveValues(formState.toolConfigs)
-							? (showSensitive.value
-								? formState.toolConfigs
-								: formatYaml(redactSensitiveInfo(parseYaml(formState.toolConfigs)).value))
-							: formState.toolConfigs}
-						readOnly={hasSensitiveValues(formState.toolConfigs) && !showSensitive.value}
-						onChange={(e) => handleInputChange(e, 'toolConfigs')}
-						placeholder={TOOLS_PLACEHOLDER}
-						class='mt-1 form-textarea block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm leading-relaxed font-mono px-3 py-2'
-					/>
-					{formErrors.value.toolConfigs && (
-						<p class='mt-2 text-base text-red-600 dark:text-red-400'>
-							{formErrors.value.toolConfigs}
-						</p>
-					)}
-				</div>
+						{/* Extended Thinking */}
+						<div class='mb-8'>
+							<div class='flex items-center justify-between'>
+								<label
+									for='extendedThinkingEnabled'
+									class='block text-base font-medium text-gray-700 dark:text-gray-300'
+								>
+									Extended Thinking
+								</label>
+								<div class='relative inline-block w-12 mr-2 align-middle select-none'>
+									<input
+										type='checkbox'
+										id='extendedThinkingEnabled'
+										checked={formState.extendedThinkingEnabled}
+										onChange={(e) => {
+											handleInputChange(e, 'extendedThinkingEnabled');
+											markTabDirty('general');
+										}}
+										class='toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer'
+									/>
+									<label
+										for='extendedThinkingEnabled'
+										class='toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-700 cursor-pointer'
+									>
+									</label>
+								</div>
+							</div>
+							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+								Enables Claude to show its step-by-step reasoning process for complex tasks
+							</p>
+
+							{formState.extendedThinkingEnabled && (
+								<div class='mt-4'>
+									<label
+										for='extendedThinkingBudget'
+										class='block text-sm font-medium text-gray-700 dark:text-gray-300'
+									>
+										Thinking Budget (tokens)
+									</label>
+									<p class='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+										Maximum tokens Claude can use for reasoning (minimum 1,024)
+									</p>
+									<div class='max-w-[200px]'>
+										<input
+											type='number'
+											id='extendedThinkingBudget'
+											min='1024'
+											step='1000'
+											value={formState.extendedThinkingBudget}
+											onChange={(e) => {
+												handleInputChange(e, 'extendedThinkingBudget');
+												markTabDirty('general');
+											}}
+											class='mt-1 form-input block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm px-3 py-2'
+										/>
+									</div>
+									{formErrors.value.extendedThinkingBudget && (
+										<p class='mt-2 text-sm text-red-600 dark:text-red-400'>
+											{formErrors.value.extendedThinkingBudget}
+										</p>
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+				)}
+
+				{formState.activeTab === 'tools' && (
+					<div className='tools-tab'>
+						{/* Tool Configs */}
+						<div class='mb-8'>
+							<label
+								for='toolConfigs'
+								class='block text-base font-medium text-gray-700 dark:text-gray-300'
+							>
+								Tool Configurations (YAML)
+							</label>
+							{hasSensitiveValues(formState.toolConfigs) && (
+								<button
+									type='button'
+									onClick={() => showSensitive.value = !showSensitive.value}
+									class='ml-2 inline-flex items-center px-2 py-1 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+								>
+									{showSensitive.value
+										? 'Hide Configuration'
+										: 'Edit Configuration (Contains Sensitive Values)'}
+								</button>
+							)}
+							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+								Configures behavior of the assistant's tools like allowed commands and API keys. Each
+								tool can have its own settings.
+							</p>
+							<textarea
+								id='toolConfigs'
+								rows={10}
+								value={hasSensitiveValues(formState.toolConfigs)
+									? (showSensitive.value
+										? formState.toolConfigs
+										: formatYaml(redactSensitiveInfo(parseYaml(formState.toolConfigs)).value))
+									: formState.toolConfigs}
+								readOnly={hasSensitiveValues(formState.toolConfigs) && !showSensitive.value}
+								onChange={(e) => {
+									handleInputChange(e, 'toolConfigs');
+									markTabDirty('tools');
+								}}
+								placeholder={TOOLS_PLACEHOLDER}
+								class='mt-1 form-textarea block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm leading-relaxed font-mono px-3 py-2'
+							/>
+							{formErrors.value.toolConfigs && (
+								<p class='mt-2 text-base text-red-600 dark:text-red-400'>
+									{formErrors.value.toolConfigs}
+								</p>
+							)}
+						</div>
+
+						{/* MCP Servers Section */}
+						<div className='mb-8'>
+							<MCPServersOverview
+								servers={formState.mcpServers}
+								onConfigureClick={() => setShowMCPModal(true)}
+								isGlobal={true}
+							/>
+						</div>
+
+						{/* MCP Config Modal */}
+						<MCPConfigModal
+							isOpen={showMCPModal}
+							onClose={() => setShowMCPModal(false)}
+							servers={formState.mcpServers}
+							onSave={(updatedServers) => {
+								setFormState((prev) => ({ ...prev, mcpServers: updatedServers }));
+								markTabDirty('tools');
+								setShowMCPModal(false);
+							}}
+							isGlobal={true}
+						/>
+					</div>
+				)}
+
+				{formState.activeTab === 'models' && (
+					<div className='models-tab'>
+						<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
+							<h3 className='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>
+								Model Configuration
+							</h3>
+							<p className='text-sm text-gray-500 dark:text-gray-400'>
+								This section will contain model-specific settings in the future.
+							</p>
+							<div className='flex items-center justify-center h-32'>
+								<span className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
+									Coming Soon
+								</span>
+							</div>
+						</div>
+					</div>
+				)}
 
 				{/* Submit Button */}
-				<div class='flex justify-end'>
+				<div class='flex justify-end mt-6'>
 					<button
 						type='submit'
 						class='inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600'

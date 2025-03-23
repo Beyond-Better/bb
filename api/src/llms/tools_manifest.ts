@@ -17,6 +17,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'enabled': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -29,6 +30,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -40,6 +42,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -71,6 +74,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 					},
 				},
 			],
+			'type': 'internal',
 		},
 	},
 	{
@@ -82,6 +86,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -93,6 +98,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -104,6 +110,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -116,6 +123,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -128,6 +136,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'category': 'FileManipulation',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -139,6 +148,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -152,6 +162,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'enabled': true,
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -163,6 +174,20 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
+		},
+	},
+	{
+		'toolNamePath': 'mcp.tool',
+		'metadata': {
+			'name': 'mcp',
+			'description': 'Executes tools using Model Context Protocol',
+			'version': '1.0.0',
+			'enabled': false,
+			'author': 'BB Team',
+			'license': 'MIT',
+			'category': 'integration',
+			'type': 'internal',
 		},
 	},
 	{
@@ -190,6 +215,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 					'env',
 				],
 			},
+			'type': 'internal',
 		},
 	},
 	{
@@ -201,6 +227,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -212,6 +239,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'type': 'internal',
 		},
 	},
 	{
@@ -224,6 +252,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -236,6 +265,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -248,6 +278,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 	{
@@ -261,6 +292,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
+			'type': 'internal',
 		},
 	},
 ];

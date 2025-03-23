@@ -16,6 +16,7 @@ export enum ErrorType {
 	FileHandling = 'FileHandlingError',
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
+	ExternalServiceError = 'ExternalServiceError',
 }
 export const ErrorTypes = [
 	ErrorType.API,
@@ -28,6 +29,7 @@ export const ErrorTypes = [
 	ErrorType.FileHandling,
 	ErrorType.VectorSearch,
 	ErrorType.TokenUsageValidation,
+	ErrorType.ExternalServiceError,
 ];
 
 export interface CommandExecutionErrorOptions extends ErrorOptions {
@@ -297,4 +299,26 @@ export class PersistenceError extends Error {
 
 export const isPersistenceError = (value: unknown): value is PersistenceError => {
 	return value instanceof PersistenceError;
+};
+
+export interface ExternalServiceErrorOptions extends ErrorOptions {
+	service: string;
+	action?: string;
+	serverId?: string;
+	toolName?: string;
+	server?: string;
+}
+
+export class ExternalServiceError extends Error {
+	constructor(
+		message: string,
+		public options: ExternalServiceErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.ExternalServiceError;
+	}
+}
+
+export const isExternalServiceError = (value: unknown): value is ExternalServiceError => {
+	return value instanceof ExternalServiceError;
 };

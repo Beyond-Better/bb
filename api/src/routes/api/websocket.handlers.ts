@@ -163,6 +163,7 @@ class WebSocketChatHandler {
 				return;
 			} else if (task === 'converse') {
 				try {
+					//logger.info('WebSocketChatHandler: filesToAttach', filesToAttach);
 					await projectEditor?.handleStatement(
 						statement,
 						conversationId,

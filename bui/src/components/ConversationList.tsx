@@ -157,6 +157,7 @@ export function ConversationList({
 												</h3>
 												{/* Delete button - only visible on hover */}
 												<button
+													type='button'
 													onClick={(e) => {
 														e.stopPropagation();
 														conversationToDelete.value = {

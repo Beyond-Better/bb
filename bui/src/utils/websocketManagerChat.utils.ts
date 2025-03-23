@@ -118,6 +118,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		if (!this.socket || !this.conversationId || !this._status.isReady) {
 			throw new Error('WebSocket is not ready');
 		}
+		//console.log('WebSocketManagerChat: sendConverse-attachedFiles', attachedFiles);
 
 		// Get file IDs for successfully uploaded files
 		const filesToAttach = attachedFiles
@@ -126,6 +127,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				.map((file: LLMAttachedFile) => file.fileId!)
 				.filter(Boolean)
 			: [];
+		//console.log('WebSocketManagerChat: sendConverse-filesToAttach', filesToAttach);
 
 		const wsMessage: WebSocketMessage = {
 			conversationId: this.conversationId,

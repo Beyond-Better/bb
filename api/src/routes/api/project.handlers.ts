@@ -54,6 +54,10 @@ function enhanceProjectWithSources(
 					projectConfig.settings?.api?.toolConfigs,
 					globalConfig.api?.toolConfigs,
 				),
+				mcpServers: createConfigValue(
+					projectConfig.settings?.api?.mcpServers,
+					globalConfig.api?.mcpServers,
+				),
 			},
 		},
 	};
@@ -303,6 +307,17 @@ export const createProject = async (
 					body.settings.api.toolConfigs,
 				);
 			}
+			if (body.settings.api?.mcpServers !== undefined) {
+				logger.info('ProjectHandler: Setting mcpServers:', {
+					value: body.settings.api.mcpServers,
+					type: typeof body.settings.api.mcpServers,
+				});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.mcpServers',
+					body.settings.api.mcpServers,
+				);
+			}
 		}
 
 		// Return the created project with source information
@@ -423,6 +438,13 @@ export const updateProject = async (
 					projectId,
 					'settings.api.toolConfigs',
 					body.settings.api.toolConfigs,
+				);
+			}
+			if (body.settings.api?.mcpServers !== undefined) {
+				await configManager.setProjectConfigValue(
+					projectId,
+					'settings.api.mcpServers',
+					body.settings.api.mcpServers,
 				);
 			}
 		}

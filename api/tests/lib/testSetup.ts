@@ -60,7 +60,7 @@ export async function getToolManager(
 		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
 	}
 
-	const toolManager = await new LLMToolManager(projectEditor.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, 'core', projectEditor.mcpManager).init(); // Assuming 'core' is the default toolset
 
 	assert(toolManager, 'Failed to get LLMToolManager');
 

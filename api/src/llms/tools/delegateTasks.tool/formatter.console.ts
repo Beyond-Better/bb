@@ -96,7 +96,7 @@ export function formatLogEntryToolResult(
 	} else {
 		logger.error('LLMToolFetchWebPage: Unexpected bbResponse format:', bbResponse);
 		return {
-			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Fetch Web Page'),
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Delegate Tasks'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('failed'),
 			content: LLMTool.TOOL_STYLES_CONSOLE.status.error(String(bbResponse)),
 			preview: 'Operation failed',

@@ -6,10 +6,11 @@ import type { ConversationLogEntryType } from 'shared/types.ts';
 import type { LogEntryFormattedResult } from 'api/logEntries/types.ts';
 import LogEntryFormatterManager from '../../logEntries/logEntryFormatterManager.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import type { SessionManager } from 'api/auth/session.ts';
+import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 
 export const logEntryFormatter = async (
-	{ params, request, response }: RouterContext<
+	{ params, request, response, app }: RouterContext<
 		'/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType',
 		{ logEntryDestination: LLMToolFormatterDestination; logEntryFormatterType: ConversationLogEntryType }
 	>,
@@ -17,17 +18,32 @@ export const logEntryFormatter = async (
 	const { logEntryDestination, logEntryFormatterType } = params;
 
 	try {
-		const { logEntry, projectId } = await request.body.json();
-		// 		logger.info(
-		// 			`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
-		// 				logEntry.toolName || 'N/A'
-		// 			} - logEntry:`,
-		// 			logEntry
-		// 		);
+		const { logEntry, projectId, conversationId } = await request.body.json();
+		// logger.info(
+		// 	`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
+		// 		logEntry.toolName || 'N/A'
+		// 	} - logEntry:`,
+		// 	logEntry
+		// );
 
-		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-		const logEntryFormatterManager = await new LogEntryFormatterManager(projectConfig).init();
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`HandlerLogEntryFormatter: No session manager configured`,
+			);
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(
+			conversationId,
+			projectId,
+			sessionManager,
+		);
+		const logEntryFormatterManager = await new LogEntryFormatterManager(
+			projectEditor,
+		).init();
 
 		if (!logEntry || !logEntry.entryType || !logEntry.content) {
 			response.status = 400;
