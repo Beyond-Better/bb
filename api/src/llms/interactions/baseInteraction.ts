@@ -129,6 +129,7 @@ class LLMInteraction {
 		try {
 			//const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
 			const logEntryHandler = async (
+				agentInteractionId: string | null,
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
@@ -137,6 +138,7 @@ class LLMInteraction {
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
+					agentInteractionId,
 					timestamp,
 					logEntry,
 					conversationStats,
@@ -282,7 +284,8 @@ class LLMInteraction {
 
 	protected calculateCacheImpact(tokenUsage: TokenUsage): CacheImpact {
 		// Calculate potential cost without cache
-		const potentialCost = tokenUsage.inputTokens + tokenUsage.outputTokens + (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
+		const potentialCost = tokenUsage.inputTokens + tokenUsage.outputTokens +
+			(tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
 
 		// Calculate actual cost with cache
 		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);

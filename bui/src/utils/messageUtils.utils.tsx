@@ -12,6 +12,16 @@ export const messageIcons = {
 			/>
 		</svg>
 	),
+	orchestrator: (
+		<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+			<path
+				strokeLinecap='round'
+				strokeLinejoin='round'
+				strokeWidth={2}
+				d='M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'
+			/>
+		</svg>
+	),
 	assistant: (
 		<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
 			<path
@@ -70,6 +80,16 @@ export const messageStyles = {
 			border: 'border-blue-200 dark:border-blue-800',
 			text: 'text-blue-700 dark:text-blue-300',
 			dot: 'bg-blue-500 dark:bg-blue-400',
+		},
+	},
+	orchestrator: {
+		bg: 'bg-green-50 dark:bg-green-900/30',
+		border: 'border-green-200 dark:border-green-800',
+		header: {
+			bg: 'bg-green-100 dark:bg-green-900/50',
+			border: 'border-green-200 dark:border-green-800',
+			text: 'text-green-700 dark:text-green-300',
+			dot: 'bg-green-500 dark:bg-green-400',
 		},
 	},
 	assistant: {
@@ -137,6 +157,7 @@ export const messageStyles = {
 // Default expanded state by type
 export const defaultExpanded = {
 	user: true,
+	orchestrator: true,
 	assistant: true,
 	answer: true,
 	tool_use: false,

@@ -162,6 +162,7 @@ class OrchestratorController extends BaseController {
 				{
 					conversationId: interaction.id,
 					conversationTitle: interaction.title || '',
+					agentInteractionId: null,
 					timestamp: new Date().toISOString(),
 					conversationStats: {
 						statementCount: this.statementCount,
@@ -363,7 +364,7 @@ class OrchestratorController extends BaseController {
 				//},
 			};
 
-			currentResponse = await interaction.converse(statement, metadata, speakOptions, attachedFiles);
+			currentResponse = await interaction.converse(statement, 'user', metadata, speakOptions, attachedFiles);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
@@ -404,6 +405,7 @@ class OrchestratorController extends BaseController {
 
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
+							null,
 							textContent,
 							thinkingContent,
 							conversationStats,
@@ -461,6 +463,7 @@ class OrchestratorController extends BaseController {
 					const timestamp = new Date().toISOString();
 					await interaction.conversationLogger.logAuxiliaryMessage(
 						`force-summary-${timestamp}`,
+						null,
 						{
 							message:
 								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
@@ -572,6 +575,7 @@ class OrchestratorController extends BaseController {
 					{
 						conversationId: interaction.id,
 						conversationTitle: interaction.title || '',
+						agentInteractionId: null,
 						timestamp: new Date().toISOString(),
 						conversationStats: {
 							statementCount: this.statementCount,
@@ -652,6 +656,7 @@ class OrchestratorController extends BaseController {
 			logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },
 			conversationId: interaction.id,
 			conversationTitle: interaction.title,
+			agentInteractionId: null,
 			timestamp: new Date().toISOString(),
 			conversationStats: {
 				statementCount: this.statementCount,
@@ -668,6 +673,7 @@ class OrchestratorController extends BaseController {
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
+			null,
 			answer,
 			assistantThinking,
 			statementAnswer.conversationStats,

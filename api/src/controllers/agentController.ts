@@ -10,9 +10,9 @@ import type { ErrorHandler } from '../llms/errorHandler.ts';
 import { isLLMError } from 'api/errors/error.ts';
 import { ApiStatus } from 'shared/types.ts';
 import type {
-	ConversationStats,
 	//ObjectivesData,
 	ConversationStatementMetadata,
+	ConversationStats,
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
@@ -106,7 +106,9 @@ class AgentController extends BaseController {
 	//}
 
 	async createAgentInteraction(title: string): Promise<LLMConversationInteraction> {
-		logger.info('AgentController: createAgentInteraction - creating interaction for: ${this.primaryInteractionId} with parent ${this.orchestratorInteractionId}');
+		logger.info(
+			'AgentController: createAgentInteraction - creating interaction for: ${this.primaryInteractionId} with parent ${this.orchestratorInteractionId}',
+		);
 		const agentInteraction = await this.interactionManager.createInteraction(
 			'conversation',
 			this.primaryInteractionId!,
@@ -235,11 +237,14 @@ class AgentController extends BaseController {
 		logger.info('AgentController: handleTask ', task.title);
 
 		if (!task.instructions) {
+			const logEntryInteraction = this.logEntryInteraction;
+			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 			this.eventManager.emit(
 				'projectEditor:conversationError',
 				{
-					conversationId: interaction.id,
+					conversationId: logEntryInteraction.id,
 					conversationTitle: interaction.title || '',
+					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
 					conversationStats: {
 						statementCount: this.statementCount,
@@ -341,7 +346,7 @@ class AgentController extends BaseController {
 				},
 			};
 
-			currentResponse = await interaction.converse(statement, metadata, speakOptions);
+			currentResponse = await interaction.converse(statement, 'orchestrator', metadata, speakOptions);
 
 			this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('AgentController: Received response from LLM');
@@ -383,6 +388,7 @@ class AgentController extends BaseController {
 
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
+							interaction.id,
 							textContent,
 							thinkingContent,
 							conversationStats,
@@ -417,7 +423,9 @@ class AgentController extends BaseController {
 						}
 					}
 				}
-				logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`);
+				logger.warn(
+					`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`,
+				);
 
 				loopTurnCount++;
 
@@ -437,6 +445,7 @@ class AgentController extends BaseController {
 					const timestamp = new Date().toISOString();
 					await interaction.conversationLogger.logAuxiliaryMessage(
 						`force-summary-${timestamp}`,
+						interaction.id,
 						{
 							message:
 								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
@@ -544,12 +553,15 @@ class AgentController extends BaseController {
 				const args = isLLMError(error) ? error.options?.args : null;
 				const errorMessage = args ? `${args.reason} - ${(error as Error).message}` : (error as Error).message;
 
+				const logEntryInteraction = this.logEntryInteraction;
+				const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 				// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
 				this.eventManager.emit(
 					'projectEditor:conversationError',
 					{
 						conversationId: interaction.id,
 						conversationTitle: interaction.title || '',
+						agentInteractionId: agentInteractionId,
 						timestamp: new Date().toISOString(),
 						conversationStats: {
 							statementCount: this.statementCount,
@@ -604,6 +616,7 @@ class AgentController extends BaseController {
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
+			interaction.id,
 			answer,
 			assistantThinking,
 			{

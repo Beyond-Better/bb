@@ -130,7 +130,7 @@ class ResourceManager {
 A flexible capabilities system will be implemented to allow for future expansion:
 
 ```typescript
-class CapabilityManager {
+class AgentCapabilityManager {
   private availableCapabilities: Set<string>;
 
   constructor() {
@@ -278,7 +278,7 @@ class ProjectEditor {
 ## 10. Testing Strategy
 
 1. Unit Tests:
-   - Test each new class (InteractionManager, ResourceManager, CapabilityManager, ErrorHandler, ResourceLock, TaskQueue) individually
+   - Test each new class (InteractionManager, ResourceManager, AgentCapabilityManager, ErrorHandler, ResourceLock, TaskQueue) individually
    - Test the `delegate_tasks` tool function
 
 2. Integration Tests:
@@ -295,7 +295,7 @@ class ProjectEditor {
 
 1. Implement InteractionManager class
 2. Implement ResourceManager class
-3. Implement CapabilityManager class
+3. Implement AgentCapabilityManager class
 4. Implement ErrorHandler class
 5. Implement ResourceLock class
 6. Implement TaskQueue class

@@ -110,11 +110,14 @@ class BaseController {
 			//logger.error(`BaseController: handleLLMError-error.options.args:`, error.options?.args);
 			//logger.error(`BaseController: handleLLMError-errorDetails:`, errorDetails);
 
+			const logEntryInteraction = this.logEntryInteraction;
+			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 			this.eventManager.emit(
 				'projectEditor:conversationError',
 				{
 					conversationId: interaction.id,
 					conversationTitle: interaction.title || '',
+					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
 					conversationStats: {
 						statementCount: this.statementCount,
@@ -187,6 +190,12 @@ class BaseController {
 		const primaryInteraction = this.interactionManager.getInteraction(this.primaryInteractionId);
 		if (!primaryInteraction) throw new Error('No primaryInteraction to get from interactionManager');
 		return primaryInteraction as LLMConversationInteraction;
+	}
+
+	public get logEntryInteraction(): LLMConversationInteraction {
+		const logEntryInteraction = this.interactionManager.getParentInteraction(this.primaryInteraction.id) ??
+			this.primaryInteraction;
+		return logEntryInteraction as LLMConversationInteraction;
 	}
 
 	public get statementTurnCount(): number {
@@ -460,8 +469,12 @@ class BaseController {
 	): Promise<{ toolResponse: LLMToolRunToolResponse }> {
 		logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`);
 		//logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`, response);
+
+		const logEntryInteraction = this.logEntryInteraction;
+		const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 		await interaction.conversationLogger.logToolUse(
 			interaction.getLastMessageId(),
+			agentInteractionId,
 			toolUse.toolName,
 			toolUse.toolInput,
 			interaction.conversationStats,
@@ -480,11 +493,16 @@ class BaseController {
 			this.projectEditor,
 		);
 		if (isError) {
-			interaction.conversationLogger.logError(messageId, `Tool Output (${toolUse.toolName}): ${toolResponse}`);
+			interaction.conversationLogger.logError(
+				messageId,
+				agentInteractionId,
+				`Tool Output (${toolUse.toolName}): ${toolResponse}`,
+			);
 		}
 
 		await interaction.conversationLogger.logToolResult(
 			messageId,
+			agentInteractionId,
 			toolUse.toolName,
 			toolResults,
 			bbResponse,
@@ -509,6 +527,7 @@ class BaseController {
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
 			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
+				agentInteractionId: string | null,
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
@@ -516,8 +535,7 @@ class BaseController {
 				requestParams?: LLMRequestParams,
 			): Promise<void> => {
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
-				const logEntryInteraction = this.interactionManager.getParentInteraction(this.primaryInteraction.id) ??
-					this.primaryInteraction;
+				const logEntryInteraction = this.logEntryInteraction;
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
 				//const useParent = logEntryInteraction.id !== this.primaryInteraction.id;
 				//logger.info(
@@ -525,11 +543,13 @@ class BaseController {
 				//		useParent ? 'YES' : 'NO'
 				//	} - this.id: ${this.primaryInteraction.id} - logEntry.id: ${logEntryInteraction.id}`,
 				//);
+				//if(useParent) logEntry.agentInteractionId = this.primaryInteractionId!;
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: ConversationResponse = {
 						timestamp,
 						conversationId: logEntryInteraction.id,
 						conversationTitle: logEntryInteraction.title,
+						agentInteractionId,
 						logEntry,
 						conversationStats,
 						tokenUsageStats,
@@ -544,6 +564,7 @@ class BaseController {
 						timestamp,
 						conversationId: logEntryInteraction.id,
 						conversationTitle: logEntryInteraction.title,
+						agentInteractionId,
 						logEntry,
 						conversationStats,
 						tokenUsageStats,

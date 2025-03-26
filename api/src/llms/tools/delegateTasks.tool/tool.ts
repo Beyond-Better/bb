@@ -24,7 +24,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import type InteractionManager from 'api/llms/interactionManager.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 //import { ResourceManager } from '../../../llms/resourceManager.ts';
-//import { CapabilityManager } from '../../../llms/capabilityManager.ts';
+//import { AgentCapabilityManager } from '../../../llms/agentCapabilityManager.ts';
 //import { ErrorHandler } from '../../../llms/errorHandler.ts';
 //import { TaskQueue } from '../../../llms/taskQueue.ts';
 import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
@@ -57,7 +57,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 	private orchestratorController: OrchestratorController | undefined;
 	//private taskQueue: TaskQueue|undefined;
 	//private resourceManager: ResourceManager | undefined;
-	//private capabilityManager: CapabilityManager | undefined;
+	//private agentCapabilityManager: AgentCapabilityManager | undefined;
 	//private interaction: LLMConversationInteraction | undefined;
 
 	constructor(name: string, description: string, toolConfig: LLMToolDelegateTasksConfig) {
@@ -156,7 +156,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 		this.orchestratorController = projectEditor.orchestratorController;
 		//this.interactionManager = projectEditor.orchestratorController.interactionManager;
 		//this.resourceManager = new ResourceManager();
-		//this.capabilityManager = new CapabilityManager();
+		//this.agentCapabilityManager = new AgentCapabilityManager();
 		//this.errorHandler = new ErrorHandler(this.errorHandlingConfig);
 		//this.taskQueue = new TaskQueue(this.errorHandler);
 
@@ -179,43 +179,6 @@ export default class LLMToolDelegateTasks extends LLMTool {
 
 			const errorMessages: string[] = [];
 			logger.info('LLMToolDelegateTasks: Completed ', { completedTasks });
-			/*
-			for (const task of tasks) {
-				try {
-
-					// // Read target file
-					// const fileContent = await projectEditor.readFile(task.target);
-
-					// // Format options
-					// const format = task.options?.format || 'medium';
-					// const maxTokens = task.options?.maxTokens || 1000;
-					// const includeMetadata = task.options?.includeMetadata ?? true;
-
-					// // Generate summary using the log entry formatter
-					// const summary = await this.generateLogEntrySummary(
-					// 	logEntry,
-					// 	format,
-					// 	maxTokens,
-					// 	includeMetadata,
-					// 	interaction,
-					// );
-
-					completedTasks.push({
-						title: task.title,
-						status: 'completed',
-						result: summary,
-					} );
-				} catch (error) {
-					logger.error(`Task failed: ${isError(error) ?error.message : 'unknwn error'}`);
-					completedTasks.push({
-						title: task.title,
-						status: 'failed',
-						error: (error as Error).message,
-					});
-					errorMessages.push(`Failed to process ${task.title}: ${(error as Error).message}`);
-				}
-			}
- */
 
 			const toolResultContentParts: LLMMessageContentParts = completedTasks.map((
 				task: CompletedTask,
@@ -257,83 +220,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 		}
 	}
 
-	// 	private async executeTask(task: Task): Promise<CompletedTask> {
-	// logger.info('LLMToolDelegateTasks: executeTask ', { task }  );
-	// 		//// Check capabilities
-	// 		//for (const capability of task.capabilities) {
-	// 		//	if (!this.capabilityManager!.hasCapability(capability)) {
-	// 		//		throw new Error(`Missing required capability: ${capability}`);
-	// 		//	}
-	// 		//}
-	//
-	// 		// // Load resources
-	// 		// const loadedResources = await Promise.all(
-	// 		// 	task.resources.map((resource) => this.resourceManager!.loadResource(resource)),
-	// 		// );
-	//
-	// 		// Create child interaction
-	// 		//const childInteractionId = this.interactionManager!.createInteraction('conversation');
-	// 		//const childInteraction = this.interactionManager!.getInteraction(childInteractionId);
-	//
-	//
-	// 		// // Execute task in child interaction
-	// 		// const result = await childInteraction.execute({
-	// 		// 	background: task.background,
-	// 		// 	instruction: task.instructions,
-	// 		// 	resources: loadedResources,
-	// 		// 	requirements: task.requirements,
-	// 		// });
-	//
-	// 		// export interface ConversationResponse {
-	// 		// 	conversationId: ConversationId;
-	// 		// 	conversationTitle: string;
-	// 		// 	timestamp: string;
-	// 		// 	logEntry: ConversationLogEntry;
-	// 		// 	tokenUsageTurn: TokenUsage;
-	// 		// 	tokenUsageStatement: TokenUsage;
-	// 		// 	tokenUsageConversation: TokenUsage;
-	// 		// 	conversationStats: ConversationStats;
-	// 		// 	formattedContent?: string;
-	// 		// }
-	// 		// export interface ConversationLogEntry {
-	// 		// 	entryType: ConversationLogEntryType;
-	// 		// 	content: ConversationLogEntryContent;
-	// 		// 	thinking?: string;
-	// 		// 	toolName?: string;
-	// 		// }
-	//
-	// 	}
-
 	/*
-    private async parseLogEntry(fileContent: string) {
-        try {
-            return JSON.parse(fileContent);
-        } catch (error) {
-            logger.error(`Failed to parse log entry: ${(error as Error).message}`);
-            return null;
-        }
-    }
-
-    private async generateLogEntrySummary(
-        logEntry: unknown,
-        format: 'short' | 'medium' | 'long',
-        maxTokens: number,
-        includeMetadata: boolean,
-        interaction: LLMConversationInteraction
-    ): Promise<string> {
-        // Create a summary prompt based on the format
-        const prompt = this.createSummaryPrompt(format, includeMetadata);
-
-        // Use the interaction to get a response from the LLM
-        const response = await interaction.getLLMResponse(prompt, {
-            maxTokens,
-            temperature: 0.3, // Lower temperature for more focused summaries
-            systemPrompt: this.getSummarySystemPrompt(format)
-        });
-
-        return response;
-    }
-
     private createSummaryPrompt(format: 'short' | 'medium' | 'long', includeMetadata: boolean): string {
         const basePrompt = 'Please provide a';
         const formatDesc = {

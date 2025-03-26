@@ -9,7 +9,7 @@ import { type AppState, useAppState } from '../hooks/useAppState.ts';
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
-//import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+//import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
@@ -126,12 +126,12 @@ export function useChatState(
 	// 				appState.value.conversationId,
 	// 				appState.value.projectId,
 	// 			);
-	// 			const logEntries = conversation?.logEntries || [];
+	// 			const logDataEntries = conversation?.logDataEntries || [];
 	// 			// Clear current chat state
 	// 			chatState.value = {
 	// 				...chatState.value,
 	// 				conversationId: appState.value.conversationId ||'',
-	// 				logEntries,
+	// 				logDataEntries,
 	// 				conversations,
 	// 				status: {
 	// 					...chatState.value.status,
@@ -143,7 +143,7 @@ export function useChatState(
 	// 			chatState.value = {
 	// 				...chatState.value,
 	// 				conversationId: '',
-	// 				logEntries: [],
+	// 				logDataEntries: [],
 	// 				conversations: [],
 	// 				status: {
 	// 					...chatState.value.status,
@@ -162,7 +162,7 @@ export function useChatState(
 		let currentWsManager: WebSocketManager | null = null;
 
 		async function initialize() {
-			const initStart = performance.now();
+			//const initStart = performance.now();
 			console.debug('useChatState: Starting initialization');
 			console.log('useChatState: initialize called', {
 				mounted,
@@ -201,7 +201,7 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
-				const logEntries = conversation?.logEntries || [];
+				const logDataEntries = conversation?.logDataEntries || [];
 
 				if (!mounted) {
 					console.log('useChatState: useEffect for config initialize - not mounted, bailing');
@@ -216,7 +216,7 @@ export function useChatState(
 					wsManager,
 					conversationId,
 					conversations,
-					logEntries,
+					logDataEntries,
 				};
 
 				currentWsManager = wsManager;
@@ -244,7 +244,7 @@ export function useChatState(
 
 				console.debug('useChatState: Initialization complete', {
 					// duration: initDuration.toFixed(2) + 'ms',
-					logEntriesCount: chatState.value.logEntries.length,
+					logDataEntriesCount: chatState.value.logDataEntries.length,
 					conversationsCount: chatState.value.conversations.length,
 				});
 
@@ -351,11 +351,11 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logEntryData: any }) => {
+		const handleMessage = (data: { msgType: string; logDataEntry: any }) => {
 			const startTime = performance.now();
 			console.debug('useChatState: Processing message:', {
 				type: data.msgType,
-				currentLogEntries: chatState.value.logEntries.length,
+				currentLogEntries: chatState.value.logDataEntries.length,
 				timestamp: new Date().toISOString(),
 			});
 			console.debug('useChatState: Processing message:', data.msgType);
@@ -384,13 +384,13 @@ export function useChatState(
 				chatState.value = {
 					...chatState.value,
 					conversations: [...chatState.value.conversations, {
-						id: data.logEntryData.conversationId,
-						title: data.logEntryData.conversationTitle,
-						tokenUsageStats: data.logEntryData.tokenUsageStats,
-						requestParams: data.logEntryData.requestParams,
-						conversationStats: data.logEntryData.conversationStats,
-						createdAt: data.logEntryData.timestamp,
-						updatedAt: data.logEntryData.timestamp,
+						id: data.logDataEntry.conversationId,
+						title: data.logDataEntry.conversationTitle,
+						tokenUsageStats: data.logDataEntry.tokenUsageStats,
+						requestParams: data.logDataEntry.requestParams,
+						conversationStats: data.logDataEntry.conversationStats,
+						createdAt: data.logDataEntry.timestamp,
+						updatedAt: data.logDataEntry.timestamp,
 						llmProviderName: 'anthropic', // Default provider
 						model: 'claude-3', // Default model
 					}],
@@ -402,7 +402,7 @@ export function useChatState(
 			if (data.msgType === 'conversationDeleted') {
 				// Update project stats for deleted conversation
 				const deletedConversation = chatState.value.conversations.find((c) =>
-					c.id === data.logEntryData.conversationId
+					c.id === data.logDataEntry.conversationId
 				);
 				if (deletedConversation) {
 					// await updateProjectStats(currentProject.projectId, {
@@ -415,7 +415,7 @@ export function useChatState(
 					// 	lastAccessed: new Date().toISOString(),
 					// });
 				}
-				const deletedId = data.logEntryData.conversationId;
+				const deletedId = data.logDataEntry.conversationId;
 				chatState.value = {
 					...chatState.value,
 					conversations: chatState.value.conversations.filter((conv) => conv.id !== deletedId),
@@ -424,7 +424,7 @@ export function useChatState(
 						? null
 						: chatState.value.conversationId,
 					// Clear log entries if current conversation was deleted
-					logEntries: chatState.value.conversationId === deletedId ? [] : chatState.value.logEntries,
+					logDataEntries: chatState.value.conversationId === deletedId ? [] : chatState.value.logDataEntries,
 				};
 				return;
 			}
@@ -433,29 +433,49 @@ export function useChatState(
 			if (!mounted) return;
 
 			// Only process messages for the current conversation
-			if (data.logEntryData.conversationId !== chatState.value.conversationId) return;
+			if (data.logDataEntry.conversationId !== chatState.value.conversationId) return;
+
+			// Handle agent task entries with parentId
+			const handleAgentEntry = (entry: any) => {
+				// If this entry has agentInteractionId, it's part of a delegated task
+				if (entry.agentInteractionId && entry.parentId) {
+					// Clone current entries
+					const currentEntries = [...chatState.value.logDataEntries];
+					
+					// Check if this is the first entry with this agentInteractionId
+					const existingEntries = currentEntries.filter(e => 
+						e.agentInteractionId === entry.agentInteractionId);
+					
+					// Add the entry to the array
+					return [...currentEntries, entry];
+				}
+				
+				// Regular entry, just append it
+				return [...chatState.value.logDataEntries, entry];
+			};
 
 			// Update log entries and conversation stats
 			chatState.value = {
 				...chatState.value,
 				conversations: chatState.value.conversations.map((conv) => {
-					if (conv.id === data.logEntryData.conversationId) {
+					if (conv.id === data.logDataEntry.conversationId) {
 						return {
 							...conv,
-							tokenUsageStats: data.logEntryData.tokenUsageStats,
-							conversationStats: data.logEntryData.conversationStats,
-							requestParams: data.logEntryData.requestParams,
-							updatedAt: data.logEntryData.timestamp,
+							tokenUsageStats: data.logDataEntry.tokenUsageStats,
+							conversationStats: data.logDataEntry.conversationStats,
+							requestParams: data.logDataEntry.requestParams,
+							updatedAt: data.logDataEntry.timestamp,
 						};
 					}
 					return conv;
 				}),
-				logEntries: (() => {
-					const newEntries = [...chatState.value.logEntries, data.logEntryData];
-					console.debug('useChatState: Updated logEntries', {
-						previousCount: chatState.value.logEntries.length,
+				logDataEntries: (() => {
+					const newEntries = handleAgentEntry(data.logDataEntry);
+					console.debug('useChatState: Updated logDataEntries', {
+						previousCount: chatState.value.logDataEntries.length,
 						newCount: newEntries.length,
 						processingTime: performance.now() - startTime,
+						agentInteractionId: data.logDataEntry.agentInteractionId || 'none'
 					});
 					return newEntries;
 				})(),
@@ -471,7 +491,7 @@ export function useChatState(
 			// If this is an answer, end processing and set idle state
 			if (data.msgType === 'answer') {
 				// Update project stats for token usage
-				// const tokenUsage = data.logEntryData.tokenUsageStats.tokenUsage?.totalTokens || 0;
+				// const tokenUsage = data.logDataEntry.tokenUsageStats.tokenUsage?.totalTokens || 0;
 				// await updateProjectStats(currentProject.projectId, {
 				// 	conversationCount: currentProject.stats?.conversationCount || 1,
 				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
@@ -479,14 +499,14 @@ export function useChatState(
 				// });
 
 				// Update chatInputOptions with the request parameters from the response if available
-				if (chatInputOptions && data.logEntryData.requestParams) {
+				if (chatInputOptions && data.logDataEntry.requestParams) {
 					console.info(
 						'useChatState: Updating options from message response',
-						data.logEntryData.requestParams,
+						data.logDataEntry.requestParams,
 					);
 					chatInputOptions.value = {
 						...chatInputOptions.value,
-						...data.logEntryData.requestParams,
+						...data.logDataEntry.requestParams,
 					};
 				}
 
@@ -508,7 +528,7 @@ export function useChatState(
 				statusQueue.reset({
 					status: ApiStatus.IDLE,
 					timestamp: Date.now(),
-					statementCount: data.logEntryData.conversationStats.statementCount,
+					statementCount: data.logDataEntry.conversationStats.statementCount,
 					sequence: Number.MAX_SAFE_INTEGER,
 				});
 			}
@@ -732,13 +752,13 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
-				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logEntries);
+				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logDataEntries);
 
-				// Update conversation ID and logEntries
+				// Update conversation ID and logDataEntries
 				chatState.value = {
 					...chatState.value,
 					conversationId: id,
-					logEntries: conversation?.logEntries || [],
+					logDataEntries: conversation?.logDataEntries || [],
 				};
 
 				// Then set up WebSocket connection
@@ -766,7 +786,7 @@ export function useChatState(
 		clearConversation: () => {
 			chatState.value = {
 				...chatState.value,
-				logEntries: [],
+				logDataEntries: [],
 				status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
 			};
 		},

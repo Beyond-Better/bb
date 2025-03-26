@@ -309,6 +309,7 @@ export interface ConversationStart {
 export interface ConversationContinue {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	agentInteractionId: string|null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
 	requestParams?: LLMRequestParams;
@@ -335,6 +336,7 @@ export interface ConversationDeleted {
 export interface ConversationResponse {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	agentInteractionId: string|null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
 	requestParams?: LLMRequestParams;

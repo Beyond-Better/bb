@@ -65,62 +65,108 @@ export function MessageEntryTool({
 	//	}
 	//};
 
+	// Determine success/error status
+	const isSuccess = typeof content === 'object' && content !== null && 'success' in content
+		? content.success !== false
+		: true;
+
 	return (
 		<>
-			{/* <div className='bb-tool-message bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden'> */}
-			<div className='bb-tool-message overflow-hidden'>
+			<div className='bb-tool-message'>
 				{/* Loading state */}
 				{isLoading && (
-					<div className='flex items-center justify-center py-4 dark:bg-gray-800'>
-						<div className='animate-spin rounded-full h-6 w-6 border-2 border-blue-500 dark:border-blue-400 border-t-transparent' />
-						<span className='ml-2 text-blue-500 dark:text-blue-400'>Formatting message...</span>
+					<div className='flex items-center py-3'>
+						<div className='animate-spin rounded-full h-4 w-4 border-2 border-blue-500 dark:border-blue-400 border-t-transparent' />
+						<span className='ml-2 text-sm text-blue-500 dark:text-blue-400'>Formatting content...</span>
+					</div>
+				)}
+
+				{/* Status indicator for tool output */}
+				{logEntry?.entryType === 'tool_result' && !isLoading && (
+					<div
+						className={`flex items-center mb-2 text-sm ${
+							isSuccess ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+						}`}
+					>
+						<div
+							className={`flex-shrink-0 w-4 h-4 mr-2 rounded-full ${
+								isSuccess ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'
+							} flex items-center justify-center`}
+						>
+							{isSuccess
+								? (
+									<svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth='2'
+											d='M5 13l4 4L19 7'
+										/>
+									</svg>
+								)
+								: (
+									<svg className='w-3 h-3' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth='2'
+											d='M6 18L18 6M6 6l12 12'
+										/>
+									</svg>
+								)}
+						</div>
+						<span>{isSuccess ? 'Operation completed successfully' : 'Operation failed'}</span>
 					</div>
 				)}
 
 				{/* API formatted content or fallback */}
 				{!isLoading && (
-					<div className='overflow-x-auto'>
+					<div className='overflow-x-auto rounded-md'>
 						{formatted?.formattedResult?.content
-							? (
-								// deno-lint-ignore react-no-danger
-								<div
-									dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
-								/>
-							)
+							? <div dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }} />
 							: (
-								// deno-lint-ignore react-no-danger
-								<pre className='m-0 py-1 px-4 bg-gray-50 dark:bg-gray-900 text-sm dark:text-gray-200'><code dangerouslySetInnerHTML={{ __html: highlighted }}
-									className="language-json hljs"
-								/>
+								<pre className='py-3 px-4 bg-gray-50 dark:bg-gray-800 text-sm dark:text-gray-200 rounded-md'>
+                                <code
+                                    dangerouslySetInnerHTML={{ __html: highlighted }}
+                                    className="language-json hljs"
+                                />
 								</pre>
 							)}
 					</div>
 				)}
 
 				{/* Show parameters and results sections only when using JSON fallback */}
-				{!formatted?.formattedResult?.content && !isLoading && (
-					<>
+				{!formatted?.formattedResult?.content && !isLoading && content && typeof content === 'object' && (
+					<div className='mt-3 space-y-3'>
 						{content.parameters && (
-							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
-								<strong>Parameters:</strong>
-								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs dark:text-gray-300'>{JSON.stringify(content.parameters, null, 2)}
+							<div className='rounded-md overflow-hidden border border-gray-200 dark:border-gray-700'>
+								<div className='px-3 py-2 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300'>
+									Parameters
+								</div>
+								<div className='p-3 bg-gray-50 dark:bg-gray-800'>
+									<pre className='text-xs text-gray-800 dark:text-gray-300 overflow-x-auto'>
+                                        {JSON.stringify(content.parameters, null, 2)}
 									</pre>
 								</div>
 							</div>
 						)}
+
 						{content.result && (
-							<div className='px-2 py-2 bg-gray-100 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-sm dark:text-gray-200'>
-								<strong>Result:</strong>
-								<div className='mt-1 overflow-x-auto'>
-									<pre className='text-xs dark:text-gray-300'>{JSON.stringify(content.result, null, 2)}
+							<div className='rounded-md overflow-hidden border border-gray-200 dark:border-gray-700'>
+								<div className='px-3 py-2 bg-gray-100 dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300'>
+									Result
+								</div>
+								<div className='p-3 bg-gray-50 dark:bg-gray-800'>
+									<pre className='text-xs text-gray-800 dark:text-gray-300 overflow-x-auto'>
+                                        {JSON.stringify(content.result, null, 2)}
 									</pre>
 								</div>
 							</div>
 						)}
-					</>
+					</div>
 				)}
 			</div>
+
 			{showToast && (
 				<Toast
 					message='Tool content copied to clipboard!'

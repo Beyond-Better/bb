@@ -2,7 +2,13 @@
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId, FileMetadata, FilesForConversation, TokenUsage, ConversationStatementMetadata } from 'shared/types.ts';
+import type {
+	ConversationId,
+	ConversationStatementMetadata,
+	FileMetadata,
+	FilesForConversation,
+	TokenUsage,
+} from 'shared/types.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -788,6 +794,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	// converse is called for first turn in a statement; subsequent turns call relayToolResult
 	public async converse(
 		prompt: string,
+		promptFrom: 'user' | 'orchestrator',
 		metadata: ConversationStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 		attachedFiles?: FilesForConversation,
@@ -846,11 +853,21 @@ class LLMConversationInteraction extends LLMInteraction {
 			{ type: 'text', text: prompt },
 		];
 		const messageId = this.addMessageForUserRole(contentParts);
-		this.conversationLogger.logUserMessage(
-			messageId,
-			prompt,
-			this.conversationStats,
-		);
+
+		if (promptFrom === 'orchestrator') {
+			this.conversationLogger.logOrchestratorMessage(
+				messageId,
+				this.id,
+				prompt,
+				this.conversationStats,
+			);
+		} else {
+			this.conversationLogger.logUserMessage(
+				messageId,
+				prompt,
+				this.conversationStats,
+			);
+		}
 
 		// Add files to conversation if preparation succeeded
 		if (attachedFiles && attachedFiles.length > 0) {

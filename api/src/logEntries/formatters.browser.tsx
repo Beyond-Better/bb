@@ -70,17 +70,17 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 		// Create tooltip with detailed metrics
 		const tooltipContent = `${wordCount} words \u00b7 ${readingTimeDisplay}`;
 
-		formattedThinking = '\n<div class="bb-thinking-container mb-6">\n' +
-			'<div class="bb-thinking-header flex items-center justify-between cursor-pointer p-2 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-300 dark:border-blue-700 rounded-tr" role="button" aria-expanded="false" tabindex="0" onclick="globalThis.bbToggleThinking(this)" onkeydown="globalThis.bbHandleThinkingKeyDown(event, this)">' +
+		formattedThinking = '\n<div class="bb-thinking-container">\n' +
+			'<div class="bb-thinking-header" role="button" aria-expanded="false" tabindex="0" onclick="globalThis.bbToggleThinking(this)" onkeydown="globalThis.bbHandleThinkingKeyDown(event, this)">' +
 			'<div class="flex items-center">' +
-			'<svg class="bb-thinking-icon w-4 h-4 mr-2 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+			'<svg class="bb-thinking-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
 			'<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>' +
 			'</svg>' +
-			'<div class="text-sm font-medium text-blue-700 dark:text-blue-300">💭 Thinking</div>' +
+			'<div class="bb-thinking-label">💭 Thinking</div>' +
 			'</div>' +
-			`<div class="text-xs text-blue-600 dark:text-blue-400 hover:underline" title="${tooltipContent}">${sizeIndicator} \u00b7 ${readingTimeDisplay}</div>` +
+			`<div class="bb-thinking-metadata" title="${tooltipContent}">${sizeIndicator} \u00b7 ${readingTimeDisplay}</div>` +
 			'</div>\n' +
-			'<div class="bb-thinking-content hidden border-l-4 border-blue-300 dark:border-blue-700 rounded-br pt-1 pb-2 px-4 prose dark:prose-invert max-w-none">\n' +
+			'<div class="bb-thinking-content hidden">\n' +
 			marked.parse(processedLines) +
 			'</div>\n' +
 			'</div>\n';
@@ -104,7 +104,7 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 							? '🤖  <small>*prompt...*</small>\n' + escapeHtmlEntities(line)
 							: escapeHtmlEntities(line)
 					).join('\n');
-					return '\n<div class="border-l-4 border-blue-300 dark:border-blue-700 rounded-r pt-1 pb-2 px-4 my-1 prose dark:prose-invert max-w-none">\n' +
+					return '\n<div class="border-l-4 border-green-300 dark:border-green-700 rounded-r pt-1 pb-2 px-4 my-1 prose dark:prose-invert max-w-none">\n' +
 						marked.parse(processedLines) +
 						'</div>\n';
 				});

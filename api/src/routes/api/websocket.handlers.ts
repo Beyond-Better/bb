@@ -1,13 +1,13 @@
 import type { Context, RouterContext } from '@oak/oak';
 
-import { projectEditorManager } from '../../editor/projectEditorManager.ts';
+import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { ConversationId } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
-import type { SessionManager } from '../../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
