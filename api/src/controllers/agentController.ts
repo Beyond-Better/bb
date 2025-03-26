@@ -12,6 +12,7 @@ import { ApiStatus } from 'shared/types.ts';
 import type {
 	ConversationStats,
 	//ObjectivesData,
+	ConversationStatementMetadata,
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import { generateConversationId } from 'shared/conversationManagement.ts';
@@ -105,7 +106,7 @@ class AgentController extends BaseController {
 	//}
 
 	async createAgentInteraction(title: string): Promise<LLMConversationInteraction> {
-		logger.info('AgentController: createAgentInteraction - creating interaction for: ', this.primaryInteractionId);
+		logger.info('AgentController: createAgentInteraction - creating interaction for: ${this.primaryInteractionId} with parent ${this.orchestratorInteractionId}');
 		const agentInteraction = await this.interactionManager.createInteraction(
 			'conversation',
 			this.primaryInteractionId!,
@@ -316,7 +317,7 @@ class AgentController extends BaseController {
 			this.emitPromptCacheTimer();
 
 			// Create metadata object with task information
-			const metadata = {
+			const metadata: ConversationStatementMetadata = {
 				system: {
 					timestamp: new Date().toISOString(),
 					os: Deno.build.os,
@@ -361,8 +362,8 @@ class AgentController extends BaseController {
 
 		let loopTurnCount = 0;
 
-		//while (loopTurnCount < maxTurns && !this.isCancelled) {
-		while (loopTurnCount < 1 && !this.isCancelled) {
+		//while (loopTurnCount < 1 && !this.isCancelled) {
+		while (loopTurnCount < maxTurns && !this.isCancelled) {
 			logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
 			try {
 				// Handle tool calls and collect toolResponse
@@ -416,7 +417,7 @@ class AgentController extends BaseController {
 						}
 					}
 				}
-				logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
+				logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`);
 
 				loopTurnCount++;
 
@@ -493,7 +494,7 @@ class AgentController extends BaseController {
 						this.emitPromptCacheTimer();
 
 						// Update metadata with current information
-						const toolMetadata = {
+						const toolMetadata: ConversationStatementMetadata = {
 							system: {
 								timestamp: new Date().toISOString(),
 								os: Deno.build.os,

@@ -109,6 +109,41 @@ export interface FileMetadata {
 	error?: string | null;
 }
 
+export interface ConversationStatementMetadata {
+	system: {
+		timestamp: string;
+		os: string;
+		bb_version?: string;
+		// Add: git_branch, git_commit
+	};
+	task?: {
+		title: string;
+		type: string;
+	};
+	conversation: {
+		goal?: string;
+		current_objective?: string;
+		counts: {
+			statements: number;
+			statement_turns: number;
+			conversation_turns: number;
+			max_turns_per_statement?: number;
+		};
+		turn?: {
+			number: number;
+			max: number;
+		};
+	};
+	resources?: {
+		files_active: number;
+	};
+	tools?: { // see formatToolObjectivesAndStats for example of toolStats
+		recent: Array<
+			{ name: string; success: boolean; count: number }
+		>;
+	};
+}
+
 export type ConversationFilesMetadata = Record<string, FileMetadata>;
 // export interface ConversationFilesMetadata {
 // 	files: Map<string, FileMetadata>;

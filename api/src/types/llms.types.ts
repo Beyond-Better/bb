@@ -325,10 +325,11 @@ export interface LLMSpeakWithOptions {
 
 export interface Task {
 	title: string;
+	background: string;
 	instructions: string;
-	resources: Resource[];
-	capabilities: string[];
-	requirements: string | InputSchema;
+	resources?: Resource[];
+	capabilities?: string[];
+	requirements?: string | InputSchema;
 }
 
 export interface CompletedTask {

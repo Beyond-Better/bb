@@ -584,7 +584,7 @@ class AnthropicLLM extends LLM {
 				//[TODO] we're assuming a single tool is provided, and we're assuming only a single tool is used by LLM
 				interaction.addMessageForToolResult(
 					prevMessage.providerResponse.toolsUsed![0].toolUseId,
-					"The previous tool input was invalid. Please provide a valid input according to the tool's schema",
+					"The previous tool input was invalid. Please provide a valid input according to the tool's schema. Ensure you are using arrays and objects instead of JSON strings.",
 					true,
 				);
 			} else {

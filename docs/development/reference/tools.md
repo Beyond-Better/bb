@@ -407,7 +407,8 @@ Query multiple LLM models simultaneously.
 
 **Supported Models**:
 - Anthropic:
-  - claude-3-5-sonnet-20241022 (Latest Sonnet)
+  - claude-3-7-sonnet-20250219 (Latest Sonnet)
+  - claude-3-5-sonnet-20241022 (Older Sonnet)
   - claude-3-opus-20240229 (Most capable)
   - claude-3-sonnet-20240229
   - claude-3-haiku-20240307 (Fastest)

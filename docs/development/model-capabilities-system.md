@@ -75,13 +75,13 @@ const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initial
 
 // Check if a model supports specific features
 const supportsFunctions = capabilitiesManager.supportsFeature(
-  'claude-3-5-sonnet-20241022',
+  'claude-3-7-sonnet-20250219',
   'functionCalling'
 );
 
 // Get full capabilities for a model
 const capabilities = capabilitiesManager.getModelCapabilities(
-  'claude-3-5-sonnet-20241022'
+  'claude-3-7-sonnet-20250219'
 );
 ```
 

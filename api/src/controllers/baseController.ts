@@ -87,7 +87,7 @@ class BaseController {
 		this.llmProvider = LLMFactory.getProvider(
 			this.getInteractionCallbacks(),
 			globalConfig.api.localMode
-				? LLMModelToProvider[this.projectConfig.defaultModels?.agent ?? 'claude-3-5-sonnet-20241022']
+				? LLMModelToProvider[this.projectConfig.defaultModels?.agent ?? 'claude-3-7-sonnet-20250219']
 				: LLMProviderEnum.BB,
 			//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
 			//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
@@ -516,11 +516,20 @@ class BaseController {
 				requestParams?: LLMRequestParams,
 			): Promise<void> => {
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
+				const logEntryInteraction = this.interactionManager.getParentInteraction(this.primaryInteraction.id) ??
+					this.primaryInteraction;
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
+				//const useParent = logEntryInteraction.id !== this.primaryInteraction.id;
+				//logger.info(
+				//	`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} using parent: ${
+				//		useParent ? 'YES' : 'NO'
+				//	} - this.id: ${this.primaryInteraction.id} - logEntry.id: ${logEntryInteraction.id}`,
+				//);
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: ConversationResponse = {
 						timestamp,
-						conversationId: this.primaryInteraction.id,
-						conversationTitle: this.primaryInteraction.title,
+						conversationId: logEntryInteraction.id,
+						conversationTitle: logEntryInteraction.title,
 						logEntry,
 						conversationStats,
 						tokenUsageStats,
@@ -533,8 +542,8 @@ class BaseController {
 				} else {
 					const conversationContinue: ConversationContinue = {
 						timestamp,
-						conversationId: this.primaryInteraction.id,
-						conversationTitle: this.primaryInteraction.title,
+						conversationId: logEntryInteraction.id,
+						conversationTitle: logEntryInteraction.title,
 						logEntry,
 						conversationStats,
 						tokenUsageStats,

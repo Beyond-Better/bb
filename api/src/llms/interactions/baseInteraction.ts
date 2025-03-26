@@ -282,7 +282,7 @@ class LLMInteraction {
 
 	protected calculateCacheImpact(tokenUsage: TokenUsage): CacheImpact {
 		// Calculate potential cost without cache
-		const potentialCost = tokenUsage.inputTokens;
+		const potentialCost = tokenUsage.inputTokens + tokenUsage.outputTokens + (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
 
 		// Calculate actual cost with cache
 		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
@@ -561,6 +561,12 @@ class LLMInteraction {
 			is_error: isError,
 		} as LLMMessageContentPartToolResultBlock;
 		// logger.debug('LLMInteraction: Adding tool result', toolResult);
+		const bbResult = isError
+			? {
+				type: 'text',
+				text: `The tool run failed: ${toolRunResultContent}`,
+			} as LLMMessageContentPartTextBlock
+			: null;
 
 		const lastMessage = this.getLastMessage();
 		if (lastMessage && lastMessage.role === 'user') {
@@ -603,6 +609,7 @@ class LLMInteraction {
 					JSON.stringify(toolResult, null, 2),
 				);
 				lastMessage.content.push(toolResult);
+				if (bbResult) lastMessage.content.push(bbResult);
 				return lastMessage.id;
 			}
 		} else {
@@ -611,7 +618,9 @@ class LLMInteraction {
 				'LLMInteraction: Adding new user message with tool result',
 				JSON.stringify(toolResult, null, 2),
 			);
-			const newMessage = new LLMMessage('user', [toolResult], this.conversationStats);
+			const newMessageContent: LLMMessageContentParts = [toolResult];
+			if (bbResult) newMessageContent.push(bbResult);
+			const newMessage = new LLMMessage('user', newMessageContent, this.conversationStats);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}

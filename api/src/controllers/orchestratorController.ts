@@ -23,8 +23,9 @@ import type {
 	//ConversationMetrics,
 	ConversationResponse,
 	ConversationStart,
+	ConversationStatementMetadata,
 	ConversationStats,
-	FileMetadata,
+	//FileMetadata,
 	FilesForConversation,
 	ObjectivesData,
 	//TokenUsage,
@@ -246,7 +247,7 @@ class OrchestratorController extends BaseController {
 		logger.info(`OrchestratorController: filesToAttach`, { filesToAttach });
 		// Process any attached files
 		if (filesToAttach && filesToAttach.length > 0) {
-			const projectId = this.projectEditor.projectId;
+			//const projectId = this.projectEditor.projectId;
 			const projectPath = await this.projectEditor.getProjectRoot();
 
 			// Get file metadata and add to conversation
@@ -259,7 +260,7 @@ class OrchestratorController extends BaseController {
 						const fileMetadata = JSON.parse(metadataContent);
 
 						// Get the full file path
-						const filePath = join(projectPath, fileMetadata.relativePath);
+						//const filePath = join(projectPath, fileMetadata.relativePath);
 
 						// Prepare file for conversation
 						attachedFiles.push(
@@ -334,7 +335,7 @@ class OrchestratorController extends BaseController {
 			this.emitPromptCacheTimer();
 
 			// Create metadata object with useful context
-			const metadata = {
+			const metadata: ConversationStatementMetadata = {
 				system: {
 					timestamp: new Date().toISOString(),
 					os: Deno.build.os,
@@ -440,7 +441,7 @@ class OrchestratorController extends BaseController {
 						}
 					}
 				}
-				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
+				logger.warn(`OrchestratorController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`);
 
 				loopTurnCount++;
 
@@ -517,7 +518,7 @@ class OrchestratorController extends BaseController {
 						this.emitPromptCacheTimer();
 
 						// Update metadata with current information
-						const toolMetadata = {
+						const toolMetadata: ConversationStatementMetadata = {
 							system: {
 								timestamp: new Date().toISOString(),
 								os: Deno.build.os,
@@ -709,6 +710,11 @@ class OrchestratorController extends BaseController {
 	): Promise<Array<CompletedTask>> {
 		if (!this.primaryInteractionId || !this.interactionManager.hasInteraction(this.primaryInteractionId)) {
 			throw new Error('Primary interaction not initialized or not found');
+		}
+		// [TODO] this should be part of the tool validation, but somehow it's getting through to here
+		// Find how tool validation is being bypassed.
+		if (!Array.isArray(tasks)) {
+			throw new TypeError('tasks must be an array');
 		}
 
 		const agentController = await this.createAgentController();

@@ -37,7 +37,7 @@ import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
  *                     properties:
  *                       id:
  *                         type: string
- *                         example: claude-3-5-sonnet-20241022
+ *                         example: claude-3-7-sonnet-20250219
  *                       provider:
  *                         type: string
  *                         example: anthropic
