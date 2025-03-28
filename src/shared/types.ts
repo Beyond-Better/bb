@@ -64,7 +64,7 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 
 	conversationMetrics: ConversationMetrics;
 
-	parentId?: ConversationId;
+	parentInteractionId?: ConversationId;
 
 	//tools?: Array<{ name: string; description: string }>;
 }
@@ -74,7 +74,7 @@ export interface Conversation {
 	id: ConversationId;
 	title: string;
 
-	logEntries: ConversationLogEntry[];
+	logDataEntries: ConversationLogDataEntry[];
 
 	conversationStats: ConversationStats;
 	conversationMetrics?: ConversationMetrics;
@@ -289,29 +289,41 @@ export interface ConversationMetrics extends ConversationStats {
 	};
 }
 
-export type ConversationEntry = ConversationStart | ConversationContinue | ConversationResponse;
+export type ConversationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse;
 
 export interface ConversationStart {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId?: string|null;
+	agentInteractionId?: string|null;
 	timestamp: string;
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
 	// 	};
+	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
-	conversationHistory: ConversationEntry[];
+	conversationHistory: ConversationLogDataEntry[];
 	formattedContent?: string;
 	versionInfo: VersionInfo;
 	logEntry?: ConversationLogEntry;
+    children?: {
+        [agentInteractionId: string]: ConversationLogDataEntry[];
+    };
 }
 
 export interface ConversationContinue {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId: string|null;
 	agentInteractionId: string|null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
+    children?: {
+        [agentInteractionId: string]: ConversationLogDataEntry[];
+    };
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
@@ -321,6 +333,9 @@ export interface ConversationContinue {
 export interface ConversationNew {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId?: string|null;
+	agentInteractionId?: string|null;
 	timestamp: string;
 	//tokenUsageConversation: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
@@ -336,9 +351,14 @@ export interface ConversationDeleted {
 export interface ConversationResponse {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId: string|null;
 	agentInteractionId: string|null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
+    children?: {
+        [agentInteractionId: string]: ConversationLogDataEntry[];
+    };
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;

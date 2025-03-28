@@ -148,7 +148,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 	}
 
 	async runTool(
-		_interaction: LLMConversationInteraction,
+		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
@@ -163,6 +163,8 @@ export default class LLMToolDelegateTasks extends LLMTool {
 		const { tasks, sync }: { tasks: Task[]; sync: boolean } = toolUse.toolInput as LLMToolDelegateTasksInput;
 		logger.info('LLMToolDelegateTasks: Input ', { tasks, sync });
 
+		const parentMessageId = interaction.getLastMessageId();
+
 		try {
 			// export interface CompletedTask {
 			// 	//type: string;
@@ -172,6 +174,8 @@ export default class LLMToolDelegateTasks extends LLMTool {
 			// 	error?: string;
 			// }
 			const completedTasks: CompletedTask[] = await this.orchestratorController!.handleAgentTasks(
+				interaction,
+				parentMessageId,
 				tasks,
 				sync,
 				this.errorHandlingConfig,

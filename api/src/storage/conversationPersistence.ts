@@ -56,7 +56,7 @@ class ConversationPersistence {
 	constructor(
 		private conversationId: ConversationId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
-		private parentId?: ConversationId,
+		private parentInteractionId?: ConversationId,
 	) {
 		//this.ensureInitialized();
 	}
@@ -76,7 +76,7 @@ class ConversationPersistence {
 		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
-		if (this.parentId) this.conversationParentDir = join(conversationsDir, this.parentId);
+		if (this.parentInteractionId) this.conversationParentDir = join(conversationsDir, this.parentInteractionId);
 
 		this.metadataPath = join(this.conversationDir, 'metadata.json');
 
@@ -326,7 +326,7 @@ class ConversationPersistence {
 			// Create metadata with analyzed token usage
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
-				parentId: this.parentId,
+				parentInteractionId: this.parentInteractionId,
 
 				//system: conversation.baseSystem,
 				temperature: conversation.temperature,
@@ -787,7 +787,7 @@ class ConversationPersistence {
 			version: 3, // default version for existing conversations
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
-			parentId: undefined,
+			parentInteractionId: undefined,
 			title: '',
 			llmProviderName: '',
 			model: '',

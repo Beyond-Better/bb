@@ -111,8 +111,8 @@ class LLMConversationInteraction extends LLMInteraction {
 		this._interactionType = 'conversation';
 	}
 
-	public override async init(parentId?: ConversationId): Promise<LLMConversationInteraction> {
-		await super.init(parentId);
+	public override async init(parentInteractionId?: ConversationId): Promise<LLMConversationInteraction> {
+		await super.init(parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 		this.resourceManager = new ResourceManager(projectEditor);
 		return this;
@@ -794,7 +794,8 @@ class LLMConversationInteraction extends LLMInteraction {
 	// converse is called for first turn in a statement; subsequent turns call relayToolResult
 	public async converse(
 		prompt: string,
-		promptFrom: 'user' | 'orchestrator',
+		//promptFrom: 'user' | 'orchestrator',
+		parentMessageId: string|null,
 		metadata: ConversationStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 		attachedFiles?: FilesForConversation,
@@ -854,9 +855,11 @@ class LLMConversationInteraction extends LLMInteraction {
 		];
 		const messageId = this.addMessageForUserRole(contentParts);
 
-		if (promptFrom === 'orchestrator') {
+		//if (promptFrom === 'orchestrator') {
+		if (parentMessageId) {
 			this.conversationLogger.logOrchestratorMessage(
 				messageId,
+				parentMessageId,
 				this.id,
 				prompt,
 				this.conversationStats,

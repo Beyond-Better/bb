@@ -141,11 +141,12 @@ class WebSocketChatHandler {
 
 				try {
 					const versionInfo = await getVersionInfo();
+					const interaction = projectEditor.orchestratorController.interactionManager.getInteractionStrict(conversationId);
 					this.eventManager.emit('projectEditor:conversationReady', {
 						conversationId: conversationId,
-						conversationTitle: projectEditor.orchestratorController.primaryInteraction.title,
+						conversationTitle: interaction.title,
 						conversationStats: {
-							statementCount: projectEditor.orchestratorController.statementCount,
+							statementCount: interaction.statementCount,
 						},
 						versionInfo,
 					});

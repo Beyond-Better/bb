@@ -38,6 +38,7 @@ export async function generateStatementObjective(
 			chat.conversationLogger.logAuxiliaryMessage(
 				chat.getLastMessageId(),
 				null, // only orchestrator creates statement objectives
+				null, // only orchestrator creates statement objectives
 				{
 					message: `Using previous objective:\n${msg}`,
 					purpose: 'Using previous context for Objective',
@@ -50,6 +51,7 @@ export async function generateStatementObjective(
 			const msg = `Gather context about ${neededContext} to proceed with the task`;
 			chat.conversationLogger.logAuxiliaryMessage(
 				chat.getLastMessageId(),
+				null, // only orchestrator creates statement objectives
 				null, // only orchestrator creates statement objectives
 				{
 					message: msg,

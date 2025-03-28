@@ -22,7 +22,7 @@ import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
-	//ConversationEntry,
+	//ConversationLogDataEntry,
 	ConversationId,
 	ConversationLogEntry,
 	//ConversationMetrics,
@@ -49,7 +49,7 @@ import {
 	generateConversationTitle,
 	//generateStatementObjective,
 } from '../utils/conversation.utils.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 //import { getVersionInfo } from 'shared/version.ts';
@@ -69,7 +69,6 @@ class BaseController {
 	protected isCancelled: boolean = false;
 	//protected currentStatus: ApiStatus = ApiStatus.IDLE;
 	protected statusSequence: number = 0;
-	public primaryInteractionId: ConversationId | null = null;
 
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this.projectEditorRef = new WeakRef(projectEditor);
@@ -110,7 +109,7 @@ class BaseController {
 			//logger.error(`BaseController: handleLLMError-error.options.args:`, error.options?.args);
 			//logger.error(`BaseController: handleLLMError-errorDetails:`, errorDetails);
 
-			const logEntryInteraction = this.logEntryInteraction;
+			const logEntryInteraction = this.logEntryInteraction(interaction.id);
 			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 			this.eventManager.emit(
 				'projectEditor:conversationError',
@@ -120,9 +119,9 @@ class BaseController {
 					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
 					conversationStats: {
-						statementCount: this.statementCount,
-						statementTurnCount: this.statementTurnCount,
-						conversationTurnCount: this.conversationTurnCount,
+						statementCount: interaction.statementCount,
+						statementTurnCount: interaction.statementTurnCount,
+						conversationTurnCount: interaction.conversationTurnCount,
 					},
 					error: errorDetails.message,
 					code: errorDetails.code,
@@ -146,33 +145,38 @@ class BaseController {
 		}
 	}
 
-	protected emitStatus(status: ApiStatus, metadata?: { toolName?: string; error?: string }) {
-		if (!this.primaryInteractionId) {
-			logger.warn('BaseController: No primaryInteractionId set, cannot emit status');
+	protected emitStatus(
+		interactionId: ConversationId | null,
+		status: ApiStatus,
+		metadata?: { toolName?: string; error?: string },
+	) {
+		if (!interactionId) {
+			logger.warn('BaseController: No interactionId set, cannot emit status');
 			return;
 		}
+		const interaction = this.interactionManager.getInteractionStrict(interactionId);
 		//this.currentStatus = status;
 		this.statusSequence++;
 		this.eventManager.emit('projectEditor:progressStatus', {
 			type: 'progress_status',
-			conversationId: this.primaryInteractionId,
+			conversationId: interactionId,
 			status,
 			timestamp: new Date().toISOString(),
-			statementCount: this.statementCount,
+			statementCount: interaction.statementCount,
 			sequence: this.statusSequence,
 			metadata,
 		});
 		logger.warn(`BaseController: Emitted progress_status: ${status}`);
 	}
 
-	protected emitPromptCacheTimer() {
-		if (!this.primaryInteractionId) {
-			logger.warn('BaseController: No primaryInteractionId set, cannot emit timer');
+	protected emitPromptCacheTimer(interactionId: ConversationId | null) {
+		if (!interactionId) {
+			logger.warn('BaseController: No interactionId set, cannot emit timer');
 			return;
 		}
 		this.eventManager.emit('projectEditor:promptCacheTimer', {
 			type: 'prompt_cache_timer',
-			conversationId: this.primaryInteractionId,
+			conversationId: interactionId,
 			startTimestamp: Date.now(),
 			duration: 300000, // 5 minutes in milliseconds
 		});
@@ -185,89 +189,10 @@ class BaseController {
 		return projectEditor;
 	}
 
-	public get primaryInteraction(): LLMConversationInteraction {
-		if (!this.primaryInteractionId) throw new Error('No primaryInteractionId set in orchestrator');
-		const primaryInteraction = this.interactionManager.getInteraction(this.primaryInteractionId);
-		if (!primaryInteraction) throw new Error('No primaryInteraction to get from interactionManager');
-		return primaryInteraction as LLMConversationInteraction;
-	}
-
-	public get logEntryInteraction(): LLMConversationInteraction {
-		const logEntryInteraction = this.interactionManager.getParentInteraction(this.primaryInteraction.id) ??
-			this.primaryInteraction;
+	public logEntryInteraction(interactionId: ConversationId): LLMConversationInteraction {
+		const logEntryInteraction = this.interactionManager.getParentInteraction(interactionId) ??
+			this.interactionManager.getInteractionStrict(interactionId);
 		return logEntryInteraction as LLMConversationInteraction;
-	}
-
-	public get statementTurnCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get statementTurnCount.');
-		}
-		return primaryInteraction.statementTurnCount;
-	}
-	public set statementTurnCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set statementTurnCount.');
-		}
-		primaryInteraction.conversationTurnCount = count;
-	}
-
-	public get conversationTurnCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get conversationTurnCount.');
-		}
-		return primaryInteraction.conversationTurnCount;
-	}
-	public set conversationTurnCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set conversationTurnCount.');
-		}
-		primaryInteraction.conversationTurnCount = count;
-	}
-
-	public get statementCount(): number {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get statementCount.');
-		}
-		return primaryInteraction.statementCount;
-	}
-	public set statementCount(count: number) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set statementCount.');
-		}
-		primaryInteraction.statementCount = count;
-	}
-
-	public get tokenUsageInteraction(): TokenUsage {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot get tokenUsageInteraction.');
-		}
-		return primaryInteraction.tokenUsageInteraction;
-	}
-	public set tokenUsageInteraction(tokenUsageInteraction: TokenUsage) {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot set tokenUsageInteraction.');
-		}
-		primaryInteraction.tokenUsageInteraction = tokenUsageInteraction;
-	}
-
-	public get inputTokensTotal(): number {
-		return this.tokenUsageInteraction.inputTokens;
-	}
-
-	public get outputTokensTotal(): number {
-		return this.tokenUsageInteraction.outputTokens;
-	}
-
-	public get totalTokensTotal(): number {
-		return this.tokenUsageInteraction.totalTokens;
 	}
 
 	public getAllStats(): { [key: string]: ConversationStats } {
@@ -313,19 +238,6 @@ class BaseController {
 		// //}
 	}
 
-	async initializePrimaryInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
-		this.primaryInteractionId = conversationId;
-		let interaction = await this.loadInteraction(conversationId);
-		if (!interaction) {
-			interaction = await this.createInteraction(conversationId);
-		}
-		// [TODO] `createInteraction` calls interactionManager.createInteraction which adds it to manager
-		// so let `loadInteraction` handle interactionManager.addInteraction
-		//this.interactionManager.addInteraction(interaction);
-		await this.addToolsToInteraction(interaction);
-		return interaction;
-	}
-
 	protected async loadInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction | null> {
 		logger.info(`BaseController: Attempting to load existing conversation: ${conversationId}`);
 		try {
@@ -342,11 +254,11 @@ class BaseController {
 
 			this.interactionManager.addInteraction(conversation);
 
-			//this._providerRequestCount = conversation.providerRequestCount;
-			this.statementTurnCount = conversation.conversationStats.statementTurnCount;
-			this.conversationTurnCount = conversation.conversationStats.conversationTurnCount;
-			this.statementCount = conversation.conversationStats.statementCount;
-			this.tokenUsageInteraction = conversation.tokenUsageInteraction;
+			// //this._providerRequestCount = conversation.providerRequestCount;
+			// this.statementTurnCount = conversation.conversationStats.statementTurnCount;
+			// this.conversationTurnCount = conversation.conversationStats.conversationTurnCount;
+			// this.statementCount = conversation.conversationStats.statementCount;
+			// this.tokenUsageInteraction = conversation.tokenUsageInteraction;
 
 			return conversation;
 		} catch (error) {
@@ -376,13 +288,13 @@ class BaseController {
 		return interaction as LLMConversationInteraction;
 	}
 
-	async createChatInteraction(parentId: ConversationId, title: string): Promise<LLMChatInteraction> {
-		const interactionId = generateConversationId();
+	async createChatInteraction(parentInteractionId: ConversationId, title: string): Promise<LLMChatInteraction> {
+		const interactionId = shortenConversationId(generateConversationId());
 		const chatInteraction = await this.interactionManager.createInteraction(
 			'chat',
 			interactionId,
 			this.llmProvider,
-			parentId,
+			parentInteractionId,
 		) as LLMChatInteraction;
 		chatInteraction.title = title;
 		return chatInteraction;
@@ -463,6 +375,7 @@ class BaseController {
 	}
 
 	protected async handleToolUse(
+		parentMessageId: string | null,
 		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 		_response: LLMProviderMessageResponse,
@@ -470,10 +383,11 @@ class BaseController {
 		logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`);
 		//logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`, response);
 
-		const logEntryInteraction = this.logEntryInteraction;
+		const logEntryInteraction = this.logEntryInteraction(interaction.id);
 		const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 		await interaction.conversationLogger.logToolUse(
 			interaction.getLastMessageId(),
+			parentMessageId,
 			agentInteractionId,
 			toolUse.toolName,
 			toolUse.toolInput,
@@ -488,6 +402,7 @@ class BaseController {
 			bbResponse,
 			isError,
 		} = await this.toolManager.handleToolUse(
+			parentMessageId,
 			interaction,
 			toolUse,
 			this.projectEditor,
@@ -495,6 +410,7 @@ class BaseController {
 		if (isError) {
 			interaction.conversationLogger.logError(
 				messageId,
+				parentMessageId,
 				agentInteractionId,
 				`Tool Output (${toolUse.toolName}): ${toolResponse}`,
 			);
@@ -502,6 +418,7 @@ class BaseController {
 
 		await interaction.conversationLogger.logToolResult(
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			toolUse.toolName,
 			toolResults,
@@ -511,9 +428,9 @@ class BaseController {
 		return { toolResponse };
 	}
 
-	protected resetStatus() {
+	protected resetStatus(interactionId: ConversationId | null) {
 		this.statusSequence = 0;
-		this.emitStatus(ApiStatus.IDLE);
+		this.emitStatus(interactionId, ApiStatus.IDLE);
 	}
 
 	protected getInteractionCallbacks(): LLMCallbacks {
@@ -527,7 +444,10 @@ class BaseController {
 				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
 			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
-				agentInteractionId: string | null,
+				messageId: string,
+				parentMessageId: string | null,
+				parentInteractionId: ConversationId,
+				agentInteractionId: ConversationId | null,
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
@@ -535,20 +455,22 @@ class BaseController {
 				requestParams?: LLMRequestParams,
 			): Promise<void> => {
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
-				const logEntryInteraction = this.logEntryInteraction;
+				const logEntryInteraction = this.logEntryInteraction(parentInteractionId || agentInteractionId || '');
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
-				//const useParent = logEntryInteraction.id !== this.primaryInteraction.id;
+				//const useParent = logEntryInteraction.id !== agentInteractionId;
 				//logger.info(
 				//	`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} using parent: ${
 				//		useParent ? 'YES' : 'NO'
-				//	} - this.id: ${this.primaryInteraction.id} - logEntry.id: ${logEntryInteraction.id}`,
+				//	} - this.id: ${agentInteractionId} - logEntry.id: ${logEntryInteraction.id}`,
 				//);
-				//if(useParent) logEntry.agentInteractionId = this.primaryInteractionId!;
+				//if(useParent) logEntry.agentInteractionId = agentInteractionId!;
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: ConversationResponse = {
 						timestamp,
 						conversationId: logEntryInteraction.id,
 						conversationTitle: logEntryInteraction.title,
+						messageId,
+						parentMessageId,
 						agentInteractionId,
 						logEntry,
 						conversationStats,
@@ -564,6 +486,8 @@ class BaseController {
 						timestamp,
 						conversationId: logEntryInteraction.id,
 						conversationTitle: logEntryInteraction.title,
+						messageId,
+						parentMessageId,
 						agentInteractionId,
 						logEntry,
 						conversationStats,
@@ -601,7 +525,7 @@ class BaseController {
 	}
 
 	/*
-	private getConversationHistory(interaction: LLMConversationInteraction): ConversationEntry[] {
+	private getConversationHistory(interaction: LLMConversationInteraction): ConversationLogDataEntry[] {
 		const history = interaction.getMessageHistory();
 		return history.map((message: LLMMessage) => ({
 			type: message.role,
@@ -705,13 +629,8 @@ class BaseController {
 		}
 	}
 
-	async revertLastChange(): Promise<void> {
-		const primaryInteraction = this.primaryInteraction;
-		if (!primaryInteraction) {
-			throw new Error('No active conversation. Cannot revert change.');
-		}
-
-		const persistence = await new ConversationPersistence(primaryInteraction.id, this.projectEditor).init();
+	async revertLastChange(interaction: LLMConversationInteraction): Promise<void> {
+		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
 		const changeLog = await persistence.getChangeLog();
 
 		if (changeLog.length === 0) {

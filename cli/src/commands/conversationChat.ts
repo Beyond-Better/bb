@@ -17,7 +17,7 @@ import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getBbDir, getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { ApiConfig } from 'shared/config/v2/types.ts';
@@ -164,7 +164,7 @@ export const conversationChat = new Command()
 				}
 			}
 
-			conversationId = options.id || generateConversationId();
+			conversationId = options.id || shortenConversationId(generateConversationId());
 			let statement = options.statement?.trim();
 
 			const stdin = Deno.stdin;

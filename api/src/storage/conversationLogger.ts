@@ -6,7 +6,7 @@ import { renderToString } from 'preact-render-to-string';
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
-import type { ConversationId, ConversationStats, TokenUsageStats } from 'shared/types.ts';
+import type { ConversationId, ConversationLogDataEntry, ConversationStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import { getBbDataDir } from 'shared/dataDir.ts';
@@ -77,7 +77,10 @@ export default class ConversationLogger {
 		private projectEditor: ProjectEditor,
 		private conversationId: ConversationId,
 		private logEntryHandler: (
-			agentInteractionId: string|null,
+			messageId: string,
+			parentMessageId: string | null,
+			conversationId: ConversationId,
+			agentInteractionId: ConversationId | null,
 			timestamp: string,
 			logEntry: ConversationLogEntry,
 			conversationStats: ConversationStats,
@@ -122,7 +125,10 @@ export default class ConversationLogger {
 		return join(conversationLogsDir, 'conversation.jsonl');
 	}
 
-	static async getLogEntries(projectId: string, conversationId: string): Promise<Array<ConversationLogEntry>> {
+	static async getLogDataEntries(
+		projectId: string,
+		conversationId: string,
+	): Promise<Array<ConversationLogDataEntry>> {
 		const conversationLogFile = await ConversationLogger.getLogFileJsonPath(projectId, conversationId);
 		const content = await Deno.readTextFile(conversationLogFile);
 		return content.trim().split('\n').map((line) => JSON.parse(line));
@@ -143,8 +149,8 @@ export default class ConversationLogger {
 
 	private async logEntry(
 		messageId: string,
-		//orchestratorInteractionId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: ConversationId | null,
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats = { statementCount: 0, statementTurnCount: 0, conversationTurnCount: 0 },
 		tokenUsageStats: TokenUsageStats = {
@@ -174,6 +180,9 @@ export default class ConversationLogger {
 		// logEntryHandler handles emitting events for cli and bui
 		try {
 			await this.logEntryHandler(
+				messageId,
+				parentMessageId,
+				this.conversationId,
 				agentInteractionId,
 				timestamp,
 				logEntry,
@@ -186,6 +195,7 @@ export default class ConversationLogger {
 		}
 
 		const rawEntry = await this.createRawEntryWithSeparator(
+			parentMessageId,
 			agentInteractionId,
 			timestamp,
 			logEntry,
@@ -201,6 +211,7 @@ export default class ConversationLogger {
 
 		const jsonEntry = JSON.stringify({
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			timestamp,
 			logEntry,
@@ -220,17 +231,19 @@ export default class ConversationLogger {
 		message: string,
 		conversationStats: ConversationStats,
 	) {
-		await this.logEntry(messageId, null, { entryType: 'user', content: message }, conversationStats);
+		await this.logEntry(messageId, null, null, { entryType: 'user', content: message }, conversationStats);
 	}
 
 	async logOrchestratorMessage(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		message: string,
 		conversationStats: ConversationStats,
 	) {
 		await this.logEntry(
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			{ entryType: 'orchestrator', content: message },
 			conversationStats,
@@ -239,7 +252,8 @@ export default class ConversationLogger {
 
 	async logAssistantMessage(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		message: string,
 		thinking: string,
 		conversationStats: ConversationStats,
@@ -248,6 +262,7 @@ export default class ConversationLogger {
 	) {
 		await this.logEntry(
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			{
 				entryType: 'assistant',
@@ -262,7 +277,8 @@ export default class ConversationLogger {
 
 	async logAnswerMessage(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		answer: string,
 		assistantThinking: string,
 		conversationStats: ConversationStats,
@@ -271,6 +287,7 @@ export default class ConversationLogger {
 	) {
 		await this.logEntry(
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			{
 				entryType: 'answer',
@@ -285,7 +302,8 @@ export default class ConversationLogger {
 
 	async logAuxiliaryMessage(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		message: string | AuxiliaryChatContent,
 		conversationStats?: ConversationStats,
 		tokenUsageStats?: TokenUsageStats,
@@ -293,6 +311,7 @@ export default class ConversationLogger {
 	) {
 		await this.logEntry(
 			messageId,
+			parentMessageId,
 			agentInteractionId,
 			{ entryType: 'auxiliary', content: message },
 			conversationStats,
@@ -303,7 +322,8 @@ export default class ConversationLogger {
 
 	async logToolUse(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		toolName: string,
 		toolInput: LLMToolInputSchema,
 		conversationStats: ConversationStats,
@@ -313,6 +333,7 @@ export default class ConversationLogger {
 		try {
 			await this.logEntry(
 				messageId,
+				parentMessageId,
 				agentInteractionId,
 				{ entryType: 'tool_use', content: toolInput, toolName },
 				conversationStats,
@@ -326,13 +347,14 @@ export default class ConversationLogger {
 
 	async logToolResult(
 		messageId: string,
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		toolName: string,
 		toolResult: LLMToolRunResultContent,
 		bbResponse: LLMToolRunBbResponse,
 	) {
 		try {
-			await this.logEntry(messageId, agentInteractionId, {
+			await this.logEntry(messageId, parentMessageId, agentInteractionId, {
 				entryType: 'tool_result',
 				content: { toolResult, bbResponse },
 				toolName,
@@ -342,8 +364,13 @@ export default class ConversationLogger {
 		}
 	}
 
-	async logError(messageId: string, agentInteractionId: string|null, error: string) {
-		await this.logEntry(messageId, agentInteractionId, { entryType: 'error', content: error });
+	async logError(
+		messageId: string,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
+		error: string,
+	) {
+		await this.logEntry(messageId, parentMessageId, agentInteractionId, { entryType: 'error', content: error });
 	}
 
 	//async logTextChange(filePath: string, change: string) {
@@ -352,7 +379,8 @@ export default class ConversationLogger {
 	//}
 
 	async createRawEntry(
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		timestamp: string,
 		logEntry: ConversationLogEntry,
 		_conversationStats: ConversationStats,
@@ -372,11 +400,14 @@ export default class ConversationLogger {
 			: renderToString(formattedContent.content as JSX.Element);
 
 		const label = ConversationLogger.entryTypeLabels[logEntry.entryType] || 'Unknown';
-		return `## ${label} [${timestamp}] [AgentId: ${agentInteractionId || '--'}]\n${rawEntryContent.trim()}`;
+		return `## ${label} [${timestamp}] [AgentId: ${agentInteractionId || '--'}][Parent MessageId:${
+			parentMessageId || '--'
+		}]\n${rawEntryContent.trim()}`;
 	}
 
 	async createRawEntryWithSeparator(
-		agentInteractionId: string|null,
+		parentMessageId: string | null,
+		agentInteractionId: string | null,
 		timestamp: string,
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats,
@@ -384,6 +415,7 @@ export default class ConversationLogger {
 		requestParams?: LLMRequestParams,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
+			parentMessageId,
 			agentInteractionId,
 			timestamp,
 			logEntry,

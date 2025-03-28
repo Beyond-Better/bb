@@ -8,22 +8,22 @@ Deno.test('InteractionManager - Create and manage interactions', async () => {
 	const manager = new InteractionManager();
 
 	// Test 1: Create a conversation interaction
-	const parentId = await manager.createInteraction('conversation', 'test-id', {} as LLM);
-	assertExists(await manager.getInteraction(parentId));
+	const parentInteractionId = await manager.createInteraction('conversation', 'test-id', {} as LLM);
+	assertExists(await manager.getInteraction(parentInteractionId));
 
 	// Test 2: Create a child interaction
-	const childId = await manager.createInteraction('conversation', 'test-child-id', {} as LLM, parentId);
+	const childId = await manager.createInteraction('conversation', 'test-child-id', {} as LLM, parentInteractionId);
 	assertExists(await manager.getInteraction(childId));
 
 	// Test 3: Get child interactions
-	const childInteractions = await manager.getChildInteractions(parentId);
+	const childInteractions = await manager.getChildInteractions(parentInteractionId);
 	assertEquals(childInteractions.length, 1);
 	assertEquals(childInteractions[0], childId);
 
 	// Test 4: Get parent interaction
 	const parentInteraction = await manager.getParentInteraction(childId);
 	assertExists(parentInteraction);
-	assertEquals(parentInteraction, parentId);
+	assertEquals(parentInteraction, parentInteractionId);
 
 	// Test 5: Remove an interaction
 	const removed = await manager.removeInteraction(childId);
@@ -32,13 +32,13 @@ Deno.test('InteractionManager - Create and manage interactions', async () => {
 
 	// Test 6: Get all descendant interactions
 	const grandchildId = await manager.createInteraction('conversation', 'test-grandchild-id', {} as LLM, childId);
-	const descendants = await manager.getAllDescendantInteractions(parentId);
+	const descendants = await manager.getAllDescendantInteractions(parentInteractionId);
 	assertEquals(descendants.length, 2);
 
 	// Test 7: Set and get interaction results
 	const result = { data: 'test result' };
-	await manager.setInteractionResult(parentId, result);
-	assertEquals(await manager.getInteractionResult(parentId), result);
+	await manager.setInteractionResult(parentInteractionId, result);
+	assertEquals(await manager.getInteractionResult(parentInteractionId), result);
 });
 
 Deno.test('InteractionManager - Error handling', () => {

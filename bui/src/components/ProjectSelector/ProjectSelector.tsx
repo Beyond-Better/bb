@@ -5,7 +5,7 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import { ProjectList } from './ProjectList.tsx';
 import { ProjectTrigger } from './ProjectTrigger.tsx';
 import type { Project } from 'shared/types/project.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 
 interface ProjectSelectorProps {
 	isCollapsed?: boolean;
@@ -97,7 +97,7 @@ export function ProjectSelector({
 
 	const handleProjectSelect = (project: Project) => {
 		setProject(project.projectId);
-		setConversation(generateConversationId());
+		setConversation(shortenConversationId(generateConversationId()));
 		isOpen.value = false;
 		triggerRef.current?.focus();
 	};

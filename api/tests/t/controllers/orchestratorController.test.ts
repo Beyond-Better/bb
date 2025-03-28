@@ -32,8 +32,8 @@ Deno.test('OrchestratorController - createChildInteraction', async () => {
 	// @ts-ignore: Overwrite private property for testing
 	orchestrator.interactionManager = new MockInteractionManager();
 
-	const parentId = 'parent-id' as ConversationId;
-	const childId = await orchestrator.createChildInteraction(parentId, 'Test Child');
+	const parentInteractionId = 'parent-id' as ConversationId;
+	const childId = await orchestrator.createChildInteraction(parentInteractionId, 'Test Child');
 
 	assertExists(childId);
 	const childInteraction = orchestrator.interactionManager.getInteractionStrict(childId);
@@ -156,12 +156,12 @@ Deno.test('OrchestratorController - cleanupChildInteractions', async () => {
 	// @ts-ignore: Overwrite private property for testing
 	orchestrator.interactionManager = new MockInteractionManager();
 
-	const parentId = 'parent-id' as ConversationId;
-	const childId1 = await orchestrator.createChildInteraction(parentId, 'Child 1');
-	const childId2 = await orchestrator.createChildInteraction(parentId, 'Child 2');
+	const parentInteractionId = 'parent-id' as ConversationId;
+	const childId1 = await orchestrator.createChildInteraction(parentInteractionId, 'Child 1');
+	const childId2 = await orchestrator.createChildInteraction(parentInteractionId, 'Child 2');
 	const grandchildId = await orchestrator.createChildInteraction(childId1, 'Grandchild');
 
-	await orchestrator.cleanupChildInteractions(parentId);
+	await orchestrator.cleanupChildInteractions(parentInteractionId);
 
 	assertThrows(() => orchestrator.interactionManager.getInteractionStrict(childId1));
 	assertThrows(() => orchestrator.interactionManager.getInteractionStrict(childId2));

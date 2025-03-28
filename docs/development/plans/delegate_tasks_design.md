@@ -68,7 +68,7 @@ class InteractionManager {
     this.interactionHierarchy = new Map();
   }
 
-  createInteraction(type: 'conversation' | 'chat', parentId?: string): string {
+  createInteraction(type: 'conversation' | 'chat', parentInteractionId?: string): string {
     // Implementation details
   }
 
@@ -80,7 +80,7 @@ class InteractionManager {
     // Implementation details
   }
 
-  getChildInteractions(parentId: string): LLMInteraction[] {
+  getChildInteractions(parentInteractionId: string): LLMInteraction[] {
     // Implementation details
   }
 
