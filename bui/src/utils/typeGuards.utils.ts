@@ -30,10 +30,14 @@ export function isConversationResponse(entry: ConversationLogDataEntry): entry i
 /**
  * Type guard for entries that have logEntry (Continue or Response)
  */
-export function logDataEntryHasLogEntry(entry: ConversationLogDataEntry): entry is ConversationContinue | ConversationResponse {
+export function logDataEntryHasLogEntry(
+	entry: ConversationLogDataEntry,
+): entry is ConversationContinue | ConversationResponse {
 	return 'logEntry' in entry;
 }
-export function logDataEntryHasChildren(entry: ConversationLogDataEntry): entry is ConversationContinue | ConversationResponse {
+export function logDataEntryHasChildren(
+	entry: ConversationLogDataEntry,
+): entry is ConversationContinue | ConversationResponse {
 	return 'children' in entry;
 }
 

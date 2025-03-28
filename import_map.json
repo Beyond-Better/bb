@@ -132,6 +132,7 @@
 		"shared/types/version.ts": "./src/shared/types/version.types.ts",
 		"shared/types/project.ts": "./src/shared/types/project.types.ts",
 		"shared/types/subscription.ts": "./src/shared/types/subscription.types.ts",
+		"shared/utils/logEntries.ts": "./src/shared/utils/logEntries.utils.ts",
 		"shared/logger.ts": "./src/shared/utils/logger.utils.ts",
 		"shared/logViewer.ts": "./src/shared/utils/logViewer.utils.ts",
 		"shared/conversationManagement.ts": "./src/shared/utils/conversationManagement.utils.ts",

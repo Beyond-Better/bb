@@ -353,7 +353,7 @@ class LLMToolManager {
 	}
 
 	async handleToolUse(
-		_parentMessageId: string|null,
+		_parentMessageId: string | null,
 		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,

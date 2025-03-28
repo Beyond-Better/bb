@@ -31,6 +31,9 @@ export default {
 		'bb-code-truncated',
 		'bb-code-expanded',
 		'bb-code-fade-overlay',
+		// Agent Task Group
+		'bb-custom-scrollbar',
+		'bb-agent-task-group',
 	],
 	theme: {
 		fontFamily: {
@@ -74,11 +77,10 @@ export default {
 					'@apply max-w-full h-auto': {},
 				},
 
-				// Thinking block styles - static analysis doesn't pick them up from formatters.browser.tsx, 
+				// Thinking block styles - static analysis doesn't pick them up from formatters.browser.tsx,
 				// so also need to modify style in static/styles.css
 				'.bb-thinking-container': {
-					'@apply mb-6 w-full max-w-full':
-						{},
+					'@apply mb-6 w-full max-w-full': {},
 				},
 				'.bb-thinking-header': {
 					'@apply flex items-center justify-between cursor-pointer p-2 max-w-full overflow-hidden bg-green-50 dark:bg-green-900/30 border-l-4 border-green-300 dark:border-green-700 rounded-tr':
@@ -94,10 +96,11 @@ export default {
 					'@apply text-xs text-green-600 dark:text-green-400 hover:underline': {},
 				},
 				'.bb-thinking-content': {
-					'@apply border-l-4 border-green-300 dark:border-green-700 rounded-br pt-1 pb-2 px-4 prose dark:prose-invert max-w-full w-full overflow-x-auto break-words': {},
+					'@apply border-l-4 border-green-300 dark:border-green-700 rounded-br pt-1 pb-2 px-4 prose dark:prose-invert max-w-full w-full overflow-x-auto break-words':
+						{},
 				},
 
-				// Code truncation classes - static analysis doesn't pick them up from MessageEntry.tsx, 
+				// Code truncation classes - static analysis doesn't pick them up from MessageEntry.tsx,
 				// so also need to modify style in static/styles.css
 				'.bb-code-truncated': {
 					'@apply relative overflow-hidden': {},
@@ -109,6 +112,54 @@ export default {
 					'@apply absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-900 pointer-events-none fade-overlay':
 						{},
 				},
+				// /* Agent Task Group Styling */
+				// '.bb-custom-scrollbar': {
+				//   '@apply scrollbar-width: thin scrollbar-color: rgba(156, 163, 175, 0.5) transparent':
+				// 						{},
+				// },
+				// '.bb-custom-scrollbar::-webkit-scrollbar': {
+				//  '@apply  width: 6px height: 6px':
+				// 						{},
+				// },
+				// '.bb-custom-scrollbar::-webkit-scrollbar-track': {
+				//   '@apply background: transparent':
+				// 						{},
+				// },
+				// '.bb-custom-scrollbar::-webkit-scrollbar-thumb': {
+				//   '@apply background-color: rgba(156, 163, 175, 0.5) border-radius: 6px':
+				// 						{},
+				// },
+				// '.bb-custom-scrollbar::-webkit-scrollbar-thumb:hover': {
+				//   '@apply background-color: rgba(156, 163, 175, 0.8)':
+				// 						{},
+				// },
+				// '.bb-agent-task-group': {
+				//   '@apply border-left: 4px solid #f97316; transition: all 0.2s ease':
+				// 						{}, /* Orange border to match task styling */
+				// },
+				// '.bb-agent-task-group:hover': {
+				//   '@apply box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)':
+				// 						{},
+				// },
+				// /* Dark mode adjustments */
+				// //@media (prefers-color-scheme: dark) {
+				//   '.bb-agent-task-group': {
+				//     '@apply border-left: 4px solid #ea580c':
+				// 						{}, /* Darker orange for dark mode */
+				//   },
+				//   '.bb-custom-scrollbar': {
+				//     '@apply scrollbar-color: rgba(107, 114, 128, 0.5) transparent':
+				// 						{},
+				//   },
+				//   '.bb-custom-scrollbar::-webkit-scrollbar-thumb': {
+				//     '@apply background-color: rgba(107, 114, 128, 0.5)':
+				// 						{},
+				//   },
+				//   '.bb-custom-scrollbar::-webkit-scrollbar-thumb:hover': {
+				//     '@apply background-color: rgba(107, 114, 128, 0.8)':
+				// 						{},
+				//   },
+				// //}
 			},
 			fontSize: {
 				'xs': '0.6rem',

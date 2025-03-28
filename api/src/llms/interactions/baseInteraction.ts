@@ -153,8 +153,16 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor, parentInteractionId).init();
-			this.conversationLogger = await new ConversationLogger(projectEditor, parentInteractionId ?? this.id, logEntryHandler)
+			this.conversationPersistence = await new ConversationPersistence(
+				this.id,
+				projectEditor,
+				parentInteractionId,
+			).init();
+			this.conversationLogger = await new ConversationLogger(
+				projectEditor,
+				parentInteractionId ?? this.id,
+				logEntryHandler,
+			)
 				.init();
 			this.projectConfig = projectEditor.projectConfig;
 		} catch (error) {

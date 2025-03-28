@@ -40,7 +40,7 @@ export type EventMap = {
 		};
 		conversationError: {
 			conversationId: ConversationId;
-			agentInteractionId: string|null;
+			agentInteractionId: string | null;
 			conversationTitle: string;
 			conversationStats: ConversationStats;
 			error: string;
@@ -79,7 +79,7 @@ export type EventMap = {
 		};
 		conversationError: {
 			conversationId: ConversationId;
-			agentInteractionId: string|null;
+			agentInteractionId: string | null;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'

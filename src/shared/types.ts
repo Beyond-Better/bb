@@ -295,8 +295,8 @@ export interface ConversationStart {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	messageId?: string;
-	parentMessageId?: string|null;
-	agentInteractionId?: string|null;
+	parentMessageId?: string | null;
+	agentInteractionId?: string | null;
 	timestamp: string;
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
@@ -308,22 +308,22 @@ export interface ConversationStart {
 	formattedContent?: string;
 	versionInfo: VersionInfo;
 	logEntry?: ConversationLogEntry;
-    children?: {
-        [agentInteractionId: string]: ConversationLogDataEntry[];
-    };
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 }
 
 export interface ConversationContinue {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	messageId?: string;
-	parentMessageId: string|null;
-	agentInteractionId: string|null;
+	parentMessageId: string | null;
+	agentInteractionId: string | null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
-    children?: {
-        [agentInteractionId: string]: ConversationLogDataEntry[];
-    };
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
@@ -334,8 +334,8 @@ export interface ConversationNew {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	messageId?: string;
-	parentMessageId?: string|null;
-	agentInteractionId?: string|null;
+	parentMessageId?: string | null;
+	agentInteractionId?: string | null;
 	timestamp: string;
 	//tokenUsageConversation: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
@@ -352,13 +352,13 @@ export interface ConversationResponse {
 	conversationId: ConversationId;
 	conversationTitle: string;
 	messageId?: string;
-	parentMessageId: string|null;
-	agentInteractionId: string|null;
+	parentMessageId: string | null;
+	agentInteractionId: string | null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
-    children?: {
-        [agentInteractionId: string]: ConversationLogDataEntry[];
-    };
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;

@@ -84,7 +84,9 @@ export function ConversationHeader({
 		);
 
 		// Find the most recent logDataEntry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) => logDataEntry.tokenUsageStats?.tokenUsageTurn);
+		const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) =>
+			logDataEntry.tokenUsageStats?.tokenUsageTurn
+		);
 
 		return {
 			model: currentConversation.value.model || 'Unknown',

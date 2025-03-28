@@ -9,24 +9,25 @@
  */
 
 .bb-code-truncated {
-  @apply relative overflow-hidden;
+	@apply relative overflow-hidden;
 }
 
 .bb-code-expanded {
-  @apply relative;
+	@apply relative;
 }
 
 .bb-code-fade-overlay {
-  @apply absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-900 pointer-events-none;
+	@apply absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-900
+		pointer-events-none;
 }
-
 
 .bb-thinking-container {
 	@apply mb-6 w-full max-w-full;
 }
 
 .bb-thinking-header {
-	@apply flex items-center justify-between cursor-pointer p-2 max-w-full overflow-hidden bg-green-50 dark:bg-green-900/30 border-l-4 border-green-300 dark:border-green-700 rounded-tr;
+	@apply flex items-center justify-between cursor-pointer p-2 max-w-full overflow-hidden bg-green-50
+		dark:bg-green-900/30 border-l-4 border-green-300 dark:border-green-700 rounded-tr;
 }
 
 .bb-thinking-icon {
@@ -42,5 +43,63 @@
 }
 
 .bb-thinking-content {
-	@apply border-l-4 border-green-300 dark:border-green-700 rounded-br pt-1 pb-2 px-4 prose dark:prose-invert max-w-full w-full overflow-x-auto break-words;
+	@apply border-l-4 border-green-300 dark:border-green-700 rounded-br pt-1 pb-2 px-4 prose dark:prose-invert
+		max-w-full w-full overflow-x-auto break-words;
+}
+
+/* 
+ * These are custom styles; not extending classes.
+ * Need to figure out how to add them to tailwind.config.ts
+ */
+
+/* Agent Task Group Styling */
+.bb-custom-scrollbar {
+	scrollbar-width: thin;
+	scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.bb-custom-scrollbar::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+.bb-custom-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.bb-custom-scrollbar::-webkit-scrollbar-thumb {
+	background-color: rgba(156, 163, 175, 0.5);
+	border-radius: 6px;
+}
+
+.bb-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(156, 163, 175, 0.8);
+}
+
+.bb-agent-task-group {
+	border-left: 4px solid #f97316; /* Orange border to match task styling */
+	transition: all 0.2s ease;
+}
+
+.bb-agent-task-group:hover {
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+	.bb-agent-task-group {
+		border-left: 4px solid #ea580c; /* Darker orange for dark mode */
+	}
+
+	.bb-custom-scrollbar {
+		scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
+	}
+
+	.bb-custom-scrollbar::-webkit-scrollbar-thumb {
+		background-color: rgba(107, 114, 128, 0.5);
+	}
+
+	.bb-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background-color: rgba(107, 114, 128, 0.8);
+	}
 }

@@ -7,7 +7,7 @@ import LLMTool from 'api/llms/llmTool.ts';
 
 const TOOL_SPECIFIC_STYLES = {
 	container: `${LLMTool.TOOL_STYLES_BROWSER.base.container} ${LLMTool.TOOL_STYLES_BROWSER.content.code}`,
-	taskList: 'space-y-2',
+	taskList: 'space-y-4',
 	taskItem: 'flex justify-between items-center',
 	taskStatus: {
 		completed: 'bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-sm',
@@ -34,47 +34,51 @@ export function formatLogEntryToolUse(
 					<div className={TOOL_SPECIFIC_STYLES.taskList}>
 						{tasks.map((task, index) => (
 							<div key={index} className={`${LLMTool.TOOL_STYLES_BROWSER.base.box} mb-2`}>
-								<div className='font-semibold'>
+								<div className='mt-1'>
 									{LLMTool.TOOL_TAGS_BROWSER.base.label('Title:')}{' '}
 									{LLMTool.TOOL_TAGS_BROWSER.base.text(task.title)}
 								</div>
 
-								<div>
+								<div className='mt-2'>
 									{LLMTool.TOOL_TAGS_BROWSER.base.label('Background:')}
 									<pre
-										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} text-xs whitespace-pre-wrap`}
+										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} mt-2 text-xs whitespace-pre-wrap`}
 									>
 										{task.background}
 									</pre>
 								</div>
 
-								<div>
+								<div className='mt-2'>
 									{LLMTool.TOOL_TAGS_BROWSER.base.label('Instructions:')}
 									<pre
-										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} text-xs whitespace-pre-wrap`}
+										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} mt-2 text-xs whitespace-pre-wrap`}
 									>
 										{task.instructions}
 									</pre>
 								</div>
 
 								{task.capabilities && task.capabilities.length > 0 && (
-									<div>
+									<div className='mt-2'>
 										{LLMTool.TOOL_TAGS_BROWSER.base.label('Capabilities:')}{' '}
-										{LLMTool.TOOL_TAGS_BROWSER.base.text(task.capabilities.join(', '))}
+										<div className='mt-2'>
+											{LLMTool.TOOL_TAGS_BROWSER.base.text(task.capabilities.join(', '))}
+										</div>
 									</div>
 								)}
 
 								{task.resources && task.resources.length > 0 && (
-									<div>
+									<div className='mt-2'>
 										{LLMTool.TOOL_TAGS_BROWSER.base.label('Resources:')}
-										{LLMTool.TOOL_TAGS_BROWSER.base.list(
-											task.resources.map((resource, _idx) => (
-												<>
-													{LLMTool.TOOL_TAGS_BROWSER.base.label(resource.type)}:{' '}
-													{LLMTool.TOOL_TAGS_BROWSER.base.text(resource.location)}
-												</>
-											)),
-										)}
+										<div className='mt-2'>
+											{LLMTool.TOOL_TAGS_BROWSER.base.list(
+												task.resources.map((resource, _idx) => (
+													<>
+														{LLMTool.TOOL_TAGS_BROWSER.base.label(resource.type)}:{' '}
+														{LLMTool.TOOL_TAGS_BROWSER.base.text(resource.location)}
+													</>
+												)),
+											)}
+										</div>
 									</div>
 								)}
 							</div>
@@ -125,7 +129,7 @@ export function formatLogEntryToolResult(
 								<div>
 									{LLMTool.TOOL_TAGS_BROWSER.base.label('Result:')}
 									<pre
-										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} text-xs whitespace-pre-wrap`}
+										className={`${LLMTool.TOOL_STYLES_BROWSER.base.pre} mt-2 text-xs whitespace-pre-wrap`}
 									>
 										{task.result}
 									</pre>
@@ -135,7 +139,7 @@ export function formatLogEntryToolResult(
 							{task.error && (
 								<div className={LLMTool.TOOL_STYLES_BROWSER.status.error}>
 									{LLMTool.TOOL_TAGS_BROWSER.base.label('Error:')}
-									<pre className='whitespace-pre-wrap text-xs'>
+									<pre className='mt-2 whitespace-pre-wrap text-xs'>
 										{task.error}
 									</pre>
 								</div>

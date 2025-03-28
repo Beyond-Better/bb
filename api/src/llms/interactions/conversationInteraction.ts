@@ -795,7 +795,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	public async converse(
 		prompt: string,
 		//promptFrom: 'user' | 'orchestrator',
-		parentMessageId: string|null,
+		parentMessageId: string | null,
 		metadata: ConversationStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 		attachedFiles?: FilesForConversation,

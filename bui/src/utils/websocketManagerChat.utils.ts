@@ -42,8 +42,8 @@ interface WebSocketResponse {
 		timestamp?: string;
 		conversationTitle?: string;
 		messageId: string;
-		parentMessageId: string|null;
-		agentInteractionId: string|null;
+		parentMessageId: string | null;
+		agentInteractionId: string | null;
 		tokenUsageStats: {
 			tokenUsageTurn?: TokenUsage;
 			tokenUsageStatement?: TokenUsage;

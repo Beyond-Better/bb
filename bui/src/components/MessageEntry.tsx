@@ -379,7 +379,8 @@ export function MessageEntry({
 		// Handle delegate_tasks with agent tasks
 		if (isAgentParent) {
 			console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
-			return (<>
+			return (
+				<>
 					{/* First render the tool input normally */}
 					<MessageEntryTool
 						type='input'
@@ -390,11 +391,10 @@ export function MessageEntry({
 						conversationId={conversationId}
 						logEntry={logDataEntry.logEntry}
 					/>
-				<div className='agent-tasks-container mt-4'>
-
-					{/* Show loading indicator while fetching agent entries */}
-					{
-						/*isLoadingAgentEntries && (
+					<div className='agent-tasks-container mt-4'>
+						{/* Show loading indicator while fetching agent entries */}
+						{
+							/*isLoadingAgentEntries && (
 						<div className="flex items-center justify-center p-4 mt-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
 							<svg className="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -403,34 +403,35 @@ export function MessageEntry({
 							<span>Loading agent tasks...</span>
 						</div>
 					)*/
-					}
+						}
 
-					{/* Then render each agent group */}
-					{logDataEntry.children &&
-						Object.entries(logDataEntry.children).map((
-							[agentInteractionId, childLogDataEntries],
-							groupIndex,
-						) => (
-							<MessageEntryAgentTaskGroup
-								key={agentInteractionId}
-								entries={childLogDataEntries}
-								parentEntry={logDataEntry}
-								parentIndex={index * 1000 + groupIndex}
-								onCopy={onCopy}
-								apiClient={apiClient}
-								projectId={projectId}
-								conversationId={conversationId}
-							/>
-						))}
+						{/* Then render each agent group */}
+						{logDataEntry.children &&
+							Object.entries(logDataEntry.children).map((
+								[agentInteractionId, childLogDataEntries],
+								groupIndex,
+							) => (
+								<MessageEntryAgentTaskGroup
+									key={agentInteractionId}
+									entries={childLogDataEntries}
+									parentEntry={logDataEntry}
+									parentIndex={index * 1000 + groupIndex}
+									onCopy={onCopy}
+									apiClient={apiClient}
+									projectId={projectId}
+									conversationId={conversationId}
+								/>
+							))}
 
-					{/* Show message when no tasks are found */}
-					{logDataEntry.children && Object.keys(logDataEntry.children).length === 0 && (
-						<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
-							No agent tasks found for this delegate_tasks call.
-						</div>
-					)}
-				</div>
-			</>);
+						{/* Show message when no tasks are found */}
+						{logDataEntry.children && Object.keys(logDataEntry.children).length === 0 && (
+							<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
+								No agent tasks found for this delegate_tasks call.
+							</div>
+						)}
+					</div>
+				</>
+			);
 		}
 
 		if (entryType === 'tool_use' || entryType === 'tool_result') {
@@ -510,7 +511,7 @@ export function MessageEntry({
 				{/*isAgentEntry && <div className={threadLineClasses}></div>*/}
 
 				{/* Message container */}
-				<div className="transition-all duration-200 w-full overflow-hidden">
+				<div className='transition-all duration-200 w-full overflow-hidden'>
 					{/* Header */}
 					<div className='flex items-start'>
 						{/* Entry type icon */}

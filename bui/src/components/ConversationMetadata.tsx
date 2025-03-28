@@ -7,7 +7,9 @@ interface ConversationMetadataProps {
 	title?: string;
 }
 
-export function ConversationMetadata({ logDataEntries, conversationId, title }: ConversationMetadataProps): JSX.Element {
+export function ConversationMetadata(
+	{ logDataEntries, conversationId, title }: ConversationMetadataProps,
+): JSX.Element {
 	// Get the most recent token usage from logDataEntries
 	const latestEntry = logDataEntries[logDataEntries.length - 1];
 	const tokenUsage = latestEntry?.tokenUsageStats.tokenUsageConversation;

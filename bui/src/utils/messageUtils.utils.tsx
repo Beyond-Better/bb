@@ -75,6 +75,7 @@ export const messageStyles = {
 	user: {
 		bg: 'bg-blue-50 dark:bg-blue-900/30',
 		border: 'border-blue-200 dark:border-blue-800',
+		thread: 'bg-blue-300 dark:bg-blue-600',
 		header: {
 			bg: 'bg-blue-100 dark:bg-blue-900/50',
 			border: 'border-blue-200 dark:border-blue-800',
@@ -85,6 +86,7 @@ export const messageStyles = {
 	orchestrator: {
 		bg: 'bg-green-50 dark:bg-green-900/30',
 		border: 'border-green-200 dark:border-green-800',
+		thread: 'bg-green-300 dark:bg-green-600',
 		header: {
 			bg: 'bg-green-100 dark:bg-green-900/50',
 			border: 'border-green-200 dark:border-green-800',
@@ -95,6 +97,7 @@ export const messageStyles = {
 	assistant: {
 		bg: 'bg-green-50 dark:bg-green-900/30',
 		border: 'border-green-200 dark:border-green-800',
+		thread: 'bg-green-300 dark:bg-green-600',
 		header: {
 			bg: 'bg-green-100 dark:bg-green-900/50',
 			border: 'border-green-200 dark:border-green-800',
@@ -105,6 +108,7 @@ export const messageStyles = {
 	answer: {
 		bg: 'bg-green-50 dark:bg-green-900/30',
 		border: 'border-green-200 dark:border-green-800',
+		thread: 'bg-green-300 dark:bg-green-600',
 		header: {
 			bg: 'bg-green-100 dark:bg-green-900/50',
 			border: 'border-green-200 dark:border-green-800',
@@ -115,6 +119,7 @@ export const messageStyles = {
 	tool_use: {
 		bg: 'bg-amber-50 dark:bg-amber-900/30',
 		border: 'border-amber-200 dark:border-amber-800',
+		thread: 'bg-amber-300 dark:bg-amber-600',
 		header: {
 			bg: 'bg-amber-100 dark:bg-amber-900/50',
 			border: 'border-amber-200 dark:border-amber-800',
@@ -125,6 +130,7 @@ export const messageStyles = {
 	tool_result: {
 		bg: 'bg-yellow-50 dark:bg-yellow-900/30',
 		border: 'border-yellow-200 dark:border-yellow-800',
+		thread: 'bg-yellow-300 dark:bg-yellow-600',
 		header: {
 			bg: 'bg-yellow-100 dark:bg-yellow-900/50',
 			border: 'border-yellow-200 dark:border-yellow-800',
@@ -135,6 +141,7 @@ export const messageStyles = {
 	auxiliary: {
 		bg: 'bg-purple-50 dark:bg-purple-900/30',
 		border: 'border-purple-200 dark:border-purple-800',
+		thread: 'bg-purple-300 dark:bg-purple-600',
 		header: {
 			bg: 'bg-purple-100 dark:bg-purple-900/50',
 			border: 'border-purple-200 dark:border-purple-800',
@@ -145,6 +152,7 @@ export const messageStyles = {
 	error: {
 		bg: 'bg-red-50 dark:bg-red-900/30',
 		border: 'border-red-200 dark:border-red-800',
+		thread: 'bg-red-300 dark:bg-red-600',
 		header: {
 			bg: 'bg-red-100 dark:bg-red-900/50',
 			border: 'border-red-200 dark:border-red-800',
@@ -158,6 +166,7 @@ export const messageStyles = {
 export const defaultExpanded = {
 	user: true,
 	orchestrator: true,
+	agent_group: true,
 	assistant: true,
 	answer: true,
 	tool_use: false,
@@ -167,30 +176,34 @@ export const defaultExpanded = {
 };
 
 // Helper to generate storage key for collapse state
-export function getCollapseStateKey(conversationId: string, index: number): string {
-	return `bb_collapse_state:${conversationId}:${index}`;
+export function getCollapseStateKey(conversationId: string, agentInteractionId: string | null, index: number): string {
+	const agentId = agentInteractionId || 'parent';
+	return `bb_collapse_state:${conversationId}:${agentId}:${index}`;
 }
 
 // Helper to get initial collapse state
 export function getInitialCollapseState(
 	conversationId: string,
+	agentInteractionId: string | null,
 	index: number,
 	entryType: keyof typeof defaultExpanded,
 ): boolean {
 	if (typeof localStorage === 'undefined') return defaultExpanded[entryType] ?? true;
 
-	const storedState = localStorage.getItem(getCollapseStateKey(conversationId, index));
-	return storedState !== null ? storedState === 'true' : defaultExpanded[entryType] ?? true;
+	const storedState = localStorage.getItem(getCollapseStateKey(conversationId, agentInteractionId, index));
+	const wantExpanded = agentInteractionId ? false : defaultExpanded[entryType] ?? true;
+	return storedState !== null ? storedState === 'true' : wantExpanded;
 }
 
 // Helper to save collapse state
 export function saveCollapseState(
 	conversationId: string,
+	agentInteractionId: string | null,
 	index: number,
 	isExpanded: boolean,
 ): void {
 	if (typeof localStorage === 'undefined') return;
-	localStorage.setItem(getCollapseStateKey(conversationId, index), String(isExpanded));
+	localStorage.setItem(getCollapseStateKey(conversationId, agentInteractionId, index), String(isExpanded));
 }
 
 // Helper to generate content summary
