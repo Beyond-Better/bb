@@ -13,6 +13,7 @@ export class MCPManager {
 	private servers: Map<string, {
 		server: Client;
 		config: MCPServerConfig;
+		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
 	}> = new Map();
 	private projectConfig: ProjectConfig;
 
@@ -112,8 +113,17 @@ export class MCPManager {
 			});
 		}
 
+		// If tools are already cached, return them
+		if (serverInfo.tools) {
+			logger.debug(`MCPManager: Using cached tools for server ${serverId}`);
+			return serverInfo.tools;
+		}
+
+		// Otherwise, fetch tools from the server and cache them
 		try {
 			const response = await serverInfo.server.listTools();
+			// Cache the tools
+			serverInfo.tools = response.tools;
 			return response.tools;
 		} catch (error) {
 			logger.error(`MCPManager: Error listing tools for server ${serverId}:`, error);
@@ -187,5 +197,45 @@ export class MCPManager {
 	 */
 	async getServers(): Promise<string[]> {
 		return Array.from(this.servers.keys());
+	}
+
+	/**
+	 * Refresh the tools cache for a specific server
+	 * @param serverId ID of the server to refresh tools for
+	 */
+	async refreshToolsCache(serverId: string): Promise<void> {
+		const serverInfo = this.servers.get(serverId);
+		if (!serverInfo) {
+			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
+				name: 'mcp-server-error',
+				service: 'mcp',
+				action: 'refresh-tools-cache',
+				serverId,
+			});
+		}
+
+		try {
+			const response = await serverInfo.server.listTools();
+			serverInfo.tools = response.tools;
+			logger.debug(`MCPManager: Refreshed tools cache for server ${serverId}`);
+		} catch (error) {
+			logger.error(`MCPManager: Error refreshing tools cache for server ${serverId}:`, error);
+			throw createError(ErrorType.ExternalServiceError, `Failed to refresh MCP tools cache: ${errorMessage(error)}`, {
+				name: 'mcp-tools-cache-refresh-error',
+				service: 'mcp',
+				action: 'refresh-tools-cache',
+				serverId,
+			});
+		}
+	}
+
+	/**
+	 * Refresh the tools cache for all servers
+	 */
+	async refreshAllToolsCaches(): Promise<void> {
+		const serverIds = Array.from(this.servers.keys());
+		for (const serverId of serverIds) {
+			await this.refreshToolsCache(serverId);
+		}
 	}
 }
