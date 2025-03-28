@@ -6,11 +6,11 @@ import type {
 	//ConversationLogEntry
 } from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
-import { getDefaultTokenUsage, hasLogEntry } from '../utils/typeGuards.utils.ts';
+import { getDefaultTokenUsage, logDataEntryHasChildren, logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
 import { marked } from 'marked';
 import hljs from 'highlight';
 import { MessageEntryTool } from './MessageEntryTool.tsx';
-import { AgentTaskGroup } from './AgentTaskGroup.tsx';
+import { MessageEntryAgentTaskGroup } from './MessageEntryAgentTaskGroup.tsx';
 import { Toast } from './Toast.tsx';
 import {
 	getInitialCollapseState,
@@ -26,7 +26,6 @@ interface MessageEntryProps {
 	apiClient: ApiClient;
 	projectId: string;
 	conversationId: string;
-	allEntries?: ConversationLogDataEntry[]; // Added for agent task grouping
 }
 
 marked.setOptions({
@@ -45,33 +44,14 @@ declare global {
 	}
 }
 
-// Check if this is a parent entry with agent tasks
-function isAgentTaskParent(entry: ConversationLogDataEntry, allEntries: ConversationLogDataEntry[]): boolean {
+// Check if this is a parent logDataEntry with agent tasks
+function isAgentTaskParent(logDataEntry: ConversationLogDataEntry): boolean {
 	// Tool inputs for delegate_tasks are parents of agent tasks
-	return entry.logEntry?.entryType === 'tool_use' && 
-	       entry.logEntry?.toolName === 'delegate_tasks' && 
-	       allEntries.some(e => e.parentId === entry.messageId && e.agentInteractionId);
-}
-
-// Get all child entries for an agent task parent
-function getAgentTaskEntries(parentId: string, allEntries: ConversationLogDataEntry[]): ConversationLogDataEntry[] {
-	return allEntries.filter(entry => entry.parentId === parentId && entry.agentInteractionId);
-}
-
-// Group entries by agentInteractionId
-function groupAgentEntries(entries: ConversationLogDataEntry[]): Record<string, ConversationLogDataEntry[]> {
-	const groups: Record<string, ConversationLogDataEntry[]> = {};
-	
-	entries.forEach(entry => {
-		if (entry.agentInteractionId) {
-			if (!groups[entry.agentInteractionId]) {
-				groups[entry.agentInteractionId] = [];
-			}
-			groups[entry.agentInteractionId].push(entry);
-		}
-	});
-	
-	return groups;
+	return logDataEntry.logEntry?.entryType === 'tool_use' &&
+		logDataEntry.logEntry?.toolName === 'delegate_tasks';
+	// 		&&
+	// 		logDataEntryHasChildren(logDataEntry);
+	// 		 logDataEntry.children.length > 0);
 }
 
 export function MessageEntry({
@@ -81,50 +61,14 @@ export function MessageEntry({
 	apiClient,
 	projectId,
 	conversationId,
-	allEntries,
 }: MessageEntryProps & { allEntries?: ConversationLogDataEntry[] }): JSX.Element {
-	// If this is a delegate_tasks tool call, fetch associated agent tasks
-	const [agentEntries, setAgentEntries] = useState<ConversationLogDataEntry[]>([]);
-	const [isLoadingAgentEntries, setIsLoadingAgentEntries] = useState(false);
-	
-	useEffect(() => {
-		const fetchAgentTasks = async () => {
-			if (
-				hasLogEntry(logDataEntry) && 
-				logDataEntry.logEntry.entryType === 'tool_use' && 
-				logDataEntry.logEntry.toolName === 'delegate_tasks' && 
-				logDataEntry.messageId
-			) {
-				try {
-					// Set loading state
-					setIsLoadingAgentEntries(true);
-					
-					// Fetch entries with this messageId as parentId
-					// This would normally come from allEntries prop, but we're getting it from the API directly
-					const response = await apiClient.getConversation(conversationId, projectId);
-					if (response && response.logDataEntries) {
-						const childEntries = response.logDataEntries.filter(
-							entry => entry.parentId === logDataEntry.messageId && entry.agentInteractionId
-						);
-						setAgentEntries(childEntries);
-					}
-				} catch (error) {
-					console.error('Error fetching agent task entries:', error);
-				} finally {
-					setIsLoadingAgentEntries(false);
-				}
-			}
-		};
-		
-		fetchAgentTasks();
-	}, [logDataEntry, apiClient, conversationId, projectId]);
 	const [showToast, setShowToast] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(
 			conversationId,
 			logDataEntry.agentInteractionId || null,
 			index,
-			hasLogEntry(logDataEntry) ? logDataEntry.logEntry.entryType : 'auxiliary',
+			logDataEntryHasLogEntry(logDataEntry) ? logDataEntry.logEntry.entryType : 'auxiliary',
 		)
 	);
 	const [showMetadata, setShowMetadata] = useState(false);
@@ -133,7 +77,7 @@ export function MessageEntry({
 	// Fetch formatted content
 	useEffect(() => {
 		const fetchFormatted = async () => {
-			if (!hasLogEntry(logDataEntry)) return;
+			if (!logDataEntryHasLogEntry(logDataEntry)) return;
 
 			try {
 				const response = await apiClient.formatLogEntry(
@@ -238,7 +182,7 @@ export function MessageEntry({
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => {
 			const newState = !prev;
-			saveCollapseState(conversationId, logDataEntry.agentInteractionId||null, index, newState);
+			saveCollapseState(conversationId, logDataEntry.agentInteractionId || null, index, newState);
 			return newState;
 		});
 	}, [conversationId, logDataEntry.agentInteractionId, index]);
@@ -306,7 +250,7 @@ export function MessageEntry({
 	}, [toggleExpanded]);
 
 	// Handle entries without logEntry (ConversationStart or invalid entries)
-	if (!hasLogEntry(logDataEntry)) {
+	if (!logDataEntryHasLogEntry(logDataEntry)) {
 		return (
 			<div className='bb-message-entry py-3 pl-4 pr-6 mb-2 text-gray-500 dark:text-gray-400 text-sm italic'>
 				<div className='font-medium'>Conversation Start</div>
@@ -315,7 +259,9 @@ export function MessageEntry({
 	}
 
 	const entryType =
-		(hasLogEntry(logDataEntry) ? logDataEntry.logEntry.entryType : 'start') as keyof typeof messageStyles;
+		(logDataEntryHasLogEntry(logDataEntry)
+			? logDataEntry.logEntry.entryType
+			: 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
 	const tokenUsageTurn = 'tokenUsageStats' in logDataEntry
 		? logDataEntry.tokenUsageStats.tokenUsageTurn
@@ -328,12 +274,12 @@ export function MessageEntry({
 		? messageIcons[entryType as keyof typeof messageIcons]
 		: messageIcons.auxiliary;
 
-	// Determine if this is an agent entry
+	// Determine if this is an agent logDataEntry
 	const isAgentEntry = !!logDataEntry.agentInteractionId;
 
 	// Message type indicator
-	const getMessageTypeIndicator = (useAgentEntry:boolean) => {
-		if(useAgentEntry) return 'border-l-4 border-l-orange-500 dark:border-l-orange-600';
+	const getMessageTypeIndicator = (useAgentEntry: boolean) => {
+		//if (useAgentEntry) return 'border-l-4 border-l-orange-500 dark:border-l-orange-600';
 		switch (entryType) {
 			case 'user':
 				return 'border-l-4 border-l-blue-500 dark:border-l-blue-600';
@@ -346,9 +292,9 @@ export function MessageEntry({
 			case 'tool_use':
 				return 'border-l-4 border-l-amber-500 dark:border-l-amber-600';
 			case 'tool_result':
-				return 'border-l-4 border-l-purple-500 dark:border-l-purple-600';
+				return 'border-l-4 border-l-yellow-500 dark:border-l-yellow-600';
 			case 'auxiliary':
-				return 'border-l-4 border-l-gray-400 dark:border-l-gray-600';
+				return 'border-l-4 border-l-purple-400 dark:border-l-purple-600';
 			default:
 				return 'border-l-4 border-l-gray-300 dark:border-l-gray-700';
 		}
@@ -370,7 +316,9 @@ export function MessageEntry({
 
 	// Thread line classes - only visible for agent entries
 	//const threadLineClasses = isAgentEntry ? `absolute left-0 top-0 bottom-0 ml-1 w-1 bg-orange-300 dark:bg-orange-600` : '';
-	const threadLineClasses = isAgentEntry ? `absolute left-0 top-0 bottom-0 ${leftMargin} w-1 ${messageStyles[entryType].thread}` : '';
+	const threadLineClasses = isAgentEntry
+		? `absolute left-0 top-0 bottom-0 ${leftMargin} w-1 ${messageStyles[entryType].thread}`
+		: '';
 	//const threadLineClasses = isAgentEntry ? getMessageTypeIndicator(false) : '';
 
 	// Agent entry status badge
@@ -421,46 +369,20 @@ export function MessageEntry({
 	};
 
 	// Check if this is a delegate_tasks tool parent with agent tasks
-	const isAgentParent = 
-		(allEntries && isAgentTaskParent(logDataEntry, allEntries)) || 
-		(hasLogEntry(logDataEntry) && 
-		 logDataEntry.logEntry.entryType === 'tool_use' && 
-		 logDataEntry.logEntry.toolName === 'delegate_tasks' && 
-		 agentEntries.length > 0);
-	
+	const isAgentParent = isAgentTaskParent(logDataEntry);
+
 	// Render content based on entry type
 	const renderContent = () => {
 		if (!isExpanded) return null;
 
+		console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
 		// Handle delegate_tasks with agent tasks
 		if (isAgentParent) {
-			// Determine where to get agent entries from
-			let taskEntries: ConversationLogDataEntry[] = [];
-			let taskGroups: Record<string, ConversationLogDataEntry[]> = {};
-			
-			if (allEntries && logDataEntry.messageId) {
-				// Get agent entries from the allEntries prop
-				taskEntries = getAgentTaskEntries(logDataEntry.messageId, allEntries);
-				taskGroups = groupAgentEntries(taskEntries);
-			} else if (agentEntries.length > 0) {
-				// Get agent entries from our fetched state
-				taskEntries = agentEntries;
-				// Group agent entries by their agentInteractionId
-				agentEntries.forEach(entry => {
-					if (entry.agentInteractionId) {
-						if (!taskGroups[entry.agentInteractionId]) {
-							taskGroups[entry.agentInteractionId] = [];
-						}
-						taskGroups[entry.agentInteractionId].push(entry);
-					}
-				});
-			}
-			
-			return (
-				<div className="agent-tasks-container mt-4">
+			console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
+			return (<>
 					{/* First render the tool input normally */}
 					<MessageEntryTool
-						type="input"
+						type='input'
 						toolName={logDataEntry.logEntry.toolName || 'Unknown Tool'}
 						content={logDataEntry.logEntry.content}
 						apiClient={apiClient}
@@ -468,9 +390,11 @@ export function MessageEntry({
 						conversationId={conversationId}
 						logEntry={logDataEntry.logEntry}
 					/>
-					
+				<div className='agent-tasks-container mt-4'>
+
 					{/* Show loading indicator while fetching agent entries */}
-					{isLoadingAgentEntries && (
+					{
+						/*isLoadingAgentEntries && (
 						<div className="flex items-center justify-center p-4 mt-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
 							<svg className="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
 								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -478,30 +402,35 @@ export function MessageEntry({
 							</svg>
 							<span>Loading agent tasks...</span>
 						</div>
-					)}
-					
+					)*/
+					}
+
 					{/* Then render each agent group */}
-					{!isLoadingAgentEntries && Object.entries(taskGroups).map(([agentId, entries], groupIndex) => (
-						<AgentTaskGroup
-							key={agentId}
-							entries={entries}
-							parentEntry={logDataEntry}
-							parentIndex={index * 1000 + groupIndex}
-							onCopy={onCopy}
-							apiClient={apiClient}
-							projectId={projectId}
-							conversationId={conversationId}
-						/>
-					))}
-					
+					{logDataEntry.children &&
+						Object.entries(logDataEntry.children).map((
+							[agentInteractionId, childLogDataEntries],
+							groupIndex,
+						) => (
+							<MessageEntryAgentTaskGroup
+								key={agentInteractionId}
+								entries={childLogDataEntries}
+								parentEntry={logDataEntry}
+								parentIndex={index * 1000 + groupIndex}
+								onCopy={onCopy}
+								apiClient={apiClient}
+								projectId={projectId}
+								conversationId={conversationId}
+							/>
+						))}
+
 					{/* Show message when no tasks are found */}
-					{!isLoadingAgentEntries && Object.keys(taskGroups).length === 0 && agentEntries.length === 0 && (
-						<div className="p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+					{logDataEntry.children && Object.keys(logDataEntry.children).length === 0 && (
+						<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
 							No agent tasks found for this delegate_tasks call.
 						</div>
 					)}
 				</div>
-			);
+			</>);
 		}
 
 		if (entryType === 'tool_use' || entryType === 'tool_result') {
@@ -569,17 +498,19 @@ export function MessageEntry({
 	return (
 		<>
 			<div
-				className={`message-entry group relative mb-3 overflow-hidden ${getMessageTypeIndicator(isAgentEntry)} pl-3 w-full`}
-				data-agent-id={logDataEntry.agentInteractionId||''}
-				data-entry-type={entryType||''}
+				className={`message-entry group relative mb-3 overflow-hidden ${
+					getMessageTypeIndicator(isAgentEntry)
+				} pl-3 w-full`}
+				data-agent-id={logDataEntry.agentInteractionId || ''}
+				data-entry-type={entryType || ''}
 				role='region'
 				aria-expanded={isExpanded}
 			>
 				{/* Thread line for agent entries */}
-				{isAgentEntry && <div className={threadLineClasses}></div>}
+				{/*isAgentEntry && <div className={threadLineClasses}></div>*/}
 
 				{/* Message container */}
-				<div className={`${isAgentEntry ? 'ml-4' : ''} transition-all duration-200 w-full overflow-hidden`}>
+				<div className="transition-all duration-200 w-full overflow-hidden">
 					{/* Header */}
 					<div className='flex items-start'>
 						{/* Entry type icon */}

@@ -41,11 +41,11 @@ This document outlines the strategy for handling formatted log entries in the BU
 const [formattedContent, setFormattedContent] = useState<string | null>(null);
 
 useEffect(() => {
-  if (logEntryData.logEntry?.entryType === 'tool_use' || 
-      logEntryData.logEntry?.entryType === 'tool_result') {
+  if (logDataEntry.logEntry?.entryType === 'tool_use' || 
+      logDataEntry.logEntry?.entryType === 'tool_result') {
     fetchFormattedContent();
   }
-}, [logEntryData.logEntry]);
+}, [logDataEntry.logEntry]);
 ```
 
 ### Future Caching Strategy

@@ -359,7 +359,7 @@ const configManager = await ConfigManagerV2.getInstance();
 - Line 122 (write)
   Context:
   ```typescript
-  			this.conversationLogger = await new ConversationLogger(projectRoot, parentId ?? this.id, logEntryHandler)
+  			this.conversationLogger = await new ConversationLogger(projectRoot, parentInteractionId ?? this.id, logEntryHandler)
   				.init();
   			this.fullConfig = projectEditor.fullConfig;
   		} catch (error) {
@@ -2602,7 +2602,7 @@ const configManager = await ConfigManagerV2.getInstance();
   
   				// Load conversation data first
   				const conversation = await apiClient.getConversation(conversationId, config.startDir);
-  				const logEntries = conversation?.logEntries || [];
+  				const logDataEntries = conversation?.logDataEntries || [];
   
   ```
 

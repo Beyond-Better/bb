@@ -125,7 +125,7 @@ function ChatStateComponent() {
     
     return (
         <div>
-            <ConversationDisplay entries={chatState.value.logEntries} />
+            <ConversationDisplay entries={chatState.value.logDataEntries} />
             <ToolStatus status={chatState.value.status} />
         </div>
     );

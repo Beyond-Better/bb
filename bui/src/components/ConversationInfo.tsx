@@ -1,9 +1,9 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import type { ConversationContinue, ConversationEntry } from 'shared/types.ts';
+import type { ConversationContinue, ConversationLogDataEntry } from 'shared/types.ts';
 
 interface ConversationInfoProps {
-	logEntries?: ConversationEntry[];
+	logDataEntries?: ConversationLogDataEntry[];
 	conversationId?: string;
 	title?: string;
 }
@@ -26,16 +26,16 @@ const metadata = signal<ConversationMetadata>({
 	},
 });
 
-export function ConversationInfo({ logEntries = [], conversationId, title }: ConversationInfoProps) {
+export function ConversationInfo({ logDataEntries = [], conversationId, title }: ConversationInfoProps) {
 	useEffect(() => {
-		if (logEntries) {
+		if (logDataEntries) {
 			metadata.value = {
 				title: title,
-				messageCount: logEntries.length,
+				messageCount: logDataEntries.length,
 				tokenUsage: {
 					total: 200000, // TODO: Get from actual token limits
-					//current: logEntries[logEntries.length].tokenUsageConversation?.totalTokens || 0,
-					current: logEntries.reduce(
+					//current: logDataEntries[logDataEntries.length].tokenUsageConversation?.totalTokens || 0,
+					current: logDataEntries.reduce(
 						(sum, entry) =>
 							sum + ((entry as ConversationContinue).tokenUsageStats.tokenUsageTurn?.totalTokens || 0),
 						0,
@@ -43,7 +43,7 @@ export function ConversationInfo({ logEntries = [], conversationId, title }: Con
 				},
 			};
 		}
-	}, [logEntries, title]);
+	}, [logDataEntries, title]);
 
 	return (
 		<div className='flex items-center space-x-4'>

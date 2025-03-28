@@ -2,6 +2,7 @@ import { useEffect } from 'preact/hooks';
 import { Signal, signal, useComputed } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { ApiStatus } from 'shared/types.ts';
+import type { ConversationLogDataEntry } from 'shared/types.ts';
 //import { useVersion } from './useVersion.ts';
 import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
@@ -16,7 +17,8 @@ import { createApiClientManager } from '../utils/apiClient.utils.ts';
 import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
 
 interface InitializationResult {
 	apiClient: ApiClient;
@@ -192,7 +194,7 @@ export function useChatState(
 				const params = new URLSearchParams(globalThis.location.search);
 				const urlConversationId = params.get('conversationId');
 				const conversationId = urlConversationId || chatState.value.conversationId ||
-					appState.value.conversationId || generateConversationId();
+					appState.value.conversationId || shortenConversationId(generateConversationId());
 
 				// Load conversation data first
 				const conversation = (conversationId && appState.value.projectId)
@@ -201,7 +203,8 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
-				const logDataEntries = conversation?.logDataEntries || [];
+				const logDataEntries = createNestedLogDataEntries(conversation?.logDataEntries || []);
+				console.log('useChatState: initialize-logDataEntries', logDataEntries);
 
 				if (!mounted) {
 					console.log('useChatState: useEffect for config initialize - not mounted, bailing');
@@ -351,7 +354,7 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logDataEntry: any }) => {
+		const handleMessage = (data: { msgType: string; logDataEntry: ConversationLogDataEntry }) => {
 			const startTime = performance.now();
 			console.debug('useChatState: Processing message:', {
 				type: data.msgType,
@@ -435,25 +438,6 @@ export function useChatState(
 			// Only process messages for the current conversation
 			if (data.logDataEntry.conversationId !== chatState.value.conversationId) return;
 
-			// Handle agent task entries with parentId
-			const handleAgentEntry = (entry: any) => {
-				// If this entry has agentInteractionId, it's part of a delegated task
-				if (entry.agentInteractionId && entry.parentId) {
-					// Clone current entries
-					const currentEntries = [...chatState.value.logDataEntries];
-					
-					// Check if this is the first entry with this agentInteractionId
-					const existingEntries = currentEntries.filter(e => 
-						e.agentInteractionId === entry.agentInteractionId);
-					
-					// Add the entry to the array
-					return [...currentEntries, entry];
-				}
-				
-				// Regular entry, just append it
-				return [...chatState.value.logDataEntries, entry];
-			};
-
 			// Update log entries and conversation stats
 			chatState.value = {
 				...chatState.value,
@@ -470,16 +454,19 @@ export function useChatState(
 					return conv;
 				}),
 				logDataEntries: (() => {
-					const newEntries = handleAgentEntry(data.logDataEntry);
+					const newEntries = addLogDataEntry(chatState.value.logDataEntries, data.logDataEntry);
 					console.debug('useChatState: Updated logDataEntries', {
 						previousCount: chatState.value.logDataEntries.length,
 						newCount: newEntries.length,
 						processingTime: performance.now() - startTime,
-						agentInteractionId: data.logDataEntry.agentInteractionId || 'none'
+						messageId: data.logDataEntry.messageId,
+						parentMessageId: data.logDataEntry.parentMessageId || 'none',
+						agentInteractionId: data.logDataEntry.agentInteractionId || 'none',
 					});
 					return newEntries;
 				})(),
 			};
+			console.log('useChatState: handleMessage-logDataEntries', chatState.value.logDataEntries);
 
 			if (scrollIndicatorState.value.isVisible) {
 				scrollIndicatorState.value = {

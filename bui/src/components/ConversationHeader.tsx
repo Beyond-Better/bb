@@ -76,15 +76,15 @@ export function ConversationHeader({
 			};
 		}
 
-		const logEntries = chatState.value.logEntries || [];
-		//console.log('ConversationHeader: getModelInfo', {logEntries});
-		const assistantEntries = logEntries.filter((entry) =>
-			entry.logEntry?.entryType === 'assistant' || entry.logEntry?.entryType === 'tool_use' ||
-			entry.logEntry?.entryType === 'answer'
+		const logDataEntries = chatState.value.logDataEntries || [];
+		//console.log('ConversationHeader: getModelInfo', {logDataEntries});
+		const assistantEntries = logDataEntries.filter((logDataEntry) =>
+			logDataEntry.logEntry?.entryType === 'assistant' || logDataEntry.logEntry?.entryType === 'tool_use' ||
+			logDataEntry.logEntry?.entryType === 'answer'
 		);
 
-		// Find the most recent entry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((entry) => entry.tokenUsageStats?.tokenUsageTurn);
+		// Find the most recent logDataEntry with tokenUsageTurn
+		const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) => logDataEntry.tokenUsageStats?.tokenUsageTurn);
 
 		return {
 			model: currentConversation.value.model || 'Unknown',

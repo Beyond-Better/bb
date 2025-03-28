@@ -41,6 +41,8 @@ interface WebSocketResponse {
 		logEntry?: ConversationLogEntry;
 		timestamp?: string;
 		conversationTitle?: string;
+		messageId: string;
+		parentMessageId: string|null;
 		agentInteractionId: string|null;
 		tokenUsageStats: {
 			tokenUsageTurn?: TokenUsage;
@@ -170,13 +172,15 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			const msg = JSON.parse(event.data) as WebSocketResponse;
 			console.log('WebSocketManagerChat: Received message:', msg.type);
 
-			const generateLogEntryData = (
+			const generateLogDataEntry = (
 				msgData: WebSocketResponse,
 				_msgType: 'continue' | 'answer',
 			): ConversationContinue | ConversationResponse => {
 				const baseEntry = {
 					conversationId: this.conversationId!,
 					conversationTitle: '',
+					messageId: msgData.data.messageId,
+					parentMessageId: msgData.data.parentMessageId,
 					agentInteractionId: msgData.data.agentInteractionId,
 					//timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
@@ -214,14 +218,14 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				case 'conversationNew':
 					this.emit('message', {
 						msgType: 'conversationNew',
-						logEntryData: msg.data,
+						logDataEntry: msg.data,
 					});
 					break;
 
 				case 'conversationDeleted':
 					this.emit('message', {
 						msgType: 'conversationDeleted',
-						logEntryData: msg.data,
+						logDataEntry: msg.data,
 					});
 					break;
 
@@ -237,14 +241,14 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				case 'conversationContinue':
 					this.emit('message', {
 						msgType: 'continue',
-						logEntryData: generateLogEntryData(msg, 'continue') as ConversationContinue,
+						logDataEntry: generateLogDataEntry(msg, 'continue') as ConversationContinue,
 					});
 					break;
 
 				case 'conversationAnswer':
 					this.emit('message', {
 						msgType: 'answer',
-						logEntryData: generateLogEntryData(msg, 'answer') as ConversationResponse,
+						logDataEntry: generateLogDataEntry(msg, 'answer') as ConversationResponse,
 					});
 					break;
 
