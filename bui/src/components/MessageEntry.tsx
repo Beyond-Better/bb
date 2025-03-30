@@ -375,10 +375,10 @@ export function MessageEntry({
 	const renderContent = () => {
 		if (!isExpanded) return null;
 
-		console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
+		//console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
 		// Handle delegate_tasks with agent tasks
 		if (isAgentParent) {
-			console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
+			//console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
 			return (
 				<>
 					{/* First render the tool input normally */}
@@ -452,7 +452,7 @@ export function MessageEntry({
 		if (formatted?.formattedResult?.content) {
 			return (
 				<div
-					className='prose dark:prose-invert max-w-full break-words overflow-hidden'
+					className='prose prose-sm dark:prose-invert max-w-full break-words overflow-hidden'
 					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: formatted.formattedResult.content as string }}
 				/>
@@ -462,7 +462,7 @@ export function MessageEntry({
 		if (logDataEntry.formattedContent) {
 			return (
 				<div
-					className='prose max-w-none dark:prose-invert'
+					className='prose prose-sm max-w-none dark:prose-invert'
 					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: logDataEntry.formattedContent }}
 				/>
@@ -473,7 +473,7 @@ export function MessageEntry({
 		if (typeof content === 'string') {
 			return (
 				<div
-					className='prose max-w-none dark:prose-invert'
+					className='prose prose-sm max-w-none dark:prose-invert'
 					// deno-lint-ignore react-no-danger
 					dangerouslySetInnerHTML={{ __html: marked.parse(content).toString() }}
 				/>
@@ -530,12 +530,12 @@ export function MessageEntry({
 						{/* Header content */}
 						<div className='flex flex-col ml-2 w-full overflow-hidden'>
 							{/* Title & Subtitle row */}
-							<div className='flex items-center justify-between flex-wrap'>
+							<div className='flex items-start justify-between'>
 								<div className='flex items-center flex-wrap max-w-[70%]'>
 									<button
 										type='button'
 										onClick={toggleExpanded}
-										className={`font-medium text-sm ${styles.header.text}`}
+										className={`font-medium text-sm text-left flex flex-wrap items-center ${styles.header.text}`}
 									>
 										{formatted?.formattedResult?.title
 											? (
@@ -556,19 +556,20 @@ export function MessageEntry({
 														: entryType.charAt(0).toUpperCase() + entryType.slice(1)}
 												</span>
 											)}
-										{statusBadge} {formatted?.formattedResult?.subtitle && (
-											<span
-												className='ml-2 truncate max-w-md text-xs'
+										{statusBadge}
+										{formatted?.formattedResult?.subtitle && (
+											<span className='ml-2 text-xs break-words whitespace-normal'
 												dangerouslySetInnerHTML={{
 													__html: formatted.formattedResult.subtitle as string,
 												}}
 											/>
 										)}
-									</button>
+								</button>
 								</div>
 
 								{/* Action buttons */}
-								<div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
+								<div className='flex items-center gap-x-2'>
+									<div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
 									{/* Copy button */}
 									<button
 										type='button'
@@ -614,6 +615,13 @@ export function MessageEntry({
 										</svg>
 									</button>
 
+								</div>
+									<span className='text-xs text-gray-500 dark:text-gray-400'>{new Date(logDataEntry.timestamp)?.toLocaleString()}</span>
+									{hasTokenUsage() && (
+										<span className='text-xs text-gray-500 dark:text-gray-400' title='Total conversation tokens (input + output)'>
+											{tokenUsageConversation.totalTokens?.toLocaleString() || 0} tokens
+										</span>
+									)}
 									{/* Expand/collapse toggle */}
 									<button
 										type='button'
@@ -638,8 +646,8 @@ export function MessageEntry({
 											/>
 										</svg>
 									</button>
-								</div>
 							</div>
+						</div>
 
 							{/* Metadata (initially hidden) */}
 							<div
