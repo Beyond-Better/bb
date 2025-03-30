@@ -23,6 +23,7 @@ import { GeminiProvider } from './providers/gemini.ts';
 
 const MODELS = [
 	//anthropic
+	'claude-3-7-sonnet-20250219',
 	'claude-3-5-sonnet-20241022',
 	'claude-3-opus-20240229',
 	'claude-3-sonnet-20240229',
@@ -40,6 +41,7 @@ const MODELS = [
 
 const MODELS_PROVIDERS = {
 	//anthropic
+	'claude-3-7-sonnet-20250219': 'anthropic',
 	'claude-3-5-sonnet-20241022': 'anthropic',
 	'claude-3-opus-20240229': 'anthropic',
 	'claude-3-sonnet-20240229': 'anthropic',
@@ -109,7 +111,8 @@ Each model will receive exactly the same prompt text and their complete response
 					description: `List of model identifiers to query. Available models by provider:
 
 1. Anthropic:
-   * claude-3-5-sonnet-20241022 (Latest Sonnet)
+   * claude-3-7-sonnet-20250219 (Latest Sonnet)
+   * claude-3-5-sonnet-20241022 (Older Sonnet)
    * claude-3-opus-20240229 (Most capable)
    * claude-3-sonnet-20240229
    * claude-3-haiku-20240307 (Fastest)
@@ -125,7 +128,7 @@ Each model will receive exactly the same prompt text and their complete response
    * gemini-pro
 
 Example selections:
-* ["claude-3-5-sonnet-20241022", "gpt-4o"] - Compare latest models
+* ["claude-3-7-sonnet-20250219", "gpt-4o"] - Compare latest models
 * ["claude-3-opus-20240229", "claude-3-haiku-20240307"] - Compare Claude variants
 * ["gpt-4o", "gpt-3.5-turbo", "gemini-pro"] - Compare across providers
 

@@ -102,6 +102,20 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'imageManipulation.tool',
+		'metadata': {
+			'name': 'image_manipulation',
+			'description':
+				'Manipulate image files with various operations like resize, crop, rotate, flip, blur, sharpen, grayscale, format conversion, and quality adjustment. Supports both local files and remote URLs as input sources. The processed image is saved to the specified output path.',
+			'version': '1.0.0',
+			'category': 'file',
+			'enabled': true,
+			'author': 'BB Team',
+			'license': 'MIT',
+			'type': 'internal',
+		},
+	},
+	{
 		'toolNamePath': 'fetchWebPage.tool',
 		'metadata': {
 			'name': 'fetch_web_page',
@@ -223,7 +237,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'delegate_tasks',
 			'description': 'Delegate specialized tasks to child agent conversations.',
-			'enabled': false,
+			'enabled': true,
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',

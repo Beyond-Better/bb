@@ -31,6 +31,11 @@ export default function MCPConfigModal({
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	// Show sensitive values (for env vars)
 	const [showSensitive, setShowSensitive] = useState(false);
+	// For managing a new argument
+	const [newArgument, setNewArgument] = useState('');
+	// For managing a new environment variable
+	const [newEnvKey, setNewEnvKey] = useState('');
+	const [newEnvValue, setNewEnvValue] = useState('');
 
 	// Initialize edited servers from props
 	useEffect(() => {
@@ -113,34 +118,130 @@ export default function MCPConfigModal({
 		}
 	};
 
-	// Handle environment variables update
-	const handleEnvUpdate = (envText: string) => {
-		const envVars: Record<string, string> = {};
+	// Add a new argument to the server being edited
+	const handleAddArgument = () => {
+		if (!newArgument.trim()) return;
 
-		envText.split('\n').forEach((line) => {
-			const [key, ...valueParts] = line.split('=');
-			if (key && valueParts.length > 0) {
-				envVars[key.trim()] = valueParts.join('=').trim();
-			}
-		});
+		const server = editingServer || newServer;
+		if (!server) return;
 
-		if (editingServer) {
-			handleUpdateServer('env', envVars);
-		} else if (newServer) {
-			handleUpdateServer('env', envVars);
-		}
+		const newArgs = [...(server.args || []), newArgument.trim()];
+		handleUpdateServer('args', newArgs);
+		setNewArgument('');
 	};
 
-	// Format environment variables for display/edit
-	const formatEnvVars = (env?: Record<string, string>): string => {
-		if (!env) return '';
-		return Object.entries(env).map(([key, value]) => `${key}=${value}`).join('\n');
+	// Add a new environment variable
+	// Remove an argument at specified index
+	const handleRemoveArgument = (index: number) => {
+		const server = editingServer || newServer;
+		if (!server) return;
+
+		const newArgs = [...(server.args || [])];
+		newArgs.splice(index, 1);
+		handleUpdateServer('args', newArgs);
+	};
+
+	// Update an argument at specified index
+	const handleUpdateArgument = (index: number, value: string) => {
+		const server = editingServer || newServer;
+		if (!server) return;
+
+		const newArgs = [...(server.args || [])];
+		newArgs[index] = value;
+		handleUpdateServer('args', newArgs);
+	};
+
+	// Add a new environment variable
+	const handleAddEnvVar = () => {
+		if (!newEnvKey.trim()) return;
+
+		const server = editingServer || newServer;
+		if (!server) return;
+
+		const newEnv = { ...(server.env || {}) };
+		newEnv[newEnvKey.trim()] = newEnvValue;
+		handleUpdateServer('env', newEnv);
+
+		// Clear inputs for next entry
+		setNewEnvKey('');
+		setNewEnvValue('');
+	};
+
+	// Remove an environment variable by key
+	const handleRemoveEnvVar = (keyToRemove: string) => {
+		const server = editingServer || newServer;
+		if (!server || !server.env) return;
+
+		const newEnv = { ...server.env };
+		delete newEnv[keyToRemove];
+		handleUpdateServer('env', newEnv);
+	};
+
+	// Update an environment variable value by key
+	const handleUpdateEnvValue = (key: string, newValue: string) => {
+		const server = editingServer || newServer;
+		if (!server || !server.env) return;
+
+		const newEnv = { ...server.env };
+		newEnv[key] = newValue;
+		handleUpdateServer('env', newEnv);
+	};
+
+	// Get a list of environment variables for display
+	const getEnvVarsList = (env?: Record<string, string>): Array<{ key: string; value: string }> => {
+		if (!env) return [];
+		return Object.entries(env).map(([key, value]) => ({ key, value }));
 	};
 
 	// Save the edited/new server
 	const handleSaveServer = () => {
 		const serverToSave = editingServer || newServer;
 		if (!serverToSave) return;
+
+		// Check if there's an unsaved argument in the input field and add it
+		if (newArgument.trim()) {
+			const updatedArgs = [...(serverToSave.args || []), newArgument.trim()];
+			if (editingServer) {
+				setEditingServer({ ...editingServer, args: updatedArgs });
+				serverToSave.args = updatedArgs;
+			} else if (newServer) {
+				setNewServer({ ...newServer, args: updatedArgs });
+				serverToSave.args = updatedArgs;
+			}
+			setNewArgument('');
+		}
+
+		// Check if there's an unsaved environment variable and add it
+		if (newEnvKey.trim()) {
+			const newEnv = { ...(serverToSave.env || {}) };
+			newEnv[newEnvKey.trim()] = newEnvValue;
+
+			if (editingServer) {
+				setEditingServer({ ...editingServer, env: newEnv });
+				serverToSave.env = newEnv;
+			} else if (newServer) {
+				setNewServer({ ...newServer, env: newEnv });
+				serverToSave.env = newEnv;
+			}
+
+			setNewEnvKey('');
+			setNewEnvValue('');
+		}
+
+		// Check if there's an unsaved environment variable in the input fields and add it
+		if (newEnvKey.trim()) {
+			const newEnv = { ...(serverToSave.env || {}) };
+			newEnv[newEnvKey.trim()] = newEnvValue;
+			if (editingServer) {
+				setEditingServer({ ...editingServer, env: newEnv });
+				serverToSave.env = newEnv;
+			} else if (newServer) {
+				setNewServer({ ...newServer, env: newEnv });
+				serverToSave.env = newEnv;
+			}
+			setNewEnvKey('');
+			setNewEnvValue('');
+		}
 
 		const validationErrors = validateServer(serverToSave);
 		if (Object.keys(validationErrors).length > 0) {
@@ -274,28 +375,99 @@ export default function MCPConfigModal({
 									{/* Arguments */}
 									<div>
 										<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-											Arguments (comma-separated)
+											Arguments
 										</label>
-										<input
-											type='text'
-											value={(editingServer || newServer)?.args?.join(', ') || ''}
-											onChange={(e) => {
-												const value = (e.target as HTMLInputElement).value;
-												const args = value.split(',').map((arg) => arg.trim()).filter((arg) =>
-													arg
-												);
-												handleUpdateServer('args', args);
-											}}
-											className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-											placeholder='-y, @modelcontextprotocol/server-slack'
-										/>
+
+										<div className='space-y-2'>
+											{/* Existing arguments */}
+											{((editingServer || newServer)?.args || []).map((arg, index) => (
+												<div key={index} className='flex items-center space-x-2'>
+													<input
+														type='text'
+														value={arg}
+														onChange={(e) =>
+															handleUpdateArgument(
+																index,
+																(e.target as HTMLInputElement).value,
+															)}
+														className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+													/>
+													<button
+														type='button'
+														onClick={() =>
+															handleRemoveArgument(index)}
+														className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
+														aria-label='Remove argument'
+													>
+														<svg
+															className='h-5 w-5'
+															fill='none'
+															stroke='currentColor'
+															viewBox='0 0 24 24'
+														>
+															<path
+																strokeLinecap='round'
+																strokeLinejoin='round'
+																strokeWidth={2}
+																d='M6 18L18 6M6 6l12 12'
+															/>
+														</svg>
+													</button>
+												</div>
+											))}
+
+											{/* Add new argument field */}
+											<div className='flex items-center space-x-2'>
+												<input
+													type='text'
+													value={newArgument}
+													onChange={(e) =>
+														setNewArgument((e.target as HTMLInputElement).value)}
+													placeholder='Add argument...'
+													className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+													onKeyDown={(e) => {
+														if (e.key === 'Enter' && newArgument.trim()) {
+															e.preventDefault();
+															handleAddArgument();
+														}
+													}}
+												/>
+												<button
+													type='button'
+													onClick={handleAddArgument}
+													className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
+													aria-label='Add argument'
+													disabled={!newArgument.trim()}
+												>
+													<svg
+														className='h-5 w-5'
+														fill='none'
+														stroke='currentColor'
+														viewBox='0 0 24 24'
+													>
+														<path
+															strokeLinecap='round'
+															strokeLinejoin='round'
+															strokeWidth={2}
+															d='M12 4v16m8-8H4'
+														/>
+													</svg>
+												</button>
+											</div>
+
+											{/* Helper text */}
+											<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+												Press Enter or click + to add each argument. Each value will be passed
+												as a separate argument to the command.
+											</p>
+										</div>
 									</div>
 
 									{/* Environment Variables */}
 									<div>
 										<div className='flex justify-between items-center mb-1'>
 											<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-												Environment Variables (key=value, one per line)
+												Environment Variables
 											</label>
 
 											<button
@@ -307,23 +479,108 @@ export default function MCPConfigModal({
 											</button>
 										</div>
 
-										<textarea
-											rows={5}
-											value={formatEnvVars(
-												showSensitive ? (editingServer || newServer)?.env : undefined,
-											)}
-											onChange={(e) => handleEnvUpdate((e.target as HTMLTextAreaElement).value)}
-											className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm'
-											placeholder='SLACK_BOT_TOKEN=xoxb-123456789\nSLACK_TEAM_ID=T12345'
-										/>
-										{!showSensitive && (editingServer || newServer)?.env &&
-											Object.keys((editingServer || newServer)?.env || {}).length > 0 && (
-											<p className='mt-1 text-xs text-amber-600 dark:text-amber-400'>
-												<span className='font-medium'>Note:</span>{' '}
-												Environment variable values are hidden. Click 'Show Values' to view and
-												edit.
-											</p>
-										)}
+										{/* Existing environment variables */}
+										<div className='space-y-2 mb-3'>
+											{Object.entries((editingServer || newServer)?.env || {}).map((
+												[key, value],
+											) => (
+												<div key={key} className='flex items-center space-x-2'>
+													<input
+														type='text'
+														value={key}
+														readOnly
+														className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono'
+													/>
+													<input
+														type={showSensitive ? 'text' : 'password'}
+														value={value}
+														onChange={(e) =>
+															handleUpdateEnvValue(
+																key,
+																(e.target as HTMLInputElement).value,
+															)}
+														className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono'
+													/>
+													<button
+														type='button'
+														onClick={() => handleRemoveEnvVar(key)}
+														className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
+														aria-label='Remove environment variable'
+													>
+														<svg
+															className='h-5 w-5'
+															fill='none'
+															stroke='currentColor'
+															viewBox='0 0 24 24'
+														>
+															<path
+																strokeLinecap='round'
+																strokeLinejoin='round'
+																strokeWidth={2}
+																d='M6 18L18 6M6 6l12 12'
+															/>
+														</svg>
+													</button>
+												</div>
+											))}
+										</div>
+
+										{/* Add new environment variable */}
+										<div className='flex items-center space-x-2'>
+											<input
+												type='text'
+												value={newEnvKey}
+												onChange={(e) => setNewEnvKey((e.target as HTMLInputElement).value)}
+												placeholder='Key'
+												className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+												onKeyDown={(e) => {
+													if (e.key === 'Enter' && newEnvKey.trim()) {
+														e.preventDefault();
+														handleAddEnvVar();
+													}
+												}}
+											/>
+											<input
+												type={showSensitive ? 'text' : 'password'}
+												value={newEnvValue}
+												onChange={(e) => setNewEnvValue((e.target as HTMLInputElement).value)}
+												placeholder='Value'
+												className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+												onKeyDown={(e) => {
+													if (e.key === 'Enter' && newEnvKey.trim()) {
+														e.preventDefault();
+														handleAddEnvVar();
+													}
+												}}
+											/>
+											<button
+												type='button'
+												onClick={handleAddEnvVar}
+												className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
+												aria-label='Add environment variable'
+												disabled={!newEnvKey.trim()}
+											>
+												<svg
+													className='h-5 w-5'
+													fill='none'
+													stroke='currentColor'
+													viewBox='0 0 24 24'
+												>
+													<path
+														strokeLinecap='round'
+														strokeLinejoin='round'
+														strokeWidth={2}
+														d='M12 4v16m8-8H4'
+													/>
+												</svg>
+											</button>
+										</div>
+
+										{/* Helper text */}
+										<p className='text-xs text-gray-500 dark:text-gray-400 mt-2'>
+											Environment variables are passed to the MCP server when it runs. Use these
+											to provide API keys and configuration.
+										</p>
 									</div>
 								</div>
 

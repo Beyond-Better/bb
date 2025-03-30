@@ -134,7 +134,7 @@ export default function MCPServerItem({
 								handleInputChange('env', envVars);
 							}}
 							class='mt-1 form-textarea block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white text-sm px-3 py-2 font-mono'
-							placeholder='SLACK_BOT_TOKEN=xoxb-123456789\nSLACK_TEAM_ID=T12345'
+							placeholder={`SLACK_BOT_TOKEN=xoxb-123456789\nSLACK_TEAM_ID=T12345`}
 						/>
 					</div>
 				</div>

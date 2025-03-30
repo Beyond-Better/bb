@@ -177,7 +177,7 @@ class LLMToolManager {
 
 	private async loadMCPToolsMetadata(serverIds: string[]): Promise<void> {
 		try {
-			logger.info(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
+			logger.debug(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
 
 			// For each MCP server (keyed by mcpServerConfig.id), load its tools
 			for (const serverId of serverIds) {
@@ -353,6 +353,7 @@ class LLMToolManager {
 	}
 
 	async handleToolUse(
+		_parentMessageId: string | null,
 		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,

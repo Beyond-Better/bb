@@ -1,10 +1,10 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import { projectEditorManager } from '../../editor/projectEditorManager.ts';
+import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
-import type { SessionManager } from '../../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 
 /**
  * @openapi
@@ -183,8 +183,8 @@ export const getConversation = async (
 			return;
 		}
 
-		const logEntries = await ConversationLogger.getLogEntries(projectId, conversationId);
-		//logger.info(`ConversationHandler: logEntries`, logEntries);
+		const logDataEntries = await ConversationLogger.getLogDataEntries(projectId, conversationId);
+		//logger.info(`ConversationHandler: logDataEntries`, logDataEntries);
 		response.status = 200;
 		response.body = {
 			id: interaction.id,
@@ -194,9 +194,9 @@ export const getConversation = async (
 			model: interaction.model,
 			maxTokens: interaction.maxTokens,
 			temperature: interaction.temperature,
-			statementTurnCount: orchestratorController.statementTurnCount,
-			totalTokenUsage: orchestratorController.totalTokensTotal,
-			logEntries,
+			statementTurnCount: interaction.statementTurnCount,
+			totalTokenUsage: interaction.totalTokensTotal,
+			logDataEntries,
 			conversationStats: {
 				statementTurnCount: interaction.statementTurnCount,
 				conversationTurnCount: interaction.conversationTurnCount,

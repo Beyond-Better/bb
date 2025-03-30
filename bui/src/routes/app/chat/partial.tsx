@@ -18,7 +18,7 @@ const initialState: ChatState = {
 	apiClient: null,
 	wsManager: null,
 	conversations: [],
-	logEntries: [],
+	logDataEntries: [],
 	status: {
 		isConnecting: false,
 		isLoading: false,

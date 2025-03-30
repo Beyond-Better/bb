@@ -344,7 +344,8 @@ export default function ProjectSettings() {
 				</div>
 			</div>
 
-			{showHelper.value && (
+			{
+				/*showHelper.value && (
 				<div class='mb-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 flex justify-between items-center'>
 					<p class='text-sm text-blue-700 dark:text-blue-300'>
 						You can freely switch between tabs - your changes are preserved until you save or cancel
@@ -357,7 +358,8 @@ export default function ProjectSettings() {
 						Got it
 					</button>
 				</div>
-			)}
+			)*/
+			}
 
 			{dirtyTabs.value.size > 0 && (
 				<div class='mb-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-2 text-sm text-yellow-700 dark:text-yellow-300'>

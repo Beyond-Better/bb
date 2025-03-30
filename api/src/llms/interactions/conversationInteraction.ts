@@ -1,8 +1,14 @@
-import { join } from '@std/path';
+//import { join } from '@std/path';
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId, FileMetadata, FilesForConversation, TokenUsage } from 'shared/types.ts';
+import type {
+	ConversationId,
+	ConversationStatementMetadata,
+	FileMetadata,
+	FilesForConversation,
+	TokenUsage,
+} from 'shared/types.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -22,7 +28,7 @@ import type { ToolUsageStats } from '../llmToolManager.ts';
 import { logger } from 'shared/logger.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
-import { ResourceManager } from '../resourceManager.ts';
+import { ResourceManager } from 'api/llms/resourceManager.ts';
 //import { GitUtils } from 'shared/git.ts';
 
 export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
@@ -105,8 +111,8 @@ class LLMConversationInteraction extends LLMInteraction {
 		this._interactionType = 'conversation';
 	}
 
-	public override async init(parentId?: ConversationId): Promise<LLMConversationInteraction> {
-		await super.init(parentId);
+	public override async init(parentInteractionId?: ConversationId): Promise<LLMConversationInteraction> {
+		await super.init(parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 		this.resourceManager = new ResourceManager(projectEditor);
 		return this;
@@ -755,7 +761,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	// the caller is responsible for adding to conversationLogger
 	async relayToolResult(
 		prompt: string,
-		metadata: Record<string, any>,
+		metadata: ConversationStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
@@ -765,7 +771,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		const contentParts: LLMMessageContentParts = [
 			{
 				type: 'text',
-				text: `__METADATA__ ${JSON.stringify(metadata)}`,
+				text: `__TOOL_RESULT_METADATA__\n${JSON.stringify({ __metadata: metadata })}`,
 			},
 			{ type: 'text', text: prompt },
 		];
@@ -788,7 +794,9 @@ class LLMConversationInteraction extends LLMInteraction {
 	// converse is called for first turn in a statement; subsequent turns call relayToolResult
 	public async converse(
 		prompt: string,
-		metadata: Record<string, any>,
+		//promptFrom: 'user' | 'orchestrator',
+		parentMessageId: string | null,
+		metadata: ConversationStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 		attachedFiles?: FilesForConversation,
 	): Promise<LLMSpeakWithResponse> {
@@ -840,21 +848,33 @@ class LLMConversationInteraction extends LLMInteraction {
 		const contentParts: LLMMessageContentParts = [
 			{
 				type: 'text',
-				text: JSON.stringify({ __metadata: metadata }),
+				text: `__STATEMENT_METADATA__\n${JSON.stringify({ __metadata: metadata })}`,
 			},
 			...filesToAdd,
 			{ type: 'text', text: prompt },
 		];
 		const messageId = this.addMessageForUserRole(contentParts);
-		this.conversationLogger.logUserMessage(
-			messageId,
-			prompt,
-			this.conversationStats,
-		);
+
+		//if (promptFrom === 'orchestrator') {
+		if (parentMessageId) {
+			this.conversationLogger.logOrchestratorMessage(
+				messageId,
+				parentMessageId,
+				this.id,
+				prompt,
+				this.conversationStats,
+			);
+		} else {
+			this.conversationLogger.logUserMessage(
+				messageId,
+				prompt,
+				this.conversationStats,
+			);
+		}
 
 		// Add files to conversation if preparation succeeded
 		if (attachedFiles && attachedFiles.length > 0) {
-			await this.addFilesForMessage(
+			this.addFilesForMessage(
 				attachedFiles,
 				messageId,
 			);

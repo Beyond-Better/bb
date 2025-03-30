@@ -56,7 +56,7 @@ class ConversationPersistence {
 	constructor(
 		private conversationId: ConversationId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
-		private parentId?: ConversationId,
+		private parentInteractionId?: ConversationId,
 	) {
 		//this.ensureInitialized();
 	}
@@ -76,7 +76,7 @@ class ConversationPersistence {
 		this.conversationsMetadataPath = join(bbDataDir, 'conversations.json');
 
 		this.conversationDir = join(conversationsDir, this.conversationId);
-		if (this.parentId) this.conversationParentDir = join(conversationsDir, this.parentId);
+		if (this.parentInteractionId) this.conversationParentDir = join(conversationsDir, this.parentInteractionId);
 
 		this.metadataPath = join(this.conversationDir, 'metadata.json');
 
@@ -326,7 +326,7 @@ class ConversationPersistence {
 			// Create metadata with analyzed token usage
 			const detailedMetadata: ConversationDetailedMetadata = {
 				...metadata,
-				parentId: this.parentId,
+				parentInteractionId: this.parentInteractionId,
 
 				//system: conversation.baseSystem,
 				temperature: conversation.temperature,
@@ -382,7 +382,7 @@ class ConversationPersistence {
 				}
 			}).filter(Boolean).join('\n') + '\n';
 			await Deno.writeTextFile(this.messagesPath, messagesContent);
-			logger.info(`ConversationPersistence: Saved messages for conversation: ${conversation.id}`);
+			logger.debug(`ConversationPersistence: Saved messages for conversation: ${conversation.id}`);
 
 			// Save files metadata
 			const filesMetadata: ConversationFilesMetadata = {};
@@ -390,17 +390,17 @@ class ConversationPersistence {
 				filesMetadata[key] = value;
 			}
 			await this.saveFilesMetadata(filesMetadata);
-			logger.info(`ConversationPersistence: Saved filesMetadata for conversation: ${conversation.id}`);
+			logger.debug(`ConversationPersistence: Saved filesMetadata for conversation: ${conversation.id}`);
 
 			// Save objectives and resources
 			const metrics = conversation.conversationMetrics;
 			if (metrics.objectives) {
 				await this.saveObjectives(metrics.objectives);
-				logger.info(`ConversationPersistence: Saved objectives for conversation: ${conversation.id}`);
+				logger.debug(`ConversationPersistence: Saved objectives for conversation: ${conversation.id}`);
 			}
 			if (metrics.resources) {
 				await this.saveResources(metrics.resources);
-				logger.info(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
+				logger.debug(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
 			}
 		} catch (error) {
 			logger.error(`ConversationPersistence: Error saving conversation: ${(error as Error).message}`);
@@ -602,7 +602,7 @@ class ConversationPersistence {
 			JSON.stringify(conversations, null, 2),
 		);
 
-		logger.info(`ConversationPersistence: Saved metadata to project level for conversation: ${conversation.id}`);
+		logger.debug(`ConversationPersistence: Saved metadata to project level for conversation: ${conversation.id}`);
 	}
 
 	extractFilePathAndRevision(fileName: string): { filePath: string; fileRevision: string } {
@@ -649,7 +649,7 @@ class ConversationPersistence {
 		const existingFilesMetadata = await this.getFilesMetadata();
 		const updatedFilesMetadata = { ...existingFilesMetadata, ...filesMetadata };
 		await Deno.writeTextFile(this.filesMetadataPath, JSON.stringify(updatedFilesMetadata, null, 2));
-		logger.info(`ConversationPersistence: Saved filesMetadata for conversation: ${this.conversationId}`);
+		logger.debug(`ConversationPersistence: Saved filesMetadata for conversation: ${this.conversationId}`);
 	}
 	async getFilesMetadata(): Promise<ConversationFilesMetadata> {
 		await this.ensureInitialized();
@@ -722,7 +722,7 @@ class ConversationPersistence {
 		const existingMetadata = await this.getMetadata();
 		const updatedMetadata = { ...existingMetadata, ...metadata };
 		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
-		logger.info(`ConversationPersistence: Saved metadata for conversation: ${this.conversationId}`);
+		logger.debug(`ConversationPersistence: Saved metadata for conversation: ${this.conversationId}`);
 
 		// Update the conversations metadata file
 		await this.updateConversationsMetadata(updatedMetadata);
@@ -787,7 +787,7 @@ class ConversationPersistence {
 			version: 3, // default version for existing conversations
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
-			parentId: undefined,
+			parentInteractionId: undefined,
 			title: '',
 			llmProviderName: '',
 			model: '',
@@ -872,7 +872,7 @@ class ConversationPersistence {
 		logger.debug(`ConversationPersistence: Ensure directory for saveObjectives: ${this.objectivesPath}`);
 		await this.ensureDirectory(dirname(this.objectivesPath));
 		await Deno.writeTextFile(this.objectivesPath, JSON.stringify(objectives, null, 2));
-		logger.info(`ConversationPersistence: Saved objectives for conversation: ${this.conversationId}`);
+		logger.debug(`ConversationPersistence: Saved objectives for conversation: ${this.conversationId}`);
 	}
 
 	async getObjectives(): Promise<ObjectivesData | null> {
@@ -903,7 +903,7 @@ class ConversationPersistence {
 			timestamp: new Date().toISOString(),
 		};
 		await Deno.writeTextFile(this.resourcesPath, JSON.stringify(storageFormat, null, 2));
-		logger.info(`ConversationPersistence: Saved resources for conversation: ${this.conversationId}`);
+		logger.debug(`ConversationPersistence: Saved resources for conversation: ${this.conversationId}`);
 	}
 
 	async getResources(): Promise<ResourceMetrics | null> {
@@ -927,7 +927,7 @@ class ConversationPersistence {
 		await this.ensureDirectory(dirname(this.projectInfoPath));
 		try {
 			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
-			logger.info(`ConversationPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
+			logger.debug(`ConversationPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
 		} catch (error) {
 			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${(error as Error).message}`, {
 				filePath: this.projectInfoPath,

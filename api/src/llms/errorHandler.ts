@@ -18,7 +18,7 @@ export class ErrorHandler {
 				return error;
 			case 'continue_on_error':
 				// Log error and continue
-				logger.error(`Error in task ${task.title}:`, error);
+				logger.error(`ErrorHandler: Error in task ${task.title}:`, error);
 				if (this.config.continueOnErrorThreshold && retryCount >= this.config.continueOnErrorThreshold) {
 					return new Error(`Exceeded continue on error threshold for task ${task.title}`);
 				}
@@ -27,7 +27,7 @@ export class ErrorHandler {
 			case 'retry':
 				if (retryCount < (this.config.maxRetries || 3)) {
 					// Retry the task
-					logger.warn(`Retrying task ${task.title}. Attempt ${retryCount + 1}`);
+					logger.warn(`ErrorHandler: Retrying task ${task.title}. Attempt ${retryCount + 1}`);
 					// Implement retry logic here
 					return new Error(`Max retries exceeded for task ${task.title}`);
 				} else {
@@ -41,7 +41,7 @@ export class ErrorHandler {
 
 	// Implement rollback mechanism
 	async rollback(task: Task): Promise<void> {
-		logger.warn(`Rolling back task ${task.title}`);
+		logger.warn(`ErrorHandler: Rolling back task ${task.title}`);
 		// Implement rollback logic here
 		// This could involve reverting changes made by the task
 	}

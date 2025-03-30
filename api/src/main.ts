@@ -113,15 +113,20 @@ app.use(oakCors({
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-app.addEventListener('listen', ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
-	logger.info(`Starting API with config:`, globalRedactedConfig);
-	if (apiConfig.ignoreLLMRequestCache) {
-		logger.warn('Cache for LLM requests is disabled!');
-	}
-	logger.info(`Environment: ${environment}`);
-	logger.info(`Log level: ${apiConfig.logLevel}`);
-	logger.info(`Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
-});
+app.addEventListener(
+	'listen',
+	async ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
+		const versionInfo = await getVersionInfo();
+		logger.info(`Starting API v${versionInfo.version} with config:`, globalRedactedConfig);
+		if (apiConfig.ignoreLLMRequestCache) {
+			logger.warn('Cache for LLM requests is disabled!');
+		}
+		logger.info(`Version: ${versionInfo.version}`);
+		logger.info(`Environment: ${environment}`);
+		logger.info(`Log level: ${apiConfig.logLevel}`);
+		logger.info(`Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
+	},
+);
 app.addEventListener('error', (evt: ErrorEvent) => {
 	logger.error(`Application error:`, evt.error);
 });

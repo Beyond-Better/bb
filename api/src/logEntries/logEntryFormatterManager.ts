@@ -52,6 +52,17 @@ export default class LogEntryFormatterManager {
 					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myPersonsName || 'User')
 					: this.formatLogEntryBasicBrowser(logEntry, this.globalConfig.myPersonsName || 'User');
 				break;
+			case 'orchestrator':
+				formatted = destination === 'console'
+					? this.formatLogEntryBasicConsole(
+						logEntry,
+						`${this.globalConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
+					)
+					: this.formatLogEntryBasicBrowser(
+						logEntry,
+						`${this.globalConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
+					);
+				break;
 			case 'assistant':
 				formatted = destination === 'console'
 					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myAssistantsName || 'Assistant')
@@ -213,8 +224,8 @@ export default class LogEntryFormatterManager {
 			// Remove any XML-style tags and trim
 			const cleaned = content.replace(/<[^>]+>/g, '').trim();
 			// Take first 50 characters, try to end at a word boundary
-			if (cleaned.length <= 250) return cleaned;
-			const truncated = cleaned.substring(0, 250);
+			if (cleaned.length <= 400) return cleaned;
+			const truncated = cleaned.substring(0, 400);
 			const lastSpace = truncated.lastIndexOf(' ');
 			return lastSpace > 30 ? truncated.substring(0, lastSpace) : truncated;
 			//return lastSpace > 30 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';

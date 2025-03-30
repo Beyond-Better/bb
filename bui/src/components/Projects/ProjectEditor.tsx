@@ -438,7 +438,8 @@ export function ProjectEditor({
 				</div>
 
 				{/* Tab Content Helper */}
-				{showTabHelper.value && (
+				{
+					/* showTabHelper.value && (
 					<div className='mb-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 flex justify-between items-center'>
 						<p className='text-sm text-blue-700 dark:text-blue-300'>
 							You can freely switch between tabs - your changes are preserved until you save or cancel
@@ -451,7 +452,8 @@ export function ProjectEditor({
 							Got it
 						</button>
 					</div>
-				)}
+				) */
+				}
 
 				{/* Names Section */}
 				{activeTab.value === 'general' && (

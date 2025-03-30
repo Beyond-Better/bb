@@ -1057,6 +1057,8 @@ Ensure your summary accurately captures all important context from the removed m
 			// Update the conversation log
 			await interaction.conversationLogger.logAuxiliaryMessage(
 				`truncate-${timestamp}`,
+				null,
+				null,
 				{
 					message:
 						`Conversation truncated to ${finalKeptMessages.length} messages. ${finalRemovedMessages.length} messages summarized.`,

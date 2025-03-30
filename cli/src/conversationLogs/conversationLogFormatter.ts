@@ -21,6 +21,7 @@ const globalConfig = await configManager.getGlobalConfig();
 //console.log(error("[ERROR]"), "Some error!");
 
 const USER_ICON = '👤';
+const ORCHESTRATOR_ICON = '🤖';
 const ASSISTANT_ICON = '🤖';
 const TOOL_ICON = '🔧';
 const AUXILIARY_ICON = '📎';
@@ -35,11 +36,16 @@ export default class ConversationLogFormatter {
 		ConversationLogEntryType,
 		{ icon: string; color: (text: string) => string; label: string }
 	> = {
-		user: { icon: USER_ICON, color: colors.green, label: globalConfig.myPersonsName || 'Person' },
-		assistant: { icon: ASSISTANT_ICON, color: colors.blue, label: globalConfig.myAssistantsName || 'Assistant' },
+		user: { icon: USER_ICON, color: colors.blue, label: globalConfig.myPersonsName || 'Person' },
+		orchestrator: {
+			icon: ORCHESTRATOR_ICON,
+			color: colors.green,
+			label: `${globalConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
+		},
+		assistant: { icon: ASSISTANT_ICON, color: colors.green, label: globalConfig.myAssistantsName || 'Assistant' },
 		answer: {
 			icon: ASSISTANT_ICON,
-			color: colors.blue,
+			color: colors.green,
 			label: `Answer from ${globalConfig.myAssistantsName || 'Assistant'}`,
 		},
 		tool_use: { icon: TOOL_ICON, color: colors.yellow, label: 'Tool Input' },

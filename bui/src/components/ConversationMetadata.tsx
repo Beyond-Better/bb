@@ -1,15 +1,17 @@
 import { JSX } from 'preact';
-import type { ConversationEntry } from 'shared/types.ts';
+import type { ConversationLogDataEntry } from 'shared/types.ts';
 
 interface ConversationMetadataProps {
-	logEntries: ConversationEntry[];
+	logDataEntries: ConversationLogDataEntry[];
 	conversationId: string | null;
 	title?: string;
 }
 
-export function ConversationMetadata({ logEntries, conversationId, title }: ConversationMetadataProps): JSX.Element {
-	// Get the most recent token usage from logEntries
-	const latestEntry = logEntries[logEntries.length - 1];
+export function ConversationMetadata(
+	{ logDataEntries, conversationId, title }: ConversationMetadataProps,
+): JSX.Element {
+	// Get the most recent token usage from logDataEntries
+	const latestEntry = logDataEntries[logDataEntries.length - 1];
 	const tokenUsage = latestEntry?.tokenUsageStats.tokenUsageConversation;
 
 	return (

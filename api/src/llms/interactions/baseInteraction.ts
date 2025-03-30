@@ -31,7 +31,7 @@ import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
@@ -114,7 +114,7 @@ class LLMInteraction {
 	// 	};
 
 	constructor(llm: LLM, conversationId?: ConversationId) {
-		this.id = conversationId ?? generateConversationId();
+		this.id = conversationId ?? shortenConversationId(generateConversationId());
 		this.llm = llm;
 		this._interactionType = 'base';
 		// Ensure objectives are properly initialized
@@ -125,10 +125,14 @@ class LLMInteraction {
 		};
 	}
 
-	public async init(parentId?: ConversationId): Promise<LLMInteraction> {
+	public async init(parentInteractionId?: ConversationId): Promise<LLMInteraction> {
 		try {
 			//const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
 			const logEntryHandler = async (
+				messageId: string,
+				parentMessageId: string | null,
+				parentInteractionId: ConversationId,
+				agentInteractionId: ConversationId | null,
 				timestamp: string,
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
@@ -137,6 +141,10 @@ class LLMInteraction {
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
+					messageId,
+					parentMessageId,
+					parentInteractionId,
+					agentInteractionId,
 					timestamp,
 					logEntry,
 					conversationStats,
@@ -145,8 +153,16 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(this.id, projectEditor, parentId).init();
-			this.conversationLogger = await new ConversationLogger(projectEditor, parentId ?? this.id, logEntryHandler)
+			this.conversationPersistence = await new ConversationPersistence(
+				this.id,
+				projectEditor,
+				parentInteractionId,
+			).init();
+			this.conversationLogger = await new ConversationLogger(
+				projectEditor,
+				parentInteractionId ?? this.id,
+				logEntryHandler,
+			)
 				.init();
 			this.projectConfig = projectEditor.projectConfig;
 		} catch (error) {
@@ -282,7 +298,8 @@ class LLMInteraction {
 
 	protected calculateCacheImpact(tokenUsage: TokenUsage): CacheImpact {
 		// Calculate potential cost without cache
-		const potentialCost = tokenUsage.inputTokens;
+		const potentialCost = tokenUsage.inputTokens + tokenUsage.outputTokens +
+			(tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
 
 		// Calculate actual cost with cache
 		const actualCost = (tokenUsage.cacheReadInputTokens ?? 0) + (tokenUsage.cacheCreationInputTokens ?? 0);
@@ -561,6 +578,12 @@ class LLMInteraction {
 			is_error: isError,
 		} as LLMMessageContentPartToolResultBlock;
 		// logger.debug('LLMInteraction: Adding tool result', toolResult);
+		const bbResult = isError
+			? {
+				type: 'text',
+				text: `The tool run failed: ${toolRunResultContent}`,
+			} as LLMMessageContentPartTextBlock
+			: null;
 
 		const lastMessage = this.getLastMessage();
 		if (lastMessage && lastMessage.role === 'user') {
@@ -603,6 +626,7 @@ class LLMInteraction {
 					JSON.stringify(toolResult, null, 2),
 				);
 				lastMessage.content.push(toolResult);
+				if (bbResult) lastMessage.content.push(bbResult);
 				return lastMessage.id;
 			}
 		} else {
@@ -611,7 +635,9 @@ class LLMInteraction {
 				'LLMInteraction: Adding new user message with tool result',
 				JSON.stringify(toolResult, null, 2),
 			);
-			const newMessage = new LLMMessage('user', [toolResult], this.conversationStats);
+			const newMessageContent: LLMMessageContentParts = [toolResult];
+			if (bbResult) newMessageContent.push(bbResult);
+			const newMessage = new LLMMessage('user', newMessageContent, this.conversationStats);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}

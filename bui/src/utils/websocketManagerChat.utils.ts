@@ -8,6 +8,7 @@ import type {
 } from 'shared/types.ts';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
+import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 
 interface WebSocketMessage {
 	conversationId: string;
@@ -18,6 +19,12 @@ interface WebSocketMessage {
 	requestParams?: LLMRequestParams;
 	filesToAttach?: string[];
 }
+
+// interface WebSocketLogEntry {
+// 	timestamp: string;
+// 	logEntry: ConversationLogEntry;
+// 	formattedContent: string;
+// }
 
 interface WebSocketResponse {
 	type:
@@ -31,8 +38,12 @@ interface WebSocketResponse {
 		| 'progressStatus'
 		| 'promptCacheTimer';
 	data: {
-		logEntry?: any;
+		logEntry?: ConversationLogEntry;
+		timestamp?: string;
 		conversationTitle?: string;
+		messageId: string;
+		parentMessageId: string | null;
+		agentInteractionId: string | null;
 		tokenUsageStats: {
 			tokenUsageTurn?: TokenUsage;
 			tokenUsageStatement?: TokenUsage;
@@ -40,6 +51,7 @@ interface WebSocketResponse {
 		};
 		conversationStats?: ConversationStats;
 		requestParams: LLMRequestParams;
+		formattedContent?: string;
 		error?: string;
 	};
 }
@@ -110,6 +122,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.socket.send(JSON.stringify(message));
 	}
 
+	// deno-lint-ignore require-await
 	async sendConverse(
 		message: string,
 		requestParams?: LLMRequestParams,
@@ -142,6 +155,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.socket.send(JSON.stringify(wsMessage));
 	}
 
+	// deno-lint-ignore require-await
 	async sendCancellation(): Promise<void> {
 		if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.conversationId) {
 			throw new Error('WebSocket not ready to send cancellation');
@@ -158,14 +172,18 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			const msg = JSON.parse(event.data) as WebSocketResponse;
 			console.log('WebSocketManagerChat: Received message:', msg.type);
 
-			const generateLogEntryData = (
+			const generateLogDataEntry = (
 				msgData: WebSocketResponse,
-				msgType: 'continue' | 'answer',
+				_msgType: 'continue' | 'answer',
 			): ConversationContinue | ConversationResponse => {
 				const baseEntry = {
 					conversationId: this.conversationId!,
 					conversationTitle: '',
-					timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
+					messageId: msgData.data.messageId,
+					parentMessageId: msgData.data.parentMessageId,
+					agentInteractionId: msgData.data.agentInteractionId,
+					//timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
+					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
 					requestParams: msgData.data.requestParams,
 					tokenUsageStats: {
@@ -190,24 +208,24 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 						statementTurnCount: 0,
 						conversationTurnCount: 0,
 					},
-					formattedContent: msgData.data.logEntry?.formattedContent,
+					formattedContent: msgData.data.formattedContent,
 				};
 
-				return baseEntry as any;
+				return baseEntry as ConversationContinue | ConversationResponse;
 			};
 
 			switch (msg.type) {
 				case 'conversationNew':
 					this.emit('message', {
 						msgType: 'conversationNew',
-						logEntryData: msg.data,
+						logDataEntry: msg.data,
 					});
 					break;
 
 				case 'conversationDeleted':
 					this.emit('message', {
 						msgType: 'conversationDeleted',
-						logEntryData: msg.data,
+						logDataEntry: msg.data,
 					});
 					break;
 
@@ -223,14 +241,14 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				case 'conversationContinue':
 					this.emit('message', {
 						msgType: 'continue',
-						logEntryData: generateLogEntryData(msg, 'continue'),
+						logDataEntry: generateLogDataEntry(msg, 'continue') as ConversationContinue,
 					});
 					break;
 
 				case 'conversationAnswer':
 					this.emit('message', {
 						msgType: 'answer',
-						logEntryData: generateLogEntryData(msg, 'answer'),
+						logDataEntry: generateLogDataEntry(msg, 'answer') as ConversationResponse,
 					});
 					break;
 

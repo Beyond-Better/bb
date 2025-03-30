@@ -8,13 +8,14 @@ import type { ConversationId } from 'shared/types.ts';
 import type { CompletedTask, Task } from 'api/types/llms.ts';
 import type { ErrorHandler } from '../llms/errorHandler.ts';
 import { isLLMError } from 'api/errors/error.ts';
-import { ApiStatus } from 'shared/types.ts';
+//import { ApiStatus } from 'shared/types.ts';
 import type {
-	ConversationStats,
 	//ObjectivesData,
+	ConversationStatementMetadata,
+	ConversationStats,
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 
 import BaseController from './baseController.ts';
@@ -80,7 +81,6 @@ class AgentController extends BaseController {
 		orchestratorInteractionId: ConversationId,
 	) {
 		super(projectEditor);
-		this.primaryInteractionId = generateConversationId();
 		this.orchestratorInteractionId = orchestratorInteractionId;
 	}
 
@@ -105,15 +105,17 @@ class AgentController extends BaseController {
 	//}
 
 	async createAgentInteraction(title: string): Promise<LLMConversationInteraction> {
-		logger.info('AgentController: createAgentInteraction - creating interaction for: ', this.primaryInteractionId);
+		const agentInteractionId = shortenConversationId(generateConversationId());
+		logger.info(
+			`AgentController: createAgentInteraction - creating interaction for: ${agentInteractionId} with parent ${this.orchestratorInteractionId}`,
+		);
 		const agentInteraction = await this.interactionManager.createInteraction(
 			'conversation',
-			this.primaryInteractionId!,
+			agentInteractionId,
 			this.llmProvider,
 			this.orchestratorInteractionId,
 		) as LLMConversationInteraction;
 		agentInteraction.title = title;
-		//this.primaryInteractionId = this.orchestratorInteractionId;
 		logger.info('AgentController: createAgentInteraction - created interaction for: ', agentInteraction.id);
 		logger.info(
 			'AgentController: createAgentInteraction - interaction has llm for: ',
@@ -148,6 +150,7 @@ class AgentController extends BaseController {
 
 	public async executeSyncTasks(
 		orchestratorController: OrchestratorController,
+		parentMessageId: string,
 		tasks: Task[],
 		errorHandler: ErrorHandler,
 	): Promise<Array<CompletedTask>> {
@@ -156,7 +159,9 @@ class AgentController extends BaseController {
 
 		for (const task of tasks) {
 			try {
-				completedTasks.push(await this.executeTask(orchestratorController, task, errorHandler));
+				completedTasks.push(
+					await this.executeTask(orchestratorController, parentMessageId, task, errorHandler),
+				);
 			} catch (error) {
 				throw error;
 			}
@@ -167,6 +172,7 @@ class AgentController extends BaseController {
 
 	public async executeAsyncTasks(
 		orchestratorController: OrchestratorController,
+		parentMessageId: string,
 		tasks: Task[],
 		errorHandler: ErrorHandler,
 	): Promise<Array<CompletedTask>> {
@@ -175,7 +181,7 @@ class AgentController extends BaseController {
 		//tasks.forEach((task) => this.taskQueue.addTask(task));
 		try {
 			completedTasks = await Promise.all(
-				tasks.map((task) => this.executeTask(orchestratorController, task, errorHandler)),
+				tasks.map((task) => this.executeTask(orchestratorController, parentMessageId, task, errorHandler)),
 			);
 		} catch (error) {
 			throw error;
@@ -185,10 +191,11 @@ class AgentController extends BaseController {
 
 	private async executeTask(
 		orchestratorController: OrchestratorController,
+		parentMessageId: string,
 		task: Task,
 		errorHandler: ErrorHandler,
 	): Promise<CompletedTask> {
-		logger.info('AgentController: executeTask ', { task });
+		logger.info('AgentController: executeTask ', { parentMessageId, task });
 
 		const interaction = await this.createAgentInteraction(task.title);
 		if (!interaction) {
@@ -198,7 +205,7 @@ class AgentController extends BaseController {
 
 		let completedTask: CompletedTask;
 		try {
-			completedTask = await this.handleTask(orchestratorController, task, {
+			completedTask = await this.handleTask(orchestratorController, interaction, parentMessageId, task, {
 				maxTurns: 10,
 				model: orchestratorController!.projectConfig?.defaultModels?.agent,
 			});
@@ -212,38 +219,38 @@ class AgentController extends BaseController {
 
 	async handleTask(
 		_orchestratorController: OrchestratorController,
+		interaction: LLMConversationInteraction,
+		parentMessageId: string,
 		task: Task,
 		options: { maxTurns?: number; model?: string } = {},
 	): Promise<CompletedTask> {
 		this.isCancelled = false;
-		this.resetStatus();
+		//this.resetStatus();
 
-		if (!this.primaryInteractionId) {
-			throw new Error(`Primary Interaction Id is not set`);
-		}
+		//this.emitStatus(ApiStatus.API_BUSY);
 
-		this.emitStatus(ApiStatus.API_BUSY);
-
-		const interaction = this.interactionManager.getInteraction(
-			this.primaryInteractionId,
-		) as LLMConversationInteraction;
 		if (!interaction) {
-			throw new Error(`No interaction found for ID: ${this.primaryInteractionId}`);
+			throw new Error(`No agent interaction provided for handle task`);
 		}
 
 		logger.info('AgentController: handleTask ', task.title);
 
 		if (!task.instructions) {
+			//const logEntryInteraction = this.logEntryInteraction;
+			const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
+				interaction;
+			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 			this.eventManager.emit(
 				'projectEditor:conversationError',
 				{
-					conversationId: interaction.id,
+					conversationId: logEntryInteraction.id,
 					conversationTitle: interaction.title || '',
+					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
 					conversationStats: {
-						statementCount: this.statementCount,
-						statementTurnCount: this.statementTurnCount,
-						conversationTurnCount: this.conversationTurnCount,
+						statementCount: interaction.statementCount,
+						statementTurnCount: interaction.statementTurnCount,
+						conversationTurnCount: interaction.conversationTurnCount,
 					},
 					error: 'Missing instructions',
 					code: 'EMPTY_PROMPT' as const,
@@ -306,17 +313,17 @@ class AgentController extends BaseController {
 
 		try {
 			logger.info(
-				`AgentController: Calling conversation.converse for turn ${this.statementTurnCount} with statement: "${
+				`AgentController: Calling conversation.converse for turn ${interaction.statementTurnCount} with statement: "${
 					statement.substring(0, 50)
 				}..."`,
 			);
 
 			// START OF STATEMENT - REQUEST TO LLM
-			this.emitStatus(ApiStatus.LLM_PROCESSING);
-			this.emitPromptCacheTimer();
+			//this.emitStatus(ApiStatus.LLM_PROCESSING);
+			//this.emitPromptCacheTimer();
 
 			// Create metadata object with task information
-			const metadata = {
+			const metadata: ConversationStatementMetadata = {
 				system: {
 					timestamp: new Date().toISOString(),
 					os: Deno.build.os,
@@ -329,9 +336,9 @@ class AgentController extends BaseController {
 				},
 				conversation: {
 					counts: {
-						statements: this.statementCount,
-						statement_turns: this.statementTurnCount,
-						conversation_turns: this.conversationTurnCount,
+						statements: interaction.statementCount,
+						statement_turns: interaction.statementTurnCount,
+						conversation_turns: interaction.conversationTurnCount,
 						//max_turns_per_statement: 15,
 					},
 				},
@@ -340,9 +347,9 @@ class AgentController extends BaseController {
 				},
 			};
 
-			currentResponse = await interaction.converse(statement, metadata, speakOptions);
+			currentResponse = await interaction.converse(statement, parentMessageId, metadata, speakOptions);
 
-			this.emitStatus(ApiStatus.API_BUSY);
+			//this.emitStatus(ApiStatus.API_BUSY);
 			logger.info('AgentController: Received response from LLM');
 			//logger.debug('AgentController: LLM Response:', currentResponse);
 
@@ -355,14 +362,14 @@ class AgentController extends BaseController {
 
 		// Save the conversation immediately after the first response
 		logger.info(
-			`AgentController: Saving conversation at beginning of statement: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
+			`AgentController: Saving conversation at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 		);
 		await this.saveInitialConversationWithResponse(interaction, currentResponse);
 
 		let loopTurnCount = 0;
 
-		//while (loopTurnCount < maxTurns && !this.isCancelled) {
-		while (loopTurnCount < 1 && !this.isCancelled) {
+		//while (loopTurnCount < 1 && !this.isCancelled) {
+		while (loopTurnCount < maxTurns && !this.isCancelled) {
 			logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
 			try {
 				// Handle tool calls and collect toolResponse
@@ -372,7 +379,7 @@ class AgentController extends BaseController {
 					const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
 					const thinkingContent = this.extractThinkingContent(currentResponse.messageResponse);
 					logger.debug(
-						`AgentController: Text and Thinking content for tool use for turn ${this.statementTurnCount}:`,
+						`AgentController: Text and Thinking content for tool use for turn ${interaction.statementTurnCount}:`,
 						{ textContent, thinkingContent },
 					);
 
@@ -382,6 +389,8 @@ class AgentController extends BaseController {
 
 						interaction.conversationLogger.logAssistantMessage(
 							interaction.getLastMessageId(),
+							parentMessageId,
+							interaction.id,
 							textContent,
 							thinkingContent,
 							conversationStats,
@@ -396,11 +405,12 @@ class AgentController extends BaseController {
 					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
 						logger.info('AgentController: Handling tool', toolUse);
 						try {
-							this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
+							//this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
 
 							// logToolUse is called in handleToolUse
 							// logToolResult is called in handleToolUse
 							const { toolResponse } = await this.handleToolUse(
+								parentMessageId,
 								interaction,
 								toolUse,
 								currentResponse.messageResponse,
@@ -416,7 +426,9 @@ class AgentController extends BaseController {
 						}
 					}
 				}
-				logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools`);
+				logger.warn(
+					`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`,
+				);
 
 				loopTurnCount++;
 
@@ -436,6 +448,8 @@ class AgentController extends BaseController {
 					const timestamp = new Date().toISOString();
 					await interaction.conversationLogger.logAuxiliaryMessage(
 						`force-summary-${timestamp}`,
+						parentMessageId,
+						interaction.id,
 						{
 							message:
 								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
@@ -469,7 +483,7 @@ class AgentController extends BaseController {
 					};
 
 					// Handle the tool use directly without adding its response to toolResponses
-					await this.handleToolUse(interaction, toolUse, currentResponse.messageResponse);
+					await this.handleToolUse(parentMessageId, interaction, toolUse, currentResponse.messageResponse);
 
 					// Only add summary note to toolResponses if there are already responses to process
 					// This avoids triggering another loop iteration if LLM was done
@@ -489,11 +503,11 @@ class AgentController extends BaseController {
 							formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
 						}\n${toolResponses.join('\n')}`;
 
-						this.emitStatus(ApiStatus.LLM_PROCESSING);
-						this.emitPromptCacheTimer();
+						//this.emitStatus(ApiStatus.LLM_PROCESSING);
+						//this.emitPromptCacheTimer();
 
 						// Update metadata with current information
-						const toolMetadata = {
+						const toolMetadata: ConversationStatementMetadata = {
 							system: {
 								timestamp: new Date().toISOString(),
 								os: Deno.build.os,
@@ -506,9 +520,9 @@ class AgentController extends BaseController {
 							},
 							conversation: {
 								counts: {
-									statements: this.statementCount,
-									statement_turns: this.statementTurnCount,
-									conversation_turns: this.conversationTurnCount,
+									statements: interaction.statementCount,
+									statement_turns: interaction.statementTurnCount,
+									conversation_turns: interaction.conversationTurnCount,
 									//max_turns_per_statement: 15,
 								},
 								turn: {
@@ -523,7 +537,7 @@ class AgentController extends BaseController {
 
 						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
 
-						this.emitStatus(ApiStatus.API_BUSY);
+						//this.emitStatus(ApiStatus.API_BUSY);
 						//logger.info('AgentController: tool response', currentResponse);
 					} catch (error) {
 						throw this.handleLLMError(error as Error, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
@@ -543,17 +557,22 @@ class AgentController extends BaseController {
 				const args = isLLMError(error) ? error.options?.args : null;
 				const errorMessage = args ? `${args.reason} - ${(error as Error).message}` : (error as Error).message;
 
+				//const logEntryInteraction = this.logEntryInteraction;
+				const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
+					interaction;
+				const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 				// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
 				this.eventManager.emit(
 					'projectEditor:conversationError',
 					{
 						conversationId: interaction.id,
 						conversationTitle: interaction.title || '',
+						agentInteractionId: agentInteractionId,
 						timestamp: new Date().toISOString(),
 						conversationStats: {
-							statementCount: this.statementCount,
-							statementTurnCount: this.statementTurnCount,
-							conversationTurnCount: this.conversationTurnCount,
+							statementCount: interaction.statementCount,
+							statementTurnCount: interaction.statementTurnCount,
+							conversationTurnCount: interaction.conversationTurnCount,
 						},
 						error: errorMessage,
 						code: 'RESPONSE_HANDLING' as const,
@@ -583,13 +602,13 @@ class AgentController extends BaseController {
 
 		// Final save of the entire conversation at the end of the loop
 		logger.debug(
-			`AgentController: Saving conversation at end of statement: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
+			`AgentController: Saving conversation at end of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 		);
 
 		await this.saveConversationAfterStatement(interaction, currentResponse);
 
 		logger.info(
-			`AgentController: Final save of conversation: ${interaction.id}[${this.statementCount}][${this.statementTurnCount}]`,
+			`AgentController: Final save of conversation: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 		);
 
 		// Extract full answer text
@@ -603,17 +622,19 @@ class AgentController extends BaseController {
 
 		interaction.conversationLogger.logAnswerMessage(
 			interaction.getLastMessageId(),
+			parentMessageId,
+			interaction.id,
 			answer,
 			assistantThinking,
 			{
-				statementCount: this.statementCount,
-				statementTurnCount: this.statementTurnCount,
-				conversationTurnCount: this.conversationTurnCount,
+				statementCount: interaction.statementCount,
+				statementTurnCount: interaction.statementTurnCount,
+				conversationTurnCount: interaction.conversationTurnCount,
 			},
 			{
-				tokenUsageTurn: this.primaryInteraction.tokenUsageTurn,
-				tokenUsageStatement: this.primaryInteraction.tokenUsageStatement,
-				tokenUsageConversation: this.primaryInteraction.tokenUsageInteraction,
+				tokenUsageTurn: interaction.tokenUsageTurn,
+				tokenUsageStatement: interaction.tokenUsageStatement,
+				tokenUsageConversation: interaction.tokenUsageInteraction,
 			},
 			currentResponse.messageMeta.requestParams,
 		);
@@ -624,7 +645,7 @@ class AgentController extends BaseController {
 			result: `Task '${task.title}' completed successfully:\n${answer}`,
 		};
 
-		this.resetStatus();
+		//this.resetStatus();
 		return completedTask;
 	}
 }

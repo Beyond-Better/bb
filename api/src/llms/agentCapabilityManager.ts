@@ -1,4 +1,4 @@
-export class CapabilityManager {
+export class AgentCapabilityManager {
 	private availableCapabilities: Set<string>;
 
 	constructor() {

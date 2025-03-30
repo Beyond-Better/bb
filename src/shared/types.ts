@@ -64,7 +64,7 @@ export interface ConversationDetailedMetadata extends ConversationMetadata {
 
 	conversationMetrics: ConversationMetrics;
 
-	parentId?: ConversationId;
+	parentInteractionId?: ConversationId;
 
 	//tools?: Array<{ name: string; description: string }>;
 }
@@ -74,7 +74,7 @@ export interface Conversation {
 	id: ConversationId;
 	title: string;
 
-	logEntries: ConversationLogEntry[];
+	logDataEntries: ConversationLogDataEntry[];
 
 	conversationStats: ConversationStats;
 	conversationMetrics?: ConversationMetrics;
@@ -107,6 +107,41 @@ export interface FileMetadata {
 	toolUseId?: string;
 	lastCommit?: string;
 	error?: string | null;
+}
+
+export interface ConversationStatementMetadata {
+	system: {
+		timestamp: string;
+		os: string;
+		bb_version?: string;
+		// Add: git_branch, git_commit
+	};
+	task?: {
+		title: string;
+		type: string;
+	};
+	conversation: {
+		goal?: string;
+		current_objective?: string;
+		counts: {
+			statements: number;
+			statement_turns: number;
+			conversation_turns: number;
+			max_turns_per_statement?: number;
+		};
+		turn?: {
+			number: number;
+			max: number;
+		};
+	};
+	resources?: {
+		files_active: number;
+	};
+	tools?: { // see formatToolObjectivesAndStats for example of toolStats
+		recent: Array<
+			{ name: string; success: boolean; count: number }
+		>;
+	};
 }
 
 export type ConversationFilesMetadata = Record<string, FileMetadata>;
@@ -254,28 +289,41 @@ export interface ConversationMetrics extends ConversationStats {
 	};
 }
 
-export type ConversationEntry = ConversationStart | ConversationContinue | ConversationResponse;
+export type ConversationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse;
 
 export interface ConversationStart {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId?: string | null;
+	agentInteractionId?: string | null;
 	timestamp: string;
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
 	// 	};
+	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
-	conversationHistory: ConversationEntry[];
+	conversationHistory: ConversationLogDataEntry[];
 	formattedContent?: string;
 	versionInfo: VersionInfo;
 	logEntry?: ConversationLogEntry;
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 }
 
 export interface ConversationContinue {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId: string | null;
+	agentInteractionId: string | null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
@@ -285,6 +333,9 @@ export interface ConversationContinue {
 export interface ConversationNew {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId?: string | null;
+	agentInteractionId?: string | null;
 	timestamp: string;
 	//tokenUsageConversation: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
@@ -300,8 +351,14 @@ export interface ConversationDeleted {
 export interface ConversationResponse {
 	conversationId: ConversationId;
 	conversationTitle: string;
+	messageId?: string;
+	parentMessageId: string | null;
+	agentInteractionId: string | null;
 	timestamp: string;
 	logEntry: ConversationLogEntry;
+	children?: {
+		[agentInteractionId: string]: ConversationLogDataEntry[];
+	};
 	requestParams?: LLMRequestParams;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;

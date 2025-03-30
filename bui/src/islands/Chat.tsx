@@ -21,8 +21,8 @@ import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
-import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
-import { generateConversationId } from 'shared/conversationManagement.ts';
+import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
+import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
 
 // Helper functions for URL parameters
@@ -210,10 +210,10 @@ export default function Chat({
 		}
 	};
 
-	const transformEntry = (logEntryData: ConversationEntry): ConversationEntry => {
-		// Simply return the entry as it's already a valid ConversationEntry
+	const transformEntry = (logDataEntry: ConversationLogDataEntry): ConversationLogDataEntry => {
+		// Simply return the entry as it's already a valid ConversationLogDataEntry
 		// The type guards are used in the UI components to safely access properties
-		return logEntryData;
+		return logDataEntry;
 	};
 
 	const deleteConversation = async (id: string) => {
@@ -398,7 +398,7 @@ export default function Chat({
 		}
 
 		return () => messagesContainer.removeEventListener('scroll', handleScroll);
-	}, [chatState.value.logEntries, shouldAutoScroll]);
+	}, [chatState.value.logDataEntries, shouldAutoScroll]);
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
@@ -543,7 +543,7 @@ export default function Chat({
 											isConversationListVisible.value = false;
 										}}
 										onNew={async () => {
-											const id = generateConversationId();
+											const id = shortenConversationId(generateConversationId());
 											await selectConversation(id);
 											isConversationListVisible.value = false;
 										}}
@@ -560,7 +560,7 @@ export default function Chat({
 									status={chatState.value.status}
 									onSelect={selectConversation}
 									onNew={async () => {
-										const id = generateConversationId();
+										const id = shortenConversationId(generateConversationId());
 										await selectConversation(id);
 									}}
 									onDelete={deleteConversation}
@@ -632,7 +632,7 @@ export default function Chat({
 										className='flex-1 overflow-y-auto px-4 py-4 w-full overflow-x-hidden'
 										style={{ maxWidth: '100%' }}
 									>
-										{chatState.value.logEntries.length === 0 &&
+										{chatState.value.logDataEntries.length === 0 &&
 											!isProcessing(chatState.value.status) &&
 											(
 												<div className='flex flex-col items-center justify-center min-h-[400px] px-6 py-8'>
@@ -642,11 +642,11 @@ export default function Chat({
 													/>
 												</div>
 											)}
-										{chatState.value.logEntries.length > 0 &&
-											chatState.value.logEntries.map((logEntryData, index) => (
+										{chatState.value.logDataEntries.length > 0 &&
+											chatState.value.logDataEntries.map((logDataEntry, index) => (
 												<MessageEntry
 													key={index}
-													logEntryData={transformEntry(logEntryData)}
+													logDataEntry={transformEntry(logDataEntry)}
 													index={index}
 													onCopy={handleCopy}
 													apiClient={chatState.value.apiClient!}

@@ -274,8 +274,8 @@ impl Default for CliConfig {
 impl Default for DefaultModels {
     fn default() -> Self {
         DefaultModels {
-            orchestrator: "claude-3-5-sonnet-20241022".to_string(),
-            agent: "claude-3-5-sonnet-20241022".to_string(),
+            orchestrator: "claude-3-7-sonnet-20250219".to_string(),
+            agent: "claude-3-7-sonnet-20250219".to_string(),
             chat: "claude-3-haiku-20240307".to_string(),
         }
     }

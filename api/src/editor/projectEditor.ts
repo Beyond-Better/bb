@@ -170,7 +170,7 @@ class ProjectEditor {
 		logger.info(
 			`ProjectEditor: Initializing a conversation with ID: ${conversationId}`,
 		);
-		return await this.orchestratorController.initializePrimaryInteraction(
+		return await this.orchestratorController.initializeInteraction(
 			conversationId,
 		);
 	}

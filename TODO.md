@@ -1,6 +1,5 @@
 # TODO List
 
-
 ## Repository Information Management
 1. Convert projectInfo into a proper class with support for:
    - ctags
@@ -13,19 +12,6 @@
 1. Add config option to create new branch when starting a conversation
 2. Implement a way to "end" conversation which merges branch back to original
 
-## Task Management
-1. Create an 'add task' tool allowing Claude to give BB a list of tasks to complete
-2. Implement each task as a new conversation to complete the task
-
-## System Prompt and Project Info
-1. Update system prompt to give a clear explanation about using project-info to choose files rather than search_files
-2. Move project-info towards the beginning of the system prompt
-3. Create a high-level system prompt template to combine baseSystem with project info and files added
-4. Update system prompt to further clarify that assistant is talking to both BB and user:
-   - Responses to tool use (e.g., "Change applied successfully") should be directed to BB and wrapped in tags for parsing
-   - Everything not inside <bb> tags will be shown to user as part of the conversation
-   - 'User' message showing 'tool result' should be clearly separate from rest of the conversation
-
 ## Logging and Output
 1. Implement terse and verbose options for conversation log:
    - Verbose option to show results of tool use and details such as contents of changes being applied
@@ -33,8 +19,6 @@
 2. Format JSON in display of logs
 
 ## Configuration and Customization
-1. Create configs for different interfaces (API, BUI, CLI, DUI)
-2. Implement interface-specific settings in the configuration file
 2. Implement a safety switch (e.g., allow_dangerous_user_scripts) for potentially dangerous user scripts
 3. Create a meta tool to choose which toolset to load (e.g., different tools for coding projects vs. creative writing)
 4. Create configs for:
@@ -156,6 +140,9 @@
 √ - explain that using (most) browsers requires API to be secure (TLS)
 √ Tool to open file (widget) in browser
 
+√ Create configs for different interfaces (API, BUI, CLI, DUI)
+√ Implement interface-specific settings in the configuration file
+
 √ Subscriptions and plans (& billing)
 √ LLM Proxy for tracking token usage per user
 √ Change plans
@@ -170,4 +157,43 @@
 √ Chat Input history
 √ BUI: Update the settings page to get latest usage when changing page nav.
 
+√ Message Entry, when tool title and preview is long; it gets centered over two lines; it needs to be adjusted left
+√ Mini metadata in action buttons section
+
+√ display in BUI of taks for orchestrator vs agent
+√ log entries need to get passed to BUI using parent conversationId
+√ group agent tasks under delegate tasks - max height and collapsible
+
+√ expand main system prompt to explain using delegate tasks:
+√ - save tokens
+√ - complex series of tasks
+√ - etc
+√ system prompt for agent tasks
+
+√ cache mcp tool loading
+
+√ Extended thinking support:
+√ - UI controls
+√ - Send UI settings from chat to API
+√ - Pass settings all the way to provider
+√ - Only set thinking for conversations, not chats
+√ - extended thinking requires temperature:1
+√ - Change max tokens depending on model (new defaultModels format??)
+√ - extract thinking content part and format for standard <thinking> block
+√ - Update llm-proxy to use extended thinking
+
+√ Include metadata for conversation statements, eg current date, turn count, metrics
+
+√ Propagate errors from API to BUI; eg hitting rate limits or other errors from LLM
+
+√ signed binaries for ~~api/bui/cli/~~ dui
+
+√ ## System Prompt and Project Info
+√ 1. Update system prompt to give a clear explanation about using project-info to choose files rather than search_files
+√ 2. Move project-info towards the beginning of the system prompt
+√ 3. Create a high-level system prompt template to combine baseSystem with project info and files added
+√ 4. Update system prompt to further clarify that assistant is talking to both BB and user:
+√    - Responses to tool use (e.g., "Change applied successfully") should be directed to BB and wrapped in tags for parsing
+√    - Everything not inside <bb> tags will be shown to user as part of the conversation
+√    - 'User' message showing 'tool result' should be clearly separate from rest of the conversation
 

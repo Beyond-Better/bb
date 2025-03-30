@@ -48,13 +48,14 @@ const formatBoolean = (
 
 export const TOOL_STYLES_BROWSER = {
 	base: {
-		container: 'rounded-lg prose dark:prose-invert max-w-none py-1 px-4',
+		container: 'rounded-lg prose prose-sm dark:prose-invert max-w-none py-1 px-4',
 		box: 'rounded-lg max-w-none py-1 px-4 whitespace-pre-wrap',
 		pre: 'p-2.5 rounded font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',
 		code: 'font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',
 		list: 'space-y-2',
 		listItem: 'ml-4',
 		label: 'font-semibold text-gray-700 dark:text-gray-300',
+		text: 'text-gray-700 dark:text-gray-300',
 	},
 	// Status-based styles
 	status: {
@@ -253,6 +254,9 @@ export const TOOL_STYLES_CONSOLE = {
 		patch: (text: string) => colors.yellow(text),
 		code: (text: string) => text,
 		data: (text: string) => colors.blue(text),
+		separator: (char = '─', length = 60) => {
+			return colors.dim(char.repeat(length));
+		},
 	},
 };
 
@@ -260,9 +264,9 @@ export const TOOL_STYLES_CONSOLE = {
 export const createToolTitle = (toolRole: string, toolName: string): JSX.Element => {
 	const title = toolRole === 'Tool Use' ? 'Tool Input' : toolRole === 'Tool Result' ? 'Tool Output' : 'Tool';
 	return (
-		<div className='bb-log-entry-title'>
+		<span className='bb-log-entry-title'>
 			{title} <span className='bb-log-entry-toolname'>({toolName})</span>
-		</div>
+		</span>
 	);
 };
 
@@ -307,6 +311,10 @@ export const createToolList = (
 // Create new tag functions for content elements
 export const createToolLabel = (text: string): JSX.Element => (
 	<strong className={TOOL_STYLES_BROWSER.base.label}>{text}</strong>
+);
+
+export const createToolText = (text: string): JSX.Element => (
+	<span className={TOOL_STYLES_BROWSER.base.text}>{text}</span>
 );
 
 export const createToolFilename = (text: string): JSX.Element => (
@@ -492,6 +500,7 @@ export const TOOL_TAGS_BROWSER = {
 		code: createToolCode,
 		list: createToolList,
 		label: createToolLabel,
+		text: createToolText,
 	},
 	// Content elements
 	content: {

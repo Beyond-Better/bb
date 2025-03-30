@@ -140,8 +140,8 @@ describe('Configuration Types', () => {
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Claude',
 				defaultModels: {
-					orchestrator: 'claude-3-5-sonnet-20241022',
-					agent: 'claude-3-5-sonnet-20241022',
+					orchestrator: 'claude-3-7-sonnet-20250219',
+					agent: 'claude-3-7-sonnet-20250219',
 					chat: 'claude-3-haiku-20240307',
 				},
 				noBrowser: false,

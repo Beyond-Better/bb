@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 
-import type { ConversationEntry, ConversationMetadata } from 'shared/types.ts';
+import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type { Project, ProjectWithSources } from 'shared/types/project.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
@@ -487,8 +487,8 @@ export class ApiClient {
 	async getConversation(
 		id: string,
 		projectId: string,
-	): Promise<(ConversationResponse & { logEntries: ConversationEntry[] }) | null> {
-		return await this.get<ConversationResponse & { logEntries: ConversationEntry[] }>(
+	): Promise<(ConversationResponse & { logDataEntries: ConversationLogDataEntry[] }) | null> {
+		return await this.get<ConversationResponse & { logDataEntries: ConversationLogDataEntry[] }>(
 			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);

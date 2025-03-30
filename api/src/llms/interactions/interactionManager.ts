@@ -2,7 +2,7 @@ import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
-//import { generateConversationId } from 'shared/conversationManagement.ts';
+//import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import type { ConversationId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -21,34 +21,34 @@ class InteractionManager {
 		type: 'conversation' | 'chat',
 		interactionId: ConversationId,
 		llmProvider: LLM,
-		parentId?: string,
+		parentInteractionId?: string,
 	): Promise<LLMInteraction> {
-		//const interactionId = generateConversationId();
+		//const interactionId = shortenConversationId(generateConversationId());
 		let interaction: LLMInteraction;
 
 		logger.info('InteractionManager: Creating interaction of type: ', type);
 
 		if (type === 'conversation') {
-			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init(parentId);
+			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init(parentInteractionId);
 		} else {
-			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentId);
+			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentInteractionId);
 		}
 
 		this.interactions.set(interactionId, interaction);
 
-		if (parentId) {
-			this.interactionHierarchy.set(interactionId, parentId);
+		if (parentInteractionId) {
+			this.interactionHierarchy.set(interactionId, parentInteractionId);
 		}
 
 		return interaction;
 	}
 
-	addInteraction(interaction: LLMInteraction, parentId?: string): void {
+	addInteraction(interaction: LLMInteraction, parentInteractionId?: string): void {
 		const interactionId = interaction.id;
 		this.interactions.set(interactionId, interaction);
 
-		if (parentId) {
-			this.interactionHierarchy.set(interactionId, parentId);
+		if (parentInteractionId) {
+			this.interactionHierarchy.set(interactionId, parentInteractionId);
 		}
 	}
 
@@ -81,29 +81,29 @@ class InteractionManager {
 		return removed;
 	}
 
-	getChildInteractions(parentId: string): LLMInteraction[] {
+	getChildInteractions(parentInteractionId: string): LLMInteraction[] {
 		const childIds = Array.from(this.interactionHierarchy.entries())
-			.filter(([_, parent]) => parent === parentId)
+			.filter(([_, parent]) => parent === parentInteractionId)
 			.map(([child, _]) => child);
 
 		return childIds.map((id) => this.interactions.get(id)!).filter(Boolean);
 	}
 
-	setParentChild(parentId: string, childId: string): void {
-		if (!this.interactions.has(parentId) || !this.interactions.has(childId)) {
+	setParentChild(parentInteractionId: string, childId: string): void {
+		if (!this.interactions.has(parentInteractionId) || !this.interactions.has(childId)) {
 			throw new Error('Parent or child interaction does not exist');
 		}
-		this.interactionHierarchy.set(childId, parentId);
+		this.interactionHierarchy.set(childId, parentInteractionId);
 	}
 
 	getParentInteraction(childId: string): LLMInteraction | undefined {
-		const parentId = this.interactionHierarchy.get(childId);
-		return parentId ? this.interactions.get(parentId) : undefined;
+		const parentInteractionId = this.interactionHierarchy.get(childId);
+		return parentInteractionId ? this.interactions.get(parentInteractionId) : undefined;
 	}
 
-	getAllDescendantInteractions(parentId: string): LLMInteraction[] {
+	getAllDescendantInteractions(parentInteractionId: string): LLMInteraction[] {
 		const descendants: LLMInteraction[] = [];
-		const stack = [parentId];
+		const stack = [parentInteractionId];
 
 		while (stack.length > 0) {
 			const currentId = stack.pop()!;
