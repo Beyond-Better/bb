@@ -187,6 +187,7 @@ export class MCPManager {
 		return this.servers.get(serverId)?.config || null;
 	}
 
+	// deno-lint-ignore require-await
 	private async getMCPServerConfigurations(): Promise<MCPServerConfig[]> {
 		return this.projectConfig.settings.api?.mcpServers || [];
 	}
@@ -195,6 +196,7 @@ export class MCPManager {
 	 * Get list of available MCP server IDs
 	 * @returns Array of server IDs
 	 */
+	// deno-lint-ignore require-await
 	async getServers(): Promise<string[]> {
 		return Array.from(this.servers.keys());
 	}
@@ -220,12 +222,16 @@ export class MCPManager {
 			logger.debug(`MCPManager: Refreshed tools cache for server ${serverId}`);
 		} catch (error) {
 			logger.error(`MCPManager: Error refreshing tools cache for server ${serverId}:`, error);
-			throw createError(ErrorType.ExternalServiceError, `Failed to refresh MCP tools cache: ${errorMessage(error)}`, {
-				name: 'mcp-tools-cache-refresh-error',
-				service: 'mcp',
-				action: 'refresh-tools-cache',
-				serverId,
-			});
+			throw createError(
+				ErrorType.ExternalServiceError,
+				`Failed to refresh MCP tools cache: ${errorMessage(error)}`,
+				{
+					name: 'mcp-tools-cache-refresh-error',
+					service: 'mcp',
+					action: 'refresh-tools-cache',
+					serverId,
+				},
+			);
 		}
 	}
 

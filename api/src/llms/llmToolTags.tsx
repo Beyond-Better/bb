@@ -48,7 +48,7 @@ const formatBoolean = (
 
 export const TOOL_STYLES_BROWSER = {
 	base: {
-		container: 'rounded-lg prose dark:prose-invert max-w-none py-1 px-4',
+		container: 'rounded-lg prose prose-sm dark:prose-invert max-w-none py-1 px-4',
 		box: 'rounded-lg max-w-none py-1 px-4 whitespace-pre-wrap',
 		pre: 'p-2.5 rounded font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',
 		code: 'font-mono text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-900/50',

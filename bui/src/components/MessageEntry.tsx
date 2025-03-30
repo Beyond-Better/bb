@@ -324,7 +324,7 @@ export function MessageEntry({
 	// Agent entry status badge
 	const statusBadge = isToolResult && (
 		<span
-			className={`ml-2 inline-flex items-center px-1.5 py-1 rounded-full text-xs font-medium
+			className={`mr-2 inline-flex items-center px-1.5 py-1 rounded-full text-xs font-medium
 			${
 				toolStatus === 'error'
 					? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
@@ -540,13 +540,14 @@ export function MessageEntry({
 										{formatted?.formattedResult?.title
 											? (
 												<span
+													className='mr-2'
 													dangerouslySetInnerHTML={{
 														__html: formatted.formattedResult.title as string,
 													}}
 												/>
 											)
 											: (
-												<span>
+												<span className='mr-2'>
 													{entryType === 'tool_use' || entryType === 'tool_result'
 														? `${
 															entryType === 'tool_use' ? 'Tool Input' : 'Tool Output'
@@ -556,98 +557,124 @@ export function MessageEntry({
 														: entryType.charAt(0).toUpperCase() + entryType.slice(1)}
 												</span>
 											)}
-										{statusBadge}
+										{/*statusBadge*/}
 										{formatted?.formattedResult?.subtitle && (
-											<span className='ml-2 text-xs break-words whitespace-normal'
+											<span
+												className='text-xs break-words whitespace-normal text-gray-700 dark:text-gray-300'
 												dangerouslySetInnerHTML={{
 													__html: formatted.formattedResult.subtitle as string,
 												}}
 											/>
 										)}
-								</button>
+									</button>
 								</div>
 
 								{/* Action buttons */}
 								<div className='flex items-center gap-x-2'>
 									<div className='flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200'>
-									{/* Copy button */}
-									<button
-										type='button'
-										onClick={(e) => {
-											e.stopPropagation();
-											handleCopy(
-												typeof logDataEntry.logEntry?.content === 'string'
-													? logDataEntry.logEntry.content
-													: JSON.stringify(logDataEntry.logEntry?.content, null, 2),
-											);
-										}}
-										className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
-										title='Copy content'
-									>
-										<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-											<path
-												strokeLinecap='round'
-												strokeLinejoin='round'
-												strokeWidth={1.5}
-												d='M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
-											/>
-										</svg>
-									</button>
-
-									{/* Metadata toggle */}
-									<button
-										type='button'
-										onClick={(e) => {
-											e.stopPropagation();
-											toggleMetadata();
-										}}
-										className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
-										title='Show metadata'
-										aria-expanded={showMetadata}
-									>
-										<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-											<path
-												strokeLinecap='round'
-												strokeLinejoin='round'
-												strokeWidth={1.5}
-												d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
-											/>
-										</svg>
-									</button>
-
-								</div>
-									<span className='text-xs text-gray-500 dark:text-gray-400'>{new Date(logDataEntry.timestamp)?.toLocaleString()}</span>
-									{hasTokenUsage() && (
-										<span className='text-xs text-gray-500 dark:text-gray-400' title='Total conversation tokens (input + output)'>
-											{tokenUsageConversation.totalTokens?.toLocaleString() || 0} tokens
-										</span>
-									)}
-									{/* Expand/collapse toggle */}
-									<button
-										type='button'
-										onClick={toggleExpanded}
-										className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
-										aria-expanded={isExpanded}
-										title={isExpanded ? 'Collapse' : 'Expand'}
-									>
-										<svg
-											className={`w-4 h-4 transform transition-transform duration-200 ${
-												isExpanded ? 'rotate-180' : ''
-											}`}
-											fill='none'
-											stroke='currentColor'
-											viewBox='0 0 24 24'
+										{/* Copy button */}
+										<button
+											type='button'
+											onClick={(e) => {
+												e.stopPropagation();
+												handleCopy(
+													typeof logDataEntry.logEntry?.content === 'string'
+														? logDataEntry.logEntry.content
+														: JSON.stringify(logDataEntry.logEntry?.content, null, 2),
+												);
+											}}
+											className='p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
+											title='Copy content'
 										>
-											<path
-												strokeLinecap='round'
-												strokeLinejoin='round'
-												strokeWidth={1.5}
-												d='M19 9l-7 7-7-7'
-											/>
-										</svg>
-									</button>
+											<svg
+												className='w-4 h-4'
+												fill='none'
+												stroke='currentColor'
+												viewBox='0 0 24 24'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													strokeWidth={1.5}
+													d='M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3'
+												/>
+											</svg>
+										</button>
+									</div>
+									<div className='flex items-center'>
+										{hasTokenUsage() && (
+											<>
+												<span
+													className='mr-2 text-xs text-gray-500 dark:text-gray-400'
+													title='Total token usage'
+												>
+													{((tokenUsageTurn?.totalTokens ?? 0) +
+														(tokenUsageTurn.cacheCreationInputTokens ?? 0) +
+														(tokenUsageTurn.cacheReadInputTokens ?? 0))
+														.toLocaleString()} tokens
+												</span>
+												<span className='mr-2 text-xs text-gray-500 dark:text-gray-400'>
+													|
+												</span>
+											</>
+										)}
+										<span className='text-xs text-gray-500 dark:text-gray-400'>
+											{new Date(logDataEntry.timestamp)?.toLocaleString()}
+										</span>
+
+										{/* Metadata toggle */}
+										<button
+											type='button'
+											onClick={(e) => {
+												e.stopPropagation();
+												toggleMetadata();
+											}}
+											className='p-1 ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
+											title='Show metadata'
+											aria-expanded={showMetadata}
+										>
+											<svg
+												className='w-4 h-4'
+												fill='none'
+												stroke='currentColor'
+												viewBox='0 0 24 24'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													strokeWidth={1.5}
+													d='M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'
+												/>
+											</svg>
+										</button>
+
+										{/* Expand/collapse toggle */}
+										<button
+											type='button'
+											onClick={toggleExpanded}
+											className='p-1 ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700'
+											aria-expanded={isExpanded}
+											title={isExpanded ? 'Collapse' : 'Expand'}
+										>
+											<svg
+												className={`w-4 h-4 transform transition-transform duration-200 ${
+													isExpanded ? 'rotate-180' : ''
+												}`}
+												fill='none'
+												stroke='currentColor'
+												viewBox='0 0 24 24'
+											>
+												<path
+													strokeLinecap='round'
+													strokeLinejoin='round'
+													strokeWidth={1.5}
+													d='M19 9l-7 7-7-7'
+												/>
+											</svg>
+										</button>
+									</div>
+								</div>
 							</div>
-						</div>
 
 							{/* Metadata (initially hidden) */}
 							<div
@@ -655,47 +682,56 @@ export function MessageEntry({
 									showMetadata ? '' : 'hidden'
 								}`}
 							>
-								<div className='flex flex-wrap items-center gap-x-4 gap-y-1'>
-									<span>{new Date(logDataEntry.timestamp)?.toLocaleString()}</span>
+								<div className='text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-4 gap-y-1'>
+									{/*<span>{new Date(logDataEntry.timestamp)?.toLocaleString()}</span>*/}
 									{/* Token Usage */}
-									{hasTokenUsage() && (
-										<>
-											<span
-												title='Token Usage'
-												className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-900'
-											>
-												Token Usage
-											</span>
-											<span title='Input/Output tokens for this turn'>
-												Turn: {tokenUsageTurn?.inputTokens?.toLocaleString() ?? 0}↑ /{' '}
-												{tokenUsageTurn?.outputTokens?.toLocaleString() ?? 0}↓
-												({tokenUsageTurn?.totalTokens?.toLocaleString() ?? 0})
-											</span>
-											{(tokenUsageTurn?.cacheCreationInputTokens ||
-												tokenUsageTurn?.cacheReadInputTokens) && (
-												<>
-													<span title='Cache tokens (creation/read)'>
-														Cache:{' '}
-														{tokenUsageTurn.cacheCreationInputTokens?.toLocaleString() ??
-															0}c /{' '}
-														{tokenUsageTurn.cacheReadInputTokens?.toLocaleString() ?? 0}r
-													</span>
-													<span title='Combined (turn + cache)'>
-														Combined: {((tokenUsageTurn?.totalTokens ?? 0) +
-															(tokenUsageTurn.cacheCreationInputTokens ?? 0) +
-															(tokenUsageTurn.cacheReadInputTokens ?? 0))
-															.toLocaleString()}
-													</span>
-												</>
-											)}
-											<span title='Total conversation tokens (input/output)'>
-												Conversation:{' '}
-												{tokenUsageConversation.inputTokens?.toLocaleString() || 0}↑ /{' '}
-												{tokenUsageConversation.outputTokens?.toLocaleString() || 0}↓
-												({tokenUsageConversation.totalTokens?.toLocaleString() || 0})
-											</span>
-										</>
-									)}
+									{hasTokenUsage()
+										? (
+											<>
+												<span
+													title='Token Usage'
+													className='ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-900'
+												>
+													Token Usage
+												</span>
+												<span title='Input/Output tokens for this turn'>
+													Turn: {tokenUsageTurn?.inputTokens?.toLocaleString() ?? 0}↑ /{' '}
+													{tokenUsageTurn?.outputTokens?.toLocaleString() ?? 0}↓
+													({tokenUsageTurn?.totalTokens?.toLocaleString() ?? 0})
+												</span>
+												{(tokenUsageTurn?.cacheCreationInputTokens ||
+													tokenUsageTurn?.cacheReadInputTokens) && (
+													<>
+														<span title='Cache tokens (creation/read)'>
+															Cache: {tokenUsageTurn.cacheCreationInputTokens
+																?.toLocaleString() ??
+																0}c /{' '}
+															{tokenUsageTurn.cacheReadInputTokens?.toLocaleString() ??
+																0}r ({((tokenUsageTurn.cacheCreationInputTokens ??
+																	0) +
+																	(tokenUsageTurn.cacheReadInputTokens ??
+																		0)).toLocaleString() ?? 0})
+														</span>
+														<span title='Combined (turn + cache)'>
+															Combined: {((tokenUsageTurn?.totalTokens ?? 0) +
+																(tokenUsageTurn.cacheCreationInputTokens ?? 0) +
+																(tokenUsageTurn.cacheReadInputTokens ?? 0))
+																.toLocaleString()}
+														</span>
+													</>
+												)}
+												<span>
+													|
+												</span>
+												<span title='Total conversation tokens (input/output)'>
+													Conversation:{' '}
+													{tokenUsageConversation.inputTokens?.toLocaleString() || 0}↑ /{' '}
+													{tokenUsageConversation.outputTokens?.toLocaleString() || 0}↓
+													({tokenUsageConversation.totalTokens?.toLocaleString() || 0})
+												</span>
+											</>
+										)
+										: <span>No token usage for {entryType.replace('_', ' ')} entries</span>}
 								</div>
 							</div>
 
