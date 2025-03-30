@@ -9,13 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- New tool for image manipulation
 
 ### Changed
 
 
 ### Fixed
 
+
+
+## [0.7.1] - 2025-03-30
+
+### Added
+
+- Orchestrator/Agent task delegation
+- New tool for image manipulation
+- Log version number during API/BUI startup
+
+### Changed
+
+- design overhaul for messages in chat window
+- system prompt for orchestrator and agent conversations
+- display and formatting for nested agent tasks in BUI
+
+### Fixed
+
+- removed use of primaryInteractionId
+- naming of logEntry vs logDataEntry
+- cache tools list from MCP servers
 
 
 ## [0.7.0] - 2025-03-23
