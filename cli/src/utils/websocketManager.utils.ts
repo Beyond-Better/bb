@@ -92,6 +92,7 @@ export default class WebsocketManager {
 	private handleMessage(event: MessageEvent): void {
 		const msgData = JSON.parse(event.data);
 		//console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type}`);
+		//if (!msgData.data.conversationId) console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type} - missing conversationId`, msgData.data);
 		switch (msgData.type) {
 			case 'conversationNew':
 				eventManager.emit(

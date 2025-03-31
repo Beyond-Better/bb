@@ -57,6 +57,8 @@ export const conversationChat = new Command()
 		} else {
 			apiConfig = globalConfig.api;
 		}
+		//console.log(`ConversationChat: projectId: ${projectId}`);
+		//console.log(`ConversationChat: apiProjectId: ${apiProjectId}`);
 
 		const bbDir = projectId ? await getBbDir(projectId) : (Deno.env.get('HOME') || '');
 

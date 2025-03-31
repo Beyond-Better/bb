@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.7.2] - 2025-03-31
+
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+- fixed handling of logDataEntry in CLI
+
+
 ## [0.7.1] - 2025-03-30
 
 ### Added
