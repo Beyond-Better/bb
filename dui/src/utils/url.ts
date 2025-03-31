@@ -8,9 +8,6 @@ interface UrlConfig {
   debugMode: boolean;
 }
 
-/**
- * Generates the BUI URL with appropriate proxy handling and parameters
- */
 export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMode }: UrlConfig): string {
   console.debug('generateWebviewBuiUrl called with:', {
     apiConfig,
@@ -61,4 +58,27 @@ export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMo
 	baseUrl = `${buiConfig.tls.useTls ? 'https' : 'http'}://${buiConfig.hostname}:${buiConfig.port}`
     return `${baseUrl}/${queryString ? `#${queryString}` : ''}`;
   }
+}
+
+
+
+
+/**
+ * Generates the BUI URL with platform parameter for Tauri environment
+ * Same as generateWebviewBuiUrl but adds a platform=tauri parameter
+ * This allows JavaScript to detect when it's running inside Tauri
+ */
+export function generateWebviewBuiUrlWithPlatform(standardUrl: string): string {
+  // Start with the standard URL
+  //const standardUrl = generateWebviewBuiUrl(config);
+  
+  // Extract hash fragment if it exists
+  const [baseUrl, hashFragment] = standardUrl.split('#');
+  
+  // Create new hash params including platform
+  const hashParams = hashFragment 
+    ? `${hashFragment}&platform=tauri` 
+    : 'platform=tauri';
+    
+  return `${baseUrl}#${hashParams}`;
 }

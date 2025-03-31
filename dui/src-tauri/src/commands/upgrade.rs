@@ -421,6 +421,46 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
     Ok(())
 }
 
+#[command]
+/// Opens a URL externally in the user's default browser
+/// This is a workaround for downloading files that would otherwise be loaded in the webview
+pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), String> {
+    info!("[DOWNLOAD HANDLER] Got request to open URL externally: {}", url);
+    
+    // Create command based on platform
+    let cmd = if cfg!(target_os = "windows") {
+        "cmd"
+    } else if cfg!(target_os = "macos") {
+        "open"
+    } else {
+        "xdg-open"
+    };
+    
+    let args = if cfg!(target_os = "windows") {
+        vec!["/c", "start", "", url.as_str()]
+    } else if cfg!(target_os = "macos") {
+        vec![url.as_str()]
+    } else {
+        vec![url.as_str()]
+    };
+    
+    info!("[DOWNLOAD HANDLER] Executing command: {} with args: {:?}", cmd, args);
+    
+    // Open URL using the standard Rust command for compatibility
+    match std::process::Command::new(cmd)
+        .args(args)
+        .spawn() {
+            Ok(child) => {
+                info!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id());
+                Ok(())
+            },
+            Err(e) => {
+                error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e);
+                Err(format!("Failed to open URL: {}", e))
+            }
+    }
+}
+
 fn backup_current_installation(location: &InstallLocation) -> Result<(), String> {
     debug!("Creating backup of current installation from {:?}", location.path);
     let backup_dir = tempfile::tempdir()

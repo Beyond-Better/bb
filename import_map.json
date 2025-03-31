@@ -140,6 +140,7 @@
 		"shared/fetchManager.ts": "./src/shared/fetch/fetchManager.ts",
 		"shared/kvStorage.ts": "./src/shared/storage/kvStorage.ts",
 		"shared/dataDir.ts": "./src/shared/utils/dataDir.utils.ts",
+		"shared/downloadHelper.ts": "./src/shared/utils/downloadHelper.utils.ts",
 		"shared/error.ts": "./src/shared/utils/error.utils.ts",
 		"shared/tlsCerts.ts": "./src/shared/utils/tlsCerts.utils.ts",
 		"shared/git.ts": "./src/shared/utils/git.utils.ts",

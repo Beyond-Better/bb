@@ -1,8 +1,8 @@
 import { JSX } from 'preact';
 import { useState } from 'preact/hooks';
-import { VersionCompatibility } from 'shared/types/version.ts';
+//import { VersionCompatibility } from 'shared/types/version.ts';
 import { useVersion } from '../../hooks/useVersion.ts';
-import type { ApiClient, ApiUpgradeResponse } from '../../utils/apiClient.utils.ts';
+import type { ApiClient } from '../../utils/apiClient.utils.ts';
 
 // export interface ApiUpgradeResponse {
 // 	success: boolean;
@@ -28,14 +28,14 @@ interface VersionWarningProps {
 export function VersionWarning({ className = '', apiClient }: VersionWarningProps): JSX.Element {
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [error, setError] = useState<string>();
+	const { versionCompatibility } = useVersion();
 
-	if (!apiClient) return <></>;
+	if (!apiClient) return <div></div>;
 
-	const { versionInfo, versionCompatibility } = useVersion();
-	if (!versionCompatibility) return <></>;
+	if (!versionCompatibility) return <div></div>;
 
 	const { compatible, currentVersion, requiredVersion, updateAvailable, latestVersion } = versionCompatibility;
-	if (compatible) return <></>;
+	if (compatible) return <div></div>;
 	// Version compatibility is now computed directly
 
 	return (
@@ -59,8 +59,8 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 					<h3 className='text-sm font-medium text-yellow-800 dark:text-yellow-300'>Version Mismatch</h3>
 					<div className='mt-2 text-sm text-yellow-700 dark:text-yellow-400'>
 						<p>
-							The BB server version (v{currentVersion}) is not compatible with the required version
-							(v{requiredVersion}).
+							The Beyond Better server version (v{currentVersion}) is not compatible with the required
+							version (v{requiredVersion}).
 							{updateAvailable && latestVersion && (
 								<span>A new version (v{latestVersion}) is available.</span>
 							)}
@@ -92,6 +92,7 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 														setIsUpdating(true);
 														try {
 															const result = await apiClient.upgradeApi();
+															console.log('VersionWarning: upgradeApi - result', result);
 														} catch (e) {
 															setError((e as Error).message);
 														} finally {

@@ -3,7 +3,7 @@ import { GlobalConfig, ServerStartResult, ServerStatus } from '../../types/api';
 import { open } from '@tauri-apps/plugin-shell';
 import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
-import { generateWebviewBuiUrl } from '../../utils/url';
+import { generateWebviewBuiUrl, generateWebviewBuiUrlWithPlatform } from '../../utils/url';
 import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
 import {
@@ -108,6 +108,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
+	//const [webviewBuiUrlWithPlatform, setWebviewBuiUrlWithPlatform] = useState<string>('');
 	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
 	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
 	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
@@ -484,8 +485,10 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				});
 			}
 
+			const webviewBuiUrlWithPlatform = generateWebviewBuiUrlWithPlatform(webviewBuiUrl);
+			console.info('[DEBUG] Reloading BB Chat with platform URL:', webviewBuiUrlWithPlatform);
 			let options: ChatWebviewOptions = {
-				url: webviewBuiUrl,
+				url: webviewBuiUrlWithPlatform,
 				title: 'BB Chat',
 				width: windowStateLogical.width,
 				height: windowStateLogical.height,

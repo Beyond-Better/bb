@@ -2,17 +2,17 @@ import { JSX } from 'preact';
 import { useVersion } from '../../hooks/useVersion.ts';
 import { CompactVersion } from './VersionInfo.tsx';
 // VersionWarning moved to SideNav
-import type { ApiClient, ApiUpgradeResponse } from '../../utils/apiClient.utils.ts';
+import type { ApiClient } from '../../utils/apiClient.utils.ts';
 
 interface VersionDisplayProps {
 	className?: string;
 	apiClient: ApiClient;
 }
 
-export function VersionDisplay({ className = '', apiClient }: VersionDisplayProps): JSX.Element {
-	const { versionInfo, versionCompatibility } = useVersion();
+export function VersionDisplay({ className = '', apiClient: _apiClient }: VersionDisplayProps): JSX.Element {
+	const { versionInfo } = useVersion();
 
-	if (!versionInfo) return <></>;
+	if (!versionInfo) return <div></div>;
 
 	// Version compatibility is now computed directly
 
@@ -33,7 +33,7 @@ interface VersionStatusIndicatorProps {
 export function VersionStatusIndicator({ className = '' }: VersionStatusIndicatorProps): JSX.Element {
 	const { versionCompatibility } = useVersion();
 
-	if (!versionCompatibility) return <></>;
+	if (!versionCompatibility) return <div></div>;
 
 	const { compatible } = versionCompatibility;
 
