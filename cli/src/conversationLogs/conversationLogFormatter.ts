@@ -86,6 +86,7 @@ export default class ConversationLogFormatter {
 
 	private wrapText(text: string, indent: string, tail: string): string {
 		const effectiveMaxLength = this._maxLineLength - indent.length - tail.length;
+		if (!text) return '';
 		const paragraphs = text.split('\n');
 		const wrappedParagraphs = paragraphs.map((paragraph, index) => {
 			if (paragraph.trim() === '') {
@@ -111,7 +112,7 @@ export default class ConversationLogFormatter {
 					remainingText = remainingText.slice(splitIndex).trim();
 
 					// If the remaining text starts with a space, remove it
-					if (remainingText.startsWith(' ')) {
+					if (remainingText?.startsWith(' ')) {
 						remainingText = remainingText.slice(1);
 					}
 				}
@@ -142,6 +143,7 @@ export default class ConversationLogFormatter {
 		timestamp: string,
 		//logEntry: ConversationLogEntry,
 		content: string,
+		formattedResult: { title: string; preview?: string; subtitle?: string; content: string },
 		conversationStats: ConversationStats,
 		tokenUsage: TokenUsage,
 		toolName?: string,
@@ -149,11 +151,15 @@ export default class ConversationLogFormatter {
 		const { icon, color, label } = ConversationLogFormatter.iconColorMap[type] ||
 			{ icon: UNKNOWN_ICON, color: colors.reset, label: 'Unknown' };
 		//const label = type === 'user' || type === 'assistant' ? rawLabel : rawLabel + ' Message';
+		const subtitle = formattedResult.subtitle ? colors.bold(' | ' + formattedResult.subtitle) : '';
+		const title = formattedResult.title
+			? `${formattedResult.title}${subtitle}`
+			: `${colors.bold(label)}${type === 'tool_use' || type === 'tool_result' ? ` (${toolName})` : ''}`;
+
+		//if (!content) console.log('[ERROR] No content', { type, toolName });
 
 		let header = color(
-			`╭─ ${icon}  ${colors.bold(label)}${
-				type === 'tool_use' || type === 'tool_result' ? ` (${toolName})` : ''
-			}   🕒  ${new Date(timestamp).toLocaleString()}`,
+			`╭─ ${icon}  ${title}   🕒  ${new Date(timestamp).toLocaleString()}`,
 		);
 
 		if (!ConversationLogFormatter.isStatsAndUsageEmpty(conversationStats, tokenUsage)) {
@@ -167,9 +173,12 @@ export default class ConversationLogFormatter {
 			].join('  ');
 			header += ` ${summaryInfo}`;
 		}
+		const preview = formattedResult.preview && formattedResult.preview !== formattedResult.content
+			? `\n${color('│')}     ${formattedResult.preview.substring(0, 80)}`
+			: '';
 		const footer = color(`╰${'─'.repeat(this._maxLineLength - 1)}`);
 
-		const formattedContent = content;
+		const formattedContent = content || formattedResult.content;
 
 		function isImageCompatibleTerminal(): boolean {
 			if (Deno.env.get('TERM_PROGRAM') === 'iTerm.app') return true; // Check for iTerm2
@@ -189,16 +198,17 @@ export default class ConversationLogFormatter {
 		// 			: content.startsWith('File=name=Screenshot.png')
 		// 			? `Terminal doesn't support inline images. Skipping display`
 		// 			: this.wrapText(formattedContent, color('  '), '');
-		const wrappedMessage = content.startsWith('Screenshot captured from') && isImageCompatibleTerminal()
-			? content
-			: content.startsWith('Screenshot captured from')
-			? `Terminal doesn't support inline images. Skipping display`
-			: this.wrapText(formattedContent, color('  '), '');
+		const wrappedMessage =
+			formattedResult.preview?.startsWith('Screenshot captured from') && isImageCompatibleTerminal()
+				? '  ' + formattedContent
+				: formattedResult.preview?.startsWith('Screenshot captured from')
+				? `Terminal doesn't support inline images. Skipping display`
+				: this.wrapText(formattedContent, color('  '), '');
 		//const wrappedMessage = this.wrapText(formattedContent, color('│ '), '');
 		//const wrappedMessage = this.wrapText(formattedContent, color('  '), '');
 
 		return stripIndents`
-			${header}
+			${header}${preview}
 			${wrappedMessage}
 			${footer}`;
 	}
@@ -216,10 +226,12 @@ export default class ConversationLogFormatter {
 			const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, totalAllTokens: 0 };
 			if (typeof typeString !== 'undefined' && typeof timestamp !== 'undefined') {
 				const type = typeString as ConversationLogEntryType;
+				const content = messageLines.join('\n').trim();
 				return await this.formatLogEntry(
 					type,
 					timestamp.replace(']', ''),
-					messageLines.join('\n').trim(),
+					content,
+					{ title: header, content },
 					conversationStats,
 					tokenUsage,
 				);

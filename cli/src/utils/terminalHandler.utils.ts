@@ -423,12 +423,15 @@ export class TerminalHandler {
 				throw new Error(`Failed to fetch formatted response: ${formatterResponse.statusText}`);
 			} else {
 				const responseContent = await formatterResponse.json();
+				//console.log('TerminalHandler: responseContent', responseContent);
 				const formattedContent = responseContent.formattedContent;
+				const formattedResult = responseContent.formattedResult;
 				const formattedEntry = await this.formatter.formatLogEntry(
 					logEntry.entryType,
 					timestamp,
 					//this.highlightOutput(formattedContent),
 					formattedContent,
+					formattedResult,
 					conversationStats,
 					tokenUsageStats.tokenUsageStatement,
 					logEntry.toolName,
@@ -479,10 +482,12 @@ export class TerminalHandler {
 		const timestamp = ConversationLogFormatter.getTimestamp();
 		//const contentPart = data.response.answerContent[0] as LLMMessageContentPartTextBlock;
 		const answer = data.logEntry.content as string;
+		const content = this.highlightOutput(answer);
 		const formattedEntry = await this.formatter.formatLogEntry(
 			'assistant',
 			timestamp,
-			this.highlightOutput(answer),
+			content,
+			{ title: '', content },
 			conversationStats,
 			tokenUsageStats.tokenUsageStatement,
 		);

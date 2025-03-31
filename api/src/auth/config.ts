@@ -68,6 +68,13 @@ export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay:
 				);
 			}
 
+			// //const httpClient: Deno.HttpClient = Deno.createHttpClient({ caCerts: ['system'] });
+			// const fetchArgs: undefined | RequestInit & { client: Deno.HttpClient } =
+			// 	configUrl.startsWith('https://localhost:8080')
+			// 		? { client: Deno.createHttpClient({ caCerts: ['system'] }) }
+			// 		: undefined;
+			// const response = await fetch(configUrl, fetchArgs);
+			if (configUrl.startsWith('https://localhost:8080')) Deno.env.set('DENO_TLS_CA_STORE', 'system');
 			const response = await fetch(configUrl);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}: ${response.statusText}`);

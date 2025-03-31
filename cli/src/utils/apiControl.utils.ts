@@ -9,7 +9,7 @@ import {
 	removePid,
 	savePid,
 } from '../utils/apiStatus.utils.ts';
-import { getProjectRoot } from 'shared/dataDir.ts';
+import { getProjectRoot, getProjectRootFromStartDir } from 'shared/dataDir.ts';
 import { dirname, join } from '@std/path';
 import { isCompiledBinary } from '../utils/environment.utils.ts';
 import ApiClient from 'cli/apiClient.ts';
@@ -64,7 +64,7 @@ export async function startApiServer(
 		return { pid: pid || 0, apiLogFilePath, listen: `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}` };
 	}
 
-	const apiRoot = projectId ? await getProjectRoot(projectId) : Deno.cwd();
+	const apiRoot = projectId ? await getProjectRoot(projectId) : await getProjectRootFromStartDir(Deno.cwd());
 	const apiLogFileName = apiLogFile || apiConfig.logFile || 'api.log';
 	const apiLogFilePath = await apiFileLogPath(apiLogFileName, projectId);
 	const logLevel = apiLogLevel || apiConfig.logLevel || 'info';
@@ -76,6 +76,7 @@ export async function startApiServer(
 	const apiHostnameArgs = apiHostname ? ['--hostname', apiHostname] : [];
 	const apiPortArgs = apiPort ? ['--port', apiPort] : [];
 	const apiUseTlsArgs = typeof apiUseTls !== 'undefined' ? ['--use-tls', apiUseTls ? 'true' : 'false'] : [];
+	logger.info(`Starting API with apiRoot:`, apiRoot);
 
 	//const redactedFullConfig = await ConfigManager.redactedFullConfig(projectId);
 	//logger.debug(`Starting API with config:`, redactedFullConfig);
@@ -119,7 +120,8 @@ export async function startApiServer(
 				...apiHostnameArgs,
 				...apiPortArgs,
 			],
-			cwd: join(apiRoot, 'api'),
+			//cwd: join(apiRoot, 'api'),
+			cwd: apiRoot,
 			stdout: 'null',
 			stderr: 'null',
 			stdin: 'null',
