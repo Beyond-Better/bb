@@ -114,6 +114,16 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
 	const [isVisible, setIsVisible] = useState(true);
 
+	// const [hasStartedBefore, setHasStartedBefore] = useState(() => {
+	// 	return localStorage.getItem('bb-server-started-before') === 'true';
+	// });
+	// useEffect(() => {
+	// 	if (status.all_services_ready && !hasStartedBefore) {
+	// 		localStorage.setItem('bb-server-started-before', 'true');
+	// 		setHasStartedBefore(true);
+	// 	}
+	// }, [status.all_services_ready]);
+
 	// Check initial window state
 	useEffect(() => {
 		const checkWindow = async () => {
@@ -568,7 +578,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				<div className='flex items-center justify-between gap-2'>
 					{/* Toggle and status container */}
 					<div className='flex items-center min-w-[100px] text-gray-900 dark:text-gray-300 mr-3'>
-						{status.all_services_ready ? "Server Status:" : "Start Server:"}
+						{status.all_services_ready ? 'Server Status:' : 'Start Server:'}
 					</div>
 					<div className='flex items-center min-w-[300px]'>
 						<label className='relative inline-flex items-center cursor-pointer'>
@@ -580,20 +590,18 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								disabled={isLoading}
 							/>
 							<div
-								className={`relative w-14 h-7 ${
-									status.all_services_ready 
-									  ? 'bg-green-600' 
-									  : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-400 dark:border-blue-500'
-								} rounded-full peer 
-                                after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
+								className={`relative w-14 h-7 rounded-full peer 
+								bg-blue-100 dark:bg-blue-900/30 
+                                after:content-[''] after:absolute after:top-0.5 after:left-[3px] 
                                 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
-                                peer-checked:after:translate-x-full ${isLoading ? 'opacity-50' : ''}`}
+                                peer-checked:after:translate-x-full peer-checked:after:left-[5px] 
+                                peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
 							>
-							  {!status.all_services_ready && (
-							    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 z-10">
-							      START
-							    </span>
-							  )}
+								{!status.all_services_ready && (
+									<span className='absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 z-10'>
+										START
+									</span>
+								)}
 							</div>
 						</label>
 						<div
@@ -614,6 +622,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					</div>
 					{/* Settings button */}
 					<button
+						type='button'
 						onClick={() => onNavigate('/settings')}
 						className='inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800'
 					>
@@ -647,11 +656,34 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				  </div>
 				)}
 
+				{/* !hasStartedBefore && !status.all_services_ready && (
+					<div className='mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md'>
+						<div className='flex items-center'>
+							<svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+								<path
+									fillRule='evenodd'
+									d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+									clipRule='evenodd'
+								/>
+							</svg>
+							<span className='font-medium'>Getting Started:</span>
+						</div>
+						<p className='mt-1 ml-7'>Click the toggle switch above to start the BB server</p>
+					</div>
+				) */}
+				{/* Call-to-action message when server is stopped */}
+				{!status.all_services_ready && !isLoading && (
+					<div className='mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse'>
+						Click the toggle above to start the server
+					</div>
+				)}
+
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
 					{globalConfig && (
 						<div className='flex gap-2'>
 							<button
+								type='button'
 								onClick={handleReloadChat}
 								disabled={!status.all_services_ready}
 								className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
@@ -721,6 +753,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			{/* Advanced Section */}
 			<div className='mt-4'>
 				<button
+					type='button'
 					onClick={() => setShowAdvanced(!showAdvanced)}
 					className='text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1'
 				>
