@@ -75,8 +75,8 @@ export function getDownloadHref(originalUrl: string): string {
  * @param originalUrl The original URL to the downloadable resource
  * @returns A function that handles the click event and prevents page navigation
  */
-export function getDownloadClickHandler(originalUrl: string): (event: React.MouseEvent) => void {
-	return (event: React.MouseEvent) => {
+export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent) => void {
+	return (event: MouseEvent) => {
 		event.preventDefault();
 
 		const url = generateDownloadUrl(originalUrl);
