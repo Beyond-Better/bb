@@ -112,6 +112,56 @@ export function useChatState(
 			projectData: projectData.value,
 		};
 	}, [projectData.value]);
+	// console.log('useChatState: hook called with config', {
+	// 	projectId: config.projectId,
+	// 	existingWsManager: chatState.value.wsManager?.constructor.name,
+	// 	existingApiClient: chatState.value.apiClient?.constructor.name,
+	// });
+	// Watch for project changes and reinitialize chat when needed
+	// 	useEffect(async () => {
+	// 		if (chatState.value.apiClient) {
+	// 			// Load conversation list before WebSocket setup
+	// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
+	// 			const conversationResponse = await chatState.value.apiClient.getConversations(
+	// 				appState.value.projectId,
+	// 			);
+	// 			if (!conversationResponse) {
+	// 				throw new Error('Failed to load conversations');
+	// 			}
+	// 			const conversations = conversationResponse.conversations;
+	//
+	// 			// Load conversation data first
+	// 			const conversation = await chatState.value.apiClient.getConversation(
+	// 				appState.value.conversationId,
+	// 				appState.value.projectId,
+	// 			);
+	// 			const logDataEntries = conversation?.logDataEntries || [];
+	// 			// Clear current chat state
+	// 			chatState.value = {
+	// 				...chatState.value,
+	// 				conversationId: appState.value.conversationId ||'',
+	// 				logDataEntries,
+	// 				conversations,
+	// 				status: {
+	// 					...chatState.value.status,
+	// 					isLoading: false,
+	// 				},
+	// 			};
+	// 		} else {
+	// 			// Clear current chat state
+	// 			chatState.value = {
+	// 				...chatState.value,
+	// 				conversationId: '',
+	// 				logDataEntries: [],
+	// 				conversations: [],
+	// 				status: {
+	// 					...chatState.value.status,
+	// 					isLoading: true,
+	// 				},
+	// 			};
+	// 		}
+	// 	}, [appState.value.projectId]);
+	// 	//}, [projectState.value.selectedProjectId]);
 
 	// Initialize chat
 	useEffect(() => {
@@ -176,7 +226,7 @@ export function useChatState(
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
-				console.log('useChatState: conversations', conversations);
+				//console.log('useChatState: conversations', conversations);
 
 				// Get conversation ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -192,7 +242,7 @@ export function useChatState(
 					)
 					: null;
 				const logDataEntries = createNestedLogDataEntries(conversation?.logDataEntries || []);
-				console.log('useChatState: initialize-logDataEntries', logDataEntries);
+				//console.log('useChatState: initialize-logDataEntries', logDataEntries);
 
 				if (!mounted) {
 					console.log('useChatState: useEffect for config initialize - not mounted, bailing');
@@ -644,6 +694,35 @@ export function useChatState(
 				isAnswerMessage: isAtBottom ? false : scrollIndicatorState.value.isAnswerMessage,
 			};
 		},
+
+		/*
+		updateCacheStatus: () => {
+			if (!chatState.value.status.lastApiCallTime) {
+				chatState.value = {
+					...chatState.value,
+					status: { ...chatState.value.status, cacheStatus: 'inactive' },
+				};
+				return;
+			}
+
+			const timeSinceLastCall = Date.now() - chatState.value.status.lastApiCallTime;
+			const timeUntilExpiry = 5 * 60 * 1000 - timeSinceLastCall; // 5 minutes in milliseconds
+
+			let newStatus: 'active' | 'expiring' | 'inactive';
+			if (timeUntilExpiry <= 0) {
+				newStatus = 'inactive';
+			} else if (timeUntilExpiry <= 60 * 1000) { // Last minute
+				newStatus = 'expiring';
+			} else {
+				newStatus = 'active';
+			}
+
+			chatState.value = {
+				...chatState.value,
+				status: { ...chatState.value.status, cacheStatus: newStatus },
+			};
+		},
+		 */
 
 		sendConverse: async (message: string, requestParams?: LLMRequestParams, attachedFiles?: LLMAttachedFiles) => {
 			if (!chatState.value.wsManager) {

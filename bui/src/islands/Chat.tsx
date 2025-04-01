@@ -118,7 +118,7 @@ export default function Chat({
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
 		onClose: () => console.log('ChatIsland: WebSocket closed'),
 		onOpen: () => console.log('ChatIsland: WebSocket opened'),
-	};
+	});
 
 	// Initialize connection with protocol detection
 	useEffect(() => {

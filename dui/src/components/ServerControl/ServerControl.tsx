@@ -10,6 +10,8 @@ import {
 	checkServerStatus,
 	getApiLogPath,
 	getBuiLogPath,
+	getDuiLogPath,
+	getProxyLogPath,
 	getGlobalConfig,
 	startServer,
 	stopServer,
@@ -105,6 +107,8 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
 	const [apiLogPath, setApiLogPath] = useState<string | null>(null);
 	const [buiLogPath, setBuiLogPath] = useState<string | null>(null);
+	const [duiLogPath, setDuiLogPath] = useState<string | null>(null);
+	const [proxyLogPath, setProxyLogPath] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
@@ -219,14 +223,16 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	// Reload chat window when server status changes (including TLS changes)
 	useEffect(() => {
-		const reloadChatWindow = async () => {
+		const reloadChatWindow = () => {
 			if (status.all_services_ready && webviewBuiUrl) {
-				if (debugMode) console.info('[DEBUG] Reloading BB Chat with webview URL:', webviewBuiUrl);
-				try {
-					await handleReloadChat();
-				} catch (error) {
-					console.error('Error reloading chat window:', error);
-				}
+				setTimeout(async () => {
+					if (debugMode) console.info('[DEBUG] Reloading BB Chat with webview URL:', webviewBuiUrl);
+					try {
+						await handleReloadChat();
+					} catch (error) {
+						console.error('Error reloading chat window:', error);
+					}
+				}, 1000);
 			}
 		};
 
@@ -247,6 +253,18 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				setBuiLogPath(logPath);
 			} catch (err) {
 				console.error('Failed to get BUI log path:', err);
+			}
+			try {
+				const logPath = await getDuiLogPath();
+				setDuiLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get DUI log path:', err);
+			}
+			try {
+				const logPath = await getProxyLogPath();
+				setProxyLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get proxy log path:', err);
 			}
 			try {
 				const config = await getGlobalConfig();
@@ -591,17 +609,19 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							/>
 							<div
 								className={`relative w-14 h-7 rounded-full peer 
-								bg-blue-100 dark:bg-blue-900/30 
+								bg-blue-100 dark:bg-blue-900
                                 after:content-[''] after:absolute after:top-0.5 after:left-[3px] 
                                 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
                                 peer-checked:after:translate-x-full peer-checked:after:left-[5px] 
                                 peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
 							>
-								{!status.all_services_ready && (
+								{
+									/*!status.all_services_ready && (
 									<span className='absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 z-10'>
 										START
 									</span>
-								)}
+								)*/
+								}
 							</div>
 						</label>
 						<div
@@ -648,15 +668,16 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						Settings
 					</button>
 				</div>
-				
+
 				{/* Call-to-action message when server is stopped */}
 				{!status.all_services_ready && !isLoading && (
-				  <div className="mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse">
-				    Click the toggle above to start the server
-				  </div>
+					<div className='-mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse'>
+						Click the toggle above to start the server
+					</div>
 				)}
 
-				{/* !hasStartedBefore && !status.all_services_ready && (
+				{
+					/* !hasStartedBefore && !status.all_services_ready && (
 					<div className='mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md'>
 						<div className='flex items-center'>
 							<svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
@@ -670,13 +691,8 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						</div>
 						<p className='mt-1 ml-7'>Click the toggle switch above to start the BB server</p>
 					</div>
-				) */}
-				{/* Call-to-action message when server is stopped */}
-				{!status.all_services_ready && !isLoading && (
-					<div className='mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse'>
-						Click the toggle above to start the server
-					</div>
-				)}
+				) */
+				}
 
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
@@ -838,6 +854,37 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 											<div className='col-span-5'>{buiLogPath}</div>
 										</>
 									)}
+								</div>
+
+								{/* Log Files Section */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-1'>Log Files</div>
+									<div className='grid grid-cols-6 gap-y-3 col-span-6 bg-gray-100 dark:bg-gray-700/30 p-3 rounded'>
+										{apiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>API Log:</div>
+												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{apiLogPath}</div>
+											</>
+										)}
+										{buiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>BUI Log:</div>
+												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{buiLogPath}</div>
+											</>
+										)}
+										{duiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>DUI Log:</div>
+												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
+											</>
+										)}
+										{proxyLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Proxy Log:</div>
+												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{proxyLogPath}</div>
+											</>
+										)}
+									</div>
 								</div>
 							</div>
 						)}

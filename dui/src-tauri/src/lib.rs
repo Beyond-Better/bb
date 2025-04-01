@@ -25,7 +25,7 @@ pub use crate::config::{read_global_config, get_api_config, get_bui_config, ApiC
 pub use crate::commands::server_status::check_server_status;
 pub use crate::commands::version::{get_binary_version, get_version_info, check_version_compatibility};
 pub use crate::commands::upgrade::{perform_install, perform_upgrade};
-pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path, get_bui_log_path};
+pub use crate::commands::config::{get_global_config, set_global_config_value, test_read_config, get_log_path, get_api_log_path, get_bui_log_path, get_dui_log_path, get_proxy_log_path};
 pub use crate::commands::proxy::{get_proxy_info, set_proxy_target, set_debug_mode, start_proxy_server, stop_proxy_server};
 pub use crate::window_state::{load_window_state, save_window_state, setup_window_state_handler, apply_window_state};
 
@@ -473,6 +473,8 @@ pub fn run() {
             get_log_path,
             get_api_log_path,
             get_bui_log_path,
+            get_dui_log_path,
+            get_proxy_log_path,
             get_proxy_info,
             set_proxy_target,
             set_debug_mode,

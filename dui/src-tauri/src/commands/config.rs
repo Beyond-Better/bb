@@ -34,6 +34,32 @@ pub async fn get_bui_log_path() -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn get_dui_log_path() -> Result<String, String> {
+    // Get the log directory
+    let log_dir = crate::api::get_default_log_dir()
+        .ok_or_else(|| "Failed to determine log directory".to_string())?;
+    
+    // DUI logs are stored in "Beyond Better.log"
+    let path = log_dir.join("Beyond Better.log");
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn get_proxy_log_path() -> Result<String, String> {
+    // Get the log directory
+    let log_dir = crate::api::get_default_log_dir()
+        .ok_or_else(|| "Failed to determine log directory".to_string())?;
+    
+    // Proxy logs are stored in "proxy-access.log"
+    let path = log_dir.join("proxy-access.log");
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub async fn test_read_config() -> Result<String, String> {
     let config_dir = get_global_config_dir().map_err(|e| e.to_string())?;
     let config_path = config_dir.join("config.yaml");
