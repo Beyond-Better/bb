@@ -21,6 +21,7 @@ import type {
 	SubscriptionWithUsage,
 	SubscriptionWithUsageWithPaymentMethods,
 } from '../types/subscription.ts';
+import { savePreferredProtocol } from './connectionManager.utils.ts';
 
 export interface AuthResponse {
 	user?: User;
@@ -143,12 +144,40 @@ export interface ConfigUpdateResponse {
 
 export class ApiClient {
 	private apiUrl: string;
+	private protocolRetryCount: number = 0;
+	private readonly MAX_PROTOCOL_RETRIES = 1;
 
 	constructor(apiUrl: string) {
 		console.log(`APIClient: Initializing apiUrl with: ${apiUrl}`);
 		const normalizedUrl = apiUrl.replace(/\/+$/, '');
 		console.log(`APIClient: Normalized apiUrl to: ${normalizedUrl}`);
 		this.apiUrl = normalizedUrl;
+	}
+
+	/**
+	 * Update the API URL, typically after a protocol switch
+	 */
+	updateApiUrl(newUrl: string): void {
+		this.apiUrl = newUrl.replace(/\/+$/, '');
+		console.log(`APIClient: Updated apiUrl to: ${this.apiUrl}`);
+	}
+
+	/**
+	 * Switch between HTTP and HTTPS protocols
+	 */
+	switchProtocol(): string {
+		const isSecure = this.apiUrl.startsWith('https://');
+		const newUrl = isSecure 
+			? this.apiUrl.replace('https://', 'http://') 
+			: this.apiUrl.replace('http://', 'https://');
+		
+		console.log(`APIClient: Switching protocol from ${isSecure ? 'HTTPS' : 'HTTP'} to ${!isSecure ? 'HTTPS' : 'HTTP'}`);
+		this.apiUrl = newUrl;
+		
+		// Save this as the preferred protocol
+		savePreferredProtocol(!isSecure);
+		
+		return newUrl;
 	}
 
 	private async request<T>(
@@ -176,11 +205,32 @@ export class ApiClient {
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
+			// Reset protocol retry count on success
+			this.protocolRetryCount = 0;
+			
 			return await response.json() as T;
 		} catch (error) {
 			console.error(
 				`APIClient: ${options.method || 'GET'} request failed for ${endpoint}: ${(error as Error).message}`,
 			);
+			
+			// If this looks like a protocol or connection issue and we haven't tried too many times,
+			// attempt to switch protocols and retry once
+			const isConnectionError = 
+				(error instanceof Error && 
+				(error.message.includes('Failed to fetch') || 
+				 error.message.includes('NetworkError') ||
+				 error.message.includes('Network request failed')));
+			
+			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
+				this.protocolRetryCount++;
+				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
+				this.switchProtocol();
+				
+				// Retry the request with the new protocol
+				return this.request<T>(endpoint, options, allowedCodes);
+			}
+			
 			throw error;
 		}
 	}
@@ -507,13 +557,39 @@ export class ApiClient {
 	}
 
 	async getStatusHtml(): Promise<string | null> {
-		const response = await fetch(`${this.apiUrl}/api/v1/status`, {
-			headers: {
-				'Accept': 'text/html',
-			},
-		});
-		if (!response.ok) return null;
-		return response.text();
+		try {
+			const response = await fetch(`${this.apiUrl}/api/v1/status`, {
+				headers: {
+					'Accept': 'text/html',
+				},
+			});
+			if (!response.ok) return null;
+			
+			// Reset protocol retry count on success
+			this.protocolRetryCount = 0;
+			
+			return response.text();
+		} catch (error) {
+			console.error(`APIClient: Status request failed: ${(error as Error).message}`);
+			
+			// Try with alternate protocol
+			const isConnectionError = 
+				(error instanceof Error && 
+				(error.message.includes('Failed to fetch') || 
+				 error.message.includes('NetworkError') ||
+				 error.message.includes('Network request failed')));
+			
+			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
+				this.protocolRetryCount++;
+				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
+				this.switchProtocol();
+				
+				// Retry the request with the new protocol
+				return this.getStatusHtml();
+			}
+			
+			return null;
+		}
 	}
 
 	async getDiagnostics(): Promise<DiagnosticResponse | null> {
@@ -521,9 +597,31 @@ export class ApiClient {
 	}
 
 	async getDiagnosticReport(): Promise<Blob | null> {
-		const response = await fetch(`${this.apiUrl}/api/v1/doctor/report`);
-		if (!response.ok) return null;
-		return response.blob();
+		try {
+			const response = await fetch(`${this.apiUrl}/api/v1/doctor/report`);
+			if (!response.ok) return null;
+			return response.blob();
+		} catch (error) {
+			console.error(`APIClient: Diagnostic report request failed: ${(error as Error).message}`);
+			
+			// Try with alternate protocol
+			const isConnectionError = 
+				(error instanceof Error && 
+				(error.message.includes('Failed to fetch') || 
+				 error.message.includes('NetworkError') ||
+				 error.message.includes('Network request failed')));
+			
+			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
+				this.protocolRetryCount++;
+				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
+				this.switchProtocol();
+				
+				// Retry the request with the new protocol
+				return this.getDiagnosticReport();
+			}
+			
+			return null;
+		}
 	}
 
 	async applyDiagnosticFix(fixEndpoint: string): Promise<{ message: string } | null> {

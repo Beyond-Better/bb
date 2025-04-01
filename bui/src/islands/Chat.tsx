@@ -23,7 +23,8 @@ import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx
 //import { ApiStatus } from 'shared/types.ts';
 import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
-import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
+import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
+import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
 // Helper functions for URL parameters
 const getConversationId = () => {
@@ -109,14 +110,9 @@ export default function Chat({
 	};
 
 	// Initialize chat configuration
-	const apiHostname = getApiHostname();
-	const apiPort = getApiPort();
-	const apiUseTls = getApiUseTls();
-	//console.log('Chat: ', { apiHostname, apiPort, apiUseTls });
-
-	const config: ChatConfig = {
-		apiUrl: getApiUrl(apiHostname, apiPort, apiUseTls),
-		wsUrl: getWsUrl(apiHostname, apiPort, apiUseTls),
+	const [config, setConfig] = useState<ChatConfig>({
+		apiUrl: '',
+		wsUrl: '',
 
 		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
 		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
@@ -124,6 +120,79 @@ export default function Chat({
 		onOpen: () => console.log('ChatIsland: WebSocket opened'),
 	};
 
+	// Initialize connection with protocol detection
+	useEffect(() => {
+		let isMounted = true;
+		
+		async function initializeConnection() {
+			try {
+				// Get connection parameters
+				const { hostname, port, useTls } = {
+					hostname: getApiHostname(),
+					port: getApiPort(),
+					useTls: getApiUseTls()
+				};
+				
+				console.log('Chat: Getting working API URL with params:', { hostname, port, useTls });
+				
+				// Auto-detect the working protocol
+				const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+				
+				console.log('Chat: Connection established', { 
+					apiUrl, 
+					wsUrl, 
+					fallbackUsed,
+					originalProtocol: useTls ? 'HTTPS/WSS' : 'HTTP/WS' 
+				});
+				
+				if (isMounted) {
+					setConfig({
+						apiUrl,
+						wsUrl,
+						onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
+						onError: (error) => console.error('ChatIsland: WebSocket error:', error),
+						onClose: () => console.log('ChatIsland: WebSocket closed'),
+						onOpen: () => console.log('ChatIsland: WebSocket opened'),
+					});
+				}
+			} catch (error) {
+				console.error('Chat: Failed to initialize connection:', error);
+				
+				// Use default parameters as fallback
+				const apiHostname = getApiHostname();
+				const apiPort = getApiPort();
+				const apiUseTls = getApiUseTls();
+				const apiUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
+				const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}/api/v1/ws`;
+				
+				console.warn('Chat: Falling back to default connection parameters', { 
+					apiHostname, 
+					apiPort, 
+					apiUseTls,
+					apiUrl, 
+					wsUrl 
+				});
+				
+				if (isMounted) {
+					setConfig({
+						apiUrl,
+						wsUrl,
+						onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
+						onError: (error) => console.error('ChatIsland: WebSocket error:', error),
+						onClose: () => console.log('ChatIsland: WebSocket closed'),
+						onOpen: () => console.log('ChatIsland: WebSocket opened'),
+					});
+				}
+			}
+		}
+		
+		initializeConnection();
+		
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+	
 	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
 	const [handlers, scrollIndicatorState] = useChatState(config, chatState, chatInputOptions);
 
@@ -474,7 +543,7 @@ export default function Chat({
 		isLoading: chatState.value.status.isLoading,
 	}));
 
-	if (!apiHostname || !apiPort) {
+	if (!config.apiUrl || !config.wsUrl) {
 		return (
 			<div className='flex items-center justify-center h-screen'>
 				<AnimatedNotification

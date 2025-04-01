@@ -19,6 +19,7 @@ import type { VersionInfo } from 'shared/types/version.ts';
 
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
+import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
 interface InitializationResult {
 	apiClient: ApiClient;
@@ -37,10 +38,16 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 	isAnswerMessage: false,
 });
 
-export function initializeChat(
+export async function initializeChat(
 	config: ChatConfig,
 	appState: Signal<AppState>,
-): InitializationResult {
+): Promise<InitializationResult> {
+	console.log('initializeChat: Starting with config', {
+		apiUrl: config.apiUrl,
+		wsUrl: config.wsUrl,
+		projectId: appState.value.projectId
+	});
+	
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
@@ -105,56 +112,6 @@ export function useChatState(
 			projectData: projectData.value,
 		};
 	}, [projectData.value]);
-	// console.log('useChatState: hook called with config', {
-	// 	projectId: config.projectId,
-	// 	existingWsManager: chatState.value.wsManager?.constructor.name,
-	// 	existingApiClient: chatState.value.apiClient?.constructor.name,
-	// });
-	// Watch for project changes and reinitialize chat when needed
-	// 	useEffect(async () => {
-	// 		if (chatState.value.apiClient) {
-	// 			// Load conversation list before WebSocket setup
-	// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
-	// 			const conversationResponse = await chatState.value.apiClient.getConversations(
-	// 				appState.value.projectId,
-	// 			);
-	// 			if (!conversationResponse) {
-	// 				throw new Error('Failed to load conversations');
-	// 			}
-	// 			const conversations = conversationResponse.conversations;
-	//
-	// 			// Load conversation data first
-	// 			const conversation = await chatState.value.apiClient.getConversation(
-	// 				appState.value.conversationId,
-	// 				appState.value.projectId,
-	// 			);
-	// 			const logDataEntries = conversation?.logDataEntries || [];
-	// 			// Clear current chat state
-	// 			chatState.value = {
-	// 				...chatState.value,
-	// 				conversationId: appState.value.conversationId ||'',
-	// 				logDataEntries,
-	// 				conversations,
-	// 				status: {
-	// 					...chatState.value.status,
-	// 					isLoading: false,
-	// 				},
-	// 			};
-	// 		} else {
-	// 			// Clear current chat state
-	// 			chatState.value = {
-	// 				...chatState.value,
-	// 				conversationId: '',
-	// 				logDataEntries: [],
-	// 				conversations: [],
-	// 				status: {
-	// 					...chatState.value.status,
-	// 					isLoading: true,
-	// 				},
-	// 			};
-	// 		}
-	// 	}, [appState.value.projectId]);
-	// 	//}, [projectState.value.selectedProjectId]);
 
 	// Initialize chat
 	useEffect(() => {
@@ -178,7 +135,38 @@ export function useChatState(
 					status: { ...chatState.value.status, isLoading: true },
 				};
 
-				const { apiClient, wsManager } = initializeChat(config, appState);
+				// Try to get a working connection with protocol detection
+				let apiClient;
+				let wsManager;
+				
+				try {
+					// Auto-detect the working protocol
+					const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+					
+					console.log('useChatState: Connection established', { 
+						apiUrl, 
+						wsUrl, 
+						fallbackUsed,
+						originalApiUrl: config.apiUrl,
+						originalWsUrl: config.wsUrl
+					});
+					
+					// Use the detected working URLs
+					const initResult = await initializeChat(
+						{ ...config, apiUrl, wsUrl },
+						appState
+					);
+					
+					apiClient = initResult.apiClient;
+					wsManager = initResult.wsManager;
+				} catch (error) {
+					console.error('useChatState: Protocol detection failed, using original URLs:', error);
+					
+					// Fall back to original URLs if protocol detection fails
+					const initResult = await initializeChat(config, appState);
+					apiClient = initResult.apiClient;
+					wsManager = initResult.wsManager;
+				}
 
 				// Load conversation list before WebSocket setup
 				const conversationResponse = appState.value.projectId
@@ -225,25 +213,30 @@ export function useChatState(
 				currentWsManager = wsManager;
 
 				// Initialize WebSocket connection last and wait for ready state
-				await wsManager.setConversationId(conversationId);
+				try {
+					await wsManager.setConversationId(conversationId);
 
-				// Wait for WebSocket to be ready
-				await new Promise<void>((resolve, reject) => {
-					const timeout = setTimeout(() => reject(new Error('WebSocket connection timeout')), 5000);
-					const readyHandler = (ready: boolean) => {
-						if (ready) {
+					// Wait for WebSocket to be ready with a longer timeout
+					await new Promise<void>((resolve, reject) => {
+						const timeout = setTimeout(() => reject(new Error('WebSocket connection timeout')), 10000); // Increased from 5000
+						const readyHandler = (ready: boolean) => {
+							if (ready) {
+								clearTimeout(timeout);
+								wsManager.off('readyChange', readyHandler);
+								resolve();
+							}
+						};
+						wsManager.on('readyChange', readyHandler);
+						// Check if already ready
+						if (wsManager.status.isReady) {
 							clearTimeout(timeout);
-							wsManager.off('readyChange', readyHandler);
 							resolve();
 						}
-					};
-					wsManager.on('readyChange', readyHandler);
-					// Check if already ready
-					if (wsManager.status.isReady) {
-						clearTimeout(timeout);
-						resolve();
-					}
-				});
+					});
+				} catch (error) {
+					console.error('useChatState: Failed to establish WebSocket connection:', error);
+					throw new Error(`WebSocket connection failed: ${error instanceof Error ? error.message : String(error)}`);
+				}
 
 				console.debug('useChatState: Initialization complete', {
 					// duration: initDuration.toFixed(2) + 'ms',
@@ -576,10 +569,14 @@ export function useChatState(
 			// Provide user-friendly error messages
 			let errorMessage = error.message;
 			if (error.message.includes('WebSocket')) {
-				errorMessage = 'Lost connection to server.';
+				errorMessage = 'Lost connection to server. Attempting to reconnect...';
 			} else if (error.message.includes('timeout')) {
 				errorMessage = 'Request timed out. Please try again.';
+			} else if (error.message.includes('conversation')) {
+				errorMessage = 'Error with conversation. Please try refreshing the page.';
 			}
+
+			console.error(`useChatState: Error in chat websocket: ${errorMessage}`, error);
 
 			chatState.value = {
 				...chatState.value,
@@ -647,35 +644,6 @@ export function useChatState(
 				isAnswerMessage: isAtBottom ? false : scrollIndicatorState.value.isAnswerMessage,
 			};
 		},
-
-		/*
-		updateCacheStatus: () => {
-			if (!chatState.value.status.lastApiCallTime) {
-				chatState.value = {
-					...chatState.value,
-					status: { ...chatState.value.status, cacheStatus: 'inactive' },
-				};
-				return;
-			}
-
-			const timeSinceLastCall = Date.now() - chatState.value.status.lastApiCallTime;
-			const timeUntilExpiry = 5 * 60 * 1000 - timeSinceLastCall; // 5 minutes in milliseconds
-
-			let newStatus: 'active' | 'expiring' | 'inactive';
-			if (timeUntilExpiry <= 0) {
-				newStatus = 'inactive';
-			} else if (timeUntilExpiry <= 60 * 1000) { // Last minute
-				newStatus = 'expiring';
-			} else {
-				newStatus = 'active';
-			}
-
-			chatState.value = {
-				...chatState.value,
-				status: { ...chatState.value.status, cacheStatus: newStatus },
-			};
-		},
-		 */
 
 		sendConverse: async (message: string, requestParams?: LLMRequestParams, attachedFiles?: LLMAttachedFiles) => {
 			if (!chatState.value.wsManager) {
