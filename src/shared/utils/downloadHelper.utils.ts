@@ -111,20 +111,27 @@ export function getDownloadClickHandler(originalUrl: string): (event: React.Mous
 }
 
 /**
- * Type declaration for the Tauri object injected into the window
- * This helps TypeScript recognize the global properties we're using
+ * Type declarations for global objects used in the download helper
+ * This makes TypeScript aware of these custom properties
  */
 declare global {
 	interface Window {
 		__TAURI__?: unknown;
 		__TAURI_INVOKE__?: unknown;
 		__TAURI_IPC__?: unknown;
-		// Optional toast function that may be available in your app
+		showToast?: (options: { message: string; type: string; duration: number }) => void;
+	}
+	
+	// Add the same properties to globalThis
+	interface globalThis {
+		__TAURI__?: unknown;
+		__TAURI_INVOKE__?: unknown;
+		__TAURI_IPC__?: unknown;
 		showToast?: (options: { message: string; type: string; duration: number }) => void;
 	}
 }
 
-// Add React mouse event type if React isn't imported
-type ReactMouseEvent = {
+// Simple interface for our mouse event handlers
+interface MouseEvent {
 	preventDefault: () => void;
-};
+}
