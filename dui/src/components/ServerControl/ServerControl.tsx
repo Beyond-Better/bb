@@ -580,12 +580,20 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								disabled={isLoading}
 							/>
 							<div
-								className={`relative w-14 h-7 bg-gray-200 rounded-full peer 
-                                dark:bg-gray-700 peer-checked:after:translate-x-full 
+								className={`relative w-14 h-7 ${
+									status.all_services_ready 
+									  ? 'bg-green-600' 
+									  : 'bg-gray-200 dark:bg-gray-700 border-2 border-blue-400 dark:border-blue-500'
+								} rounded-full peer 
                                 after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
                                 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
-                                peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
+                                peer-checked:after:translate-x-full ${isLoading ? 'opacity-50' : ''}`}
 							>
+							  {!status.all_services_ready && (
+							    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+							      START
+							    </span>
+							  )}
 							</div>
 						</label>
 						<div
