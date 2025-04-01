@@ -590,7 +590,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
                                 peer-checked:after:translate-x-full ${isLoading ? 'opacity-50' : ''}`}
 							>
 							  {!status.all_services_ready && (
-							    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+							    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-300 z-10">
 							      START
 							    </span>
 							  )}
