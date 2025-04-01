@@ -17,12 +17,10 @@ export function generateDownloadUrl(originalUrl: string): string {
 	const hasTauriGlobalsDebug = false; // Avoid TypeScript errors by not directly checking
 
 	console.log('[DOWNLOAD HELPER] Environment detection:', {
-		__TAURI__: typeof globalThis.__TAURI__ !== 'undefined',
-		__TAURI_INVOKE__: typeof globalThis.__TAURI_INVOKE__ !== 'undefined',
-		__TAURI_IPC__: typeof globalThis.__TAURI_IPC__ !== 'undefined',
-		platformParam: hasPlatformParam,
+		platformParam: window.location.hash.includes('platform=tauri'),
 		isTauriEnvironment: isTauriEnvironment,
-		windowLocation: globalThis.location,
+		windowLocation: window.location.toString(),
+		locationHash: window.location.hash
 	});
 
 	if (isTauriEnvironment) {
