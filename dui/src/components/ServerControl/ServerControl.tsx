@@ -639,6 +639,13 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						Settings
 					</button>
 				</div>
+				
+				{/* Call-to-action message when server is stopped */}
+				{!status.all_services_ready && !isLoading && (
+				  <div className="mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse">
+				    Click the toggle above to start the server
+				  </div>
+				)}
 
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
