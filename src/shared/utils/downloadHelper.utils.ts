@@ -74,21 +74,18 @@ export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent
 
 		const url = generateDownloadUrl(originalUrl);
 
-		// Detect Tauri environment
-		const hasTauriGlobals = typeof globalThis.__TAURI__ !== 'undefined' ||
-			typeof globalThis.__TAURI_INVOKE__ !== 'undefined' ||
-			typeof globalThis.__TAURI_IPC__ !== 'undefined';
-		const hasPlatformParam = new URLSearchParams(globalThis.location.search).get('platform') === 'tauri';
-		const isTauriEnvironment = hasTauriGlobals || hasPlatformParam;
+		// Detect Tauri environment using the platform parameter
+		const isTauriEnvironment = window.location.hash.includes('platform=tauri');
 
 		if (isTauriEnvironment) {
 			// For Tauri, open in new window but don't redirect the current page
 			// This opens in system browser without affecting the current page
-			globalThis.open(originalUrl, '_blank');
+			window.open(originalUrl, '_blank');
 
-			// Show a toast message (if you have a toast system)
-			if (typeof globalThis.showToast === 'function') {
-				globalThis.showToast({
+			// Show a toast message if available (using a safe type check)
+			const showToastFn = window['showToast']; // Access as indexed property to satisfy TypeScript
+			if (typeof showToastFn === 'function') {
+				showToastFn({
 					message: 'Download started in your default browser',
 					type: 'info',
 					duration: 3000,
@@ -98,7 +95,7 @@ export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent
 			}
 		} else {
 			// For regular browsers, standard download behavior
-			globalThis.location.href = url;
+			window.location.href = url;
 		}
 	};
 }
