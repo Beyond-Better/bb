@@ -583,7 +583,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								className={`relative w-14 h-7 ${
 									status.all_services_ready 
 									  ? 'bg-green-600' 
-									  : 'bg-gray-200 dark:bg-gray-700 border-2 border-blue-400 dark:border-blue-500'
+									  : 'bg-blue-100 dark:bg-blue-900/30 border border-blue-400 dark:border-blue-500'
 								} rounded-full peer 
                                 after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
                                 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
