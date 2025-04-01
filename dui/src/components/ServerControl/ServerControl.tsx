@@ -568,7 +568,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				<div className='flex items-center justify-between gap-2'>
 					{/* Toggle and status container */}
 					<div className='flex items-center min-w-[100px] text-gray-900 dark:text-gray-300 mr-3'>
-						Server Status:
+						{status.all_services_ready ? "Server Status:" : "Start Server:"}
 					</div>
 					<div className='flex items-center min-w-[300px]'>
 						<label className='relative inline-flex items-center cursor-pointer'>
