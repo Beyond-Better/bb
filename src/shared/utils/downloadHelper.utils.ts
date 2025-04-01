@@ -10,18 +10,16 @@
  */
 export function generateDownloadUrl(originalUrl: string): string {
 	// Check if running in a Tauri environment using the platform parameter method
-	// This avoids TypeScript errors from accessing __TAURI__ globals
-	const isTauriEnvironment = window.location.hash.includes('platform=tauri');
-	
-	// For debugging only - don't actually use these values in the detection
-	const hasTauriGlobalsDebug = false; // Avoid TypeScript errors by not directly checking
+	const isTauriEnvironment = globalThis.location.hash.includes('platform=tauri');
 
-	console.log('[DOWNLOAD HELPER] Environment detection:', {
-		platformParam: window.location.hash.includes('platform=tauri'),
-		isTauriEnvironment: isTauriEnvironment,
-		windowLocation: window.location.toString(),
-		locationHash: window.location.hash
-	});
+	// For debugging only - don't actually use these values in the detection
+	// const hasTauriGlobalsDebug = false; // Avoid TypeScript errors by not directly checking
+	// console.log('[DOWNLOAD HELPER] Environment detection:', {
+	// 	platformParam: globalThis.location.hash.includes('platform=tauri'),
+	// 	isTauriEnvironment: isTauriEnvironment,
+	// 	windowLocation: globalThis.location.toString(),
+	// 	locationHash: globalThis.location.hash,
+	// });
 
 	if (isTauriEnvironment) {
 		// In Tauri, use our custom protocol to handle downloads via system browser
@@ -72,30 +70,25 @@ export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent
 	return (event: MouseEvent) => {
 		event.preventDefault();
 
-		const url = generateDownloadUrl(originalUrl);
-
 		// Detect Tauri environment using the platform parameter
-		const isTauriEnvironment = window.location.hash.includes('platform=tauri');
+		const isTauriEnvironment = globalThis.location.hash.includes('platform=tauri');
 
+		const url = generateDownloadUrl(originalUrl);
 		if (isTauriEnvironment) {
+			console.log('[DOWNLOAD HELPER] opening URL', url);
 			// For Tauri, open in new window but don't redirect the current page
 			// This opens in system browser without affecting the current page
-			window.open(originalUrl, '_blank');
+			window.open(url, '_blank');
 
-			// Show a toast message if available (using a safe type check)
-			const showToastFn = window['showToast']; // Access as indexed property to satisfy TypeScript
-			if (typeof showToastFn === 'function') {
-				showToastFn({
-					message: 'Download started in your default browser',
-					type: 'info',
-					duration: 3000,
-				});
-			} else {
-				console.log('[DOWNLOAD HELPER] Download started in system browser');
-			}
+			// Show a toast message if available
+			showToast({
+				message: 'Download started in your default browser',
+				type: 'info',
+				duration: 3000,
+			});
 		} else {
 			// For regular browsers, standard download behavior
-			window.location.href = url;
+			globalThis.location.href = originalUrl;
 		}
 	};
 }
@@ -107,3 +100,29 @@ export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent
 interface MouseEvent {
 	preventDefault: () => void;
 }
+
+export interface ToastOptions {
+	message: string;
+	type: string;
+	duration: number;
+}
+
+export function showToast(options: ToastOptions): void {
+	const globalShowToast = (globalThis as any)['showToast'];
+	if (typeof globalShowToast === 'function') {
+		globalShowToast(options);
+	} else {
+		console.log(`[TOAST] ${options.type}: ${options.message}`);
+	}
+}
+
+///**
+// * Type declarations for global objects used in the download helper
+// * This makes TypeScript aware of these custom properties
+// */
+//declare global {
+//	// Add the same properties to globalThis
+//	interface globalThis {
+//		showToast?: (options: { message: string; type: string; duration: number }) => void;
+//	}
+//}

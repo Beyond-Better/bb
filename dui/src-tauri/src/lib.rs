@@ -333,11 +333,11 @@ pub fn run() {
         .register_uri_scheme_protocol("bbdownload", move |_app, request| {
             // Extract the actual download URL from the request URL
             let url_str = request.uri().to_string();
-            info!("[DOWNLOAD HANDLER] Received bbdownload request: {}", url_str);
+            println!("[DOWNLOAD HANDLER] Received bbdownload request: {}", url_str);
             
             // Protocol format should be: bbdownload://https://example.com/file.zip
             if let Some(actual_url) = url_str.strip_prefix("bbdownload://") {
-                info!("[DOWNLOAD HANDLER] Opening URL in system browser: {}", actual_url);
+                println!("[DOWNLOAD HANDLER] Opening URL in system browser: {}", actual_url);
                 
                 // Open in system browser using platform-specific command
                 let cmd = if cfg!(target_os = "windows") {
@@ -372,9 +372,9 @@ pub fn run() {
                     format!("https://{}", decoded_url)
                 };
                 
-                info!("[DOWNLOAD HANDLER] Final URL for opening: {}", url_to_open);
+                println!("[DOWNLOAD HANDLER] Final URL for opening: {}", url_to_open);
                 
-                info!("[DOWNLOAD HANDLER] Formatted URL for opening: {}", url_to_open);
+                println!("[DOWNLOAD HANDLER] Formatted URL for opening: {}", url_to_open);
                 
                 let url_str = url_to_open.as_str();
                 
@@ -387,7 +387,7 @@ pub fn run() {
                 match std::process::Command::new(cmd)
                     .args(args)
                     .spawn() {
-                        Ok(child) => info!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id()),
+                        Ok(child) => println!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id()),
                         Err(e) => error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e)
                     }
             } else {
