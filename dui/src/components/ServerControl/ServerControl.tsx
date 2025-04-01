@@ -15,6 +15,7 @@ import {
 	getGlobalConfig,
 	startServer,
 	stopServer,
+	openLogFile,
 } from '../../utils/api';
 import { loadWindowState, saveWindowState, setupWindowStateHandlers } from '../../utils/window';
 
@@ -513,10 +514,11 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				});
 			}
 
-			const webviewBuiUrlWithPlatform = generateWebviewBuiUrlWithPlatform(webviewBuiUrl);
-			console.info('[DEBUG] Reloading BB Chat with platform URL:', webviewBuiUrlWithPlatform);
+			//const webviewBuiUrlWithPlatform = generateWebviewBuiUrlWithPlatform(webviewBuiUrl);
+			//console.info('[DEBUG] Reloading BB Chat with platform URL:', webviewBuiUrlWithPlatform);
 			let options: ChatWebviewOptions = {
-				url: webviewBuiUrlWithPlatform,
+				//url: webviewBuiUrlWithPlatform,
+				url: webviewBuiUrl,
 				title: 'BB Chat',
 				width: windowStateLogical.width,
 				height: windowStateLogical.height,
@@ -803,12 +805,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									<div>{status.api.process_responds ? 'Responding' : 'Not responding'}</div>
 									<div className='font-bold'>Process ID:</div>
 									<div>{status.api.pid || 'Not running'}</div>
-									{apiLogPath && (
+									{/*apiLogPath && (
 										<>
 											<div className='font-bold'>Server Log:</div>
 											<div className='col-span-5'>{apiLogPath}</div>
 										</>
-									)}
+									)*/}
 								</div>
 
 								{/* API Proxy */}
@@ -848,12 +850,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									<div>{status.bui.process_responds ? 'Responding' : 'Not responding'}</div>
 									<div className='font-bold'>Process ID:</div>
 									<div>{status.bui.pid || 'Not running'}</div>
-									{buiLogPath && (
+									{/*buiLogPath && (
 										<>
 											<div className='font-bold'>Server Log:</div>
 											<div className='col-span-5'>{buiLogPath}</div>
 										</>
-									)}
+									)*/}
 								</div>
 
 								{/* Log Files Section */}
@@ -863,25 +865,81 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										{apiLogPath && (
 											<>
 												<div className='font-medium text-gray-700 dark:text-gray-300'>API Log:</div>
-												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{apiLogPath}</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{apiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(apiLogPath);
+															} catch (err) {
+																console.error('Failed to open API log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
 											</>
 										)}
 										{buiLogPath && (
 											<>
 												<div className='font-medium text-gray-700 dark:text-gray-300'>BUI Log:</div>
-												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{buiLogPath}</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{buiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(buiLogPath);
+															} catch (err) {
+																console.error('Failed to open BUI log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
 											</>
 										)}
 										{duiLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>DUI Log:</div>
-												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Application Log:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(duiLogPath);
+															} catch (err) {
+																console.error('Failed to open DUI log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
 											</>
 										)}
 										{proxyLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>Proxy Log:</div>
-												<div className='col-span-5 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{proxyLogPath}</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>API Proxy Log:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{proxyLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(proxyLogPath);
+															} catch (err) {
+																console.error('Failed to open Proxy log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
 											</>
 										)}
 									</div>
