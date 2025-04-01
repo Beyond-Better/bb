@@ -101,27 +101,9 @@ export function getDownloadClickHandler(originalUrl: string): (event: MouseEvent
 }
 
 /**
- * Type declarations for global objects used in the download helper
- * This makes TypeScript aware of these custom properties
+ * Simple interface for our mouse event handlers
+ * This avoids requiring React imports
  */
-declare global {
-	interface Window {
-		__TAURI__?: unknown;
-		__TAURI_INVOKE__?: unknown;
-		__TAURI_IPC__?: unknown;
-		showToast?: (options: { message: string; type: string; duration: number }) => void;
-	}
-	
-	// Add the same properties to globalThis
-	interface globalThis {
-		__TAURI__?: unknown;
-		__TAURI_INVOKE__?: unknown;
-		__TAURI_IPC__?: unknown;
-		showToast?: (options: { message: string; type: string; duration: number }) => void;
-	}
-}
-
-// Simple interface for our mouse event handlers
 interface MouseEvent {
 	preventDefault: () => void;
 }
