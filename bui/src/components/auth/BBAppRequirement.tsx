@@ -2,6 +2,7 @@ import { JSX } from 'preact';
 import { useComputed, useSignal } from '@preact/signals';
 import { getBBAppAssetName } from '../../utils/platform.utils.ts';
 import { fetchLatestRelease } from '../../utils/upgrade.utils.ts';
+import { ExternalLink } from '../ExternalLink.tsx';
 
 export function BBAppRequirement(): JSX.Element {
 	const downloadUrl = useSignal('');
@@ -60,21 +61,20 @@ export function BBAppRequirement(): JSX.Element {
 				: (
 					<div class='space-y-3'>
 						<div class='flex flex-col gap-2'>
-							<a
+							<ExternalLink
 								href={downloadUrl.value}
 								class='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
 								download
+								toastMessage="Downloading BB App"
 							>
 								Download BB App v{version.value}
-							</a>
-							<a
+							</ExternalLink>
+							<ExternalLink
 								href={releaseUrl.value}
-								target='_blank'
-								rel='noopener noreferrer'
 								class='text-sm text-purple-600 hover:text-purple-500'
 							>
 								View release on GitHub →
-							</a>
+							</ExternalLink>
 						</div>
 					</div>
 				)}

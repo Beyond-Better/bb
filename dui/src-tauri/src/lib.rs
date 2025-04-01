@@ -220,6 +220,128 @@ async fn setup_windows(app: &mut tauri::App) -> Result<(), Box<dyn std::error::E
     Ok(())
 }
 
+fn handle_bblink_protocol<'a, R: tauri::Runtime>(_ctx: tauri::UriSchemeContext<'a, R>, request: tauri::http::Request<Vec<u8>>) -> tauri::http::Response<Vec<u8>> {
+    // Extract the actual download URL from the request URL
+    let url_str = request.uri().to_string();
+    info!("[DOWNLOAD HANDLER] Received bblink request: {}", url_str);
+    
+    // Protocol format should be: bblink://https://example.com/file.zip
+    if let Some(actual_url) = url_str.strip_prefix("bblink://") {
+        info!("[DOWNLOAD HANDLER] Opening URL in system browser: {}", actual_url);
+        
+        // Open in system browser using platform-specific command
+        let cmd = if cfg!(target_os = "windows") {
+            "cmd"
+        } else if cfg!(target_os = "macos") {
+            "open"
+        } else {
+            "xdg-open"
+        };
+        
+        // URL-decode the string to handle any URL encoding
+        let decoded_url = match urlencoding::decode(actual_url) {
+            Ok(decoded) => decoded.to_string(),
+            Err(e) => {
+                error!("[DOWNLOAD HANDLER] Failed to decode URL: {}", e);
+                actual_url.to_string()
+            }
+        };
+        
+        // Fix common protocol formatting issues and ensure proper protocol
+        let url_to_open = if decoded_url.starts_with("https://") || decoded_url.starts_with("http://") {
+            // URL already has correct protocol
+            decoded_url
+        } else if decoded_url.starts_with("https/") {
+            // Missing colon after https
+            decoded_url.replacen("https/", "https:/", 1)
+        } else if decoded_url.starts_with("http/") {
+            // Missing colon after http
+            decoded_url.replacen("http/", "http:/", 1)
+        } else {
+            // No protocol, add https://
+            format!("https://{}", decoded_url)
+        };
+        
+        info!("[DOWNLOAD HANDLER] Final URL for opening: {}", url_to_open);
+        
+        info!("[DOWNLOAD HANDLER] Formatted URL for opening: {}", url_to_open);
+        
+        let url_str = url_to_open.as_str();
+        
+        let args = if cfg!(target_os = "windows") {
+            vec!["/c", "start", "", url_str]
+        } else {
+            vec![url_str]
+        };
+        
+        match std::process::Command::new(cmd)
+            .args(args)
+            .spawn() {
+                Ok(child) => info!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id()),
+                Err(e) => error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e)
+            }
+    } else {
+        warn!("[DOWNLOAD HANDLER] Invalid bblink URL format: {}", url_str);
+    }
+    
+    // Return a response with a helpful message in case the page shows
+    // This makes the UX better if the user somehow sees this page
+    let html_content = r#"<!DOCTYPE html>
+<html>
+<head>
+    <title>Link Opened in Browser</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            color: #333;
+            text-align: center;
+            padding: 50px;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        h1 { color: #2563EB; }
+        .box {
+            background-color: #F3F4F6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #2563EB;
+        }
+        .button {
+            display: inline-block;
+            background-color: #2563EB;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+        .button:hover {
+            background-color: #1D4ED8;
+        }
+    </style>
+    <script>
+        setTimeout(() => {
+            history.back();
+        }, 5000);
+    </script>
+</head>
+<body>
+    <h1>Link Opened in Browser</h1>
+    <div class="box">
+        <p>The link has been opened in your default browser.</p>
+        <p>If the link is a download that doesn't start automatically, please check your browser.</p>
+    </div>
+    <a href="javascript:history.back()" class="button">Return to Chat Page</a>
+</body>
+</html>
+"#;
+    
+    tauri::http::Response::new(html_content.as_bytes().to_vec())
+}
+
 pub fn run() {
 //    // Log startup attempt with detailed environment info
 //    eprintln!("Starting Beyond Better DUI...");
@@ -330,122 +452,7 @@ pub fn run() {
     // Initialize Tauri
     tauri::Builder::default()
         // Register custom protocol handler for downloads
-        .register_uri_scheme_protocol("bbdownload", move |_app, request| {
-            // Extract the actual download URL from the request URL
-            let url_str = request.uri().to_string();
-            println!("[DOWNLOAD HANDLER] Received bbdownload request: {}", url_str);
-            
-            // Protocol format should be: bbdownload://https://example.com/file.zip
-            if let Some(actual_url) = url_str.strip_prefix("bbdownload://") {
-                println!("[DOWNLOAD HANDLER] Opening URL in system browser: {}", actual_url);
-                
-                // Open in system browser using platform-specific command
-                let cmd = if cfg!(target_os = "windows") {
-                    "cmd"
-                } else if cfg!(target_os = "macos") {
-                    "open"
-                } else {
-                    "xdg-open"
-                };
-                
-                // URL-decode the string to handle any URL encoding
-                let decoded_url = match urlencoding::decode(actual_url) {
-                    Ok(decoded) => decoded.to_string(),
-                    Err(e) => {
-                        error!("[DOWNLOAD HANDLER] Failed to decode URL: {}", e);
-                        actual_url.to_string()
-                    }
-                };
-                
-                // Fix common protocol formatting issues and ensure proper protocol
-                let url_to_open = if decoded_url.starts_with("https://") || decoded_url.starts_with("http://") {
-                    // URL already has correct protocol
-                    decoded_url
-                } else if decoded_url.starts_with("https/") {
-                    // Missing colon after https
-                    decoded_url.replacen("https/", "https:/", 1)
-                } else if decoded_url.starts_with("http/") {
-                    // Missing colon after http
-                    decoded_url.replacen("http/", "http:/", 1)
-                } else {
-                    // No protocol, add https://
-                    format!("https://{}", decoded_url)
-                };
-                
-                println!("[DOWNLOAD HANDLER] Final URL for opening: {}", url_to_open);
-                
-                println!("[DOWNLOAD HANDLER] Formatted URL for opening: {}", url_to_open);
-                
-                let url_str = url_to_open.as_str();
-                
-                let args = if cfg!(target_os = "windows") {
-                    vec!["/c", "start", "", url_str]
-                } else {
-                    vec![url_str]
-                };
-                
-                match std::process::Command::new(cmd)
-                    .args(args)
-                    .spawn() {
-                        Ok(child) => println!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id()),
-                        Err(e) => error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e)
-                    }
-            } else {
-                warn!("[DOWNLOAD HANDLER] Invalid bbdownload URL format: {}", url_str);
-            }
-            
-            // Return a response with a helpful message in case the page shows
-            // This makes the UX better if the user somehow sees this page
-            let html_content = r#"<!DOCTYPE html>
-<html>
-<head>
-    <title>Download Started</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            color: #333;
-            text-align: center;
-            padding: 50px;
-            max-width: 600px;
-            margin: 0 auto;
-            line-height: 1.6;
-        }
-        h1 { color: #2563EB; }
-        .box {
-            background-color: #F3F4F6;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #2563EB;
-        }
-        .button {
-            display: inline-block;
-            background-color: #2563EB;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            text-decoration: none;
-            margin-top: 20px;
-            font-weight: 500;
-        }
-        .button:hover {
-            background-color: #1D4ED8;
-        }
-    </style>
-</head>
-<body>
-    <h1>Download Started</h1>
-    <div class="box">
-        <p>Your download has been opened in your default browser.</p>
-        <p>If the download doesn't start automatically, please check your browser.</p>
-    </div>
-    <a href="javascript:history.back()" class="button">Return to Previous Page</a>
-</body>
-</html>
-"#;
-            
-            tauri::http::Response::new(html_content.as_bytes().to_vec())
-        })
+        .register_uri_scheme_protocol("bblink", handle_bblink_protocol)
         .invoke_handler(tauri::generate_handler![
             start_api,
             stop_api,

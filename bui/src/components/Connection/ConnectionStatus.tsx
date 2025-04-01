@@ -1,6 +1,6 @@
 import { JSX } from 'preact';
 import { useAppState } from '../../hooks/useAppState.ts';
-import { Toast } from '../Toast.tsx';
+//import { Toast } from '../Toast.tsx';
 import { VersionDisplay } from '../Version/VersionDisplay.tsx';
 
 interface ConnectionStatusProps {

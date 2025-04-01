@@ -65,6 +65,72 @@ export default function Feature() {
 - Consistent styling patterns
 - Accessibility attributes
  
+## External Link Handling
+
+### Using the ExternalLink Component
+For all external links in the BUI, use the `ExternalLink` component instead of raw `<a>` tags to ensure consistent behavior across different environments (BUI/DUI).
+
+```typescript
+// BAD - Using raw anchor tags
+<a href={url} target="_blank" rel="noopener noreferrer">Link</a>
+
+// WORSE - Inconsistent environment handling
+<a href={getExternalHref(url)} {...(!isDuiEnvironment() ? { target: '_blank' } : {})}>Link</a>
+
+// GOOD - Using the ExternalLink component
+<ExternalLink href={url}>Link</ExternalLink>
+```
+
+### Features
+- Automatically handles environment differences (BUI vs DUI)
+- Adds security attributes in browser environments
+- Prevents navigation issues in DUI
+- Provides toast notifications for better UX
+
+See full documentation at `docs/development/bui/components/ExternalLink.md`
+
+## LLM Guidelines for BUI Components
+
+### Component Documentation for LLMs
+When creating components that may be referenced by Large Language Models:
+
+1. Include comprehensive JSDoc comments with:  
+   - Purpose and use cases for the component
+   - Detailed prop descriptions including types and defaults
+   - Usage examples showing common patterns
+   - Notes about special behavior or edge cases
+
+2. Structure code for LLM readability:  
+   - Clear prop interface definitions at the top
+   - Logical organization of code sections (state, effects, helpers, render)
+   - Meaningful variable and function names
+   - Comments explaining non-obvious logic
+
+3. For complex components:  
+   - Create a separate markdown file in the `docs/development/bui/components/` directory
+   - Link to the documentation in component JSDoc
+   - Include migration guides if replacing older components
+
+### Example of LLM-friendly Component Documentation
+```typescript
+/**
+ * Component for consistently handling external links across BUI/DUI environments.
+ * 
+ * @example
+ * <ExternalLink href="https://example.com">External Link</ExternalLink>
+ * 
+ * @see docs/development/bui/components/ExternalLink.md for complete documentation
+ */
+export function ExternalLink({
+  href,
+  showToast = true,
+  useClickHandler = true,
+  // Additional props with documentation...
+}: ExternalLinkProps): JSX.Element {
+  // Implementation...
+}
+```
+
 ## Future Improvements
 
 1. Implement error handling for cases where the server rejects the projectId as invalid

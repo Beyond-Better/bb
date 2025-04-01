@@ -3,6 +3,7 @@ import { useState } from 'preact/hooks';
 //import { VersionCompatibility } from 'shared/types/version.ts';
 import { useVersion } from '../../hooks/useVersion.ts';
 import type { ApiClient } from '../../utils/apiClient.utils.ts';
+import { ExternalLink } from '../ExternalLink.tsx';
 
 // export interface ApiUpgradeResponse {
 // 	success: boolean;
@@ -74,14 +75,12 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 										{currentVersion.startsWith('0.3') || currentVersion.startsWith('0.2') ||
 												currentVersion.startsWith('0.1')
 											? (
-												<a
+												<ExternalLink
 													href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
-													target='_blank'
-													rel='noopener noreferrer'
 													className='rounded-md bg-yellow-50 dark:bg-yellow-900/30 px-2 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
 												>
 													View Upgrade Guide
-												</a>
+												</ExternalLink>
 											)
 											: (
 												<button
@@ -109,14 +108,12 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 								)
 								: (
 									<p className='px-2 py-1.5 text-sm text-yellow-800 dark:text-yellow-300'>
-										<a
+										<ExternalLink
 											href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
-											target='_blank'
-											rel='noopener noreferrer'
 											className='rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
 										>
 											View Upgrade Guide
-										</a>
+										</ExternalLink>
 									</p>
 								)}
 						</div>
