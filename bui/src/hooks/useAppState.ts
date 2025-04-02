@@ -120,21 +120,21 @@ async function initializeAppStateAsync() {
 		const { hostname, port, useTls } = {
 			hostname: getApiHostname(),
 			port: getApiPort(),
-			useTls: getApiUseTls()
+			useTls: getApiUseTls(),
 		};
-		
+
 		console.log('useAppState: Getting working API URL with params:', { hostname, port, useTls });
-		
+
 		// Auto-detect the working protocol
 		const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
-		
-		console.log('useAppState: Connection established', { 
-			apiUrl, 
-			wsUrl, 
+
+		console.log('useAppState: Connection established', {
+			apiUrl,
+			wsUrl,
 			fallbackUsed,
-			originalProtocol: useTls ? 'HTTPS/WSS' : 'HTTP/WS' 
+			originalProtocol: useTls ? 'HTTPS/WSS' : 'HTTP/WS',
 		});
-		
+
 		// Initialize app state with the working URLs
 		initializeAppState({
 			wsUrl: wsUrl,
@@ -154,22 +154,22 @@ async function initializeAppStateAsync() {
 		});
 	} catch (error) {
 		console.error('useAppState: Failed to initialize connection:', error);
-		
+
 		// Use default parameters as fallback
 		const apiHostname = getApiHostname();
 		const apiPort = getApiPort();
 		const apiUseTls = getApiUseTls();
 		const apiUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
 		const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}/api/v1/ws`;
-		
-		console.warn('useAppState: Falling back to default connection parameters', { 
-			apiHostname, 
-			apiPort, 
+
+		console.warn('useAppState: Falling back to default connection parameters', {
+			apiHostname,
+			apiPort,
 			apiUseTls,
-			apiUrl, 
-			wsUrl 
+			apiUrl,
+			wsUrl,
 		});
-		
+
 		initializeAppState({
 			wsUrl: wsUrl,
 			apiUrl: apiUrl,
@@ -219,7 +219,7 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 	console.log('useAppState: initializeAppState called', {
 		hasExistingManagers: !!(appState.value.wsManager || appState.value.apiClient),
 		apiUrl: config.apiUrl,
-		wsUrl: config.wsUrl
+		wsUrl: config.wsUrl,
 	});
 	if (appState.value.wsManager || appState.value.apiClient) {
 		console.log('AppState already initialized');

@@ -122,7 +122,7 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 												href={downloadUrl.value}
 												className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 dark:bg-yellow-700 hover:bg-yellow-700 dark:hover:bg-yellow-800 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500'
 												download
-												toastMessage="Downloading Beyond Better App"
+												toastMessage='Downloading Beyond Better App'
 											>
 												Download Beyond Better App v{version.value}
 											</ExternalLink>

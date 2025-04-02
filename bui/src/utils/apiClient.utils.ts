@@ -167,16 +167,18 @@ export class ApiClient {
 	 */
 	switchProtocol(): string {
 		const isSecure = this.apiUrl.startsWith('https://');
-		const newUrl = isSecure 
-			? this.apiUrl.replace('https://', 'http://') 
+		const newUrl = isSecure
+			? this.apiUrl.replace('https://', 'http://')
 			: this.apiUrl.replace('http://', 'https://');
-		
-		console.log(`APIClient: Switching protocol from ${isSecure ? 'HTTPS' : 'HTTP'} to ${!isSecure ? 'HTTPS' : 'HTTP'}`);
+
+		console.log(
+			`APIClient: Switching protocol from ${isSecure ? 'HTTPS' : 'HTTP'} to ${!isSecure ? 'HTTPS' : 'HTTP'}`,
+		);
 		this.apiUrl = newUrl;
-		
+
 		// Save this as the preferred protocol
 		savePreferredProtocol(!isSecure);
-		
+
 		return newUrl;
 	}
 
@@ -207,30 +209,29 @@ export class ApiClient {
 
 			// Reset protocol retry count on success
 			this.protocolRetryCount = 0;
-			
+
 			return await response.json() as T;
 		} catch (error) {
 			console.error(
 				`APIClient: ${options.method || 'GET'} request failed for ${endpoint}: ${(error as Error).message}`,
 			);
-			
+
 			// If this looks like a protocol or connection issue and we haven't tried too many times,
 			// attempt to switch protocols and retry once
-			const isConnectionError = 
-				(error instanceof Error && 
-				(error.message.includes('Failed to fetch') || 
-				 error.message.includes('NetworkError') ||
-				 error.message.includes('Network request failed')));
-			
+			const isConnectionError = error instanceof Error &&
+				(error.message.includes('Failed to fetch') ||
+					error.message.includes('NetworkError') ||
+					error.message.includes('Network request failed'));
+
 			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
 				this.protocolRetryCount++;
 				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
 				this.switchProtocol();
-				
+
 				// Retry the request with the new protocol
 				return this.request<T>(endpoint, options, allowedCodes);
 			}
-			
+
 			throw error;
 		}
 	}
@@ -420,11 +421,13 @@ export class ApiClient {
 	}
 
 	async signOut(): Promise<AuthResponse> {
-		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ?? { error: 'SignOut: Failed to connect to API' };
+		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ??
+			{ error: 'SignOut: Failed to connect to API' };
 	}
 
 	async getSession(): Promise<AuthResponse> {
-		return await this.get<AuthResponse>('/api/v1/auth/session') ?? { error: 'GetSession: Failed to connect to API' };
+		return await this.get<AuthResponse>('/api/v1/auth/session') ??
+			{ error: 'GetSession: Failed to connect to API' };
 	}
 
 	async signUp(email: string, password: string): Promise<AuthResponse> {
@@ -564,30 +567,29 @@ export class ApiClient {
 				},
 			});
 			if (!response.ok) return null;
-			
+
 			// Reset protocol retry count on success
 			this.protocolRetryCount = 0;
-			
+
 			return response.text();
 		} catch (error) {
 			console.error(`APIClient: Status request failed: ${(error as Error).message}`);
-			
+
 			// Try with alternate protocol
-			const isConnectionError = 
-				(error instanceof Error && 
-				(error.message.includes('Failed to fetch') || 
-				 error.message.includes('NetworkError') ||
-				 error.message.includes('Network request failed')));
-			
+			const isConnectionError = error instanceof Error &&
+				(error.message.includes('Failed to fetch') ||
+					error.message.includes('NetworkError') ||
+					error.message.includes('Network request failed'));
+
 			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
 				this.protocolRetryCount++;
 				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
 				this.switchProtocol();
-				
+
 				// Retry the request with the new protocol
 				return this.getStatusHtml();
 			}
-			
+
 			return null;
 		}
 	}
@@ -603,23 +605,22 @@ export class ApiClient {
 			return response.blob();
 		} catch (error) {
 			console.error(`APIClient: Diagnostic report request failed: ${(error as Error).message}`);
-			
+
 			// Try with alternate protocol
-			const isConnectionError = 
-				(error instanceof Error && 
-				(error.message.includes('Failed to fetch') || 
-				 error.message.includes('NetworkError') ||
-				 error.message.includes('Network request failed')));
-			
+			const isConnectionError = error instanceof Error &&
+				(error.message.includes('Failed to fetch') ||
+					error.message.includes('NetworkError') ||
+					error.message.includes('Network request failed'));
+
 			if (isConnectionError && this.protocolRetryCount < this.MAX_PROTOCOL_RETRIES) {
 				this.protocolRetryCount++;
 				console.log(`APIClient: Connection error detected, trying with alternate protocol`);
 				this.switchProtocol();
-				
+
 				// Retry the request with the new protocol
 				return this.getDiagnosticReport();
 			}
-			
+
 			return null;
 		}
 	}

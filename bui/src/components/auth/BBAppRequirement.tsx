@@ -65,7 +65,7 @@ export function BBAppRequirement(): JSX.Element {
 								href={downloadUrl.value}
 								class='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
 								download
-								toastMessage="Downloading BB App"
+								toastMessage='Downloading BB App'
 							>
 								Download BB App v{version.value}
 							</ExternalLink>

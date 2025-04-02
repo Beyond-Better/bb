@@ -45,9 +45,9 @@ export async function initializeChat(
 	console.log('initializeChat: Starting with config', {
 		apiUrl: config.apiUrl,
 		wsUrl: config.wsUrl,
-		projectId: appState.value.projectId
+		projectId: appState.value.projectId,
 	});
-	
+
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
@@ -188,30 +188,30 @@ export function useChatState(
 				// Try to get a working connection with protocol detection
 				let apiClient;
 				let wsManager;
-				
+
 				try {
 					// Auto-detect the working protocol
 					const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
-					
-					console.log('useChatState: Connection established', { 
-						apiUrl, 
-						wsUrl, 
+
+					console.log('useChatState: Connection established', {
+						apiUrl,
+						wsUrl,
 						fallbackUsed,
 						originalApiUrl: config.apiUrl,
-						originalWsUrl: config.wsUrl
+						originalWsUrl: config.wsUrl,
 					});
-					
+
 					// Use the detected working URLs
 					const initResult = await initializeChat(
 						{ ...config, apiUrl, wsUrl },
-						appState
+						appState,
 					);
-					
+
 					apiClient = initResult.apiClient;
 					wsManager = initResult.wsManager;
 				} catch (error) {
 					console.error('useChatState: Protocol detection failed, using original URLs:', error);
-					
+
 					// Fall back to original URLs if protocol detection fails
 					const initResult = await initializeChat(config, appState);
 					apiClient = initResult.apiClient;
@@ -285,7 +285,9 @@ export function useChatState(
 					});
 				} catch (error) {
 					console.error('useChatState: Failed to establish WebSocket connection:', error);
-					throw new Error(`WebSocket connection failed: ${error instanceof Error ? error.message : String(error)}`);
+					throw new Error(
+						`WebSocket connection failed: ${error instanceof Error ? error.message : String(error)}`,
+					);
 				}
 
 				console.debug('useChatState: Initialization complete', {

@@ -130,14 +130,16 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 	 */
 	updateProtocol(useSecure: boolean): void {
 		const currentProtocol = this.wsUrl.startsWith('wss://') ? true : false;
-		
+
 		// Only update if the protocol is different
 		if (currentProtocol !== useSecure) {
-			const newUrl = useSecure 
-				? this.wsUrl.replace('ws://', 'wss://') 
-				: this.wsUrl.replace('wss://', 'ws://');
-			
-			console.log(`WebSocketManagerBase: Switching protocol from ${currentProtocol ? 'WSS' : 'WS'} to ${useSecure ? 'WSS' : 'WS'}`);
+			const newUrl = useSecure ? this.wsUrl.replace('ws://', 'wss://') : this.wsUrl.replace('wss://', 'ws://');
+
+			console.log(
+				`WebSocketManagerBase: Switching protocol from ${currentProtocol ? 'WSS' : 'WS'} to ${
+					useSecure ? 'WSS' : 'WS'
+				}`,
+			);
 			this.wsUrl = newUrl;
 		}
 	}
@@ -149,25 +151,25 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 		if (this.protocolRetryCount >= this.MAX_PROTOCOL_RETRIES) {
 			const currentlySecure = this.wsUrl.startsWith('wss://');
 			const newSecure = !currentlySecure;
-			
+
 			console.log(
 				`WebSocketManagerBase: Multiple connection failures (${this.protocolRetryCount}). ` +
-				`Trying alternate protocol: ${currentlySecure ? 'WS' : 'WSS'}`
+					`Trying alternate protocol: ${currentlySecure ? 'WS' : 'WSS'}`,
 			);
-			
+
 			this.updateProtocol(newSecure);
 			this.protocolRetryCount = 0; // Reset the counter for the new protocol
-			
+
 			// Update preferred protocol if this works
 			try {
 				savePreferredProtocol(newSecure);
 			} catch (e) {
 				console.warn('Failed to save protocol preference:', e);
 			}
-			
+
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -224,7 +226,7 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 				code: event.code,
 				reason: event.reason,
 				wasClean: event.wasClean,
-				url: this.wsUrl
+				url: this.wsUrl,
 			});
 
 			// Ignore if this is not the current socket
@@ -251,7 +253,7 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 
 			// Increment protocol retry counter on error
 			this.protocolRetryCount++;
-			
+
 			// Just emit the error - let onclose handle the retry
 			this.emit('error', new Error(`WebSocket connection error with URL: ${this.wsUrl}`));
 		};
@@ -378,7 +380,7 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 			protocolRetryCount: this.protocolRetryCount,
 			maxRetries: this.MAX_RETRIES,
 			maxProtocolRetries: this.MAX_PROTOCOL_RETRIES,
-			uri: this.wsUrl
+			uri: this.wsUrl,
 		});
 
 		// Try alternate protocol if we've had multiple failures with this one
@@ -406,7 +408,7 @@ export abstract class WebSocketManagerBaseImpl implements WebSocketManagerBase {
 		console.log('WebSocketManagerBase: Setting retry timeout', {
 			delay,
 			retryAttempt: this.retryCount + 1,
-			url: this.wsUrl
+			url: this.wsUrl,
 		});
 
 		this.retryCount++;

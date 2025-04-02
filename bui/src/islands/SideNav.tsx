@@ -149,7 +149,7 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 					)}
 				</a>
 				<button
-					type="button"
+					type='button'
 					onClick={() => {
 						const newState = !isCollapsed.value;
 						isCollapsed.value = newState;
@@ -258,7 +258,7 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 
 				{/* Status Button */}
 				<button
-					type="button"
+					type='button'
 					onClick={() => setShowStatus(true)}
 					title='View API status'
 					class={`flex items-center ${

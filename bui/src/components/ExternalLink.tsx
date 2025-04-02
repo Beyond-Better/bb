@@ -84,13 +84,13 @@ export function ExternalLink({
 	...props
 }: ExternalLinkProps): JSX.Element {
 	// Check for server-side rendering (SSR) first
-// 	const isDui = useMemo(() => {
-// 		// In SSR context, location might not exist
-// 		if (typeof window === 'undefined' || typeof globalThis.location === 'undefined') {
-// 			return false;
-// 		}
-// 		return isDuiEnvironment(href);
-// 	}, []);
+	// 	const isDui = useMemo(() => {
+	// 		// In SSR context, location might not exist
+	// 		if (typeof window === 'undefined' || typeof globalThis.location === 'undefined') {
+	// 			return false;
+	// 		}
+	// 		return isDuiEnvironment(href);
+	// 	}, []);
 	const isDui = isDuiEnvironment(href);
 
 	const secureProps = useMemo(() => {
