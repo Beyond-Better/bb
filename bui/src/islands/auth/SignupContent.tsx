@@ -2,6 +2,7 @@ import SignupForm from './SignupForm.tsx';
 import { BBAppRequirement } from '../../components/auth/BBAppRequirement.tsx';
 //import { useAuthState } from '../../hooks/useAuthState.ts';
 //import { AuthState } from '../../types/auth.ts';
+import { ExternalLink } from '../../components/ExternalLink.tsx';
 
 // interface SignupContentProps {}
 // export default function SignupContent(props: SignupContentProps) {
@@ -95,14 +96,12 @@ export default function SignupContent() {
 					<div class='mt-6 text-center text-sm'>
 						<span class='text-gray-600 dark:text-gray-400'>
 							Need help? Visit our{' '}
-							<a
+							<ExternalLink
 								href='https://www.beyondbetter.dev/docs'
-								target='_blank'
-								rel='noopener noreferrer'
 								class='font-medium text-purple-600 hover:text-purple-500'
 							>
 								documentation
-							</a>
+							</ExternalLink>
 						</span>
 					</div>
 				</div>

@@ -19,6 +19,7 @@ import type { VersionInfo } from 'shared/types/version.ts';
 
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
+import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
 interface InitializationResult {
 	apiClient: ApiClient;
@@ -37,10 +38,16 @@ const scrollIndicatorState = signal<ScrollIndicatorState>({
 	isAnswerMessage: false,
 });
 
-export function initializeChat(
+export async function initializeChat(
 	config: ChatConfig,
 	appState: Signal<AppState>,
-): InitializationResult {
+): Promise<InitializationResult> {
+	console.log('initializeChat: Starting with config', {
+		apiUrl: config.apiUrl,
+		wsUrl: config.wsUrl,
+		projectId: appState.value.projectId,
+	});
+
 	// Create API client first
 	const apiClient = createApiClientManager(config.apiUrl);
 
@@ -178,7 +185,38 @@ export function useChatState(
 					status: { ...chatState.value.status, isLoading: true },
 				};
 
-				const { apiClient, wsManager } = initializeChat(config, appState);
+				// Try to get a working connection with protocol detection
+				let apiClient;
+				let wsManager;
+
+				try {
+					// Auto-detect the working protocol
+					const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+
+					console.log('useChatState: Connection established', {
+						apiUrl,
+						wsUrl,
+						fallbackUsed,
+						originalApiUrl: config.apiUrl,
+						originalWsUrl: config.wsUrl,
+					});
+
+					// Use the detected working URLs
+					const initResult = await initializeChat(
+						{ ...config, apiUrl, wsUrl },
+						appState,
+					);
+
+					apiClient = initResult.apiClient;
+					wsManager = initResult.wsManager;
+				} catch (error) {
+					console.error('useChatState: Protocol detection failed, using original URLs:', error);
+
+					// Fall back to original URLs if protocol detection fails
+					const initResult = await initializeChat(config, appState);
+					apiClient = initResult.apiClient;
+					wsManager = initResult.wsManager;
+				}
 
 				// Load conversation list before WebSocket setup
 				const conversationResponse = appState.value.projectId
@@ -188,7 +226,7 @@ export function useChatState(
 					throw new Error('Failed to load conversations');
 				}
 				const conversations = conversationResponse.conversations;
-				console.log('useChatState: conversations', conversations);
+				//console.log('useChatState: conversations', conversations);
 
 				// Get conversation ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -204,7 +242,7 @@ export function useChatState(
 					)
 					: null;
 				const logDataEntries = createNestedLogDataEntries(conversation?.logDataEntries || []);
-				console.log('useChatState: initialize-logDataEntries', logDataEntries);
+				//console.log('useChatState: initialize-logDataEntries', logDataEntries);
 
 				if (!mounted) {
 					console.log('useChatState: useEffect for config initialize - not mounted, bailing');
@@ -225,25 +263,32 @@ export function useChatState(
 				currentWsManager = wsManager;
 
 				// Initialize WebSocket connection last and wait for ready state
-				await wsManager.setConversationId(conversationId);
+				try {
+					await wsManager.setConversationId(conversationId);
 
-				// Wait for WebSocket to be ready
-				await new Promise<void>((resolve, reject) => {
-					const timeout = setTimeout(() => reject(new Error('WebSocket connection timeout')), 5000);
-					const readyHandler = (ready: boolean) => {
-						if (ready) {
+					// Wait for WebSocket to be ready with a longer timeout
+					await new Promise<void>((resolve, reject) => {
+						const timeout = setTimeout(() => reject(new Error('WebSocket connection timeout')), 10000); // Increased from 5000
+						const readyHandler = (ready: boolean) => {
+							if (ready) {
+								clearTimeout(timeout);
+								wsManager.off('readyChange', readyHandler);
+								resolve();
+							}
+						};
+						wsManager.on('readyChange', readyHandler);
+						// Check if already ready
+						if (wsManager.status.isReady) {
 							clearTimeout(timeout);
-							wsManager.off('readyChange', readyHandler);
 							resolve();
 						}
-					};
-					wsManager.on('readyChange', readyHandler);
-					// Check if already ready
-					if (wsManager.status.isReady) {
-						clearTimeout(timeout);
-						resolve();
-					}
-				});
+					});
+				} catch (error) {
+					console.error('useChatState: Failed to establish WebSocket connection:', error);
+					throw new Error(
+						`WebSocket connection failed: ${error instanceof Error ? error.message : String(error)}`,
+					);
+				}
 
 				console.debug('useChatState: Initialization complete', {
 					// duration: initDuration.toFixed(2) + 'ms',
@@ -576,10 +621,14 @@ export function useChatState(
 			// Provide user-friendly error messages
 			let errorMessage = error.message;
 			if (error.message.includes('WebSocket')) {
-				errorMessage = 'Lost connection to server.';
+				errorMessage = 'Lost connection to server. Attempting to reconnect...';
 			} else if (error.message.includes('timeout')) {
 				errorMessage = 'Request timed out. Please try again.';
+			} else if (error.message.includes('conversation')) {
+				errorMessage = 'Error with conversation. Please try refreshing the page.';
 			}
+
+			console.error(`useChatState: Error in chat websocket: ${errorMessage}`, error);
 
 			chatState.value = {
 				...chatState.value,

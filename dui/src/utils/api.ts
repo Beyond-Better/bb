@@ -128,6 +128,18 @@ export async function getBuiLogPath(): Promise<string> {
 	return invoke('get_bui_log_path');
 }
 
+export async function getDuiLogPath(): Promise<string> {
+	return invoke('get_dui_log_path');
+}
+
+export async function getProxyLogPath(): Promise<string> {
+	return invoke('get_proxy_log_path');
+}
+
+export async function openLogFile(path: string): Promise<void> {
+	return invoke('open_log_file', { path });
+}
+
 export async function getGlobalConfigDefault(): Promise<GlobalConfig> {
 	return {
 		api: {

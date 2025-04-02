@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { batch, type Signal, signal } from '@preact/signals';
+import { batch, type Signal, signal, useComputed } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
@@ -38,8 +38,7 @@ interface ChatInputProps {
 	onChange: (value: string) => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
-	status: ChatStatus;
-	disabled?: boolean;
+	statusState: Signal<ChatStatus>;
 	maxLength?: number;
 	conversationId: string | null;
 }
@@ -102,8 +101,7 @@ export function ChatInput({
 	onChange,
 	onSend,
 	textareaRef: externalRef,
-	status,
-	disabled = false,
+	statusState,
 	maxLength = INPUT_MAX_CHAR_LENGTH,
 	onCancelProcessing,
 	projectId,
@@ -116,6 +114,11 @@ export function ChatInput({
 	const saveDebounceRef = useRef<number | null>(null);
 	const errorTimeoutRef = useRef<number | null>(null);
 	const isInitialMount = useRef(true);
+	const disabled = useComputed(() => !statusState.value.isReady);
+	// const disabled = useComputed(() => {
+	//   return !statusState.value.isReady ||
+	// 		 isProcessing(statusState.value);
+	// });
 
 	const {
 		history,
@@ -917,7 +920,7 @@ export function ChatInput({
 				(e.key === 'Enter' && (e.metaKey || e.ctrlKey)) ||
 				// Power user method: NumpadEnter (no modifier required)
 				(e.code === 'NumpadEnter')
-			) && !disabled && !status.isLoading && !isProcessing(status)
+			) && !disabled.value && !statusState.value.isLoading && !isProcessing(statusState.value)
 		) {
 			e.preventDefault();
 			//onSend();
@@ -1007,7 +1010,7 @@ export function ChatInput({
 	};
 
 	// Determine status message and type
-	const getStatusInfo = () => {
+	const getStatusInfo = (status: ChatStatus) => {
 		// Check critical states first
 		if (!status.isReady) {
 			return {
@@ -1027,7 +1030,7 @@ export function ChatInput({
 			};
 		}
 
-		if (disabled) {
+		if (disabled.value) {
 			return {
 				message: 'Chat is currently unavailable',
 				type: 'error' as const,
@@ -1095,15 +1098,18 @@ export function ChatInput({
 		}
 	};
 
-	const statusInfo = getStatusInfo();
+	//const statusInfo = getStatusInfo();
+	const statusInfo = useComputed(() => {
+		return getStatusInfo(statusState.value);
+	});
 
 	return (
 		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full relative'>
 			<InputStatusBar
-				visible={statusInfo.visible}
-				message={statusInfo.message}
-				status={statusInfo.status || ApiStatus.IDLE}
-				action={statusInfo.action as Action}
+				visible={statusInfo.value.visible}
+				message={statusInfo.value.message}
+				status={statusInfo.value.status || ApiStatus.IDLE}
+				action={statusInfo.value.action as Action}
 				className='mx-1'
 			/>
 
@@ -1227,16 +1233,18 @@ export function ChatInput({
 						  dark:bg-gray-800 dark:text-gray-100 
 						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
-						  ${disabled ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
+						  ${disabled.value ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
 						  ${
-							isProcessing(status) ? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800' : ''
+							isProcessing(statusState.value)
+								? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800'
+								: ''
 						}`}
-						placeholder={isProcessing(status)
+						placeholder={isProcessing(statusState.value)
 							? 'Type your message... (Statement in progress)'
 							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
 						rows={1}
 						maxLength={maxLength}
-						disabled={disabled}
+						disabled={disabled.value}
 						aria-label='Message input'
 						aria-expanded={isShowingSuggestions.value}
 						aria-haspopup='listbox'
@@ -1403,16 +1411,16 @@ export function ChatInput({
 							focus:outline-none focus:ring-2 focus:ring-blue-500 
 							focus:ring-opacity-50 min-w-[60px] ml-2
 							${
-							isProcessing(status)
+							isProcessing(statusState.value)
 								? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-								: disabled
+								: disabled.value
 								? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
 								: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
 						}`}
-						disabled={status.isLoading || disabled || isProcessing(status)}
-						aria-label={status.isLoading ? 'Sending message...' : 'Send message'}
+						disabled={statusState.value.isLoading || disabled.value || isProcessing(statusState.value)}
+						aria-label={statusState.value.isLoading ? 'Sending message...' : 'Send message'}
 					>
-						{status.isLoading
+						{statusState.value.isLoading
 							? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
 							: 'Send'}
 					</button>

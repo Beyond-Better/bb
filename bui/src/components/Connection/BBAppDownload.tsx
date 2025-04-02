@@ -1,8 +1,16 @@
 import { JSX } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
+import { signal } from '@preact/signals';
 import { AnimatedNotification } from '../AnimatedNotification.tsx';
 import { getBBAppAssetName, getSecurityInstructions } from '../../utils/platform.utils.ts';
 import { fetchLatestRelease } from '../../utils/upgrade.utils.ts';
+import { ExternalLink } from '../ExternalLink.tsx';
+
+const downloadUrl = signal<string>('');
+const releaseUrl = signal<string>('');
+const showDownload = signal(false);
+const version = signal<string>('');
+const error = signal<string>('');
 
 interface BBAppDownloadProps {
 	isCollapsed: boolean;
@@ -11,16 +19,10 @@ interface BBAppDownloadProps {
 }
 
 export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDownloadProps): JSX.Element {
-	const [showDownload, setShowDownload] = useState(false);
-	const [downloadUrl, setDownloadUrl] = useState<string>('');
-	const [releaseUrl, setReleaseUrl] = useState<string>('');
-	const [version, setVersion] = useState<string>('');
-	const [error, setError] = useState<string>();
-
 	// Wait 2 seconds before showing download prompt
 	useEffect(() => {
 		const timer = setTimeout(() => {
-			setShowDownload(true);
+			showDownload.value = true;
 			fetchDownloadInfo().catch(console.error);
 		}, 2000);
 
@@ -39,10 +41,9 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 				assetCount: release.assets.length,
 				assets: release.assets.map((a) => a.name),
 			});
-			const version = release.tag_name.replace(/^v/, '');
-			setVersion(version);
+			version.value = release.tag_name.replace(/^v/, '');
 
-			const assetName = getBBAppAssetName(version);
+			const assetName = getBBAppAssetName(version.value);
 			console.log('BBAppDownload: Looking for asset:', { assetName });
 			const asset = release.assets.find((a) => a.name === assetName);
 			console.log('BBAppDownload: Found asset:', { asset });
@@ -52,38 +53,39 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 					assetName,
 					availableAssets: release.assets.map((a) => a.name),
 				});
-				throw new Error('No compatible BB app version found for your system');
+				throw new Error('No compatible Beyond Better app version found for your system');
 			}
 
-			setDownloadUrl(asset.browser_download_url);
-			setReleaseUrl(release.html_url);
+			downloadUrl.value = asset.browser_download_url;
+			releaseUrl.value = release.html_url;
 		} catch (e) {
-			setError((e as Error).message);
+			error.value = (e as Error).message;
 			console.error('BBAppDownload: Failed to fetch download info:', e);
 		}
 	}
 
-	if (!showDownload) return <></>;
+	if (!showDownload.value) return <div></div>;
 
 	const securityInstructions = getSecurityInstructions();
 
 	return (
 		<AnimatedNotification
-			visible={true}
+			visible
 			type='warning'
 			className={`${className} ${isCollapsed ? 'fixed bottom-4 right-4 z-50 max-w-sm shadow-lg' : ''}`}
 		>
 			<div className='space-y-4'>
 				<div className='flex items-start justify-between'>
 					<div>
-						<h3 className='text-sm font-medium text-yellow-800'>BB Server Not Connected</h3>
+						<h3 className='text-sm font-medium text-yellow-800'>Beyond Better Server Not Connected</h3>
 						<p className='mt-1 text-sm text-yellow-700 dark:text-yellow-400'>
-							Unable to connect to BB server. Please try launching the BB app first.
+							Unable to connect to Beyond Better server. Please try launching the Beyond Better app first.
 						</p>
 					</div>
 					{/* Close button */}
 					<button
-						onClick={() => setShowDownload(false)}
+						type='button'
+						onClick={() => showDownload.value = false}
 						className='ml-4 text-yellow-700 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300'
 						aria-label='Dismiss'
 					>
@@ -98,39 +100,38 @@ export function BBAppDownload({ isCollapsed, className = '', onClose }: BBAppDow
 					</button>
 				</div>
 
-				{error ? <p className='text-sm text-red-600'>{error}</p> : (
+				{error.value ? <p className='text-sm text-red-600'>{error.value}</p> : (
 					<div className='space-y-3'>
 						<div className='text-sm text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/30 p-3 rounded-md'>
-							<h4 className='font-medium mb-2'>Launch BB App</h4>
+							<h4 className='font-medium mb-2'>Launch Beyond Better App</h4>
 							<ol className='list-decimal list-inside space-y-1'>
-								<li>Open the BB app on your computer</li>
+								<li>Open the Beyond Better app on your computer</li>
 								<li>Wait for the server to start</li>
 								<li>Refresh this page</li>
 							</ol>
 						</div>
 						<div className='border-t border-yellow-200 dark:border-yellow-800 pt-3'>
 							<p className='text-sm text-yellow-700 dark:text-yellow-400 mb-3'>
-								Don't have BB installed yet?
+								Don't have Beyond Better installed yet?
 							</p>
-							{downloadUrl
+							{downloadUrl.value
 								? (
 									<div className='space-y-3'>
 										<div className='flex flex-col gap-2'>
-											<a
-												href={downloadUrl}
+											<ExternalLink
+												href={downloadUrl.value}
 												className='inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 dark:bg-yellow-700 hover:bg-yellow-700 dark:hover:bg-yellow-800 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500'
 												download
+												toastMessage='Downloading Beyond Better App'
 											>
-												Download BB App v{version}
-											</a>
-											<a
-												href={releaseUrl}
-												target='_blank'
-												rel='noopener noreferrer'
+												Download Beyond Better App v{version.value}
+											</ExternalLink>
+											<ExternalLink
+												href={releaseUrl.value}
 												className='text-sm text-yellow-700 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300'
 											>
 												View release on GitHub →
-											</a>
+											</ExternalLink>
 										</div>
 
 										{securityInstructions && (

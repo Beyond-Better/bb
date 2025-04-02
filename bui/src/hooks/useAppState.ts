@@ -6,7 +6,8 @@ import type { SystemMeta, VersionInfo } from 'shared/types/version.ts';
 import {} from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
-import { getApiHostname, getApiPort, getApiUrl, getApiUseTls, getWsUrl } from '../utils/url.utils.ts';
+import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
+import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
 export interface AppState {
 	systemMeta: SystemMeta | null;
@@ -103,12 +104,71 @@ const updateLocalStorage = (projectId: string | null, conversationId: string | n
 export function useAppState(): Signal<AppState> {
 	if (IS_BROWSER && (!appState.value.apiClient || !appState.value.wsManager)) {
 		console.log('useAppState: DOING SELF INIT - only for login or error pages!!!');
+		initializeAppStateAsync();
+	}
+
+	return appState;
+}
+
+/**
+ * Asynchronously initialize the app state using the connection manager
+ * to determine the best protocol to use.
+ */
+async function initializeAppStateAsync() {
+	try {
+		// Get connection parameters
+		const { hostname, port, useTls } = {
+			hostname: getApiHostname(),
+			port: getApiPort(),
+			useTls: getApiUseTls(),
+		};
+
+		console.log('useAppState: Getting working API URL with params:', { hostname, port, useTls });
+
+		// Auto-detect the working protocol
+		const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+
+		console.log('useAppState: Connection established', {
+			apiUrl,
+			wsUrl,
+			fallbackUsed,
+			originalProtocol: useTls ? 'HTTPS/WSS' : 'HTTP/WS',
+		});
+
+		// Initialize app state with the working URLs
+		initializeAppState({
+			wsUrl: wsUrl,
+			apiUrl: apiUrl,
+			onMessage: (message) => {
+				console.log('useAppState: Received message:', message);
+			},
+			onError: (error) => {
+				console.error('useAppState: WebSocket error:', error);
+			},
+			onClose: () => {
+				console.log('useAppState: WebSocket closed');
+			},
+			onOpen: () => {
+				console.log('useAppState: WebSocket opened');
+			},
+		});
+	} catch (error) {
+		console.error('useAppState: Failed to initialize connection:', error);
+
+		// Use default parameters as fallback
 		const apiHostname = getApiHostname();
 		const apiPort = getApiPort();
 		const apiUseTls = getApiUseTls();
-		const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
-		const wsUrl = getWsUrl(apiHostname, apiPort, apiUseTls);
-		console.log('useAppState: ', { apiHostname, apiPort, apiUseTls, apiUrl, wsUrl });
+		const apiUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
+		const wsUrl = `${apiUseTls ? 'wss' : 'ws'}://${apiHostname}:${apiPort}/api/v1/ws`;
+
+		console.warn('useAppState: Falling back to default connection parameters', {
+			apiHostname,
+			apiPort,
+			apiUseTls,
+			apiUrl,
+			wsUrl,
+		});
 
 		initializeAppState({
 			wsUrl: wsUrl,
@@ -127,8 +187,6 @@ export function useAppState(): Signal<AppState> {
 			},
 		});
 	}
-
-	return appState;
 }
 
 export function setPath(path: string) {
@@ -160,6 +218,8 @@ export function setConversation(conversationId: string | null) {
 export function initializeAppState(config: WebSocketConfigApp): void {
 	console.log('useAppState: initializeAppState called', {
 		hasExistingManagers: !!(appState.value.wsManager || appState.value.apiClient),
+		apiUrl: config.apiUrl,
+		wsUrl: config.wsUrl,
 	});
 	if (appState.value.wsManager || appState.value.apiClient) {
 		console.log('AppState already initialized');

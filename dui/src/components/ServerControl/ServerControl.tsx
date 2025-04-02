@@ -3,16 +3,19 @@ import { GlobalConfig, ServerStartResult, ServerStatus } from '../../types/api';
 import { open } from '@tauri-apps/plugin-shell';
 import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
-import { generateWebviewBuiUrl } from '../../utils/url';
+import { generateWebviewBuiUrl, generateWebviewBuiUrlWithPlatform } from '../../utils/url';
 import { getProxyInfo, ProxyInfo, setProxyTarget } from '../../utils/proxy';
 import { useDebugMode } from '../../providers/DebugModeProvider';
 import {
 	checkServerStatus,
 	getApiLogPath,
 	getBuiLogPath,
+	getDuiLogPath,
+	getProxyLogPath,
 	getGlobalConfig,
 	startServer,
 	stopServer,
+	openLogFile,
 } from '../../utils/api';
 import { loadWindowState, saveWindowState, setupWindowStateHandlers } from '../../utils/window';
 
@@ -105,13 +108,26 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 	const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
 	const [apiLogPath, setApiLogPath] = useState<string | null>(null);
 	const [buiLogPath, setBuiLogPath] = useState<string | null>(null);
+	const [duiLogPath, setDuiLogPath] = useState<string | null>(null);
+	const [proxyLogPath, setProxyLogPath] = useState<string | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [pollingInterval, setPollingInterval] = useState<number>(NORMAL_POLL_INTERVAL);
 	const [webviewBuiUrl, setWebviewBuiUrl] = useState<string>('');
+	//const [webviewBuiUrlWithPlatform, setWebviewBuiUrlWithPlatform] = useState<string>('');
 	const [directBuiUrl, setDirectBuiUrl] = useState<string>('');
 	const [proxyInfo, setProxyInfo] = useState<ProxyInfo | null>(null);
 	const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
 	const [isVisible, setIsVisible] = useState(true);
+
+	// const [hasStartedBefore, setHasStartedBefore] = useState(() => {
+	// 	return localStorage.getItem('bb-server-started-before') === 'true';
+	// });
+	// useEffect(() => {
+	// 	if (status.all_services_ready && !hasStartedBefore) {
+	// 		localStorage.setItem('bb-server-started-before', 'true');
+	// 		setHasStartedBefore(true);
+	// 	}
+	// }, [status.all_services_ready]);
 
 	// Check initial window state
 	useEffect(() => {
@@ -208,14 +224,16 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 
 	// Reload chat window when server status changes (including TLS changes)
 	useEffect(() => {
-		const reloadChatWindow = async () => {
+		const reloadChatWindow = () => {
 			if (status.all_services_ready && webviewBuiUrl) {
-				if (debugMode) console.info('[DEBUG] Reloading BB Chat with webview URL:', webviewBuiUrl);
-				try {
-					await handleReloadChat();
-				} catch (error) {
-					console.error('Error reloading chat window:', error);
-				}
+				setTimeout(async () => {
+					if (debugMode) console.info('[DEBUG] Reloading BB Chat with webview URL:', webviewBuiUrl);
+					try {
+						await handleReloadChat();
+					} catch (error) {
+						console.error('Error reloading chat window:', error);
+					}
+				}, 1000);
 			}
 		};
 
@@ -236,6 +254,18 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				setBuiLogPath(logPath);
 			} catch (err) {
 				console.error('Failed to get BUI log path:', err);
+			}
+			try {
+				const logPath = await getDuiLogPath();
+				setDuiLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get DUI log path:', err);
+			}
+			try {
+				const logPath = await getProxyLogPath();
+				setProxyLogPath(logPath);
+			} catch (err) {
+				console.error('Failed to get proxy log path:', err);
 			}
 			try {
 				const config = await getGlobalConfig();
@@ -364,6 +394,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				throw new Error(result.api.error || result.bui.error || 'Failed to start services');
 			}
 
+			// Start proxy server if needed (when API TLS is disabled)
+			if (globalConfig && !globalConfig.api.tls.useTls) {
+				setStartupPhase('Starting Proxy Server...');
+				try {
+					// Import the function from proxy.ts
+					const { startProxyServer } = await import('../../utils/proxy');
+					const proxyResult = await startProxyServer();
+					if (!proxyResult.success) {
+						console.error('Proxy server failed to start:', proxyResult.error);
+					}
+				} catch (proxyErr) {
+					console.error('Error starting proxy server:', proxyErr);
+				}
+			}
+
 			// Wait for services to become responsive
 			setStartupPhase('Waiting for Services...');
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -397,6 +442,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		const maxAttempts = 25; // 5 seconds with 200ms intervals
 
 		try {
+			// Stop proxy server first if it's running
+			if (proxyInfo && proxyInfo.is_running) {
+				setStartupPhase('Stopping Proxy Server...');
+				try {
+					// Import the function from proxy.ts
+					const { stopProxyServer } = await import('../../utils/proxy');
+					const proxyResult = await stopProxyServer();
+					if (!proxyResult.success) {
+						console.error('Proxy server failed to stop:', proxyResult.error);
+					}
+				} catch (proxyErr) {
+					console.error('Error stopping proxy server:', proxyErr);
+				}
+			}
+
 			// Stop both services
 			await stopServer();
 
@@ -484,7 +544,10 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				});
 			}
 
+			//const webviewBuiUrlWithPlatform = generateWebviewBuiUrlWithPlatform(webviewBuiUrl);
+			//console.info('[DEBUG] Reloading BB Chat with platform URL:', webviewBuiUrlWithPlatform);
 			let options: ChatWebviewOptions = {
+				//url: webviewBuiUrlWithPlatform,
 				url: webviewBuiUrl,
 				title: 'BB Chat',
 				width: windowStateLogical.width,
@@ -565,7 +628,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				<div className='flex items-center justify-between gap-2'>
 					{/* Toggle and status container */}
 					<div className='flex items-center min-w-[100px] text-gray-900 dark:text-gray-300 mr-3'>
-						Server Status:
+						{status.all_services_ready ? 'Server Status:' : 'Start Server:'}
 					</div>
 					<div className='flex items-center min-w-[300px]'>
 						<label className='relative inline-flex items-center cursor-pointer'>
@@ -577,12 +640,20 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								disabled={isLoading}
 							/>
 							<div
-								className={`relative w-14 h-7 bg-gray-200 rounded-full peer 
-                                dark:bg-gray-700 peer-checked:after:translate-x-full 
-                                after:content-[''] after:absolute after:top-0.5 after:left-[4px] 
+								className={`relative w-14 h-7 rounded-full peer 
+								bg-blue-100 dark:bg-blue-900
+                                after:content-[''] after:absolute after:top-0.5 after:left-[3px] 
                                 after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all
+                                peer-checked:after:translate-x-full peer-checked:after:left-[5px] 
                                 peer-checked:bg-green-600 ${isLoading ? 'opacity-50' : ''}`}
 							>
+								{
+									/*!status.all_services_ready && (
+									<span className='absolute inset-0 flex items-center justify-center text-[10px] font-bold text-blue-700 dark:text-blue-300 z-10'>
+										START
+									</span>
+								)*/
+								}
 							</div>
 						</label>
 						<div
@@ -603,6 +674,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					</div>
 					{/* Settings button */}
 					<button
+						type='button'
 						onClick={() => onNavigate('/settings')}
 						className='inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800'
 					>
@@ -629,11 +701,37 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					</button>
 				</div>
 
+				{/* Call-to-action message when server is stopped */}
+				{!status.all_services_ready && !isLoading && (
+					<div className='-mt-2 text-blue-600 dark:text-blue-400 font-medium text-center animate-pulse'>
+						Click the toggle above to start the server
+					</div>
+				)}
+
+				{
+					/* !hasStartedBefore && !status.all_services_ready && (
+					<div className='mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 rounded-md'>
+						<div className='flex items-center'>
+							<svg className='w-5 h-5 mr-2' fill='currentColor' viewBox='0 0 20 20'>
+								<path
+									fillRule='evenodd'
+									d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
+									clipRule='evenodd'
+								/>
+							</svg>
+							<span className='font-medium'>Getting Started:</span>
+						</div>
+						<p className='mt-1 ml-7'>Click the toggle switch above to start the BB server</p>
+					</div>
+				) */
+				}
+
 				{/* Chat buttons row */}
 				<div className='flex items-center gap-4 justify-center'>
 					{globalConfig && (
 						<div className='flex gap-2'>
 							<button
+								type='button'
 								onClick={handleReloadChat}
 								disabled={!status.all_services_ready}
 								className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
@@ -703,6 +801,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			{/* Advanced Section */}
 			<div className='mt-4'>
 				<button
+					type='button'
 					onClick={() => setShowAdvanced(!showAdvanced)}
 					className='text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 flex items-center gap-1'
 				>
@@ -723,7 +822,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							<div className='grid gap-4'>
 								{/* API Status */}
 								<div className='grid grid-cols-6 gap-y-4'>
-									<div className='col-span-6 font-bold text-lg mb-1'>API Status</div>
+									<div className='col-span-6 font-bold text-lg mb-1'>API Status <span className='ml-2 text-sm'>(Application Program Interface)</span></div>
 									<div className='font-bold'>Host:</div>
 									<div>{globalConfig.api.hostname}</div>
 									<div className='font-bold'>Port:</div>
@@ -736,32 +835,12 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									<div>{status.api.process_responds ? 'Responding' : 'Not responding'}</div>
 									<div className='font-bold'>Process ID:</div>
 									<div>{status.api.pid || 'Not running'}</div>
-									{apiLogPath && (
+									{/*apiLogPath && (
 										<>
 											<div className='font-bold'>Server Log:</div>
 											<div className='col-span-5'>{apiLogPath}</div>
 										</>
-									)}
-								</div>
-
-								{/* API Proxy */}
-								<div className='grid grid-cols-6 gap-y-4 mt-4'>
-									<div className='col-span-6 font-bold text-lg mb-1'>API Proxy</div>
-									{proxyInfo && !globalConfig.api.tls.useTls
-										? (
-											<>
-												<div className='font-bold'>Proxy Port:</div>
-												<div>{proxyInfo.port}</div>
-												<div className='font-bold'>Proxy Target:</div>
-												<div className='col-span-3'>{proxyInfo.target}</div>
-											</>
-										)
-										: (
-											<>
-												<div className='font-bold'>Proxy:</div>
-												<div>disabled</div>
-											</>
-										)}
+									)*/}
 								</div>
 
 								{/* BUI Status */}
@@ -781,12 +860,119 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									<div>{status.bui.process_responds ? 'Responding' : 'Not responding'}</div>
 									<div className='font-bold'>Process ID:</div>
 									<div>{status.bui.pid || 'Not running'}</div>
-									{buiLogPath && (
+									{/*buiLogPath && (
 										<>
 											<div className='font-bold'>Server Log:</div>
 											<div className='col-span-5'>{buiLogPath}</div>
 										</>
-									)}
+									)*/}
+								</div>
+
+								{/* Server Proxy */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-1'>Server Proxy <span className='ml-2 text-sm'>(Used when API TLS is disabled)</span></div>
+									{proxyInfo && !globalConfig.api.tls.useTls
+										? (
+											<>
+												<div className='font-bold'>Proxy Port:</div>
+												<div>{proxyInfo.port}</div>
+												<div className='font-bold' title='URL depends on setting of BUI TLS'>Proxy Target:</div>
+												<div className='col-span-3' title='URL depends on setting of BUI TLS'>{proxyInfo.target}</div>
+											</>
+										)
+										: (
+											<>
+												<div className='font-bold'>Proxy:</div>
+												<div>disabled</div>
+											</>
+										)}
+								</div>
+
+								{/* Log Files Section */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-1'>Log Files</div>
+									<div className='grid grid-cols-6 gap-y-3 col-span-6 bg-gray-100 dark:bg-gray-700/30 p-3 rounded'>
+										{apiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>API:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{apiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(apiLogPath);
+															} catch (err) {
+																console.error('Failed to open API log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
+											</>
+										)}
+										{buiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>BUI:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{buiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(buiLogPath);
+															} catch (err) {
+																console.error('Failed to open BUI log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
+											</>
+										)}
+										{duiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Application:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(duiLogPath);
+															} catch (err) {
+																console.error('Failed to open DUI log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
+											</>
+										)}
+										{proxyLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Proxy:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{proxyLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(proxyLogPath);
+															} catch (err) {
+																console.error('Failed to open Proxy log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
+											</>
+										)}
+									</div>
 								</div>
 							</div>
 						)}

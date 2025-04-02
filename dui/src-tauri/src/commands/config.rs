@@ -34,6 +34,65 @@ pub async fn get_bui_log_path() -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn get_dui_log_path() -> Result<String, String> {
+    // Get the log directory
+    let log_dir = crate::api::get_default_log_dir()
+        .ok_or_else(|| "Failed to determine log directory".to_string())?;
+    
+    // DUI logs are stored in "Beyond Better.log"
+    let path = log_dir.join("Beyond Better.log");
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn get_proxy_log_path() -> Result<String, String> {
+    // Get the log directory
+    let log_dir = crate::api::get_default_log_dir()
+        .ok_or_else(|| "Failed to determine log directory".to_string())?;
+    
+    // Proxy logs are stored in "proxy-access.log"
+    let path = log_dir.join("proxy-access.log");
+    
+    // Convert to string, handling any non-UTF8 characters
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub async fn open_log_file(path: String) -> Result<(), String> {
+    use std::path::Path;
+    
+    // Verify the path exists
+    if !Path::new(&path).exists() {
+        return Err(format!("Log file does not exist: {}", path));
+    }
+    
+    // Use platform-specific command to open the file
+    let (cmd, args) = if cfg!(target_os = "windows") {
+        ("cmd", vec!["/c".to_string(), "start".to_string(), "".to_string(), path.clone()])
+    } else if cfg!(target_os = "macos") {
+        ("open", vec![path.clone()])
+    } else {
+        // Linux/Unix
+        ("xdg-open", vec![path.clone()])
+    };
+    
+    match std::process::Command::new(cmd)
+        .args(args)
+        .spawn() {
+            Ok(_) => {
+                log::info!("Opened log file: {}", path);
+                Ok(())
+            },
+            Err(e) => {
+                log::error!("Failed to open log file {}: {}", path, e);
+                Err(format!("Failed to open log file: {}", e))
+            }
+        }
+}
+
+#[tauri::command]
 pub async fn test_read_config() -> Result<String, String> {
     let config_dir = get_global_config_dir().map_err(|e| e.to_string())?;
     let config_path = config_dir.join("config.yaml");

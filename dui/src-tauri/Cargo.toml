@@ -1,6 +1,6 @@
 [package]
 name = "beyond-better"
-version = "0.7.2"
+version = "0.7.3"
 description = "Beyond Better Desktop App"
 authors = ["cngarrison"]
 edition = "2021"
@@ -43,6 +43,7 @@ tower-http = { version = "0.4", features = ["trace"] }
 tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
 futures-util = { version = "0.3", features = ["sink"] }
 tungstenite = "0.20"
+urlencoding = "2.1"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 flate2 = "1.0"

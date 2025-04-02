@@ -197,3 +197,7 @@
 √    - Everything not inside <bb> tags will be shown to user as part of the conversation
 √    - 'User' message showing 'tool result' should be clearly separate from rest of the conversation
 
+√ download updated app link from DUI  displays the binary code in the window; not a download
+√ BUI should check both http and https and then set connect prefs
+√ Try to connect again if connection fails on page load or after selecting a project
+

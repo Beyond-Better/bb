@@ -1,8 +1,9 @@
 import { JSX } from 'preact';
 import { useState } from 'preact/hooks';
-import { VersionCompatibility } from 'shared/types/version.ts';
+//import { VersionCompatibility } from 'shared/types/version.ts';
 import { useVersion } from '../../hooks/useVersion.ts';
-import type { ApiClient, ApiUpgradeResponse } from '../../utils/apiClient.utils.ts';
+import type { ApiClient } from '../../utils/apiClient.utils.ts';
+import { ExternalLink } from '../ExternalLink.tsx';
 
 // export interface ApiUpgradeResponse {
 // 	success: boolean;
@@ -28,14 +29,14 @@ interface VersionWarningProps {
 export function VersionWarning({ className = '', apiClient }: VersionWarningProps): JSX.Element {
 	const [isUpdating, setIsUpdating] = useState(false);
 	const [error, setError] = useState<string>();
+	const { versionCompatibility } = useVersion();
 
-	if (!apiClient) return <></>;
+	if (!apiClient) return <div></div>;
 
-	const { versionInfo, versionCompatibility } = useVersion();
-	if (!versionCompatibility) return <></>;
+	if (!versionCompatibility) return <div></div>;
 
 	const { compatible, currentVersion, requiredVersion, updateAvailable, latestVersion } = versionCompatibility;
-	if (compatible) return <></>;
+	if (compatible) return <div></div>;
 	// Version compatibility is now computed directly
 
 	return (
@@ -59,8 +60,8 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 					<h3 className='text-sm font-medium text-yellow-800 dark:text-yellow-300'>Version Mismatch</h3>
 					<div className='mt-2 text-sm text-yellow-700 dark:text-yellow-400'>
 						<p>
-							The BB server version (v{currentVersion}) is not compatible with the required version
-							(v{requiredVersion}).
+							The Beyond Better server version (v{currentVersion}) is not compatible with the required
+							version (v{requiredVersion}).
 							{updateAvailable && latestVersion && (
 								<span>A new version (v{latestVersion}) is available.</span>
 							)}
@@ -74,14 +75,12 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 										{currentVersion.startsWith('0.3') || currentVersion.startsWith('0.2') ||
 												currentVersion.startsWith('0.1')
 											? (
-												<a
+												<ExternalLink
 													href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
-													target='_blank'
-													rel='noopener noreferrer'
 													className='rounded-md bg-yellow-50 dark:bg-yellow-900/30 px-2 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
 												>
 													View Upgrade Guide
-												</a>
+												</ExternalLink>
 											)
 											: (
 												<button
@@ -92,6 +91,7 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 														setIsUpdating(true);
 														try {
 															const result = await apiClient.upgradeApi();
+															console.log('VersionWarning: upgradeApi - result', result);
 														} catch (e) {
 															setError((e as Error).message);
 														} finally {
@@ -108,14 +108,12 @@ export function VersionWarning({ className = '', apiClient }: VersionWarningProp
 								)
 								: (
 									<p className='px-2 py-1.5 text-sm text-yellow-800 dark:text-yellow-300'>
-										<a
+										<ExternalLink
 											href='https://github.com/Beyond-Better/bb/tree/main/docs/user/upgrading-bb.md'
-											target='_blank'
-											rel='noopener noreferrer'
 											className='rounded-md bg-yellow-50 px-2 py-1.5 text-sm font-medium text-yellow-800 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50 text-center'
 										>
 											View Upgrade Guide
-										</a>
+										</ExternalLink>
 									</p>
 								)}
 						</div>

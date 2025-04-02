@@ -8,9 +8,6 @@ interface UrlConfig {
   debugMode: boolean;
 }
 
-/**
- * Generates the BUI URL with appropriate proxy handling and parameters
- */
 export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMode }: UrlConfig): string {
   console.debug('generateWebviewBuiUrl called with:', {
     apiConfig,
@@ -41,10 +38,10 @@ export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMo
   let baseUrl: string;
   console.debug('Constructing final URL...');
   if (apiConfig.tls.useTls) {
-    console.debug('Using TLS mode with baseUrl');
     // In TLS mode or without proxy info, use direct connection
     //baseUrl = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
 	baseUrl = `${buiConfig.tls.useTls ? 'https' : 'http'}://${buiConfig.hostname}:${buiConfig.port}`
+    console.debug('Using TLS mode with baseUrl', baseUrl);
     const url = `${baseUrl}/${queryString ? `#${queryString}` : ''}`;
     console.debug('Generated direct HTTPS URL:', url);
     return url;
@@ -55,10 +52,33 @@ export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMo
     console.debug('Generated proxy URL:', url);
     return url;
   } else {
-    console.debug('No proxy info available, falling back to direct HTTPS');
     // Fallback to direct HTTPS connection if no proxy available
     //baseUrl = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
 	baseUrl = `${buiConfig.tls.useTls ? 'https' : 'http'}://${buiConfig.hostname}:${buiConfig.port}`
+    console.debug('No proxy info available, falling back to direct HTTPS', baseUrl);
     return `${baseUrl}/${queryString ? `#${queryString}` : ''}`;
   }
+}
+
+
+
+
+/**
+ * Generates the BUI URL with platform parameter for Tauri environment
+ * Same as generateWebviewBuiUrl but adds a platform=tauri parameter
+ * This allows JavaScript to detect when it's running inside Tauri
+ */
+export function generateWebviewBuiUrlWithPlatform(standardUrl: string): string {
+  // Start with the standard URL
+  //const standardUrl = generateWebviewBuiUrl(config);
+  
+  // Extract hash fragment if it exists
+  const [baseUrl, hashFragment] = standardUrl.split('#');
+  
+  // Create new hash params including platform
+  const hashParams = hashFragment 
+    ? `${hashFragment}&platform=tauri` 
+    : 'platform=tauri';
+    
+  return `${baseUrl}#${hashParams}`;
 }
