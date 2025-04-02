@@ -394,6 +394,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 				throw new Error(result.api.error || result.bui.error || 'Failed to start services');
 			}
 
+			// Start proxy server if needed (when API TLS is disabled)
+			if (globalConfig && !globalConfig.api.tls.useTls) {
+				setStartupPhase('Starting Proxy Server...');
+				try {
+					// Import the function from proxy.ts
+					const { startProxyServer } = await import('../../utils/proxy');
+					const proxyResult = await startProxyServer();
+					if (!proxyResult.success) {
+						console.error('Proxy server failed to start:', proxyResult.error);
+					}
+				} catch (proxyErr) {
+					console.error('Error starting proxy server:', proxyErr);
+				}
+			}
+
 			// Wait for services to become responsive
 			setStartupPhase('Waiting for Services...');
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -427,6 +442,21 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		const maxAttempts = 25; // 5 seconds with 200ms intervals
 
 		try {
+			// Stop proxy server first if it's running
+			if (proxyInfo && proxyInfo.is_running) {
+				setStartupPhase('Stopping Proxy Server...');
+				try {
+					// Import the function from proxy.ts
+					const { stopProxyServer } = await import('../../utils/proxy');
+					const proxyResult = await stopProxyServer();
+					if (!proxyResult.success) {
+						console.error('Proxy server failed to stop:', proxyResult.error);
+					}
+				} catch (proxyErr) {
+					console.error('Error stopping proxy server:', proxyErr);
+				}
+			}
+
 			// Stop both services
 			await stopServer();
 
@@ -792,7 +822,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 							<div className='grid gap-4'>
 								{/* API Status */}
 								<div className='grid grid-cols-6 gap-y-4'>
-									<div className='col-span-6 font-bold text-lg mb-1'>API Status</div>
+									<div className='col-span-6 font-bold text-lg mb-1'>API Status <span className='ml-2 text-sm'>(Application Program Interface)</span></div>
 									<div className='font-bold'>Host:</div>
 									<div>{globalConfig.api.hostname}</div>
 									<div className='font-bold'>Port:</div>
@@ -811,26 +841,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 											<div className='col-span-5'>{apiLogPath}</div>
 										</>
 									)*/}
-								</div>
-
-								{/* API Proxy */}
-								<div className='grid grid-cols-6 gap-y-4 mt-4'>
-									<div className='col-span-6 font-bold text-lg mb-1'>API Proxy</div>
-									{proxyInfo && !globalConfig.api.tls.useTls
-										? (
-											<>
-												<div className='font-bold'>Proxy Port:</div>
-												<div>{proxyInfo.port}</div>
-												<div className='font-bold'>Proxy Target:</div>
-												<div className='col-span-3'>{proxyInfo.target}</div>
-											</>
-										)
-										: (
-											<>
-												<div className='font-bold'>Proxy:</div>
-												<div>disabled</div>
-											</>
-										)}
 								</div>
 
 								{/* BUI Status */}
@@ -858,13 +868,33 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 									)*/}
 								</div>
 
+								{/* Server Proxy */}
+								<div className='grid grid-cols-6 gap-y-4 mt-4'>
+									<div className='col-span-6 font-bold text-lg mb-1'>Server Proxy <span className='ml-2 text-sm'>(Used when API TLS is disabled)</span></div>
+									{proxyInfo && !globalConfig.api.tls.useTls
+										? (
+											<>
+												<div className='font-bold'>Proxy Port:</div>
+												<div>{proxyInfo.port}</div>
+												<div className='font-bold' title='URL depends on setting of BUI TLS'>Proxy Target:</div>
+												<div className='col-span-3' title='URL depends on setting of BUI TLS'>{proxyInfo.target}</div>
+											</>
+										)
+										: (
+											<>
+												<div className='font-bold'>Proxy:</div>
+												<div>disabled</div>
+											</>
+										)}
+								</div>
+
 								{/* Log Files Section */}
 								<div className='grid grid-cols-6 gap-y-4 mt-4'>
 									<div className='col-span-6 font-bold text-lg mb-1'>Log Files</div>
 									<div className='grid grid-cols-6 gap-y-3 col-span-6 bg-gray-100 dark:bg-gray-700/30 p-3 rounded'>
 										{apiLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>API Log:</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>API:</div>
 												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{apiLogPath}</div>
 												<div className='col-span-1 text-right'>
 													<button
@@ -884,7 +914,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										)}
 										{buiLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>BUI Log:</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>BUI:</div>
 												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{buiLogPath}</div>
 												<div className='col-span-1 text-right'>
 													<button
@@ -904,7 +934,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										)}
 										{duiLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>Application Log:</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Application:</div>
 												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
 												<div className='col-span-1 text-right'>
 													<button
@@ -924,7 +954,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 										)}
 										{proxyLogPath && (
 											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>API Proxy Log:</div>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Proxy:</div>
 												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{proxyLogPath}</div>
 												<div className='col-span-1 text-right'>
 													<button

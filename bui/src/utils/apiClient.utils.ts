@@ -416,15 +416,15 @@ export class ApiClient {
 	// Auth Methods
 	async signIn(email: string, password: string): Promise<AuthResponse> {
 		return await this.post<AuthResponse>('/api/v1/auth/login', { email, password }) ??
-			{ error: 'Failed to connect to API' };
+			{ error: 'SignIn: Failed to connect to API' };
 	}
 
 	async signOut(): Promise<AuthResponse> {
-		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ?? { error: 'Failed to connect to API' };
+		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ?? { error: 'SignOut: Failed to connect to API' };
 	}
 
 	async getSession(): Promise<AuthResponse> {
-		return await this.get<AuthResponse>('/api/v1/auth/session') ?? { error: 'Failed to connect to API' };
+		return await this.get<AuthResponse>('/api/v1/auth/session') ?? { error: 'GetSession: Failed to connect to API' };
 	}
 
 	async signUp(email: string, password: string): Promise<AuthResponse> {
@@ -433,14 +433,14 @@ export class ApiClient {
 			email,
 			password,
 			options: { emailRedirectTo: verifyUrl.toString() },
-		}) ?? { error: 'Failed to connect to API' };
+		}) ?? { error: 'SignUp: Failed to connect to API' };
 	}
 
 	async verifyOtp(tokenHash: string, type: string): Promise<AuthResponse> {
 		return await this.post<AuthResponse>('/api/v1/auth/callback', {
 			token_hash: tokenHash,
 			type,
-		}) ?? { error: 'Failed to connect to API' };
+		}) ?? { error: 'VerifyToken: Failed to connect to API' };
 	}
 
 	// Project Management Methods

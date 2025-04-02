@@ -38,10 +38,10 @@ export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMo
   let baseUrl: string;
   console.debug('Constructing final URL...');
   if (apiConfig.tls.useTls) {
-    console.debug('Using TLS mode with baseUrl');
     // In TLS mode or without proxy info, use direct connection
     //baseUrl = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
 	baseUrl = `${buiConfig.tls.useTls ? 'https' : 'http'}://${buiConfig.hostname}:${buiConfig.port}`
+    console.debug('Using TLS mode with baseUrl', baseUrl);
     const url = `${baseUrl}/${queryString ? `#${queryString}` : ''}`;
     console.debug('Generated direct HTTPS URL:', url);
     return url;
@@ -52,10 +52,10 @@ export function generateWebviewBuiUrl({ apiConfig, buiConfig, proxyInfo, debugMo
     console.debug('Generated proxy URL:', url);
     return url;
   } else {
-    console.debug('No proxy info available, falling back to direct HTTPS');
     // Fallback to direct HTTPS connection if no proxy available
     //baseUrl = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
 	baseUrl = `${buiConfig.tls.useTls ? 'https' : 'http'}://${buiConfig.hostname}:${buiConfig.port}`
+    console.debug('No proxy info available, falling back to direct HTTPS', baseUrl);
     return `${baseUrl}/${queryString ? `#${queryString}` : ''}`;
   }
 }

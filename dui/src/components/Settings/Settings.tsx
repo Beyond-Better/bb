@@ -1,9 +1,10 @@
 import { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { invoke } from '@tauri-apps/api/core';
-import { setDebugMode as setProxyDebugMode } from '../../utils/proxy';
+import { setDebugMode as setProxyDebugMode, startProxyServer, stopProxyServer } from '../../utils/proxy';
 import { GlobalConfigValues } from '../../types/settings';
 import { ConfirmDialog } from '../ConfirmDialog/ConfirmDialog';
+import { startServer, stopServer } from '../../utils/api';
 import { useDebugMode } from '../../providers/DebugModeProvider';
 
 const defaultConfig: GlobalConfigValues = {
@@ -32,7 +33,7 @@ export function Settings(): JSX.Element {
 		try {
 			const duidebugMode = await invoke<boolean>('get_dui_debug_mode');
 			setDebugMode(duidebugMode);
-			console.debug('Loaded DUI debug mode:', duidebugMode);
+			console.info('Loaded DUI debug mode:', duidebugMode);
 		} catch (err) {
 			console.error('Failed to load DUI debug mode:', err);
 		}
@@ -159,30 +160,44 @@ export function Settings(): JSX.Element {
 	const handleRestartConfirm = async () => {
 		try {
 			// Stop API/BUI first
-			await invoke('stop_api');
-			await invoke('stop_bui');
+			const stopResult = await stopServer();
+			if (!stopResult) {
+				console.error('Failed to stop API/BUI services');
+			}
 
 			// Handle proxy server based on TLS setting
 			if (config['api.tls.useTls']) {
-				try {
-					await invoke('stop_proxy_server');
-					console.debug('Proxy server stopped after TLS enabled');
-				} catch (err) {
-					console.error('Failed to stop proxy server:', err);
+				// Stop proxy server if we're enabling TLS (proxy not needed)
+				const proxyStopResult = await stopProxyServer();
+				if (proxyStopResult.success) {
+					console.info('Proxy server stopped after TLS enabled');
+				} else {
+					console.error('Failed to stop proxy server:', proxyStopResult.error);
 				}
 			}
 
-			// Start API
-			await invoke('start_api');
-			await invoke('start_bui');
+			// Start API and BUI
+			const startResult = await startServer();
+			if (!startResult.all_services_ready) {
+				if (startResult.api.requires_settings || startResult.bui.requires_settings) {
+					console.error('Server requires additional configuration');
+				} else {
+					console.error(
+						'Failed to start services:',
+						startResult.api.error || startResult.bui.error || 'Unknown error'
+					);
+				}
+			} else {
+				console.info('API and BUI services started successfully');
 
-			// If TLS is disabled, ensure proxy is started
-			if (!config['api.tls.useTls']) {
-				try {
-					await invoke('start_proxy_server');
-					console.debug('Proxy server started after TLS disabled');
-				} catch (err) {
-					console.error('Failed to start proxy server:', err);
+				// If TLS is disabled, ensure proxy is started
+				if (!config['api.tls.useTls']) {
+					const proxyStartResult = await startProxyServer();
+					if (proxyStartResult.success) {
+						console.info('Proxy server started after TLS disabled');
+					} else {
+						console.error('Failed to start proxy server:', proxyStartResult.error);
+					}
 				}
 			}
 
@@ -320,7 +335,7 @@ export function Settings(): JSX.Element {
 										try {
 											await setProxyDebugMode(newMode);
 											setProxyDebugMode(newMode);
-											console.debug('Proxy debug mode set to:', newMode);
+											console.info('Proxy debug mode set to:', newMode);
 										} catch (err) {
 											console.error('Failed to set proxy debug mode:', err);
 										}
@@ -350,7 +365,7 @@ export function Settings(): JSX.Element {
 									try {
 										await invoke('set_dui_debug_mode', { debugMode: newMode });
 										setDebugMode(newMode);
-										console.debug('Debug mode set to:', newMode);
+										console.info('Debug mode set to:', newMode);
 									} catch (err) {
 										console.error('Failed to set debug mode:', err);
 									}

@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 export interface ProxyInfo {
     port: number;
     target: string;
+    is_running: boolean;
 }
 
 export async function getProxyInfo(): Promise<ProxyInfo> {
@@ -63,4 +64,36 @@ export function shouldUseProxy(useTls: boolean): boolean {
     console.debug(`Should use proxy? ${useProxy} (TLS: ${useTls})`);
 
     return !useTls; // Only use proxy when TLS is disabled
+}
+
+// Start proxy server function to match API/BUI pattern
+export async function startProxyServer(): Promise<{ success: boolean; error?: string }> {
+    console.debug('Starting proxy server...');
+    try {
+        await invoke('start_proxy_server');
+        console.debug('Proxy server started successfully');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to start proxy server:', error);
+        return { 
+            success: false, 
+            error: (error instanceof Error) ? (error.message || 'Unknown error') : error 
+        };
+    }
+}
+
+// Stop proxy server function to match API/BUI pattern
+export async function stopProxyServer(): Promise<{ success: boolean; error?: string }> {
+    console.debug('Stopping proxy server...');
+    try {
+        await invoke('stop_proxy_server');
+        console.debug('Proxy server stopped successfully');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to stop proxy server:', error);
+        return { 
+            success: false, 
+            error: (error instanceof Error) ? (error.message || 'Unknown error') : error 
+        };
+    }
 }
