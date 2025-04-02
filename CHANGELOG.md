@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.7.3] - 2025-04-02
+
+### Added
+
+- log paths for DUI and proxy
+- button in DUI to open log files
+
+### Changed
+
+- instructions and styling for server control toggle in DUI
+- retry/fallback for http/s protocol switching for API
+- moved all log paths in DUI to separate section
+
+### Fixed
+
+- external links in DUI open in default browser
+- control of internal proxy
+- ensured status in ChatInput is fully reactive
+
+
 ## [0.7.2] - 2025-03-31
 
 ### Added
