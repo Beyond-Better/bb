@@ -124,7 +124,8 @@ export async function handleStatus(ctx: Context<BbState>) {
 export async function handleSignup(ctx: Context<BbState>) {
 	try {
 		const body = await ctx.request.body.json();
-		const { email, password } = body;
+		const { email, password, options } = body;
+		const userData = options?.data || {};
 
 		if (!email || !password) {
 			ctx.response.status = 400;
@@ -149,6 +150,7 @@ export async function handleSignup(ctx: Context<BbState>) {
 			password,
 			options: {
 				emailRedirectTo: verifyUrl,
+				data: userData,
 			},
 		});
 		logger.error('AuthHandler: handleSignup:', { data, error });

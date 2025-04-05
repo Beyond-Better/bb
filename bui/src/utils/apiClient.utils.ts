@@ -430,12 +430,24 @@ export class ApiClient {
 			{ error: 'GetSession: Failed to connect to API' };
 	}
 
-	async signUp(email: string, password: string): Promise<AuthResponse> {
+	async signUp(
+		email: string, 
+		password: string,
+		metadata?: {
+			first_name: string | null;
+			last_name: string | null;
+			marketing_consent: boolean;
+			accepted_terms: boolean;
+		}
+	): Promise<AuthResponse> {
 		const verifyUrl = new URL('/auth/verify', globalThis.location.href);
 		return await this.post<AuthResponse>('/api/v1/auth/signup', {
 			email,
 			password,
-			options: { emailRedirectTo: verifyUrl.toString() },
+			options: { 
+				emailRedirectTo: verifyUrl.toString(),
+				data: metadata
+			},
 		}) ?? { error: 'SignUp: Failed to connect to API' };
 	}
 

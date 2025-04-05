@@ -58,13 +58,13 @@ function getApiClient(req: Request | null): ApiClient | null {
 	if (appState && appState.value.apiClient) {
 		return appState.value.apiClient;
 	}
-	if (!req) {
-		console.log('useAuthState: getApiClient - Need a request to load API Client');
-		return null;
-	}
-	const apiHostname = getApiHostname(req);
-	const apiPort = getApiPort(req);
-	const apiUseTls = getApiUseTls(req);
+	//if (!req) {
+	//	console.log('useAuthState: getApiClient - Need a request to load API Client');
+	//	return null;
+	//}
+	const apiHostname = getApiHostname(req || undefined);
+	const apiPort = getApiPort(req || undefined);
+	const apiUseTls = getApiUseTls(req || undefined);
 	const apiUrl = getApiUrl(apiHostname, apiPort, apiUseTls);
 	const apiClient: ApiClient = createApiClientManager(apiUrl);
 	return apiClient;
@@ -90,8 +90,8 @@ export function useAuthState() {
 			try {
 				const apiClient = getApiClient(req);
 				if (!apiClient) {
-					console.log('useAuthState: Could not load API Client');
-					return { error: 'Could not load API Client' };
+					console.log('useAuthState: [getSessionUser] Could not load API Client');
+					return { error: 'Could not load API Client [getSessionUser]' };
 				}
 				const { session, error } = await apiClient.getSession();
 				//console.log('useAuthState: Returning session', session);
@@ -135,8 +135,8 @@ export function useAuthState() {
 			try {
 				const apiClient = getApiClient(req);
 				if (!apiClient) {
-					console.log('useAuthState: Could not load API Client');
-					return { error: 'Could not load API Client' };
+					console.log('useAuthState: [verifyOtp] Could not load API Client');
+					return { error: 'Could not load API Client [verifyOtp]' };
 				}
 				const { user, session, error } = await apiClient.verifyOtp(tokenHash, type);
 
@@ -201,8 +201,8 @@ export function useAuthState() {
 
 				const apiClient = getApiClient(req);
 				if (!apiClient) {
-					console.log('useAuthState: Could not load API Client');
-					return { error: 'Could not load API Client' };
+					console.log('useAuthState: [signIn] Could not load API Client');
+					return { error: 'Could not load API Client [signIn]' };
 				}
 				const { user, session, error } = await apiClient.signIn(email, password);
 				console.log('useAuthState: Sign in user', user);
@@ -244,6 +244,10 @@ export function useAuthState() {
 			_resp: Response | null,
 			email: string,
 			password: string,
+			firstName?: string,
+			lastName?: string,
+			marketingConsent?: boolean,
+			acceptedTerms?: boolean,
 		): Promise<{ user?: User; session?: Session; error?: string }> => {
 			console.log('useAuthState: Attempting sign up...');
 
@@ -262,10 +266,19 @@ export function useAuthState() {
 
 				const apiClient = getApiClient(req);
 				if (!apiClient) {
-					console.log('useAuthState: Could not load API Client');
-					return { error: 'Could not load API Client' };
+					console.log('useAuthState: [signUp] Could not load API Client');
+					return { error: 'Could not load API Client [signUp]' };
 				}
-				const { user, session, error } = await apiClient.signUp(email, password);
+				const { user, session, error } = await apiClient.signUp(
+				email, 
+				password, 
+				{
+					first_name: firstName || null,
+					last_name: lastName || null,
+					marketing_consent: marketingConsent || false,
+					accepted_terms: acceptedTerms || true,
+				}
+			);
 
 				if (error) {
 					throw new AuthError(error, 'auth_failed');
@@ -320,8 +333,8 @@ export function useAuthState() {
 
 				const apiClient = getApiClient(req);
 				if (!apiClient) {
-					console.log('useAuthState: Could not load API Client');
-					return { error: 'Could not load API Client' };
+					console.log('useAuthState: [signOut] Could not load API Client');
+					return { error: 'Could not load API Client [signOut]' };
 				}
 				const { error } = await apiClient.signOut();
 
