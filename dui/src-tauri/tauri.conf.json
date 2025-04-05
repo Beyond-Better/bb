@@ -4,9 +4,9 @@
   "version": "0.7.3",
   "identifier": "dev.beyondbetter.app",
   "build": {
-    "beforeDevCommand": "deno task dev",
+    "beforeDevCommand": "npx vite",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "deno task build",
+    "beforeBuildCommand": "npx vite build",
     "frontendDist": "../dist"
   },
   "app": {
