@@ -51,7 +51,7 @@ export default function App({ Component, url, state }: PageProps) {
 		return (
 			<html>
 				<PageHead title='Beyond Better' />
-				<body class='overflow-hidden bg-gray-50 dark:bg-gray-900'>
+				<body class='bg-gray-50 dark:bg-gray-900'>
 					<AppConfigContext buiConfig={state.buiConfig as BuiConfig}>
 						<Component />
 					</AppConfigContext>

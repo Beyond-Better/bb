@@ -11,7 +11,7 @@ export default function SignupContent() {
 	//console.log('SignupContent: authState', authState.value);
 
 	return (
-		<div class='min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
+		<div class='py-12 sm:px-6 lg:px-8'>
 			<div class='sm:mx-auto sm:w-full sm:max-w-md'>
 				{/* Signup indicator bar */}
 				<div class='flex justify-center mb-2'>

@@ -48,8 +48,8 @@ import LoginContent from '../../../islands/auth/LoginContent.tsx';
 
 export default function LoginPage(_props: PageProps) {
 	return (
-		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
-			<div class='flex-1 flex flex-col overflow-hidden'>
+		<div class='flex flex-col flex-1 overflow-y-auto'>
+			<div class='flex-1 flex flex-col'>
 				<LoginContent />
 			</div>
 		</div>
