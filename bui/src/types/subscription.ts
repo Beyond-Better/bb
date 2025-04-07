@@ -56,9 +56,12 @@ export interface SubscriptionResults {
 export interface BillingPreview {
 	daysInMonth: number;
 	daysRemaining: number;
+	proratedAmount?: number;
 	prorationFactor: number;
+	fullAmount?: number;
 	periodStart: string; // iso8601
 	periodEnd: string; // iso8601
+	nextPeriodStart?: string; // iso8601
 	currentPlan: Plan;
 	newPlan: Plan;
 }

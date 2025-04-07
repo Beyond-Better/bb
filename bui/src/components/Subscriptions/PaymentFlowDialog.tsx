@@ -63,10 +63,26 @@ export default function PaymentFlowDialog({
 
 	if (!isOpen) return null;
 
-	const handlePaymentSuccess = (paymentMethodId: string) => {
-		selectedPaymentMethod.value = paymentMethodId;
-		paymentFlowStep.value = 'confirm';
-		paymentFlowError.value = null;
+	const handlePaymentSuccess = async (paymentMethodId: string) => {
+		try {
+			// Save the payment method to the database
+			const apiClient = appState.value.apiClient;
+			if (!apiClient) throw new Error('API client not available');
+
+			// Save the payment method and set it as default
+			await apiClient.savePaymentMethod(paymentMethodId);
+
+			// Update local state
+			selectedPaymentMethod.value = paymentMethodId;
+			paymentFlowStep.value = 'confirm';
+			paymentFlowError.value = null;
+
+			// Refresh payment methods to get the newly saved one
+			await updatePaymentMethods();
+		} catch (error) {
+			console.error('Failed to save payment method:', error);
+			paymentFlowError.value = error instanceof Error ? error.message : 'Failed to save payment method';
+		}
 	};
 
 	const handlePaymentError = (error: StripeError) => {
@@ -169,6 +185,7 @@ export default function PaymentFlowDialog({
 	const CloseButton = () => {
 		return (
 			<button
+				type='button'
 				onClick={onClose}
 				class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
 			>
@@ -221,7 +238,10 @@ export default function PaymentFlowDialog({
 										</div>
 									</dt>
 									<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-										${(billingPreview.prorationFactor * selectedPlan.plan_price_monthly).toFixed(2)}
+										${billingPreview.proratedAmount
+											? billingPreview.proratedAmount.toFixed(2)
+											: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly)
+												.toFixed(2)}
 									</dd>
 								</div>
 								<div class='flex justify-between'>
@@ -240,19 +260,22 @@ export default function PaymentFlowDialog({
 								<div class='flex justify-between'>
 									<dt class='text-sm text-gray-500 dark:text-gray-400'>Next Billing Date:</dt>
 									<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-										{new Date(billingPreview.periodEnd).toLocaleDateString()}
+										{new Date(billingPreview.nextPeriodStart || billingPreview.periodEnd)
+											.toLocaleDateString()}
 									</dd>
 								</div>
 							</dl>
 						</div>
 						<div class='mt-6 flex justify-end space-x-3'>
 							<button
+								type='button'
 								onClick={onClose}
 								class='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md'
 							>
 								Cancel
 							</button>
 							<button
+								type='button'
 								onClick={() => {
 									paymentFlowStep.value = existingPaymentMethod ? 'confirm' : 'payment';
 								}}
@@ -294,9 +317,15 @@ export default function PaymentFlowDialog({
 
 						<div class='mt-4'>
 							<p class='text-sm text-gray-500 dark:text-gray-400'>
-								You will be charged ${(billingPreview.prorationFactor * selectedPlan.plan_price_monthly)
-									.toFixed(2)} now, and ${selectedPlan.plan_price_monthly.toFixed(2)} on{' '}
-								{new Date(billingPreview.periodEnd).toLocaleDateString()}.
+								You will be charged ${billingPreview.proratedAmount
+									? billingPreview.proratedAmount.toFixed(2)
+									: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly).toFixed(2)}
+								{' '}
+								now, and ${billingPreview.fullAmount
+									? billingPreview.fullAmount.toFixed(2)
+									: selectedPlan.plan_price_monthly.toFixed(2)} on{' '}
+								{new Date(billingPreview.nextPeriodStart || billingPreview.periodEnd)
+									.toLocaleDateString()}.
 							</p>
 							{existingPaymentMethod && (
 								<div class='mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-md'>
@@ -319,12 +348,14 @@ export default function PaymentFlowDialog({
 						</div>
 						<div class='mt-6 flex justify-end space-x-3'>
 							<button
+								type='button'
 								onClick={() => paymentFlowStep.value = 'preview'}
 								class='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md'
 							>
 								Back
 							</button>
 							<button
+								type='button'
 								onClick={handleConfirm}
 								class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 							>

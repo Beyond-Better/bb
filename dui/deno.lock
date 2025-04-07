@@ -9,6 +9,7 @@
     "npm:@tailwindcss/typography@~0.5.10": "0.5.15_tailwindcss@3.4.16__postcss@8.4.47",
     "npm:@tauri-apps/api@2": "2.1.1",
     "npm:@tauri-apps/api@^2.1.1": "2.1.1",
+    "npm:@tauri-apps/cli@*": "2.1.0",
     "npm:@tauri-apps/cli@^2.1.0": "2.1.0",
     "npm:@tauri-apps/plugin-fs@^2.2.0": "2.2.0",
     "npm:@tauri-apps/plugin-shell@^2.2.0": "2.2.0",
@@ -1260,7 +1261,8 @@
   },
   "redirects": {
     "https://deno.land/std/fs/copy.ts": "https://deno.land/std@0.224.0/fs/copy.ts",
-    "https://deno.land/std/fs/exists.ts": "https://deno.land/std@0.224.0/fs/exists.ts"
+    "https://deno.land/std/fs/exists.ts": "https://deno.land/std@0.224.0/fs/exists.ts",
+    "https://esm.sh/ansi_up": "https://esm.sh/ansi_up@6.0.5"
   },
   "remote": {
     "https://deno.land/std@0.224.0/assert/assert.ts": "09d30564c09de846855b7b071e62b5974b001bb72a4b797958fe0660e7849834",
@@ -1295,7 +1297,9 @@
     "https://deno.land/std@0.224.0/path/windows/from_file_url.ts": "ced2d587b6dff18f963f269d745c4a599cf82b0c4007356bd957cb4cb52efc01",
     "https://deno.land/std@0.224.0/path/windows/join.ts": "8d03530ab89195185103b7da9dfc6327af13eabdcd44c7c63e42e27808f50ecf",
     "https://deno.land/std@0.224.0/path/windows/normalize.ts": "78126170ab917f0ca355a9af9e65ad6bfa5be14d574c5fb09bb1920f52577780",
-    "https://deno.land/std@0.224.0/path/windows/resolve.ts": "8dae1dadfed9d46ff46cc337c9525c0c7d959fb400a6308f34595c45bdca1972"
+    "https://deno.land/std@0.224.0/path/windows/resolve.ts": "8dae1dadfed9d46ff46cc337c9525c0c7d959fb400a6308f34595c45bdca1972",
+    "https://esm.sh/ansi_up@6.0.5": "eb98e7568b6614033f13747ccfcba8d17b17658c081a759d4350ec490690b19c",
+    "https://esm.sh/ansi_up@6.0.5/denonext/ansi_up.mjs": "5bb6e2ca80b26be750af67fdad81ec51d0dcd4cb097c962549352a3a5c839cdb"
   },
   "workspace": {
     "dependencies": [

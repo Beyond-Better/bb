@@ -1,6 +1,7 @@
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useComputed, useSignal } from '@preact/signals';
 import { useAuthState } from '../../hooks/useAuthState.ts';
+import { ExternalLink } from '../../components/ExternalLink.tsx';
 
 interface PasswordRequirement {
 	label: string;
@@ -361,21 +362,19 @@ export default function SignupForm() {
 					<div class="ml-3 text-sm">
 						<label htmlFor="terms" class="font-medium text-gray-700 dark:text-gray-200">
 							I agree to the{' '}
-							<a
-								href="/terms-and-conditions"
+							<ExternalLink
+								href="https://beyondbetter.dev/terms-and-conditions"
 								class="text-purple-600 hover:text-purple-500"
-								target="_blank"
 							>
 								Terms and Conditions
-							</a>{' '}
+							</ExternalLink>{' '}
 							and{' '}
-							<a
-								href="/privacy-policy"
+							<ExternalLink
+								href="https://beyondbetter.dev/privacy-policy"
 								class="text-purple-600 hover:text-purple-500"
-								target="_blank"
 							>
 								Privacy Policy
-							</a>
+							</ExternalLink>
 						</label>
 					</div>
 				</div>

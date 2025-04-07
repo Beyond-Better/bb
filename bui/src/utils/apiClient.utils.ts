@@ -373,9 +373,10 @@ export class ApiClient {
 		planId: string,
 		paymentMethodId: string | null,
 	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
-		const data: { planId: string; payment_method_id: string | null } = {
+		const data: { planId: string; payment_method_id: string | null, paymentMethodId: string | null } = {
 			planId,
-			payment_method_id: paymentMethodId,
+			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
+			paymentMethodId: paymentMethodId, // New format - matches the property name in the edge function
 		};
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
 		return results

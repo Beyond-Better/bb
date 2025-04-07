@@ -82,16 +82,21 @@ export async function changePlan(ctx: Context) {
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
+		const paymentMethodId = body.payment_method_id; // Extract payment method ID
 
 		if (!planId) {
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'Plan ID is required' };
 			return;
 		}
+		
+		// Log the request details
+		logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId });
 
+		// Pass both planId and paymentMethodId to the edge function
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'POST',
-			body: { planId },
+			body: { planId, paymentMethodId },
 		});
 
 		if (error) {
