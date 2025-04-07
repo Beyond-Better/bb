@@ -270,15 +270,15 @@ export function useAuthState() {
 					return { error: 'Could not load API Client [signUp]' };
 				}
 				const { user, session, error } = await apiClient.signUp(
-				email, 
-				password, 
-				{
-					first_name: firstName || null,
-					last_name: lastName || null,
-					marketing_consent: marketingConsent || false,
-					accepted_terms: acceptedTerms || true,
-				}
-			);
+					email,
+					password,
+					{
+						first_name: firstName || null,
+						last_name: lastName || null,
+						marketing_consent: marketingConsent || false,
+						accepted_terms: acceptedTerms || true,
+					},
+				);
 
 				if (error) {
 					throw new AuthError(error, 'auth_failed');
