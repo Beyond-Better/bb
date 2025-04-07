@@ -7,6 +7,7 @@ interface PlanCardProps {
 }
 
 export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
+	//const yearlySavings = Math.round((1 - (plan.plan_price_yearly / (plan.plan_price_monthly * 12))) * 100);
 	return (
 		<div
 			class={`relative p-6 rounded-lg border w-[300px] flex-shrink-0 flex flex-col ${
@@ -26,17 +27,19 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 				<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>${plan.plan_price_monthly}</span>
 				<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
 			</div>
-			<div class='mt-2 flex items-center gap-2'>
+			{
+				/*<div class='mt-2 flex items-center gap-2'>
 				<div>
 					<span class='text-xl text-gray-600 dark:text-gray-300'>${plan.plan_price_yearly}</span>
 					<span class='text-gray-500 dark:text-gray-400'>/ yearly (USD)</span>
 				</div>
-				{plan.plan_price_monthly > 0 && (
+				{plan.plan_price_monthly > 0 && yearlySavings > 0 && (
 					<span class='text-xs font-medium text-green-600 dark:text-green-400'>
-						Save {Math.round((1 - (plan.plan_price_yearly / (plan.plan_price_monthly * 12))) * 100)}%
+						Save {yearlySavings}%
 					</span>
 				)}
-			</div>
+			</div>*/
+			}
 			<ul class='mt-6 mb-8 space-y-4'>
 				{plan.plan_features?.features?.map((feature: string) => (
 					<li class='flex items-start'>
@@ -56,6 +59,7 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 				))}
 			</ul>
 			<button
+				type='button'
 				onClick={onSelect}
 				disabled={isCurrentPlan}
 				class={`mt-auto w-full px-4 py-2 rounded-md text-sm font-medium ${

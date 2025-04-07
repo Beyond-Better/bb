@@ -362,6 +362,11 @@ export function useBillingState() {
 			};
 
 			console.log('useBillingState: changing plan with paymentMethodId: ', paymentMethodId);
+			
+			if (!paymentMethodId) {
+				throw new PaymentFlowError('A payment method is required', 'payment_method_required');
+			}
+			
 			// Change plan - ABI will handle the payment success via webhook
 			const newSubscription = await apiClient.changePlan(planId, paymentMethodId);
 			console.log('useBillingState: changed plan to subscription: ', newSubscription);

@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.7.4] - 2025-04-07
+
+### Added
+
+- extra fields included in signup form
+
+### Changed
+
+- enabled streaming for anthropic requests to allow larger max output tokens
+- deprecated 'git' project type
+- switched to internal git library instead of CLI wrapper
+
+### Fixed
+
+- saving payment method when changing plans
+
+
 ## [0.7.3] - 2025-04-02
 
 ### Added

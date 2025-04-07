@@ -371,7 +371,7 @@ class AnthropicLLM extends LLM {
 			max_tokens: maxTokens,
 			temperature,
 			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19'],
-			stream: false,
+			//stream: false,
 
 			// Add extended thinking support if enabled in the request
 			...(extendedThinking
@@ -411,7 +411,7 @@ class AnthropicLLM extends LLM {
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
 			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.beta.messages
-				.create(
+				.stream(
 					providerMessageRequest,
 					{
 						headers: {
@@ -421,7 +421,8 @@ class AnthropicLLM extends LLM {
 					},
 				).withResponse();
 
-			const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
+			const anthropicMessage = (await anthropicMessageStream.finalMessage()) as Anthropic.Messages.Message;
+			//const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
 

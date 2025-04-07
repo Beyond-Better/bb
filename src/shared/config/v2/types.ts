@@ -13,6 +13,7 @@ const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0'] as const;
 /** Supported configuration versions */
 export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 
+// [TODO] type 'git' is deprecated, but legacy projects can be type 'git'
 /** Type of project - local directory or git repository */
 export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
 

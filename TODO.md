@@ -200,4 +200,6 @@
 √ download updated app link from DUI  displays the binary code in the window; not a download
 √ BUI should check both http and https and then set connect prefs
 √ Try to connect again if connection fails on page load or after selecting a project
+√ change anthropic llm to use streaming 
+√ make all local projects into git repos; get rid of 'git' project type 
 

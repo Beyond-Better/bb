@@ -46,8 +46,8 @@ import SignupContent from '../../../islands/auth/SignupContent.tsx';
 
 export default function SignupPage(_props: PageProps) {
 	return (
-		<div class='h-screen flex flex-col flex-1 overflow-hidden'>
-			<div class='flex-1 flex flex-col overflow-hidden'>
+		<div class='flex flex-col flex-1 overflow-y-auto'>
+			<div class='flex-1 flex flex-col'>
 				<SignupContent />
 			</div>
 		</div>

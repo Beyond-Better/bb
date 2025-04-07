@@ -14,7 +14,7 @@ This document outlines the plan for enhancing the BUI (Browser User Interface) w
 
 ### Project Types
 ```typescript
-type ProjectType = 'local' | 'google-docs' | 'notion' | 'other';
+type ProjectType = 'local' | 'gdrive' | 'notion' | 'other';
 
 interface Project {
     id: string;

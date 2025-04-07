@@ -1,9 +1,16 @@
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
+import { GitUtils } from 'shared/git.ts';
 import { deepMerge, DeepMergeOptions } from '@cross/deepmerge';
 
-import { createBbDir, createBbIgnore, getBbDirFromProjectRoot, getGlobalConfigDir } from 'shared/dataDir.ts';
+import {
+	countProjectFiles,
+	createBbDir,
+	createBbIgnore,
+	getBbDirFromProjectRoot,
+	getGlobalConfigDir,
+} from 'shared/dataDir.ts';
 import { ConversationMigration } from 'api/storage/conversationMigration.ts';
 import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
 
@@ -368,7 +375,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * Generates a unique project ID and initializes the configuration.
 	 *
 	 * @param name - The name of the project
-	 * @param type - The type of project ('local' or 'git')
+	 * @param type - The type of project ('local', 'notion' or 'gdrive')
 	 * @param path - Optional path to the project directory (defaults to current directory)
 	 * @returns The generated project ID
 	 * @throws Error if project path is invalid or configuration creation fails
@@ -468,6 +475,59 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		this.projectConfigs.set(projectId, mergedConfig);
 		this.projectRoots.set(projectId, projectPath);
 		this.projectIds.set(projectPath, projectId);
+
+		// Check if directory is already a git repo
+		try {
+			const gitRoot = await GitUtils.findGitRoot(projectPath);
+
+			// Only initialize Git if not already a git repo
+			if (!gitRoot) {
+				console.info(`Initializing Git repository in ${projectPath}`);
+
+				// Initialize git repository
+				await GitUtils.initGit(projectPath);
+
+				// Create/update .gitignore file
+				await GitUtils.ensureGitignore(projectPath, type);
+
+				// Count files in the directory (excluding .git and .bb directories)
+				const fileCount = await countProjectFiles(projectPath);
+				console.info(`Project has ${fileCount} files (excluding .git and .bb directories)`);
+
+				try {
+					// Determine which files to commit based on file count
+					let filesToCommit: string[] = [];
+
+					if (fileCount < 12) {
+						// For small projects, get all files in the directory (excluding those in .gitignore)
+						// This is a simplified approach - in a real implementation, we'd want to use git status
+						// or find a more robust way to get all non-ignored files
+						filesToCommit = await GitUtils.getFilesToCommit(projectPath);
+						console.info(`Committing all ${filesToCommit.length} project files`);
+					} else {
+						// For larger projects, only commit the .gitignore file
+						filesToCommit = ['.gitignore'];
+						console.info('Project has many files. Only committing .gitignore file');
+					}
+
+					// Only commit if we have files to commit
+					if (filesToCommit.length > 0) {
+						await GitUtils.stageAndCommit(projectPath, filesToCommit, 'Initial project setup');
+						console.info('Initial commit created for new project');
+					} else {
+						console.info('No files to commit');
+					}
+				} catch (commitError) {
+					// Log error but don't fail project creation
+					console.warn(`Git commit failed: ${(commitError as Error).message}`);
+				}
+			} else {
+				console.info(`Project directory is already a Git repository at ${gitRoot}`);
+			}
+		} catch (gitError) {
+			// Log error but don't fail project creation
+			console.warn(`Git initialization failed: ${(gitError as Error).message}`);
+		}
 
 		return projectId;
 	}
@@ -1906,7 +1966,8 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			});
 		}
 
-		if (!config.type || !['local', 'git'].includes(config.type)) {
+		// [TODO] type 'git' is deprecated, but legacy projects can be type 'git'
+		if (!config.type || !['notion', 'gdrive', 'local', 'git'].includes(config.type)) {
 			result.errors.push({
 				path: ['type'],
 				message: 'Invalid project type',

@@ -312,8 +312,8 @@ export function ProjectEditor({
 							Project Type
 						</label>
 						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-							Use 'Git Repository' for automatic saves (<code class='font-mono'>git</code>{' '}
-							must be installed and repo initialized)
+							Use 'Local Directory' for automatic saves (uses <code class='font-mono'>git</code>{' '}
+							internally)
 						</p>
 						<div class='relative'>
 							<select
@@ -322,7 +322,12 @@ export function ProjectEditor({
 								class='mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 dark:focus:ring-blue-400 focus:outline-none '
 							>
 								<option value='local'>Local Directory</option>
-								<option value='git'>Git Repository</option>
+								{
+									/*
+								<option value='notion'>Notion (beta)</option>
+								<option value='gdrive'>Google Drive (beta)</option>
+									*/
+								}
 							</select>
 						</div>
 					</div>

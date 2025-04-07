@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read
 
-import { exists } from "https://deno.land/std/fs/exists.ts";
-import { join } from "https://deno.land/std/path/mod.ts";
+import { exists } from "@std/fs";
+import { join } from "@std/path";
 
 interface VerificationResult {
   name: string;
@@ -62,11 +62,11 @@ async function verifySetup(): Promise<VerificationResult[]> {
   ];
 
   for (const dir of requiredDirs) {
-    const exists = await exists(dir);
+    const dirExists = await exists(dir);
     results.push({
       name: `Directory: ${dir}`,
-      status: exists ? "success" : "error",
-      message: exists
+      status: dirExists ? "success" : "error",
+      message: dirExists
         ? `${dir} exists`
         : `${dir} is missing - Required for project structure`,
     });
@@ -83,11 +83,11 @@ async function verifySetup(): Promise<VerificationResult[]> {
   ];
 
   for (const file of configFiles) {
-    const exists = await exists(file);
+    const fileExists = await exists(file);
     results.push({
       name: `Config: ${file}`,
-      status: exists ? "success" : "error",
-      message: exists
+      status: fileExists ? "success" : "error",
+      message: fileExists
         ? `${file} exists`
         : `${file} is missing - Required configuration file`,
     });
