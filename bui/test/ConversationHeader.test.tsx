@@ -94,13 +94,13 @@ describe('ConversationHeader', () => {
 		const { getByText } = render(
 			<ConversationHeader
 				{...defaultProps}
-				projectType="git"
+				projectType="local"
 				createdAt="2024-03-20T12:00:00Z"
 			/>
 		);
 
 		expect(getByText('Type:')).toBeTruthy();
-		expect(getByText('git')).toBeTruthy();
+		expect(getByText('local')).toBeTruthy();
 		expect(getByText('Created:')).toBeTruthy();
 	});
 });

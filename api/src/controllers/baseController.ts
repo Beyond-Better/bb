@@ -581,7 +581,8 @@ class BaseController {
 
 		const configManager = await ConfigManagerV2.getInstance();
 		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		if (projectConfig.type === 'git') {
+		// [TODO] type 'git' is deprecated, but legacy projects can be type 'git'
+		if (projectConfig.type === 'local' || projectConfig.type === 'git') {
 			await stageAndCommitAfterChanging(
 				interaction,
 				this.projectEditor.projectRoot,

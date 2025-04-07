@@ -43,7 +43,8 @@ export interface RepoInfoConfigSchema {
 }
 export interface ProjectDataConfigSchema {
 	name: string;
-	type: 'local' | 'git';
+	// [TODO] type 'git' is deprecated, but legacy projects can be type 'git'
+	type: 'notion' | 'gdrive' | 'local' | 'git';
 	llmGuidelinesFile?: string;
 }
 

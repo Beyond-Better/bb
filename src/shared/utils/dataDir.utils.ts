@@ -23,7 +23,7 @@ export async function getProjectRoot(projectId: string): Promise<string> {
 export async function getProjectRootFromStartDir(startDir: string): Promise<string> {
 	let currentDir = resolve(startDir);
 	while (true) {
-		//console.log(`Looking for .bb in: ${currentDir}`);
+		//logger.log(`Looking for .bb in: ${currentDir}`);
 		const bbDir = join(currentDir, '.bb');
 		if (await exists(bbDir)) {
 			return currentDir;
@@ -32,7 +32,7 @@ export async function getProjectRootFromStartDir(startDir: string): Promise<stri
 		if (parentDir === currentDir) { // if current is same as parent, then must be at top, nowhere else to go.
 			break; // Reached root without finding .bb
 		}
-		//console.log(`Moving up to parent: ${parentDir}`);
+		//logger.log(`Moving up to parent: ${parentDir}`);
 		currentDir = parentDir;
 	}
 	throw new Error('No .bb directory found in project hierarchy');
@@ -285,4 +285,31 @@ export async function readFileContent(filePath: string): Promise<string | null> 
 		return await Deno.readTextFile(filePath);
 	}
 	return null;
+}
+
+/**
+ * Counts files in a project directory, excluding .git and .bb directories
+ */
+export async function countProjectFiles(projectRoot: string): Promise<number> {
+	let count = 0;
+
+	try {
+		for await (const entry of Deno.readDir(projectRoot)) {
+			// Skip .git and .bb directories
+			if (entry.name === '.git' || entry.name === '.bb') {
+				continue;
+			}
+
+			const path = join(projectRoot, entry.name);
+			if (entry.isDirectory) {
+				count += await countProjectFiles(path);
+			} else {
+				count++;
+			}
+		}
+	} catch (error) {
+		logger.warn(`Error counting files in ${projectRoot}: ${(error as Error).message}`);
+	}
+
+	return count;
 }

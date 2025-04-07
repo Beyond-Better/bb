@@ -4,7 +4,7 @@ import { colors } from 'cliffy/ansi/colors';
 import { logger } from 'shared/logger.ts';
 import { basename } from '@std/path';
 import { getProjectId } from 'shared/dataDir.ts';
-//import { GitUtils } from 'shared/git.ts';
+import { GitUtils } from 'shared/git.ts';
 // Using ProjectType from v2 types
 
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
@@ -142,23 +142,26 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 	return filteredAnswers;
 }
 
-async function detectProjectType(_projectRoot: string): Promise<ProjectType> {
-	try {
-		const gitCheck = new Deno.Command('git', {
-			args: ['--version'],
-		});
-		const { code } = await gitCheck.output();
-		if (code === 0) {
-			return 'git';
-		} else {
-			return 'local';
-		}
-	} catch (_) {
-		return 'local';
-	}
+async function detectProjectType(projectRoot: string): Promise<ProjectType> {
+	//try {
+	//	const gitSimpleCheck = new Deno.Command('git', {
+	//		args: ['--version'],
+	//	});
+	//	const { code } = await gitSimpleCheck.output();
+	//	if (code === 0) {
+	//		return 'git';
+	//	} else {
+	//		return 'local';
+	//	}
+	//} catch (_) {
+	//	return 'local';
+	//}
 	// findGitRoot calls getGit which throws if git isn't installed, so just do the above manual check instead.
-	// const gitRoot = await GitUtils.findGitRoot(projectRoot);
-	// return gitRoot ? 'git' : 'local';
+	const gitRoot = await GitUtils.findGitRoot(projectRoot);
+	if (!gitRoot) await GitUtils.initGit(projectRoot);
+	// [TODO] type 'git' is deprecated, so return 'local' for both
+	//return gitRoot ? 'git' : 'local';
+	return 'local';
 }
 
 async function printProjectDetails(
