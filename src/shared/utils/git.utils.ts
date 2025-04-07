@@ -1,38 +1,11 @@
-import { SimpleGit, simpleGit } from 'simple-git';
+import git from 'isomorphic-git';
+import fs from 'node:fs';
 import { dirname, normalize, resolve } from '@std/path';
 import { logger } from './logger.utils.ts';
+import { isError } from './error.utils.ts';
 import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 
 export class GitUtils {
-	private static gitInstances: SimpleGit[] = [];
-
-	private static async getGit(path: string): Promise<SimpleGit | null> {
-		try {
-			const { installed } = await simpleGit().version();
-			if (!installed) {
-				throw new Error(`Exit: "git" not available.`);
-			}
-			const git = simpleGit(path);
-			this.gitInstances.push(git);
-			return git;
-		} catch (error) {
-			// If an error occurs (e.g., git not found), return null
-			if (error instanceof Error && error.message.includes('ENOENT')) {
-				logger.warn('Git is not installed or not in the PATH');
-			} else {
-				logger.error(`Unexpected error when initializing git: ${(error as Error).message}`);
-			}
-			return null;
-		}
-	}
-
-	static async cleanup(): Promise<void> {
-		for (const git of this.gitInstances) {
-			await git.clean('f', ['-d']);
-		}
-		this.gitInstances = [];
-	}
-
 	static async findGitRoot(startPath: string = Deno.cwd(), projectRoot?: string): Promise<string | null> {
 		logger.info(`Checking for git repo in ${startPath}`);
 		try {
@@ -49,12 +22,9 @@ export class GitUtils {
 				dirPath = dirname(startPath);
 				logger.info(`Path doesn't exist, using parent directory: ${dirPath}`);
 			}
-			const git = await this.getGit(dirPath);
-			if (git === null) {
-				return null; // Git not installed or not available
-			}
-			const result = await git.revparse(['--show-toplevel']);
-			const normalizedPath = normalize(result.trim());
+
+			const gitRoot = await git.findRoot({ fs, filepath: dirPath });
+			const normalizedPath = normalize(gitRoot.trim());
 			const resolvedGitRoot = await Deno.realPath(resolve(normalizedPath));
 
 			// If projectRoot is provided, verify the git root is within the project
@@ -67,18 +37,29 @@ export class GitUtils {
 			}
 
 			return resolvedGitRoot;
-		} catch (_) {
-			return null; // Git root not found
+		} catch (error) {
+			if ((isError(error) && error.code === 'NotFoundError') || error instanceof Deno.errors.NotFound) {
+				return null; // Git root not found
+			} else if (error instanceof Deno.errors.PermissionDenied) {
+				logger.error(
+					`GitUtils: Could not find git root; permission denied: ${startPath} - ${(error as Error).message}`,
+				);
+				return null;
+			} else {
+				throw new Error(`Failed to resolve git root for: ${startPath} - Error: ${error}`);
+			}
 		}
 	}
 
 	static async initGit(repoPath: string): Promise<void> {
 		try {
-			const git = await this.getGit(repoPath);
-			if (git === null) {
-				throw new Error('Git is not available');
-			}
-			await git.init();
+			await git.init({ fs, dir: repoPath, defaultBranch: 'main' });
+			await git.setConfig({
+				fs,
+				dir: repoPath,
+				path: 'user.name',
+				value: 'Beyond Better',
+			});
 		} catch (error) {
 			throw new Error(`Failed to init git repo: ${(error as Error).message}`);
 		}
@@ -86,17 +67,21 @@ export class GitUtils {
 
 	static async stageAndCommit(repoPath: string, files: string[], commitMessage: string): Promise<string> {
 		try {
-			const git = await this.getGit(repoPath);
-			if (git === null) {
-				throw new Error('Git is not available');
-			}
 			// Stage the specified files
-			await git.add(files);
+			await git.add({ fs, dir: repoPath, filepath: files });
 
 			// Commit the staged changes
-			await git.commit(commitMessage);
+			const commitSha = await git.commit({
+				fs,
+				dir: repoPath,
+				message: commitMessage,
+				author: {
+					name: 'Beyond Better',
+					email: 'git@beyondbetter.dev',
+				},
+			});
 
-			return `Changes committed successfully: ${commitMessage}`;
+			return `Changes committed successfully [${commitSha}]: ${commitMessage}`;
 		} catch (error) {
 			throw new Error(`Failed to stage and commit changes: ${(error as Error).message}`);
 		}
@@ -104,12 +89,8 @@ export class GitUtils {
 
 	static async getCurrentCommit(repoPath: string): Promise<string | null> {
 		try {
-			const git = await this.getGit(repoPath);
-			if (git === null) {
-				return null;
-			}
-			const result = await git.revparse(['HEAD']);
-			return result.trim();
+			const commitSha = await git.resolveRef({ fs, dir: repoPath, ref: 'HEAD' });
+			return commitSha.trim();
 		} catch (error) {
 			throw new Error(`Failed to get current commit: ${(error as Error).message}`);
 		}
@@ -117,15 +98,30 @@ export class GitUtils {
 
 	static async getLastCommitForFile(repoPath: string, filePath: string): Promise<string | null> {
 		try {
-			const git = await this.getGit(repoPath);
-			if (git === null) {
-				return null;
-			}
-			const result = await git.log({ file: filePath, maxCount: 1 });
-			if (result.latest) {
-				return result.latest.hash;
-			}
-			return null;
+			const commits = await git.log({ fs, dir: repoPath, filepath: filePath, ref: 'HEAD', depth: 1 });
+			// commits are returned with last/recent at top of list
+			// so grab first one from array
+			const lastCommitSha = commits[0]?.oid || null;
+			return lastCommitSha;
+			// let lastSHA = null;
+			// let lastCommit = null;
+			// const commitsThatMatter = [];
+			// for (const commit of commits) {
+			// 	try {
+			// 		const o = await git.readObject({ fs, dir, oid: commit.oid, filepath });
+			// 		if (o.oid !== lastSHA) {
+			// 			if (lastSHA !== null) commitsThatMatter.push(lastCommit);
+			// 			lastSHA = o.oid;
+			// 		}
+			// 	} catch (err) {
+			// 		// file no longer there
+			// 		commitsThatMatter.push(lastCommit);
+			// 		break;
+			// 	}
+			// 	lastCommit = commit;
+			// }
+			// //logger.info(commitsThatMatter);
+			// return lastSHA;
 		} catch (error) {
 			throw new Error(`Failed to get last commit for file ${filePath}: ${(error as Error).message}`);
 		}
