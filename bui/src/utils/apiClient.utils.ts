@@ -459,6 +459,25 @@ export class ApiClient {
 		}) ?? { error: 'VerifyToken: Failed to connect to API' };
 	}
 
+	async checkEmailVerification(email: string): Promise<{ verified?: boolean; exists?: boolean; error?: string }> {
+		return await this.post<{ verified?: boolean; exists?: boolean; error?: string }>(
+			'/api/v1/auth/check-email-verification',
+			{
+				email,
+			},
+		) ?? { error: 'CheckEmailVerification: Failed to connect to API' };
+	}
+
+	async resendVerificationEmail(email: string): Promise<{ error?: string }> {
+		return await this.post<{ error?: string }>('/api/v1/auth/resend-verification', {
+			email,
+			type: 'signup',
+			options: {
+				emailRedirectTo: `${globalThis.location.origin}/auth/verify`,
+			},
+		}) ?? { error: 'ResendVerification: Failed to connect to API' };
+	}
+
 	// Project Management Methods
 	async listProjects(): Promise<{ projects: ProjectWithSources[] } | null> {
 		return await this.get<{ projects: ProjectWithSources[] }>('/api/v1/project');

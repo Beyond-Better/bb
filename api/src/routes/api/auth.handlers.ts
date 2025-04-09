@@ -270,3 +270,106 @@ export async function handleCallback(ctx: Context<BbState>) {
 		};
 	}
 }
+
+/**
+ * Check if an email is verified using Supabase edge function
+ */
+export async function handleCheckEmailVerification(ctx: Context<BbState>) {
+	try {
+		const body = await ctx.request.body.json();
+		const { email } = body;
+
+		if (!email) {
+			ctx.response.status = 400;
+			ctx.response.body = {
+				error: {
+					code: 'INVALID_REQUEST',
+					message: 'Email is required',
+				},
+			};
+			return;
+		}
+
+		const manager = getSessionManager(ctx);
+		const client = manager.getClient();
+
+		logger.info(`AuthHandler: Checking email verification status for: ${email}`);
+		
+		// Call Supabase Edge Function to check email verification status
+		const { data, error } = await client.functions.invoke('check-email-verification', {
+			body: { email }
+		});
+
+		if (error) {
+			logger.error('AuthHandler: Check email verification failed:', error);
+			ctx.response.status = 500;
+			ctx.response.body = {
+				error: error.message,
+			};
+			return;
+		}
+
+		logger.info(`AuthHandler: Email verification check for ${email}:`, data);
+		ctx.response.status = 200;
+		ctx.response.body = data;
+	} catch (error) {
+		logger.error('AuthHandler: Check email verification error:', error);
+		ctx.response.status = 500;
+		ctx.response.body = {
+			error: 'Internal server error',
+		};
+	}
+}
+
+/**
+ * Resend verification email
+ */
+export async function handleResendVerification(ctx: Context<BbState>) {
+	try {
+		const body = await ctx.request.body.json();
+		const { email, type, options } = body;
+
+		if (!email || !type) {
+			ctx.response.status = 400;
+			ctx.response.body = {
+				error: {
+					code: 'INVALID_REQUEST',
+					message: 'Email and type are required',
+				},
+			};
+			return;
+		}
+
+		const manager = getSessionManager(ctx);
+		const client = manager.getClient();
+
+		logger.info(`AuthHandler: Resending verification email for: ${email}`);
+		
+		const { error } = await client.auth.resend({
+			type: type,
+			email,
+			options,
+		});
+
+		if (error) {
+			logger.error('AuthHandler: Resend verification email failed:', error);
+			ctx.response.status = 400;
+			ctx.response.body = {
+				error: error.message,
+			};
+			return;
+		}
+
+		logger.info(`AuthHandler: Verification email resent to ${email}`);
+		ctx.response.status = 200;
+		ctx.response.body = {
+			success: true,
+		};
+	} catch (error) {
+		logger.error('AuthHandler: Resend verification email error:', error);
+		ctx.response.status = 500;
+		ctx.response.body = {
+			error: 'Internal server error',
+		};
+	}
+}
