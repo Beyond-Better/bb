@@ -203,10 +203,10 @@ export async function handleCallback(ctx: Context<BbState>) {
 		const manager = getSessionManager(ctx);
 		const client = manager.getClient();
 
-		logger.info('AuthHandler: Verifying token hash', { token_hash, type });
+		//logger.info('AuthHandler: Verifying token hash', { token_hash, type });
 		const verifyParams: VerifyTokenHashParams = { token_hash, type };
 		const { data, error } = await client.auth.verifyOtp(verifyParams);
-		logger.error('AuthHandler: handleCallback:', { data, error });
+		//logger.error('AuthHandler: handleCallback:', { data, error });
 
 		// 		// Get code from query params
 		// 		const url = new URL(ctx.request.url);
@@ -230,7 +230,8 @@ export async function handleCallback(ctx: Context<BbState>) {
 		// 		logger.error('AuthHandler: handleCallback:', { data, error });
 
 		if (error) {
-			logger.error('AuthHandler: Verify token failed:', error);
+			//logger.debug('AuthHandler: Verify token failed:', error);
+			logger.error('AuthHandler: Verify token failed');
 			ctx.response.status = 401;
 			ctx.response.body = {
 				error: {

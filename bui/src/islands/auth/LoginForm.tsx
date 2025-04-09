@@ -1,6 +1,8 @@
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useSignal } from '@preact/signals';
 import { useAuthState } from '../../hooks/useAuthState.ts';
+import { errorMessage, errorName } from 'shared/error.ts';
+import { ExternalLink } from '../../components/ExternalLink.tsx';
 
 export default function LoginForm() {
 	const email = useSignal('');
@@ -17,19 +19,43 @@ export default function LoginForm() {
 		if (isSubmitting.value) return;
 
 		isSubmitting.value = true;
-		const data = await signIn(null, null, email.value, password.value);
-		//console.log('LoginForm: data[after signIn]', data);
+		try {
+			const data = await signIn(null, null, email.value, password.value);
+			//console.log('LoginForm: data[after signIn]', data);
 
-		if (data.session && data.user) {
-			// Handle successful login
-			// Get redirectTo from URL parameters
-			const urlParams = new URLSearchParams(globalThis.location.search);
-			const redirectTo = urlParams.get('redirect') || '/app/home';
-			globalThis.location.href = redirectTo;
-		} else {
-			loginError.value = data.error || 'unknown error';
+			if (data.session && data.user) {
+				// Handle successful login
+				// Get redirectTo from URL parameters
+				const urlParams = new URLSearchParams(globalThis.location.search);
+				const redirectTo = urlParams.get('redirect') || '/app/home';
+				globalThis.location.href = redirectTo;
+			} else {
+				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
+					loginError.value =
+						'Connection to BB Server failed. Please ensure the BB Server is running. Check the BB Desktop App and click the toggle to start the server.';
+				} else if (data.error?.includes('status: 401')) {
+					loginError.value = 'Authentication error. Please check your credentials.';
+				} else {
+					//loginError.value = `Login error: ${data.error} || 'Unknown error occurred'}`;
+					loginError.value = data.error || 'Unknown authentication error. Please check your credentials.';
+				}
+			}
+		} catch (error) {
+			// Specific error handling for connection issues
+			if (
+				errorMessage(error) === 'Failed to fetch' || errorMessage(error) === 'Load failed' ||
+				errorName(error) === 'TypeError'
+			) {
+				loginError.value =
+					'Connection to BB Server failed. Please ensure the BB Server is running. Check the BB Desktop App and click the toggle to start the server.';
+			} else if (errorMessage(error).includes('status: 401')) {
+				loginError.value = 'Authentication error. Please check your credentials.';
+			} else {
+				loginError.value = `Login error: ${errorMessage(error) || 'Unknown error occurred'}`;
+			}
+		} finally {
+			isSubmitting.value = false;
 		}
-		isSubmitting.value = false;
 	};
 
 	return (
@@ -130,6 +156,17 @@ export default function LoginForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{loginError.value}
 							</h3>
+							{loginError.value.includes('BB Server') && (
+								<p class='mt-2 text-sm text-red-700 dark:text-red-300'>
+									Need help?{' '}
+									<ExternalLink
+										href='https://www.beyondbetter.dev/docs/install'
+										class='font-medium underline'
+									>
+										View troubleshooting guide
+									</ExternalLink>
+								</p>
+							)}
 						</div>
 					</div>
 				</div>
