@@ -476,57 +476,60 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		this.projectRoots.set(projectId, projectPath);
 		this.projectIds.set(projectPath, projectId);
 
-		// Check if directory is already a git repo
-		try {
-			const gitRoot = await GitUtils.findGitRoot(projectPath);
+		// Don't create git repo for projects created in unit tests
+		if (!Deno.env.get('SKIP_PROJECT_GIT_REPO')) {
+			// Check if directory is already a git repo
+			try {
+				const gitRoot = await GitUtils.findGitRoot(projectPath);
 
-			// Only initialize Git if not already a git repo
-			if (!gitRoot) {
-				console.info(`Initializing Git repository in ${projectPath}`);
+				// Only initialize Git if not already a git repo
+				if (!gitRoot) {
+					console.info(`Initializing Git repository in ${projectPath}`);
 
-				// Initialize git repository
-				await GitUtils.initGit(projectPath);
+					// Initialize git repository
+					await GitUtils.initGit(projectPath);
 
-				// Create/update .gitignore file
-				await GitUtils.ensureGitignore(projectPath, type);
+					// Create/update .gitignore file
+					await GitUtils.ensureGitignore(projectPath, type);
 
-				// Count files in the directory (excluding .git and .bb directories)
-				const fileCount = await countProjectFiles(projectPath);
-				console.info(`Project has ${fileCount} files (excluding .git and .bb directories)`);
+					// Count files in the directory (excluding .git and .bb directories)
+					const fileCount = await countProjectFiles(projectPath);
+					console.info(`Project has ${fileCount} files (excluding .git and .bb directories)`);
 
-				try {
-					// Determine which files to commit based on file count
-					let filesToCommit: string[] = [];
+					try {
+						// Determine which files to commit based on file count
+						let filesToCommit: string[] = [];
 
-					if (fileCount < 12) {
-						// For small projects, get all files in the directory (excluding those in .gitignore)
-						// This is a simplified approach - in a real implementation, we'd want to use git status
-						// or find a more robust way to get all non-ignored files
-						filesToCommit = await GitUtils.getFilesToCommit(projectPath);
-						console.info(`Committing all ${filesToCommit.length} project files`);
-					} else {
-						// For larger projects, only commit the .gitignore file
-						filesToCommit = ['.gitignore'];
-						console.info('Project has many files. Only committing .gitignore file');
+						if (fileCount < 12) {
+							// For small projects, get all files in the directory (excluding those in .gitignore)
+							// This is a simplified approach - in a real implementation, we'd want to use git status
+							// or find a more robust way to get all non-ignored files
+							filesToCommit = await GitUtils.getFilesToCommit(projectPath);
+							console.info(`Committing all ${filesToCommit.length} project files`);
+						} else {
+							// For larger projects, only commit the .gitignore file
+							filesToCommit = ['.gitignore'];
+							console.info('Project has many files. Only committing .gitignore file');
+						}
+
+						// Only commit if we have files to commit
+						if (filesToCommit.length > 0) {
+							await GitUtils.stageAndCommit(projectPath, filesToCommit, 'Initial project setup');
+							console.info('Initial commit created for new project');
+						} else {
+							console.info('No files to commit');
+						}
+					} catch (commitError) {
+						// Log error but don't fail project creation
+						console.warn(`Git commit failed: ${(commitError as Error).message}`);
 					}
-
-					// Only commit if we have files to commit
-					if (filesToCommit.length > 0) {
-						await GitUtils.stageAndCommit(projectPath, filesToCommit, 'Initial project setup');
-						console.info('Initial commit created for new project');
-					} else {
-						console.info('No files to commit');
-					}
-				} catch (commitError) {
-					// Log error but don't fail project creation
-					console.warn(`Git commit failed: ${(commitError as Error).message}`);
+				} else {
+					console.info(`Project directory is already a Git repository at ${gitRoot}`);
 				}
-			} else {
-				console.info(`Project directory is already a Git repository at ${gitRoot}`);
+			} catch (gitError) {
+				// Log error but don't fail project creation
+				console.warn(`Git initialization failed: ${(gitError as Error).message}`);
 			}
-		} catch (gitError) {
-			// Log error but don't fail project creation
-			console.warn(`Git initialization failed: ${(gitError as Error).message}`);
 		}
 
 		return projectId;

@@ -10,21 +10,13 @@ import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { getContentType } from 'api/utils/contentTypes.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
+import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
 
 // Size limits in bytes
 export const TEXT_DISPLAY_LIMIT = 1024 * 1024; // 1MB
 export const TEXT_HARD_LIMIT = 10 * 1024 * 1024; // 10MB
 export const IMAGE_DISPLAY_LIMIT = 5 * 1024 * 1024; // 5MB
 export const IMAGE_HARD_LIMIT = 20 * 1024 * 1024; // 20MB
-
-export interface ResourceMetadata {
-	//type: 'text' | 'image';
-	mimeType: string;
-	path: string;
-	size: number;
-	lastModified?: Date;
-	error?: string | null;
-}
 
 function createMatchRegexPatterns(matchPattern: string, projectRoot: string): RegExp[] {
 	// Split the pattern by '|' to handle multiple patterns
@@ -178,7 +170,8 @@ export interface FileLoadOptions {
 
 export async function getFileMetadataAbsolute(
 	fullPath: string,
-): Promise<Omit<ResourceMetadata, 'path'>> {
+): Promise<ResourceMetadata> {
+//): Promise<Omit<ResourceMetadata, 'uri'>> {
 	const mimeType = getContentType(fullPath);
 	//const isImage = mimeType.startsWith('image/');
 
@@ -186,6 +179,9 @@ export async function getFileMetadataAbsolute(
 		const stat = await Deno.stat(fullPath);
 		return {
 			//type: isImage ? 'image' : 'text',
+			type: 'internal',
+			name: `File: ${fullPath}`,
+			uri: `file://${fullPath}`, // Store full path as URI
 			mimeType: mimeType as LLMMessageContentPartImageBlockSourceMediaType,
 			lastModified: stat.mtime || new Date(),
 			size: stat.size,

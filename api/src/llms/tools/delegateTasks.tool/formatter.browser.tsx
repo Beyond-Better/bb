@@ -74,7 +74,7 @@ export function formatLogEntryToolUse(
 												task.resources.map((resource, _idx) => (
 													<>
 														{LLMTool.TOOL_TAGS_BROWSER.base.label(resource.type)}:{' '}
-														{LLMTool.TOOL_TAGS_BROWSER.base.text(resource.location)}
+														{LLMTool.TOOL_TAGS_BROWSER.base.text(resource.uri)}
 													</>
 												)),
 											)}

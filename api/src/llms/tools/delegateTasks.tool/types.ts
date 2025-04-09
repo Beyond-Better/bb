@@ -11,7 +11,7 @@ import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts
  * }
  * export interface Resource {
  * 	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
- * 	location: string;
+ * 	uri: string;
  * }
  * export type ErrorStrategy = 'fail_fast' | 'continue_on_error' | 'retry';
  * export interface ErrorHandlingConfig {

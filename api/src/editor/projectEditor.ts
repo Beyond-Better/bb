@@ -12,10 +12,11 @@ export interface ProjectInfo extends BaseProjectInfo {
 	projectId: string;
 }
 import OrchestratorController from 'api/controllers/orchestratorController.ts';
-import type { SessionManager } from '../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 import { logger } from 'shared/logger.ts';
 import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import { MCPManager } from 'api/mcp/mcpManager.ts';
+import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type { ProjectConfig } from 'shared/config/v2/types.ts';
 import type { ConversationId, ConversationResponse, FileMetadata, FilesForConversation } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
@@ -37,6 +38,7 @@ class ProjectEditor {
 	public projectConfig!: ProjectConfig;
 	public eventManager!: EventManager;
 	public mcpManager!: MCPManager;
+	public resourceManager!: ResourceManager;
 	public sessionManager: SessionManager;
 	public projectId: string;
 	public projectRoot: string;
@@ -71,8 +73,9 @@ class ProjectEditor {
 			);
 			this.eventManager = EventManager.getInstance();
 
-			// Initialize MCP Manager
 			this.mcpManager = await new MCPManager(this.projectConfig).init();
+
+			this.resourceManager = await new ResourceManager(this).init();
 
 			this.orchestratorController = await new OrchestratorController(this).init();
 

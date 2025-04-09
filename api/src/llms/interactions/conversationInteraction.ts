@@ -28,7 +28,7 @@ import type { ToolUsageStats } from '../llmToolManager.ts';
 import { logger } from 'shared/logger.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
 //import { readFileContent } from 'shared/dataDir.ts';
-import { ResourceManager } from 'api/llms/resourceManager.ts';
+import type { ResourceManager } from 'api/resources/resourceManager.ts';
 //import { GitUtils } from 'shared/git.ts';
 
 export const BB_FILE_METADATA_DELIMITER = '---bb-file-metadata---';
@@ -114,7 +114,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	public override async init(parentInteractionId?: ConversationId): Promise<LLMConversationInteraction> {
 		await super.init(parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-		this.resourceManager = new ResourceManager(projectEditor);
+		this.resourceManager = projectEditor.resourceManager;
 		return this;
 	}
 
@@ -285,7 +285,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				logger.info(`ConversationInteraction: Reading contents of File ${filePath}`);
 				const resource = await this.resourceManager.loadResource({
 					type: 'file',
-					location: filePath,
+					uri: filePath,
 				});
 				await this.storeFileRevision(filePath, revisionId, resource.content);
 				return resource.content;

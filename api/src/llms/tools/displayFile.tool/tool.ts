@@ -13,7 +13,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { ResourceManager } from '../../resourceManager.ts';
+//import type { ResourceManager } from 'api/resources/resourceManager.ts';
 import { encodeBase64 } from '@std/encoding';
 import { logger } from 'shared/logger.ts';
 import type {
@@ -39,7 +39,7 @@ export default class LLMToolDisplayFile extends LLMTool {
 	// }
 	// public override async init(): Promise<LLMToolDisplayFile> {
 	// 	await super.init();
-	// 	this.resourceManager = new ResourceManager(projectEditor);
+	// 	this.resourceManager = projectEditor.resourceManager;
 	// 	return this;
 	// }
 
@@ -80,10 +80,10 @@ export default class LLMToolDisplayFile extends LLMTool {
 		const { filePath } = toolUse.toolInput as LLMToolDisplayFileInput;
 
 		try {
-			const resourceManager = new ResourceManager(projectEditor);
+			const resourceManager = projectEditor.resourceManager;
 
 			const resource = await resourceManager.loadResource(
-				{ type: 'file', location: filePath },
+				{ type: 'file', uri: filePath },
 				{}, // { maxSize: TEXT_HARD_LIMIT }
 			);
 			const displayResult: DisplayResult = {

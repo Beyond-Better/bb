@@ -11,9 +11,9 @@ import {
 	suggestFiles as getSuggestions,
 	suggestFilesForPath as getSuggestionsForPath,
 } from 'api/utils/fileSuggestions.ts';
-import { ResourceManager } from 'api/llms/resourceManager.ts';
+import type { ResourceManager } from 'api/resources/resourceManager.ts';
 import { getContentType } from 'api/utils/contentTypes.ts';
-import type { FileMetadata } from 'shared/types.ts';
+//import type { FileMetadata } from 'shared/types.ts';
 
 // Define file metadata interface
 interface UploadedFileMetadata {
@@ -29,7 +29,7 @@ interface UploadedFileMetadata {
 }
 
 export const addFile = async (
-	{ request, response, state }: {
+	{ request, response, state: _state }: {
 		request: Context['request'];
 		response: Context['response'];
 		state: { resourceManager: ResourceManager };
