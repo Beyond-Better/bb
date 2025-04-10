@@ -77,7 +77,7 @@ function formatLog(message: string): string {
 		.substring(0, 19);
 
 	// Extract source if message follows pattern: "Source: rest of message"
-	const sourceMatch = message.match(/^([^:]+):\s*(.*)/);
+	const sourceMatch = message.match(/^([^\s:]+):\s*(.*)/);
 
 	if (sourceMatch) {
 		const [, source, actualMessage] = sourceMatch;
