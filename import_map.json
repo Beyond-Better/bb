@@ -11,6 +11,7 @@
 		"mcp/": "npm:@modelcontextprotocol@2025.1.17/sdk/",
 		"mcp/client/index.js": "npm:@modelcontextprotocol/sdk/client/index.js",
 		"mcp/client/stdio.js": "npm:@modelcontextprotocol/sdk/client/stdio.js",
+		"mcp/types.js": "npm:@modelcontextprotocol/sdk/types.js",
 		"ollama": "https://esm.sh/ollama@0.5.12",
 		"openai": "jsr:@openai/openai@4.81.0",
 		"@google/generative-ai": "https://esm.sh/@google/generative-ai@0.22.0",

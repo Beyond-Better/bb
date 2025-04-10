@@ -1,5 +1,7 @@
 import { Client } from 'mcp/client/index.js';
 import { StdioClientTransport } from 'mcp/client/stdio.js';
+import type { ReadResourceResult } from 'mcp/types.js';
+
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -163,8 +165,12 @@ export class MCPManager {
 			const response = await serverInfo.server.listResources();
 			//logger.info(`MCPManager: Resources for server ${serverId}:`, response);
 			// Cache the resources
-			serverInfo.resources = response.resources;
-			return response.resources;
+			serverInfo.resources = response.resources.map((resource) => ({
+				...resource,
+				type: 'mcp',
+				mimeType: resource.mimeType || 'text/plain',
+			}));
+			return serverInfo.resources;
 		} catch (error) {
 			// MCPManager: Error listing resources for server slack: McpError: MCP error -32601: Method not found
 			if (error && typeof error === 'object' && 'code' in error && error.code === -32601) {
@@ -224,7 +230,7 @@ export class MCPManager {
 	async loadResource(
 		serverId: string,
 		resourceUri: string,
-	): Promise<LLMMessageContentParts> {
+	): Promise<ReadResourceResult> {
 		const serverInfo = this.servers.get(serverId);
 		if (!serverInfo) {
 			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
@@ -240,7 +246,7 @@ export class MCPManager {
 			const result = await serverInfo.server.readResource({
 				uri: resourceUri,
 			});
-			return result.content as LLMMessageContentParts;
+			return result;
 		} catch (error) {
 			logger.error(`MCPManager: Error executing tool ${resourceUri}:`, error);
 			throw createError(ErrorType.ExternalServiceError, `Failed to load MCP resource: ${errorMessage(error)}`, {

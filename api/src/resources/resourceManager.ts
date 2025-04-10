@@ -10,6 +10,7 @@ import { logger } from 'shared/logger.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
+//import type { ReadResourceResultSchema } from 'mcp/types.js';
 
 export interface ResourceMCPConfig {
 	serverId: string; // set in config as mcpServer[x].id
@@ -149,23 +150,43 @@ export class ResourceManager {
 	): Promise<{ content: string; metadata?: ResourceMetadata; truncated?: boolean }> {
 		// Check if this is an aliased name that maps to an internal ID
 		const resourceId = this.resourceNameToIdMap.get(uri);
-
-		const metadata = this.resourceMetadata.get(resourceId);
-		if (!metadata) {
-			logger.warn(`ResourceManager: Resource ${name} not found`);
-			return undefined;
-		}
-
-		const mcpResource = await this.mcpManager!.loadResources(serverId, metadata.uri);
-
-		return {
-			content: mcpResource.content,
+		const emptyContent = {
+			content: '',
 			metadata: {
 				type: 'mcp',
 				name: `MCP: ${uri}`,
 				uri: uri,
-				mimeType: mcpResource.mimeTYpe || 'text/plain',
-				size: mcpResource.size ? parseInt(mcpResource.size) : mcpResource.content.length,
+				mimeType: 'text/plain',
+				size: 0,
+			} as ResourceMetadata,
+		};
+		if (!resourceId) {
+			logger.warn(`ResourceManager: Resource ID for URI ${uri} not found`);
+			return emptyContent;
+		}
+
+		const metadata = this.resourceMetadata.get(resourceId);
+		if (!metadata) {
+			logger.warn(`ResourceManager: Resource for ${uri} not found`);
+			return emptyContent;
+		}
+		if (!metadata.mcpData?.serverId) {
+			logger.warn(`ResourceManager: Resource for ${uri} has no serverId`);
+			return emptyContent;
+		}
+
+		const mcpResources = await this.mcpManager!.loadResource(metadata.mcpData.serverId, metadata.uri);
+		const mcpResource = mcpResources.contents[0];
+
+		return {
+			content: mcpResource.text as string,
+			metadata: {
+				type: 'mcp',
+				name: `MCP: ${uri}`,
+				uri: uri,
+				mimeType: mcpResource.mimeType || 'text/plain',
+				//size: mcpResource.size ? parseInt(mcpResource.size) : (mcpResource.text?.length || 0),
+				//size: mcpResource.text?.length || 0,
 			},
 		};
 	}
