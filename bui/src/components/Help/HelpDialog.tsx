@@ -329,7 +329,8 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 							<dt className='font-medium text-gray-700 dark:text-gray-200'>Project</dt>
 							<dd className='text-gray-600 dark:text-gray-300'>
 								<div>
-									The root directory and all files BB is working with. Projects can be local folder, Notion or Google Drive with:
+									The root directory and all files BB is working with. Projects can be local folder,
+									Notion or Google Drive with:
 									<ul className='list-disc list-inside mt-2 ml-4 text-gray-600 dark:text-gray-300'>
 										<li>Source code and related files</li>
 										<li>Project configuration files</li>

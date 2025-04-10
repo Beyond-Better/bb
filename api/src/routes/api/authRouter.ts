@@ -1,12 +1,12 @@
 import { Router } from '@oak/oak';
-import { 
-	handleCallback, 
-	handleCheckEmailVerification, 
-	handleLogin, 
-	handleLogout, 
-	handleResendVerification, 
-	handleSignup, 
-	handleStatus 
+import {
+	handleCallback,
+	handleCheckEmailVerification,
+	handleLogin,
+	handleLogout,
+	handleResendVerification,
+	handleSignup,
+	handleStatus,
 } from './auth.handlers.ts';
 
 const router = new Router();

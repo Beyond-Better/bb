@@ -71,7 +71,7 @@ class BaseController {
 	public getInteractionStatsCount(): number {
 		return this.interactionStats.size;
 	}
-	
+
 	public getInteractionTokenUsageCount(): number {
 		return this.interactionTokenUsage.size;
 	}

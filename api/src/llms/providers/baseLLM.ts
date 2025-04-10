@@ -49,12 +49,12 @@ class LLM {
 	public requestCacheExpiry: number = 3 * (1000 * 60 * 60 * 24); // 3 days in milliseconds
 	private callbacks: LLMCallbacks;
 	public projectConfig!: ProjectConfig;
-	
+
 	// Getter for default model (used by instance inspector)
 	protected get defaultModel(): string | undefined {
 		return undefined; // Subclasses will override this
 	}
-	
+
 	// Public accessor for instance inspector
 	public getDefaultModel(): string | undefined {
 		return this.defaultModel;

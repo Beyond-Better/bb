@@ -38,10 +38,10 @@ export default function VerifyContent() {
 						// Primary verification failed, try fallback if we have email
 						if (email) {
 							console.log('Primary verification failed, trying fallback with email:', email);
-							
+
 							const fallbackResult = await checkEmailVerification(null, null, email);
 							console.log('Fallback verification result:', fallbackResult);
-							
+
 							if (fallbackResult.verified) {
 								// Email is already verified
 								isVerifying.value = false;
@@ -55,7 +55,8 @@ export default function VerifyContent() {
 								// User exists but email not verified
 								isVerifying.value = false;
 								isError.value = true;
-								successMessage.value = 'Your verification link may have expired. Please try the resend option below.';
+								successMessage.value =
+									'Your verification link may have expired. Please try the resend option below.';
 								setShowResendForm(true);
 							} else {
 								// Account not found or other error
@@ -110,11 +111,12 @@ export default function VerifyContent() {
 				<div class='bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10'>
 					{/* Status Message */}
 					<div
-						class={`rounded-md p-4 ${isError.value
-							? 'bg-red-50 dark:bg-red-900/50'
-							: successMessage.value
-							? 'bg-green-50 dark:bg-green-900/50'
-							: 'bg-blue-50 dark:bg-blue-900/50'
+						class={`rounded-md p-4 ${
+							isError.value
+								? 'bg-red-50 dark:bg-red-900/50'
+								: successMessage.value
+								? 'bg-green-50 dark:bg-green-900/50'
+								: 'bg-blue-50 dark:bg-blue-900/50'
 						}`}
 					>
 						<div class='flex'>
@@ -176,11 +178,12 @@ export default function VerifyContent() {
 							</div>
 							<div class='ml-3'>
 								<p
-									class={`text-sm font-medium ${isError.value
-										? 'text-red-800 dark:text-red-200'
-										: successMessage.value && !isVerifying.value
-										? 'text-green-800 dark:text-green-200'
-										: 'text-blue-800 dark:text-blue-200'
+									class={`text-sm font-medium ${
+										isError.value
+											? 'text-red-800 dark:text-red-200'
+											: successMessage.value && !isVerifying.value
+											? 'text-green-800 dark:text-green-200'
+											: 'text-blue-800 dark:text-blue-200'
 									}`}
 								>
 									{successMessage.value}
@@ -226,7 +229,9 @@ export default function VerifyContent() {
 					{/* Resend form */}
 					{showResendForm && userEmail && (
 						<div class='mt-6'>
-							<h3 class='text-lg font-medium text-gray-900 dark:text-white mb-4'>Request New Verification Email</h3>
+							<h3 class='text-lg font-medium text-gray-900 dark:text-white mb-4'>
+								Request New Verification Email
+							</h3>
 							<ResendVerificationEmail email={userEmail} />
 						</div>
 					)}

@@ -295,10 +295,10 @@ export async function handleCheckEmailVerification(ctx: Context<BbState>) {
 		const client = manager.getClient();
 
 		logger.info(`AuthHandler: Checking email verification status for: ${email}`);
-		
+
 		// Call Supabase Edge Function to check email verification status
 		const { data, error } = await client.functions.invoke('check-email-verification', {
-			body: { email }
+			body: { email },
 		});
 
 		if (error) {
@@ -345,7 +345,7 @@ export async function handleResendVerification(ctx: Context<BbState>) {
 		const client = manager.getClient();
 
 		logger.info(`AuthHandler: Resending verification email for: ${email}`);
-		
+
 		const { error } = await client.auth.resend({
 			type: type,
 			email,

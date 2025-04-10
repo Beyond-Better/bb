@@ -429,7 +429,7 @@ class LLMToolManager {
 			};
 		}
 	}
-	
+
 	/**
 	 * Gets all loaded tool names - accessor for instance inspection
 	 * @returns Array of loaded tool names

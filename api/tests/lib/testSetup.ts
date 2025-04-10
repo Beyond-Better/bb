@@ -14,7 +14,7 @@ import { SessionManager } from '../../src/auth/session.ts';
 export async function setupTestProject(): Promise<{ projectRoot: string; projectId: string }> {
 	const projectRoot = Deno.makeTempDirSync();
 
-	Deno.env.set('SKIP_PROJECT_GIT_REPO', "1");
+	Deno.env.set('SKIP_PROJECT_GIT_REPO', '1');
 	const configManager = await ConfigManagerV2.getInstance();
 	await configManager.ensureGlobalConfig();
 	const createProjectData: CreateProjectData = { name: 'TestProject', type: 'local', path: projectRoot };

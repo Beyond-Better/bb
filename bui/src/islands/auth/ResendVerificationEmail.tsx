@@ -22,7 +22,7 @@ export default function ResendVerificationEmail(
 
 		try {
 			const { error } = await resendVerificationEmail(null, null, email);
-			
+
 			if (error) {
 				setMessage({
 					text: `Failed to resend verification email: ${error}`,
@@ -54,9 +54,11 @@ export default function ResendVerificationEmail(
 
 			{message && (
 				<div
-					className={`mt-2 p-2 rounded-md ${message.type === 'success' 
-						? 'bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200' 
-						: 'bg-red-100 dark:bg-red-800/50 text-red-800 dark:text-red-200'}`}
+					className={`mt-2 p-2 rounded-md ${
+						message.type === 'success'
+							? 'bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200'
+							: 'bg-red-100 dark:bg-red-800/50 text-red-800 dark:text-red-200'
+					}`}
 				>
 					{message.text}
 				</div>
@@ -64,9 +66,11 @@ export default function ResendVerificationEmail(
 
 			<button
 				type='button'
-				className={`mt-4 px-4 py-2 ${isResending 
-					? 'bg-gray-400 dark:bg-gray-600' 
-					: 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600'} 
+				className={`mt-4 px-4 py-2 ${
+					isResending
+						? 'bg-gray-400 dark:bg-gray-600'
+						: 'bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600'
+				} 
 					text-white rounded-md transition-colors`}
 				onClick={handleResendEmail}
 				disabled={isResending}

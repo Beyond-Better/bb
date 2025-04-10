@@ -171,7 +171,7 @@ export interface FileLoadOptions {
 export async function getFileMetadataAbsolute(
 	fullPath: string,
 ): Promise<ResourceMetadata> {
-//): Promise<Omit<ResourceMetadata, 'uri'>> {
+	//): Promise<Omit<ResourceMetadata, 'uri'>> {
 	const mimeType = getContentType(fullPath);
 	//const isImage = mimeType.startsWith('image/');
 
