@@ -349,8 +349,8 @@ export interface ErrorHandlingConfig {
 }
 
 export interface Resource {
-	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
-	location: string;
+	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp';
+	uri: string;
 }
 
 export type InputSchema = Record<string, unknown>;

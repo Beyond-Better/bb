@@ -77,7 +77,16 @@ export default function SignupForm() {
 
 		try {
 			isSubmitting.value = true;
-			const data = await signUp(null, null, email.value, password.value, firstName.value, lastName.value, marketingConsent.value, acceptedTerms.value);
+			const data = await signUp(
+				null,
+				null,
+				email.value,
+				password.value,
+				firstName.value,
+				lastName.value,
+				marketingConsent.value,
+				acceptedTerms.value,
+			);
 			//console.log('SignupForm: data[after signUp]', data);
 
 			//if (data.session && data.user) {
@@ -180,22 +189,22 @@ export default function SignupForm() {
 
 			{/* Name fields (first and last) */}
 			<div>
-				<div class="grid grid-cols-2 gap-4">
+				<div class='grid grid-cols-2 gap-4'>
 					<div>
 						<label
-							htmlFor="firstName"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-200"
+							htmlFor='firstName'
+							class='block text-sm font-medium text-gray-700 dark:text-gray-200'
 						>
-							First Name <span class="text-red-500">*</span>
+							First Name <span class='text-red-500'>*</span>
 						</label>
-						<div class="mt-1">
+						<div class='mt-1'>
 							<input
-								id="firstName"
-								name="firstName"
-								type="text"
-								autoComplete="given-name"
+								id='firstName'
+								name='firstName'
+								type='text'
+								autoComplete='given-name'
 								required
-								class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+								class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
 								value={firstName.value}
 								onInput={(e) => firstName.value = (e.target as HTMLInputElement).value}
 							/>
@@ -203,18 +212,18 @@ export default function SignupForm() {
 					</div>
 					<div>
 						<label
-							htmlFor="lastName"
-							class="block text-sm font-medium text-gray-700 dark:text-gray-200"
+							htmlFor='lastName'
+							class='block text-sm font-medium text-gray-700 dark:text-gray-200'
 						>
-							Last Name <span class="text-gray-400">(optional)</span>
+							Last Name <span class='text-gray-400'>(optional)</span>
 						</label>
-						<div class="mt-1">
+						<div class='mt-1'>
 							<input
-								id="lastName"
-								name="lastName"
-								type="text"
-								autoComplete="family-name"
-								class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white"
+								id='lastName'
+								name='lastName'
+								type='text'
+								autoComplete='family-name'
+								class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
 								value={lastName.value}
 								onInput={(e) => lastName.value = (e.target as HTMLInputElement).value}
 							/>
@@ -346,32 +355,32 @@ export default function SignupForm() {
 			</div>
 
 			{/* Terms & Conditions Checkbox */}
-			<div class="mt-4">
-				<div class="flex items-start">
-					<div class="flex items-center h-5">
+			<div class='mt-4'>
+				<div class='flex items-start'>
+					<div class='flex items-center h-5'>
 						<input
-							id="terms"
-							name="terms"
-							type="checkbox"
+							id='terms'
+							name='terms'
+							type='checkbox'
 							required
-							class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700"
+							class='h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700'
 							checked={acceptedTerms.value}
 							onChange={(e) => acceptedTerms.value = (e.target as HTMLInputElement).checked}
 						/>
 					</div>
-					<div class="ml-3 text-sm">
-						<label htmlFor="terms" class="font-medium text-gray-700 dark:text-gray-200">
+					<div class='ml-3 text-sm'>
+						<label htmlFor='terms' class='font-medium text-gray-700 dark:text-gray-200'>
 							I agree to the{' '}
 							<ExternalLink
-								href="https://beyondbetter.dev/terms-and-conditions"
-								class="text-purple-600 hover:text-purple-500"
+								href='https://beyondbetter.dev/terms-and-conditions'
+								class='text-purple-600 hover:text-purple-500'
 							>
 								Terms and Conditions
 							</ExternalLink>{' '}
 							and{' '}
 							<ExternalLink
-								href="https://beyondbetter.dev/privacy-policy"
-								class="text-purple-600 hover:text-purple-500"
+								href='https://beyondbetter.dev/privacy-policy'
+								class='text-purple-600 hover:text-purple-500'
 							>
 								Privacy Policy
 							</ExternalLink>
@@ -381,20 +390,20 @@ export default function SignupForm() {
 			</div>
 
 			{/* Marketing Consent Checkbox */}
-			<div class="mt-4">
-				<div class="flex items-start">
-					<div class="flex items-center h-5">
+			<div class='mt-4'>
+				<div class='flex items-start'>
+					<div class='flex items-center h-5'>
 						<input
-							id="marketing"
-							name="marketing"
-							type="checkbox"
-							class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700"
+							id='marketing'
+							name='marketing'
+							type='checkbox'
+							class='h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700'
 							checked={marketingConsent.value}
 							onChange={(e) => marketingConsent.value = (e.target as HTMLInputElement).checked}
 						/>
 					</div>
-					<div class="ml-3 text-sm">
-						<label htmlFor="marketing" class="font-medium text-gray-700 dark:text-gray-200">
+					<div class='ml-3 text-sm'>
+						<label htmlFor='marketing' class='font-medium text-gray-700 dark:text-gray-200'>
 							Keep me updated with BB news, tips and features
 						</label>
 					</div>

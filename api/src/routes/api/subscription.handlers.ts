@@ -89,7 +89,7 @@ export async function changePlan(ctx: Context) {
 			ctx.response.body = { error: 'Plan ID is required' };
 			return;
 		}
-		
+
 		// Log the request details
 		logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId });
 

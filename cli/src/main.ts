@@ -14,6 +14,7 @@ import { secure } from './commands/secure.ts';
 import { upgrade } from './commands/upgrade.ts';
 import { migrate } from './commands/migrate.ts';
 import { doctor } from './commands/doctor.ts';
+import { debug } from './commands/debug.ts';
 import { getVersionInfo } from 'shared/version.ts';
 //import { logger } from 'shared/logger.ts';
 
@@ -47,7 +48,8 @@ const cli = new Command()
 	.command('secure', secure)
 	.command('upgrade', upgrade)
 	.command('migrate', migrate)
-	.command('doctor', doctor);
+	.command('doctor', doctor)
+	.command('debug', debug);
 
 export const main = async () => {
 	await cli.parse(Deno.args);

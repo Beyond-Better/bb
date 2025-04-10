@@ -41,6 +41,7 @@ import * as $SideNav from './islands/SideNav.tsx';
 import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
+import * as $auth_ResendVerificationEmail from './islands/auth/ResendVerificationEmail.tsx';
 import * as $auth_SignupContent from './islands/auth/SignupContent.tsx';
 import * as $auth_SignupForm from './islands/auth/SignupForm.tsx';
 import * as $auth_VerifyContent from './islands/auth/VerifyContent.tsx';
@@ -93,6 +94,7 @@ const manifest = {
 		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,
+		'./islands/auth/ResendVerificationEmail.tsx': $auth_ResendVerificationEmail,
 		'./islands/auth/SignupContent.tsx': $auth_SignupContent,
 		'./islands/auth/SignupForm.tsx': $auth_SignupForm,
 		'./islands/auth/VerifyContent.tsx': $auth_VerifyContent,

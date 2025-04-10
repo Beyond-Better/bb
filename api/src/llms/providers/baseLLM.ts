@@ -50,6 +50,16 @@ class LLM {
 	private callbacks: LLMCallbacks;
 	public projectConfig!: ProjectConfig;
 
+	// Getter for default model (used by instance inspector)
+	protected get defaultModel(): string | undefined {
+		return undefined; // Subclasses will override this
+	}
+
+	// Public accessor for instance inspector
+	public getDefaultModel(): string | undefined {
+		return this.defaultModel;
+	}
+
 	constructor(callbacks: LLMCallbacks) {
 		this.callbacks = callbacks;
 		this.projectConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);

@@ -1,8 +1,14 @@
 {
 	"name": "bb-api",
-	"version": "0.7.4",
+	"version": "0.7.5",
 	"exports": "./src/main.ts",
 	"tasks": {
+		"tool:debug-instances": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts",
+		"tool:debug-instances-detailed": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --detailed",
+		"tool:debug-instances-json": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --json",
+		"tool:debug-instances-log": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --log",
+		"tool:debug-instances-orphaned": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --orphaned --detailed",
+		"tool:debug-instances-file": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --output instances-report.json --json",
 		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"start": "DENO_TLS_CA_STORE=system deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"dev": "DENO_TLS_CA_STORE=system deno run --watch --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",

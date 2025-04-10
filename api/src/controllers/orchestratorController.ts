@@ -115,7 +115,8 @@ function formatToolObjectivesAndStats(
 
 class OrchestratorController extends BaseController {
 	//private agentControllers: Map<string, AgentController> = new Map();
-	private agentController?: AgentController;
+	// Exposed for instance inspection
+	agentController?: AgentController;
 
 	// [TODO] Keep stats and counts simple
 	// these counts and token usage are not including chat interactions

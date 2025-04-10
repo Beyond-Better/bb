@@ -1,5 +1,7 @@
 import { Client } from 'mcp/client/index.js';
 import { StdioClientTransport } from 'mcp/client/stdio.js';
+import type { ReadResourceResult } from 'mcp/types.js';
+
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -8,12 +10,15 @@ import { getVersionInfo } from 'shared/version.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 //import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
 import type { MCPServerConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
 
 export class MCPManager {
-	private servers: Map<string, {
+	// Exposed for instance inspection but treated as private
+	servers: Map<string, {
 		server: Client;
 		config: MCPServerConfig;
 		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
+		resources?: Array<ResourceMetadata>;
 	}> = new Map();
 	private projectConfig: ProjectConfig;
 
@@ -136,6 +141,57 @@ export class MCPManager {
 		}
 	}
 
+	async listResources(
+		serverId: string,
+	): Promise<Array<ResourceMetadata>> {
+		const serverInfo = this.servers.get(serverId);
+		if (!serverInfo) {
+			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
+				name: 'mcp-server-error',
+				service: 'mcp',
+				action: 'list-resources',
+				serverId,
+			});
+		}
+
+		// If tools are already cached, return them
+		if (serverInfo.resources) {
+			logger.debug(`MCPManager: Using cached resources for server ${serverId}`);
+			return serverInfo.resources;
+		}
+
+		// Otherwise, fetch resources from the server and cache them
+		try {
+			const response = await serverInfo.server.listResources();
+			//logger.info(`MCPManager: Resources for server ${serverId}:`, response);
+			// Cache the resources
+			serverInfo.resources = response.resources.map((resource) => ({
+				...resource,
+				type: 'mcp',
+				mimeType: resource.mimeType || 'text/plain',
+			}));
+			return serverInfo.resources;
+		} catch (error) {
+			// MCPManager: Error listing resources for server slack: McpError: MCP error -32601: Method not found
+			if (error && typeof error === 'object' && 'code' in error && error.code === -32601) {
+				logger.warn(`MCPManager: Listing resources for server ${serverId} is not supported`);
+				return [];
+			} else {
+				logger.error(`MCPManager: Error listing resources for server ${serverId}:`, error);
+				throw createError(
+					ErrorType.ExternalServiceError,
+					`Failed to list MCP resources: ${errorMessage(error)}`,
+					{
+						name: 'mcp-resource-listing-error',
+						service: 'mcp',
+						action: 'list-resources',
+						serverId,
+					},
+				);
+			}
+		}
+	}
+
 	async executeMCPTool(
 		serverId: string,
 		toolName: string,
@@ -166,6 +222,38 @@ export class MCPManager {
 				service: 'mcp',
 				action: 'execute-tool',
 				toolName,
+				serverId,
+			});
+		}
+	}
+
+	async loadResource(
+		serverId: string,
+		resourceUri: string,
+	): Promise<ReadResourceResult> {
+		const serverInfo = this.servers.get(serverId);
+		if (!serverInfo) {
+			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
+				name: 'mcp-server-error',
+				service: 'mcp',
+				action: 'load-resource',
+				serverId,
+			});
+		}
+
+		try {
+			logger.info(`MCPManager: Loading resource ${resourceUri}`);
+			const result = await serverInfo.server.readResource({
+				uri: resourceUri,
+			});
+			return result;
+		} catch (error) {
+			logger.error(`MCPManager: Error executing tool ${resourceUri}:`, error);
+			throw createError(ErrorType.ExternalServiceError, `Failed to load MCP resource: ${errorMessage(error)}`, {
+				name: 'mcp-load-resource-error',
+				service: 'mcp',
+				action: 'load-resource',
+				resourceUri,
 				serverId,
 			});
 		}

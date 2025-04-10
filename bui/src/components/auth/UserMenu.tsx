@@ -13,11 +13,11 @@ export function UserMenu({ isCollapsed, className = '' }: UserMenuProps): JSX.El
 	//console.log('UserMenu: user', user);
 
 	const handleSignOut = async () => {
-		//window.location.href = '/auth/logout';
+		//globalThis.location.href = '/auth/logout';
 
 		await signOut(null, null);
 		// Redirect to root after sign out
-		window.location.href = '/';
+		globalThis.location.href = '/';
 	};
 
 	return (

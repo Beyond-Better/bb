@@ -172,6 +172,99 @@ export function useAuthState() {
 			}
 		},
 
+		checkEmailVerification: async (
+			req: Request | null,
+			_resp: Response | null,
+			email: string,
+		): Promise<{ verified?: boolean; exists?: boolean; error?: string }> => {
+			console.log('useAuthState: Checking email verification for:', email);
+
+			// If in local mode, pretend verification is successful
+			if (authState.value.isLocalMode) {
+				console.log('useAuthState: Local mode - bypassing email verification check');
+				return { verified: true, exists: true };
+			}
+
+			try {
+				const apiClient = getApiClient(req);
+				if (!apiClient) {
+					console.log('useAuthState: [checkEmailVerification] Could not load API Client');
+					return { error: 'Could not load API Client [checkEmailVerification]' };
+				}
+
+				// Call the API endpoint to check email verification status
+				const result = await apiClient.post<{ verified?: boolean; exists?: boolean; error?: string }>(
+					'/api/v1/auth/check-email-verification',
+					{
+						email,
+					},
+				);
+
+				if (!result) {
+					throw new Error('Failed to check email verification status');
+				}
+
+				if (result.error) {
+					throw new Error(result.error);
+				}
+
+				return result;
+			} catch (error) {
+				console.error('useAuthState: Email verification check failed:', (error as Error).message);
+				return { error: error instanceof Error ? error.message : 'Email verification check failed' };
+			}
+		},
+
+		resendVerificationEmail: async (
+			req: Request | null,
+			_resp: Response | null,
+			email: string,
+		): Promise<{ error?: string }> => {
+			console.log('useAuthState: Resending verification email for:', email);
+
+			// If in local mode, pretend the operation is successful
+			if (authState.value.isLocalMode) {
+				console.log('useAuthState: Local mode - bypassing resend verification');
+				return {};
+			}
+
+			try {
+				const apiClient = getApiClient(req);
+				if (!apiClient) {
+					console.log('useAuthState: [resendVerificationEmail] Could not load API Client');
+					return { error: 'Could not load API Client [resendVerificationEmail]' };
+				}
+
+				// Prepare the redirect URL
+				const redirectUrl = `${globalThis.location.origin}/auth/verify`;
+
+				// Call the API endpoint to resend verification email
+				const result = await apiClient.post<{ success?: boolean; error?: string }>(
+					'/api/v1/auth/resend-verification',
+					{
+						email,
+						type: 'signup',
+						options: {
+							emailRedirectTo: redirectUrl,
+						},
+					},
+				);
+
+				if (!result) {
+					throw new Error('Failed to resend verification email');
+				}
+
+				if (result.error) {
+					throw new Error(result.error);
+				}
+
+				return {};
+			} catch (error) {
+				console.error('useAuthState: Resend verification failed:', (error as Error).message);
+				return { error: error instanceof Error ? error.message : 'Failed to resend verification email' };
+			}
+		},
+
 		signIn: async (
 			req: Request | null,
 			_resp: Response | null,
@@ -270,15 +363,15 @@ export function useAuthState() {
 					return { error: 'Could not load API Client [signUp]' };
 				}
 				const { user, session, error } = await apiClient.signUp(
-				email, 
-				password, 
-				{
-					first_name: firstName || null,
-					last_name: lastName || null,
-					marketing_consent: marketingConsent || false,
-					accepted_terms: acceptedTerms || true,
-				}
-			);
+					email,
+					password,
+					{
+						first_name: firstName || null,
+						last_name: lastName || null,
+						marketing_consent: marketingConsent || false,
+						accepted_terms: acceptedTerms || true,
+					},
+				);
 
 				if (error) {
 					throw new AuthError(error, 'auth_failed');

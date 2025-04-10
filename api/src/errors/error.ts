@@ -306,6 +306,7 @@ export interface ExternalServiceErrorOptions extends ErrorOptions {
 	action?: string;
 	serverId?: string;
 	toolName?: string;
+	resourceUri?: string;
 	server?: string;
 }
 

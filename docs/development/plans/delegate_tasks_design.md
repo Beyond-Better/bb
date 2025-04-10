@@ -106,9 +106,9 @@ class ResourceManager {
   async loadResource(resource: Resource): Promise<string> {
     switch (resource.type) {
       case 'url':
-        return this.loadUrlResource(resource.location);
+        return this.loadUrlResource(resource.uri);
       case 'file':
-        return this.loadFileResource(resource.location);
+        return this.loadFileResource(resource.uri);
       // Implement other resource types
     }
   }

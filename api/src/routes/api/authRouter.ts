@@ -1,5 +1,13 @@
 import { Router } from '@oak/oak';
-import { handleCallback, handleLogin, handleLogout, handleSignup, handleStatus } from './auth.handlers.ts';
+import {
+	handleCallback,
+	handleCheckEmailVerification,
+	handleLogin,
+	handleLogout,
+	handleResendVerification,
+	handleSignup,
+	handleStatus,
+} from './auth.handlers.ts';
 
 const router = new Router();
 
@@ -146,5 +154,84 @@ router.get('/session', handleStatus);
  *         description: Invalid authorization code
  */
 router.post('/callback', handleCallback);
+
+/**
+ * @openapi
+ * /api/v1/auth/check-email-verification:
+ *   post:
+ *     summary: Check email verification status
+ *     description: Check if an email address is verified using Supabase edge function
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 verified:
+ *                   type: boolean
+ *                 exists:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.post('/check-email-verification', handleCheckEmailVerification);
+
+/**
+ * @openapi
+ * /api/v1/auth/resend-verification:
+ *   post:
+ *     summary: Resend verification email
+ *     description: Resend a verification email to the specified address
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - type
+ *             properties:
+ *               email:
+ *                 type: string
+ *               type:
+ *                 type: string
+ *                 enum: [signup, recovery, invite]
+ *               options:
+ *                 type: object
+ *                 properties:
+ *                   emailRedirectTo:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.post('/resend-verification', handleResendVerification);
 
 export default router;

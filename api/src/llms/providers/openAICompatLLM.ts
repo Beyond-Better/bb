@@ -39,7 +39,17 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 	protected openai!: OpenAI;
 	protected apiKey?: string;
 	protected baseURL?: string;
-	protected defaultModel?: string;
+	private _defaultModel?: string;
+
+	// Override the getter from the base class
+	protected override get defaultModel(): string | undefined {
+		return this._defaultModel;
+	}
+
+	// Setter for defaultModel
+	protected override set defaultModel(value: string | undefined) {
+		this._defaultModel = value;
+	}
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);

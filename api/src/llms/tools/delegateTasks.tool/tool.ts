@@ -23,7 +23,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import { createError, ErrorType } from 'api/utils/error.ts';
 //import type InteractionManager from 'api/llms/interactionManager.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
-//import { ResourceManager } from '../../../llms/resourceManager.ts';
+//import { ResourceManager } from 'api/resources/resourceManager.ts';
 //import { AgentCapabilityManager } from '../../../llms/agentCapabilityManager.ts';
 //import { ErrorHandler } from '../../../llms/errorHandler.ts';
 //import { TaskQueue } from '../../../llms/taskQueue.ts';
@@ -41,7 +41,7 @@ import type { LLMToolDelegateTasksInput, LLMToolDelegateTasksResultData } from '
  * }
  * interface Resource {
  * 	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search';
- * 	location: string;
+ * 	uri: string;
  * }
  * type InputSchema = Record<string, unknown>;
  */
@@ -102,12 +102,12 @@ export default class LLMToolDelegateTasks extends LLMTool {
 											enum: ['url', 'file', 'memory', 'api', 'database', 'vector_search'],
 											description: 'Type of resource',
 										},
-										location: {
+										uri: {
 											type: 'string',
-											description: 'Location or identifier of the resource',
+											description: 'URI of the resource',
 										},
 									},
-									required: ['type', 'location'],
+									required: ['type', 'uri'],
 								},
 							},
 							capabilities: {

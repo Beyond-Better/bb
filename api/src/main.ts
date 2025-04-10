@@ -91,7 +91,7 @@ const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 // Initialize auth system
 const sessionManager = new SessionManager();
 await sessionManager.initialize();
-logger.info('Auth system initialized');
+logger.info('APIStartup: Auth system initialized');
 
 const app = new Application<BbState>();
 
@@ -117,18 +117,18 @@ app.addEventListener(
 	'listen',
 	async ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
 		const versionInfo = await getVersionInfo();
-		logger.info(`Starting API v${versionInfo.version} with config:`, globalRedactedConfig);
+		logger.info(`APIStartup: Starting API v${versionInfo.version} with config:`, globalRedactedConfig);
 		if (apiConfig.ignoreLLMRequestCache) {
-			logger.warn('Cache for LLM requests is disabled!');
+			logger.warn('APIStartup: Cache for LLM requests is disabled!');
 		}
-		logger.info(`Version: ${versionInfo.version}`);
-		logger.info(`Environment: ${environment}`);
-		logger.info(`Log level: ${apiConfig.logLevel}`);
-		logger.info(`Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
+		logger.info(`APIStartup: Version: ${versionInfo.version}`);
+		logger.info(`APIStartup: Environment: ${environment}`);
+		logger.info(`APIStartup: Log level: ${apiConfig.logLevel}`);
+		logger.info(`APIStartup: Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
 	},
 );
 app.addEventListener('error', (evt: ErrorEvent) => {
-	logger.error(`Application error:`, evt.error);
+	logger.error(`APIStartup: Application error:`, evt.error);
 });
 
 const cleanup = async (code: number = 0) => {
@@ -136,7 +136,7 @@ const cleanup = async (code: number = 0) => {
 		await KVManager.closeAll();
 		Deno.exit(code);
 	} catch (error) {
-		console.error('Error cleaning up:', error);
+		console.error('APICleanup: Error cleaning up:', error);
 	} finally {
 		Deno.exit(1);
 	}
@@ -163,8 +163,8 @@ if (import.meta.main) {
 	try {
 		await app.listen(listenOpts);
 	} catch (error) {
-		logger.error(`Failed to start server: ${(error as Error).message}`);
-		logger.error(`Stack trace: ${(error as Error).stack}`);
+		logger.error(`APIStartup: Failed to start server: ${(error as Error).message}`);
+		logger.error(`APIStartup: Stack trace: ${(error as Error).stack}`);
 		Deno.exit(1);
 	}
 }

@@ -36,7 +36,7 @@ export function formatLogEntryToolUse(
 			${
 				task.resources && task.resources.length > 0
 					? stripIndents`${LLMTool.TOOL_STYLES_CONSOLE.base.label('Resources:')}
-				${task.resources.map((resource) => `- ${resource.type}: ${resource.location}`).join('\n')}
+				${task.resources.map((resource) => `- ${resource.type}: ${resource.uri}`).join('\n')}
 `
 					: ''
 			}

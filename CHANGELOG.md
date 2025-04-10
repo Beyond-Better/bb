@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.7.5] - 2025-04-10
+
+### Added
+
+- inspector for API internals
+- check for existing user during signup
+- option to re-send email verification message
+
+### Changed
+
+- improved error messages on login auth failures
+- API log formatting
+
+### Fixed
+
+- don't fail on already verified email addresses
+
+
 ## [0.7.4] - 2025-04-07
 
 ### Added

@@ -373,7 +373,7 @@ export class ApiClient {
 		planId: string,
 		paymentMethodId: string | null,
 	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
-		const data: { planId: string; payment_method_id: string | null, paymentMethodId: string | null } = {
+		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null } = {
 			planId,
 			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
 			paymentMethodId: paymentMethodId, // New format - matches the property name in the edge function
@@ -432,22 +432,22 @@ export class ApiClient {
 	}
 
 	async signUp(
-		email: string, 
+		email: string,
 		password: string,
 		metadata?: {
 			first_name: string | null;
 			last_name: string | null;
 			marketing_consent: boolean;
 			accepted_terms: boolean;
-		}
+		},
 	): Promise<AuthResponse> {
 		const verifyUrl = new URL('/auth/verify', globalThis.location.href);
 		return await this.post<AuthResponse>('/api/v1/auth/signup', {
 			email,
 			password,
-			options: { 
+			options: {
 				emailRedirectTo: verifyUrl.toString(),
-				data: metadata
+				data: metadata,
 			},
 		}) ?? { error: 'SignUp: Failed to connect to API' };
 	}
@@ -457,6 +457,25 @@ export class ApiClient {
 			token_hash: tokenHash,
 			type,
 		}) ?? { error: 'VerifyToken: Failed to connect to API' };
+	}
+
+	async checkEmailVerification(email: string): Promise<{ verified?: boolean; exists?: boolean; error?: string }> {
+		return await this.post<{ verified?: boolean; exists?: boolean; error?: string }>(
+			'/api/v1/auth/check-email-verification',
+			{
+				email,
+			},
+		) ?? { error: 'CheckEmailVerification: Failed to connect to API' };
+	}
+
+	async resendVerificationEmail(email: string): Promise<{ error?: string }> {
+		return await this.post<{ error?: string }>('/api/v1/auth/resend-verification', {
+			email,
+			type: 'signup',
+			options: {
+				emailRedirectTo: `${globalThis.location.origin}/auth/verify`,
+			},
+		}) ?? { error: 'ResendVerification: Failed to connect to API' };
 	}
 
 	// Project Management Methods
