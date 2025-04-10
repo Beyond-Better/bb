@@ -202,4 +202,9 @@
 √ Try to connect again if connection fails on page load or after selecting a project
 √ change anthropic llm to use streaming 
 √ make all local projects into git repos; get rid of 'git' project type 
+√ add re-send verify email link the failed verification page
+√ check for already-verified status and don't show an error
+√ Make error messages on login page more helpful "failed to fetch" means nothing
+√ check if user already exists during signup, or show error if user already exists
+√ Create doc to explain importance of guidelines file and how to create one
 
