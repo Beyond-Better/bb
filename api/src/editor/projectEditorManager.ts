@@ -36,6 +36,14 @@ class ProjectEditorManager {
 		if (!conversationId) return false;
 		return this.projectEditors.has(conversationId);
 	}
+
+	/**
+	 * Returns all active ProjectEditor instances
+	 * @returns A Map of conversationId to ProjectEditor
+	 */
+	getActiveEditors(): Map<string, ProjectEditor> {
+		return this.projectEditors;
+	}
 }
 
 export default ProjectEditorManager;

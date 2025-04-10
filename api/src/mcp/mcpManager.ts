@@ -11,7 +11,8 @@ import type { MCPServerConfig, ProjectConfig } from 'shared/config/v2/types.ts';
 import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
 
 export class MCPManager {
-	private servers: Map<string, {
+	// Exposed for instance inspection but treated as private
+	servers: Map<string, {
 		server: Client;
 		config: MCPServerConfig;
 		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
@@ -160,7 +161,7 @@ export class MCPManager {
 		// Otherwise, fetch resources from the server and cache them
 		try {
 			const response = await serverInfo.server.listResources();
-			logger.info(`MCPManager: Resources for server ${serverId}:`, response);
+			//logger.info(`MCPManager: Resources for server ${serverId}:`, response);
 			// Cache the resources
 			serverInfo.resources = response.resources;
 			return response.resources;

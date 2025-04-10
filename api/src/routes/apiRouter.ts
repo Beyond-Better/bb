@@ -14,6 +14,7 @@ import { getModelCapabilities, listModels } from './api/model.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
+import { getInstanceOverviewHandler } from './api/instanceInspector.handlers.ts';
 import projectRouter from './api/projectRouter.ts';
 import fileRouter from './api/fileRouter.ts';
 import authRouter from './api/authRouter.ts';
@@ -38,6 +39,7 @@ apiRouter
 	.use(requireAuth(protectedPaths))
 	.get('/v1/status', getStatus)
 	.get('/v1/meta', getMeta)
+	.get('/v1/debug/instances', getInstanceOverviewHandler)
 	// Model capabilities endpoints
 	.get('/v1/model', listModels)
 	.get('/v1/model/:modelId', getModelCapabilities)

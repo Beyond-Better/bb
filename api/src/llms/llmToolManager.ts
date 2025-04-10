@@ -429,6 +429,14 @@ class LLMToolManager {
 			};
 		}
 	}
+	
+	/**
+	 * Gets all loaded tool names - accessor for instance inspection
+	 * @returns Array of loaded tool names
+	 */
+	public getLoadedToolNames(): string[] {
+		return Array.from(this.loadedTools.keys());
+	}
 }
 
 export default LLMToolManager;

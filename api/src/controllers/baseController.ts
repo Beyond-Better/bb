@@ -66,6 +66,15 @@ class BaseController {
 	protected interactionStats: Map<ConversationId, ConversationStats> = new Map();
 	//protected interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
 	protected interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
+
+	// Accessor methods for instance inspection
+	public getInteractionStatsCount(): number {
+		return this.interactionStats.size;
+	}
+	
+	public getInteractionTokenUsageCount(): number {
+		return this.interactionTokenUsage.size;
+	}
 	protected isCancelled: boolean = false;
 	//protected currentStatus: ApiStatus = ApiStatus.IDLE;
 	protected statusSequence: number = 0;

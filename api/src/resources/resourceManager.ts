@@ -103,10 +103,10 @@ export class ResourceManager {
 							description: mcpResource.description || 'MCP Resource',
 						},
 					});
-					logger.info(
-						`ResourceManager: Registered MCP resource ${mcpResource.name} from server ${serverId}`,
-						this.resourceMetadata.get(resourceId),
-					);
+					// logger.info(
+					// 	`ResourceManager: Registered MCP resource ${mcpResource.name} from server ${serverId}`,
+					// 	this.resourceMetadata.get(resourceId),
+					// );
 
 					// Create reverse mapping from display name to internal ID
 					this.resourceNameToIdMap.set(llmResourceName, resourceId);
