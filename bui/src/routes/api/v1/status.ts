@@ -1,8 +1,8 @@
 import { Handlers } from '$fresh/server.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 
 type ExpiryStatus = 'valid' | 'expiring' | 'expired';
 type SupportedPlatform = 'darwin' | 'windows' | 'linux';
@@ -88,8 +88,8 @@ async function getTlsInfo(
 	if (globalConfig.api.tls?.certPem) {
 		certContent = globalConfig.api.tls.certPem;
 		certSource = 'config';
-	} else if (projectConfig?.settings.api?.tls?.certPem) {
-		certContent = projectConfig.settings.api.tls.certPem;
+	} else if (projectConfig?.api?.tls?.certPem) {
+		certContent = projectConfig.api.tls.certPem;
 		certSource = 'config';
 	} else {
 		const certFile = globalConfig.api.tls?.certFile || 'localhost.pem';
@@ -552,7 +552,7 @@ export const handler: Handlers = {
 		// Get config based on projectId if provided
 		const dirParam = new URL(req.url).searchParams.get('projectId');
 		const projectId = dirParam || undefined;
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
 		const globalConfig = await configManager.getGlobalConfig();
 

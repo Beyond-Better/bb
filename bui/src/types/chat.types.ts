@@ -2,8 +2,12 @@ import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { ApiStatus, ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
-import type { ProjectStats } from 'shared/types/project.ts';
+import type {
+	ClientProjectData,
+	//ProjectStats,
+} from 'shared/types/project.ts';
 import type { WebSocketStatus } from './websocket.types.ts';
+//import type { DataSource } from 'api/resources/dataSource.ts';
 
 export type CacheStatus = 'active' | 'expiring' | 'inactive';
 
@@ -20,17 +24,18 @@ export interface ChatStatus extends WebSocketStatus {
 	toolName?: string; // Current tool being used (when status is tool_handling)
 }
 
-export interface ProjectData {
-	projectId: string;
-	name: string;
-	type: string;
-	path: string;
-	stats?: ProjectStats;
-}
+// export interface ProjectData {
+// 	projectId: string;
+// 	name: string;
+// 	//type: string;
+// 	primaryDataSourceRoot?: string;
+// 	dataSources: DataSource[];
+// 	stats?: ProjectStats;
+// }
 
 export interface ChatState {
 	conversationId: string | null;
-	projectData: ProjectData | null;
+	projectData: ClientProjectData | null;
 	apiClient: ApiClient | null;
 	wsManager: WebSocketManager | null;
 	logDataEntries: ConversationLogDataEntry[];

@@ -69,7 +69,7 @@
 
 ### Current Implementation State
 
-1. Type System (`src/shared/config/v2/types.ts`)
+1. Type System (`src/shared/config/types.ts`)
    ```typescript
    // Core types
    type ConfigVersion = '1.0.0' | '2.0.0';
@@ -87,7 +87,7 @@
    interface ProjectConfig {...}
    ```
 
-2. Configuration Manager (`src/shared/config/v2/configManager.ts`)
+2. Configuration Manager (`src/shared/config/configManager.ts`)
    - Basic implementation structure
    - File operations
    - Validation logic

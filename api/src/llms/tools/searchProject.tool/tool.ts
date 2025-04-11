@@ -17,6 +17,7 @@ import {
 import LLMTool from 'api/llms/llmTool.ts';
 import { searchFilesContent, searchFilesMetadata } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
+import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
 
@@ -25,6 +26,12 @@ export default class LLMToolSearchProject extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSources: {
+					type: 'array',
+					items: { type: 'string' },
+					description:
+						"Array of data source names to operate on. Defaults to the primary data source if omitted. Specify ['all'] to operate on all available data sources. Examples: ['primary'], ['filesystem-1', 'db-staging'], ['all']. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				contentPattern: {
 					type: 'string',
 					description: String.raw`A grep-compatible regular expression to search file contents. Examples:
@@ -96,56 +103,111 @@ Leave empty to search only by file name, date, or size.`,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const input = toolUse.toolInput as LLMToolSearchProjectInput;
-		const { contentPattern, caseSensitive = false, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } = input;
+		const {
+			contentPattern,
+			caseSensitive = false,
+			filePattern,
+			dateAfter,
+			dateBefore,
+			sizeMin,
+			sizeMax,
+			dataSources: dataSourceIds = [],
+		} = input;
 		// caseSensitive controls the regex flag
 		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions#advanced_searching_with_flags
 
-		try {
-			let result;
-			logger.warn(
-				`LLMToolSearchProject: runTool - Search in ${projectEditor.projectRoot}: ${JSON.stringify(input)}`,
-			);
+		const { dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceIds,
+		);
 
-			if (contentPattern) {
-				// searchContent or searchContentInFiles
-				result = await searchFilesContent(projectEditor.projectRoot, contentPattern, caseSensitive, {
-					filePattern,
-					dateAfter,
-					dateBefore,
-					sizeMin,
-					sizeMax,
-				});
-			} else {
-				// searchForFiles (metadata-only search)
-				result = await searchFilesMetadata(projectEditor.projectRoot, {
-					filePattern,
-					dateAfter,
-					dateBefore,
-					sizeMin,
-					sizeMax,
-				});
+		if (dataSources.length === 0) {
+			throw createError(ErrorType.DataSourceHandling, `No valid data sources found`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceIds,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const searchOptions = {
+			filePattern,
+			dateAfter,
+			dateBefore,
+			sizeMin,
+			sizeMax,
+		};
+
+		const searchCriteria = [
+			contentPattern && `content pattern "${contentPattern}"`,
+			contentPattern && `${caseSensitive ? 'case-sensitive' : 'case-insensitive'}`,
+			filePattern && `file pattern "${filePattern}"`,
+			dateAfter && `modified after ${dateAfter}`,
+			dateBefore && `modified before ${dateBefore}`,
+			sizeMin !== undefined && `minimum size ${sizeMin} bytes`,
+			sizeMax !== undefined && `maximum size ${sizeMax} bytes`,
+		].filter(Boolean).join(', ');
+
+		try {
+			// Aggregate results across all data sources
+			const aggregatedResults = {
+				files: [] as string[],
+				errorMessages: [] as string[],
+				dataSourcesSearched: [] as string[],
+			};
+
+			// Process each data source
+			for (const dataSource of dataSources) {
+				const dataSourceRoot = dataSource.getDataSourceRoot();
+				if (!dataSourceRoot) {
+					aggregatedResults.errorMessages.push(`No root for data source: ${dataSource.name}`);
+					continue;
+				}
+
+				logger.warn(
+					`LLMToolSearchProject: runTool - Search in ${dataSourceRoot}: ${JSON.stringify(input)}`,
+				);
+
+				let result;
+				try {
+					if (contentPattern) {
+						result = await searchFilesContent(dataSourceRoot, contentPattern, caseSensitive, searchOptions);
+					} else {
+						result = await searchFilesMetadata(dataSourceRoot, searchOptions);
+					}
+
+					const { files, errorMessage } = result;
+
+					// Add source prefix to files for clarity
+					const prefixedFiles = files.map((file) => `[${dataSource.name}] ${file}`);
+
+					aggregatedResults.files.push(...prefixedFiles);
+					if (errorMessage) {
+						aggregatedResults.errorMessages.push(`[${dataSource.name}]: ${errorMessage}`);
+					}
+					aggregatedResults.dataSourcesSearched.push(dataSource.name);
+				} catch (error) {
+					aggregatedResults.errorMessages.push(`[${dataSource.name}]: ${(error as Error).message}`);
+				}
 			}
 
-			const { files, errorMessage } = result;
-			const searchCriteria = [
-				contentPattern && `content pattern "${contentPattern}"`,
-				// only include case sensitivity details if content pattern was supplied
-				contentPattern && `${caseSensitive ? 'case-sensitive' : 'case-insensitive'}`,
-				filePattern && `file pattern "${filePattern}"`,
-				dateAfter && `modified after ${dateAfter}`,
-				dateBefore && `modified before ${dateBefore}`,
-				sizeMin !== undefined && `minimum size ${sizeMin} bytes`,
-				sizeMax !== undefined && `maximum size ${sizeMax} bytes`,
-			].filter(Boolean).join(', ');
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: 'All data sources searched';
+
+			const errorSection = aggregatedResults.errorMessages.length > 0
+				? `Errors:\n${aggregatedResults.errorMessages.join('\n')}\n\n`
+				: '';
 
 			const toolResults = stripIndents`
-                ${errorMessage ? `Error: ${errorMessage}\n\n` : ''}
-                ${files.length} files match the search criteria: ${searchCriteria}
-                ${files.length > 0 ? `\n<files>\n${files.join('\n')}\n</files>` : ''}
-            `;
+			  Searched data sources: [${aggregatedResults.dataSourcesSearched.join(', ')}]
+			  ${errorSection}
+			  ${aggregatedResults.files.length} files match the search criteria: ${searchCriteria}
+			  ${aggregatedResults.files.length > 0 ? `\n<files>\n${aggregatedResults.files.join('\n')}\n</files>` : ''}
+			`;
 
-			const toolResponse = `Found ${files.length} files matching the search criteria: ${searchCriteria}`;
-			const bbResponse = `BB found ${files.length} files matching the search criteria: ${searchCriteria}`;
+			const toolResponse =
+				`${dataSourceStatus}\nFound ${aggregatedResults.files.length} files matching the search criteria: ${searchCriteria}`;
+			const bbResponse =
+				`BB found ${aggregatedResults.files.length} files matching the search criteria: ${searchCriteria}\n${dataSourceStatus}`;
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
@@ -153,7 +215,6 @@ Leave empty to search only by file name, date, or size.`,
 
 			throw createError(ErrorType.FileHandling, `Error searching project: ${(error as Error).message}`, {
 				name: 'search-project',
-				filePath: projectEditor.projectRoot,
 				operation: 'search-project',
 			});
 		}

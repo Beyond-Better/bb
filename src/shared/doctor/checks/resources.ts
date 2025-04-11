@@ -1,5 +1,5 @@
 import { DiagnosticResult } from '../types.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from '../../logger.ts';
 import { join } from '@std/path';
 import { getGlobalConfigDir } from '../../dataDir.ts';
@@ -120,7 +120,7 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
 		const globalDir = await getGlobalConfigDir();

@@ -681,7 +681,7 @@ Deno.test({
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
 					FileHandlingError,
-					`Access denied: ${testFilePath} is outside the project directory`,
+					`Access denied: ${testFilePath} is outside the data source directory`,
 				);
 			} finally {
 				logChangeAndCommitStub.restore();

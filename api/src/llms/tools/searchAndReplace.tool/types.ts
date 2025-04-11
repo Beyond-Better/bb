@@ -18,6 +18,7 @@ export interface LLMToolSearchAndReplaceInput {
 	filePath: string;
 	operations: Array<LLMToolSearchAndReplaceOperation>;
 	createIfMissing?: boolean;
+	dataSource?: string;
 }
 
 /**

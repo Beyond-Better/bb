@@ -38,10 +38,10 @@ import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/
 import { createError } from 'api/utils/error.ts';
 
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import { extractThinkingFromContent } from 'api/utils/llms.ts';
-import { readProjectFileContent } from 'api/utils/fileHandling.ts';
+import { readFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithResponse } from 'api/types.ts';
 import { LLMModelToProvider } from 'api/types/llms.ts';
 import {
@@ -85,10 +85,10 @@ class BaseController {
 	}
 
 	async init(): Promise<BaseController> {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		this.toolManager = await new LLMToolManager(this.projectConfig, 'core', this.projectEditor.mcpManager).init();
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
 
@@ -318,7 +318,7 @@ class BaseController {
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.projectConfig.settings.api?.environment === 'localdev') {
+			if (this.projectConfig.api?.environment === 'localdev') {
 				const system = Array.isArray(currentResponse.messageMeta.system)
 					? currentResponse.messageMeta.system[0].text
 					: currentResponse.messageMeta.system;
@@ -350,7 +350,7 @@ class BaseController {
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
-			if (this.projectConfig.settings.api?.environment === 'localdev') {
+			if (this.projectConfig.api?.environment === 'localdev') {
 				const system = Array.isArray(currentResponse.messageMeta.system)
 					? currentResponse.messageMeta.system[0].text
 					: currentResponse.messageMeta.system;
@@ -389,8 +389,8 @@ class BaseController {
 		toolUse: LLMAnswerToolUse,
 		_response: LLMProviderMessageResponse,
 	): Promise<{ toolResponse: LLMToolRunToolResponse }> {
-		logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`);
-		//logger.error(`BaseController: Handling tool use for: ${toolUse.toolName}`, response);
+		logger.info(`BaseController: Handling tool use for: ${toolUse.toolName}`);
+		//logger.info(`BaseController: Handling tool use for: ${toolUse.toolName}`, response);
 
 		const logEntryInteraction = this.logEntryInteraction(interaction.id);
 		const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
@@ -446,11 +446,15 @@ class BaseController {
 		return {
 			PROJECT_EDITOR: () => this.projectEditor,
 			PROJECT_ID: () => this.projectEditor.projectId,
-			PROJECT_ROOT: () => this.projectEditor.projectRoot,
+			PROJECT_DATA_SOURCES: () => this.projectEditor.dataSourcesForSystemPrompt,
+			PROJECT_MCP_TOOLS: async () => await this.projectEditor.getMCPToolsForSystemPrompt(),
 			PROJECT_INFO: () => this.projectEditor.projectInfo,
 			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
-			PROJECT_FILE_CONTENT: async (filePath: string): Promise<string> =>
-				await readProjectFileContent(this.projectEditor.projectRoot, filePath),
+			PROJECT_RESOURCE_CONTENT: async (dataSourceId: string, filePath: string): Promise<string | null> => {
+				const dataSource = this.projectEditor.dataSource(dataSourceId);
+				if (!dataSource) return null;
+				return await readFileContent(dataSource.getDataSourceRoot(), filePath);
+			},
 			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
 				messageId: string,
@@ -522,6 +526,8 @@ class BaseController {
 				//return interaction ? await interaction.prepareTools(tools) : tools;
 				return await interaction?.prepareTools(tools) || [];
 			},
+			// [TODO] PREPARE_DATA_SOURCES
+			// [TODO] PREPARE_RESOURCES
 		};
 	}
 
@@ -566,6 +572,7 @@ class BaseController {
 
 	async logChangeAndCommit(
 		interaction: LLMConversationInteraction,
+		dataSourceRoot: string,
 		filePath: string | string[],
 		change: string | string[],
 	): Promise<void> {
@@ -588,18 +595,13 @@ class BaseController {
 			throw new Error('filePath and change must both be strings or both be arrays');
 		}
 
-		const configManager = await ConfigManagerV2.getInstance();
-		const projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		// [TODO] type 'git' is deprecated, but legacy projects can be type 'git'
-		if (projectConfig.type === 'local' || projectConfig.type === 'git') {
-			await stageAndCommitAfterChanging(
-				interaction,
-				this.projectEditor.projectRoot,
-				this.projectEditor.changedFiles,
-				this.projectEditor.changeContents,
-				this.projectEditor,
-			);
-		}
+		await stageAndCommitAfterChanging(
+			interaction,
+			dataSourceRoot,
+			this.projectEditor.changedFiles,
+			this.projectEditor.changeContents,
+			this.projectEditor,
+		);
 
 		this.projectEditor.changedFiles.clear();
 		this.projectEditor.changeContents.clear();

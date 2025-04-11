@@ -4,13 +4,17 @@ import { ensureDir, exists } from '@std/fs';
 
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { FileHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
+import type {
+	DataSourceHandlingErrorOptions,
+	FileHandlingErrorOptions,
+	ToolHandlingErrorOptions,
+} from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
 
 import type {
@@ -49,18 +53,23 @@ export default class LLMToolRemoveFiles extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
 		const schema: {
 			type: 'object';
-			properties: { sources: unknown; acknowledgement?: unknown };
+			properties: { dataSource?: unknown; sources: unknown; acknowledgement?: unknown };
 			required: string[];
 		} = {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				sources: {
 					type: 'array',
 					items: { type: 'string' },
 					description: 'Array of file or directory paths to remove. Important notes:\n' +
 						'* For files: The individual file will be removed\n' +
 						'* For directories: The directory AND ALL ITS CONTENTS will be removed recursively\n' +
-						'* All paths must be relative to project root and within the project directory\n' +
+						'* All paths must be relative to data source root and within the data source directory\n' +
 						'* Protected paths (.trash, .git, etc.) cannot be removed',
 				},
 			},
@@ -122,9 +131,9 @@ export default class LLMToolRemoveFiles extends LLMTool {
 			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
-	private async checkIsDirectory(projectRoot: string, path: string): Promise<boolean> {
+	private async checkIsDirectory(dataSourceRoot: string, path: string): Promise<boolean> {
 		try {
-			const stat = await Deno.stat(join(projectRoot, path));
+			const stat = await Deno.stat(join(dataSourceRoot, path));
 			return stat.isDirectory;
 		} catch {
 			return false;
@@ -134,7 +143,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 	private async validateAcknowledgement(
 		acknowledgement: RemoveFilesAcknowledgement,
 		sources: string[],
-		projectRoot: string,
+		dataSourceRoot: string,
 	): Promise<void> {
 		// Validate file count
 		if (acknowledgement.fileCount !== sources.length) {
@@ -181,7 +190,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 
 		// Check if any sources are directories
 		const hasDirectories = await Promise.all(
-			sources.map((source) => this.checkIsDirectory(projectRoot, source)),
+			sources.map((source) => this.checkIsDirectory(dataSourceRoot, source)),
 		).then((results) => results.some(Boolean));
 
 		// Validate hasDirectories flag
@@ -235,7 +244,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 	}
 
 	private async generateTrashPath(
-		projectRoot: string,
+		dataSourceRoot: string,
 		originalPath: string,
 	): Promise<string> {
 		const trashDir = this.config.trashDir || '.trash';
@@ -256,14 +265,14 @@ export default class LLMToolRemoveFiles extends LLMTool {
 
 		// this.config.trashNamingStrategy === 'increment'
 		// First try the original name - only for increment strategy
-		if (!await exists(join(projectRoot, baseTrashPath))) {
+		if (!await exists(join(dataSourceRoot, baseTrashPath))) {
 			return baseTrashPath;
 		}
 
 		// Increment strategy
 		let index = 1;
 		let trashPath = baseTrashPath;
-		while (await exists(join(projectRoot, trashPath))) {
+		while (await exists(join(dataSourceRoot, trashPath))) {
 			const [name, ...extensions] = fileName.split('.');
 			const newName = extensions.length > 0 ? `${name}_${index}.${extensions.join('.')}` : `${name}_${index}`;
 			trashPath = join(trashDir, newName);
@@ -278,7 +287,36 @@ export default class LLMToolRemoveFiles extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { sources, acknowledgement } = toolInput as LLMToolRemoveFilesInput;
+		const { sources, acknowledgement, dataSource: dataSourceId = undefined } = toolInput as LLMToolRemoveFilesInput;
+
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
 
 		try {
 			// Validate number of files
@@ -307,7 +345,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 						} as ToolHandlingErrorOptions,
 					);
 				}
-				await this.validateAcknowledgement(acknowledgement, sources, projectEditor.projectRoot);
+				await this.validateAcknowledgement(acknowledgement, sources, dataSourceRoot);
 			} else if (acknowledgement) {
 				// If permanent deletion is disabled, acknowledgement should not be provided
 				throw createError(
@@ -323,7 +361,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 
 			// Ensure trash directory exists if needed
 			if (!this.config.dangerouslyDeletePermanently) {
-				const trashDir = join(projectEditor.projectRoot, this.config.trashDir || '.trash');
+				const trashDir = join(dataSourceRoot, this.config.trashDir || '.trash');
 				try {
 					await ensureDir(trashDir);
 				} catch (error) {
@@ -339,7 +377,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 				}
 			}
 
-			const toolResultContentParts = [];
+			const toolResultContentParts: LLMMessageContentParts = [];
 			const removedSuccess: LLMToolRemoveFilesResponseData['data']['filesRemoved'] = [];
 			const removedError: LLMToolRemoveFilesResponseData['data']['filesError'] = [];
 
@@ -347,7 +385,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 			for (const source of sources) {
 				try {
 					// Validate path
-					if (!await isPathWithinProject(projectEditor.projectRoot, source)) {
+					if (!await isPathWithinDataSource(dataSourceRoot, source)) {
 						throw new Error('Path is outside the project directory');
 					}
 
@@ -356,8 +394,8 @@ export default class LLMToolRemoveFiles extends LLMTool {
 						throw new Error('Path is protected from deletion');
 					}
 
-					const fullSourcePath = join(projectEditor.projectRoot, source);
-					const isDirectory = await this.checkIsDirectory(projectEditor.projectRoot, source);
+					const fullSourcePath = join(dataSourceRoot, source);
+					const isDirectory = await this.checkIsDirectory(dataSourceRoot, source);
 
 					if (this.config.dangerouslyDeletePermanently) {
 						// Permanent deletion
@@ -369,8 +407,8 @@ export default class LLMToolRemoveFiles extends LLMTool {
 						} as LLMMessageContentPartTextBlock);
 					} else {
 						// Move to trash
-						const trashPath = await this.generateTrashPath(projectEditor.projectRoot, source);
-						const fullTrashPath = join(projectEditor.projectRoot, trashPath);
+						const trashPath = await this.generateTrashPath(dataSourceRoot, source);
+						const fullTrashPath = join(dataSourceRoot, trashPath);
 
 						// Create parent directory in trash if needed
 						await ensureDir(dirname(fullTrashPath));
@@ -400,6 +438,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 				const operation = this.config.dangerouslyDeletePermanently ? 'deleted' : 'moved to trash';
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
+					dataSourceRoot,
 					removedSuccess.map((f) => f.name),
 					removedSuccess.map((f) => {
 						const type = f.isDirectory ? 'directory' : 'file';
@@ -408,10 +447,18 @@ export default class LLMToolRemoveFiles extends LLMTool {
 				);
 			}
 
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dataSourceToUse.name}`,
+			});
+
 			// Prepare response
 			const toolResults = toolResultContentParts;
 			const toolResponse =
-				`${removedSuccess.length} items ${
+				`${dataSourceStatus}\n${removedSuccess.length} items ${
 					this.config.dangerouslyDeletePermanently ? 'deleted' : 'moved to trash'
 				}` +
 				(removedError.length > 0 ? `, ${removedError.length} failed` : '');
@@ -421,6 +468,7 @@ export default class LLMToolRemoveFiles extends LLMTool {
 					filesError: removedError,
 					// filesRemoved: removedSuccess.map((f) => f.name),
 					// filesError: removedError.map((f) => f.name),
+					dataSourceId,
 				},
 			};
 

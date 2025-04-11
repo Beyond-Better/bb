@@ -8,9 +8,9 @@ import { colors } from 'cliffy/ansi/colors';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
 import type { ConversationId, ConversationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const globalConfig = await configManager.getGlobalConfig();
 
 // Define theme colors.

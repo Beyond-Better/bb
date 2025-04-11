@@ -1,7 +1,7 @@
 import { assertEquals, assertThrows } from 'testing/asserts.ts';
 import { fetchSupabaseConfig, validateSupabaseConfig } from './config.ts';
 import { ConfigFetchError } from '../types/auth.ts';
-import { ConfigManagerV2 } from '../../../src/shared/config/v2/configManager.ts';
+import { ConfigManagerV2 } from '../../../src/shared/config/configManager.ts';
 
 // Mock ConfigManagerV2
 const mockGlobalConfig = {

@@ -17,6 +17,7 @@ export interface LLMToolRunCommandInput {
 	args?: string[];
 	cwd?: string;
 	outputTruncation?: OutputTruncationConfig;
+	dataSource?: string;
 }
 
 export interface LLMToolRunCommandResponseData {
@@ -36,6 +37,7 @@ export interface LLMToolRunCommandResponseData {
 				keptLines: number;
 			};
 		};
+		dataSourceId: string;
 	};
 }
 

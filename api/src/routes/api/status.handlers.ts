@@ -1,6 +1,6 @@
 import type { Context } from '@oak/oak';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
 //import { logger } from 'shared/logger.ts';
@@ -515,8 +515,8 @@ async function getTlsInfo(
 	if (globalConfig.api.tls?.certPem) {
 		certContent = globalConfig.api.tls.certPem;
 		certSource = 'config';
-	} else if (projectConfig?.settings.api?.tls?.certPem) {
-		certContent = projectConfig.settings.api.tls.certPem;
+	} else if (projectConfig?.api?.tls?.certPem) {
+		certContent = projectConfig.api.tls.certPem;
 		certSource = 'config';
 	} else {
 		const certFile = globalConfig.api.tls?.certFile || 'localhost.pem';
@@ -560,7 +560,7 @@ export const getStatus = async (ctx: Context) => {
 	// Get config based on projectId if provided
 	const dirParam = ctx.request.url.searchParams.get('projectId');
 	const projectId = dirParam || undefined;
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
 	const globalConfig = await configManager.getGlobalConfig();
 
@@ -581,13 +581,11 @@ export const getStatus = async (ctx: Context) => {
 			'linux': '/etc/ssl/certs',
 		} as Record<SupportedPlatform, string>)[Deno.build.os as SupportedPlatform],
 		tls: {
-			enabled: projectConfig?.settings.api?.tls?.useTls ?? globalConfig.api?.tls?.useTls ?? false,
+			enabled: projectConfig?.api?.tls?.useTls ?? globalConfig.api?.tls?.useTls ?? false,
 			...tlsInfo,
 		},
 		configType: projectId ? 'project' : 'global',
-		projectName: projectId
-			? (await (await ConfigManagerV2.getInstance()).getProjectConfig(projectId)).name
-			: undefined,
+		projectName: projectId ? (await (await getConfigManager()).getProjectConfig(projectId)).name : undefined,
 	};
 
 	// Check Accept header

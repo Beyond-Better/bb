@@ -1,0 +1,10 @@
+{
+	"name": "load_datasource",
+	"description": "Retrieves a list of available resources for a datasource. The available datasources are in the system prompt of each conversation.",
+	"version": "1.0.0",
+	"category": "data-retrieval",
+	"capabilities": ["resource-listing", "data-browsing"],
+	"enabled": true,
+	"author": "BB Team",
+	"license": "MIT"
+}

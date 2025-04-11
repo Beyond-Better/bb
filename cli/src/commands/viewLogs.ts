@@ -5,7 +5,7 @@ import { getLogFilePath, viewLastLines, watchLogs } from 'shared/logViewer.ts';
 //import { join } from '@std/path';
 //import { ensureDir } from '@std/fs';
 import { displayFormattedLogs } from 'cli/conversationLogFormatter.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const viewLogs = new Command()
 	.name('logs')
@@ -20,8 +20,9 @@ export const viewLogs = new Command()
 			return;
 		}
 
-		const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-		const projectId = await getProjectId(projectRoot);
+		const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+		const projectId = await getProjectId(workingRoot);
+		if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 		const logFilePath = await getLogFilePath(projectId, !!options.api, options.id);
 		console.log(`Viewing logs from: ${logFilePath}`);
 

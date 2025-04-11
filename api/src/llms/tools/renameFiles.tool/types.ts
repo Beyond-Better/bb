@@ -8,6 +8,7 @@ export interface LLMToolRenameFilesInput {
 	}>;
 	createMissingDirectories?: boolean;
 	overwrite?: boolean;
+	dataSource?: string;
 }
 
 export interface LLMToolRenameFilesResponseData {
@@ -21,6 +22,7 @@ export interface LLMToolRenameFilesResponseData {
 			destination: string;
 			error: string;
 		}>;
+		dataSourceId: string;
 	};
 }
 

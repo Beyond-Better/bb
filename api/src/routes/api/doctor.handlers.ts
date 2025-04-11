@@ -1,7 +1,7 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { DoctorService } from 'shared/doctor/doctorService.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 /**
  * Run diagnostic checks and return results
@@ -72,7 +72,7 @@ export async function applyFixHandler(
 	const { type: fixType } = params;
 	//const { projectId } = await request.body.json();
 
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	try {
 		switch (fixType) {
 			case 'api-port': {

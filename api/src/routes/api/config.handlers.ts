@@ -1,6 +1,6 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 /**
  * @openapi
@@ -18,7 +18,7 @@ export const getGlobalConfig = async (
 	{ response }: { response: Context['response'] },
 ) => {
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const config = await configManager.getGlobalConfig();
 
 		response.status = 200;
@@ -73,7 +73,7 @@ export const updateGlobalConfig = async (
 			return;
 		}
 
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		await configManager.setGlobalConfigValue(key, value);
 
 		response.status = 200;
@@ -110,7 +110,7 @@ export const getProjectConfig = async (
 	{ params, response }: RouterContext<'/project/:id', { id: string }>,
 ) => {
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		await configManager.ensureLatestProjectConfig(params.id);
 		const config = await configManager.getProjectConfig(params.id);
 
@@ -154,7 +154,7 @@ export const getProjectConfig = async (
  *             properties:
  *               key:
  *                 type: string
- *                 description: Configuration key in dot notation (e.g., "settings.api.maxTurns")
+ *                 description: Configuration key in dot notation (e.g., "api.maxTurns")
  *               value:
  *                 type: string
  *                 description: New value for the configuration key
@@ -181,7 +181,7 @@ export const updateProjectConfig = async (
 			return;
 		}
 
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		await configManager.setProjectConfigValue(params.id, key, value);
 
 		response.status = 200;

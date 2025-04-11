@@ -14,9 +14,9 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 import { ensureDir } from '@std/fs';
@@ -80,10 +80,15 @@ export default class LLMToolRewriteFile extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				filePath: {
 					type: 'string',
 					description:
-						'The path of the file to be rewritten or created, relative to the project root. Must be within the project directory.',
+						'The path of the file to be rewritten or created, relative to the data source root. Must be within the data source directory.',
 				},
 				content: {
 					type: 'string',
@@ -151,7 +156,37 @@ export default class LLMToolRewriteFile extends LLMTool {
 			allowEmptyContent = false,
 			acknowledgement,
 			expectedLineCount,
+			dataSource: dataSourceId = undefined,
 		} = toolInput as LLMToolRewriteFileInput;
+
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		if (!dataSourceToUse) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
 
 		// Validate acknowledgment string
 		if (!validateAcknowledgment(acknowledgement)) {
@@ -197,15 +232,19 @@ export default class LLMToolRewriteFile extends LLMTool {
 			 */
 		}
 
-		if (!await isPathWithinProject(projectEditor.projectRoot, filePath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the project directory`, {
-				name: 'rewrite-file',
-				filePath,
-				operation: 'rewrite-file',
-			} as FileHandlingErrorOptions);
+		if (!await isPathWithinDataSource(dataSourceRoot, filePath)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${filePath} is outside the data source directory`,
+				{
+					name: 'rewrite-file',
+					filePath,
+					operation: 'rewrite-file',
+				} as FileHandlingErrorOptions,
+			);
 		}
 
-		const fullFilePath = join(projectEditor.projectRoot, filePath);
+		const fullFilePath = join(dataSourceRoot, filePath);
 		logger.info(`LLMToolRewriteFile: Handling rewrite for file: ${fullFilePath}`);
 
 		try {
@@ -241,14 +280,19 @@ export default class LLMToolRewriteFile extends LLMTool {
 			logger.info(`LLMToolRewriteFile: Saving conversation rewrite file: ${interaction.id}`);
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
+				dataSourceRoot,
 				filePath,
 				content,
 			);
 
-			const toolResults = `File ${filePath} ${
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+
+			const toolResults = `Used data source: ${dataSourceToUse.name}\nFile ${filePath} ${
 				isNewFile ? 'created' : 'rewritten'
 			} with new contents (${actualLineCount} lines).`;
-			const toolResponse = `${
+			const toolResponse = `${dataSourceStatus}\n${
 				isNewFile ? 'Created' : 'Rewrote'
 			} ${filePath} with ${actualLineCount} lines of content`;
 			// const bbResponse = `BB ${
@@ -266,6 +310,7 @@ export default class LLMToolRewriteFile extends LLMTool {
 						lineCount: actualLineCount,
 						isNewFile,
 						lineCountError: lineCountErrorMessage || undefined,
+						dataSourceId,
 					},
 				},
 			};

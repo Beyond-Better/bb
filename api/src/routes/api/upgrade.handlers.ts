@@ -1,7 +1,7 @@
 import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { spawnDetached } from 'shared/process.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { ensureUserInstallLocation, getCurrentInstallLocation } from 'shared/install.ts';
 import { performUpgrade } from 'shared/upgrade.ts';
 
@@ -60,7 +60,7 @@ export async function upgradeApi(ctx: Context) {
 			logger.info(`Initiating API restart from directory: ${cwd}`);
 
 			// Get current API configuration
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			const {
 				hostname: apiHostname = 'localhost',

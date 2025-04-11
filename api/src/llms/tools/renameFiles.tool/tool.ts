@@ -16,7 +16,9 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
+import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 export default class LLMToolRenameFiles extends LLMTool {
@@ -24,6 +26,11 @@ export default class LLMToolRenameFiles extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				operations: {
 					type: 'array',
 					items: {
@@ -32,12 +39,12 @@ export default class LLMToolRenameFiles extends LLMTool {
 							source: {
 								type: 'string',
 								description:
-									'The current path of the file or directory to rename, relative to project root. Must exist and be within project. Examples:\n* "src/old-name.ts"\n* "tests/old_dir"\n* "config/legacy.json"',
+									'The current path of the file or directory to rename, relative to data source root. Must exist and be within data source. Examples:\n* "src/old-name.ts"\n* "tests/old_dir"\n* "config/legacy.json"',
 							},
 							destination: {
 								type: 'string',
 								description:
-									'The new path for the file or directory, relative to project root. Must be within project. Parent directories will be created if createMissingDirectories is true. Examples:\n* "src/new-name.ts"\n* "tests/new_dir"\n* "config/current.json"',
+									'The new path for the file or directory, relative to data source root. Must be within data source. Parent directories will be created if createMissingDirectories is true. Examples:\n* "src/new-name.ts"\n* "tests/new_dir"\n* "config/current.json"',
 							},
 						},
 						required: ['source', 'destination'],
@@ -45,8 +52,8 @@ export default class LLMToolRenameFiles extends LLMTool {
 					description: `Array of rename operations to perform. Important considerations:
 
 1. Path Requirements:
-   * All paths must be relative to project root
-   * Both source and destination must be within project
+   * All paths must be relative to data source root
+   * Both source and destination must be within data source
    * Source must exist (unless overwrite is true)
    * Parent directories in destination path must exist (unless createMissingDirectories is true)
 
@@ -81,7 +88,7 @@ export default class LLMToolRenameFiles extends LLMTool {
 				createMissingDirectories: {
 					type: 'boolean',
 					description:
-						'When true, creates any missing parent directories in destination paths. Useful when restructuring project layout. Example: "new/nested/dir/file.ts" will create all parent directories.',
+						'When true, creates any missing parent directories in destination paths. Useful when restructuring data source layout. Example: "new/nested/dir/file.ts" will create all parent directories.',
 					default: false,
 				},
 			},
@@ -111,8 +118,41 @@ export default class LLMToolRenameFiles extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { operations, overwrite = false, createMissingDirectories = false } =
-			toolInput as LLMToolRenameFilesInput;
+		const {
+			operations,
+			overwrite = false,
+			createMissingDirectories = false,
+			dataSource: dataSourceId = undefined,
+		} = toolInput as LLMToolRenameFilesInput;
+
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
 
 		try {
 			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
@@ -122,23 +162,23 @@ export default class LLMToolRenameFiles extends LLMTool {
 
 			for (const { source, destination } of operations) {
 				if (
-					!isPathWithinProject(projectEditor.projectRoot, source) ||
-					!isPathWithinProject(projectEditor.projectRoot, destination)
+					!isPathWithinDataSource(dataSourceRoot, source) ||
+					!isPathWithinDataSource(dataSourceRoot, destination)
 				) {
 					toolResultContentParts.push({
 						type: 'text',
 						text:
-							`Error renaming file ${source}: Source or destination path is outside the project directory`,
+							`Error renaming file ${source}: Source or destination path is outside the data source directory`,
 					} as LLMMessageContentPartTextBlock);
 					renamedError.push({
 						source,
 						destination,
-						error: 'Source or destination path is outside the project directory.',
+						error: 'Source or destination path is outside the data source directory.',
 					});
 					continue;
 				}
-				const fullSourcePath = join(projectEditor.projectRoot, source);
-				const fullDestPath = join(projectEditor.projectRoot, destination);
+				const fullSourcePath = join(dataSourceRoot, source);
+				const fullDestPath = join(dataSourceRoot, destination);
 
 				try {
 					// Check if destination exists
@@ -186,6 +226,7 @@ export default class LLMToolRenameFiles extends LLMTool {
 			}
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
+				dataSourceRoot,
 				renamedFiles,
 				renamedContent,
 			);
@@ -204,12 +245,22 @@ export default class LLMToolRenameFiles extends LLMTool {
 				);
 			}
 
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dataSourceToUse.name}`,
+			});
+
 			const toolResults = toolResultContentParts;
-			const toolResponse = (noFilesRenamed ? 'No files renamed\n' : '') + toolResponses.join('\n\n');
+			const toolResponse = dataSourceStatus + '\n\n' + (noFilesRenamed ? 'No files renamed\n' : '') +
+				toolResponses.join('\n\n');
 			const bbResponse: LLMToolRenameFilesResult['bbResponse'] = {
 				data: {
 					filesRenamed: renamedSuccess,
 					filesError: renamedError,
+					dataSourceId: dataSourceId || '',
 				},
 			};
 

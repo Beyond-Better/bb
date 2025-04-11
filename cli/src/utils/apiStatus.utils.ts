@@ -2,8 +2,8 @@ import { join } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
 import dir from 'dir';
 import { getBbDir } from 'shared/dataDir.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ApiConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ApiConfig } from 'shared/config/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -15,10 +15,10 @@ const APP_NAME = 'dev.beyondbetter.app';
  * The type of API is defined by whether the projectId is supplied.
  * All of the API control functions have projectId as an optional argument
  * If projectId is supplied then API control, such as location of PID file
- * should be relative to the projectRoot.
+ * should be relative to the workingRoot.
  * The calling function (CLI command entry point) is responsible for
  * ensuring the projectId is valid, so all commands here can assume that
- * getBbDir, getProjectRoot, etc will succeed (but that's no excuse for not handling errors)
+ * getBbDir, getWorkingRoot, etc will succeed (but that's no excuse for not handling errors)
  ****************** */
 
 export async function getAppRuntimeDir(): Promise<string> {
@@ -129,15 +129,13 @@ export async function checkApiStatus(projectId?: string): Promise<ApiStatusCheck
 	// Level 3: Check if API endpoint responds
 	if (status.pidExists) {
 		try {
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			let apiConfig: ApiConfig;
 			if (projectId) {
 				await configManager.ensureLatestProjectConfig(projectId);
 				const projectConfig = await configManager.getProjectConfig(projectId);
-				// we don't need to check projectConfig.useProjectApi here since caller
-				// is responsible for that; if we've got a projectId, we're using projectConfig
-				apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+				apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 			} else {
 				apiConfig = globalConfig.api;
 			}

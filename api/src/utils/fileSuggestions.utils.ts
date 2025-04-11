@@ -1,10 +1,11 @@
 import { globToRegExp } from '@std/path';
 import { walk } from '@std/fs';
 import { relative } from '@std/path';
-import { createExcludeRegexPatterns, getExcludeOptions, isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { createExcludeRegexPatterns, getExcludeOptions, isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { getProjectRoot } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
+import { DataSource } from 'api/resources/dataSource.ts';
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 
 export interface PatternOptions {
 	caseSensitive?: boolean;
@@ -17,6 +18,7 @@ export interface FileSuggestionsOptions {
 	limit?: number;
 	caseSensitive?: boolean;
 	type?: 'all' | 'file' | 'directory';
+	dataSourcesIds?: string[];
 }
 
 export interface FileSuggestionsForPathOptions {
@@ -28,6 +30,7 @@ export interface FileSuggestionsForPathOptions {
 }
 
 export interface FileSuggestion {
+	dataSourceRoot: string;
 	path: string;
 	isDirectory: boolean;
 	size?: number;
@@ -42,23 +45,77 @@ export interface FileSuggestionsResponse {
 /**
  * Main function to get file suggestions based on partial path and project ID
  */
+// export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
+// 	const { partialPath, projectId, limit, caseSensitive, type } = options;
+//
+// 	const projectRoot = await getWorkingRoot(projectId);
+//
+// 	// Validate path is within project
+// 	if (!isPathWithinDataSource(projectRoot, partialPath)) {
+// 		throw createError(ErrorType.FileHandling, 'Path outside project directory');
+// 	}
+//
+// 	return suggestFilesForPath({
+// 		partialPath,
+// 		rootPath: projectRoot,
+// 		limit,
+// 		caseSensitive,
+// 		type,
+// 	});
+// }
+
 export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
 	const { partialPath, projectId, limit, caseSensitive, type } = options;
 
-	const projectRoot = await getProjectRoot(projectId);
-
-	// Validate path is within project
-	if (!isPathWithinProject(projectRoot, partialPath)) {
-		throw createError(ErrorType.FileHandling, 'Path outside project directory');
+	const projectPersistenceManager = await getProjectPersistenceManager();
+	const projectData = await projectPersistenceManager.getProject(projectId);
+	if (!projectData) {
+		return {
+			suggestions: [],
+			hasMore: false,
+		};
 	}
 
-	return suggestFilesForPath({
-		partialPath,
-		rootPath: projectRoot,
-		limit,
-		caseSensitive,
-		type,
-	});
+	const dataSourcePaths = DataSource.getDataSourcePathsFromDataSources(projectData.dataSources);
+
+	// Aggregate results from all data sources
+	const allSuggestions: FileSuggestion[] = [];
+	let hasMore = false;
+
+	for (const dataSourcePath of dataSourcePaths) {
+		// Validate path is within this data source
+		if (!isPathWithinDataSource(dataSourcePath, partialPath)) {
+			continue; // Skip this data source if path is outside
+		}
+
+		const suggestionsResponse = await suggestFilesForPath({
+			partialPath,
+			rootPath: dataSourcePath,
+			limit: limit, // We'll trim the combined results later
+			caseSensitive,
+			type,
+		});
+		allSuggestions.push(...suggestionsResponse.suggestions);
+		if (suggestionsResponse.hasMore) hasMore = true;
+
+		// // Enhance suggestions with data source name
+		// const enhancedSuggestions = suggestions.map(file => ({
+		//   ...file,
+		//   dataSourceName: dataSource.name
+		// }));
+		//
+		// allSuggestions.push(...enhancedSuggestions);
+	}
+
+	// // Sort and limit the combined results
+	// const sortedSuggestions = allSuggestions
+	//   .sort((a, b) => a.path.localeCompare(b.path))
+	//   .slice(0, limit || allSuggestions.length);
+
+	return {
+		suggestions: allSuggestions,
+		hasMore,
+	};
 }
 
 /**
@@ -82,12 +139,7 @@ export async function suggestFilesForPath(options: FileSuggestionsForPathOptions
 	}
 
 	// Collect matching files
-	const results: Array<{
-		path: string;
-		isDirectory: boolean;
-		size?: number;
-		modified?: string;
-	}> = [];
+	const results: Array<FileSuggestion> = [];
 
 	let reachedLimit = false;
 
@@ -110,6 +162,7 @@ export async function suggestFilesForPath(options: FileSuggestionsForPathOptions
 			const relativePath = relative(rootPath, entry.path);
 
 			results.push({
+				dataSourceRoot: rootPath,
 				path: relativePath,
 				isDirectory: stat.isDirectory,
 				size: stat.size,

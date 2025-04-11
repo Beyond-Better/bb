@@ -16,30 +16,45 @@ export default function Settings(): JSX.Element {
 					<div class='space-y-8'>
 						{/* Welcome Section */}
 						<section class='text-center'>
+							{/* Logo with dark/light mode support */}
+							<div class='flex justify-center mb-6'>
+								<img
+									src='/logo-light.png'
+									class='h-24 block dark:hidden'
+									alt='Beyond Better Logo - Light Mode'
+								/>
+								<img
+									src='/logo-dark.png'
+									class='h-24 hidden dark:block'
+									alt='Beyond Better Logo - Dark Mode'
+								/>
+							</div>
 							<h1 class='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
 								Welcome to Beyond Better
 							</h1>
-							<p class='text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto'>
-								Enhance your development workflow with AI-powered assistance for code, documentation,
-								and more.
+							<p class='text-xl text-gray-600 dark:text-gray-300 max-w-xl mx-auto'>
+								Enhance your project workflow with AI-powered assistance for code, documentation,
+								content-creation, research, and more.
 							</p>
 						</section>
 
 						{/* Quick Actions */}
 						<section class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8'>
-							{/* Chat Action */}
+							{/* Settings Action */}
 							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Chat</h2>
+								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>
+									Plans and Settings
+								</h2>
 								<p class='text-gray-600 dark:text-gray-300 mb-4'>
-									Start a conversation with BB to get help with your code and documentation.
+									Choose a plan and customize your BB experience.
 								</p>
 								<a
-									href='/app/chat'
-									f-partial='/app/chat/partial'
-									onClick={() => setPath('/app/chat')}
+									href='/app/settings'
+									f-partial='/app/settings/partial'
+									onClick={() => setPath('/app/settings')}
 									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
-									Open Chat
+									Open Plans &amp; Settings
 									<svg
 										class='w-5 h-5 ml-1'
 										xmlns='http://www.w3.org/2000/svg'
@@ -69,7 +84,7 @@ export default function Settings(): JSX.Element {
 									onClick={() => setPath('/app/projects')}
 									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
-									View Projects
+									Set up Projects
 									<svg
 										class='w-5 h-5 ml-1'
 										xmlns='http://www.w3.org/2000/svg'
@@ -87,19 +102,20 @@ export default function Settings(): JSX.Element {
 								</a>
 							</div>
 
-							{/* Settings Action */}
+							{/* Chat Action */}
 							<div class='bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-gray-900/30 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow'>
-								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Settings</h2>
+								<h2 class='text-xl font-semibold text-gray-900 dark:text-white mb-2'>Chat</h2>
 								<p class='text-gray-600 dark:text-gray-300 mb-4'>
-									Customize your BB experience and manage preferences.
+									Start a conversation with BB to get help with your code, documentation,
+									content-creation, and research.
 								</p>
 								<a
-									href='/app/settings'
-									f-partial='/app/settings/partial'
-									onClick={() => setPath('/app/settings')}
+									href='/app/chat'
+									f-partial='/app/chat/partial'
+									onClick={() => setPath('/app/chat')}
 									class='inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
 								>
-									Open Settings
+									Start Chatting
 									<svg
 										class='w-5 h-5 ml-1'
 										xmlns='http://www.w3.org/2000/svg'
@@ -126,11 +142,12 @@ export default function Settings(): JSX.Element {
 							<div class='space-y-4'>
 								<p class='text-gray-600 dark:text-gray-300'>
 									BB helps you work more efficiently by providing AI-powered assistance for your
-									development tasks. Here's how to get started:
+									project tasks. Here's how to get started:
 								</p>
 								<ol class='list-decimal list-inside space-y-2 text-gray-600 dark:text-gray-300'>
+									<li>Choose a plan to suit your needs</li>
 									<li>Create or select a project to work with</li>
-									<li>Start a chat conversation for assistance</li>
+									<li>Start a chat conversation for project assistance</li>
 									<li>Use BB's tools to enhance your workflow</li>
 									<li>Customize your experience in settings</li>
 								</ol>

@@ -309,7 +309,7 @@ class AgentController extends BaseController {
 		};
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
+		const maxTurns = options.maxTurns ?? this.projectConfig.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 		try {
 			logger.info(
@@ -343,7 +343,7 @@ class AgentController extends BaseController {
 					},
 				},
 				resources: { // Add this section
-					files_active: interaction.getFiles().size,
+					resources_active: interaction.getResources().size,
 				},
 			};
 
@@ -403,7 +403,7 @@ class AgentController extends BaseController {
 					}
 
 					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
-						logger.info('AgentController: Handling tool', toolUse);
+						//logger.info('AgentController: Handling tool', toolUse);
 						try {
 							//this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
 
@@ -531,7 +531,7 @@ class AgentController extends BaseController {
 								},
 							},
 							resources: { // Add this section
-								files_active: interaction.getFiles().size,
+								resources_active: interaction.getResources().size,
 							},
 						};
 

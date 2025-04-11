@@ -18,9 +18,10 @@ export function ProjectMetadata({
 
 	// Get projectId and conversationId from URL
 	const projectId = chatState.value.projectData?.projectId || '.';
-	const projectType = chatState.value.projectData?.type || 'local';
+	//const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
-	const projectPath = chatState.value.projectData?.path || 'default';
+	const projectPath = chatState.value.projectData?.primaryDataSource?.config?.dataSourceRoot?.toString() || 'default';
+	//projectWithSources?.data?.primaryDataSource?.config?.dataSourceRoot?.toString() || ''
 
 	return (
 		<div className='flex items-center justify-between px-4'>
@@ -59,7 +60,8 @@ export function ProjectMetadata({
 					</div>
 
 					{/* Project Type */}
-					<div className='flex items-center space-x-2'>
+					{
+						/*<div className='flex items-center space-x-2'>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
 							fill='none'
@@ -75,7 +77,8 @@ export function ProjectMetadata({
 							/>
 						</svg>
 						<span className='text-sm text-gray-500 dark:text-gray-400'>{projectType}</span>
-					</div>
+					</div> */
+					}
 
 					{/* Project Path */}
 					<div className='flex items-center space-x-2'>

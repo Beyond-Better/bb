@@ -65,7 +65,7 @@ class OllamaLLM extends LLM {
 
 	// deno-lint-ignore require-await
 	private async initializeOllamaClient() {
-		const ollamaHost = this.projectConfig.settings.api?.llmProviders?.ollama?.baseURL ||
+		const ollamaHost = this.projectConfig.api?.llmProviders?.ollama?.baseURL ||
 			'http://127.0.0.1:11434';
 		if (!ollamaHost) {
 			throw createError(
@@ -292,7 +292,7 @@ class OllamaLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -304,14 +304,14 @@ class OllamaLLM extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

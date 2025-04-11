@@ -70,7 +70,7 @@ ConfigManager.getInstance()
 ConfigManager.fullConfig()
 
 // New
-ConfigManagerV2.getInstance()
+getConfigManager()
 configManager.getGlobalConfig()
 ```
 

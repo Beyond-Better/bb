@@ -354,7 +354,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -366,22 +366,22 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'length':
-					logger.warn(`provider[${this.llmProviderName}] Response reached the maximum token limit`);
+					logger.warn(`provider[${this.llmProviderName}]: Response reached the maximum token limit`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				case 'content_filter':
 					logger.warn(
-						`provider[${this.llmProviderName}] Response content was omitted due to a flag from provider content filters`,
+						`provider[${this.llmProviderName}]: Response content was omitted due to a flag from provider content filters`,
 					);
 					break;
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

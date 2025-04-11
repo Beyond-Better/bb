@@ -1,6 +1,6 @@
 import { assertEquals } from 'testing/asserts.ts';
 import { handler } from './supabase.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/configManager.ts';
 
 // Mock config data
 const mockConfig = {

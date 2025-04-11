@@ -1,7 +1,7 @@
 import { DiagnosticResult } from '../types.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { type ConfigManagerV2, getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { GlobalConfig } from 'shared/config/v2/types.ts';
+import type { GlobalConfig } from 'shared/config/types.ts';
 import { certificateFileExists, getCertificateInfo, isCertSelfSigned } from '../../utils/tlsCerts.utils.ts';
 import { join } from '@std/path';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
@@ -145,7 +145,7 @@ export async function checkTls(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 		const globalDir = await getGlobalConfigDir();
 

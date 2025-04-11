@@ -12,6 +12,7 @@ export interface LLMToolImageProcessingInput {
 	createMissingDirectories?: boolean;
 	// Whether to allow overwriting existing output file
 	overwrite?: boolean;
+	dataSource?: string;
 }
 
 // Base operation interface
@@ -54,6 +55,7 @@ export interface LLMToolImageProcessingResultData {
 		size?: number;
 	};
 	error?: string;
+	dataSourceId: string;
 }
 
 export interface LLMToolImageProcessingResponseData {

@@ -163,6 +163,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 
 		this.socket.send(JSON.stringify({
 			conversationId: this.conversationId,
+			projectId: this.projectId,
 			task: 'cancel',
 		}));
 	}

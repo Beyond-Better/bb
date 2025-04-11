@@ -17,9 +17,9 @@ import type {
 	LLMMessageContentPartTextBlock,
 } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { encodeBase64 } from '@std/encoding';
 import { ensureDir } from '@std/fs';
@@ -42,10 +42,15 @@ export default class LLMToolImageProcessing extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				inputPath: {
 					type: 'string',
 					description: `The source image to process. Can be either:
-1. Local file path relative to project root
+1. Local file path relative to data source root
 2. URL (http:// or https://) for remote images
 
 Examples:
@@ -54,8 +59,8 @@ Examples:
 				},
 				outputPath: {
 					type: 'string',
-					description: `Where to save the processed image, relative to project root.
-Must be within the project directory.
+					description: `Where to save the processed image, relative to data source root.
+Must be within the data source directory.
 Format is determined by file extension.
 
 Examples:
@@ -256,18 +261,51 @@ Example:
 			operations,
 			createMissingDirectories = true,
 			overwrite = false,
+			dataSource: dataSourceId = undefined,
 		} = toolInput as LLMToolImageProcessingInput;
 
-		// Validate output path is within project
-		if (!await isPathWithinProject(projectEditor.projectRoot, outputPath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${outputPath} is outside the project directory`, {
-				name: 'image-processing',
-				filePath: outputPath,
-				operation: 'write',
-			} as FileHandlingErrorOptions);
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
 		}
 
-		const fullOutputPath = join(projectEditor.projectRoot, outputPath);
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		// Validate output path is within data source
+		if (!await isPathWithinDataSource(dataSourceRoot, outputPath)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${outputPath} is outside the data source directory`,
+				{
+					name: 'image-processing',
+					filePath: outputPath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		const fullOutputPath = join(dataSourceRoot, outputPath);
 		logger.info(`LLMToolImageProcessing: Processing image, output to: ${fullOutputPath}`);
 
 		try {
@@ -309,10 +347,10 @@ Example:
 				imageData = new Uint8Array(await response.arrayBuffer());
 			} else {
 				// Input is a local file
-				if (!await isPathWithinProject(projectEditor.projectRoot, inputPath)) {
+				if (!await isPathWithinDataSource(dataSourceRoot, inputPath)) {
 					throw createError(
 						ErrorType.FileHandling,
-						`Access denied: ${inputPath} is outside the project directory`,
+						`Access denied: ${inputPath} is outside the data source directory`,
 						{
 							name: 'image-processing',
 							filePath: inputPath,
@@ -321,7 +359,7 @@ Example:
 					);
 				}
 
-				const fullInputPath = join(projectEditor.projectRoot, inputPath);
+				const fullInputPath = join(dataSourceRoot, inputPath);
 				imageData = await Deno.readFile(fullInputPath);
 			}
 
@@ -363,7 +401,7 @@ Example:
 			// 	},
 			// } as LLMMessageContentPartImageBlock];
 			const completedOperationsSummary = completedOperations.join('\n');
-			const toolResultContentPart: LLMMessageContentParts = [{
+			const toolResultContentParts: LLMMessageContentParts = [{
 				'type': 'text',
 				'text':
 					`Completed:\n${completedOperationsSummary}\n\nNew Image: width: ${processedMetadata.width}, height: ${processedMetadata.height}, format: ${processedMetadata.format}, size: ${processedMetadata.size},`,
@@ -373,8 +411,16 @@ Example:
 			//const metadata = await this.getImageMetadata(processedData);
 
 			// //logger.info('LLMToolImageProcessing: ', thumbnailBase64);
-			// const thumbnailImagePath = join(projectEditor.projectRoot, 'test-thumbnail.png');
+			// const thumbnailImagePath = join(dataSourceRoot, 'test-thumbnail.png');
 			// await Deno.writeFile(thumbnailImagePath, thumbnailData);
+
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dataSourceToUse.name}`,
+			});
 
 			// Prepare result data
 			const resultData: LLMToolImageProcessingResultData = {
@@ -388,6 +434,7 @@ Example:
 					'data': thumbnailBase64,
 				},
 				meta: processedMetadata,
+				dataSourceId: dataSourceId || '',
 			};
 			//logger.error(`LLMToolImageProcessing:`, { resultData });
 
@@ -395,9 +442,9 @@ Example:
 			const operationsSummary = operations.map((op) => `${op.type}`).join(', ');
 
 			return {
-				toolResults: toolResultContentPart,
+				toolResults: toolResultContentParts,
 				toolResponse:
-					`Successfully processed image from ${inputPath} to ${outputPath} with operations: ${operationsSummary}`,
+					`${dataSourceStatus}\nSuccessfully processed image from ${inputPath} to ${outputPath} with operations: ${operationsSummary}`,
 				bbResponse: {
 					data: resultData,
 				},
@@ -646,6 +693,7 @@ Example:
 		});
 	}
 
+	/*
 	private async createThumbnail(imageData: Uint8Array): Promise<{
 		thumbnailData: Uint8Array;
 		thumbnailMetadata: {
@@ -690,6 +738,7 @@ Example:
 			}
 		});
 	}
+	 */
 
 	/*
 	private async getImageMetadata(imageData: Uint8Array): Promise<{

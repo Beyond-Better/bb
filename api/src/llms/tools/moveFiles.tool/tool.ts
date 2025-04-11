@@ -4,13 +4,13 @@ import { exists } from '@std/fs';
 
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMToolMoveFilesInput } from './types.ts';
 import {
@@ -27,14 +27,19 @@ export default class LLMToolMoveFiles extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				sources: {
 					type: 'array',
 					items: { type: 'string' },
-					description: `Array of files or directories to move, relative to project root. Important notes:
+					description: `Array of files or directories to move, relative to data source root. Important notes:
 
 1. Path Requirements:
-   * All paths must be relative to project root
-   * Sources must exist and be within project
+   * All paths must be relative to data source root
+   * Sources must exist and be within data source
    * File names are preserved during move
    Examples:
    * ["src/utils/old-location/helper.ts"]
@@ -52,12 +57,12 @@ export default class LLMToolMoveFiles extends LLMTool {
 3. Safety Considerations:
    * Check for import/require statements that reference moved files
    * Update any relative imports in moved files
-   * Consider impact on project structure
+   * Consider impact on data source structure
    * Move related files together (source + test files)`,
 				},
 				destination: {
 					type: 'string',
-					description: `Target directory for moved files, relative to project root. Important notes:
+					description: `Target directory for moved files, relative to data source root. Important notes:
 
 1. Directory Behavior:
    * Must be a directory path, not a file path
@@ -69,7 +74,7 @@ export default class LLMToolMoveFiles extends LLMTool {
    * "docs/archive"
 
 2. Path Requirements:
-   * Must be within project
+   * Must be within data source
    * Parent directory must exist (unless createMissingDirectories is true)
    * Must have write permission`,
 				},
@@ -82,7 +87,7 @@ export default class LLMToolMoveFiles extends LLMTool {
 				createMissingDirectories: {
 					type: 'boolean',
 					description:
-						'When true, creates any missing directories in the destination path. Useful when moving files to a new project structure. Example: Moving to "new/nested/dir" will create all parent directories.',
+						'When true, creates any missing directories in the destination path. Useful when moving files to a new data source structure. Example: Moving to "new/nested/dir" will create all parent directories.',
 					default: false,
 				},
 			},
@@ -112,15 +117,51 @@ export default class LLMToolMoveFiles extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { sources, destination, overwrite = false, createMissingDirectories = false } =
-			toolInput as LLMToolMoveFilesInput;
+		const {
+			sources,
+			destination,
+			overwrite = false,
+			createMissingDirectories = false,
+			dataSource: dataSourceId = undefined,
+		} = toolInput as LLMToolMoveFilesInput;
+
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		//logger.info(`LLMToolMoveFiles: getDataSources`, { primaryDataSource, dataSources, notFound });
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		//logger.info(`LLMToolMoveFiles: dataSourceRoot: ${dataSourceRoot}`);
+		// [TODO] check that dataSourceToUse is type filesystem
 
 		try {
 			// Validate paths
-			if (!isPathWithinProject(projectEditor.projectRoot, destination)) {
+			if (!isPathWithinDataSource(dataSourceRoot, destination)) {
 				throw createError(
 					ErrorType.FileHandling,
-					`Access denied: ${destination} is outside the project directory`,
+					`Access denied: ${destination} is outside the data source directory`,
 					{
 						name: 'move-file',
 						filePath: destination,
@@ -129,27 +170,27 @@ export default class LLMToolMoveFiles extends LLMTool {
 				);
 			}
 
-			const toolResultContentParts = [];
+			const toolResultContentParts: LLMMessageContentParts = [];
 			const movedSuccess: Array<{ name: string }> = [];
 			const movedError: Array<{ name: string; error: string }> = [];
 			let noFilesMoved = true;
 
 			for (const source of sources) {
-				if (!isPathWithinProject(projectEditor.projectRoot, source)) {
+				if (!isPathWithinDataSource(dataSourceRoot, source)) {
 					toolResultContentParts.push({
 						'type': 'text',
-						'text': `Error moving file ${source}: Source path is outside the project directory`,
+						'text': `Error moving file ${source}: Source path is outside the data source directory`,
 					} as LLMMessageContentPartTextBlock);
-					movedError.push({ name: source, error: 'Source path is outside the project directory.' });
+					movedError.push({ name: source, error: 'Source path is outside the data source directory.' });
 					continue;
 				}
 
 				try {
-					const fullSourcePath = join(projectEditor.projectRoot, source);
+					const fullSourcePath = join(dataSourceRoot, source);
 
-					const fullDestDirPath = join(projectEditor.projectRoot, destination);
+					const fullDestDirPath = join(dataSourceRoot, destination);
 					const destPath = join(destination, basename(source));
-					const fullDestPath = join(projectEditor.projectRoot, destPath);
+					const fullDestPath = join(dataSourceRoot, destPath);
 
 					// Check if destination exists
 					if ((await exists(fullDestPath)) && !overwrite) {
@@ -195,6 +236,7 @@ export default class LLMToolMoveFiles extends LLMTool {
 			}
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
+				dataSourceRoot,
 				movedFiles,
 				movedContent,
 			);
@@ -213,14 +255,23 @@ export default class LLMToolMoveFiles extends LLMTool {
 				);
 			}
 
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dataSourceToUse.name}`,
+			});
+
 			const toolResults = toolResultContentParts;
-			const toolResponse = (noFilesMoved ? 'No files moved\n' : '') +
+			const toolResponse = dataSourceStatus + '\n\n' + (noFilesMoved ? 'No files moved\n' : '') +
 				toolResponses.join('\n\n');
 			const bbResponse = {
 				data: {
 					filesMoved: movedSuccess.map((f) => f.name),
 					filesError: movedError.map((f) => f.name),
 					destination,
+					dataSourceId,
 				},
 			};
 

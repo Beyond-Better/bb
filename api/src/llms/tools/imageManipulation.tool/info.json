@@ -1,6 +1,6 @@
 {
 	"name": "image_manipulation",
-	"description": "Manipulate image files with various operations like resize, crop, rotate, flip, blur, sharpen, grayscale, format conversion, and quality adjustment. Supports both local files and remote URLs as input sources. The processed image is saved to the specified output path.",
+	"description": "Manipulate image files for one data source with various operations like resize, crop, rotate, flip, blur, sharpen, grayscale, format conversion, and quality adjustment. Supports both local files and remote URLs as input sources. The processed image is saved to the specified output path. When no data source is specified, operates on the primary data source.",
 	"version": "1.0.0",
 	"category": "file",
 	"enabled": true,

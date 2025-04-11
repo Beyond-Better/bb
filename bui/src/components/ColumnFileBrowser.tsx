@@ -1,5 +1,4 @@
 import { useSignal } from '@preact/signals';
-import { dirname } from '@std/path';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
@@ -59,9 +58,9 @@ export function ColumnFileBrowser({
 			const columnElements = containerRef.current?.querySelectorAll('.column-container');
 			if (columnElements?.length) {
 				// First scroll selected items into view vertically
-				columnElements.forEach((column, index) => {
+				columnElements.forEach((column, _index) => {
 					//console.log('ColumnFileBrowser: Checking column', index, 'for selected items');
-					const selectedItems = column.querySelectorAll('.bg-blue-100');
+					//const selectedItems = column.querySelectorAll('.bg-blue-100');
 					//console.log('ColumnFileBrowser: Found', selectedItems.length, 'selected items');
 					const selected = column.querySelector('.bg-blue-100');
 					if (selected) {
@@ -142,7 +141,7 @@ export function ColumnFileBrowser({
 			//console.log('ColumnFileBrowser: Creating columns with pathComponents:', pathComponents);
 
 			// Get existing selections from current columns
-			const existingSelections = new Map(columns.value.map((col) => [col.path, col.selected]));
+			//const existingSelections = new Map(columns.value.map((col) => [col.path, col.selected]));
 
 			// Initialize with root column
 			const newColumns: Column[] = [{
@@ -192,7 +191,7 @@ export function ColumnFileBrowser({
 		};
 
 		// Store the selection for persistence
-		const selectedName = item.name;
+		//const selectedName = item.name;
 
 		// Update columns first
 		columns.value = newColumns;

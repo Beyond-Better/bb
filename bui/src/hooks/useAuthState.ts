@@ -1,7 +1,7 @@
 import { signal } from '@preact/signals';
 //import type { Signal } from "@preact/signals";
 import type { Session, User } from '@supabase/supabase-js';
-import type { BuiConfig } from 'shared/config/v2/types.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
 import { AuthError, type AuthState, DUMMY_SESSION, DUMMY_USER } from '../types/auth.ts';
 import { getApiHostname, getApiPort, getApiUrl, getApiUseTls } from '../utils/url.utils.ts';
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';

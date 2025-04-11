@@ -1,5 +1,5 @@
 import type { FreshContext, MiddlewareHandler, Plugin } from '$fresh/server.ts';
-import type { BuiConfig } from 'shared/config/v2/types.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
 
 //interface AppState {
 //	buiConfig: BuiConfig;

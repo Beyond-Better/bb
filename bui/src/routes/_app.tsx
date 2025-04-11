@@ -7,7 +7,7 @@ import AuthContext from '../islands/AuthContext.tsx';
 import AppConfigContext from '../islands/Context/appConfig.tsx';
 //import { useAuthState } from '../hooks/useAuthState.ts';
 //import { User } from '../types/auth.ts';
-import type { BuiConfig } from 'shared/config/v2/types.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
 
 // List of routes that don't have SideNav or auth protection
 export const CUSTOM_PATHS = [

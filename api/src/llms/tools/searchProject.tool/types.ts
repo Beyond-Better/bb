@@ -6,6 +6,7 @@ export interface LLMToolSearchProjectInput {
 	dateBefore?: string;
 	sizeMin?: number;
 	sizeMax?: number;
+	dataSources?: string[];
 }
 
 export interface LLMToolSearchProjectResponseData {
@@ -13,6 +14,7 @@ export interface LLMToolSearchProjectResponseData {
 		files: string[];
 		errorMessage?: string;
 		searchCriteria: string;
+		dataSourceIds: string[];
 	};
 }
 

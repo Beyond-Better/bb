@@ -1,47 +1,56 @@
 import { join } from '@std/path';
-import { getContentType } from 'api/utils/contentTypes.ts';
+//import { getContentType } from 'api/utils/contentTypes.ts';
 
-import { existsWithinProject, isPathWithinProject } from 'api/utils/fileHandling.ts';
-import { generateFileListing } from 'api/utils/projectListing.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
-import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
+//import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
+import OrchestratorController from 'api/controllers/orchestratorController.ts';
+import type { SessionManager } from 'api/auth/session.ts';
+import { logger } from 'shared/logger.ts';
+import { createError, ErrorType } from 'api/utils/error.ts';
+import type { ProjectHandlingErrorOptions } from 'api/errors/error.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { getMCPManager } from 'api/mcp/mcpManager.ts';
+import type { MCPManager } from 'api/mcp/mcpManager.ts';
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
+import type ProjectPersistence from 'api/storage/projectPersistence.ts';
+import type { DataSource, DataSourceForSystemPrompt } from 'api/resources/dataSource.ts';
+import { ResourceManager } from 'api/resources/resourceManager.ts';
+import type {
+	ResourceForConversation,
+	ResourceRevisionMetadata,
+	//ResourceMetadata,
+	ResourcesForConversation,
+} from 'api/resources/resourceManager.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
+import type { ConversationId, ConversationResponse } from 'shared/types.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
+import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
+import {
+	getProjectAdminDataDir,
+	getProjectAdminDir,
+	isProjectMigrated,
+	migrateProjectFiles,
+} from 'shared/projectPath.ts';
+import EventManager from 'shared/eventManager.ts';
 
 // Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {
 	projectId: string;
 }
-import OrchestratorController from 'api/controllers/orchestratorController.ts';
-import type { SessionManager } from 'api/auth/session.ts';
-import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { MCPManager } from 'api/mcp/mcpManager.ts';
-import { ResourceManager } from 'api/resources/resourceManager.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import type { ConversationId, ConversationResponse, FileMetadata, FilesForConversation } from 'shared/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
-import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
-import {
-	getBbDataDir,
-	getBbDir,
-	getProjectRoot,
-	readFromBbDir,
-	removeFromBbDir,
-	resolveProjectFilePath,
-	writeToBbDir,
-} from 'shared/dataDir.ts';
-import EventManager from 'shared/eventManager.ts';
 
 class ProjectEditor {
 	//private fileRevisions: Map<string, string[]> = new Map();
 	public orchestratorController!: OrchestratorController;
 	public projectConfig!: ProjectConfig;
+	public projectData!: ProjectPersistence;
 	public eventManager!: EventManager;
 	public mcpManager!: MCPManager;
 	public resourceManager!: ResourceManager;
 	public sessionManager: SessionManager;
 	public projectId: string;
-	public projectRoot: string;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
 	public changedFiles: Set<string> = new Set();
@@ -50,11 +59,10 @@ class ProjectEditor {
 		projectId: '',
 		type: 'empty',
 		content: '',
-		tier: null,
+		//tier: null,
 	};
 
 	constructor(projectId: string, sessionManager: SessionManager) {
-		this.projectRoot = '.'; // init() will overwrite this
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
 		this.sessionManager = sessionManager;
@@ -63,17 +71,50 @@ class ProjectEditor {
 
 	public async init(): Promise<ProjectEditor> {
 		try {
-			this.projectRoot = await this.getProjectRoot();
-			const configManager = await ConfigManagerV2.getInstance();
+			const migrated = await isProjectMigrated(this.projectId);
+			if (!migrated) {
+				try {
+					await migrateProjectFiles(this.projectId);
+					logger.info(`ProjectEditor: Successfully migrated project ${this.projectId} files`);
+				} catch (migrationError) {
+					logger.warn(
+						`ProjectEditor: Migration attempted but failed: ${(migrationError as Error).message}`,
+					);
+					throw createError(
+						ErrorType.ProjectHandling,
+						`Could not migrate project .bb directory for ${this.projectId}: ${
+							(migrationError as Error).message
+						}`,
+						{
+							projectId: this.projectId,
+						} as ProjectHandlingErrorOptions,
+					);
+				}
+			}
+
+			const configManager = await getConfigManager();
 			await configManager.ensureLatestProjectConfig(this.projectId);
 			this.projectConfig = await configManager.getProjectConfig(this.projectId);
 			logger.info(
-				`ProjectEditor: config for ${this.projectConfig.settings.api?.hostname}:${this.projectConfig.settings.api?.port}`,
+				`ProjectEditor: Using config for: ${this.projectId} - ${this.projectConfig.api?.hostname}:${this.projectConfig.api?.port}`,
 				// this.projectConfig,
 			);
-			this.eventManager = EventManager.getInstance();
+			const projectPersistenceManager = await getProjectPersistenceManager();
+			const projectData = await projectPersistenceManager.getProject(this.projectId);
+			if (!projectData) {
+				throw createError(
+					ErrorType.ProjectHandling,
+					`Could not get project for ${this.projectId}`,
+					{
+						projectId: this.projectId,
+					} as ProjectHandlingErrorOptions,
+				);
+			}
+			this.projectData = projectData;
 
-			this.mcpManager = await new MCPManager(this.projectConfig).init();
+			this.mcpManager = await getMCPManager();
+
+			this.eventManager = EventManager.getInstance();
 
 			this.resourceManager = await new ResourceManager(this).init();
 
@@ -91,44 +132,105 @@ class ProjectEditor {
 		return this;
 	}
 
-	public async isPathWithinProject(filePath: string): Promise<boolean> {
-		logger.info(`ProjectEditor: isPathWithinProject for ${this.projectRoot} - ${filePath}`);
-		return await isPathWithinProject(this.projectRoot, filePath);
+	public dataSource(id: string): DataSource | undefined {
+		return this.projectData.getDataSource(id);
+	}
+	get dataSources(): Array<DataSource> {
+		return this.projectData.getAllDataSources();
+	}
+	get dataSourcesForSystemPrompt(): Array<DataSourceForSystemPrompt> {
+		return this.projectData.getDataSourcesForSystemPrompt();
 	}
 
-	public async resolveProjectFilePath(filePath: string): Promise<string> {
-		//logger.info(`ProjectEditor: resolveProjectFilePath for ${this.projectId} - ${filePath}`);
-		const resolvedPath = await resolveProjectFilePath(this.projectId, filePath);
-		//logger.info(`ProjectEditor: resolveProjectFilePath resolvedPath: ${resolvedPath}`);
+	// [TODO] this needs to be all tools for mcp servers enabled for the project, not ALL mcp servers
+	public async getMCPToolsForSystemPrompt(): Promise<Array<{ name: string; description: string; server: string }>> {
+		return await this.mcpManager.getAllTools();
+	}
+
+	public getDataSourceForPrefix(uriPrefix: string): DataSource | undefined {
+		return this.projectData.getDataSourceForPrefix(uriPrefix);
+	}
+
+	get primaryDataSource(): DataSource | undefined {
+		return this.projectData.getPrimaryDataSource();
+	}
+	get primaryDataSourceRoot(): string | undefined {
+		return this.projectData.getPrimaryDataSource()?.getDataSourceRoot();
+	}
+
+	public async isPathWithinDataSource(filePath: string): Promise<boolean> {
+		logger.info(`ProjectEditor: isPathWithinDataSource for ${this.primaryDataSourceRoot} - ${filePath}`);
+		if (!this.primaryDataSourceRoot) throw new Error(`Path Within DataSource Failed: No primary data source found`);
+		return await isPathWithinDataSource(this.primaryDataSourceRoot, filePath);
+	}
+
+	public async resolveDataSourceFilePath(filePath: string): Promise<string | undefined> {
+		//logger.info(`ProjectEditor: resolveDataSourceFilePath for ${this.projectId} - ${filePath}`);
+		if (!this.primaryDataSourceRoot) {
+			throw new Error(`Resolve DataSource Path Failed: No primary data source found`);
+		}
+		const resolvedPath = this.primaryDataSource?.id
+			? await resolveDataSourceFilePath(this.primaryDataSourceRoot, filePath)
+			: undefined;
+		//logger.info(`ProjectEditor: resolveDataSourceFilePath resolvedPath: ${resolvedPath}`);
 		return resolvedPath;
 	}
 
-	public async getProjectRoot(): Promise<string> {
-		// logger.info(`ProjectEditor: getProjectRoot for ${this.projectId}`);
-		return await getProjectRoot(this.projectId);
+	public async getProjectAdminDir(): Promise<string> {
+		// logger.info(`ProjectEditor: getProjectAdminDir for ${this.projectId}`);
+		return await getProjectAdminDir(this.projectId);
 	}
 
 	public async getBbDir(): Promise<string> {
 		return await getBbDir(this.projectId);
 	}
 
+	// [TODO] This should be getProjectAdminDataDir
 	public async getBbDataDir(): Promise<string> {
-		return await getBbDataDir(this.projectId);
+		return await getProjectAdminDataDir(this.projectId);
 	}
 
+	// [TODO] This should be writeToGlobalProjectDataDir
 	public async writeToBbDir(
 		filename: string,
 		content: string,
 	): Promise<void> {
-		return await writeToBbDir(this.projectId, filename, content);
+		// Write to the global project directory
+		const projectAdminDataDir = await getProjectAdminDataDir(this.projectId);
+		const filePath = join(projectAdminDataDir, filename);
+		await Deno.writeTextFile(filePath, content);
+		return;
 	}
 
+	// [TODO] This should be readFromGlobalProjectDataDir
 	public async readFromBbDir(filename: string): Promise<string | null> {
-		return await readFromBbDir(this.projectId, filename);
+		// Read from the global project directory
+		const projectAdminDataDir = await getProjectAdminDataDir(this.projectId);
+		const filePath = join(projectAdminDataDir, filename);
+
+		try {
+			return await Deno.readTextFile(filePath);
+		} catch (error) {
+			if (error instanceof Deno.errors.NotFound) {
+				return null;
+			}
+			throw error;
+		}
 	}
 
+	// [TODO] This should be removeFromGlobalProjectDataDir
 	public async removeFromBbDir(filename: string): Promise<void> {
-		return await removeFromBbDir(this.projectId, filename);
+		// Remove from the global project directory
+		const projectAdminDataDir = await getProjectAdminDataDir(this.projectId);
+		const filePath = join(projectAdminDataDir, filename);
+
+		try {
+			await Deno.remove(filePath);
+		} catch (error) {
+			if (!(error instanceof Deno.errors.NotFound)) {
+				throw error;
+			}
+		}
 	}
 
 	get projectInfo(): ProjectInfo {
@@ -141,8 +243,12 @@ class ProjectEditor {
 	}
 
 	public async updateProjectInfo(): Promise<void> {
-		// If prompt caching is enabled and we've already generated the file listing, skip regeneration
-		if ((this.projectConfig.settings.api?.usePromptCaching ?? true) && this.projectInfo.type === 'file-listing') {
+		// If we've already generated the metadata, skip regeneration
+		if (this.projectInfo.type === 'metadata') {
+			return;
+		}
+		// If prompt caching is enabled and we've already generated the datasource listing, skip regeneration
+		if ((this.projectConfig.api?.usePromptCaching ?? true) && this.projectInfo.type === 'datasources') {
 			return;
 		}
 
@@ -150,20 +256,66 @@ class ProjectEditor {
 			projectId: this.projectId,
 			type: 'empty',
 			content: '',
-			tier: null,
+			//tier: null,
 		};
 
-		const projectRoot = await this.getProjectRoot();
-		const fileListing = await generateFileListing(projectRoot);
-		if (fileListing) {
-			projectInfo.type = 'file-listing';
-			projectInfo.content = fileListing.listing;
-			projectInfo.tier = fileListing.tier;
+		// [TODO] data sources are already included in system prompt
+		// don't need to include them twice - but maybe they should be removed from system prompt and added via <project-info>
+		/*
+		if (!this.dataSources || this.dataSources.length === 0) {
+			throw new Error(`Updating Project Info Failed: No data sources found`);
+		}
+		const formattedSources = this.dataSources.map((source, idx) => {
+			const id = source.id,
+				name = source.name,
+				type = source.type,
+				//enabled = source.enabled,
+				capabilities = source.capabilities || [],
+				//accessMethod = source.accessMethod,
+				uriPrefix = source.uriPrefix || `${type}-${name}://`;
+
+			let details = `${idx + 1}. Data Source ID: ${id}\n`;
+			details += `  - Name: ${name}\n`;
+			details += `  - Type: ${type}\n`;
+			//details += `  - Status: ${enabled ? 'Enabled' : 'Disabled'}\n`;
+			//details += `  - Access: ${accessMethod}\n`;
+			details += `  - URI Format: ${uriPrefix}...\n`;
+			details += `  - Capabilities: ${capabilities.join(', ')}\n`;
+
+			// Add MCP-specific details if applicable
+			if (source.mcpConfig) {
+				details += `  - MCP Server: ${source.mcpConfig.serverId}\n`;
+				if (source.mcpConfig.description) {
+					details += `  - Description: ${source.mcpConfig.description}\n`;
+				}
+			}
+
+			// Add config details if it contains a dataSourceRoot for filesystem sources
+			if (type === 'filesystem' && source.config && typeof source.config.dataSourceRoot === 'string') {
+				details += `  - Root: ${source.config.dataSourceRoot}\n`;
+			}
+
+			return details;
+		}).join('\n');
+
+		if (formattedSources) {
+			projectInfo.type = 'datasources';
+			projectInfo.content = formattedSources;
 			logger.info(
-				`ProjectEditor: Updated projectInfo for: ${this.projectId} using tier ${projectInfo.tier}`,
+				`ProjectEditor: Updated projectInfo for: ${this.projectId}`,
 			);
 		}
+		  */
 
+		const projectMetadata = {
+			projectId: this.projectId,
+			projectName: this.projectConfig.name,
+			dataSourceCount: this.dataSources.length,
+			// [TODO] toolsCount is showing as 0 - maybe we're getting length before tools get loaded for the first time
+			//toolsCount: this.orchestratorController.toolManager.getLoadedToolNames.length,
+		};
+		projectInfo.type = 'metadata';
+		projectInfo.content = JSON.stringify(projectMetadata);
 		this.projectInfo = projectInfo;
 	}
 
@@ -184,6 +336,7 @@ class ProjectEditor {
 		options?: { maxTurns?: number },
 		requestParams?: LLMRequestParams,
 		filesToAttach?: string[],
+		dataSourceIdForAttach?: string,
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
@@ -195,64 +348,82 @@ class ProjectEditor {
 			options,
 			requestParams,
 			filesToAttach,
+			dataSourceIdForAttach,
 		);
 		return statementAnswer;
 	}
 
-	// prepareFilesForConversation is called by request_files tool and by add_file handler for user requests
-	// only existing files can be prepared and added, otherwise call rewrite_file tools with createIfMissing:true
-	async prepareFilesForConversation(
-		fileNames: string[],
-	): Promise<FilesForConversation> {
-		const filesAdded: Array<
-			{
-				fileName: string;
-				metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
-			}
-		> = [];
+	// prepareResourcesForConversation is called by load_resources tool
+	// only existing resources can be prepared and added, otherwise call write_resource tools with createIfMissing:true
+	async prepareResourcesForConversation(
+		resourceUris: string[],
+	): Promise<ResourcesForConversation> {
+		const resourcesAdded: Array<ResourceForConversation> = [];
 
-		for (const fileName of fileNames) {
+		for (const resourceUri of resourceUris) {
 			try {
-				if (!await isPathWithinProject(this.projectRoot, fileName)) {
-					throw new Error(`Access denied: ${fileName} is outside the project directory`);
-				}
-				if (!await existsWithinProject(this.projectRoot, fileName)) {
-					throw new Error(`Access denied: ${fileName} does not exist in the project directory`);
-				}
+				// Always load from original source to ensure we have the latest version
+				logger.info(`ProjectEditor: Get resource for: ${resourceUri}`);
+				const resource = await this.resourceManager.loadResource(resourceUri);
 
-				const fullFilePath = join(this.projectRoot, fileName);
+				// Store at project level for future reference
+				await this.projectData.storeProjectResource(resourceUri, resource.content, resource.metadata);
 
-				//const fileExtension = extname(fileName);
-				const mimeType = getContentType(fileName);
-				const isImage = mimeType.startsWith('image/');
-				const { size } = await Deno.stat(fullFilePath).catch((_) => ({ size: 0 }));
+				// Extract resource name from metadata or use URI as fallback
+				const resourceName = resource.metadata?.name || resourceUri;
 
-				const metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'> = {
-					type: isImage ? 'image' : 'text',
-					mimeType: mimeType as LLMMessageContentPartImageBlockSourceMediaType,
-					lastModified: new Date(),
-					size,
+				// Create proper revision metadata with all required fields for hydration
+				const revisionMetadata: ResourceRevisionMetadata = {
+					// Copy existing metadata fields if available
+					accessMethod: resource.metadata.accessMethod,
+					type: resource.metadata.type || 'file',
+					contentType: resource.metadata.contentType ||
+						(resource.metadata.mimeType?.startsWith('image/') ? 'image' : 'text'),
+					mimeType: resource.metadata.mimeType,
+					name: resource.metadata.name || resourceName,
+					uri: resource.metadata.uri,
+					//path: resource.metadata?.path,
+
+					// Essential fields for resource hydration
+					size: resource.metadata?.size ||
+						(typeof resource.content === 'string' ? resource.content.length : resource.content.byteLength),
+					lastModified: resource.metadata?.lastModified || new Date(),
 					error: null,
 				};
-				filesAdded.push({ fileName, metadata });
 
-				logger.info(`ProjectEditor: Prepared file ${fileName}`);
+				// Add to resources for conversation
+				resourcesAdded.push({
+					resourceName,
+					resourceUri,
+					metadata: revisionMetadata,
+				});
+
+				logger.info(`ProjectEditor: Prepared resource ${resourceName}`);
 			} catch (error) {
-				logger.error(`ProjectEditor: Error adding file ${fileName}: ${(error as Error).message}`);
+				logger.error(`ProjectEditor: Error adding resource ${resourceUri}: ${(error as Error).message}`);
 				const errorMessage = (error as Error).message;
-				filesAdded.push({
-					fileName,
-					metadata: {
-						type: 'text',
-						lastModified: new Date(),
-						size: 0,
-						error: errorMessage,
-					},
+
+				// Create error metadata with required fields
+				const errorMetadata: ResourceRevisionMetadata = {
+					accessMethod: 'bb',
+					type: 'file',
+					contentType: 'text',
+					name: resourceUri,
+					uri: resourceUri,
+					lastModified: new Date(),
+					size: 0,
+					error: errorMessage,
+				};
+
+				resourcesAdded.push({
+					resourceName: resourceUri,
+					resourceUri,
+					metadata: errorMetadata,
 				});
 			}
 		}
 
-		return filesAdded;
+		return resourcesAdded;
 	}
 }
 

@@ -3,8 +3,8 @@ import { extname, join, resolve } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isPathWithinProject, listDirectory, type ListDirectoryOptions } from 'api/utils/fileHandling.ts';
-import { getProjectRoot } from 'shared/dataDir.ts';
+import { isPathWithinDataSource, listDirectory, type ListDirectoryOptions } from 'api/utils/fileHandling.ts';
+import { getProjectAdminDir } from 'shared/projectPath.ts';
 import {
 	type FileSuggestionsForPathOptions,
 	type FileSuggestionsOptions,
@@ -73,10 +73,10 @@ export const addFile = async (
 		}
 
 		// Get project path
-		const projectRoot = await getProjectRoot(projectId);
+		const projectAdminDir = await getProjectAdminDir(projectId);
 
 		// Create .uploads directory if it doesn't exist
-		const uploadsDir = join(projectRoot, '.uploads');
+		const uploadsDir = join(projectAdminDir, '.uploads');
 		await ensureDir(uploadsDir);
 
 		// Create .metadata directory
@@ -102,6 +102,7 @@ export const addFile = async (
 		const fileBuffer = await file.arrayBuffer();
 		const fileArray = new Uint8Array(fileBuffer);
 		await Deno.writeFile(filePath, fileArray);
+		logger.info(`FileHandler: Wrote uploaded file to: ${filePath}`);
 
 		// Determine MIME type and if it's an image
 		const mimeType = isFileObject(file) && 'type' in file ? file.type : getContentType(sanitizedName);
@@ -111,7 +112,8 @@ export const addFile = async (
 		const metadata: UploadedFileMetadata = {
 			id: fileId,
 			name: sanitizedName,
-			relativePath: `.uploads/${filename}`,
+			//relativePath: `.uploads/${filename}`,
+			relativePath: filename,
 			size: isFileObject(file) ? file.size : 0,
 			type: isImage ? 'image' : 'text',
 			mimeType: mimeType,
@@ -133,7 +135,7 @@ export const addFile = async (
 				const indexContent = await Deno.readTextFile(indexPath);
 				index = JSON.parse(indexContent);
 			} catch (error) {
-				logger.error(`Failed to read file index: ${error}`);
+				logger.error(`FileHandler: Failed to read file index: ${error}`);
 				// Continue with empty index if file is corrupted
 			}
 		}
@@ -175,8 +177,8 @@ export const removeFile = async (
 		}
 
 		const fileId = params.id;
-		const projectRoot = await getProjectRoot(projectId);
-		const metadataPath = join(projectRoot, '.uploads', '.metadata', `${fileId}.json`);
+		const projectAdminDir = await getProjectAdminDir(projectId);
+		const metadataPath = join(projectAdminDir, '.uploads', '.metadata', `${fileId}.json`);
 
 		if (!(await exists(metadataPath))) {
 			response.status = 404;
@@ -189,7 +191,7 @@ export const removeFile = async (
 		const metadata = JSON.parse(metadataContent);
 
 		// Remove physical file
-		const filePath = join(projectRoot, '.uploads', metadata.name);
+		const filePath = join(projectAdminDir, '.uploads', metadata.name);
 		if (await exists(filePath)) {
 			await Deno.remove(filePath);
 		}
@@ -198,7 +200,7 @@ export const removeFile = async (
 		await Deno.remove(metadataPath);
 
 		// Update index
-		const indexPath = join(projectRoot, '.uploads', '.metadata', 'index.json');
+		const indexPath = join(projectAdminDir, '.uploads', '.metadata', 'index.json');
 		if (await exists(indexPath)) {
 			try {
 				const indexContent = await Deno.readTextFile(indexPath);
@@ -209,7 +211,7 @@ export const removeFile = async (
 					await Deno.writeTextFile(indexPath, JSON.stringify(index, null, 2));
 				}
 			} catch (error) {
-				logger.error(`Failed to update file index: ${error}`);
+				logger.error(`FileHandler: Failed to update file index: ${error}`);
 			}
 		}
 
@@ -237,8 +239,8 @@ export const listFiles = async (
 			return;
 		}
 
-		const projectRoot = await getProjectRoot(projectId);
-		const indexPath = join(projectRoot, '.uploads', '.metadata', 'index.json');
+		const projectAdminDir = await getProjectAdminDir(projectId);
+		const indexPath = join(projectAdminDir, '.uploads', '.metadata', 'index.json');
 
 		if (!(await exists(indexPath))) {
 			response.body = {
@@ -259,7 +261,7 @@ export const listFiles = async (
 				files,
 			};
 		} catch (error) {
-			logger.error(`Failed to read file index: ${error}`);
+			logger.error(`FileHandler: Failed to read file index: ${error}`);
 			response.status = 500;
 			response.body = { error: 'Failed to read file index' };
 		}
@@ -397,7 +399,7 @@ export const resolvePath = async (
 		const fullPath = resolve(join(homeDir, partialPath));
 
 		// Ensure resolved path is within project
-		if (!isPathWithinProject(homeDir, fullPath)) {
+		if (!isPathWithinDataSource(homeDir, fullPath)) {
 			throw createError(ErrorType.FileHandling, 'Resolved path outside project directory');
 		}
 

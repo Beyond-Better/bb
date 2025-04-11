@@ -3,7 +3,7 @@ import type { Signal } from '@preact/signals';
 import { createBrowserClient, createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr';
 import type { EmailOtpType, Session, SupabaseClient, User, VerifyTokenHashParams } from '@supabase/supabase-js';
 
-import type { BuiConfig } from 'shared/config/v2/types.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
 import { AuthError, type AuthState, DUMMY_SESSION, DUMMY_USER } from '../types/auth.ts';
 
 // Define our Supabase client type

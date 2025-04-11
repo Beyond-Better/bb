@@ -284,7 +284,7 @@ impl Default for DefaultModels {
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
-            version: "2.1.0".to_string(),
+            version: "2.2.0".to_string(),
             my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
             my_assistants_name: "Claude".to_string(),
             default_models: DefaultModels::default(),

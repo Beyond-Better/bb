@@ -10,15 +10,15 @@ import { getProjectEditor, incrementConversationStats, withTestProject } from 'a
 // Mock LLM class
 class MockLLM {
 	async invoke(callbackType: LLMCallbackType, ..._args: any[]): Promise<any> {
-		if (callbackType === LLMCallbackType.PROJECT_ROOT) {
+		if (callbackType === LLMCallbackType.PROJECT_DATA_SOURCES) {
 			return Deno.makeTempDir();
 		}
 		return null;
 	}
 }
 
-async function setupTestEnvironment(projectId: string, projectRoot: string) {
-	await GitUtils.initGit(projectRoot);
+async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
+	await GitUtils.initGit(dataSourceRoot);
 	const projectEditor = await getProjectEditor(projectId);
 	const mockLLM = new MockLLM();
 	const conversation = new LLMConversationInteraction(mockLLM as any, 'test-conversation-id');
@@ -26,21 +26,22 @@ async function setupTestEnvironment(projectId: string, projectRoot: string) {
 	// Create test files
 	const testFiles = ['file1.txt', 'file2.txt'];
 	for (const file of testFiles) {
-		const filePath = join(projectRoot, file);
+		const filePath = join(dataSourceRoot, file);
 		await Deno.writeTextFile(filePath, `Content of ${file}`);
 	}
 
-	return { projectEditor, conversation, projectRoot, testFiles };
+	return { projectEditor, conversation, dataSourceRoot, testFiles };
 }
 
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
-			const { projectEditor: _projectEditor, conversation, projectRoot, testFiles } = await setupTestEnvironment(
-				testProjectId,
-				testProjectRoot,
-			);
+			const { projectEditor: _projectEditor, conversation, dataSourceRoot, testFiles } =
+				await setupTestEnvironment(
+					testProjectId,
+					testProjectRoot,
+				);
 
 			// Create test messages
 			const conversationStats = {
@@ -98,7 +99,7 @@ Deno.test({
 			}
 
 			// Check first file hydration
-			const firstFileContent = await Deno.readTextFile(join(projectRoot, testFiles[0]));
+			const firstFileContent = await Deno.readTextFile(join(dataSourceRoot, testFiles[0]));
 			const firstHydratedContent = getTextContent(hydratedMessages[3].content[0]);
 			assertExists(firstHydratedContent, 'First message should have text content');
 			assertExists(
@@ -107,7 +108,7 @@ Deno.test({
 			);
 
 			// Check second file hydration
-			const secondFileContent = await Deno.readTextFile(join(projectRoot, testFiles[1]));
+			const secondFileContent = await Deno.readTextFile(join(dataSourceRoot, testFiles[1]));
 			const secondHydratedContent = getTextContent(hydratedMessages[1].content[0]);
 			assertExists(secondHydratedContent, 'Third message should have text content');
 			assertExists(

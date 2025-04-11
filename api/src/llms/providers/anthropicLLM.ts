@@ -2,7 +2,7 @@ import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
 
 import { AnthropicModel, LLMProvider } from 'api/types.ts';
-import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
+import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -48,7 +48,7 @@ class AnthropicLLM extends LLM {
 
 	private initializeAnthropicClient() {
 		const clientOptions: ClientOptions = {
-			apiKey: this.projectConfig.settings.api?.llmProviders?.anthropic?.apiKey,
+			apiKey: this.projectConfig.api?.llmProviders?.anthropic?.apiKey,
 		};
 
 		this.anthropic = new Anthropic(clientOptions);
@@ -57,7 +57,7 @@ class AnthropicLLM extends LLM {
 	// Helper function to check for file metadata blocks
 	private hasFileMetadata(text: string): boolean {
 		try {
-			return text.includes(BB_FILE_METADATA_DELIMITER);
+			return text.includes(BB_RESOURCE_METADATA_DELIMITER);
 		} catch (_e) {
 			return false;
 		}
@@ -126,7 +126,8 @@ class AnthropicLLM extends LLM {
 									}
 								} else if (this.hasFileMetadata(textBlock.text)) {
 									try {
-										const metadataText = textBlock.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadataText = textBlock.text.split(BB_RESOURCE_METADATA_DELIMITER)[1]
+											.trim();
 										const metadata = JSON.parse(metadataText);
 										summary.push(
 											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -165,7 +166,7 @@ class AnthropicLLM extends LLM {
 
 					if (hasFileContent) {
 						try {
-							const metadataText = part.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+							const metadataText = part.text.split(BB_RESOURCE_METADATA_DELIMITER)[1].trim();
 							const metadata = JSON.parse(metadataText);
 							summary.push(
 								`${indent}File: ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -232,7 +233,7 @@ class AnthropicLLM extends LLM {
 	private asProviderMessageType(
 		messages: LLMMessage[],
 	): Anthropic.Messages.MessageParam[] {
-		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
+		const usePromptCaching = this.projectConfig.api?.usePromptCaching ?? true;
 
 		// Find the last three user messages
 		const userMessages = messages
@@ -299,7 +300,7 @@ class AnthropicLLM extends LLM {
 	): Promise<Anthropic.Beta.Messages.MessageCreateParams> {
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
 		//logger.debug('AnthropicLLM: llms-anthropic-asProviderMessageRequest-messageRequest', messageRequest);
-		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
+		const usePromptCaching = this.projectConfig.api?.usePromptCaching ?? true;
 		const system = messageRequest.system
 			? [
 				{
@@ -319,7 +320,7 @@ class AnthropicLLM extends LLM {
 
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		// Log detailed message information
-		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
+		if (this.projectConfig.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
 
@@ -426,7 +427,7 @@ class AnthropicLLM extends LLM {
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
 
-			if (this.projectConfig.settings.api?.logLevel === 'debug1') {
+			if (this.projectConfig.api?.logLevel === 'debug1') {
 				interaction.conversationPersistence.writeLLMRequest({
 					messageId: anthropicMessage.id,
 					requestBody: messageRequest,
@@ -546,7 +547,7 @@ class AnthropicLLM extends LLM {
 				maxTokens: providerMessageRequest.max_tokens!,
 				temperature: providerMessageRequest.temperature!,
 				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: this.projectConfig.settings.api?.usePromptCaching ?? true,
+				usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
 			};
 
 			return {

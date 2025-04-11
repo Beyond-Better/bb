@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-import type { ConversationMetadata, TokenUsageAnalysis } from 'shared/types.ts';
+import type { ConversationMetadata, TokenUsage, TokenUsageAnalysis } from 'shared/types.ts';
 
 export interface MigrationResult {
 	total: number;
@@ -260,6 +260,19 @@ export class ConversationMigration {
 
 			// 2. Update conversation metadata
 			const tokenAnalysis: TokenUsageAnalysis = await tokenUsagePersistence.analyzeUsage('conversation');
+			if (!metadata.tokenUsageStats) {
+				const defaultConversationTokenUsage: TokenUsage = {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					totalAllTokens: 0,
+				};
+				metadata.tokenUsageStats = {
+					tokenUsageTurn: defaultConversationTokenUsage,
+					tokenUsageStatement: defaultConversationTokenUsage,
+					tokenUsageConversation: defaultConversationTokenUsage,
+				};
+			}
 			metadata.tokenUsageStats.tokenUsageConversation = {
 				inputTokens: tokenAnalysis.totalUsage.input,
 				outputTokens: tokenAnalysis.totalUsage.output,

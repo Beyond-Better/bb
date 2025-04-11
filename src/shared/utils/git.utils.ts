@@ -3,11 +3,11 @@ import fs from 'node:fs';
 import { dirname, join, normalize, resolve } from '@std/path';
 import { logger } from './logger.utils.ts';
 import { isError } from './error.utils.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
-import type { ProjectType } from 'shared/config/v2/types.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
+import type { ProjectType } from 'shared/config/types.ts';
 
 export class GitUtils {
-	static async findGitRoot(startPath: string = Deno.cwd(), projectRoot?: string): Promise<string | null> {
+	static async findGitRoot(startPath: string = Deno.cwd(), dataSourceRoot?: string): Promise<string | null> {
 		logger.info(`Checking for git repo in ${startPath}`);
 		try {
 			// Get the directory path if startPath is a file
@@ -28,11 +28,11 @@ export class GitUtils {
 			const normalizedPath = normalize(gitRoot.trim());
 			const resolvedGitRoot = await Deno.realPath(resolve(normalizedPath));
 
-			// If projectRoot is provided, verify the git root is within the project
-			if (projectRoot) {
-				const isWithinProject = await isPathWithinProject(projectRoot, resolvedGitRoot);
+			// If dataSourceRoot is provided, verify the git root is within the project
+			if (dataSourceRoot) {
+				const isWithinProject = await isPathWithinDataSource(dataSourceRoot, resolvedGitRoot);
 				if (!isWithinProject) {
-					logger.warn(`Git root ${resolvedGitRoot} is outside project root ${projectRoot}`);
+					logger.warn(`Git root ${resolvedGitRoot} is outside project root ${dataSourceRoot}`);
 					return null;
 				}
 			}

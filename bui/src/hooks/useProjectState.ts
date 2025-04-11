@@ -1,18 +1,28 @@
 import { computed, type Signal, signal } from '@preact/signals';
 import type { AppState } from './useAppState.ts';
-import type { Project, ProjectWithSources } from 'shared/types/project.ts';
-import { toProject } from 'shared/types/project.ts';
+import type {
+	ClientDataSource,
+	ClientProjectData,
+	ClientProjectWithConfigForUpdates,
+	ClientProjectWithConfigSources,
+	ProjectWithSources,
+} from 'shared/types/project.ts';
+//import { toProject } from 'shared/types/project.ts';
+import { MCPServerConfig } from 'shared/config/types.ts';
+import type { DataSourceTypeInfo } from 'api/resources/dataSourceRegistry.ts';
 
 export interface ProjectState {
-	projects: Project[];
-	projectsWithSources: ProjectWithSources[];
+	projects: ClientProjectWithConfigSources[];
+	dataSourceTypes: DataSourceTypeInfo[]; // Add data source types
+	mcpServers: MCPServerConfig[];
 	loading: boolean;
 	error: string | null;
 }
 
 const initialState: ProjectState = {
 	projects: [],
-	projectsWithSources: [],
+	dataSourceTypes: [], // Initialize empty data source types array
+	mcpServers: [], // Initialize empty MCP servers array
 	loading: false,
 	error: null,
 };
@@ -62,27 +72,50 @@ export function useProjectState(appState: Signal<AppState>) {
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
 			// Get project list
-			const response = await apiClient?.listProjects();
 
-			console.log('useProjectState: loadProjects', response);
-			if (response) {
-				// If we have a selectedProjectId but it's not in the projects list,
-				// we should clear it
-				const projectExists = response.projects.some(
-					(p) => p.projectId === selectedProjectId.value,
+			// Create both promises simultaneously
+			const projectsPromise = apiClient?.listProjects();
+			const datasourceTypesPromise = apiClient?.getDataSourceTypes(); //projectState.value.mcpServers
+			const globalConfigPromise = apiClient?.getGlobalConfig();
+
+			// Wait for both to complete
+			const [projectsResponse, datasourceTypesResponse, globalConfigResponse] = await Promise.all([
+				projectsPromise,
+				datasourceTypesPromise,
+				globalConfigPromise,
+			]);
+
+			console.log('useProjectState: loadProjects', projectsResponse);
+			if (projectsResponse) {
+				const projectExists = projectsResponse.projects.some(
+					(p) => p.data.projectId === selectedProjectId.value,
 				);
 
 				projectState.value = {
 					...projectState.value,
-					projects: response.projects.map(toProject),
-					projectsWithSources: response.projects,
+					projects: projectsResponse.projects,
 					loading: false,
 				};
 
-				// Clear selected project if it no longer exists
 				if (!projectExists && selectedProjectId.value) {
 					setSelectedProject(null);
 				}
+			}
+
+			if (datasourceTypesResponse) {
+				//console.log('useProjectState: setting dataSourceTypes', { dataSourceTypes: datasourceTypesResponse.dataSourceTypes });
+				projectState.value = {
+					...projectState.value,
+					dataSourceTypes: datasourceTypesResponse.dataSourceTypes,
+				};
+			}
+
+			if (globalConfigResponse) {
+				//console.log('useProjectState: setting mcpServers', { mcpServers: globalConfigResponse.api.mcpServers });
+				projectState.value = {
+					...projectState.value,
+					mcpServers: globalConfigResponse.api.mcpServers || [],
+				};
 			}
 		} catch (error) {
 			projectState.value = {
@@ -93,7 +126,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	async function getBlankProject(): Promise<ProjectWithSources | undefined> {
+	async function getBlankProject(): Promise<ClientProjectWithConfigSources | undefined> {
 		const apiClient = appState.value.apiClient;
 		try {
 			const response = await apiClient?.blankProject();
@@ -104,7 +137,9 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	async function createProject(project: Omit<Project, 'projectId'>) {
+	async function createProject(
+		project: ClientProjectWithConfigForUpdates,
+	): Promise<ClientProjectWithConfigSources | undefined> {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
@@ -112,10 +147,10 @@ export function useProjectState(appState: Signal<AppState>) {
 			if (response) {
 				projectState.value = {
 					...projectState.value,
-					projects: [...projectState.value.projects, toProject(response.project)],
-					projectsWithSources: [...projectState.value.projectsWithSources, response.project],
+					projects: [...projectState.value.projects, response.project],
 					loading: false,
 				};
+				return response.project;
 			}
 		} catch (error) {
 			projectState.value = {
@@ -126,13 +161,10 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	async function updateProject(projectId: string, updates: Partial<Omit<Project, 'projectId'>>) {
+	async function updateProject(projectId: string, updates: Partial<ClientProjectWithConfigForUpdates>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
-			// Get current config to preserve other values
-			//const currentConfig = await apiClient?.getProjectConfig(projectId);
-
 			// Update project metadata
 			const response = await apiClient?.updateProject(projectId, updates);
 
@@ -140,10 +172,7 @@ export function useProjectState(appState: Signal<AppState>) {
 				projectState.value = {
 					...projectState.value,
 					projects: projectState.value.projects.map((p) =>
-						p.projectId === projectId ? toProject(response.project) : p
-					),
-					projectsWithSources: projectState.value.projectsWithSources.map((p) =>
-						p.projectId === projectId ? response.project : p
+						p.data.projectId === projectId ? response.project : p
 					),
 					loading: false,
 				};
@@ -164,8 +193,7 @@ export function useProjectState(appState: Signal<AppState>) {
 			await apiClient?.deleteProject(projectId);
 			projectState.value = {
 				...projectState.value,
-				projects: projectState.value.projects.filter((p) => p.projectId !== projectId),
-				projectsWithSources: projectState.value.projectsWithSources.filter((p) => p.projectId !== projectId),
+				projects: projectState.value.projects.filter((p) => p.data.projectId !== projectId),
 				loading: false,
 			};
 		} catch (error) {
@@ -226,13 +254,199 @@ export function useProjectState(appState: Signal<AppState>) {
 		// Update URL and localStorage
 		updateUrlParams(projectId);
 		updateLocalStorage(projectId);
+
+		// If we have a projectId and an API client, fetch the filtered data source types
+		if (projectId && appState.value.apiClient) {
+			// This won't block the function from returning
+			//console.log(`useProjectState: setSelectedProject: ${projectId}`);
+			appState.value.apiClient.getDataSourceTypesForProject(projectId)
+				.then((response) => {
+					//console.log(`useProjectState: setSelectedProject: ${projectId} - got dataSourceTypes`, {
+					//	dataSourceTypes: response?.dataSourceTypes,
+					//});
+					if (response) {
+						// Only update if this is still the selected project (user might have changed)
+						if (appState.value.projectId === projectId) {
+							projectState.value = {
+								...projectState.value,
+								dataSourceTypes: response.dataSourceTypes,
+							};
+						}
+					}
+				})
+				.catch((error) => {
+					console.error('Failed to fetch data source types for project:', error);
+					// Don't update the error state since this is a background operation
+				});
+		} else if (!projectId) {
+			// If no project is selected, reset to all data source types
+			appState.value.apiClient?.getDataSourceTypes()
+				.then((response) => {
+					//console.log(`useProjectState: setSelectedProject: no-project`, {
+					//	dataSourceTypes: response?.dataSourceTypes,
+					//});
+					if (response) {
+						projectState.value = {
+							...projectState.value,
+							dataSourceTypes: response.dataSourceTypes,
+						};
+					}
+				})
+				.catch((error) => {
+					console.error('Failed to fetch all data source types:', error);
+				});
+		}
 	}
 
-	function getSelectedProject(): Project | null {
-		if (!selectedProjectId.value) return null;
-		return projectState.value.projects.find(
-			(p) => p.projectId === selectedProjectId.value,
-		) || null;
+	//function getSelectedProject(): ClientProjectWithConfigSources | null {
+	//	if (!selectedProjectId.value) return null;
+	//
+	//	const project = projectState.value.projects.find(
+	//		(p) => p.data.projectId === selectedProjectId.value,
+	//	) || null;
+	//
+	//	return project;
+	//}
+	//// Helper function to get project config for selected project
+	//function getSelectedProjectConfig(): ProjectWithSources | null {
+	//	const project = getSelectedProject();
+	//	if (!project) return null;
+	//	return project.config;
+	//}
+	//// Helper function to get project data for selected project
+	//function getSelectedProjectData(): ClientProjectData | null {
+	//	const project = getSelectedProject();
+	//	if (!project) return null;
+	//	return project.data;
+	//}
+
+	// Helper function to get available data source types
+	function getDataSourceTypes(): DataSourceTypeInfo[] {
+		return projectState.value.dataSourceTypes;
+	}
+	// Helper function to get available data source types
+	function getMCPServers(): MCPServerConfig[] {
+		return projectState.value.mcpServers;
+	}
+
+	// Data source management methods
+	async function addDataSource(projectId: string, dataSource: ClientDataSource): Promise<void> {
+		const apiClient = appState.value.apiClient;
+		if (!apiClient) return;
+
+		try {
+			projectState.value = { ...projectState.value, loading: true, error: null };
+			const response = await apiClient.addDataSource(projectId, dataSource);
+
+			if (response) {
+				// Update the projects list with the new data
+				projectState.value = {
+					...projectState.value,
+					projects: projectState.value.projects.map((p) =>
+						p.data.projectId === projectId ? response.project : p
+					),
+					loading: false,
+				};
+			}
+		} catch (error) {
+			projectState.value = {
+				...projectState.value,
+				error: `Failed to add data source: ${(error as Error).message}`,
+				loading: false,
+			};
+			throw error;
+		}
+	}
+
+	// Update an existing data source
+	async function updateDataSource(
+		projectId: string,
+		dataSourceId: string,
+		updates: Partial<ClientDataSource>,
+	): Promise<void> {
+		const apiClient = appState.value.apiClient;
+		if (!apiClient) return;
+
+		try {
+			projectState.value = { ...projectState.value, loading: true, error: null };
+			const response = await apiClient.updateDataSource(projectId, dataSourceId, updates);
+
+			if (response) {
+				// Update the projects list with the new data
+				projectState.value = {
+					...projectState.value,
+					projects: projectState.value.projects.map((p) =>
+						p.data.projectId === projectId ? response.project : p
+					),
+					loading: false,
+				};
+			}
+		} catch (error) {
+			projectState.value = {
+				...projectState.value,
+				error: `Failed to update data source: ${(error as Error).message}`,
+				loading: false,
+			};
+			throw error;
+		}
+	}
+
+	// Remove a data source
+	async function removeDataSource(projectId: string, dataSourceId: string): Promise<void> {
+		const apiClient = appState.value.apiClient;
+		if (!apiClient) return;
+
+		try {
+			projectState.value = { ...projectState.value, loading: true, error: null };
+			const response = await apiClient.removeDataSource(projectId, dataSourceId);
+
+			if (response) {
+				// Update the projects list with the new data
+				projectState.value = {
+					...projectState.value,
+					projects: projectState.value.projects.map((p) =>
+						p.data.projectId === projectId ? response.project : p
+					),
+					loading: false,
+				};
+			}
+		} catch (error) {
+			projectState.value = {
+				...projectState.value,
+				error: `Failed to remove data source: ${(error as Error).message}`,
+				loading: false,
+			};
+			throw error;
+		}
+	}
+
+	// Set a data source as primary
+	async function setPrimaryDataSource(projectId: string, dataSourceId: string): Promise<void> {
+		const apiClient = appState.value.apiClient;
+		if (!apiClient) return;
+
+		try {
+			projectState.value = { ...projectState.value, loading: true, error: null };
+			const response = await apiClient.setPrimaryDataSource(projectId, dataSourceId);
+
+			if (response) {
+				// Update the projects list with the new data
+				projectState.value = {
+					...projectState.value,
+					projects: projectState.value.projects.map((p) =>
+						p.data.projectId === projectId ? response.project : p
+					),
+					loading: false,
+				};
+			}
+		} catch (error) {
+			projectState.value = {
+				...projectState.value,
+				error: `Failed to set primary data source: ${(error as Error).message}`,
+				loading: false,
+			};
+			throw error;
+		}
 	}
 
 	// Update project stats
@@ -285,7 +499,15 @@ export function useProjectState(appState: Signal<AppState>) {
 		findV1Projects,
 		migrateAndAddProject,
 		setSelectedProject,
-		getSelectedProject,
+		//getSelectedProject,
+		//getSelectedProjectConfig,
+		//getSelectedProjectData,
+		getDataSourceTypes,
+		// Data source management methods
+		addDataSource,
+		updateDataSource,
+		removeDataSource,
+		setPrimaryDataSource,
 		//updateProjectStats,
 	};
 }

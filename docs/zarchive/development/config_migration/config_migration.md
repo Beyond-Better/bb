@@ -312,7 +312,7 @@ class ApiServer {
       const globalConfig = await this.migrateGlobalConfig();
       
       // Initialize with migrated config
-      const config = await ConfigManagerV2.getInstance(globalConfig);
+      const config = await getConfigManager(globalConfig);
       
       // Start API server
       await this.startServer(config);

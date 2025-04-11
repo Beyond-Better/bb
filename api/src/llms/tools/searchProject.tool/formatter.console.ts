@@ -57,7 +57,14 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
-	const fileList = lines.slice(2, -1);
+	const fileList = (() => {
+		const startIndex = lines.findIndex((line) => line.includes('<files>'));
+		const endIndex = lines.findIndex((line) => line.includes('</files>'));
+		if (startIndex === -1 || endIndex === -1) {
+			return [];
+		}
+		return lines.slice(startIndex + 1, endIndex);
+	})();
 
 	return {
 		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Search Project'),

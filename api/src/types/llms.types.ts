@@ -326,6 +326,7 @@ export interface LLMSpeakWithOptions {
 export interface Task {
 	title: string;
 	background: string;
+	dataSources?: string[];
 	instructions: string;
 	resources?: Resource[];
 	capabilities?: string[];
@@ -348,8 +349,9 @@ export interface ErrorHandlingConfig {
 	continueOnErrorThreshold?: number;
 }
 
+export type ResourceType = 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp';
 export interface Resource {
-	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp';
+	type: ResourceType;
 	uri: string;
 }
 
@@ -363,14 +365,18 @@ export interface LLMSpeakWithResponse {
 export enum LLMCallbackType {
 	PROJECT_EDITOR = 'PROJECT_EDITOR',
 	PROJECT_ID = 'PROJECT_ID',
-	PROJECT_ROOT = 'PROJECT_ROOT',
+	PROJECT_DATA_SOURCES = 'PROJECT_DATA_SOURCES',
+	PROJECT_MCP_TOOLS = 'PROJECT_MCP_TOOLS',
+	//SYSTEM_PROMPT_DATA_SOURCES = 'SYSTEM_PROMPT_DATA_SOURCES',
 	PROJECT_INFO = 'PROJECT_INFO',
 	PROJECT_CONFIG = 'PROJECT_CONFIG',
-	PROJECT_FILE_CONTENT = 'PROJECT_FILE_CONTENT',
+	PROJECT_RESOURCE_CONTENT = 'PROJECT_RESOURCE_CONTENT',
 	LOG_ENTRY_HANDLER = 'LOG_ENTRY_HANDLER',
 	PREPARE_SYSTEM_PROMPT = 'PREPARE_SYSTEM_PROMPT',
 	PREPARE_MESSAGES = 'PREPARE_MESSAGES',
 	PREPARE_TOOLS = 'PREPARE_TOOLS',
+	// [TODO] PREPARE_DATA_SOURCES
+	// [TODO] PREPARE_RESOURCES
 }
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {

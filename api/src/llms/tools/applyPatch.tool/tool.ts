@@ -14,9 +14,9 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { dirname, join } from '@std/path';
 import { ensureDir } from '@std/fs';
@@ -27,10 +27,15 @@ export default class LLMToolApplyPatch extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				filePath: {
 					type: 'string',
 					description:
-						'The path of the file to be patched, relative to project root. Required for single-file patches, optional for multi-file patches that include file paths. Example: "src/config.ts"',
+						'The path of the file to be patched, relative to data source root. Required for single-file patches, optional for multi-file patches that include file paths. Example: "src/config.ts"',
 				},
 				patch: {
 					type: 'string',
@@ -104,7 +109,36 @@ Notes:
 		const patchedFiles: string[] = [];
 		const patchContents: string[] = [];
 		const { toolInput } = toolUse;
-		const { filePath, patch } = toolInput as LLMToolApplyPatchInput;
+		const { filePath, patch, dataSource: dataSourceId = undefined } = toolInput as LLMToolApplyPatchInput;
+
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
 
 		const parsedPatch = diff.parsePatch(patch);
 		const modifiedFiles: string[] = [];
@@ -118,10 +152,10 @@ Notes:
 				}
 				logger.info(`LLMToolApplyPatch: Checking location of file: ${currentFilePath}`);
 
-				if (!await isPathWithinProject(projectEditor.projectRoot, currentFilePath)) {
+				if (!await isPathWithinDataSource(dataSourceRoot, currentFilePath)) {
 					throw createError(
 						ErrorType.FileHandling,
-						`Access denied: ${currentFilePath} is outside the project directory`,
+						`Access denied: ${currentFilePath} is outside the data source directory`,
 						{
 							name: 'apply-patch',
 							filePath: currentFilePath,
@@ -130,7 +164,7 @@ Notes:
 					);
 				}
 
-				const fullFilePath = join(projectEditor.projectRoot, currentFilePath);
+				const fullFilePath = join(dataSourceRoot, currentFilePath);
 
 				if (patchPart.oldFileName === '/dev/null') {
 					// This is a new file
@@ -180,6 +214,7 @@ Notes:
 			// Log patch and commit for all modified files
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
+				dataSourceRoot,
 				patchedFiles,
 				patchContents,
 			);
@@ -199,12 +234,23 @@ Notes:
 				} as LLMMessageContentPartTextBlock)),
 			];
 
+			const dataSourceStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dataSourceToUse.name}`,
+			});
+
 			const toolResults = toolResultContentParts;
-			const toolResponse = `Applied patch successfully to ${modifiedFiles.length + newFiles.length} file(s)`;
+			const toolResponse = `${dataSourceStatus}\nApplied patch successfully to ${
+				modifiedFiles.length + newFiles.length
+			} file(s)`;
 			const bbResponse = {
 				data: {
 					modifiedFiles,
 					newFiles,
+					dataSourceId,
 				},
 			};
 
@@ -221,6 +267,10 @@ Notes:
 			logger.error(`LLMToolApplyPatch: ${errorMessage}`);
 
 			const toolResultContentParts: LLMMessageContentParts = [
+				{
+					type: 'text',
+					text: `Used data source: ${dataSourceToUse.name}`,
+				},
 				{
 					type: 'text',
 					text: `⚠️  ${errorMessage}`,

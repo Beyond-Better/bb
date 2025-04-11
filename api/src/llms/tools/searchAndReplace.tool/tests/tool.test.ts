@@ -54,9 +54,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Basic functionality - bbResponse:', result.bbResponse);
-				console.log('Basic functionality - toolResponse:', result.toolResponse);
-				console.log('Basic functionality - toolResults:', result.toolResults);
+				// console.log('Basic functionality - bbResponse:', result.bbResponse);
+				// console.log('Basic functionality - toolResponse:', result.toolResponse);
+				// console.log('Basic functionality - toolResults:', result.toolResults);
 
 				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -73,16 +73,16 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 elements');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, 'Search and replace operations applied to file: test.txt');
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, 'Search and replace operations applied to file: test.txt');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
+
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'Hello, Deno!');
@@ -152,18 +152,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
+				assert(result.toolResults.length === 5, 'toolResults should have 5 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'File created and search and replace operations applied to file: multi_op_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 3; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
@@ -323,19 +323,19 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 elements');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					'Search and replace operations applied to file: unicode_test.txt',
-				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					secondResult.text,
+					'Search and replace operations applied to file: unicode_test.txt',
+				);
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
+
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const fileContent = await Deno.readTextFile(testFilePath);
 				assertEquals(fileContent, 'Hello, 🌍!');
@@ -399,17 +399,17 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'File created and search and replace operations applied to file: new_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
-				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const fileContent = await Deno.readTextFile(newFilePath);
 				assertEquals(fileContent, 'Hello, new file!');
@@ -532,17 +532,17 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: multiline_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
-				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'function newTest() {\n\tconsole.log("Hello, World!");\n}');
@@ -606,17 +606,17 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: empty_replace_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
-				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, 'Operation 1 completed successfully');
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, 'Operation 1 completed successfully');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'Hello, !');
@@ -680,17 +680,17 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: case_sensitive_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
-				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'Hello, Deno! hello, world!');
@@ -737,9 +737,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Case insensitive search - bbResponse:', result.bbResponse);
-				console.log('Case insensitive search - toolResponse:', result.toolResponse);
-				console.log('Case insensitive search - toolResults:', result.toolResults);
+				// console.log('Case insensitive search - bbResponse:', result.bbResponse);
+				// console.log('Case insensitive search - toolResponse:', result.toolResponse);
+				// console.log('Case insensitive search - toolResults:', result.toolResults);
 
 				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -757,17 +757,17 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: case_insensitive_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
-				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '✅  Operation 1 completed successfully');
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'Hello, Deno! hello, Deno!');
@@ -832,18 +832,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
+				assert(result.toolResults.length === 5, 'toolResults should have 5 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: multiple_replace_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 3; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
@@ -910,18 +910,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
+				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: multiple_replace_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 2; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
@@ -988,18 +988,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
+				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: overlapping_replace_test.txt',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 2; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
@@ -1066,16 +1066,16 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					`Search and replace operations applied to file: regex_test.txt. All operations succeeded`,
-				);
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
+					`Search and replace operations applied to file: regex_test.txt. All operations succeeded`,
+				);
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					thirdResult.text,
 					`✅  Operation 1 completed successfully`,
 				);
 
@@ -1145,16 +1145,16 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					`Search and replace operations applied to file: regex_capture_test.txt. All operations succeeded`,
-				);
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
+					`Search and replace operations applied to file: regex_capture_test.txt. All operations succeeded`,
+				);
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					thirdResult.text,
 					`✅  Operation 1 completed successfully`,
 				);
 
@@ -1219,16 +1219,16 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					`Search and replace operations applied to file: regex_quantifier_test.txt. All operations succeeded`,
-				);
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
+					`Search and replace operations applied to file: regex_quantifier_test.txt. All operations succeeded`,
+				);
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					thirdResult.text,
 					`✅  Operation 1 completed successfully`,
 				);
 
@@ -1293,16 +1293,16 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					`Search and replace operations applied to file: regex_character_class_test.txt. All operations succeeded`,
-				);
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
+					`Search and replace operations applied to file: regex_character_class_test.txt. All operations succeeded`,
+				);
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					thirdResult.text,
 					`✅  Operation 1 completed successfully`,
 				);
 
@@ -1367,16 +1367,16 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(
-					firstResult.text,
-					`Search and replace operations applied to file: regex_word_boundary_test.txt. All operations succeeded`,
-				);
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
+					`Search and replace operations applied to file: regex_word_boundary_test.txt. All operations succeeded`,
+				);
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(
+					thirdResult.text,
 					`✅  Operation 1 completed successfully`,
 				);
 
@@ -1437,18 +1437,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
+				assert(result.toolResults.length === 5, 'toolResults should have 5 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: literal_regex_test.txt. All operations succeeded',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 3; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
@@ -1512,18 +1512,18 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
+				assert(result.toolResults.length === 5, 'toolResults should have 5 elements');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
+					secondResult.text,
 					'Search and replace operations applied to file: literal_regex_case_insensitive_test.txt. All operations succeeded',
 				);
-				assertStringIncludes(firstResult.text, 'All operations succeeded');
+				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				for (let i = 1; i <= 3; i++) {
-					const operationResult = result.toolResults[i];
+					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}

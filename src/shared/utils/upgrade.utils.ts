@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { compare, parse } from '@std/semver';
 import { copy, exists } from '@std/fs';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import { logger } from 'shared/logger.ts';
 import { ensureUserInstallLocation, getCurrentInstallLocation, type InstallLocation } from 'shared/install.ts';
@@ -66,7 +66,7 @@ export async function checkForUpdates(): Promise<UpgradeResult> {
 export async function performUpgrade(): Promise<UpgradeResult> {
 	const { version: currentVersion, canAutoUpdate } = await getVersionInfo();
 	const installLocation = await getCurrentInstallLocation();
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
 
 	// Check if we need sudo for system installation
@@ -188,7 +188,7 @@ async function restoreFromBackup(backupDir: string, installLocation: InstallLoca
 }
 
 async function downloadAndInstall(release: GithubRelease): Promise<void> {
-	// const configManager = await ConfigManagerV2.getInstance();
+	// const configManager = await getConfigManager();
 	// const globalConfig = await configManager.getGlobalConfig();
 	const installLocation = await getCurrentInstallLocation();
 

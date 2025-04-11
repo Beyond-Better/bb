@@ -13,7 +13,9 @@ export enum ErrorType {
 	LLMValidation = 'ValidationError',
 	ToolHandling = 'ToolHandlingError',
 	ProjectHandling = 'ProjectHandlingError',
+	DataSourceHandling = 'DataSourceHandlingError',
 	FileHandling = 'FileHandlingError',
+	ResourceHandling = 'ResourceHandlingError',
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
 	ExternalServiceError = 'ExternalServiceError',
@@ -26,7 +28,9 @@ export const ErrorTypes = [
 	ErrorType.LLMValidation,
 	ErrorType.ToolHandling,
 	ErrorType.ProjectHandling,
+	ErrorType.DataSourceHandling,
 	ErrorType.FileHandling,
+	ErrorType.ResourceHandling,
 	ErrorType.VectorSearch,
 	ErrorType.TokenUsageValidation,
 	ErrorType.ExternalServiceError,
@@ -159,7 +163,7 @@ export const isTokenUsageValidationError = (value: unknown): value is TokenUsage
 
 export interface ProjectHandlingErrorOptions extends ErrorOptions {
 	projectId?: string;
-	projectRoot?: string;
+	dataSourceRoot?: string;
 	projectType?: string;
 }
 
@@ -174,6 +178,23 @@ export class ProjectHandlingError extends Error {
 }
 export const isProjectHandlingError = (value: unknown): value is ProjectHandlingError => {
 	return value instanceof ProjectHandlingError;
+};
+
+export interface DataSourceHandlingErrorOptions extends ErrorOptions {
+	dataSourceIds?: string[];
+}
+
+export class DataSourceHandlingError extends Error {
+	constructor(
+		message: string,
+		public options: DataSourceHandlingErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.DataSourceHandling;
+	}
+}
+export const isDataSourceHandlingError = (value: unknown): value is DataSourceHandlingError => {
+	return value instanceof DataSourceHandlingError;
 };
 
 export interface FileHandlingErrorOptions extends ErrorOptions {
@@ -244,6 +265,39 @@ export class FileMoveError extends FileHandlingError {
 	}
 }
 
+export interface ResourceHandlingErrorOptions extends ErrorOptions {
+	filePath: string;
+	operation:
+		| 'read'
+		| 'write'
+		| 'delete'
+		| 'move'
+		| 'change'
+		| 'search-project'
+		| 'apply-patch'
+		| 'search-replace'
+		| 'rewrite-file'
+		| 'move-file'
+		| 'create-dir'
+		// these are not really filehandling (filesystem) - they only affect files in the conversation
+		| 'request-files'
+		| 'forget-files';
+}
+
+export class ResourceHandlingError extends Error {
+	constructor(
+		message: string,
+		public options: ResourceHandlingErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.ResourceHandling;
+	}
+}
+
+export const isResourceHandlingError = (value: unknown): value is ResourceHandlingError => {
+	return value instanceof ResourceHandlingError;
+};
+
 export interface VectorSearchErrorOptions extends ErrorOptions {
 	query: string;
 	operation: 'index' | 'search' | 'delete';
@@ -266,6 +320,7 @@ export const isVectorSearchError = (value: unknown): value is VectorSearchError 
 export interface ToolHandlingErrorOptions extends ErrorOptions {
 	toolName: string;
 	operation: 'tool-run' | 'tool-input' | 'formatting';
+	toolInput?: Record<string, unknown>;
 }
 
 export class ToolHandlingError extends Error {

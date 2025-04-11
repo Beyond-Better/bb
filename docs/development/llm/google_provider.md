@@ -128,7 +128,7 @@ private asProviderMessageType(messages: LLMMessage[]): Content[] {
         parts: message.content.map(part => {
             if (part.type === 'text') {
                 // Preserve file metadata blocks
-                if (part.text.includes(BB_FILE_METADATA_DELIMITER)) {
+                if (part.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
                     return { text: part.text };
                 }
                 return { text: part.text };

@@ -1,18 +1,19 @@
 import { Application } from '@oak/oak';
 import type { ListenOptions, ListenOptionsTls } from '@oak/oak';
-import oak_logger from 'oak_logger';
+//import oak_logger from 'oak_logger';
+import oak_logger from './middlewares/logger.middleware.ts';
 import { parseArgs } from '@std/cli';
 import { oakCors } from 'cors';
 
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ApiConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ApiConfig } from 'shared/config/types.ts';
 import router from './routes/routes.ts';
 import { logger } from 'shared/logger.ts';
 import type { BbState } from 'api/types.ts';
-import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
-import { SessionManager } from './auth/session.ts';
+import { SessionManager } from 'api/auth/session.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
@@ -20,14 +21,14 @@ import { KVManager } from 'api/utils/kvManager.ts';
 let projectId;
 try {
 	const startDir = Deno.cwd();
-	const projectRoot = await getProjectRootFromStartDir(startDir);
-	projectId = await getProjectId(projectRoot);
+	const workingRoot = await getWorkingRootFromStartDir(startDir);
+	projectId = await getProjectId(workingRoot);
 } catch (_error) {
 	//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 	projectId = undefined;
 }
 
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 
 // Ensure configs are at latest version
 await configManager.ensureLatestGlobalConfig();
@@ -39,7 +40,7 @@ let apiConfig: ApiConfig;
 if (projectId) {
 	await configManager.ensureLatestProjectConfig(projectId);
 	const projectConfig = await configManager.getProjectConfig(projectId);
-	apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+	apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 } else {
 	apiConfig = globalConfig.api;
 }
@@ -100,6 +101,7 @@ app.state = {
 	auth: {
 		sessionManager,
 	},
+	apiConfig,
 };
 
 app.use(oak_logger.logger);

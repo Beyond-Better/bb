@@ -157,7 +157,7 @@ Key API Endpoints:
 - Sanitize and validate all data input
 - Restrict LLM access to files added to conversation by `bb`
 - Prevent `bb` from adding files outside the current git repo
-- Always use `isPathWithinProject` to ensure file operations are restricted to the project directory
+- Always use `isPathWithinDataSource` to ensure file operations are restricted to the project directory
 - Implement proper error handling for network requests in data retrieval tools
 - Sanitize and validate command inputs to prevent injection attacks in system command tools
 

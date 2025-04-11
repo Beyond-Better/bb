@@ -4,7 +4,10 @@ import { computed, Signal, signal, useComputed } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
-import type { ModelDetails, ModelResponse } from '../utils/apiClient.utils.ts';
+import type {
+	ModelDetails,
+	//ModelResponse,
+} from '../utils/apiClient.utils.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
@@ -35,7 +38,7 @@ const getConversationId = () => {
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
 // Default LLM request options
-const defaultOptions: LLMRequestParams = {
+const defaultInputOptions: LLMRequestParams = {
 	model: 'claude-3-7-sonnet-20250219',
 	temperature: 0.7,
 	maxTokens: 16384,
@@ -46,16 +49,29 @@ const defaultOptions: LLMRequestParams = {
 	usePromptCaching: true,
 };
 
+const defaultChatConfig: ChatConfig = {
+	apiUrl: '',
+	wsUrl: '',
+
+	onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
+	onError: (error) => console.error('ChatIsland: WebSocket error:', error),
+	onClose: () => console.log('ChatIsland: WebSocket closed'),
+	onOpen: () => console.log('ChatIsland: WebSocket opened'),
+};
+
 // Helper to get options from conversation or defaults
-const getOptionsFromConversation = (conversationId: string | null, conversations: any[]): LLMRequestParams => {
-	if (!conversationId) return defaultOptions;
+const getInputOptionsFromConversation = (
+	conversationId: string | null,
+	conversations: ConversationMetadata[],
+): LLMRequestParams => {
+	if (!conversationId) return defaultInputOptions;
 
 	const conversation = conversations.find((conv) => conv.id === conversationId);
-	if (!conversation || !conversation.requestParams) return defaultOptions;
+	if (!conversation || !conversation.requestParams) return defaultInputOptions;
 
 	// Return conversation params with fallbacks to defaults
 	return {
-		...defaultOptions,
+		...defaultInputOptions,
 		...conversation.requestParams,
 	};
 };
@@ -67,7 +83,8 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<LLMRequestParams>({ ...defaultOptions });
+const chatInputOptions = signal<LLMRequestParams>({ ...defaultInputOptions });
+const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
 
@@ -110,17 +127,6 @@ export default function Chat({
 		//console.debug('Chat: Current chatInputText length:', chatInputText.value.length);
 	};
 
-	// Initialize chat configuration
-	const [config, setConfig] = useState<ChatConfig>({
-		apiUrl: '',
-		wsUrl: '',
-
-		onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
-		onError: (error) => console.error('ChatIsland: WebSocket error:', error),
-		onClose: () => console.log('ChatIsland: WebSocket closed'),
-		onOpen: () => console.log('ChatIsland: WebSocket opened'),
-	});
-
 	// Initialize connection with protocol detection
 	useEffect(() => {
 		let isMounted = true;
@@ -147,14 +153,15 @@ export default function Chat({
 				});
 
 				if (isMounted) {
-					setConfig({
+					chatConfig.value = {
+						...chatConfig.value,
 						apiUrl,
 						wsUrl,
-						onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
-						onError: (error) => console.error('ChatIsland: WebSocket error:', error),
-						onClose: () => console.log('ChatIsland: WebSocket closed'),
-						onOpen: () => console.log('ChatIsland: WebSocket opened'),
-					});
+						//onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
+						//onError: (error) => console.error('ChatIsland: WebSocket error:', error),
+						//onClose: () => console.log('ChatIsland: WebSocket closed'),
+						//onOpen: () => console.log('ChatIsland: WebSocket opened'),
+					};
 				}
 			} catch (error) {
 				console.error('Chat: Failed to initialize connection:', error);
@@ -175,14 +182,11 @@ export default function Chat({
 				});
 
 				if (isMounted) {
-					setConfig({
+					chatConfig.value = {
+						...chatConfig.value,
 						apiUrl,
 						wsUrl,
-						onMessage: (message) => console.log('ChatIsland: WebSocket message received:', message),
-						onError: (error) => console.error('ChatIsland: WebSocket error:', error),
-						onClose: () => console.log('ChatIsland: WebSocket closed'),
-						onOpen: () => console.log('ChatIsland: WebSocket opened'),
-					});
+					};
 				}
 			}
 		}
@@ -194,8 +198,7 @@ export default function Chat({
 		};
 	}, []);
 
-	//const [chatState, handlers, scrollIndicatorState] = useChatState(config);
-	const [handlers, scrollIndicatorState] = useChatState(config, chatState, chatInputOptions);
+	const [handlers, scrollIndicatorState] = useChatState(chatConfig, chatState, chatInputOptions);
 
 	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
 
@@ -340,7 +343,7 @@ export default function Chat({
 			setConversation(id);
 
 			// Update options based on the selected conversation
-			chatInputOptions.value = getOptionsFromConversation(id, chatState.value.conversations);
+			chatInputOptions.value = getInputOptionsFromConversation(id, chatState.value.conversations);
 			console.info('Chat: Updated options for selected conversation', id, chatInputOptions.value);
 
 			// Fetch model capabilities for the selected model
@@ -392,7 +395,7 @@ export default function Chat({
 
 		// Initialize options from current conversation
 		if (chatState.value.conversationId) {
-			chatInputOptions.value = getOptionsFromConversation(
+			chatInputOptions.value = getInputOptionsFromConversation(
 				chatState.value.conversationId,
 				chatState.value.conversations,
 			);
@@ -544,7 +547,7 @@ export default function Chat({
 		isLoading: chatState.value.status.isLoading,
 	}));
 
-	if (!config.apiUrl || !config.wsUrl) {
+	if (!chatConfig.value.apiUrl || !chatConfig.value.wsUrl) {
 		return (
 			<div className='flex items-center justify-center h-screen'>
 				<AnimatedNotification

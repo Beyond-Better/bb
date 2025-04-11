@@ -5,6 +5,7 @@ export interface LLMToolMoveFilesInput {
 	destination: string;
 	overwrite?: boolean;
 	createMissingDirectories?: boolean;
+	dataSource?: string;
 }
 
 export interface LLMToolMoveFilesResponseData {
@@ -12,6 +13,7 @@ export interface LLMToolMoveFilesResponseData {
 		filesMoved: string[];
 		filesError: string[];
 		destination: string;
+		dataSourceId: string;
 	};
 }
 

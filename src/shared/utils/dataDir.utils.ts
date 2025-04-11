@@ -1,26 +1,41 @@
 import { ensureDir, exists } from '@std/fs';
 import { dirname, join, resolve } from '@std/path';
 import { parse as parseYaml } from '@std/yaml';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { getProjectRegistry } from 'shared/projectRegistry.ts';
 import { logger } from 'shared/logger.ts';
 
-export async function getProjectId(startDir: string): Promise<string> {
-	const projectRoot = await getProjectRootFromStartDir(startDir);
-	const configManager = await ConfigManagerV2.getInstance();
-	return await configManager.getProjectId(projectRoot);
-}
+export async function getProjectId(startDir: string): Promise<string | undefined> {
+	const workingRoot = await getWorkingRootFromStartDir(startDir);
 
-export async function getProjectRoot(projectId: string): Promise<string> {
-	const configManager = await ConfigManagerV2.getInstance();
-	const projectRoot = await configManager.getProjectRoot(projectId);
-	const bbDir = join(projectRoot, '.bb');
-	if (await exists(bbDir)) {
-		return projectRoot;
+	// Use ProjectRegistry to find project by path
+	const registry = await getProjectRegistry();
+	const project = await registry.findProjectByPath(workingRoot);
+
+	if (project) {
+		return project.projectId;
 	}
-	throw new Error('No .bb directory found in projectRoot');
+	return undefined;
 }
 
-export async function getProjectRootFromStartDir(startDir: string): Promise<string> {
+export async function getWorkingRoot(projectId: string): Promise<string> {
+	// Use ProjectRegistry to get project by ID
+	const registry = await getProjectRegistry();
+	const project = await registry.getProject(projectId);
+
+	if (project) {
+		const workingRoot = project.dataSourcePaths ? project.dataSourcePaths[0] : undefined;
+		if (!workingRoot) throw new Error('DataDir: No filesystem data sources in project');
+		const bbDir = join(workingRoot, '.bb');
+		if (await exists(bbDir)) {
+			return workingRoot;
+		}
+		throw new Error('No .bb directory found in workingRoot');
+	}
+	throw new Error('No .bb directory found in workingRoot');
+}
+
+export async function getWorkingRootFromStartDir(startDir: string): Promise<string> {
 	let currentDir = resolve(startDir);
 	while (true) {
 		//logger.log(`Looking for .bb in: ${currentDir}`);
@@ -42,22 +57,28 @@ export async function getBbDir(projectId: string): Promise<string> {
 	return await getBbDirFromProjectId(projectId);
 }
 export async function getBbDirFromProjectId(projectId: string): Promise<string> {
-	const projectRoot = await getProjectRoot(projectId);
-	return await getBbDirFromProjectRoot(projectRoot);
+	const workingRoot = await getWorkingRoot(projectId);
+	return await getBbDirFromWorkingRoot(workingRoot);
 }
 export async function getBbDirFromStartDir(startDir: string): Promise<string> {
-	const projectRoot = await getProjectRootFromStartDir(startDir);
-	return await getBbDirFromProjectRoot(projectRoot);
+	const workingRoot = await getWorkingRootFromStartDir(startDir);
+	return await getBbDirFromWorkingRoot(workingRoot);
 }
-export async function getBbDirFromProjectRoot(projectRoot: string): Promise<string> {
-	const bbDir = join(projectRoot, '.bb');
+export async function getBbDirFromWorkingRoot(workingRoot: string): Promise<string> {
+	const bbDir = join(workingRoot, '.bb');
 	await ensureDir(bbDir);
 	return bbDir;
 }
 
 export async function getGlobalConfigDir(): Promise<string> {
 	const customConfigDir = Deno.env.get('BB_GLOBAL_CONFIG_DIR'); // used for testing - don't rely on it for other purposes
-	if (customConfigDir) return customConfigDir;
+	if (customConfigDir) {
+		if (!Deno.env.get('BB_UNIT_TESTS')) {
+			logger.warn(`DataDir: CUSTOM CONFIG_DIR - USE ONLY FOR TESTING: ${customConfigDir}`);
+		}
+		await ensureDir(customConfigDir);
+		return customConfigDir;
+	}
 
 	const globalConfigDir = Deno.build.os === 'windows' ? (join(Deno.env.get('APPDATA') || '', 'bb')) : (
 		join(Deno.env.get('HOME') || '', '.config', 'bb')
@@ -73,19 +94,20 @@ export async function getBbDataDir(projectId: string): Promise<string> {
 	return repoCacheDir;
 }
 
-export async function createBbDir(projectRoot: string): Promise<void> {
-	const bbDir = join(projectRoot, '.bb');
+export async function createDataSourceBbDir(dataSourceRoot: string): Promise<void> {
+	const bbDir = join(dataSourceRoot, '.bb');
 	try {
 		await ensureDir(bbDir);
-		//logger.info(`Created .bb directory in ${projectRoot}`);
+		//logger.info(`Created .bb directory in ${dataSourceRoot}`);
 	} catch (error) {
 		logger.error(`Failed to create .bb directory: ${(error as Error).message}`);
 		throw error;
 	}
 }
 
-export async function createBbIgnore(projectRoot: string): Promise<void> {
-	const bbIgnorePath = join(projectRoot, '.bb', 'ignore');
+export async function createDataSourceBbIgnore(dataSourceRoot: string): Promise<void> {
+	await createDataSourceBbDir(dataSourceRoot);
+	const bbIgnorePath = join(dataSourceRoot, '.bb', 'ignore');
 	try {
 		const fileInfo = await Deno.stat(bbIgnorePath);
 		if (fileInfo.isFile) {
@@ -241,20 +263,29 @@ export async function removeFromBbDataDir(projectId: string, filename: string): 
 	}
 }
 
-export async function resolveProjectFilePath(projectId: string, filePath: string): Promise<string> {
+export async function resolveDataSourceFilePath(dataSourceRoot: string, filePath: string): Promise<string> {
 	if (filePath.startsWith('/')) {
 		return filePath;
 	}
 
-	const projectRoot = await getProjectRoot(projectId);
-	logger.info(`resolveProjectFilePath: checking ${filePath} in ${projectRoot}`);
-	if (projectRoot) {
-		const projectPath = join(projectRoot, filePath);
-		logger.info(`resolveProjectFilePath: checking ${projectPath}`);
-		if (await exists(projectPath)) {
-			return projectPath;
-		}
+	logger.info(`resolveDataSourceFilePath: checking ${filePath} in ${dataSourceRoot}`);
+	const dataSourcePath = join(dataSourceRoot, filePath);
+	if (await exists(dataSourcePath)) {
+		return dataSourcePath;
 	}
+
+	// // Then check all additional data source paths if any
+	// if (project.dataSourcePaths && project.dataSourcePaths.length > 0) {
+	// 	for (const dsPath of project.dataSourcePaths) {
+	// 		if (dsPath === dataSourceRoot) continue; // Skip main path we already checked
+	//
+	// 		logger.info(`resolveDataSourceFilePath: checking ${filePath} in alternate data source ${dsPath}`);
+	// 		const altSourcePath = join(dsPath, filePath);
+	// 		if (await exists(altSourcePath)) {
+	// 			return altSourcePath;
+	// 		}
+	// 	}
+	// }
 
 	throw new Error(`File not found: ${filePath}`);
 }
@@ -264,9 +295,9 @@ export async function resolveFilePath(filePath: string): Promise<string> {
 		return filePath;
 	}
 
-	const projectRoot = await getProjectRootFromStartDir(dirname(filePath));
-	if (projectRoot) {
-		const projectPath = join(projectRoot, filePath);
+	const workingRoot = await getWorkingRootFromStartDir(dirname(filePath));
+	if (workingRoot) {
+		const projectPath = join(workingRoot, filePath);
 		if (await exists(projectPath)) {
 			return projectPath;
 		}
@@ -290,17 +321,17 @@ export async function readFileContent(filePath: string): Promise<string | null> 
 /**
  * Counts files in a project directory, excluding .git and .bb directories
  */
-export async function countProjectFiles(projectRoot: string): Promise<number> {
+export async function countProjectFiles(dataSourceRoot: string): Promise<number> {
 	let count = 0;
 
 	try {
-		for await (const entry of Deno.readDir(projectRoot)) {
+		for await (const entry of Deno.readDir(dataSourceRoot)) {
 			// Skip .git and .bb directories
 			if (entry.name === '.git' || entry.name === '.bb') {
 				continue;
 			}
 
-			const path = join(projectRoot, entry.name);
+			const path = join(dataSourceRoot, entry.name);
 			if (entry.isDirectory) {
 				count += await countProjectFiles(path);
 			} else {
@@ -308,7 +339,7 @@ export async function countProjectFiles(projectRoot: string): Promise<number> {
 			}
 		}
 	} catch (error) {
-		logger.warn(`Error counting files in ${projectRoot}: ${(error as Error).message}`);
+		logger.warn(`Error counting files in ${dataSourceRoot}: ${(error as Error).message}`);
 	}
 
 	return count;

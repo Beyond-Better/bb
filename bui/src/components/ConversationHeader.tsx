@@ -12,6 +12,8 @@ import type { ApiClient, ModelDetails } from '../utils/apiClient.utils.ts';
 import { ConversationSelector } from './ConversationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
 import { ModelInfoPanel } from './ModelInfoPanel.tsx';
+import { DataSourceSummary } from './DataSourceSummary.tsx';
+import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
 
 // Initialize collapse state signal from localStorage if available, otherwise default to true
 const getInitialCollapsedState = () => {
@@ -44,6 +46,7 @@ interface ConversationHeaderProps {
 	disabled: boolean;
 	projectId: string;
 	apiClient: ApiClient;
+	currentProject?: ClientProjectWithConfigSources;
 }
 
 export function ConversationHeader({
@@ -61,6 +64,7 @@ export function ConversationHeader({
 	disabled,
 	projectId,
 	apiClient,
+	currentProject,
 }: ConversationHeaderProps): JSX.Element {
 	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
 	const currentConversation = useComputed(() =>

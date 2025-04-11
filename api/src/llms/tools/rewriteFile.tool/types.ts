@@ -7,6 +7,7 @@ export interface LLMToolRewriteFileInput {
 	allowEmptyContent?: boolean;
 	acknowledgement: string;
 	expectedLineCount: number;
+	dataSource?: string;
 }
 
 export interface LLMToolRewriteFileResponseData {
@@ -15,6 +16,7 @@ export interface LLMToolRewriteFileResponseData {
 		lineCount: number;
 		isNewFile: boolean;
 		lineCountError?: string;
+		dataSourceId: string;
 	};
 }
 

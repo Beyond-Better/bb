@@ -7,7 +7,8 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationId, ConversationLogEntryContent } from 'shared/types.ts';
-//import { logger } from 'shared/logger.ts';
+import type { DataSource } from 'api/resources/dataSource.ts';
+import { logger } from 'shared/logger.ts';
 
 export type LLMToolInputSchema = JSONSchema4;
 
@@ -82,6 +83,45 @@ abstract class LLMTool {
 		const ajv = new Ajv();
 		const validate = ajv.compile(this.inputSchema);
 		return validate(input) as boolean;
+	}
+
+	/**
+	 * Resolve a list of data source identifiers (IDs or names) to actual DataSource objects
+	 * @param projectEditor ProjectEditor
+	 * @param dataSourceIds Array of data source IDs or names
+	 * @returns Array of resolved DataSource objects
+	 */
+	getDataSources(
+		projectEditor: ProjectEditor,
+		dataSourceIds?: Array<string>,
+	): { primaryDataSource: DataSource | undefined; dataSources: DataSource[]; notFound: string[] } {
+		logger.info(`LLMTool: getDataSources for:`, { dataSourceIds });
+		const primaryDataSource = projectEditor.projectData.getPrimaryDataSource();
+		//logger.info(`LLMTool: getDataSources`, { primaryDataSource });
+		// If dataSources parameter exists, use it
+		if (dataSourceIds && dataSourceIds.length > 0) {
+			if (dataSourceIds.includes('all')) {
+				return {
+					primaryDataSource,
+					dataSources: projectEditor.projectData.getAllEnabledDataSources(),
+					notFound: [],
+				};
+			}
+			// ensure that `primaryDataSource` is always from the list of resolved data sources,
+			// falling back to the first data source in the list if the original primary isn't included.
+			const { dataSources, notFound } = projectEditor.projectData.resolveDataSources(dataSourceIds);
+			logger.info(`LLMTool: getDataSources`, { dataSources, notFound });
+			return {
+				primaryDataSource: primaryDataSource && dataSources.includes(primaryDataSource)
+					? primaryDataSource
+					: (dataSources.length > 0 ? dataSources[0] : undefined),
+				dataSources,
+				notFound,
+			};
+		}
+
+		// Default to primary data source
+		return { primaryDataSource, dataSources: primaryDataSource ? [primaryDataSource] : [], notFound: [] };
 	}
 
 	abstract runTool(

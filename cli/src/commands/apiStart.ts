@@ -2,10 +2,10 @@ import { Command } from 'cliffy/command';
 import { colors } from 'cliffy/ansi/colors';
 import { delay } from '@std/async';
 
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ApiConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ApiConfig } from 'shared/config/types.ts';
 import { followApiLogs, getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const apiStart = new Command()
 	.name('start')
@@ -24,26 +24,21 @@ export const apiStart = new Command()
 			let projectId;
 			try {
 				const startDir = Deno.cwd();
-				const projectRoot = await getProjectRootFromStartDir(startDir);
-				projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(startDir);
+				projectId = await getProjectId(workingRoot);
 			} catch (_error) {
 				//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 				projectId = undefined;
 			}
 
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 
 			let apiConfig: ApiConfig;
 			if (projectId) {
 				await configManager.ensureLatestProjectConfig(projectId);
 				const projectConfig = await configManager.getProjectConfig(projectId);
-				if (projectConfig.useProjectApi) {
-					apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
-				} else {
-					apiConfig = globalConfig.api;
-					projectId = undefined;
-				}
+				apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 			} else {
 				apiConfig = globalConfig.api;
 			}

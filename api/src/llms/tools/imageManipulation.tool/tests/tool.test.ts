@@ -193,7 +193,7 @@ Deno.test({
 
 			// Check toolResults (thumbnail) is provided
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-			assert(result.toolResults.length === 1, 'toolResults should have 1 element');
+			assert(result.toolResults.length === 2, 'toolResults should have 2 element');
 
 			// const firstResult = result.toolResults[0];
 			// assert(firstResult.type === 'image', 'First result should be of type image');
@@ -527,7 +527,7 @@ Deno.test({
 				assert(false, 'Should have thrown an error for path outside project');
 			} catch (error: unknown) {
 				if (isError(error)) {
-					assertStringIncludes(errorMessage(error), 'outside the project directory');
+					assertStringIncludes(errorMessage(error), 'outside the data source directory');
 				} else {
 					assert(false, 'Error should be an instance of Error');
 				}

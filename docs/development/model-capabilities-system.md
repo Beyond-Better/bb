@@ -94,19 +94,18 @@ Users can set their preferred defaults for model parameters in the project confi
 In `.bb/config.yaml`:
 
 ```yaml
-settings:
-  api:
-    llmProviders:
-      anthropic:
-        apiKey: "sk-ant-xxxx"
-        userPreferences:
-          temperature: 0.5
-          maxTokens: 4096
-      openai:
-        apiKey: "sk-xxxx"
-        userPreferences:
-          temperature: 0.8
-          maxTokens: 2048
+api:
+  llmProviders:
+	anthropic:
+	  apiKey: "sk-ant-xxxx"
+	  userPreferences:
+		temperature: 0.5
+		maxTokens: 4096
+	openai:
+	  apiKey: "sk-xxxx"
+	  userPreferences:
+		temperature: 0.8
+		maxTokens: 2048
 ```
 
 ## Updating Model Capabilities

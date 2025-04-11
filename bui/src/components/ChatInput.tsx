@@ -1098,19 +1098,19 @@ export function ChatInput({
 		}
 	};
 
-	//const statusInfo = getStatusInfo();
 	const statusInfo = useComputed(() => {
 		return getStatusInfo(statusState.value);
 	});
 
 	return (
-		<div className='bg-white dark:bg-gray-900 px-4 py-2 w-full relative'>
+		<div className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
 			<InputStatusBar
 				visible={statusInfo.value.visible}
 				message={statusInfo.value.message}
 				status={statusInfo.value.status || ApiStatus.IDLE}
 				action={statusInfo.value.action as Action}
-				className='mx-1'
+				statusState={statusState}
+				className='mx-0'
 			/>
 
 			{errorState.value && (

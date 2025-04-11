@@ -1,34 +1,62 @@
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { CreateProjectData } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { CreateProjectData } from 'shared/types/project.ts';
 import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import ProjectEditorManager from '../../src/editor/projectEditorManager.ts';
+import ProjectEditorManager from 'api/editor/projectEditorManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
 import type { ConversationStats } from 'shared/types.ts';
-import { SessionManager } from '../../src/auth/session.ts';
+import { SessionManager } from 'api/auth/session.ts';
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
+import { DataSource } from 'api/resources/dataSource.ts';
 
-export async function setupTestProject(): Promise<{ projectRoot: string; projectId: string }> {
-	const projectRoot = Deno.makeTempDirSync();
+export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: string }> {
+	Deno.env.set('BB_UNIT_TESTS', '1');
+	// Set custom global config directory
+	const globalConfigDir = await Deno.makeTempDir();
+	Deno.env.set('BB_GLOBAL_CONFIG_DIR', globalConfigDir);
+
+	// Generate a unique ID for this test run
+	const testInstanceId = crypto.randomUUID();
+	Deno.env.set('BB_TEST_INSTANCE_ID', testInstanceId);
+	//Deno.env.set('BB_NO_SINGLETON_CONFIG_MANGER', '1');
+	//Deno.env.set('BB_NO_SINGLETON_PROJECT_REGISTRY', '1');
 
 	Deno.env.set('SKIP_PROJECT_GIT_REPO', '1');
-	const configManager = await ConfigManagerV2.getInstance();
-	await configManager.ensureGlobalConfig();
-	const createProjectData: CreateProjectData = { name: 'TestProject', type: 'local', path: projectRoot };
-	const projectId = await configManager.createProject(createProjectData);
-	//console.log('setupTestProject', { projectRoot, projectId });
+	Deno.env.set('BB_PROJECT_ADMIN_DIR', '');
 
-	return { projectRoot, projectId };
+	const configManager = await getConfigManager();
+	await configManager.ensureGlobalConfig();
+
+	const dataSourceRoot = await Deno.makeTempDir();
+	const createProjectData: CreateProjectData = {
+		name: 'TestProject',
+		status: 'active',
+		dataSources: [
+			DataSource.createPrimaryFileSystem(
+				'primary',
+				dataSourceRoot,
+			),
+		],
+	};
+	const projectPersistenceManager = await getProjectPersistenceManager();
+	const projectData = await projectPersistenceManager.createProject(createProjectData);
+	const projectId = projectData.projectId;
+
+	const projectAdminDir = join(globalConfigDir, 'projects', projectId);
+	Deno.env.set('BB_PROJECT_ADMIN_DIR', projectAdminDir);
+	//console.log('setupTestProject', { dataSourceRoot, projectId });
+
+	return { dataSourceRoot, projectId };
 }
 
-export async function cleanupTestProject(projectId: string, projectRoot: string) {
+export async function cleanupTestProject(projectId: string, _dataSourceRoot: string) {
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
-		await configManager.deleteProject(projectId);
-		await Deno.remove(projectRoot, { recursive: true });
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		await projectPersistenceManager.deleteProject(projectId);
 	} catch (error) {
 		console.error(`Failed to clean up test directory: ${(error as Error).message}`);
 	}
@@ -52,16 +80,16 @@ export async function getToolManager(
 	toolConfig?: Record<string, unknown>,
 ): Promise<LLMToolManager> {
 	if (toolName && toolConfig) {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		await configManager.setProjectConfigValue(
 			projectEditor.projectId,
-			`settings.api.toolConfigs.${toolName}`,
+			`api.toolConfigs.${toolName}`,
 			JSON.stringify(toolConfig),
 		);
 		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
 	}
 
-	const toolManager = await new LLMToolManager(projectEditor.projectConfig, 'core', projectEditor.mcpManager).init(); // Assuming 'core' is the default toolset
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, 'core').init(); // Assuming 'core' is the default toolset
 
 	assert(toolManager, 'Failed to get LLMToolManager');
 
@@ -92,13 +120,13 @@ export async function createTestChatInteraction(
 }
 
 export async function withTestProject<T>(
-	testFn: (projectId: string, projectRoot: string) => Promise<T>,
+	testFn: (projectId: string, dataSourceRoot: string) => Promise<T>,
 ): Promise<T> {
-	const { projectId, projectRoot } = await setupTestProject();
+	const { projectId, dataSourceRoot } = await setupTestProject();
 	try {
-		return await testFn(projectId, projectRoot);
+		return await testFn(projectId, dataSourceRoot);
 	} finally {
-		await cleanupTestProject(projectId, projectRoot);
+		await cleanupTestProject(projectId, dataSourceRoot);
 	}
 }
 

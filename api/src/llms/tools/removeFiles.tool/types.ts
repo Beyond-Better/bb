@@ -74,6 +74,7 @@ export interface LLMToolRemoveFilesInput {
 	 * For directories, all contents will be removed recursively.
 	 */
 	sources: string[];
+	dataSource?: string;
 
 	/**
 	 * Required when dangerouslyDeletePermanently is true.
@@ -101,6 +102,7 @@ export interface LLMToolRemoveFilesResponseData {
 			name: string;
 			error: string;
 		}>;
+		dataSourceId: string;
 	};
 }
 

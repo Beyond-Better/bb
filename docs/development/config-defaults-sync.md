@@ -5,7 +5,7 @@
 The BB project currently maintains default configuration values in two places, which must be kept in sync manually:
 
 ### TypeScript Defaults
-Location: `src/shared/config/v2/types.ts`
+Location: `src/shared/config/types.ts`
 - `GlobalConfigDefaults`: Core system defaults
 - `ApiConfigDefaults`: API server configuration
 - `BuiConfigDefaults`: Browser UI configuration
@@ -21,7 +21,7 @@ Location: `dui/src-tauri/src/config.rs`
 - `impl Default for DuiConfig`: Desktop UI configuration
 
 Cross-references have been added to both files to help maintainers keep the defaults synchronized:
-1. TypeScript (`src/shared/config/v2/types.ts`) - Used by API
+1. TypeScript (`src/shared/config/types.ts`) - Used by API
 2. Rust (`dui/src-tauri/src/config.rs`) - Used by DUI
 
 This creates a maintenance burden as changes need to be synchronized manually between the two codebases.
@@ -123,7 +123,7 @@ Short-term: Keep current structure with improvements
    impl Default for GlobalConfig {
        fn default() -> Self {
            GlobalConfig {
-               version: "2.1.0".to_string(),
+               version: "2.2.0".to_string(),
                defaultModels: DefaultModels {
                    orchestrator: "claude-3-7-sonnet-20250219".to_string(),
                    agent: "claude-3-7-sonnet-20250219".to_string(),

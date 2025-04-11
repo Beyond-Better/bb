@@ -1,6 +1,6 @@
 {
 	"name": "rename_files",
-	"description": "Rename one or more files or directories within the project. Handles both single files and batch operations. Consider impact on imports and references. All paths must be relative to project root. Use createMissingDirectories for new path structures.",
+	"description": "Rename one or more files or directories within the data source. Handles both single files and batch operations. Consider impact on imports and references. All paths must be relative to data source root. Use createMissingDirectories for new path structures. When no data source is specified, operates on the primary data source.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",

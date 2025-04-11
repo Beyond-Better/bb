@@ -49,7 +49,7 @@ import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
+import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 
 class GoogleLLM extends LLM {
 	private google!: GoogleGenerativeAI;
@@ -61,7 +61,7 @@ class GoogleLLM extends LLM {
 	}
 
 	private initializeGoogleClient() {
-		const apiKey = this.projectConfig.settings.api?.llmProviders?.google?.apiKey;
+		const apiKey = this.projectConfig.api?.llmProviders?.google?.apiKey;
 		if (!apiKey) {
 			throw createError(
 				ErrorType.LLM,
@@ -105,7 +105,7 @@ class GoogleLLM extends LLM {
 				parts: message.content.map((part) => {
 					if (part.type === 'text') {
 						// Check if this is a metadata block
-						if (part.text.includes(BB_FILE_METADATA_DELIMITER)) {
+						if (part.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
 							logger.debug('Found file metadata block, preserving as-is');
 							return { text: part.text };
 						}
@@ -134,7 +134,7 @@ class GoogleLLM extends LLM {
 						const processedContent = part.content?.map((p) => {
 							if (p.type === 'text') {
 								// Check if this is a metadata block
-								if (p.text.includes(BB_FILE_METADATA_DELIMITER)) {
+								if (p.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
 									logger.debug('Found file metadata in tool result, preserving as-is');
 									return { text: p.text };
 								}
@@ -587,7 +587,7 @@ class GoogleLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -599,14 +599,14 @@ class GoogleLLM extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

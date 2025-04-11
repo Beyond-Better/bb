@@ -11,7 +11,7 @@ import { LLMModelToProvider } from 'api/types/llms.ts';
 import type { InteractionPreferences, ModelCapabilities, UserModelPreferences } from 'api/types/modelCapabilities.ts';
 import { logger } from 'shared/logger.ts';
 import { isError } from 'api/errors/error.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 // Import the built-in capabilities data
 import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'json' };
@@ -483,7 +483,7 @@ export function getUserModelPreferences(
 	projectConfig: ProjectConfig, // Using any because the exact config structure may vary
 ): UserModelPreferences | undefined {
 	try {
-		return projectConfig?.settings?.api?.llmProviders?.[provider]?.userPreferences;
+		return projectConfig?.api?.llmProviders?.[provider]?.userPreferences;
 	} catch (error) {
 		logger.warn(`Error getting user model preferences: ${isError(error) ? error.message : error}`);
 		return undefined;

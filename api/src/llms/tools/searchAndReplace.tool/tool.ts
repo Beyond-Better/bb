@@ -10,13 +10,14 @@ import {
 	formatLogEntryToolResult as formatLogEntryToolResultConsole,
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
+import type { LLMToolSearchAndReplaceInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
 import { dirname, join } from '@std/path';
 import { ensureDir } from '@std/fs';
@@ -28,10 +29,15 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				filePath: {
 					type: 'string',
 					description:
-						'The path of the file to be modified or created, relative to the project root. Example: "src/config.ts"',
+						'The path of the file to be modified or created, relative to the data source root. Example: "src/config.ts"',
 				},
 				operations: {
 					type: 'array',
@@ -107,29 +113,51 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 		let allOperationsFailed = true;
 		let allOperationsSucceeded = true;
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { filePath, operations, createIfMissing = true } = toolInput as {
-			filePath: string;
-			operations: Array<
-				{
-					search: string;
-					replace: string;
-					regexPattern?: boolean;
-					replaceAll?: boolean;
-					caseSensitive?: boolean;
-				}
-			>;
-			createIfMissing?: boolean;
-		};
+		const { filePath, operations, createIfMissing = true, dataSource: dataSourceId = undefined } =
+			toolInput as LLMToolSearchAndReplaceInput;
 
-		if (!await isPathWithinProject(projectEditor.projectRoot, filePath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the project directory`, {
-				name: 'search-and-replace',
-				filePath,
-				operation: 'search-replace',
-			} as FileHandlingErrorOptions);
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
 		}
 
-		const fullFilePath = join(projectEditor.projectRoot, filePath);
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
+
+		if (!await isPathWithinDataSource(dataSourceRoot, filePath)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${filePath} is outside the data source directory`,
+				{
+					name: 'search-and-replace',
+					filePath,
+					operation: 'search-replace',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		const fullFilePath = join(dataSourceRoot, filePath);
 		logger.info(`LLMToolSearchAndReplace: Handling search and replace for file: ${fullFilePath}`);
 
 		try {
@@ -236,6 +264,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				);
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
+					dataSourceRoot,
 					filePath,
 					JSON.stringify(successfulOperations),
 				);
@@ -247,6 +276,10 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					text: `${result.status === 'success' ? '✅  ' : '⚠️  '}${result.message}`,
 				}));
 
+				const dataSourceStatus = notFound.length > 0
+					? `Could not find data source for: [${notFound.join(', ')}]`
+					: 'Data source searched';
+
 				const operationStatus = allOperationsSucceeded
 					? 'All operations succeeded'
 					: (allOperationsFailed ? 'All operations failed' : 'Partial operations succeeded');
@@ -257,9 +290,14 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					}earch and replace operations applied to file: ${filePath}. ${operationStatus}.`,
 				});
 
+				toolResultContentParts.unshift({
+					type: 'text',
+					text: `Searched data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`,
+				});
+
 				const toolResults = toolResultContentParts;
-				const toolResponse = operationStatus;
-				const bbResponse = `BB applied search and replace operations.`;
+				const toolResponse = `${dataSourceStatus}\n${operationStatus}`;
+				const bbResponse = `BB applied search and replace operations.\n${dataSourceStatus}`;
 
 				return { toolResults, toolResponse, bbResponse };
 			} else {

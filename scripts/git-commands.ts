@@ -31,27 +31,27 @@ globalThis.path = { join };
 // Main execution
 if (import.meta.main) {
 	try {
-		const projectRoot = Deno.args[0] || Deno.cwd();
-		console.log(`Git init for: ${projectRoot}`);
+		const workingRoot = Deno.args[0] || Deno.cwd();
+		console.log(`Git init for: ${workingRoot}`);
 
-		//     const result = await analyzeDirectory(projectRoot);
+		//     const result = await analyzeDirectory(workingRoot);
 		//     const report = await generateReport(result);
 		//
 		//     // Save report
-		//     const reportPath = join(projectRoot, 'docs/development/config_migration/usage_analysis.md');
-		//     await Deno.mkdir(join(projectRoot, 'docs/development/config_migration'), { recursive: true });
+		//     const reportPath = join(workingRoot, 'docs/development/config_migration/usage_analysis.md');
+		//     await Deno.mkdir(join(workingRoot, 'docs/development/config_migration'), { recursive: true });
 		//     await Deno.writeTextFile(reportPath, report);
 		//
 		//     console.log(`Analysis complete. Report saved to: ${reportPath}`);
 		//     console.log(`Found ${result.configFiles} files with configuration usage`);
 		//     console.log(`Total of ${result.usages.length} configuration usages detected`);
 
-		//await git.init({ fs, dir: projectRoot, defaultBranch: 'main' });
+		//await git.init({ fs, dir: workingRoot, defaultBranch: 'main' });
 
-		//await git.add({ fs, dir: projectRoot, filepath: 'README.md' });
+		//await git.add({ fs, dir: workingRoot, filepath: 'README.md' });
 		//let addedSha = await git.commit({
 		//	fs,
-		//	dir: projectRoot,
+		//	dir: workingRoot,
 		//	message: 'Updated README [1].',
 		//	author: {
 		//		name: 'Mr. Test',
@@ -59,17 +59,17 @@ if (import.meta.main) {
 		//	},
 		//});
 
-		const status = await git.status({ fs, dir: projectRoot, filepath: '.' });
+		const status = await git.status({ fs, dir: workingRoot, filepath: '.' });
 		console.log({ status });
 
-		const sha = await git.resolveRef({ fs, dir: projectRoot, ref: 'HEAD' });
+		const sha = await git.resolveRef({ fs, dir: workingRoot, ref: 'HEAD' });
 		console.log({ sha });
 
-		//const commits = await git.log({ fs, dir: projectRoot });
+		//const commits = await git.log({ fs, dir: workingRoot });
 		//console.log({ commits });
 
 		const filepath = 'README.md';
-		const commits = await git.log({ fs, dir: projectRoot, filepath, ref: 'HEAD', depth: 1 });
+		const commits = await git.log({ fs, dir: workingRoot, filepath, ref: 'HEAD', depth: 1 });
 		console.log({ commit: commits[0]?.oid });
 
 		//let lastSHA = null;
@@ -78,7 +78,7 @@ if (import.meta.main) {
 		//for (const commit of commits) {
 		//	//console.log({ commit });
 		//	try {
-		//		const o = await git.readObject({ fs, dir: projectRoot, oid: commit.oid, filepath });
+		//		const o = await git.readObject({ fs, dir: workingRoot, oid: commit.oid, filepath });
 		//		console.log({ o });
 		//		if (o.oid !== lastSHA) {
 		//			if (lastSHA !== null) commitsThatMatter.push(lastCommit);

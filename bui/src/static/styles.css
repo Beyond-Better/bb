@@ -103,3 +103,98 @@
 		background-color: rgba(107, 114, 128, 0.8);
 	}
 }
+
+/* Data Source Component Styles */
+/* 
+.bb-data-source-container {
+	@apply w-full p-4 space-y-4;
+}
+
+.bb-data-source-list {
+	@apply space-y-4;
+}
+
+.bb-no-data-sources {
+	@apply text-gray-500 dark:text-gray-400 text-center py-4;
+}
+
+.bb-data-source-item {
+	@apply border rounded-lg p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm;
+}
+
+.bb-data-source-item.primary {
+	@apply border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20;
+}
+
+.bb-data-source-item.disabled {
+	@apply opacity-60;
+}
+
+.bb-data-source-header {
+	@apply flex justify-between items-center mb-2;
+}
+
+.bb-data-source-actions {
+	@apply flex gap-2;
+}
+
+.bb-data-source-details {
+	@apply space-y-2;
+}
+
+.badge-container {
+	@apply flex flex-wrap gap-2;
+}
+
+.badge {
+	@apply px-2 py-1 text-xs rounded-full;
+}
+
+.badge-type {
+	@apply bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300;
+}
+
+.badge-primary {
+	@apply bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300;
+}
+
+.badge-enabled {
+	@apply bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300;
+}
+
+.badge-disabled {
+	@apply bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300;
+}
+
+.capabilities {
+	@apply flex flex-wrap gap-1.5;
+}
+
+.capability-badge {
+	@apply px-2 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300;
+}
+
+.path-display {
+	@apply text-sm text-gray-600 dark:text-gray-400 truncate border-t border-gray-100 dark:border-gray-700 mt-2 pt-2;
+}
+
+.loading-indicator {
+	@apply text-center py-2 text-gray-500 dark:text-gray-400;
+}
+
+.error-message {
+	@apply text-red-500 dark:text-red-400 p-2 border border-red-200 dark:border-red-800 rounded bg-red-50 dark:bg-red-900/20;
+}
+
+.button {
+	@apply px-3 py-1.5 rounded bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 transition-colors;
+}
+
+.button-small {
+	@apply px-2 py-1 text-xs;
+}
+
+.button-danger {
+	@apply bg-red-500 hover:bg-red-600 disabled:bg-gray-300;
+}
+ */

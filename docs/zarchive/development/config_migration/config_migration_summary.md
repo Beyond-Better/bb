@@ -63,7 +63,7 @@
    ```typescript
    // Manager Instance
    v1: ConfigManager.getInstance()
-   v2: ConfigManagerV2.getInstance()
+   v2: getConfigManager()
 
    // Config Retrieval
    v1: ConfigManager.fullConfig()

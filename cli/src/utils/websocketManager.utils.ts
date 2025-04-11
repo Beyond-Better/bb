@@ -3,7 +3,7 @@ import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
 //import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 import type { ConversationId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export default class WebsocketManager {
 	private cancellationRequested: boolean = false;
@@ -177,8 +177,8 @@ export default class WebsocketManager {
 
 	private async sendGreeting(): Promise<void> {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-			const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-			const projectId = await getProjectId(projectRoot);
+			const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+			const projectId = await getProjectId(workingRoot);
 			this.ws.send(
 				JSON.stringify({
 					conversationId: this.currentConversationId,

@@ -79,10 +79,14 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
-	const fileList = lines.slice(
-		lines.findIndex((line) => line.includes('<files>')) + 1,
-		lines.findIndex((line) => line.includes('</files>')),
-	);
+	const fileList = (() => {
+		const startIndex = lines.findIndex((line) => line.includes('<files>'));
+		const endIndex = lines.findIndex((line) => line.includes('</files>'));
+		if (startIndex === -1 || endIndex === -1) {
+			return [];
+		}
+		return lines.slice(startIndex + 1, endIndex);
+	})();
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Search Project'),

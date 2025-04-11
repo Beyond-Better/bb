@@ -1,6 +1,8 @@
 import { JSX } from 'preact';
+import type { Signal } from '@preact/signals';
 import { AnimatedNotification } from './AnimatedNotification.tsx';
 import { ApiStatus } from 'shared/types.ts';
+import { ChatStatus } from '../types/chat.types.ts';
 
 type ActionVariant = 'default' | 'danger';
 
@@ -17,15 +19,17 @@ interface InputStatusBarProps {
 	toolName?: string;
 	action?: Action;
 	className?: string;
+	statusState: Signal<ChatStatus>;
 }
 
 export function InputStatusBar({
 	visible,
 	message,
 	status,
-	toolName,
+	toolName: _toolName,
 	action,
 	className = '',
+	statusState: _statusState,
 }: InputStatusBarProps): JSX.Element {
 	const getActionStyles = (variant?: ActionVariant): string => {
 		if (variant === 'danger') {
@@ -108,14 +112,24 @@ export function InputStatusBar({
 					{getStatusIcon()}
 					<div className='flex items-center'>
 						<span className='font-medium'>{message}</span>
+						{
+							/*<span className='font-medium'>
+							{JSON.stringify({
+								isLoading: statusState.value.isLoading,
+								isReady: statusState.value.isReady,
+								apiStatus: statusState.value.apiStatus,
+							})}
+						</span>*/
+						}
 					</div>
 				</div>
 				{action && (
 					<>
-						<div className='h-6 w-px bg-blue-200 dark:bg-blue-700 mx-3' aria-hidden='true' />
+						<div className='h-8 ml-auto mr-2 w-px bg-blue-200 dark:bg-blue-700' aria-hidden='true' />
 						<button
+							type='button'
 							onClick={action.onClick}
-							className={`ml-4 px-3 py-1.5 text-sm rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
+							className={`ml-2 px-3 py-1.5 text-sm rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
 								getActionStyles(action.variant)
 							}`}
 							aria-label={`${action.label} processing`}

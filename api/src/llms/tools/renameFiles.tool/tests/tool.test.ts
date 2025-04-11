@@ -96,13 +96,13 @@ Deno.test({
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length > 0, 'toolResults should not be empty');
-				assert(result.toolResults.length === 1, 'toolResults should have 1 element');
+				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, 'File/Directory renamed: ');
-				assertStringIncludes(firstResult.text, 'source.txt');
-				assertStringIncludes(firstResult.text, 'renamed.txt');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, 'File/Directory renamed: ');
+				assertStringIncludes(secondResult.text, 'source.txt');
+				assertStringIncludes(secondResult.text, 'renamed.txt');
 
 				// Check that the file was renamed
 				assert(!(await exists(sourceFile)), 'Source file should not exist');
@@ -381,7 +381,7 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 elements');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
 
 				assert(!(await exists(sourceFile1)), 'Source file 1 should not exist');
 				assert(!(await exists(sourceFile2)), 'Source file 2 should not exist');

@@ -7,6 +7,7 @@ export interface LLMToolSearchAndReplaceMultilineCodeInput {
 	filePath: string;
 	operations: Array<LLMToolSearchAndReplaceMultilineCodeOperation>;
 	createIfMissing?: boolean;
+	dataSource?: string;
 }
 
 /**

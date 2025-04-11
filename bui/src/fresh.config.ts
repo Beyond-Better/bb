@@ -1,9 +1,9 @@
 import { defineConfig } from '$fresh/server.ts';
 import tailwind from '$fresh/plugins/tailwind.ts';
-import { getProjectId, getProjectRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getAppRuntimeDir } from '../../cli/src/utils/apiStatus.utils.ts';
 import { join } from '@std/path';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 //import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
 //import { authPlugin } from './plugins/auth.plugin.ts';
@@ -12,7 +12,7 @@ import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
 const versionInfo = await getVersionInfo();
 console.log(`Version: ${versionInfo.version}`);
 
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 // Ensure configs are at latest version
 await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
@@ -81,8 +81,8 @@ if (useTls) {
 	let projectId;
 	try {
 		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		projectId = await getProjectId(projectRoot);
+		const workingRoot = await getWorkingRootFromStartDir(startDir);
+		projectId = await getProjectId(workingRoot);
 	} catch (_error) {
 		projectId = undefined;
 	}

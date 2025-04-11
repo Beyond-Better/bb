@@ -3,16 +3,19 @@ import { StdioClientTransport } from 'mcp/client/stdio.js';
 import type { ReadResourceResult } from 'mcp/types.js';
 
 import { logger } from 'shared/logger.ts';
+// No need to import DataSourceForSystemPrompt as we're using a generic format
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import { getVersionInfo } from 'shared/version.ts';
 //import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
-//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { MCPServerConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { GlobalConfig, MCPServerConfig } from 'shared/config/types.ts';
 import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
 
 export class MCPManager {
+	private static instance: MCPManager;
+	private static testInstances = new Map<string, MCPManager>();
 	// Exposed for instance inspection but treated as private
 	servers: Map<string, {
 		server: Client;
@@ -20,13 +23,46 @@ export class MCPManager {
 		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
 		resources?: Array<ResourceMetadata>;
 	}> = new Map();
-	private projectConfig: ProjectConfig;
+	private globalConfig!: GlobalConfig;
 
-	constructor(projectConfig: ProjectConfig) {
-		this.projectConfig = projectConfig;
+	private constructor() {}
+
+	/**
+	 * Gets the singleton instance of the MCPManager
+	 */
+	public static async getInstance(): Promise<MCPManager> {
+		if (!MCPManager.instance) {
+			MCPManager.instance = new MCPManager();
+			await MCPManager.instance.init();
+		}
+		return MCPManager.instance;
+	}
+
+	// used for testing - constructor is private so create instance here
+	public static async getOneUseInstance(): Promise<MCPManager> {
+		logger.warn(
+			`MCPManager: Creating a ONE-TIME instance of mcpManager - USE ONLY FOR TESTING`,
+		);
+		const instance = new MCPManager();
+		await instance.init();
+		return instance;
+	}
+	public static async getTestInstance(testId: string): Promise<MCPManager> {
+		if (!MCPManager.testInstances.has(testId)) {
+			logger.warn(
+				`MCPManager: Creating a TEST instance of mcpManager with ID: ${testId}`,
+			);
+			const instance = new MCPManager();
+			await instance.init();
+			MCPManager.testInstances.set(testId, instance);
+		}
+		return MCPManager.testInstances.get(testId)!;
 	}
 
 	async init(): Promise<MCPManager> {
+		const configManager = await getConfigManager();
+		this.globalConfig = await configManager.getGlobalConfig();
+
 		// Get MCP configurations
 		const mcpServerConfigs = await this.getMCPServerConfigurations();
 		//logger.info(`MCPManager: Loading tools from ${mcpServerConfigs.length} MCP servers`);
@@ -168,6 +204,7 @@ export class MCPManager {
 			serverInfo.resources = response.resources.map((resource) => ({
 				...resource,
 				type: 'mcp',
+				contentType: resource.mimeType?.startsWith('image/') ? 'image' : 'text',
 				mimeType: resource.mimeType || 'text/plain',
 			}));
 			return serverInfo.resources;
@@ -227,6 +264,13 @@ export class MCPManager {
 		}
 	}
 
+	/*
+	 * Returns:
+	 * uri: string
+	 * mimeType: string
+	 * text?: string
+	 * blob?: string (base64)
+	 */
 	async loadResource(
 		serverId: string,
 		resourceUri: string,
@@ -277,7 +321,7 @@ export class MCPManager {
 
 	// deno-lint-ignore require-await
 	private async getMCPServerConfigurations(): Promise<MCPServerConfig[]> {
-		return this.projectConfig.settings.api?.mcpServers || [];
+		return this.globalConfig.api?.mcpServers || [];
 	}
 
 	/**
@@ -332,4 +376,53 @@ export class MCPManager {
 			await this.refreshToolsCache(serverId);
 		}
 	}
+
+	/**
+	 * Get all tools from all MCP servers
+	 * @returns Array of all MCP tools with their metadata
+	 */
+	async getAllTools(): Promise<Array<{ name: string; description: string; server: string }>> {
+		const allTools: Array<{ name: string; description: string; server: string }> = [];
+		const serverIds = await this.getServers();
+
+		for (const serverId of serverIds) {
+			const serverInfo = this.servers.get(serverId);
+			if (!serverInfo) continue;
+
+			const serverName = serverInfo.config.name || serverInfo.config.id;
+
+			// Use cached tools if available, otherwise fetch them
+			let tools;
+			try {
+				tools = serverInfo.tools || await this.listTools(serverId);
+			} catch (error) {
+				logger.warn(`MCPManager: Error getting tools for server ${serverId}:`, error);
+				continue;
+			}
+
+			// Format each tool with simple name, description, and server information
+			for (const tool of tools) {
+				allTools.push({
+					name: `${tool.name}_${serverId}`,
+					description: tool.description || `MCP Tool ${tool.name}`,
+					server: serverName,
+				});
+			}
+		}
+
+		return allTools;
+	}
+}
+
+export default MCPManager;
+
+/**
+ * Gets the global mcpManager instance
+ */
+export async function getMCPManager(): Promise<MCPManager> {
+	const noSingleton = Deno.env.get('BB_NO_SINGLETON_MCP_MANAGER'); // used for testing - don't rely on it for other purposes
+	if (noSingleton) return MCPManager.getOneUseInstance();
+	const testId = Deno.env.get('BB_TEST_INSTANCE_ID'); // used for testing - don't rely on it for other purposes
+	if (testId) return MCPManager.getTestInstance(testId);
+	return MCPManager.getInstance();
 }

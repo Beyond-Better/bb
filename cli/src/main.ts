@@ -1,5 +1,5 @@
 import { Command } from 'cliffy/command';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 import { init } from './commands/init.ts';
 import { apiStart } from './commands/apiStart.ts';
@@ -18,7 +18,7 @@ import { debug } from './commands/debug.ts';
 import { getVersionInfo } from 'shared/version.ts';
 //import { logger } from 'shared/logger.ts';
 
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const globalConfig = await configManager.getGlobalConfig();
 //logger.debug('CLI Config:', globalConfig.cli);
 

@@ -1,6 +1,6 @@
 import { ConfigFetchError, type SupabaseConfig } from '../types/auth.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 /**
  * Validates a Supabase configuration object
@@ -46,7 +46,7 @@ export function validateSupabaseConfig(config: unknown): config is SupabaseConfi
  * Fetches Supabase configuration from the BUI with retries
  */
 export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay: 5000 }): Promise<SupabaseConfig> {
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
 	//logger.info(`AuthConfig: Fetching Supabase config from:`, globalConfig.api.supabaseConfigUrl);
 	//const configUrl = globalConfig.api.supabaseConfigUrl || 'https://localhost:8080/api/v1/config/supabase';

@@ -42,7 +42,7 @@ await configManager.updateProjectConfig(dir, { key: value });
 const configManager = await ConfigManager.getInstance();
 
 // New pattern:
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 ```
 
 ## Summary

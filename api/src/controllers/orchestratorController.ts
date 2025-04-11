@@ -1,3 +1,5 @@
+import { join } from '@std/path';
+import { exists } from '@std/fs';
 //import type InteractionManager from 'api/llms/interactionManager.ts';
 //import { interactionManager } from 'api/llms/interactionManager.ts';
 //import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -14,6 +16,8 @@ import type { EventPayloadMap } from 'shared/eventManager.ts';
 //import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { CompletedTask, ErrorHandlingConfig, LLMRequestParams, Task } from 'api/types/llms.ts';
+import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
+import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	ConversationId,
@@ -25,8 +29,6 @@ import type {
 	ConversationStart,
 	ConversationStatementMetadata,
 	ConversationStats,
-	//FileMetadata,
-	FilesForConversation,
 	ObjectivesData,
 	//TokenUsage,
 	//TokenUsageStats,
@@ -35,13 +37,9 @@ import { ApiStatus } from 'shared/types.ts';
 //import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { isLLMError } from 'api/errors/error.ts';
 //import { createError } from 'api/utils/error.ts';
-
 import { logger } from 'shared/logger.ts';
-//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-//import type { ProjectConfig } from 'shared/config/v2/types.ts';
-import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
-//import { readProjectFileContent } from 'api/utils/fileHandling.ts';
-import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+//import { getConfigManager } from 'shared/config/configManager.ts';
+//import type { ProjectConfig } from 'shared/config/types.ts';
 //import { LLMModelToProvider } from 'api/types/llms.ts';
 import {
 	generateConversationObjective,
@@ -49,11 +47,14 @@ import {
 	generateStatementObjective,
 } from '../utils/conversation.utils.ts';
 //import { generateConversationId } from 'shared/conversationManagement.ts';
-//import { runFormatCommand } from '../utils/project.utils.ts';
+import type {
+	//ResourceForConversation,
+	//ResourceMetadata,
+	ResourcesForConversation,
+	//ResourceRevisionMetadata,
+} from 'api/resources/resourceManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import BaseController from './baseController.ts';
-import { join } from '@std/path';
-import { exists } from '@std/fs';
 
 // Hard-coded conversation token limit (192k to leave room for 8k response)
 const CONVERSATION_TOKEN_LIMIT = 192000;
@@ -161,7 +162,8 @@ class OrchestratorController extends BaseController {
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
 		requestParams?: LLMRequestParams,
-		filesToAttach?: string[], // Array of file IDs
+		resourcesToAttach?: string[], // Array of resource IDs
+		_dataSourceIdForAttach?: string, // Data source to load attached resources from
 	): Promise<ConversationResponse> {
 		this.isCancelled = false;
 		const interaction = this.interactionManager.getInteraction(conversationId) as LLMConversationInteraction;
@@ -257,38 +259,53 @@ class OrchestratorController extends BaseController {
 			throw this.handleLLMError(error as Error, interaction);
 		}
 
-		const attachedFiles: FilesForConversation = [];
+		const attachedResources: ResourcesForConversation = [];
 
-		logger.info(`OrchestratorController: filesToAttach`, { filesToAttach });
-		// Process any attached files
-		if (filesToAttach && filesToAttach.length > 0) {
+		logger.info(`OrchestratorController: resourcesToAttach`, { resourcesToAttach });
+		// Process any attached resources
+		if (resourcesToAttach && resourcesToAttach.length > 0) {
 			//const projectId = this.projectEditor.projectId;
-			const projectPath = await this.projectEditor.getProjectRoot();
+			const projectAdminDir = await this.projectEditor.getProjectAdminDir();
+			const uploadMetadataPath = join(projectAdminDir, '.uploads', '.metadata');
+			logger.error(`OrchestratorController: Attaching resources using ${projectAdminDir}`);
 
-			// Get file metadata and add to conversation
-			for (const fileId of filesToAttach) {
+			// Get resource metadata and add to conversation
+			for (const resourceId of resourcesToAttach) {
 				try {
-					// Find file in project uploads
-					const metadataPath = join(projectPath, '.uploads', '.metadata', `${fileId}.json`);
-					if (await exists(metadataPath)) {
-						const metadataContent = await Deno.readTextFile(metadataPath);
-						const fileMetadata = JSON.parse(metadataContent);
+					// Find resource in project uploads
+					const uploadMetadataResource = join(uploadMetadataPath, `${resourceId}.json`);
+					if (await exists(uploadMetadataResource)) {
+						const metadataContent = await Deno.readTextFile(uploadMetadataResource);
+						const resourceMetadata = JSON.parse(metadataContent);
 
-						// Get the full file path
-						//const filePath = join(projectPath, fileMetadata.relativePath);
+						// Get the full resource path
+						//const resourcePath = join(projectAdminDir, resourceMetadata.relativePath);
 
-						// Prepare file for conversation
-						attachedFiles.push(
-							...await this.projectEditor.prepareFilesForConversation([fileMetadata.relativePath]),
+						// Prepare resource for conversation
+						logger.info(
+							`OrchestratorController: Adding to attachedResources: ${resourceMetadata.relativePath}`,
+						);
+						const uploadsDataSource = this.projectEditor.projectData.getUploadsDataSource();
+						const uploadUri = uploadsDataSource.getUriForResource(
+							`file:./${resourceMetadata.relativePath}`,
+						);
+						attachedResources.push(
+							...await this.projectEditor.prepareResourcesForConversation(
+								[uploadUri],
+							),
 						);
 					}
 				} catch (error) {
-					logger.error(`Failed to add file ${fileId} to conversation: ${(error as Error).message}`);
-					// Continue with other files
+					logger.error(
+						`OrchestratorController: Failed to add resource ${resourceId} to conversation: ${
+							(error as Error).message
+						}`,
+					);
+					// Continue with other resources
 				}
 			}
 		}
-		//logger.info(`OrchestratorController: attachedFiles`, { attachedFiles });
+		//logger.info(`OrchestratorController: attachedResources`, { attachedResources });
 
 		await this.projectEditor.updateProjectInfo();
 
@@ -328,7 +345,7 @@ class OrchestratorController extends BaseController {
 			...requestParams,
 			// //temperature: 0.7,
 			// //maxTokens: 1000,
-			// extendedThinking: this.projectConfig.settings.api?.extendedThinking ?? {
+			// extendedThinking: this.projectConfig.api?.extendedThinking ?? {
 			// 	enabled: true,
 			// 	budgetTokens: 4000,
 			// },
@@ -336,7 +353,7 @@ class OrchestratorController extends BaseController {
 		logger.info(`OrchestratorController: Calling conversation.converse with speakOptions: `, speakOptions);
 
 		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
+		const maxTurns = options.maxTurns ?? this.projectConfig.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 		try {
 			logger.info(
@@ -368,7 +385,7 @@ class OrchestratorController extends BaseController {
 					},
 				},
 				resources: { // Add this section
-					files_active: interaction.getFiles().size,
+					resources_active: interaction.getResources().size,
 				},
 				//tools: { // see formatToolObjectivesAndStats for example of toolStats
 				//	recent: [
@@ -378,7 +395,7 @@ class OrchestratorController extends BaseController {
 				//},
 			};
 
-			currentResponse = await interaction.converse(statement, null, metadata, speakOptions, attachedFiles);
+			currentResponse = await interaction.converse(statement, null, metadata, speakOptions, attachedResources);
 
 			this.emitStatus(interaction.id, ApiStatus.API_BUSY);
 			logger.info('OrchestratorController: Received response from LLM');
@@ -434,7 +451,7 @@ class OrchestratorController extends BaseController {
 					}
 
 					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
-						logger.info('OrchestratorController: Handling tool', toolUse);
+						//logger.info('OrchestratorController: Handling tool', toolUse);
 						try {
 							this.emitStatus(interaction.id, ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
 
@@ -562,7 +579,7 @@ class OrchestratorController extends BaseController {
 								},
 							},
 							resources: { // Add this section
-								files_active: interaction.getFiles().size,
+								resources_active: interaction.getResources().size,
 							},
 						};
 
@@ -620,8 +637,6 @@ class OrchestratorController extends BaseController {
 			}
 		}
 		logger.warn(`OrchestratorController: LOOP: DONE turns ${loopTurnCount}`);
-
-		//if (this.formatCommand) await runFormatCommand(this.projectRoot, this.formatCommand);
 
 		// this.eventManager.emit(
 		// 	'projectEditor:conversationError',

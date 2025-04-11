@@ -1,10 +1,11 @@
 import { forwardRef } from 'preact/compat';
-import type { Project } from 'shared/types/project.ts';
+import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import { DataSourceSummary } from '../DataSourceSummary.tsx';
 
 interface ProjectTriggerProps {
 	isCollapsed: boolean;
 	isOpen: boolean;
-	project: Project | undefined;
+	project: ClientProjectWithConfigSources | undefined;
 	onClick: () => void;
 	className?: string;
 }
@@ -19,10 +20,11 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 	if (isCollapsed) {
 		return (
 			<button
+				type='button'
 				ref={ref}
 				onClick={onClick}
 				className={`w-full p-2 flex justify-center hover:bg-gray-50 dark:hover:bg-gray-700 relative border border-gray-300 dark:border-gray-600 rounded-lg ${className}`}
-				title={project?.name || 'Select Project'}
+				title={project?.data?.name || 'Select Project'}
 				aria-expanded={isOpen}
 			>
 				<svg
@@ -45,6 +47,7 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 
 	return (
 		<button
+			type='button'
 			ref={ref}
 			onClick={onClick}
 			className={`flex items-center justify-between w-full gap-2 px-4 py-2 ${
@@ -75,10 +78,10 @@ export const ProjectTrigger = forwardRef<HTMLButtonElement, ProjectTriggerProps>
 						? (
 							<div className='flex flex-col'>
 								<span className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
-									{project.name}
+									{project.data.name}
 								</span>
 								<span className='text-xs text-gray-500 dark:text-gray-400 truncate'>
-									{project.path}
+									<DataSourceSummary project={project} className='max-w-full' />
 								</span>
 							</div>
 						)

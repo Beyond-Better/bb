@@ -7,8 +7,8 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -190,6 +190,11 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSource: {
+					type: 'string',
+					description:
+						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				filePath: {
 					type: 'string',
 					description: 'The path of the file to be modified or created',
@@ -513,21 +518,55 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { filePath, operations, createIfMissing = true } = toolInput as {
+		const { filePath, operations, createIfMissing = true, dataSource: dataSourceId = undefined } = toolInput as {
 			filePath: string;
 			operations: Array<{ search: string; replace: string; replaceAll?: boolean; language?: string }>;
 			createIfMissing?: boolean;
+			dataSource?: string;
 		};
 
-		if (!await isPathWithinProject(projectEditor.projectRoot, filePath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the project directory`, {
-				name: 'search-and-replace',
-				filePath,
-				operation: 'search-replace',
-			} as FileHandlingErrorOptions);
+		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDataSource) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
 		}
 
-		const fullFilePath = join(projectEditor.projectRoot, filePath);
+		const dataSourceToUse = dataSources[0] || primaryDataSource;
+		const dataSourceToUseId = dataSourceToUse.id;
+		if (!dataSourceToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dataSourceToUse is type filesystem
+
+		if (!await isPathWithinDataSource(dataSourceRoot, filePath)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${filePath} is outside the data source directory`,
+				{
+					name: 'search-and-replace',
+					filePath,
+					operation: 'search-replace',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		const fullFilePath = join(dataSourceRoot, filePath);
 		logger.info(`LLMToolSearchAndReplaceCode: Handling search and replace for file: ${fullFilePath}`);
 
 		try {
@@ -620,15 +659,20 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
+					dataSourceRoot,
 					filePath,
 					JSON.stringify(operations),
 				);
 
-				const toolResults = toolWarning;
-				const toolResponse = isNewFile
+				const dataSourceStatus = notFound.length > 0
+					? `Could not find data source for: [${notFound.join(', ')}]`
+					: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+
+				const toolResults = `${dataSourceStatus}\n${toolWarning}`;
+				const toolResponse = dataSourceStatus + '\n\n' + isNewFile
 					? `File created and search and replace operations applied successfully to file: ${filePath}`
 					: `Search and replace operations applied successfully to file: ${filePath}`;
-				const bbResponse = `BB applied search and replace operations: ${toolWarning}`;
+				const bbResponse = `BB applied search and replace operations: ${toolWarning}\n${dataSourceStatus}`;
 
 				return { toolResults, toolResponse, bbResponse };
 			} else {
