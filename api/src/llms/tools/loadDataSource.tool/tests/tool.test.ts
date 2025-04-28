@@ -1,8 +1,11 @@
 import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
+import { join } from '@std/path';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type { LLMToolLoadDatasourceResponseData } from '../types.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
+import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
 // Type guard for response validation
 export function isLoadDatasourceResponse(
@@ -16,9 +19,40 @@ export function isLoadDatasourceResponse(
 		typeof data === 'object' &&
 		'resources' in data &&
 		Array.isArray((data as { resources: unknown }).resources) &&
-		'dataSourceId' in data &&
-		'dataSourceType' in data
+		'dataSource' in data &&
+		data.dataSource !== null &&
+		typeof data.dataSource === 'object' &&
+		'dsConnectionId' in data.dataSource &&
+		typeof data.dataSource.dsConnectionId === 'string' &&
+		'dsConnectionName' in data.dataSource &&
+		typeof data.dataSource.dsConnectionName === 'string' &&
+		'dsProviderType' in data.dataSource &&
+		typeof data.dataSource.dsProviderType === 'string'
 	);
+}
+
+async function createTestFiles(testProjectRoot: string): Promise<void> {
+	// Create directory structure
+	const subDir = join(testProjectRoot, 'sub-dir');
+	const folder1 = join(testProjectRoot, 'folder1');
+
+	// Ensure directories exist
+	await Deno.mkdir(subDir, { recursive: true });
+	await Deno.mkdir(folder1, { recursive: true });
+
+	// Create test files with content
+	await Deno.writeTextFile(
+		join(testProjectRoot, 'file1.txt'),
+		'This is test file 1 content.',
+	);
+
+	await Deno.writeTextFile(
+		join(subDir, 'file2.txt'),
+		'This is test file 2 content in a subdirectory.',
+	);
+
+	// Return to allow chaining if needed
+	return;
 }
 
 Deno.test({
@@ -27,57 +61,30 @@ Deno.test({
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 
+			// Create actual files instead of mocking
+			await createTestFiles(testProjectRoot);
+
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('load_datasource');
 			assert(tool, 'Failed to get tool');
 
-			// Mock the getDataSource method
-			const mockDataSource = DataSource.createFileSystem('test 5', testProjectRoot, {
-				id: 'ds-xyz1234',
-				capabilities: ['read', 'write', 'list', 'search'],
-			});
-
-			projectEditor.projectData.getDataSource = () => mockDataSource;
-
-			// Mock the resourceManager.listFilesystem method
-			projectEditor.resourceManager.listFilesystem = async () => ({
-				resources: [
-					{
-						accessMethod: 'bb',
-						name: 'file1.txt',
-						uri: 'bb-filesystem+test-5+file:./file1.txt',
-						type: 'file',
-						mimeType: 'text/plain',
-						uriTerm: 'file1.txt',
-						size: 100,
-						lastModified: new Date(),
-					},
-					{
-						accessMethod: 'bb',
-						name: 'file2.txt',
-						uri: 'bb-filesystem+test-5+file:./sub-dir/file2.txt',
-						type: 'file',
-						mimeType: 'text/plain',
-						uriTerm: 'sub-dir/file2.txt',
-						size: 150,
-						lastModified: new Date(),
-					},
-					{
-						accessMethod: 'bb',
-						name: 'folder1',
-						uri: 'bb-filesystem+test-5+file:./folder1',
-						type: 'file',
-						mimeType: 'application/directory',
-						uriTerm: 'folder1',
-					},
-				],
-				pagination: {
-					totalCount: 3,
+			// Mock the getDsConnection method
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'test 5',
+				testProjectRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-xyz1234',
+					isPrimary: true,
+					//capabilities: ['read', 'write', 'list', 'search'],
 				},
-				dataSourceId: 'jdj934tdkfg',
-				dataSourceName: 'test 5',
-				dataSourceType: 'filesystem',
-			});
+			);
+			const accessor = await dsConnection.getResourceAccessor();
+
+			//projectEditor.projectData.initializeDsConnections([dsConnection]);
+			projectEditor.projectData.setDsConnections([dsConnection]);
+			//projectEditor.projectData.getPrimaryDsConnection = () => dsConnection as DataSourceConnection;
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
@@ -85,14 +92,15 @@ Deno.test({
 				toolName: 'load_datasource',
 				toolInput: {
 					dataSourceName: 'filesystem-test',
+					depth: 2,
 				},
 			};
 
 			const initialConversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
-			// console.log('List resources from filesystem - bbResponse:', result.bbResponse);
-			// console.log('List resources from filesystem - toolResponse:', result.toolResponse);
-			// console.log('List resources from filesystem - toolResults:', result.toolResults);
+			console.log('List resources from filesystem - bbResponse:', result.bbResponse);
+			console.log('List resources from filesystem - toolResponse:', result.toolResponse);
+			console.log('List resources from filesystem - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -109,26 +117,27 @@ Deno.test({
 			if (isLoadDatasourceResponse(result.bbResponse)) {
 				assertEquals(
 					result.bbResponse.data.resources.length,
-					3,
-					'Should have 3 resources',
+					5,
+					'Should have 5 resources',
 				);
 
 				//assertEquals(result.bbResponse.data.dataSourceId, 'filesystem-test');
-				assertEquals(result.bbResponse.data.dataSourceName, 'test 5');
-				assertEquals(result.bbResponse.data.dataSourceType, 'filesystem');
-				assertEquals(result.bbResponse.data.uriTemplate, 'bb-filesystem+test-5+file:./{path}');
+				assertEquals(result.bbResponse.data.dataSource.dsConnectionName, 'test 5');
+				assertEquals(result.bbResponse.data.dataSource.dsProviderType, 'filesystem');
+				//assertEquals(result.bbResponse.data.uriTemplate, 'bb+filesystem+test-5+file:./{path}');
+				assertEquals(result.bbResponse.data.uriTemplate, 'file:./{path}');
 
 				const resourceNames = result.bbResponse.data.resources.map((r) => r.name);
 				assert(
-					resourceNames.includes('file1.txt'),
+					resourceNames.includes('File: file1.txt'),
 					'Should include file1.txt',
 				);
 				assert(
-					resourceNames.includes('file2.txt'),
+					resourceNames.includes('File: sub-dir/file2.txt'),
 					'Should include file2.txt',
 				);
 				assert(
-					resourceNames.includes('folder1'),
+					resourceNames.includes('Directory: folder1'),
 					'Should include folder1',
 				);
 
@@ -147,7 +156,7 @@ Deno.test({
 				);
 			}
 
-			assertStringIncludes(result.toolResponse, 'Retrieved 3 resources');
+			assertStringIncludes(result.toolResponse, 'Retrieved 5 resources');
 
 			// Check toolResults
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -158,7 +167,7 @@ Deno.test({
 			assertStringIncludes(firstResult.text, 'Data source: ds-xyz1234');
 			assertStringIncludes(firstResult.text, 'Name: test 5');
 			assertStringIncludes(firstResult.text, 'Type: filesystem');
-			assertStringIncludes(firstResult.text, 'Resource count: 3');
+			assertStringIncludes(firstResult.text, 'Resource count: 5');
 
 			const secondResult = result.toolResults[1];
 			assert(secondResult.type === 'text', 'Second result should be of type text');
@@ -181,8 +190,8 @@ Deno.test({
 			const tool = await toolManager.getTool('load_datasource');
 			assert(tool, 'Failed to get tool');
 
-			// Mock getDataSource to return null
-			projectEditor.projectData.getDataSource = () => undefined;
+			// Mock getDsConnection to return null
+			projectEditor.projectData.getPrimaryDsConnection = () => undefined;
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },

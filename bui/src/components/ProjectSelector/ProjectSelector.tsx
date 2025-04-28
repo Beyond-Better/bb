@@ -148,13 +148,13 @@ export function ProjectSelector({
 
 								// Check primary data source
 								if (
-									project.data.primaryDataSource?.config.dataSourceRoot?.toString().toLowerCase()
+									project.data.primaryDsConnection?.config.dataSourceRoot?.toString().toLowerCase()
 										.includes(query)
 								) return true;
 
 								// Check other data sources
 								if (
-									project.data.dataSources.some((ds) =>
+									project.data.dsConnections.some((ds) =>
 										ds.name.toLowerCase().includes(query) ||
 										(ds.config.dataSourceRoot?.toString().toLowerCase().includes(query))
 									)

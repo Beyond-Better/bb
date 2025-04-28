@@ -1,19 +1,19 @@
 import { computed, type Signal, signal } from '@preact/signals';
 import type { AppState } from './useAppState.ts';
 import type {
-	ClientDataSource,
-	ClientProjectData,
+	ClientDataSourceConnection,
+	//ClientProjectData,
 	ClientProjectWithConfigForUpdates,
 	ClientProjectWithConfigSources,
-	ProjectWithSources,
+	//ProjectWithSources,
 } from 'shared/types/project.ts';
 //import { toProject } from 'shared/types/project.ts';
 import { MCPServerConfig } from 'shared/config/types.ts';
-import type { DataSourceTypeInfo } from 'api/resources/dataSourceRegistry.ts';
+import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 
 export interface ProjectState {
 	projects: ClientProjectWithConfigSources[];
-	dataSourceTypes: DataSourceTypeInfo[]; // Add data source types
+	dsProviders: DataSourceProviderInfo[]; // Add data source types
 	mcpServers: MCPServerConfig[];
 	loading: boolean;
 	error: string | null;
@@ -21,7 +21,7 @@ export interface ProjectState {
 
 const initialState: ProjectState = {
 	projects: [],
-	dataSourceTypes: [], // Initialize empty data source types array
+	dsProviders: [], // Initialize empty data source types array
 	mcpServers: [], // Initialize empty MCP servers array
 	loading: false,
 	error: null,
@@ -75,7 +75,7 @@ export function useProjectState(appState: Signal<AppState>) {
 
 			// Create both promises simultaneously
 			const projectsPromise = apiClient?.listProjects();
-			const datasourceTypesPromise = apiClient?.getDataSourceTypes(); //projectState.value.mcpServers
+			const datasourceTypesPromise = apiClient?.getDsProviders(); //projectState.value.mcpServers
 			const globalConfigPromise = apiClient?.getGlobalConfig();
 
 			// Wait for both to complete
@@ -103,10 +103,10 @@ export function useProjectState(appState: Signal<AppState>) {
 			}
 
 			if (datasourceTypesResponse) {
-				//console.log('useProjectState: setting dataSourceTypes', { dataSourceTypes: datasourceTypesResponse.dataSourceTypes });
+				//console.log('useProjectState: setting dsProviders', { dsProviders: datasourceTypesResponse.dsProviders });
 				projectState.value = {
 					...projectState.value,
-					dataSourceTypes: datasourceTypesResponse.dataSourceTypes,
+					dsProviders: datasourceTypesResponse.dsProviders,
 				};
 			}
 
@@ -259,17 +259,17 @@ export function useProjectState(appState: Signal<AppState>) {
 		if (projectId && appState.value.apiClient) {
 			// This won't block the function from returning
 			//console.log(`useProjectState: setSelectedProject: ${projectId}`);
-			appState.value.apiClient.getDataSourceTypesForProject(projectId)
+			appState.value.apiClient.getDsProvidersForProject(projectId)
 				.then((response) => {
-					//console.log(`useProjectState: setSelectedProject: ${projectId} - got dataSourceTypes`, {
-					//	dataSourceTypes: response?.dataSourceTypes,
+					//console.log(`useProjectState: setSelectedProject: ${projectId} - got dsProviders`, {
+					//	dsProviders: response?.dsProviders,
 					//});
 					if (response) {
 						// Only update if this is still the selected project (user might have changed)
 						if (appState.value.projectId === projectId) {
 							projectState.value = {
 								...projectState.value,
-								dataSourceTypes: response.dataSourceTypes,
+								dsProviders: response.dsProviders,
 							};
 						}
 					}
@@ -280,15 +280,15 @@ export function useProjectState(appState: Signal<AppState>) {
 				});
 		} else if (!projectId) {
 			// If no project is selected, reset to all data source types
-			appState.value.apiClient?.getDataSourceTypes()
+			appState.value.apiClient?.getDsProviders()
 				.then((response) => {
 					//console.log(`useProjectState: setSelectedProject: no-project`, {
-					//	dataSourceTypes: response?.dataSourceTypes,
+					//	dsProviders: response?.dsProviders,
 					//});
 					if (response) {
 						projectState.value = {
 							...projectState.value,
-							dataSourceTypes: response.dataSourceTypes,
+							dsProviders: response.dsProviders,
 						};
 					}
 				})
@@ -321,8 +321,8 @@ export function useProjectState(appState: Signal<AppState>) {
 	//}
 
 	// Helper function to get available data source types
-	function getDataSourceTypes(): DataSourceTypeInfo[] {
-		return projectState.value.dataSourceTypes;
+	function getDsProviders(): DataSourceProviderInfo[] {
+		return projectState.value.dsProviders;
 	}
 	// Helper function to get available data source types
 	function getMCPServers(): MCPServerConfig[] {
@@ -330,13 +330,13 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Data source management methods
-	async function addDataSource(projectId: string, dataSource: ClientDataSource): Promise<void> {
+	async function addDsConnection(projectId: string, dsConnection: ClientDataSourceConnection): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
 		try {
 			projectState.value = { ...projectState.value, loading: true, error: null };
-			const response = await apiClient.addDataSource(projectId, dataSource);
+			const response = await apiClient.addDsConnection(projectId, dsConnection);
 
 			if (response) {
 				// Update the projects list with the new data
@@ -359,17 +359,17 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Update an existing data source
-	async function updateDataSource(
+	async function updateDsConnection(
 		projectId: string,
-		dataSourceId: string,
-		updates: Partial<ClientDataSource>,
+		dsConnectionId: string,
+		updates: Partial<ClientDataSourceConnection>,
 	): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
 		try {
 			projectState.value = { ...projectState.value, loading: true, error: null };
-			const response = await apiClient.updateDataSource(projectId, dataSourceId, updates);
+			const response = await apiClient.updateDsConnection(projectId, dsConnectionId, updates);
 
 			if (response) {
 				// Update the projects list with the new data
@@ -392,13 +392,13 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Remove a data source
-	async function removeDataSource(projectId: string, dataSourceId: string): Promise<void> {
+	async function removeDsConnection(projectId: string, dsConnectionId: string): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
 		try {
 			projectState.value = { ...projectState.value, loading: true, error: null };
-			const response = await apiClient.removeDataSource(projectId, dataSourceId);
+			const response = await apiClient.removeDsConnection(projectId, dsConnectionId);
 
 			if (response) {
 				// Update the projects list with the new data
@@ -421,13 +421,13 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Set a data source as primary
-	async function setPrimaryDataSource(projectId: string, dataSourceId: string): Promise<void> {
+	async function setPrimaryDsConnection(projectId: string, dsConnectionId: string): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
 		try {
 			projectState.value = { ...projectState.value, loading: true, error: null };
-			const response = await apiClient.setPrimaryDataSource(projectId, dataSourceId);
+			const response = await apiClient.setPrimaryDsConnection(projectId, dsConnectionId);
 
 			if (response) {
 				// Update the projects list with the new data
@@ -502,12 +502,13 @@ export function useProjectState(appState: Signal<AppState>) {
 		//getSelectedProject,
 		//getSelectedProjectConfig,
 		//getSelectedProjectData,
-		getDataSourceTypes,
+		getDsProviders,
+		getMCPServers,
 		// Data source management methods
-		addDataSource,
-		updateDataSource,
-		removeDataSource,
-		setPrimaryDataSource,
+		addDsConnection,
+		updateDsConnection,
+		removeDsConnection,
+		setPrimaryDsConnection,
 		//updateProjectStats,
 	};
 }

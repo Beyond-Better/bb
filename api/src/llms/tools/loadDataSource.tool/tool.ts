@@ -8,8 +8,7 @@ import {
 	formatLogEntryToolResult as formatLogEntryToolResultConsole,
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
-import type { PaginationInfo, ResourceListItem } from 'api/resources/resourceManager.ts';
-import { getMCPManager } from 'api/mcp/mcpManager.ts';
+//import type { PaginationInfo, ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { LLMToolLoadDatasourceInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
@@ -24,7 +23,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSourceName: {
+				dataSourceId: {
 					type: 'string',
 					description:
 						'The name of the data source to retrieve resources from. Data sources are identified by their Name (e.g., "local", "notion-work") and ID (e.g., "xyz123", "mcp-supabase").',
@@ -47,7 +46,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 					description: 'Optional token for pagination when retrieving large resource lists.',
 				},
 			},
-			required: ['dataSourceName'],
+			required: ['dataSourceId'],
 		};
 	}
 
@@ -75,140 +74,72 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		const { toolInput } = toolUse;
 		logger.info(`LLMToolLoadDatasource: runTool input: `, { toolInput });
 		const {
-			dataSourceName,
+			dataSourceId,
 			path,
 			depth = 1,
 			pageSize,
 			pageToken,
 		} = toolInput as LLMToolLoadDatasourceInput;
 
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
-			dataSourceName ? [dataSourceName] : undefined,
+			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `Data source not found`, {
 				name: 'data-source',
-				dataSourceIds: dataSourceName ? [dataSourceName] : undefined,
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToLoad = dataSources[0] || primaryDataSource;
-		const dataSourceToLoadId = dataSourceToLoad.id;
-		if (!dataSourceToLoadId) {
+		const dsConnectionToLoad = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToLoadId = dsConnectionToLoad.id;
+		if (!dsConnectionToLoadId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
-				dataSourceIds: dataSourceName ? [dataSourceName] : undefined,
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
 		try {
 			// Check if data source supports listing
-			if (!dataSourceToLoad.canList()) {
+			if (!dsConnectionToLoad.provider.hasCapability('list')) {
 				throw createError(
 					ErrorType.DataSourceHandling,
-					`Data source does not support listing: ${dataSourceToLoadId}`,
+					`Data source does not support listing: ${dsConnectionToLoadId}`,
 					{
 						name: 'load-datasource',
-						dataSourceIds: [dataSourceToLoadId],
+						dataSourceIds: [dsConnectionToLoadId],
 					} as DataSourceHandlingErrorOptions,
 				);
 			}
 
-			let resources: ResourceListItem[] = [];
-			let uriTemplate: string | undefined;
-			let uriExpression: string | undefined;
-			let pagination: PaginationInfo | undefined;
+			const resourceAccessor = await dsConnectionToLoad.getResourceAccessor();
+			const resourcesResult = await resourceAccessor.listResources(
+				{
+					path,
+					depth,
+					pageSize,
+					pageToken,
+				},
+			);
 
-			// Handle different types of data sources
-			if (dataSourceToLoad.accessMethod === 'mcp') {
-				// For MCP data sources, delegate to MCPManager
-				if (!dataSourceToLoad.type) {
-					logger.info(`LLMToolLoadDatasource: dataSourceToLoad: `, { dataSourceToLoad });
-					throw createError(
-						ErrorType.DataSourceHandling,
-						`MCP data source missing server ID: ${dataSourceToLoadId}`,
-						{
-							name: 'load-datasource',
-							dataSourceIds: [dataSourceToLoadId],
-						} as DataSourceHandlingErrorOptions,
-					);
-				}
-
-				const mcpServerId = dataSourceToLoad.type;
-				const mcpManager = await getMCPManager();
-				const mcpResources = await mcpManager.listResources(mcpServerId);
-
-				resources = mcpResources.map((resource) => ({
-					name: resource.name,
-					uri: resource.uri,
-					uriTemplate: resource.uriTemplate,
-					type: resource.type || 'mcp',
-					accessMethod: 'mcp',
-					mimeType: resource.mimeType || 'text/plain',
-					description: resource.description,
-				}));
-			} else {
-				// For bb data sources (filesystem, etc.), use ResourceManager
-				// Note: These methods don't exist yet and need to be implemented
-				if (dataSourceToLoad.type === 'filesystem') {
-					const dataSourceToLoadRoot = dataSourceToLoad.getDataSourceRoot();
-					if (!dataSourceToLoadRoot) {
-						throw createError(
-							ErrorType.DataSourceHandling,
-							`Data source has no root path: ${dataSourceToLoadId}`,
-							{
-								name: 'load-datasource',
-								dataSourceIds: [dataSourceToLoadId],
-							} as DataSourceHandlingErrorOptions,
-						);
-					}
-
-					// This is a placeholder - the actual implementation doesn't exist yet
-					const filesystemResult = await projectEditor.resourceManager.listFilesystem(
-						dataSourceToLoadRoot,
-						{
-							path,
-							depth,
-							pageSize,
-							pageToken,
-						},
-					);
-
-					resources = filesystemResult.resources;
-					uriTemplate = filesystemResult.uriTemplate || dataSourceToLoad.getUriForResource('file:./{path}');
-					uriExpression = 'path';
-					pagination = filesystemResult.pagination;
-				} else {
-					// This is a placeholder - the actual implementation doesn't exist yet
-					const resourcesResult = await projectEditor.resourceManager.listResources(
-						dataSourceToLoadId,
-						{
-							path,
-							depth,
-							pageSize,
-							pageToken,
-						},
-					);
-
-					resources = resourcesResult.resources;
-					uriTemplate = resourcesResult.uriTemplate || dataSourceToLoad.getUriForResource('file:./{path}');
-					uriExpression = 'path';
-					pagination = resourcesResult.pagination;
-				}
-			}
+			const resources = resourcesResult.resources;
+			const uriTemplate = resourcesResult.uriTemplate || dsConnectionToLoad.getUriForResource('file:./{path}');
+			const uriExpression = 'path';
+			const pagination = resourcesResult.pagination;
 
 			// Generate the result content
 			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToLoad.id}\nName: ${dataSourceToLoad.name}\nType: ${dataSourceToLoad.type}\nResource count: ${resources.length}`;
+				: `Data source: ${dsConnectionToLoad.id}\nName: ${dsConnectionToLoad.name}\nType: ${dsConnectionToLoad.providerType}\nResource count: ${resources.length}`;
 
 			// Add header information
 			toolResultContentParts.push({
 				'type': 'text',
-				'text': dataSourceStatus,
+				'text': dsConnectionStatus,
 			});
 
 			// Add resources
@@ -218,7 +149,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 					let entry = `- ${uriExpression ? uriExpression : 'uri'}: "${r.uriTerm || r.uri || r.uriTemplate}"`;
 					if (r.uriTemplate) entry += `\n  uriTemplate: "${r.uriTemplate}"`;
 					// Add each defined metadata property with proper indentation
-					if (r.type) entry += `\n  type: "${r.type}"`;
+					if (r.type) entry += `\n  type: "${r.extraType || r.type}"`;
 					if (r.mimeType) entry += `\n  mimeType: "${r.mimeType}"`;
 					if (r.size !== undefined && r.size !== null) entry += `\n  size: ${r.size}`;
 					if (r.description) entry += `\n  description: "${r.description}"`;
@@ -253,15 +184,17 @@ export default class LLMToolLoadDatasource extends LLMTool {
 			}
 
 			const toolResults = toolResultContentParts;
-			const toolResponse = `Retrieved ${resources.length} resources from data source: ${dataSourceToLoadId}`;
+			const toolResponse = `Retrieved ${resources.length} resources from data source: ${dsConnectionToLoadId}`;
 			const bbResponse = {
 				data: {
 					resources,
 					uriTemplate,
 					pagination,
-					dataSourceId: dataSourceToLoadId,
-					dataSourceName: dataSourceToLoad.name,
-					dataSourceType: dataSourceToLoad.type,
+					dataSource: {
+						dsConnectionId: dsConnectionToLoadId,
+						dsConnectionName: dsConnectionToLoad.name,
+						dsProviderType: dsConnectionToLoad.providerType,
+					},
 				},
 			};
 

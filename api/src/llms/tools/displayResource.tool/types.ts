@@ -1,4 +1,5 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface ResourceMetadata {
 	name: string;
@@ -21,13 +22,17 @@ export interface DisplayResult {
 //}
 
 export interface LLMToolDisplayResourceInput {
+	dataSourceId?: string;
 	resourcePath: string;
-	dataSource?: string;
 }
 
 //export type LLMToolDisplayResourceResultData = DisplayResult;
 export interface LLMToolDisplayResourceResultData extends DisplayResult {
-	dataSourceId?: string;
+	dataSource: {
+		dsConnectionId: string;
+		dsConnectionName: string;
+		dsProviderType: DataSourceProviderType;
+	};
 }
 
 export interface LLMToolDisplayResourceResponseData {

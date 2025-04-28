@@ -1,4 +1,5 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface OutputTruncationLines {
 	head?: number;
@@ -13,11 +14,11 @@ export interface OutputTruncationConfig {
 }
 
 export interface LLMToolRunCommandInput {
+	dataSourceId?: string;
 	command: string;
 	args?: string[];
 	cwd?: string;
 	outputTruncation?: OutputTruncationConfig;
-	dataSource?: string;
 }
 
 export interface LLMToolRunCommandResponseData {
@@ -37,7 +38,12 @@ export interface LLMToolRunCommandResponseData {
 				keptLines: number;
 			};
 		};
-		dataSourceId: string;
+
+		dataSource: {
+			dsConnectionId: string;
+			dsConnectionName: string;
+			dsProviderType: DataSourceProviderType;
+		};
 	};
 }
 

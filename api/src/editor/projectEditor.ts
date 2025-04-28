@@ -1,7 +1,5 @@
 import { join } from '@std/path';
-//import { getContentType } from 'api/utils/contentTypes.ts';
 
-import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
 //import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
@@ -15,14 +13,17 @@ import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
-import type { DataSource, DataSourceForSystemPrompt } from 'api/resources/dataSource.ts';
+import type {
+	DataSourceConnection,
+	DataSourceConnectionSystemPrompt,
+} from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
 	ResourceForConversation,
 	ResourceRevisionMetadata,
 	//ResourceMetadata,
 	ResourcesForConversation,
-} from 'api/resources/resourceManager.ts';
+} from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
@@ -53,7 +54,7 @@ class ProjectEditor {
 	public projectId: string;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
-	public changedFiles: Set<string> = new Set();
+	public changedResources: Set<string> = new Set();
 	public changeContents: Map<string, string> = new Map();
 	private _projectInfo: ProjectInfo = {
 		projectId: '',
@@ -132,14 +133,14 @@ class ProjectEditor {
 		return this;
 	}
 
-	public dataSource(id: string): DataSource | undefined {
-		return this.projectData.getDataSource(id);
+	public dsConnection(id: string): DataSourceConnection | undefined {
+		return this.projectData.getDsConnection(id);
 	}
-	get dataSources(): Array<DataSource> {
-		return this.projectData.getAllDataSources();
+	get dsConnections(): Array<DataSourceConnection> {
+		return this.projectData.getAllDsConnections();
 	}
-	get dataSourcesForSystemPrompt(): Array<DataSourceForSystemPrompt> {
-		return this.projectData.getDataSourcesForSystemPrompt();
+	get dsConnectionsForSystemPrompt(): Array<DataSourceConnectionSystemPrompt> {
+		return this.projectData.getDsConnectionsForSystemPrompt();
 	}
 
 	// [TODO] this needs to be all tools for mcp servers enabled for the project, not ALL mcp servers
@@ -147,32 +148,31 @@ class ProjectEditor {
 		return await this.mcpManager.getAllTools();
 	}
 
-	public getDataSourceForPrefix(uriPrefix: string): DataSource | undefined {
-		return this.projectData.getDataSourceForPrefix(uriPrefix);
+	public getDsConnectionForPrefix(uriPrefix: string): DataSourceConnection | undefined {
+		return this.projectData.getDsConnectionForPrefix(uriPrefix);
 	}
 
-	get primaryDataSource(): DataSource | undefined {
-		return this.projectData.getPrimaryDataSource();
+	get primaryDsConnection(): DataSourceConnection | undefined {
+		return this.projectData.getPrimaryDsConnection();
 	}
-	get primaryDataSourceRoot(): string | undefined {
-		return this.projectData.getPrimaryDataSource()?.getDataSourceRoot();
-	}
-
-	public async isPathWithinDataSource(filePath: string): Promise<boolean> {
-		logger.info(`ProjectEditor: isPathWithinDataSource for ${this.primaryDataSourceRoot} - ${filePath}`);
-		if (!this.primaryDataSourceRoot) throw new Error(`Path Within DataSource Failed: No primary data source found`);
-		return await isPathWithinDataSource(this.primaryDataSourceRoot, filePath);
+	get primaryDsConnectionRoot(): string | undefined {
+		return this.projectData.getPrimaryDsConnection()?.getDataSourceRoot();
 	}
 
-	public async resolveDataSourceFilePath(filePath: string): Promise<string | undefined> {
-		//logger.info(`ProjectEditor: resolveDataSourceFilePath for ${this.projectId} - ${filePath}`);
-		if (!this.primaryDataSourceRoot) {
-			throw new Error(`Resolve DataSource Path Failed: No primary data source found`);
+	public async isResourceWithinDataSource(resourceUri: string): Promise<boolean> {
+		logger.info(`ProjectEditor: isResourceWithinDataSource for ${resourceUri}`);
+		return !!(await this.primaryDsConnection?.isResourceWithinDataSource(resourceUri));
+	}
+
+	public async resolveDsConnectionFilePath(filePath: string): Promise<string | undefined> {
+		//logger.info(`ProjectEditor: resolveDsConnectionFilePath for ${this.projectId} - ${filePath}`);
+		if (!this.primaryDsConnectionRoot) {
+			throw new Error(`Resolve DsConnection Path Failed: No primary data source found`);
 		}
-		const resolvedPath = this.primaryDataSource?.id
-			? await resolveDataSourceFilePath(this.primaryDataSourceRoot, filePath)
+		const resolvedPath = this.primaryDsConnection?.id
+			? await resolveDataSourceFilePath(this.primaryDsConnectionRoot, filePath)
 			: undefined;
-		//logger.info(`ProjectEditor: resolveDataSourceFilePath resolvedPath: ${resolvedPath}`);
+		//logger.info(`ProjectEditor: resolveDsConnectionFilePath resolvedPath: ${resolvedPath}`);
 		return resolvedPath;
 	}
 
@@ -262,10 +262,10 @@ class ProjectEditor {
 		// [TODO] data sources are already included in system prompt
 		// don't need to include them twice - but maybe they should be removed from system prompt and added via <project-info>
 		/*
-		if (!this.dataSources || this.dataSources.length === 0) {
+		if (!this.dsConnections || this.dsConnections.length === 0) {
 			throw new Error(`Updating Project Info Failed: No data sources found`);
 		}
-		const formattedSources = this.dataSources.map((source, idx) => {
+		const formattedSources = this.dsConnections.map((source, idx) => {
 			const id = source.id,
 				name = source.name,
 				type = source.type,
@@ -310,7 +310,7 @@ class ProjectEditor {
 		const projectMetadata = {
 			projectId: this.projectId,
 			projectName: this.projectConfig.name,
-			dataSourceCount: this.dataSources.length,
+			dataSourceCount: this.dsConnections.length,
 			// [TODO] toolsCount is showing as 0 - maybe we're getting length before tools get loaded for the first time
 			//toolsCount: this.orchestratorController.toolManager.getLoadedToolNames.length,
 		};
@@ -336,7 +336,7 @@ class ProjectEditor {
 		options?: { maxTurns?: number },
 		requestParams?: LLMRequestParams,
 		filesToAttach?: string[],
-		dataSourceIdForAttach?: string,
+		dsConnectionIdForAttach?: string,
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
@@ -348,7 +348,7 @@ class ProjectEditor {
 			options,
 			requestParams,
 			filesToAttach,
-			dataSourceIdForAttach,
+			dsConnectionIdForAttach,
 		);
 		return statementAnswer;
 	}
@@ -408,6 +408,7 @@ class ProjectEditor {
 					accessMethod: 'bb',
 					type: 'file',
 					contentType: 'text',
+					mimeType: 'text/plain',
 					name: resourceUri,
 					uri: resourceUri,
 					lastModified: new Date(),

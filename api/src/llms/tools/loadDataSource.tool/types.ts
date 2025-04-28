@@ -1,9 +1,10 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-import type { PaginationInfo, ResourceListItem } from 'api/resources/resourceManager.ts';
+import type { PaginationInfo, ResourceMetadata } from 'shared/types/dataSourceResource.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface LLMToolLoadDatasourceInput {
-	dataSourceId?: string;
-	dataSourceName: string;
+	dataSourceId: string;
+	//dataSourceName?: string;
 	path?: string;
 	depth?: number;
 	pageSize?: number;
@@ -12,12 +13,15 @@ export interface LLMToolLoadDatasourceInput {
 
 export interface LLMToolLoadDatasourceResponseData {
 	data: {
-		resources: ResourceListItem[];
+		resources: ResourceMetadata[];
 		uriTemplate: string;
 		pagination?: PaginationInfo;
-		dataSourceId: string;
-		dataSourceName: string;
-		dataSourceType: string;
+
+		dataSource: {
+			dsConnectionId: string;
+			dsConnectionName: string;
+			dsProviderType: DataSourceProviderType;
+		};
 	};
 }
 

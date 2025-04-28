@@ -349,7 +349,7 @@ export interface ErrorHandlingConfig {
 	continueOnErrorThreshold?: number;
 }
 
-export type ResourceType = 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp';
+export type ResourceType = 'url' | 'file' | 'directory' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp' | 'workspace' | 'page';
 export interface Resource {
 	type: ResourceType;
 	uri: string;

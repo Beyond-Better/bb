@@ -9,16 +9,18 @@ import type { ClientProjectData, ProjectData, ProjectStatus, SerializedProjectDa
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
 import { getProjectAdminDataDir, getProjectAdminDir } from 'shared/projectPath.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import {
-	DataSource,
-	//type DataSourceAuth,
-	type DataSourceForSystemPrompt,
-	type DataSourceType,
-	type DataSourceValues,
-} from 'api/resources/dataSource.ts';
-import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
-//import { createDataSourceBbDir, createDataSourceBbIgnore } from 'shared/dataDir.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+//import { getDataSourceFactory } from 'api/dataSources/dataSourceFactory.ts';
+//import type { DataSourceFactory } from 'api/dataSources/dataSourceFactory.ts';
+import type {
+	DataSourceConnectionSystemPrompt,
+	DataSourceConnectionValues,
+} from 'api/dataSources/interfaces/dataSourceConnection.ts';
+import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
+import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { FileMetadata } from 'shared/types.ts';
+//import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
 
 /**
  * ProjectPersistence class for managing a single project's data
@@ -43,9 +45,12 @@ class ProjectPersistence implements ProjectData {
 	private projectUploadsDir: string = '';
 
 	// Single source of truth for data sources
-	private dataSourcesMap: Map<string, DataSource> = new Map();
-	private dataSourcesUriPrefixMap: Map<string, DataSource> = new Map();
-	private uploadsDataSource: DataSource | null = null;
+	private _dsConnectionsMap: Map<string, DataSourceConnection> = new Map();
+	private uploadsDsConnection: DataSourceConnection | null = null;
+
+	// Component references
+	private dataSourceRegistry!: DataSourceRegistry;
+	//private dataSourceFactory!: DataSourceFactory;
 
 	/**
 	 * Create a new ProjectPersistence instance
@@ -60,6 +65,10 @@ class ProjectPersistence implements ProjectData {
 	 */
 	async init(): Promise<ProjectPersistence> {
 		//logger.info(`ProjectPersistence: Initializing for: ${this._projectId}`);
+		this.dataSourceRegistry = await getDataSourceRegistry();
+		//this.dataSourceFactory = await getDataSourceFactory();
+		//logger.info(`ProjectPersistence: Got dataSourceRegistry: ${this._projectId}`);
+
 		// Initialize the project resources directory path and metadata file path
 		const projectDataDir = await getProjectAdminDataDir(this._projectId);
 		this.projectResourcesDir = join(projectDataDir, 'resources');
@@ -166,74 +175,88 @@ class ProjectPersistence implements ProjectData {
 	/**
 	 * Get all data sources as array - does not include custom data sources such as 'uploads'
 	 */
-	get dataSources(): DataSource[] {
-		return this.getDataSources();
+	get dsConnections(): DataSourceConnection[] {
+		return this.getDsConnections();
 	}
-	getDataSources(): DataSource[] {
-		return Array.from(this.dataSourcesMap.values());
+	getDsConnections(): DataSourceConnection[] {
+		return Array.from(this._dsConnectionsMap.values());
 	}
 
 	/**
 	 * Set all data sources
 	 */
-	async setDataSources(dataSources: DataSource[] | DataSourceValues[]): Promise<void> {
-		await this.update({ dataSources: dataSources as DataSource[] });
+	async setDsConnections(dsConnections: DataSourceConnection[] | DataSourceConnectionValues[]): Promise<void> {
+		await this.update({ dsConnections: dsConnections as DataSourceConnection[] });
 	}
 
 	/**
-	 * Get a data source by ID
+	 * Get a data source connection by ID
 	 * @param id The ID of the data source
+	 * @returns The data source connection or undefined if not found
+	 */
+	getDsConnection(id: string): DataSourceConnection | undefined {
+		return this._dsConnectionsMap.get(id);
+	}
+
+	/**
+	 * Get the data source for a URI prefix
+	 * @param uriPrefix The URI prefix to find the data source for
 	 * @returns The data source or undefined if not found
 	 */
-	getDataSource(id: string): DataSource | undefined {
-		if (id === 'ds-uploads') return this.getUploadsDataSource();
-		return this.dataSourcesMap.get(id);
-	}
-
-	/**
-	 * Get the primary data source
-	 * @returns The primary data source or undefined if none is marked as primary
-	 */
-	getDataSourceForPrefix(uriPrefix: string): DataSource | undefined {
-		if (uriPrefix === 'bb-filesystem+__uploads') return this.getUploadsDataSource();
-		return this.dataSourcesUriPrefixMap.get(uriPrefix);
+	getDsConnectionForPrefix(uriPrefix: string): DataSourceConnection | undefined {
+		if (uriPrefix === 'bb+filesystem+__uploads') return this.getUploadsDsConnection();
+		//return this.dsConnectionsUriPrefixMap.get(uriPrefix);
+		// This needs to be implemented efficiently - for now, iterate and check each prefix
+		for (const dsConnection of this._dsConnectionsMap.values()) {
+			// Use the prefix generation logic from the data source
+			if (dsConnection.getUriPrefix() === uriPrefix) {
+				return dsConnection;
+			}
+		}
+		return undefined;
 	}
 
 	/**
 	 * Get the primary data source as a first-class property
 	 */
-	public get primaryDataSource(): DataSource | undefined {
-		return this.getPrimaryDataSource();
+	public get primaryDsConnection(): DataSourceConnection | undefined {
+		return this.getPrimaryDsConnection();
 	}
 
 	/**
 	 * Get the primary data source
 	 * @returns The primary data source or undefined if none is marked as primary
 	 */
-	getPrimaryDataSource(): DataSource | undefined {
-		const primary = Array.from(this.dataSourcesMap.values())
-			.find((source) => source.isPrimary && source.enabled);
+	getPrimaryDsConnection(): DataSourceConnection | undefined {
+		const primary = Array.from(this._dsConnectionsMap.values())
+			.find((dsConnection) => dsConnection.isPrimary && dsConnection.enabled);
 
 		if (primary) return primary;
 
-		// Fallback to first enabled source
-		const enabled = Array.from(this.dataSourcesMap.values())
-			.filter((source) => source.enabled);
+		// Fallback to first enabled dsConnection
+		const enabled = Array.from(this._dsConnectionsMap.values())
+			.filter((dsConnection) => dsConnection.enabled);
 
 		return enabled.length > 0 ? enabled[0] : undefined;
 	}
 
-	getUploadsDataSource(): DataSource {
-		if (!this.uploadsDataSource) {
-			this.uploadsDataSource = DataSource.createFileSystem(
+	getUploadsDsConnection(): DataSourceConnection {
+		if (!this.uploadsDsConnection) {
+			const provider = this.dataSourceRegistry.getProvider('filesystem', 'bb');
+			if (!provider) throw new Error('Could not load provider');
+			this.uploadsDsConnection = this.dataSourceRegistry.createConnection(
+				provider,
 				'__uploads',
-				this.projectUploadsDir,
+				{ dataSourceRoot: this.projectUploadsDir },
 				{ id: 'ds-uploads' },
 			);
-			//this.dataSourcesMap.set(this.uploadsDataSource.id, this.uploadsDataSource);
-			//this.dataSourcesUriPrefixMap.set(this.uploadsDataSource.getUriPrefix(), this.uploadsDataSource);
 		}
-		return this.uploadsDataSource;
+		// this.uploadsDsConnection = DataSourceConnection.createFileSystem(
+		// 	'__uploads',
+		// 	this.projectUploadsDir,
+		// 	{ id: 'ds-uploads' },
+		// );
+		return this.uploadsDsConnection;
 	}
 
 	/**
@@ -241,42 +264,42 @@ class ProjectPersistence implements ProjectData {
 	 * @param typeFilter Optional filter by data source type
 	 * @returns Array of data sources
 	 */
-	getAllDataSources(typeFilter?: DataSourceType): DataSource[] {
-		const sources = Array.from(this.dataSourcesMap.values());
+	getAllDsConnections(typeFilter?: string): DataSourceConnection[] {
+		const dsConnections = Array.from(this._dsConnectionsMap.values());
 
 		if (typeFilter) {
-			return sources.filter((source) => source.type === typeFilter);
+			return dsConnections.filter((dsConnection) => dsConnection.providerType === typeFilter);
 		}
 
-		return sources;
+		return dsConnections;
 	}
 
 	/**
-	 * Get all data sources for the supplied IDs - does not include custom data sources such as 'uploads'
-	 * @param dataSourceIds Array of data source IDs
-	 * @returns Array of data sources
+	 * Get all data source connections for the supplied IDs - does not include custom data sources such as 'uploads'
+	 * @param dsConnectionIds Array of data source connection IDs
+	 * @returns Array of data source connections
 	 */
-	getDataSourcesByIds(dataSourceIds: string[]): DataSource[] {
-		return dataSourceIds.map((id) => this.dataSourcesMap.get(id))
-			.filter((source): source is DataSource => source !== undefined);
+	getDsConnectionsByIds(dsConnectionIds: string[]): DataSourceConnection[] {
+		return dsConnectionIds.map((id) => this._dsConnectionsMap.get(id))
+			.filter((dsConnection): dsConnection is DataSourceConnection => dsConnection !== undefined);
 	}
 
 	/**
-	 * Get all enabled data sources - does not include custom data sources such as 'uploads'
-	 * @returns Array of data sources
+	 * Get all enabled data source connections - does not include custom data source connections such as 'uploads'
+	 * @returns Array of data source connections
 	 */
-	getAllEnabledDataSources(): DataSource[] {
-		return this.getDataSourcesByPriority()
-			.filter((source) => source.enabled);
+	getAllEnabledDsConnections(): DataSourceConnection[] {
+		return this.getDsConnectionsByPriority()
+			.filter((dsConnection) => dsConnection.enabled);
 	}
 
 	/**
-	 * Get all enabled data sources in priority order - does not include custom data sources such as 'uploads'
-	 * @returns Array of data sources sorted by priority (highest first)
+	 * Get all enabled data source connections in priority order - does not include custom data source connections such as 'uploads'
+	 * @returns Array of data source connections sorted by priority (highest first)
 	 */
-	getDataSourcesByPriority(): DataSource[] {
-		return Array.from(this.dataSourcesMap.values())
-			.filter((source) => source.enabled)
+	getDsConnectionsByPriority(): DataSourceConnection[] {
+		return Array.from(this._dsConnectionsMap.values())
+			.filter((dsConnection) => dsConnection.enabled)
 			.sort((a, b) => {
 				// Primary always comes first
 				if (a.isPrimary && !b.isPrimary) return -1;
@@ -287,24 +310,24 @@ class ProjectPersistence implements ProjectData {
 	}
 
 	/**
-	 * Get all data sources of a specified type in priority order - does not include custom data sources such as 'uploads'
-	 * @param type The data source type to filter by
-	 * @returns Array of data sources of the specified type sorted by priority
+	 * Get all data source connections of a specified type in priority order - does not include custom data source connections such as 'uploads'
+	 * @param type The data source connection type to filter by
+	 * @returns Array of data source connections of the specified type sorted by priority
 	 */
-	getDataSourcesByTypeAndPriority(type: DataSourceType): DataSource[] {
-		return this.getDataSourcesByPriority()
-			.filter((source) => source.type === type);
+	getDsConnectionsByTypeAndPriority(type: string): DataSourceConnection[] {
+		return this.getDsConnectionsByPriority()
+			.filter((dsConnection) => dsConnection.providerType === type);
 	}
 
 	/**
-	 * Get data source information for the system prompt - does not include custom data sources such as 'uploads'
-	 * Provides minimal metadata about available data sources for the LLM
-	 * @returns Array of data source info objects
+	 * Get data source connection information for the system prompt - does not include custom data source connections such as 'uploads'
+	 * Provides minimal metadata about available data source connections for the LLM
+	 * @returns Array of data source connection info objects
 	 */
-	getDataSourcesForSystemPrompt(): DataSourceForSystemPrompt[] {
-		return this.getDataSourcesByPriority()
-			.filter((source) => source.enabled);
-		//.map((source) => source.getForSystemPrompt());
+	getDsConnectionsForSystemPrompt(): DataSourceConnectionSystemPrompt[] {
+		return this.getDsConnectionsByPriority()
+			.filter((dsConnection) => dsConnection.enabled)
+			.map((dsConnection) => dsConnection.getForSystemPrompt());
 	}
 
 	/**
@@ -341,8 +364,8 @@ class ProjectPersistence implements ProjectData {
 					this._repoInfo = serializedData.repoInfo || { tokenLimit: 1024 };
 					this._mcpServers = serializedData.mcpServers || [];
 
-					// Initialize data sources from the loaded data
-					await this.initializeDataSources(serializedData.dataSources || []);
+					// Initialize data source connections from the loaded data
+					await this.initializeDsConnections(serializedData.dsConnections || []);
 				} else {
 					// Project.json doesn't exist yet, try to migrate from config.yaml
 					await this.migrateDataFromConfig(registryProject);
@@ -374,7 +397,7 @@ class ProjectPersistence implements ProjectData {
 
 	/**
 	 * Gets project data for in-memory use (not serialized)
-	 * Returns a copy of the data with actual DataSource objects
+	 * Returns a copy of the data with actual DataSourceConnection objects
 	 * This is mainly for backward compatibility with code that expects ProjectData
 	 */
 	getData(): ProjectData {
@@ -382,8 +405,8 @@ class ProjectPersistence implements ProjectData {
 			projectId: this._projectId,
 			name: this._name,
 			status: this._status,
-			dataSources: this.getDataSources(), // Returns actual DataSource objects
-			primaryDataSource: this.getPrimaryDataSource(), // Include the actual primary data source
+			dsConnections: this.getDsConnections(), // Returns actual DataSource connections
+			primaryDsConnection: this.getPrimaryDsConnection(), // Include the actual primary data source connection
 			repoInfo: this._repoInfo,
 			mcpServers: this._mcpServers,
 		};
@@ -403,8 +426,8 @@ class ProjectPersistence implements ProjectData {
 		project._repoInfo = serializedData.repoInfo;
 		project._mcpServers = serializedData.mcpServers;
 
-		// Initialize data sources
-		await project.initializeDataSources(serializedData.dataSources);
+		// Initialize data source connections
+		await project.initializeDsConnections(serializedData.dsConnections);
 
 		return project;
 	}
@@ -426,6 +449,7 @@ class ProjectPersistence implements ProjectData {
 		if (clientData.repoInfo !== this._repoInfo) {
 			this._repoInfo = clientData.repoInfo;
 		}
+
 		if (
 			clientData.mcpServers &&
 			JSON.stringify([...clientData.mcpServers].sort()) !== JSON.stringify([...this._mcpServers].sort())
@@ -433,33 +457,58 @@ class ProjectPersistence implements ProjectData {
 			this._mcpServers = clientData.mcpServers;
 		}
 
-		// Update data sources (more complex logic would be needed here
-		// to handle additions, removals, and changes properly)
-
 		// Save changes
 		await this.saveData();
 	}
 
 	/**
-	 * Initialize the data sources map
-	 * @param dataSources Array of data sources to initialize
+	 * Initialize the data connections map and connection map
+	 * @param dsConnections Array of data source connections to initialize
 	 */
-	private async initializeDataSources(dataSources: Array<DataSource | DataSourceValues>): Promise<void> {
-		this.dataSourcesMap.clear();
-		this.dataSourcesUriPrefixMap.clear();
+	private async initializeDsConnections(
+		dsConnections: Array<DataSourceConnection | DataSourceConnectionValues>,
+	): Promise<void> {
+		this._dsConnectionsMap.clear();
 
-		if (dataSources && Array.isArray(dataSources)) {
-			for (const sourceObj of dataSources) {
-				// Convert plain object to DataSource class if needed
-				const source = sourceObj instanceof DataSource ? sourceObj : DataSource.fromObject(sourceObj);
+		const registry = this.dataSourceRegistry;
 
-				this.dataSourcesMap.set(source.id, source);
-				this.dataSourcesUriPrefixMap.set(source.getUriPrefix(), source);
+		if (dsConnections && Array.isArray(dsConnections)) {
+			for (const dsConnectionObj of dsConnections) {
+				// Handle DataSourceConnection instances
+				if (dsConnectionObj instanceof DataSourceConnection) {
+					// Convert DataSource to DataSourceConnection
+					const dsConnection = dsConnectionObj;
+					this._dsConnectionsMap.set(dsConnection.id, dsConnection);
+				} else if (typeof dsConnectionObj === 'object' && dsConnectionObj !== null) {
+					// Handle generic objects that might be serialized DataSourceConnection or DataSourceConnectionValues objects
+					// Try to find a provider for this data source connection type
+					const provider = registry.getProvider(dsConnectionObj.providerType, dsConnectionObj.accessMethod);
+					if (provider) {
+						// Create a connection from the data source connection values
+						const dsConnection = registry.createConnection(
+							provider,
+							dsConnectionObj.name,
+							dsConnectionObj.config,
+							{
+								id: dsConnectionObj.id,
+								auth: dsConnectionObj.auth,
+								enabled: dsConnectionObj.enabled,
+								isPrimary: dsConnectionObj.isPrimary,
+								priority: dsConnectionObj.priority,
+							},
+						);
+						this._dsConnectionsMap.set(dsConnection.id, dsConnection);
+					} else {
+						logger.warn(
+							`ProjectPersistence: initializeDsConnections for project ${this._projectId}: could not get provider for ${dsConnectionObj.accessMethod} : ${dsConnectionObj.providerType}`,
+						);
+					}
+				}
 			}
 		}
 
-		// Ensure we have a primary data source
-		await this.ensurePrimaryDataSource();
+		// Ensure we have a primary data source connection
+		await this.ensurePrimaryDsConnection();
 	}
 
 	/**
@@ -486,13 +535,16 @@ class ProjectPersistence implements ProjectData {
 			}
 
 			// Special handling for data sources if they were updated
-			if (updates.dataSources) {
-				await this.updateDataSources(updates.dataSources);
+			if (updates.dsConnections) {
+				await this.updateDsConnections(updates.dsConnections);
 
 				// Extract paths from new data sources
-				// Convert to DataSourceValues if needed before passing to getDataSourcePathsFromDataSources
-				const dataSourceValues = updates.dataSources.map((ds) => ds instanceof DataSource ? ds.toJSON() : ds);
-				const newPaths = DataSource.getDataSourcePathsFromDataSources(dataSourceValues);
+				const newPaths = [];
+				for (const dsConnection of updates.dsConnections) {
+					if (dsConnection.providerType === 'filesystem' && dsConnection.config.dataSourceRoot) {
+						newPaths.push(dsConnection.config.dataSourceRoot as string);
+					}
+				}
 
 				// Update registry paths
 				await this._projectRegistry.saveProject({
@@ -506,22 +558,18 @@ class ProjectPersistence implements ProjectData {
 			// Save updated project data
 			await this.saveData();
 
-			// Update name in registry if changed
-			if (updates.name) {
+			// Update name and status in registry if changed
+			if (updates.name || updates.status) {
 				const registryProject = await this._projectRegistry.getProject(this._projectId);
-				if (registryProject && registryProject.name !== updates.name) {
+				if (registryProject) {
+					const registryUpdates: { name?: string; status?: ProjectStatus } = {};
+					if (updates.name && registryProject.name !== updates.name) registryUpdates.name = updates.name;
+					if (updates.status && registryProject.status !== updates.status) {
+						registryUpdates.status = updates.status;
+					}
 					await this._projectRegistry.saveProject({
 						...registryProject,
-						name: updates.name,
-					});
-				}
-			}
-			if (updates.status) {
-				const registryProject = await this._projectRegistry.getProject(this._projectId);
-				if (registryProject && registryProject.status !== updates.status) {
-					await this._projectRegistry.saveProject({
-						...registryProject,
-						status: updates.status,
+						...registryUpdates,
 					});
 				}
 			}
@@ -545,21 +593,10 @@ class ProjectPersistence implements ProjectData {
 	/**
 	 * Update the data sources collection
 	 */
-	private async updateDataSources(dataSources: DataSource[] | DataSourceValues[]): Promise<void> {
-		this.dataSourcesMap.clear();
-		this.dataSourcesUriPrefixMap.clear();
-
-		for (const source of dataSources) {
-			const dataSource = source instanceof DataSource
-				? source
-				: DataSource.fromObject(source as DataSourceValues & { id: string });
-
-			this.dataSourcesMap.set(dataSource.id, dataSource);
-			this.dataSourcesUriPrefixMap.set(dataSource.getUriPrefix(), dataSource);
-		}
-
-		// Ensure we have a primary data source
-		await this.ensurePrimaryDataSource();
+	private async updateDsConnections(
+		dsConnections: DataSourceConnection[] | DataSourceConnectionValues[],
+	): Promise<void> {
+		await this.initializeDsConnections(dsConnections);
 	}
 
 	/**
@@ -576,21 +613,6 @@ class ProjectPersistence implements ProjectData {
 			// Remove from registry
 			await this._projectRegistry.deleteProject(this._projectId);
 
-			// for (const dataSource of this.dataSources) {
-			// 	if (dataSource.type === 'filesystem' && dataSource.config.dataSourceRoot) {
-			// 		const dataSourcePath = dataSource.config.dataSourceRoot as string;
-			// 		try {
-			// 			await Deno.remove(join(dataSourcePath, '.bb'), { recursive: true });
-			// 		} catch (error) {
-			// 			logger.error(
-			// 				`ProjectPersistence: Failed to delete .bb directory from ${dataSourcePath}: ${
-			// 					errorMessage(error)
-			// 				}`,
-			// 			);
-			// 		}
-			// 	}
-			// }
-
 			const projectAdminDir = await getProjectAdminDir(this._projectId);
 			await Deno.remove(projectAdminDir, { recursive: true });
 
@@ -599,8 +621,7 @@ class ProjectPersistence implements ProjectData {
 			this._status = 'draft';
 			this._repoInfo = { tokenLimit: 1024 };
 			this._mcpServers = [];
-			this.dataSourcesMap.clear();
-			this.dataSourcesUriPrefixMap.clear();
+			this._dsConnectionsMap.clear();
 
 			logger.info(`ProjectPersistence: Deleted project ${this._projectId}`);
 		} catch (error) {
@@ -660,14 +681,19 @@ class ProjectPersistence implements ProjectData {
 	 * Save data sources to disk and update registry paths
 	 * This is a comprehensive method that handles both project.json and registry updates
 	 */
-	async saveDataSources(): Promise<void> {
+	async saveDsConnections(): Promise<void> {
 		// Save the entire project data with current data sources
 		await this.saveData();
 
 		// Update the registry paths
-		const dataSourceValues = Array.from(this.dataSourcesMap.values())
-			.map((ds) => ds.toJSON());
-		const paths = DataSource.getDataSourcePathsFromDataSources(dataSourceValues);
+		// Extract paths from new data sources
+		const paths = [];
+		const dsConnections = Array.from(this._dsConnectionsMap.values());
+		for (const dsConnection of dsConnections) {
+			if (dsConnection.providerType === 'filesystem' && dsConnection.config.dataSourceRoot) {
+				paths.push(dsConnection.config.dataSourceRoot as string);
+			}
+		}
 
 		await this._projectRegistry.saveProject({
 			projectId: this._projectId,
@@ -688,7 +714,7 @@ class ProjectPersistence implements ProjectData {
 			status: this._status,
 			repoInfo: this._repoInfo,
 			mcpServers: this._mcpServers,
-			dataSources: Array.from(this.dataSourcesMap.values()).map((ds) => ds.toJSON()),
+			dsConnections: Array.from(this._dsConnectionsMap.values()).map((ds) => ds.toJSON()),
 		};
 	}
 
@@ -697,41 +723,47 @@ class ProjectPersistence implements ProjectData {
 	 * Returns plain objects rather than class instances
 	 */
 	toClientData(): ClientProjectData {
-		const primarySource = this.getPrimaryDataSource();
+		const primaryDsConnection = this.getPrimaryDsConnection();
 		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
-		const clientDataSources = Array.from(this.dataSourcesMap.values()).map((ds) => {
-			const clientDataSource = {
+
+		const clientDsConnections = Array.from(this._dsConnectionsMap.values()).map((ds) => {
+			const dsProvider = this.dataSourceRegistry.getProvider(ds.providerType, ds.accessMethod);
+			const clientDsConnection = {
 				id: ds.id,
-				type: ds.type,
+				providerType: ds.providerType,
 				accessMethod: ds.accessMethod,
 				name: ds.name,
 				enabled: ds.enabled,
 				isPrimary: ds.isPrimary,
 				priority: ds.priority,
-				capabilities: ds.capabilities,
-				description: ds.description,
+				capabilities: dsProvider?.capabilities || [],
+				description: dsProvider?.description || '',
 				config: { ...ds.config }, // Create a copy to avoid modifying the original
 			};
 
 			// Strip rootPath (HOME) from dataSourceRoot for filesystem data sources
 			if (
-				ds.type === 'filesystem' &&
+				ds.providerType === 'filesystem' &&
 				typeof ds.config.dataSourceRoot === 'string' &&
 				ds.config.dataSourceRoot.startsWith(rootPath)
 			) {
-				clientDataSource.config.dataSourceRoot = ds.config.dataSourceRoot.substring(rootPath.length);
+				clientDsConnection.config.dataSourceRoot = ds.config.dataSourceRoot.substring(rootPath.length);
 				// Ensure the path starts with a separator if it doesn't already
-				if (!(clientDataSource.config.dataSourceRoot as string).startsWith('/')) {
-					clientDataSource.config.dataSourceRoot = '/' + clientDataSource.config.dataSourceRoot;
+				if (!(clientDsConnection.config.dataSourceRoot as string).startsWith('/')) {
+					clientDsConnection.config.dataSourceRoot = '/' + clientDsConnection.config.dataSourceRoot;
 				}
 			}
 
-			return clientDataSource;
+			return clientDsConnection;
 		});
+		// logger.info(
+		// 	`ProjectPersistence: toClientData for ${this._projectId}: `,
+		// 	{ clientDsConnections },
+		// );
 
 		// Find the primary in the client data sources
-		const clientPrimarySource = primarySource
-			? clientDataSources.find((ds) => ds.id === primarySource.id)
+		const clientPrimaryDsConnection = primaryDsConnection
+			? clientDsConnections.find((ds) => ds.id === primaryDsConnection.id)
 			: undefined;
 
 		return {
@@ -740,8 +772,8 @@ class ProjectPersistence implements ProjectData {
 			status: this._status,
 			repoInfo: this._repoInfo,
 			mcpServers: this._mcpServers,
-			dataSources: clientDataSources,
-			primaryDataSource: clientPrimarySource,
+			dsConnections: clientDsConnections,
+			primaryDsConnection: clientPrimaryDsConnection,
 		};
 	}
 
@@ -756,7 +788,25 @@ class ProjectPersistence implements ProjectData {
 		const projectConfig = await configManager.getProjectConfig(this._projectId);
 
 		// Create DataSource objects from paths
-		const dataSources = DataSource.getDataSourcesFromPaths(registryProject.dataSourcePaths);
+		const dsConnections = [];
+
+		const provider = this.dataSourceRegistry.getProvider('filesystem', 'bb');
+		if (!provider) throw new Error('Could not load provider');
+		for (let i = 0; i < registryProject.dataSourcePaths.length; i++) {
+			const path = registryProject.dataSourcePaths[i];
+			dsConnections.push(
+				this.dataSourceRegistry.createConnection(
+					provider,
+					i === 0 ? 'local' : `local-${i}`, //name
+					{ dataSourceRoot: path },
+					{
+						//id: i === 0 ? 'ds-local' : `ds-local-${i}`,
+						isPrimary: i === 0,
+						//capabilities: ['read', 'write', 'list', 'search'],
+					},
+				),
+			);
+		}
 
 		// Set properties from config
 		this._name = projectConfig.name || '';
@@ -765,7 +815,7 @@ class ProjectPersistence implements ProjectData {
 		this._mcpServers = [];
 
 		// Initialize data sources
-		await this.initializeDataSources(dataSources);
+		await this.initializeDsConnections(dsConnections);
 
 		// Save to file
 		await this.saveData();
@@ -777,75 +827,77 @@ class ProjectPersistence implements ProjectData {
 	 * Ensure there is a primary data source
 	 * If none exists, sets the first filesystem source or first enabled source as primary
 	 */
-	private async ensurePrimaryDataSource(): Promise<void> {
+	private async ensurePrimaryDsConnection(): Promise<void> {
 		// Check if we already have a primary source
-		const primarySource = this.getPrimaryDataSource();
-		if (primarySource) return;
+		const primaryDsConnection = this.getPrimaryDsConnection();
+		if (primaryDsConnection) return;
 
 		// No primary source, try to find a filesystem source
-		const filesystemSources = this.getAllDataSources('filesystem')
-			.filter((source) => source.enabled);
+		const filesystemSources = this.getAllDsConnections('filesystem')
+			.filter((dsConnection) => dsConnection.enabled);
 
 		if (filesystemSources.length > 0) {
-			filesystemSources[0].setPrimary(true);
-			filesystemSources[0].setPriority(100);
-			logger.info(`ProjectPersistence: Set ${filesystemSources[0].id} as primary data source`);
-			// Save changes to disk
-			await this.saveDataSources();
+			this.setPrimaryDsConnection(filesystemSources[0].id);
+			logger.info(`ProjectPersistence: Set ${filesystemSources[0].id} as primary data source connection`);
 			return;
 		}
 
-		// No filesystem source, use first enabled source
-		const enabledSources = this.getAllDataSources()
-			.filter((source) => source.enabled);
+		// No filesystem source connection, use first enabled source connection
+		const enabledDsConnections = this.getAllDsConnections()
+			.filter((dsConnection) => dsConnection.enabled);
 
-		if (enabledSources.length > 0) {
-			enabledSources[0].setPrimary(true);
-			enabledSources[0].setPriority(100);
-			logger.info(`ProjectPersistence: Set ${enabledSources[0].id} as primary data source`);
-			// Save changes to disk
-			await this.saveDataSources();
+		if (enabledDsConnections.length > 0) {
+			this.setPrimaryDsConnection(enabledDsConnections[0].id);
+			logger.info(`ProjectPersistence: Set ${enabledDsConnections[0].id} as primary data source connection`);
 		}
 	}
 
+	// ==========================================================================
+	// Data Source Connection Management Methods
+	// ==========================================================================
+
 	/**
-	 * Resolve a list of data source identifiers (IDs or names) to actual DataSource objects
+	 * Resolve a list of data source identifiers (IDs or names) to actual DataSourceConnection objects
 	 * @param identifiers Array of data source IDs or names
 	 * @returns Object containing resolved data sources and IDs that weren't found
 	 */
-	resolveDataSources(identifiers: string[]): { dataSources: DataSource[]; notFound: string[] } {
-		const resolvedDataSources: DataSource[] = [];
-		const allSources = this.getAllEnabledDataSources();
+	resolveDsConnections(identifiers: string[]): { dsConnections: DataSourceConnection[]; notFound: string[] } {
+		const resolvedDsConnections: DataSourceConnection[] = [];
+		const allDsConnections = this.getAllEnabledDsConnections();
 		const notFoundIdentifiers: string[] = [];
 
 		// Create a map of names to sources for efficient lookup
-		const nameToSourceMap = new Map<string, DataSource>();
-		const typeNameToSourceMap = new Map<string, DataSource>();
-		for (const source of allSources) {
-			nameToSourceMap.set(source.name.toLowerCase(), source);
-			typeNameToSourceMap.set(`${source.type.toLowerCase()}-${source.name.toLowerCase()}`, source);
+		const nameToDsConnectionMap = new Map<string, DataSourceConnection>();
+		const typeNameToDsConnectionMap = new Map<string, DataSourceConnection>();
+		for (const dsConnection of allDsConnections) {
+			nameToDsConnectionMap.set(dsConnection.name.toLowerCase(), dsConnection);
+			typeNameToDsConnectionMap.set(
+				`${dsConnection.providerType.toLowerCase()}+${dsConnection.name.toLowerCase()}`,
+				dsConnection,
+			);
 		}
 
 		for (const identifier of identifiers) {
 			// First try to find by exact ID
-			let source = this.getDataSource(identifier);
+			let dsConnection = this.getDsConnection(identifier);
 
 			// If not found by ID, try case-insensitive name match
-			if (!source) {
-				source = nameToSourceMap.get(identifier.toLowerCase()) || undefined;
+			if (!dsConnection) {
+				dsConnection = nameToDsConnectionMap.get(identifier.toLowerCase()) || undefined;
 			}
 
 			// If not found by name, try case-insensitive type-name match
-			if (!source) {
-				source = typeNameToSourceMap.get(identifier.toLowerCase()) || undefined;
+			if (!dsConnection) {
+				dsConnection = typeNameToDsConnectionMap.get(identifier.toLowerCase()) || undefined;
 			}
 
-			if (source) {
-				// Only include enabled sources
-				if (source.enabled) {
-					resolvedDataSources.push(source);
+			if (dsConnection) {
+				// Only include enabled source connections
+				if (dsConnection.enabled) {
+					resolvedDsConnections.push(dsConnection);
 				} else {
-					logger.warn(`ProjectPersistence: Ignoring disabled data source: ${identifier}`);
+					notFoundIdentifiers.push(identifier);
+					logger.warn(`ProjectPersistence: Ignoring disabled data source connection: ${identifier}`);
 				}
 			} else {
 				notFoundIdentifiers.push(identifier);
@@ -857,7 +909,7 @@ class ProjectPersistence implements ProjectData {
 			logger.warn(`ProjectPersistence: Could not resolve data sources: ${notFoundIdentifiers.join(', ')}`);
 		}
 
-		return { dataSources: resolvedDataSources, notFound: notFoundIdentifiers };
+		return { dsConnections: resolvedDsConnections, notFound: notFoundIdentifiers };
 	}
 
 	/**
@@ -865,189 +917,232 @@ class ProjectPersistence implements ProjectData {
 	 * @param source The data source to register
 	 * @returns The ID of the registered data source
 	 */
-	async registerDataSource(source: DataSource): Promise<string> {
-		if (this.dataSourcesMap.has(source.id)) {
-			throw new Error(`Data source with ID ${source.id} already exists`);
+	async registerDsConnection(dsConnection: DataSourceConnection | DataSourceConnectionValues): Promise<string> {
+		const registry = this.dataSourceRegistry;
+		//const factory = this.dataSourceFactory;
+
+		if (dsConnection instanceof DataSourceConnection) {
+			// DataSourceConnection instance
+			if (this._dsConnectionsMap.has(dsConnection.id)) {
+				throw new Error(`Data source connection with ID ${dsConnection.id} already exists`);
+			}
+
+			// If this is marked as primary, clear any existing primary flag
+			if (dsConnection.isPrimary) {
+				this.clearPrimaryFlag();
+			}
+
+			// Add to data source connections map
+			this._dsConnectionsMap.set(dsConnection.id, dsConnection);
+		} else {
+			// DataSourceConnectionValues object
+			const dsConnectionValues = dsConnection as DataSourceConnectionValues;
+			if (this._dsConnectionsMap.has(dsConnectionValues.id)) {
+				throw new Error(`Data source connection with ID ${dsConnectionValues.id} already exists`);
+			}
+
+			// If this is marked as primary, clear any existing primary flag
+			if (dsConnectionValues.isPrimary) {
+				this.clearPrimaryFlag();
+			}
+			const provider = registry.getProvider(dsConnection.providerType, dsConnection.accessMethod);
+			if (provider) {
+				const connection = registry.createConnection(
+					provider,
+					dsConnection.name,
+					dsConnection.config,
+					{
+						id: dsConnection.id,
+						auth: dsConnection.auth,
+						enabled: dsConnection.enabled,
+						isPrimary: dsConnection.isPrimary,
+						priority: dsConnection.priority,
+					},
+				);
+				this._dsConnectionsMap.set(connection.id, connection);
+			}
 		}
 
-		// If this is marked as primary, clear any existing primary flag
-		if (source.isPrimary) {
-			this.clearPrimaryFlag();
-		}
+		logger.info(`ProjectPersistence: Registered data source connection: ${dsConnection.id}`);
 
-		this.dataSourcesMap.set(source.id, source);
-		this.dataSourcesUriPrefixMap.set(source.getUriPrefix(), source);
-		logger.info(`ProjectPersistence: Registered data source: ${source.id} (${source.type})`);
+		// Explicitly save data source connections to disk
+		await this.saveDsConnections();
 
-		// Explicitly save data sources to disk
-		await this.saveDataSources();
-
-		return source.id;
+		return dsConnection.id;
 	}
 
 	/**
 	 * Register a new filesystem data source
-	 * @param id The ID of the data source
+	 * @param name Human-readable name for the data source
 	 * @param root The filesystem root path
-	 * @param name Optional name for the data source
 	 * @param isPrimary Whether this is the primary data source
 	 * @returns The ID of the registered data source
 	 */
-	async registerFileSystemDataSource(name: string, root: string, isPrimary?: boolean): Promise<string> {
-		const source = DataSource.createFileSystem(name, root, {
-			isPrimary: isPrimary || false,
-			priority: isPrimary ? 100 : 0,
-		});
-		return this.registerDataSource(source);
+	async registerFileSystemDsConnection(name: string, root: string, isPrimary?: boolean): Promise<string> {
+		// Create the data source using the FilesystemProvider
+		const registry = this.dataSourceRegistry;
+		const filesystemProvider = registry.getProvider('filesystem', 'bb');
+
+		if (!filesystemProvider) {
+			throw new Error('Filesystem provider not registered');
+		}
+
+		// Create a connection using the provider
+		const dsConnection = registry.createConnection(
+			filesystemProvider,
+			name,
+			{ dataSourceRoot: root },
+			{
+				isPrimary: isPrimary || false,
+				priority: isPrimary ? 100 : 0,
+			},
+		);
+
+		return this.registerDsConnection(dsConnection);
 	}
 
 	/**
-	 * Register a new primary filesystem data source
-	 * @param id The ID of the data source
+	 * Register a new primary filesystem data source connection
+	 * @param name Human-readable name for the data source connection
 	 * @param root The filesystem root path
-	 * @param name Optional name for the data source
-	 * @returns The ID of the registered data source
+	 * @returns The ID of the registered data source connection
 	 */
-	async registerPrimaryFileSystemDataSource(name: string, root: string): Promise<string> {
-		const source = DataSource.createPrimaryFileSystem(name, root);
-		return this.registerDataSource(source);
+	async registerPrimaryFileSystemDsConnection(name: string, root: string): Promise<string> {
+		return this.registerFileSystemDsConnection(name, root, true);
 	}
 
 	/**
-	 * Update an existing data source
-	 * @param id The ID of the data source to update
-	 * @param updates Updates to apply to the data source
+	 * Update an existing data source connection
+	 * @param id The ID of the data source connection to update
+	 * @param updates Updates to apply to the data source connection
 	 */
-	async updateDataSource(id: string, updates: Partial<DataSourceValues>): Promise<void> {
-		const source = this.getDataSource(id);
-		if (!source) {
-			throw new Error(`Data source with ID ${id} not found`);
+	async updateDsConnection(id: string, updates: Partial<Omit<DataSourceConnectionValues, 'id'>>): Promise<void> {
+		// Check if we have a DataSourceConnection with this ID
+		const dsConnection = this.getDsConnection(id);
+		if (!dsConnection) {
+			throw new Error(`Data source connection with ID ${id} not found`);
 		}
 
 		// If setting as primary, clear any existing primary flag
-		if (updates.isPrimary && !source.isPrimary) {
+		if (updates.isPrimary && !dsConnection.isPrimary) {
 			this.clearPrimaryFlag();
 		}
 
-		//logger.info(`ProjectPersistence: Updating data source: ${id}`, {source, updates});
-		// Apply the updates to the existing data source using the update method
-		source.update(updates);
+		// Apply updates to the legacy data source connection
+		dsConnection.update(updates);
 
-		// Explicitly save data sources to disk
-		await this.saveDataSources();
+		// Explicitly save data source connections to disk
+		await this.saveDsConnections();
 
-		logger.info(`ProjectPersistence: Updated data source: ${id}`);
+		logger.info(`ProjectPersistence: Updated data source connection: ${id}`);
 	}
 
 	/**
-	 * Remove a data source
-	 * @param id The ID of the data source to remove
+	 * Remove a data source connection
+	 * @param id The ID of the data source connection to remove
 	 */
-	async removeDataSource(id: string): Promise<void> {
-		const source = this.getDataSource(id);
-		if (!source) {
-			throw new Error(`Data source with ID ${id} not found`);
+	async removeDsConnection(id: string): Promise<void> {
+		const dsConnection = this.getDsConnection(id);
+		if (!dsConnection) {
+			throw new Error(`Data source connection with ID ${id} not found`);
 		}
 
-		const wasPrimary = source.isPrimary;
-		this.dataSourcesMap.delete(id);
-		this.dataSourcesUriPrefixMap.delete(id);
+		const wasPrimary = dsConnection.isPrimary;
 
-		// Explicitly save data sources to disk
-		await this.saveDataSources();
+		// Remove from maps
+		this._dsConnectionsMap.delete(id);
 
-		logger.info(`ProjectPersistence: Removed data source: ${id}`);
+		// Explicitly save data source connections to disk
+		await this.saveDsConnections();
 
-		// If this was the primary source, find a new primary
+		logger.info(`ProjectPersistence: Removed data source connection: ${id}`);
+
+		// If this was the primary source connection, find a new primary
 		if (wasPrimary) {
-			await this.ensurePrimaryDataSource();
+			await this.ensurePrimaryDsConnection();
 		}
 	}
 
 	/**
-	 * Set a data source as the primary source
-	 * @param id The ID of the data source to set as primary
+	 * Set a data source connection as the primary source connection
+	 * @param id The ID of the data source connection to set as primary
 	 */
-	async setPrimaryDataSource(id: string): Promise<void> {
-		const source = this.getDataSource(id);
-		if (!source) {
-			throw new Error(`Data source with ID ${id} not found`);
+	async setPrimaryDsConnection(id: string): Promise<void> {
+		const dsConnection = this.getDsConnection(id);
+		if (!dsConnection) {
+			throw new Error(`Data source connection with ID ${id} not found`);
 		}
 
 		// Clear any existing primary flag
 		this.clearPrimaryFlag();
 
-		// Set this source as primary with high priority
-		source.isPrimary = true;
-		source.priority = Math.max(source.priority, 100); // Ensure high priority
+		// Set this source connection as primary with high priority
+		dsConnection.isPrimary = true;
+		dsConnection.priority = Math.min(dsConnection.priority, 1); // Ensure high priority
 
-		// Explicitly save data sources to disk
-		await this.saveDataSources();
+		// Explicitly save data source connections to disk
+		await this.saveDsConnections();
 
-		logger.info(`ProjectPersistence: Set ${id} as primary data source`);
+		logger.info(`ProjectPersistence: Set ${id} as primary data source connection`);
 	}
 
 	/**
-	 * Clear the isPrimary flag from all data sources
+	 * Clear the isPrimary flag from all data source connections
 	 */
 	private clearPrimaryFlag(): void {
-		for (const source of this.dataSourcesMap.values()) {
-			if (source.isPrimary) {
-				source.isPrimary = false;
+		// Clear primary flag from legacy DataSourceConnection objects
+		for (const dsConnection of this._dsConnectionsMap.values()) {
+			if (dsConnection.isPrimary) {
+				dsConnection.isPrimary = false;
 			}
 		}
 	}
 
 	/**
-	 * Enable a data source
-	 * @param id The ID of the data source to enable
+	 * Enable a data source connection
+	 * @param id The ID of the data source connection to enable
 	 */
-	enableDataSource(id: string): void {
-		const source = this.getDataSource(id);
-		if (!source) {
-			throw new Error(`Data source with ID ${id} not found`);
+	async enableDsConnection(id: string): Promise<void> {
+		const dsConnection = this.getDsConnection(id);
+		if (!dsConnection) {
+			throw new Error(`Data source connection with ID ${id} not found`);
 		}
 
-		if (source.enabled) return; // Already enabled
+		if (dsConnection.enabled) return; // Already enabled
 
-		source.enabled = true;
+		dsConnection.enabled = true;
 
-		// Update project data file asynchronously
-		this.saveData()
-			.catch((error) => {
-				logger.error(`ProjectPersistence: Failed to save project data after enabling data source: ${error}`);
-			});
+		// Update project data file
+		await this.saveData();
 
-		logger.info(`ProjectPersistence: Enabled data source: ${id}`);
+		logger.info(`ProjectPersistence: Enabled data source connection: ${id}`);
 	}
 
 	/**
-	 * Disable a data source
-	 * @param id The ID of the data source to disable
+	 * Disable a data source connection
+	 * @param id The ID of the data source connection to disable
 	 */
-	disableDataSource(id: string): void {
-		const source = this.getDataSource(id);
-		if (!source) {
-			throw new Error(`Data source with ID ${id} not found`);
+	async disableDsConnection(id: string): Promise<void> {
+		const dsConnection = this.getDsConnection(id);
+		if (!dsConnection) {
+			throw new Error(`Data source connection with ID ${id} not found`);
 		}
 
-		if (!source.enabled) return; // Already disabled
+		if (!dsConnection.enabled) return; // Already disabled
 
-		// If this is the primary source, we need to find a new primary
-		const wasPrimary = source.isPrimary;
+		// If this is the primary source connection, we need to find a new primary
+		const wasPrimary = dsConnection.isPrimary;
 
-		source.enabled = false;
+		// Disable the legacy data source connection
+		dsConnection.enabled = false;
 
-		// Update project data file asynchronously
-		this.saveData()
-			.catch((error) => {
-				logger.error(`ProjectPersistence: Failed to save project data after disabling data source: ${error}`);
-			});
+		// Update project data file
+		await this.saveData();
 
-		logger.info(`ProjectPersistence: Disabled data source: ${id}`);
+		logger.info(`ProjectPersistence: Disabled data source connection: ${id}`);
 
 		if (wasPrimary) {
-			this.ensurePrimaryDataSource();
+			await this.ensurePrimaryDsConnection();
 		}
 	}
 
@@ -1077,7 +1172,7 @@ class ProjectPersistence implements ProjectData {
 				await Deno.writeFile(resourcePath, content);
 			}
 
-			await this.storeResourceMetadata(resourceUri, metadata);
+			await this.storeProjectResourceMetadata(resourceUri, metadata);
 
 			logger.debug(`ProjectPersistence: Stored project resource: ${resourceUri}`);
 		} catch (error) {
@@ -1095,11 +1190,6 @@ class ProjectPersistence implements ProjectData {
 		}
 	}
 
-	/**
-	 * Retrieve a resource from the project level
-	 * @param resourceUri The URI of the resource to retrieve
-	 * @returns The content of the resource, or null if not found
-	 */
 	/**
 	 * Retrieve a resource from the project level
 	 * @param resourceUri The URI of the resource to retrieve
@@ -1127,7 +1217,7 @@ class ProjectPersistence implements ProjectData {
 			}
 
 			// Get metadata if available
-			const metadata = await this.getResourceMetadata(resourceUri);
+			const metadata = await this.getProjectResourceMetadata(resourceUri);
 
 			return { content, metadata };
 		} catch (error) {
@@ -1150,12 +1240,13 @@ class ProjectPersistence implements ProjectData {
 
 		return await exists(resourcePath);
 	}
+
 	/**
 	 * Store metadata for a resource in the resources.json file
 	 * @param resourceUri The URI of the resource
 	 * @param metadata The metadata to store
 	 */
-	private async storeResourceMetadata(resourceUri: string, metadata: ResourceMetadata): Promise<void> {
+	private async storeProjectResourceMetadata(resourceUri: string, metadata: ResourceMetadata): Promise<void> {
 		try {
 			// Read existing metadata or initialize empty object
 			let resourcesMetadata: Record<string, ResourceMetadata> = {};
@@ -1199,7 +1290,7 @@ class ProjectPersistence implements ProjectData {
 	 * @param resourceUri The URI of the resource
 	 * @returns The metadata for the resource, or undefined if not found
 	 */
-	private async getResourceMetadata(resourceUri: string): Promise<ResourceMetadata | undefined> {
+	private async getProjectResourceMetadata(resourceUri: string): Promise<ResourceMetadata | undefined> {
 		try {
 			// Check if metadata file exists
 			if (!(await exists(this.projectResourcesMetadataPath))) {

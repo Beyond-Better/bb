@@ -8,7 +8,7 @@ import { logger } from 'shared/logger.ts';
 export const formatLogEntryToolUse = (
 	toolInput: LLMToolInputSchema,
 ): LLMToolLogEntryFormattedResult => {
-	const { dataSourceName, path, depth, pageSize, pageToken } = toolInput as LLMToolLoadDatasourceInput;
+	const { dataSourceId, path, depth, pageSize, pageToken } = toolInput as LLMToolLoadDatasourceInput;
 
 	// Build options list
 	const optionsList = [];
@@ -21,7 +21,7 @@ export const formatLogEntryToolUse = (
 		<>
 			{LLMTool.TOOL_TAGS_BROWSER.content.status('running', 'Loading Data Source')}
 			<div className='datasource-id'>
-				{LLMTool.TOOL_TAGS_BROWSER.base.label('Data Source:')} {dataSourceName}
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Data Source:')} {dataSourceId}
 			</div>
 			{optionsList.length > 0 && (
 				<div className='datasource-options'>
@@ -36,9 +36,9 @@ export const formatLogEntryToolUse = (
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Load Data Source'),
-		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`Listing resources from ${dataSourceName}`),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`Listing resources from ${dataSourceId}`),
 		content,
-		preview: `Loading resources from data source: ${dataSourceName}`,
+		preview: `Loading resources from data source: ${dataSourceId}`,
 	};
 };
 
@@ -54,9 +54,9 @@ export const formatLogEntryToolResult = (
 		const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
 			<>
 				<div className='datasource-info'>
-					{LLMTool.TOOL_TAGS_BROWSER.base.label('Data Source:')} {data.dataSourceName}
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Data Source:')} {data.dataSource.dsConnectionName}
 					{' | '}
-					{LLMTool.TOOL_TAGS_BROWSER.base.label('Type:')} {data.dataSourceType}
+					{LLMTool.TOOL_TAGS_BROWSER.base.label('Type:')} {data.dataSource.dsProviderType}
 				</div>
 				{resources.length > 0
 					? (
@@ -65,7 +65,7 @@ export const formatLogEntryToolResult = (
 							{LLMTool.TOOL_TAGS_BROWSER.base.list(
 								resources.map((resource) => (
 									<div className='resource-item'>
-										{LLMTool.TOOL_TAGS_BROWSER.content.filename(resource.name)}{' '}
+										{LLMTool.TOOL_TAGS_BROWSER.content.filename(resource.name || resource.uri)}{' '}
 										{resource.description && (
 											<span className='resource-description'>({resource.description})</span>
 										)}
@@ -92,7 +92,7 @@ export const formatLogEntryToolResult = (
 			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Load Data Source'),
 			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`${resources.length} resources found`),
 			content,
-			preview: `Found ${resources.length} resources in ${data.dataSourceName}`,
+			preview: `Found ${resources.length} resources in ${data.dataSource.dsConnectionName}`,
 		};
 	} else {
 		logger.error('LLMToolLoadDatasource: Unexpected bbResponse format:', bbResponse);

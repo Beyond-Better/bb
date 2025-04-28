@@ -11,7 +11,8 @@ import LLMToolManager from '../../src/llms/llmToolManager.ts';
 import type { ConversationStats } from 'shared/types.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
 export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: string }> {
 	Deno.env.set('BB_UNIT_TESTS', '1');
@@ -31,15 +32,23 @@ export async function setupTestProject(): Promise<{ dataSourceRoot: string; proj
 	const configManager = await getConfigManager();
 	await configManager.ensureGlobalConfig();
 
+	const dataSourceRegistry = await getDataSourceRegistry();
 	const dataSourceRoot = await Deno.makeTempDir();
+	const dsConnection = FilesystemProvider.createFileSystemDataSource(
+		'primary',
+		dataSourceRoot,
+		dataSourceRegistry,
+		{
+			id: 'ds-fs-primary',
+			isPrimary: true,
+		},
+	);
+
 	const createProjectData: CreateProjectData = {
 		name: 'TestProject',
 		status: 'active',
-		dataSources: [
-			DataSource.createPrimaryFileSystem(
-				'primary',
-				dataSourceRoot,
-			),
+		dsConnections: [
+			dsConnection,
 		],
 	};
 	const projectPersistenceManager = await getProjectPersistenceManager();

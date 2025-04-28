@@ -3,9 +3,9 @@ import { join } from '@std/path';
 import { logger } from 'shared/logger.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import { getDataSourceRegistry } from 'api/resources/dataSourceRegistry.ts';
-import type { ClientDataSource } from 'shared/types/project.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { ClientDataSourceConnection } from 'shared/types/project.ts';
+import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { enhanceProjectWithSources, isProjectValid } from 'shared/projectData.ts';
 import { errorMessage } from 'shared/error.ts';
 
@@ -31,11 +31,11 @@ import { errorMessage } from 'shared/error.ts';
  *       500:
  *         description: Internal server error
  */
-export const getDataSourceTypes = async (
+export const getDsProviders = async (
 	{ request, response }: RouterContext<'/types'>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: getDataSourceTypes called');
+		//logger.info('DataSourceHandler: getDsProviders called');
 
 		// Parse query parameters for mcpServers if provided
 		const url = new URL(request.url);
@@ -44,12 +44,12 @@ export const getDataSourceTypes = async (
 
 		// Get available data source types with filtering
 		const dataSourceRegistry = await getDataSourceRegistry();
-		const types = dataSourceRegistry.getFilteredTypes(mcpServers);
+		const types = dataSourceRegistry.getFilteredProviders(mcpServers);
 
 		response.status = 200;
-		response.body = { dataSourceTypes: types };
+		response.body = { dsProviders: types };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in getDataSourceTypes: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in getDsProviders: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to get data source types', details: errorMessage(error) };
 	}
@@ -78,11 +78,11 @@ export const getDataSourceTypes = async (
  *       500:
  *         description: Internal server error
  */
-export const listDataSources = async (
+export const listDsConnections = async (
 	{ params, response }: RouterContext<'/:projectId/datasource', { projectId: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: listDataSources called');
+		//logger.info('DataSourceHandler: listDsConnections called');
 		const { projectId } = params;
 
 		// Get project
@@ -95,15 +95,15 @@ export const listDataSources = async (
 		}
 
 		// Get data sources
-		//const dataSources = project.getDataSources();
+		//const dsConnections = project.getDsConnections();
 
 		// Convert to client format
-		const clientDataSources = project.toClientData().dataSources;
+		const clientDsConnections = project.toClientData().dsConnections;
 
 		response.status = 200;
-		response.body = { dataSources: clientDataSources };
+		response.body = { dsConnections: clientDsConnections };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in listDataSources: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in listDsConnections: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to list data sources', details: errorMessage(error) };
 	}
@@ -136,12 +136,12 @@ export const listDataSources = async (
  *       500:
  *         description: Internal server error
  */
-export const getDataSource = async (
+export const getDsConnection = async (
 	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: getDataSource called');
-		const { projectId, id: dataSourceId } = params;
+		//logger.info('DataSourceHandler: getDsConnection called');
+		const { projectId, id: dsConnectionId } = params;
 
 		// Get project
 		const projectPersistenceManager = await getProjectPersistenceManager();
@@ -153,21 +153,21 @@ export const getDataSource = async (
 		}
 
 		// Get data source
-		//const dataSource = project.getDataSource(dataSourceId);
-		//if (!dataSource) {
+		//const dsConnection = project.getDsConnection(dsConnectionId);
+		//if (!dsConnection) {
 		//  response.status = 404;
 		//  response.body = { error: 'Data source not found' };
 		//  return;
 		//}
 
 		// Find the matching client data source
-		const clientDataSources = project.toClientData().dataSources;
-		const clientDataSource = clientDataSources.find((ds) => ds.id === dataSourceId);
+		const clientDsConnections = project.toClientData().dsConnections;
+		const clientDsConnection = clientDsConnections.find((ds) => ds.id === dsConnectionId);
 
 		response.status = 200;
-		response.body = { dataSource: clientDataSource };
+		response.body = { dsConnection: clientDsConnection };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in getDataSource: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in getDsConnection: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to get data source', details: errorMessage(error) };
 	}
@@ -200,27 +200,27 @@ export const getDataSource = async (
  *       500:
  *         description: Internal server error
  */
-export const addDataSource = async (
+export const addDsConnection = async (
 	{ params, request, response }: RouterContext<'/:projectId/datasource', { projectId: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: addDataSource called');
+		//logger.info('DataSourceHandler: addDsConnection called');
 		const { projectId } = params;
 		const body = await request.body.json();
-		const dataSourceData = body as ClientDataSource;
+		const dsConnectionData = body as ClientDataSourceConnection;
 
 		// Handle rootPath for filesystem data sources
 		if (
-			dataSourceData.type === 'filesystem' && dataSourceData.config?.dataSourceRoot &&
-			typeof dataSourceData.config.dataSourceRoot === 'string'
+			dsConnectionData.providerType === 'filesystem' && dsConnectionData.config?.dataSourceRoot &&
+			typeof dsConnectionData.config.dataSourceRoot === 'string'
 		) {
 			const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 			// If the path doesn't start with rootPath, assume it's relative and join them
-			if (!dataSourceData.config.dataSourceRoot.startsWith('/')) {
-				dataSourceData.config.dataSourceRoot = join(rootPath, dataSourceData.config.dataSourceRoot);
-			} else if (!dataSourceData.config.dataSourceRoot.startsWith(rootPath)) {
-				dataSourceData.config.dataSourceRoot = join(rootPath, dataSourceData.config.dataSourceRoot);
+			if (!dsConnectionData.config.dataSourceRoot.startsWith('/')) {
+				dsConnectionData.config.dataSourceRoot = join(rootPath, dsConnectionData.config.dataSourceRoot);
+			} else if (!dsConnectionData.config.dataSourceRoot.startsWith(rootPath)) {
+				dsConnectionData.config.dataSourceRoot = join(rootPath, dsConnectionData.config.dataSourceRoot);
 			}
 		}
 
@@ -234,8 +234,8 @@ export const addDataSource = async (
 		}
 
 		// Create and add the data source
-		const dataSource = DataSource.fromObject(dataSourceData);
-		await project.registerDataSource(dataSource);
+		const dsConnection = await DataSourceConnection.fromJSON(dsConnectionData);
+		await project.registerDsConnection(dsConnection);
 
 		// Check if project is valid and update status accordingly
 		const isValid = isProjectValid(project);
@@ -264,7 +264,7 @@ export const addDataSource = async (
 		response.status = 200;
 		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in addDataSource: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in addDsConnection: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to add data source', details: errorMessage(error) };
 	}
@@ -303,19 +303,19 @@ export const addDataSource = async (
  *       500:
  *         description: Internal server error
  */
-export const updateDataSource = async (
+export const updateDsConnection = async (
 	{ params, request, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: updateDataSource called');
-		const { projectId, id: dataSourceId } = params;
+		//logger.info('DataSourceHandler: updateDsConnection called');
+		const { projectId, id: dsConnectionId } = params;
 		const body = await request.body.json();
-		const updates = body as Partial<ClientDataSource>;
-		//logger.info('DataSourceHandler: updateDataSource:', {updates});
+		const updates = body as Partial<ClientDataSourceConnection>;
+		//logger.info('DataSourceHandler: updateDsConnection:', {updates});
 
 		// Handle rootPath for filesystem data sources
 		if (
-			updates.type === 'filesystem' && updates.config?.dataSourceRoot &&
+			updates.providerType === 'filesystem' && updates.config?.dataSourceRoot &&
 			typeof updates.config.dataSourceRoot === 'string'
 		) {
 			const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
@@ -327,7 +327,7 @@ export const updateDataSource = async (
 				updates.config.dataSourceRoot = join(rootPath, updates.config.dataSourceRoot);
 			}
 		}
-		//logger.info('DataSourceHandler: updateDataSource - resolved paths:', {updates});
+		//logger.info('DataSourceHandler: updateDsConnection - resolved paths:', {updates});
 
 		// Get project
 		const projectPersistenceManager = await getProjectPersistenceManager();
@@ -339,15 +339,15 @@ export const updateDataSource = async (
 		}
 
 		// Get data source
-		const dataSource = project.getDataSource(dataSourceId);
-		if (!dataSource) {
+		const dsConnection = project.getDsConnection(dsConnectionId);
+		if (!dsConnection) {
 			response.status = 404;
 			response.body = { error: 'Data source not found' };
 			return;
 		}
 
 		// Update the data source - now with awaited persistence
-		await project.updateDataSource(dataSourceId, updates);
+		await project.updateDsConnection(dsConnectionId, updates);
 
 		// Check if project is valid and update status accordingly
 		const isValid = isProjectValid(project);
@@ -358,7 +358,7 @@ export const updateDataSource = async (
 		// If project is currently active and is no longer valid, demote to draft
 		if (project.status === 'active' && !isValid) await project.setStatus('draft');
 
-		//logger.info('DataSourceHandler: updateDataSource: Getting updated configs');
+		//logger.info('DataSourceHandler: updateDsConnection: Getting updated configs');
 		// Get updated project with config sources
 		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
@@ -377,7 +377,7 @@ export const updateDataSource = async (
 		response.status = 200;
 		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in updateDataSource: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in updateDsConnection: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to update data source', details: errorMessage(error) };
 	}
@@ -410,12 +410,12 @@ export const updateDataSource = async (
  *       500:
  *         description: Internal server error
  */
-export const removeDataSource = async (
+export const removeDsConnection = async (
 	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: removeDataSource called');
-		const { projectId, id: dataSourceId } = params;
+		//logger.info('DataSourceHandler: removeDsConnection called');
+		const { projectId, id: dsConnectionId } = params;
 
 		// Get project
 		const projectPersistenceManager = await getProjectPersistenceManager();
@@ -427,15 +427,15 @@ export const removeDataSource = async (
 		}
 
 		// Get data source
-		const dataSource = project.getDataSource(dataSourceId);
-		if (!dataSource) {
+		const dsConnection = project.getDsConnection(dsConnectionId);
+		if (!dsConnection) {
 			response.status = 404;
 			response.body = { error: 'Data source not found' };
 			return;
 		}
 
 		// Remove the data source
-		await project.removeDataSource(dataSourceId);
+		await project.removeDsConnection(dsConnectionId);
 
 		// Check if project is valid and update status accordingly
 		const isValid = isProjectValid(project);
@@ -464,7 +464,7 @@ export const removeDataSource = async (
 		response.status = 200;
 		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in removeDataSource: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in removeDsConnection: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to remove data source', details: errorMessage(error) };
 	}
@@ -490,9 +490,9 @@ export const removeDataSource = async (
  *           schema:
  *             type: object
  *             required:
- *               - dataSourceId
+ *               - dsConnectionId
  *             properties:
- *               dataSourceId:
+ *               dsConnectionId:
  *                 type: string
  *     responses:
  *       200:
@@ -502,18 +502,18 @@ export const removeDataSource = async (
  *       500:
  *         description: Internal server error
  */
-export const setPrimaryDataSource = async (
+export const setPrimaryDsConnection = async (
 	{ params, request, response }: RouterContext<'/:projectId/primary-datasource', { projectId: string }>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: setPrimaryDataSource called');
+		//logger.info('DataSourceHandler: setPrimaryDsConnection called');
 		const { projectId } = params;
 		const body = await request.body.json();
-		const { dataSourceId } = body;
+		const { dsConnectionId } = body;
 
-		if (!dataSourceId) {
+		if (!dsConnectionId) {
 			response.status = 400;
-			response.body = { error: 'Missing dataSourceId in request body' };
+			response.body = { error: 'Missing dsConnectionId in request body' };
 			return;
 		}
 
@@ -527,15 +527,15 @@ export const setPrimaryDataSource = async (
 		}
 
 		// Get data source
-		const dataSource = project.getDataSource(dataSourceId);
-		if (!dataSource) {
+		const dsConnection = project.getDsConnection(dsConnectionId);
+		if (!dsConnection) {
 			response.status = 404;
 			response.body = { error: 'Data source not found' };
 			return;
 		}
 
 		// Set as primary
-		await project.setPrimaryDataSource(dataSourceId);
+		await project.setPrimaryDsConnection(dsConnectionId);
 
 		// Check if project is valid and update status accordingly
 		const isValid = isProjectValid(project);
@@ -564,7 +564,7 @@ export const setPrimaryDataSource = async (
 		response.status = 200;
 		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in setPrimaryDataSource: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in setPrimaryDsConnection: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to set primary data source', details: errorMessage(error) };
 	}
@@ -591,11 +591,11 @@ export const setPrimaryDataSource = async (
  *       500:
  *         description: Internal server error
  */
-export const getDataSourceTypesForProject = async (
-	{ params, request, response }: RouterContext<'/:projectId/datasource/types'>,
+export const getDsProvidersForProject = async (
+	{ params, response }: RouterContext<'/:projectId/datasource/types'>,
 ) => {
 	try {
-		//logger.info('DataSourceHandler: getDataSourceTypesForProject called');
+		//logger.info('DataSourceHandler: getDsProvidersForProject called');
 		const { projectId } = params;
 
 		// Get project
@@ -608,17 +608,17 @@ export const getDataSourceTypesForProject = async (
 		}
 
 		const mcpServers = project.mcpServers;
-		//logger.info('DataSourceHandler: getDataSourceTypesForProject', { mcpServers });
+		//logger.info('DataSourceHandler: getDsProvidersForProject', { mcpServers });
 
 		// Get available data source types with filtering
 		const dataSourceRegistry = await getDataSourceRegistry();
-		const dataSourceTypes = dataSourceRegistry.getFilteredTypes(mcpServers);
-		//logger.info('DataSourceHandler: getDataSourceTypesForProject', { dataSourceTypes });
+		const dsProviders = dataSourceRegistry.getFilteredProviders(mcpServers);
+		//logger.info('DataSourceHandler: getDsProvidersForProject', { dsProviders });
 
 		response.status = 200;
-		response.body = { dataSourceTypes };
+		response.body = { dsProviders };
 	} catch (error) {
-		logger.error(`DataSourceHandler: Error in getDataSourceTypesForProject: ${errorMessage(error)}`);
+		logger.error(`DataSourceHandler: Error in getDsProvidersForProject: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to get data source types for project', details: errorMessage(error) };
 	}

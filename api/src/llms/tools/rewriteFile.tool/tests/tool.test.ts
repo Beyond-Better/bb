@@ -1,6 +1,6 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from 'api/tests/deps.ts';
 
-//import LLMToolRewriteFile from '../tool.ts';
+//import LLMToolRewriteResource from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
@@ -11,28 +11,28 @@ import {
 	withTestProject,
 } from 'api/tests/testSetup.ts';
 import { FileHandlingError } from 'api/errors/error.ts';
-import type { LLMToolRewriteFileResponseData } from '../types.ts';
+import type { LLMToolRewriteResourceResponseData } from '../types.ts';
 
-//const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete file content with no omissions or placeholders';
+//const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete resource content with no omissions or placeholders';
 const VALID_ACKNOWLEDGEMENT =
-	'I have checked for existing file contents and confirm this is the complete file content with no omissions or placeholders';
+	'I have checked for existing resource contents and confirm this is the complete resource content with no omissions or placeholders';
 
 // Type guard function
 function isRunCommandResponse(
 	response: unknown,
-): response is LLMToolRewriteFileResponseData {
+): response is LLMToolRewriteResourceResponseData {
 	const data = response && typeof response === 'object' && 'data' in response
 		? (response as { data: unknown }).data
 		: null;
 	return (
 		data !== null &&
 		typeof data === 'object' &&
-		'filePath' in data &&
-		typeof data.filePath === 'string' &&
+		'resourcePath' in data &&
+		typeof data.resourcePath === 'string' &&
 		'lineCount' in data &&
 		typeof data.lineCount === 'number' &&
-		'isNewFile' in data &&
-		typeof data.isNewFile === 'boolean' &&
+		'isNewResource' in data &&
+		typeof data.isNewResource === 'boolean' &&
 		'lineCountError' in data &&
 		(typeof data.lineCountError === 'string' ||
 			typeof data.lineCountError === 'undefined')
@@ -45,7 +45,7 @@ function isString(value: unknown): value is string {
 }
 
 Deno.test({
-	name: 'Rewrite File Tool - rewrite existing file',
+	name: 'Rewrite Resource Tool - rewrite existing resource',
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -55,24 +55,24 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				// Create a test file
-				const testFile = 'test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Original content');
+				// Create a test resource
+				const testResource = 'test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Original content');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: 'New content',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 1,
@@ -80,9 +80,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('rewrite existing file - bbResponse:', result.bbResponse);
-				// console.log('rewrite existing file - toolResponse:', result.toolResponse);
-				// console.log('rewrite existing file - toolResults:', result.toolResults);
+				// console.log('rewrite existing resource - bbResponse:', result.bbResponse);
+				// console.log('rewrite existing resource - toolResponse:', result.toolResponse);
+				// console.log('rewrite existing resource - toolResults:', result.toolResults);
 
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -95,9 +95,9 @@ Deno.test({
 
 				if (isRunCommandResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbResponse.data.filePath,
+						result.bbResponse.data.resourcePath,
 						'test.txt',
-						'Test response filePath should be "test.txt"',
+						'Test response resourcePath should be "test.txt"',
 					);
 					assertEquals(
 						result.bbResponse.data.lineCount,
@@ -105,7 +105,7 @@ Deno.test({
 						'Test response lineCount should be 1',
 					);
 
-					assertEquals(result.bbResponse.data.isNewFile, false, 'Test response isNewFile should be false');
+					assertEquals(result.bbResponse.data.isNewResource, false, 'Test response isNewResource should be false');
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -118,12 +118,12 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'Rewrote test.txt with 1 lines of content');
 				if (isString(result.toolResults)) {
-					assertStringIncludes(result.toolResults, 'File test.txt rewritten with new contents (1 lines)');
+					assertStringIncludes(result.toolResults, 'Resource test.txt rewritten with new contents (1 lines)');
 				} else {
 					assert(false, 'toolResults is not a string as expected');
 				}
 
-				const newContent = await Deno.readTextFile(testFilePath);
+				const newContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(newContent, 'New content');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -135,7 +135,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'Rewrite File Tool - create new file',
+	name: 'Rewrite Resource Tool - create new resource',
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -145,32 +145,32 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				// Create a test file
-				const testFile = 'new-test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
+				// Create a test resource
+				const testResource = 'new-test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
-						content: 'New file content',
+						resourcePath: testResource,
+						content: 'New resource content',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 1,
 					},
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('create new file - bbResponse:', result.bbResponse);
-				// console.log('create new file - toolResponse:', result.toolResponse);
-				// console.log('create new file - toolResults:', result.toolResults);
+				// console.log('create new resource - bbResponse:', result.bbResponse);
+				// console.log('create new resource - toolResponse:', result.toolResponse);
+				// console.log('create new resource - toolResults:', result.toolResults);
 
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -183,9 +183,9 @@ Deno.test({
 
 				if (isRunCommandResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbResponse.data.filePath,
-						testFile,
-						'Test response filePath should be "new-test.txt"',
+						result.bbResponse.data.resourcePath,
+						testResource,
+						'Test response resourcePath should be "new-test.txt"',
 					);
 					assertEquals(
 						result.bbResponse.data.lineCount,
@@ -193,7 +193,7 @@ Deno.test({
 						'Test response lineCount should be 1',
 					);
 
-					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -206,14 +206,14 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'Created new-test.txt with 1 lines of content');
 				if (isString(result.toolResults)) {
-					assertStringIncludes(result.toolResults, 'File new-test.txt created with new contents (1 lines)');
+					assertStringIncludes(result.toolResults, 'Resource new-test.txt created with new contents (1 lines)');
 				} else {
 					assert(false, 'toolResults is not a string as expected');
 				}
 
-				assert(await Deno.stat(testFilePath));
-				const newContent = await Deno.readTextFile(testFilePath);
-				assertEquals(newContent, 'New file content');
+				assert(await Deno.stat(testResourcePath));
+				const newContent = await Deno.readTextFile(testResourcePath);
+				assertEquals(newContent, 'New resource content');
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -224,7 +224,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'Rewrite File Tool - invalid acknowledgement string',
+	name: 'Rewrite Resource Tool - invalid acknowledgement string',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -234,19 +234,19 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'test.txt';
+				const testResource = 'test.txt';
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: 'New content',
 						acknowledgement: 'I verify this is complete',
 						expectedLineCount: 1,
@@ -268,7 +268,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'Rewrite File Tool - empty file handling',
+	name: 'Rewrite Resource Tool - empty resource handling',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -278,22 +278,22 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'empty.txt';
-				//const testFilePath = getTestFilePath(testProjectRoot, testFile);
+				const testResource = 'empty.txt';
+				//const testResourcePath = getTestFilePath(testProjectRoot, testResource);
 
 				// Test empty content
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: '',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 0,
@@ -302,9 +302,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				// console.log('empty file handling - bbResponse:', result.bbResponse);
-				// console.log('empty file handling - toolResponse:', result.toolResponse);
-				// console.log('empty file handling - toolResults:', result.toolResults);
+				// console.log('empty resource handling - bbResponse:', result.bbResponse);
+				// console.log('empty resource handling - toolResponse:', result.toolResponse);
+				// console.log('empty resource handling - toolResults:', result.toolResults);
 
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -317,9 +317,9 @@ Deno.test({
 
 				if (isRunCommandResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbResponse.data.filePath,
-						testFile,
-						'Test response filePath should be "empty.txt"',
+						result.bbResponse.data.resourcePath,
+						testResource,
+						'Test response resourcePath should be "empty.txt"',
 					);
 					assertEquals(
 						result.bbResponse.data.lineCount,
@@ -327,7 +327,7 @@ Deno.test({
 						'Test response lineCount should be 0',
 					);
 
-					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -338,13 +338,13 @@ Deno.test({
 					assert(false, 'bbResponse does not have the expected structure for Tool');
 				}
 
-				// Test single empty line (should be treated same as empty file)
+				// Test single empty line (should be treated same as empty resource)
 				const toolUse2: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-2',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: '\n',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 0,
@@ -353,9 +353,9 @@ Deno.test({
 				};
 
 				const result2 = await tool.runTool(interaction, toolUse2, projectEditor);
-				//console.log('empty file handling-2 - bbResponse:', result2.bbResponse);
-				//console.log('empty file handling-2 - toolResponse:', result2.toolResponse);
-				//console.log('empty file handling-2 - toolResults:', result2.toolResults);
+				//console.log('empty resource handling-2 - bbResponse:', result2.bbResponse);
+				//console.log('empty resource handling-2 - toolResponse:', result2.toolResponse);
+				//console.log('empty resource handling-2 - toolResults:', result2.toolResults);
 
 				assert(
 					result2.bbResponse && typeof result2.bbResponse === 'object',
@@ -368,9 +368,9 @@ Deno.test({
 
 				if (isRunCommandResponse(result2.bbResponse)) {
 					assertEquals(
-						result2.bbResponse.data.filePath,
-						testFile,
-						'Test response filePath should be "empty.txt"',
+						result2.bbResponse.data.resourcePath,
+						testResource,
+						'Test response resourcePath should be "empty.txt"',
 					);
 					assertEquals(
 						result2.bbResponse.data.lineCount,
@@ -378,7 +378,7 @@ Deno.test({
 						'Test response lineCount should be 0',
 					);
 
-					assertEquals(result2.bbResponse.data.isNewFile, false, 'Test response isNewFile should be false');
+					assertEquals(result2.bbResponse.data.isNewResource, false, 'Test response isNewResource should be false');
 
 					assertEquals(
 						result2.bbResponse.data.lineCountError,
@@ -393,9 +393,9 @@ Deno.test({
 				const toolUse3: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-3',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: '',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 0,
@@ -420,7 +420,7 @@ Deno.test({
 // TODO Either LLM or the tool is having trouble counting lines in real usage, so line count checks in tool have been changed to warnings rather than throwing errors.
 // Test to check for exceptions is commented out below
 Deno.test({
-	name: 'Rewrite File Tool - line count mismatch',
+	name: 'Rewrite Resource Tool - line count mismatch',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -430,19 +430,19 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'test.txt';
+				const testResource = 'test.txt';
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: 'Line 1\nLine 2\nLine 3',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 5, // Actual is 3
@@ -465,9 +465,9 @@ Deno.test({
 
 				if (isRunCommandResponse(result.bbResponse)) {
 					assertEquals(
-						result.bbResponse.data.filePath,
-						testFile,
-						'Test response filePath should be "empty.txt"',
+						result.bbResponse.data.resourcePath,
+						testResource,
+						'Test response resourcePath should be "empty.txt"',
 					);
 					assertEquals(
 						result.bbResponse.data.lineCount,
@@ -475,7 +475,7 @@ Deno.test({
 						'Test response lineCount should be 3',
 					);
 
-					assertEquals(result.bbResponse.data.isNewFile, true, 'Test response isNewFile should be true');
+					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -488,7 +488,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'Created test.txt with 3 lines of content');
 				if (isString(result.toolResults)) {
-					assertStringIncludes(result.toolResults, 'File test.txt created with new contents (3 lines)');
+					assertStringIncludes(result.toolResults, 'Resource test.txt created with new contents (3 lines)');
 				} else {
 					assert(false, 'toolResults is not a string as expected');
 				}
@@ -504,7 +504,7 @@ Deno.test({
     // TODO Either LLM or the tool is having trouble counting lines in real usage, so line count checks in tool have been changed to warnings rather than throwing errors.
     // Either use this test for throwing exception, or test above for warning string
 Deno.test({
-	name: 'Rewrite File Tool - line count mismatch',
+	name: 'Rewrite Resource Tool - line count mismatch',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -514,19 +514,19 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'test.txt';
+				const testResource = 'test.txt';
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						content: 'Line 1\nLine 2\nLine 3',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 5, // Actual is 3
@@ -549,7 +549,7 @@ Deno.test({
  */
 
 Deno.test({
-	name: 'Rewrite File Tool - line count tolerance',
+	name: 'Rewrite Resource Tool - line count tolerance',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -559,24 +559,24 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'test.txt';
-				//const testFilePath = getTestFilePath(testProjectRoot, testFile);
+				const testResource = 'test.txt';
+				//const testResourcePath = getTestFilePath(testProjectRoot, testResource);
 
-				// Test small file (exact match required)
-				const smallFileContent = 'Line 1\nLine 2\nLine 3';
+				// Test small resource (exact match required)
+				const smallResourceContent = 'Line 1\nLine 2\nLine 3';
 				const toolUse1: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-1',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
-						content: smallFileContent,
+						resourcePath: testResource,
+						content: smallResourceContent,
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 3,
 					},
@@ -589,18 +589,18 @@ Deno.test({
 					assert(false, 'toolResults is not a string as expected');
 				}
 
-				// Test medium file (±2 lines tolerance)
-				let mediumFileContent = '';
+				// Test medium resource (±2 lines tolerance)
+				let mediumResourceContent = '';
 				for (let i = 1; i <= 50; i++) {
-					mediumFileContent += `Line ${i}\n`;
+					mediumResourceContent += `Line ${i}\n`;
 				}
 				const toolUse2: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-2',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
-						content: mediumFileContent,
+						resourcePath: testResource,
+						content: mediumResourceContent,
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 51, // Actual is 50, but within tolerance
 					},
@@ -613,18 +613,18 @@ Deno.test({
 					assert(false, 'toolResults is not a string as expected');
 				}
 
-				// Test large file (5% tolerance)
-				let largeFileContent = '';
+				// Test large resource (5% tolerance)
+				let largeResourceContent = '';
 				for (let i = 1; i <= 200; i++) {
-					largeFileContent += `Line ${i}\n`;
+					largeResourceContent += `Line ${i}\n`;
 				}
 				const toolUse3: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-3',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFile,
-						content: largeFileContent,
+						resourcePath: testResource,
+						content: largeResourceContent,
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 208, // Within 5% of 200
 					},
@@ -646,7 +646,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'Rewrite File Tool - throw error for file outside project',
+	name: 'Rewrite Resource Tool - throw error for resource outside project',
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -656,22 +656,22 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('rewrite_file');
+			const tool = await toolManager.getTool('rewrite_resource');
 			assert(tool, 'Failed to get tool');
 
 			const logChangeAndCommitStub = orchestratorControllerStubMaker.logChangeAndCommitStub(() =>
 				Promise.resolve()
 			);
 			try {
-				// Create a test file
-				const testFilePath = '/tmp/outside_project.txt';
+				// Create a test resource
+				const testResourcePath = '/tmp/outside_project.txt';
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'rewrite_file',
+					toolName: 'rewrite_resource',
 					toolInput: {
-						filePath: testFilePath,
+						resourcePath: testResourcePath,
 						content: 'New content',
 						acknowledgement: VALID_ACKNOWLEDGEMENT,
 						expectedLineCount: 1,
@@ -681,7 +681,7 @@ Deno.test({
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
 					FileHandlingError,
-					`Access denied: ${testFilePath} is outside the data source directory`,
+					`Access denied: ${testResourcePath} is outside the data source directory`,
 				);
 			} finally {
 				logChangeAndCommitStub.restore();

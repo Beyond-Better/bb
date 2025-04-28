@@ -1,7 +1,9 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 // Main input interface
 export interface LLMToolImageProcessingInput {
+	dataSourceId?: string;
 	// File path or URL for input image
 	inputPath: string;
 	// Output file path where processed image will be saved
@@ -12,7 +14,6 @@ export interface LLMToolImageProcessingInput {
 	createMissingDirectories?: boolean;
 	// Whether to allow overwriting existing output file
 	overwrite?: boolean;
-	dataSource?: string;
 }
 
 // Base operation interface
@@ -55,7 +56,12 @@ export interface LLMToolImageProcessingResultData {
 		size?: number;
 	};
 	error?: string;
-	dataSourceId: string;
+
+	dataSource: {
+		dsConnectionId: string;
+		dsConnectionName: string;
+		dsProviderType: DataSourceProviderType;
+	};
 }
 
 export interface LLMToolImageProcessingResponseData {

@@ -17,13 +17,11 @@ import type {
 	LLMMessageContentPartTextBlock,
 } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions, ResourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { encodeBase64 } from '@std/encoding';
-import { ensureDir } from '@std/fs';
-import { dirname, extname, join } from '@std/path';
+import { extname, join } from '@std/path';
 import type { ImageOperation, LLMToolImageProcessingInput, LLMToolImageProcessingResultData } from './types.ts';
 
 // Import magick-wasm
@@ -42,15 +40,15 @@ export default class LLMToolImageProcessing extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				inputPath: {
 					type: 'string',
 					description: `The source image to process. Can be either:
-1. Local file path relative to data source root
+1. Resource path relative to data source root
 2. URL (http:// or https://) for remote images
 
 Examples:
@@ -60,7 +58,7 @@ Examples:
 				outputPath: {
 					type: 'string',
 					description: `Where to save the processed image, relative to data source root.
-Must be within the data source directory.
+Must be within the data source.
 Format is determined by file extension.
 
 Examples:
@@ -261,30 +259,30 @@ Example:
 			operations,
 			createMissingDirectories = true,
 			overwrite = false,
-			dataSource: dataSourceId = undefined,
+			dataSourceId = undefined,
 		} = toolInput as LLMToolImageProcessingInput;
 
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 		if (!dataSourceRoot) {
 			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
 				name: 'data-source',
@@ -292,11 +290,15 @@ Example:
 			} as DataSourceHandlingErrorOptions);
 		}
 
+		// Input is a local file
+		const inputResourceUri = dsConnectionToUse.getUriForResource(`file:./${inputPath}`);
+
 		// Validate output path is within data source
-		if (!await isPathWithinDataSource(dataSourceRoot, outputPath)) {
+		const outputResourceUri = dsConnectionToUse.getUriForResource(`file:./${outputPath}`);
+		if (!await dsConnectionToUse.isResourceWithinDataSource(outputResourceUri)) {
 			throw createError(
 				ErrorType.FileHandling,
-				`Access denied: ${outputPath} is outside the data source directory`,
+				`Access denied: ${outputPath} is outside the data source`,
 				{
 					name: 'image-processing',
 					filePath: outputPath,
@@ -309,31 +311,36 @@ Example:
 		logger.info(`LLMToolImageProcessing: Processing image, output to: ${fullOutputPath}`);
 
 		try {
+			const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+			if (!resourceAccessor.writeResource) {
+				throw createError(ErrorType.ToolHandling, `No writeResource method on resourceAccessor`, {
+					toolName: 'image_manipulation',
+					operation: 'tool-run',
+				} as ToolHandlingErrorOptions);
+			}
+
+
+			// Handled by writeResource
+			/* 
 			// Check if output file exists and whether we should overwrite
-			try {
-				const stat = await Deno.stat(fullOutputPath);
-				if (stat.isFile && !overwrite) {
-					throw createError(
-						ErrorType.FileHandling,
-						`Output file ${outputPath} already exists and overwrite is set to false`,
-						{
-							name: 'image-processing',
-							filePath: outputPath,
-							operation: 'write',
-						} as FileHandlingErrorOptions,
-					);
-				}
-			} catch (error) {
-				if (!(error instanceof Deno.errors.NotFound)) {
-					throw error;
-				}
-				// File doesn't exist, which is fine
+			const resourceExists = await dsConnectionToUse.resourceExists(outputResourceUri, { isFile: true });
+			if (resourceExists && !overwrite) {
+				throw createError(
+					ErrorType.FileHandling,
+					`Output file ${outputPath} already exists and overwrite is set to false`,
+					{
+						name: 'image-processing',
+						filePath: outputPath,
+						operation: 'write',
+					} as FileHandlingErrorOptions,
+				);
 			}
 
 			// Create output directory if needed
 			if (createMissingDirectories) {
-				await ensureDir(dirname(fullOutputPath));
+				await dsConnectionToUse.ensureResourcePathExists(outputResourceUri);
 			}
+			 */
 
 			// Load image data based on whether inputPath is a URL or local file
 			let imageData: Uint8Array;
@@ -346,11 +353,11 @@ Example:
 				}
 				imageData = new Uint8Array(await response.arrayBuffer());
 			} else {
-				// Input is a local file
-				if (!await isPathWithinDataSource(dataSourceRoot, inputPath)) {
+
+				if (!await dsConnectionToUse.isResourceWithinDataSource(inputResourceUri)) {
 					throw createError(
 						ErrorType.FileHandling,
-						`Access denied: ${inputPath} is outside the data source directory`,
+						`Access denied: ${inputPath} is outside the data source`,
 						{
 							name: 'image-processing',
 							filePath: inputPath,
@@ -359,8 +366,14 @@ Example:
 					);
 				}
 
-				const fullInputPath = join(dataSourceRoot, inputPath);
-				imageData = await Deno.readFile(fullInputPath);
+				const resource = await resourceAccessor.loadResource(inputResourceUri);
+				if (!resource) {
+					throw createError(ErrorType.DataSourceHandling, `Could not load resource`, {
+						operation: 'read',
+					} as ResourceHandlingErrorOptions);
+				}
+
+				imageData = resource.content as Uint8Array;
 			}
 
 			await initialize(); // Make sure to initialize ImageMagick first
@@ -373,7 +386,29 @@ Example:
 			);
 
 			// Write the processed image
-			await Deno.writeFile(fullOutputPath, processedData);
+			const results = await resourceAccessor.writeResource(outputResourceUri, processedData, {
+				overwrite,
+				createMissingDirectories,
+			});
+			// success: true,
+			// uri: resourceUri,
+			// metadata: resourceMetadata,
+			// bytesWritten: typeof content === 'string' ? new TextEncoder().encode(content).length : content.length,
+			if (!results.success) {
+				throw createError(
+					ErrorType.FileHandling,
+					`Writing image data failed for ${inputPath}`,
+					{
+						name: 'image-processing',
+						filePath: inputPath,
+						operation: 'write',
+					} as FileHandlingErrorOptions,
+				);
+			}
+			logger.info(
+				`LLMToolImageProcessing: Wrote ${results.bytesWritten} bytes for processed image: ${results.uri}`,
+			);
+
 
 			// Create a thumbnail of the result to display in the conversation
 			const thumbnailData = processedData;
@@ -414,12 +449,12 @@ Example:
 			// const thumbnailImagePath = join(dataSourceRoot, 'test-thumbnail.png');
 			// await Deno.writeFile(thumbnailImagePath, thumbnailData);
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 			toolResultContentParts.unshift({
 				type: 'text',
-				text: `Used data source: ${dataSourceToUse.name}`,
+				text: `Used data source: ${dsConnectionToUse.name}`,
 			});
 
 			// Prepare result data
@@ -434,7 +469,11 @@ Example:
 					'data': thumbnailBase64,
 				},
 				meta: processedMetadata,
-				dataSourceId: dataSourceId || '',
+				dataSource: {
+					dsConnectionId: dsConnectionToUse.id,
+					dsConnectionName: dsConnectionToUse.name,
+					dsProviderType: dsConnectionToUse.providerType,
+				},
 			};
 			//logger.error(`LLMToolImageProcessing:`, { resultData });
 
@@ -444,7 +483,7 @@ Example:
 			return {
 				toolResults: toolResultContentParts,
 				toolResponse:
-					`${dataSourceStatus}\nSuccessfully processed image from ${inputPath} to ${outputPath} with operations: ${operationsSummary}`,
+					`${dsConnectionStatus}\nSuccessfully processed image from ${inputPath} to ${outputPath} with operations: ${operationsSummary}`,
 				bbResponse: {
 					data: resultData,
 				},

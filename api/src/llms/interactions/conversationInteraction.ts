@@ -30,7 +30,8 @@ import type {
 	ResourceMetadata,
 	ResourceRevisionMetadata,
 	ResourcesForConversation,
-} from 'api/resources/resourceManager.ts';
+	ResourceForConversation,
+} from 'shared/types/dataSourceResource.ts';
 import type { ResourceType } from 'api/types.ts';
 //import { GitUtils } from 'shared/git.ts';
 
@@ -40,7 +41,7 @@ export interface BBResourceMetadata {
 	uri: string;
 	type: ResourceType;
 	contentType: 'text' | 'image';
-	size: number;
+	size?: number;
 	last_modified?: string;
 	revision: string;
 	mime_type?: string;
@@ -632,7 +633,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			uri: resourceUri,
 			messageId,
 			toolUseId,
-		};
+		} as ResourceRevisionMetadata;
 
 		if (!resourceMetadata.error) {
 			this.setResourceRevisionMetadata(generateResourceRevisionKey(resourceUri, messageId), resourceMetadata);
@@ -654,7 +655,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				uri: resourceUri,
 				messageId,
 				toolUseId,
-			};
+			} as ResourceRevisionMetadata;
 			conversationResources.push({
 				resourceUri,
 				resourceMetadata,
@@ -811,7 +812,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 
 		const resourcesToAdd = attachedResources
-			? attachedResources.map((resourceToAdd) => {
+			? attachedResources.map((resourceToAdd: ResourceForConversation) => {
 				return {
 					'type': 'text',
 					'text': `Resource added: <${resourceToAdd.resourceUri}>`,

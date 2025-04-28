@@ -1,11 +1,11 @@
 //import { type ComponentChildren } from 'preact';
 //import { useState } from 'preact/hooks';
-import type { ClientDataSource } from 'shared/types/project.ts';
+import type { ClientDataSourceConnection } from 'shared/types/project.ts';
 import { formatPathForDisplay } from '../utils/path.utils.ts';
 import { useAppState } from '../hooks/useAppState.ts';
 
 interface DataSourceItemProps {
-	dataSource: ClientDataSource;
+	dsConnection: ClientDataSourceConnection;
 	onSetPrimary: () => void;
 	onEdit: () => void;
 	onRemove: () => void;
@@ -14,8 +14,8 @@ interface DataSourceItemProps {
 /**
  * Displays a single data source with management options
  */
-export function DataSourceItem({ dataSource, onSetPrimary, onEdit, onRemove }: DataSourceItemProps) {
-	const { id: _id, name, type, enabled, isPrimary, capabilities = [] } = dataSource;
+export function DataSourceItem({ dsConnection, onSetPrimary, onEdit, onRemove }: DataSourceItemProps) {
+	const { id: _id, name, providerType, enabled, isPrimary, capabilities = [] } = dsConnection;
 	const appState = useAppState();
 	return (
 		<div
@@ -27,7 +27,7 @@ export function DataSourceItem({ dataSource, onSetPrimary, onEdit, onRemove }: D
 				${!enabled ? 'opacity-60' : ''}`}
 		>
 			<div className='flex justify-between items-center mb-2'>
-				<h4 className='text-base font-medium text-gray-900 dark:text-gray-100'>{name || type}</h4>
+				<h4 className='text-base font-medium text-gray-900 dark:text-gray-100'>{name || providerType}</h4>
 				<div className='flex gap-2'>
 					{!isPrimary && (
 						<button
@@ -59,7 +59,7 @@ export function DataSourceItem({ dataSource, onSetPrimary, onEdit, onRemove }: D
 			<div className='space-y-2'>
 				<div className='flex flex-wrap gap-2'>
 					<span className='px-2 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'>
-						{type}
+						{providerType}
 					</span>
 					{isPrimary &&
 						(
@@ -91,7 +91,7 @@ export function DataSourceItem({ dataSource, onSetPrimary, onEdit, onRemove }: D
 					))}
 				</div>
 
-				{dataSource.type === 'filesystem' && dataSource.config.dataSourceRoot && (
+				{dsConnection.providerType === 'filesystem' && dsConnection.config.dataSourceRoot && (
 					<div className='text-sm text-gray-600 dark:text-gray-400 truncate border-t border-gray-100 dark:border-gray-700 mt-2 pt-2 flex items-center'>
 						<svg
 							xmlns='http://www.w3.org/2000/svg'
@@ -109,7 +109,7 @@ export function DataSourceItem({ dataSource, onSetPrimary, onEdit, onRemove }: D
 						</svg>
 						<span className='font-mono'>
 							{formatPathForDisplay(
-								dataSource.config.dataSourceRoot as string,
+								dsConnection.config.dataSourceRoot as string,
 								appState.value.systemMeta?.pathSeparator,
 							)}
 						</span>

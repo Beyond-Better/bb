@@ -1,26 +1,32 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
-export interface LLMToolRewriteFileInput {
-	filePath: string;
+export interface LLMToolRewriteResourceInput {
+	dataSourceId?: string;
+	resourcePath: string;
 	content: string;
 	createIfMissing?: boolean;
 	allowEmptyContent?: boolean;
 	acknowledgement: string;
 	expectedLineCount: number;
-	dataSource?: string;
 }
 
-export interface LLMToolRewriteFileResponseData {
+export interface LLMToolRewriteResourceResponseData {
 	data: {
-		filePath: string;
+		resourcePath: string;
 		lineCount: number;
-		isNewFile: boolean;
+		isNewResource: boolean;
 		lineCountError?: string;
-		dataSourceId: string;
+
+		dataSource: {
+			dsConnectionId: string;
+			dsConnectionName: string;
+			dsProviderType: DataSourceProviderType;
+		};
 	};
 }
 
-export interface LLMToolRewriteFileResult {
+export interface LLMToolRewriteResourceResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: LLMToolRewriteFileResponseData;
+	bbResponse: LLMToolRewriteResourceResponseData;
 }

@@ -6,11 +6,11 @@ import type { LLMToolSearchAndReplaceInput, LLMToolSearchAndReplaceResult } from
 import { stripIndents } from 'common-tags';
 
 export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
-	const { filePath, operations, createIfMissing } = toolInput as LLMToolSearchAndReplaceInput;
+	const { resourcePath, operations, createIfMissing } = toolInput as LLMToolSearchAndReplaceInput;
 	const opCount = operations.length;
 	const opText = opCount === 1 ? 'operation' : 'operations';
 	const content = stripIndents`
-    ${LLMTool.TOOL_STYLES_CONSOLE.base.label('File:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(filePath)}
+    ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Resource:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resourcePath)}
     ${LLMTool.TOOL_STYLES_CONSOLE.content.boolean(createIfMissing ?? false, 'enabled/disabled')}
 
     ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Operations:')}
@@ -34,7 +34,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Search And Replace'),
 		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`${opCount} ${opText}`),
 		content,
-		preview: `Modifying ${filePath}`,
+		preview: `Modifying ${resourcePath}`,
 	};
 };
 

@@ -446,14 +446,14 @@ class BaseController {
 		return {
 			PROJECT_EDITOR: () => this.projectEditor,
 			PROJECT_ID: () => this.projectEditor.projectId,
-			PROJECT_DATA_SOURCES: () => this.projectEditor.dataSourcesForSystemPrompt,
+			PROJECT_DATA_SOURCES: () => this.projectEditor.dsConnectionsForSystemPrompt,
 			PROJECT_MCP_TOOLS: async () => await this.projectEditor.getMCPToolsForSystemPrompt(),
 			PROJECT_INFO: () => this.projectEditor.projectInfo,
 			PROJECT_CONFIG: () => this.projectEditor.projectConfig,
-			PROJECT_RESOURCE_CONTENT: async (dataSourceId: string, filePath: string): Promise<string | null> => {
-				const dataSource = this.projectEditor.dataSource(dataSourceId);
-				if (!dataSource) return null;
-				return await readFileContent(dataSource.getDataSourceRoot(), filePath);
+			PROJECT_RESOURCE_CONTENT: async (dsConnectionId: string, filePath: string): Promise<string | null> => {
+				const dsConnection = this.projectEditor.dsConnection(dsConnectionId);
+				if (!dsConnection) return null;
+				return await readFileContent(dsConnection.getDataSourceRoot(), filePath);
 			},
 			// deno-lint-ignore require-await
 			LOG_ENTRY_HANDLER: async (
@@ -583,27 +583,29 @@ class BaseController {
 				throw new Error('filePath and change arrays must have the same length');
 			}
 			for (let i = 0; i < filePath.length; i++) {
-				this.projectEditor.changedFiles.add(filePath[i]);
+				this.projectEditor.changedResources.add(filePath[i]);
 				this.projectEditor.changeContents.set(filePath[i], change[i]);
 				await persistence.logChange(filePath[i], change[i]);
 			}
 		} else if (typeof filePath === 'string' && typeof change === 'string') {
-			this.projectEditor.changedFiles.add(filePath);
+			this.projectEditor.changedResources.add(filePath);
 			this.projectEditor.changeContents.set(filePath, change);
 			await persistence.logChange(filePath, change);
 		} else {
 			throw new Error('filePath and change must both be strings or both be arrays');
 		}
 
-		await stageAndCommitAfterChanging(
-			interaction,
-			dataSourceRoot,
-			this.projectEditor.changedFiles,
-			this.projectEditor.changeContents,
-			this.projectEditor,
-		);
+		if (dataSourceRoot) {
+			await stageAndCommitAfterChanging(
+				interaction,
+				dataSourceRoot,
+				this.projectEditor.changedResources,
+				this.projectEditor.changeContents,
+				this.projectEditor,
+			);
+		}
 
-		this.projectEditor.changedFiles.clear();
+		this.projectEditor.changedResources.clear();
 		this.projectEditor.changeContents.clear();
 	}
 

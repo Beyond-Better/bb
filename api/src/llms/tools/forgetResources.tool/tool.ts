@@ -24,10 +24,10 @@ export default class LLMToolForgetResources extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				resources: {
 					type: 'array',
@@ -89,21 +89,21 @@ export default class LLMToolForgetResources extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { resources, dataSource: dataSourceId = undefined } = toolUse.toolInput as LLMToolForgetResourcesInput;
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { resources, dataSourceId = undefined } = toolUse.toolInput as LLMToolForgetResourcesInput;
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
@@ -119,7 +119,8 @@ export default class LLMToolForgetResources extends LLMTool {
 			let allResourcesFailed = true;
 
 			for (const { resourcePath, revision } of resources) {
-				const resourceUri = dataSourceToUse.getUriForResource(`file:./${resourcePath}`);
+				const resourceUri = dsConnectionToUse.getUriForResource(`file:./${resourcePath}`);
+
 				if (interaction.getResourceRevisionMetadata(generateResourceRevisionKey(resourceUri, revision))) {
 					interaction.removeResource(generateResourceRevisionKey(resourceUri, revision));
 					toolResultContentParts.push({
@@ -142,14 +143,8 @@ export default class LLMToolForgetResources extends LLMTool {
 				}
 			}
 
-			// const bbResponses = [];
 			const toolResponses = [];
 			if (resourcesSuccess.length > 0) {
-				// bbResponses.push(
-				// 	`BB has removed these resources from the conversation: ${
-				// 		resourcesSuccess.map((f) => `${f.resourceUri} (Revision: ${f.revision})`).join(', ')
-				// 	}`,
-				// );
 				toolResponses.push(
 					`Removed resources from the conversation:\n${
 						resourcesSuccess.map((f) => `- ${f.resourcePath} (Revision: ${f.revision})`).join('\n')
@@ -157,11 +152,6 @@ export default class LLMToolForgetResources extends LLMTool {
 				);
 			}
 			if (resourcesError.length > 0) {
-				// bbResponses.push(
-				// 	`BB failed to remove these resources from the conversation:\n${
-				// 		resourcesError.map((f) => `- ${f.resourceUri} (${f.revision}): ${f.error}`).join('\n')
-				// 	}`,
-				// );
 				toolResponses.push(
 					`Failed to remove resources from the conversation:\n${
 						resourcesError.map((f) => `- ${f.resourcePath} (${f.revision}): ${f.error}`).join('\n')
@@ -169,20 +159,27 @@ export default class LLMToolForgetResources extends LLMTool {
 				);
 			}
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 			toolResultContentParts.unshift({
 				type: 'text',
-				text: `Used data source: ${dataSourceToUse.name}`,
+				text: `Used data source: ${dsConnectionToUse.name}`,
 			});
 
 			const toolResults = toolResultContentParts;
-			const toolResponse = `${dataSourceStatus}\n\n` + (allResourcesFailed ? 'No resources removed\n' : '') +
+			const toolResponse = `${dsConnectionStatus}\n\n` + (allResourcesFailed ? 'No resources removed\n' : '') +
 				toolResponses.join('\n\n');
-			//const bbResponse = bbResponses.join('\n\n');
 			const bbResponse: LLMToolForgetResourcesResponseData = {
-				data: { resourcesSuccess, resourcesError, dataSourceId },
+				data: {
+					resourcesSuccess,
+					resourcesError,
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
+				},
 			};
 
 			return { toolResults, toolResponse, bbResponse };

@@ -25,7 +25,7 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
-import type { ConversationResourcesMetadata } from 'api/resources/resourceManager.ts';
+import type { ConversationResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';

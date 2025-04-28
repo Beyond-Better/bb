@@ -1,7 +1,7 @@
 import { stripIndents } from 'common-tags';
 
-import { readFileContent, resolveFilePath } from 'shared/dataDir.ts';
-import type { DataSource } from 'api/resources/dataSource.ts';
+// No longer using legacy resolveFilePath and readFileContent
+import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
@@ -62,24 +62,25 @@ function formatMCPTools(mcpTools: Array<{ name: string; description: string; ser
 }
 
 /**
- * Formats an array of DataSource objects into a structured, readable format for the LLM prompt
- * @param dataSources Array of DataSource objects to format
- * @returns Formatted string representation of data sources
+ * Formats an array of DataSourceConnection objects into a structured, readable format for the LLM prompt
+ * @param dsConnections Array of DataSourceConnection objects to format
+ * @returns Formatted string representation of data source connections
  */
-function formatDataSources(dataSources: DataSource[]): string {
-	if (!dataSources || dataSources.length === 0) {
+function formatDsConnections(dsConnections: DataSourceConnection[]): string {
+	if (!dsConnections || dsConnections.length === 0) {
 		return 'No data sources available.';
 	}
 
-	const formattedSources = dataSources.map((source, idx) => {
-		const id = source.id,
-			name = source.name,
-			type = source.type,
-			uriTemplate = source.uriTemplate,
-			//enabled = source.enabled,
-			//accessMethod = source.accessMethod,
-			//uriPrefix = source.getUriPrefix() || `${type}-${name}://`,
-			capabilities = source.capabilities || [];
+	const formattedSources = dsConnections.map((dsConnection, idx) => {
+		//logger.info(`DefaultPrompts: formatting data source: `, { dsConnection });
+		const id = dsConnection.id,
+			name = dsConnection.name,
+			type = dsConnection.providerType,
+			uriTemplate = dsConnection.uriTemplate,
+			//enabled = dsConnection.enabled,
+			//accessMethod = dsConnection.accessMethod,
+			//uriPrefix = dsConnection.uriPrefix,
+			capabilities = dsConnection.capabilities || [];
 
 		let details = `${idx + 1}. Data Source ID: ${id}`;
 		details += `\n   Name: ${name}`;
@@ -93,16 +94,16 @@ function formatDataSources(dataSources: DataSource[]): string {
 		details += `\n   Capabilities: ${capabilities.join(', ')}`;
 
 		// // Add MCP-specific details if applicable
-		// if (source.mcpConfig) {
-		// 	details += `\n   MCP Server: ${source.mcpConfig.serverId}`;
-		// 	if (source.mcpConfig.description) {
-		// 		details += `\n   Description: ${source.mcpConfig.description}`;
+		// if (dsConnection.mcpConfig) {
+		// 	details += `\n   MCP Server: ${dsConnection.mcpConfig.serverId}`;
+		// 	if (dsConnection.mcpConfig.description) {
+		// 		details += `\n   Description: ${dsConnection.mcpConfig.description}`;
 		// 	}
 		// }
 
-		// Add config details if it contains a dataSourceRoot for filesystem sources
-		if (type === 'filesystem' && source.config && typeof source.config.dataSourceRoot === 'string') {
-			details += `\n   Root: ${source.config.dataSourceRoot}`;
+		// Add config details if it contains a dataSourceRoot for filesystem dsConnections
+		if (type === 'filesystem' && dsConnection.config && typeof dsConnection.config.dataSourceRoot === 'string') {
+			details += `\n   Root: ${dsConnection.config.dataSourceRoot}`;
 		}
 
 		return details;
@@ -125,14 +126,41 @@ export const system: Prompt<SystemPromptVariables> = {
 		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
-		let guidelines;
+		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
+
+		let guidelines = '';
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
 		if (guidelinesPath) {
 			try {
-				const resolvedPath = await resolveFilePath(guidelinesPath);
-				guidelines = await readFileContent(resolvedPath) || '';
+				// Try to load guidelines from each available data source
+				for (const dsConnection of dsConnections) {
+					try {
+						// Construct the resource URI
+						const resourceUri = `file:./${guidelinesPath}`;
+						
+						// Check if resource is within this data source
+						if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
+							// Get the accessor and try to load the resource
+							const accessor = await dsConnection.getResourceAccessor();
+							const result = await accessor.loadResource(resourceUri);
+							
+							if (typeof result.content === 'string') {
+								guidelines = result.content;
+								logger.info(`DefaultPrompts: Successfully loaded guidelines from ${dsConnection.name}`);
+								break; // Exit the loop once we've found the guidelines
+							}
+						}
+					} catch (dsError) {
+						// Just continue to the next data source if there's an error
+						logger.debug(`DefaultPrompts: Could not load guidelines from data source ${dsConnection.name}: ${(dsError as Error).message}`);
+					}
+				}
+				
+				if (!guidelines) {
+					logger.error(`DefaultPrompts: Failed to load guidelines from any data source: ${guidelinesPath}`);
+				}
 			} catch (error) {
-				logger.error(`Failed to load guidelines: ${(error as Error).message}`);
+				logger.error(`DefaultPrompts: Failed to load guidelines: ${(error as Error).message}`);
 			}
 		}
 
@@ -140,14 +168,15 @@ export const system: Prompt<SystemPromptVariables> = {
 		const myAssistantsName = globalConfig.myAssistantsName;
 		const promptCachingEnabled = projectConfig.api?.usePromptCaching ?? true;
 
-		const dataSources = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
-		const formattedDataSources = formatDataSources(dataSources);
+		const formattedDsConnections = formatDsConnections(dsConnections);
 
 		const mcpTools = await interaction.llm.invoke(LLMCallbackType.PROJECT_MCP_TOOLS) || [];
 		const formattedMCPTools = formatMCPTools(mcpTools);
 
 		const dataSourceRoot =
-			dataSources.find((source: DataSource) => source.type === 'filesystem' && source.config?.dataSourceRoot)
+			dsConnections.find((dsConnection: DataSourceConnection) =>
+				dsConnection.providerType === 'filesystem' && dsConnection.config?.dataSourceRoot
+			)
 				?.config
 				?.dataSourceRoot || '/home/user/project';
 
@@ -170,7 +199,7 @@ In each conversational turn, you will begin by thinking about your response. Onc
 BB provides access to multiple data sources through a unified system. Each data source has a unique ID, name, type, capabilities, and configuration. You have access to the following data sources:
 
 <data-sources>
-${formattedDataSources}
+${formattedDsConnections}
 </data-sources>
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.
@@ -370,14 +399,41 @@ export const system_task: Prompt<SystemPromptVariables> = {
 		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
-		let guidelines;
+		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
+
+		let guidelines = '';
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
 		if (guidelinesPath) {
 			try {
-				const resolvedPath = await resolveFilePath(guidelinesPath);
-				guidelines = await readFileContent(resolvedPath) || '';
+				// Try to load guidelines from each available data source
+				for (const dsConnection of dsConnections) {
+					try {
+						// Construct the resource URI
+						const resourceUri = `file:./${guidelinesPath}`;
+						
+						// Check if resource is within this data source
+						if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
+							// Get the accessor and try to load the resource
+							const accessor = await dsConnection.getResourceAccessor();
+							const result = await accessor.loadResource(resourceUri);
+							
+							if (typeof result.content === 'string') {
+								guidelines = result.content;
+								logger.info(`DefaultPrompts: Successfully loaded guidelines from ${dsConnection.name}`);
+								break; // Exit the loop once we've found the guidelines
+							}
+						}
+					} catch (dsError) {
+						// Just continue to the next data source if there's an error
+						logger.debug(`DefaultPrompts: Could not load guidelines from data source ${dsConnection.name}: ${(dsError as Error).message}`);
+					}
+				}
+				
+				if (!guidelines) {
+					logger.error(`DefaultPrompts: Failed to load guidelines from any data source: ${guidelinesPath}`);
+				}
 			} catch (error) {
-				logger.error(`Failed to load guidelines: ${(error as Error).message}`);
+				logger.error(`DefaultPrompts: Failed to load guidelines: ${(error as Error).message}`);
 			}
 		}
 
@@ -385,14 +441,15 @@ export const system_task: Prompt<SystemPromptVariables> = {
 		const myAssistantsName = globalConfig.myAssistantsName;
 		//const promptCachingEnabled = projectConfig.api?.usePromptCaching ?? true;
 
-		const dataSources = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
-		const formattedDataSources = formatDataSources(dataSources);
+		const formattedDsConnections = formatDsConnections(dsConnections);
 
 		const mcpTools = await interaction.llm.invoke(LLMCallbackType.PROJECT_MCP_TOOLS) || [];
 		const formattedMCPTools = formatMCPTools(mcpTools);
 
 		const dataSourceRoot =
-			dataSources.find((source: DataSource) => source.type === 'filesystem' && source.config?.dataSourceRoot)
+			dsConnections.find((dsConnection: DataSourceConnection) =>
+				dsConnection.providerType === 'filesystem' && dsConnection.config?.dataSourceRoot
+			)
 				?.config
 				?.dataSourceRoot || '/home/user/project';
 
@@ -421,7 +478,7 @@ Your role is to:
 BB provides access to multiple data sources through a unified system. Each data source has a unique ID, type, capabilities, and access method. You have access to the following data sources:
 
 <data-sources>
-${formattedDataSources}
+${formattedDsConnections}
 </data-sources>
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.

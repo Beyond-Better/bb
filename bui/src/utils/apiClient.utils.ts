@@ -3,12 +3,12 @@ import type { JSX } from 'preact';
 import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type {
-	ClientDataSource,
+	ClientDataSourceConnection,
 	ClientProjectData,
 	ClientProjectWithConfigForUpdates,
 	ClientProjectWithConfigSources,
 } from 'shared/types/project.ts';
-import type { DataSourceTypeInfo } from 'api/resources/dataSourceRegistry.ts';
+import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
@@ -537,53 +537,53 @@ export class ApiClient {
 	}
 
 	// Data Source Management Methods
-	async updateDataSource(
+	async updateDsConnection(
 		projectId: string,
-		dataSourceId: string,
-		updates: Partial<ClientDataSource>,
+		dsConnectionId: string,
+		updates: Partial<ClientDataSourceConnection>,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.put<{ project: ClientProjectWithConfigSources }>(
-			`/api/v1/project/${projectId}/datasource/${dataSourceId}`,
+			`/api/v1/project/${projectId}/datasource/${dsConnectionId}`,
 			updates,
 		);
 	}
 
-	async setPrimaryDataSource(
+	async setPrimaryDsConnection(
 		projectId: string,
-		dataSourceId: string,
+		dsConnectionId: string,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.put<{ project: ClientProjectWithConfigSources }>(
 			`/api/v1/project/${projectId}/primary-datasource`,
-			{ dataSourceId },
+			{ dsConnectionId },
 		);
 	}
 
-	async addDataSource(
+	async addDsConnection(
 		projectId: string,
-		dataSource: ClientDataSource,
+		dsConnection: ClientDataSourceConnection,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
-		return await this.post<{ project: ClientProjectWithConfigSources }, ClientDataSource>(
+		return await this.post<{ project: ClientProjectWithConfigSources }, ClientDataSourceConnection>(
 			`/api/v1/project/${projectId}/datasource`,
-			dataSource,
+			dsConnection,
 		);
 	}
 
-	async removeDataSource(
+	async removeDsConnection(
 		projectId: string,
-		dataSourceId: string,
+		dsConnectionId: string,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.delete<{ project: ClientProjectWithConfigSources }>(
-			`/api/v1/project/${projectId}/datasource/${dataSourceId}`,
+			`/api/v1/project/${projectId}/datasource/${dsConnectionId}`,
 		);
 	}
 
-	async getDataSourceTypesForProject(projectId: string): Promise<{ dataSourceTypes: DataSourceTypeInfo[] } | null> {
-		console.log(`APIClient: getDataSourceTypesForProject: ${projectId}`);
-		return await this.get<{ dataSourceTypes: DataSourceTypeInfo[] }>(
+	async getDsProvidersForProject(projectId: string): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
+		console.log(`APIClient: getDsProvidersForProject: ${projectId}`);
+		return await this.get<{ dsProviders: DataSourceProviderInfo[] }>(
 			`/api/v1/project/${projectId}/datasource/types`,
 		);
 	}
-	async getDataSourceTypes(mcpServers?: string[]): Promise<{ dataSourceTypes: DataSourceTypeInfo[] } | null> {
+	async getDsProviders(mcpServers?: string[]): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
 		let endpoint = `/api/v1/datasource/types`;
 
 		// If mcpServers parameter is provided, add it as a query parameter
@@ -592,7 +592,7 @@ export class ApiClient {
 			endpoint += `?mcpServers=${mcpServersParam}`;
 		}
 
-		return await this.get<{ dataSourceTypes: DataSourceTypeInfo[] }>(endpoint);
+		return await this.get<{ dsProviders: DataSourceProviderInfo[] }>(endpoint);
 	}
 
 	async findV1Projects(searchDir: string): Promise<{ projects: string[] } | null> {

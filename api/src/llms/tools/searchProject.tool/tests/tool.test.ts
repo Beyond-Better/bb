@@ -6,7 +6,7 @@ import { assert, assertStringIncludes } from 'api/tests/deps.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
-async function createTestFiles(testProjectRoot: string) {
+async function createTestResources(testProjectRoot: string) {
 	Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
 	Deno.writeTextFileSync(join(testProjectRoot, 'file2.js'), 'console.log("Hello, JavaScript!");');
 	Deno.mkdirSync(join(testProjectRoot, 'subdir'));
@@ -15,16 +15,16 @@ async function createTestFiles(testProjectRoot: string) {
 	// Create an empty file for edge case testing
 	Deno.writeTextFileSync(join(testProjectRoot, 'empty_file.txt'), '');
 
-	// Create a large file with a pattern that spans potential buffer boundaries
-	const largeFileContent = 'A'.repeat(1024 * 1024) + // 1MB of 'A's
+	// Create a large resource with a pattern that spans potential buffer boundaries
+	const largeResourceContent = 'A'.repeat(1024 * 1024) + // 1MB of 'A's
 		'Start of pattern\n' +
 		'B'.repeat(1024) + // 1KB of 'B's
 		'\nEnd of pattern' +
 		'C'.repeat(1024 * 1024); // Another 1MB of 'C's
 
-	Deno.writeTextFileSync(join(testProjectRoot, 'large_file_with_pattern.txt'), largeFileContent);
+	Deno.writeTextFileSync(join(testProjectRoot, 'large_file_with_pattern.txt'), largeResourceContent);
 
-	// Create files with special content for regex testing
+	// Create resources with special content for regex testing
 	Deno.writeTextFileSync(join(testProjectRoot, 'regex_test1.txt'), 'This is a test. Another test.');
 	Deno.writeTextFileSync(join(testProjectRoot, 'regex_test2.txt'), 'Testing 123, testing 456.');
 	Deno.writeTextFileSync(join(testProjectRoot, 'regex_test3.txt'), 'Test@email.com and another.test@email.com');
@@ -35,23 +35,23 @@ async function createTestFiles(testProjectRoot: string) {
 	const pastDate = new Date('2023-01-01T00:00:00Z');
 	const futureDate = new Date('2025-01-01T00:00:00Z');
 	const currentDate = new Date();
-	await setFileModificationTime(join(testProjectRoot, 'file1.txt'), pastDate);
-	await setFileModificationTime(join(testProjectRoot, 'file2.js'), futureDate);
-	await setFileModificationTime(join(testProjectRoot, 'subdir', 'file3.txt'), pastDate);
-	await setFileModificationTime(join(testProjectRoot, 'large_file.txt'), currentDate);
-	await setFileModificationTime(join(testProjectRoot, 'empty_file.txt'), currentDate);
-	// Set modification time for the very large file
-	await setFileModificationTime(join(testProjectRoot, 'large_file_with_pattern.txt'), currentDate);
+	await setResourceModificationTime(join(testProjectRoot, 'file1.txt'), pastDate);
+	await setResourceModificationTime(join(testProjectRoot, 'file2.js'), futureDate);
+	await setResourceModificationTime(join(testProjectRoot, 'subdir', 'file3.txt'), pastDate);
+	await setResourceModificationTime(join(testProjectRoot, 'large_file.txt'), currentDate);
+	await setResourceModificationTime(join(testProjectRoot, 'empty_file.txt'), currentDate);
+	// Set modification time for the very large resource
+	await setResourceModificationTime(join(testProjectRoot, 'large_file_with_pattern.txt'), currentDate);
 }
 
-async function createTestFilesSimple(testProjectRoot: string) {
+async function createTestResourcesSimple(testProjectRoot: string) {
 	await Deno.writeTextFile(join(testProjectRoot, 'file1.js'), 'console.log("Hello");');
 	await Deno.writeTextFile(join(testProjectRoot, 'file2.ts'), 'const greeting: string = "Hello";');
 	await Deno.writeTextFile(join(testProjectRoot, 'data.json'), '{ "greeting": "Hello" }');
 	await Deno.writeTextFile(join(testProjectRoot, 'readme.md'), '# Hello');
 }
 
-async function createTestFilesSimpleDir(testProjectRoot: string) {
+async function createTestResourcesSimpleDir(testProjectRoot: string) {
 	await Deno.mkdir(join(testProjectRoot, 'src'));
 	await Deno.mkdir(join(testProjectRoot, 'test'));
 	await Deno.writeTextFile(join(testProjectRoot, 'src', 'main.js'), 'console.log("Hello");');
@@ -60,14 +60,14 @@ async function createTestFilesSimpleDir(testProjectRoot: string) {
 	await Deno.writeTextFile(join(testProjectRoot, 'test', 'util.test.ts'), 'test("greet", () => {});');
 }
 
-async function createTestFilesSearchProjectTest(testProjectRoot: string) {
+async function createTestResourcesSearchProjectTest(testProjectRoot: string) {
 	// Create directories at different depths
 	await Deno.mkdir(join(testProjectRoot, 'src', 'tools'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'tests', 'deep', 'nested'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'lib'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests'), { recursive: true });
 
-	// Add test files at various depths with searchProject in the name
+	// Add test resources at various depths with searchProject in the name
 	await Deno.writeTextFile(
 		join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests', 'tool.test.ts'),
 		'export const test = true;',
@@ -88,7 +88,7 @@ async function createTestFilesSearchProjectTest(testProjectRoot: string) {
 		join(testProjectRoot, 'lib', 'searchProjectUtil.test.ts'),
 		'test("util", () => {});',
 	);
-	// Add some non-matching files
+	// Add some non-matching resources
 	await Deno.writeTextFile(
 		join(testProjectRoot, 'src', 'search.test.ts'),
 		'// Should not match',
@@ -99,13 +99,13 @@ async function createTestFilesSearchProjectTest(testProjectRoot: string) {
 	);
 }
 
-async function createTestFilesKubernetes(testProjectRoot: string) {
+async function createTestResourcesKubernetes(testProjectRoot: string) {
 	// Create deep Kubernetes directory structure
 	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'base'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'dev'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'deploy', 'Kubernetes', 'overlays', 'prod'), { recursive: true });
 
-	// Add files at various levels
+	// Add resources at various levels
 	await Deno.writeTextFile(join(testProjectRoot, 'deploy', 'Kubernetes', 'kustomization.yaml'), 'bases:\n  - base');
 	await Deno.writeTextFile(
 		join(testProjectRoot, 'deploy', 'Kubernetes', 'base', 'deployment.yaml'),
@@ -122,9 +122,9 @@ async function createTestFilesKubernetes(testProjectRoot: string) {
 	);
 }
 
-// Helper function to set file modification time
-async function setFileModificationTime(filePath: string, date: Date) {
-	await Deno.utime(filePath, date, date);
+// Helper function to set resource modification time
+async function setResourceModificationTime(resourcePath: string, date: Date) {
+	await Deno.utime(resourcePath, date, date);
 }
 
 // Type guard to check if bbResponse is a string
@@ -137,7 +137,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -163,7 +163,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					'BB found 3 files matching the search criteria: content pattern "Hello", case-insensitive',
+					'BB found 3 resources matching the search criteria: content pattern "Hello", case-insensitive',
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -171,21 +171,21 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 3 files matching the search criteria: content pattern "Hello"',
+				'Found 3 resources matching the search criteria: content pattern "Hello"',
 			);
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '3 files match the search criteria: content pattern "Hello"');
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '3 resources match the search criteria: content pattern "Hello"');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file1.txt', 'file2.js', 'subdir/file3.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file1.txt', 'file2.js', 'subdir/file3.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
 			// Add a delay before cleanup
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -200,7 +200,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -226,7 +226,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 1 files matching the search criteria: content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
+					`BB found 1 resources matching the search criteria: content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -234,22 +234,22 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 1 files matching the search criteria',
+				'Found 1 resources matching the search criteria',
 			);
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '1 files match the search criteria');
+			assertStringIncludes(toolResults, '1 resources match the search criteria');
 
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['large_file_with_pattern.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['large_file_with_pattern.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -261,7 +261,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -288,7 +288,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 9 files matching the search criteria: modified after 2024-01-01, modified before 2026-01-01`,
+					`BB found 9 resources matching the search criteria: modified after 2024-01-01, modified before 2026-01-01`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -296,18 +296,18 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 9 files matching the search criteria: modified after 2024-01-01, modified before 2026-01-01',
+				'Found 9 resources matching the search criteria: modified after 2024-01-01, modified before 2026-01-01',
 			);
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'9 files match the search criteria: modified after 2024-01-01, modified before 2026-01-01',
+				'9 resources match the search criteria: modified after 2024-01-01, modified before 2026-01-01',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = [
+			const expectedResources = [
 				'file2.js',
 				'large_file.txt',
 				'empty_file.txt',
@@ -318,14 +318,14 @@ Deno.test({
 				'regex_test4.txt',
 				'regex_test5.txt',
 			];
-			//console.log('Expected files:', expectedFiles);
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			//console.log('Expected resources:', expectedResources);
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -333,11 +333,11 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - File-only search (metadata)',
+	name: 'SearchProjectTool - Resource-only search (metadata)',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -348,23 +348,23 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolName: 'search_project',
 				toolInput: {
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 					sizeMin: 1,
 				},
 			};
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('File-only search (metadata) - bbResponse:', result.bbResponse);
-			// console.log('File-only search (metadata) - toolResponse:', result.toolResponse);
-			// console.log('File-only search (metadata) - toolResults:', result.toolResults);
+			// console.log('Resource-only search (metadata) - bbResponse:', result.bbResponse);
+			// console.log('Resource-only search (metadata) - toolResponse:', result.toolResponse);
+			// console.log('Resource-only search (metadata) - toolResults:', result.toolResults);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 9 files matching the search criteria: file pattern "*.txt", minimum size 1 bytes`,
+					`BB found 9 resources matching the search criteria: resource pattern "*.txt", minimum size 1 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -372,17 +372,17 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 9 files matching the search criteria: file pattern "*.txt", minimum size 1 bytes',
+				'Found 9 resources matching the search criteria: resource pattern "*.txt", minimum size 1 bytes',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'9 files match the search criteria: file pattern "*.txt", minimum size 1 bytes',
+				'9 resources match the search criteria: resource pattern "*.txt", minimum size 1 bytes',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = [
+			const expectedResources = [
 				'file1.txt',
 				'large_file.txt',
 				'large_file_with_pattern.txt',
@@ -393,13 +393,13 @@ Deno.test({
 				'regex_test5.txt',
 				'subdir/file3.txt',
 			];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -411,7 +411,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -423,7 +423,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolInput: {
 					contentPattern: 'Hello',
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 					sizeMin: 1,
 					sizeMax: 1000,
 					dateAfter: '2022-01-01',
@@ -442,7 +442,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
+					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -450,25 +450,25 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes',
+				'Found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'2 files match the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes',
+				'2 resources match the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file1.txt', 'subdir/file3.txt'];
-			console.log('Expected files:', expectedFiles);
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file1.txt', 'subdir/file3.txt'];
+			console.log('Expected resources:', expectedResources);
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -476,11 +476,11 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Edge case: empty file',
+	name: 'SearchProjectTool - Edge case: empty resource',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -491,7 +491,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolName: 'search_project',
 				toolInput: {
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 					sizeMax: 0,
 				},
 			};
@@ -504,7 +504,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 1 files matching the search criteria: file pattern "*.txt", maximum size 0 bytes`,
+					`BB found 1 resources matching the search criteria: resource pattern "*.txt", maximum size 0 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -512,24 +512,24 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 1 files matching the search criteria: file pattern "*.txt", maximum size 0 bytes',
+				'Found 1 resources matching the search criteria: resource pattern "*.txt", maximum size 0 bytes',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'1 files match the search criteria: file pattern "*.txt", maximum size 0 bytes',
+				'1 resources match the search criteria: resource pattern "*.txt", maximum size 0 bytes',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['empty_file.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['empty_file.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -537,11 +537,11 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with file pattern',
+	name: 'SearchProjectTool - Search with resource pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -553,7 +553,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolInput: {
 					contentPattern: 'Hello',
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 				},
 			};
 
@@ -565,7 +565,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt"`,
+					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -573,24 +573,24 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt"',
+				'Found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt"',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'2 files match the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt"',
+				'2 resources match the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt"',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file1.txt', 'subdir/file3.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file1.txt', 'subdir/file3.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -598,11 +598,11 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with file size criteria',
+	name: 'SearchProjectTool - Search with resource size criteria',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -613,7 +613,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolName: 'search_project',
 				toolInput: {
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 					sizeMin: 5000,
 				},
 			};
@@ -626,7 +626,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: file pattern "*.txt", minimum size 5000 bytes`,
+					`BB found 2 resources matching the search criteria: resource pattern "*.txt", minimum size 5000 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -634,24 +634,24 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 2 files matching the search criteria: file pattern "*.txt", minimum size 5000 bytes',
+				'Found 2 resources matching the search criteria: resource pattern "*.txt", minimum size 5000 bytes',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'2 files match the search criteria: file pattern "*.txt", minimum size 5000 bytes',
+				'2 resources match the search criteria: resource pattern "*.txt", minimum size 5000 bytes',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['large_file.txt', 'large_file_with_pattern.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['large_file.txt', 'large_file_with_pattern.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -663,7 +663,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -686,7 +686,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 0 files matching the search criteria: content pattern "NonexistentPattern"`,
+					`BB found 0 resources matching the search criteria: content pattern "NonexistentPattern"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -694,11 +694,11 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 0 files matching the search criteria: content pattern "NonexistentPattern"',
+				'Found 0 resources matching the search criteria: content pattern "NonexistentPattern"',
 			);
 			assertStringIncludes(
 				result.toolResults as string,
-				'0 files match the search criteria: content pattern "NonexistentPattern"',
+				'0 resources match the search criteria: content pattern "NonexistentPattern"',
 			);
 		});
 	},
@@ -711,7 +711,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -736,7 +736,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 0 files matching the search criteria: content pattern "["`,
+					`BB found 0 resources matching the search criteria: content pattern "["`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -744,7 +744,7 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 0 files matching the search criteria: content pattern "["',
+				'Found 0 resources matching the search criteria: content pattern "["',
 			);
 			assertStringIncludes(
 				result.toolResults as string,
@@ -752,7 +752,7 @@ Deno.test({
 			);
 			assertStringIncludes(
 				result.toolResults as string,
-				'0 files match the search criteria: content pattern "["',
+				'0 resources match the search criteria: content pattern "["',
 			);
 		});
 	},
@@ -765,7 +765,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -777,7 +777,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolInput: {
 					contentPattern: 'Hello',
-					filePattern: '*.txt',
+					resourcePattern: '*.txt',
 					sizeMax: 1000,
 				},
 			};
@@ -790,7 +790,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", maximum size 1000 bytes`,
+					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", maximum size 1000 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -798,24 +798,24 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 2 files matching the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", maximum size 1000 bytes',
+				'Found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", maximum size 1000 bytes',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'2 files match the search criteria: content pattern "Hello", case-insensitive, file pattern "*.txt", maximum size 1000 bytes',
+				'2 resources match the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", maximum size 1000 bytes',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file1.txt', 'subdir/file3.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file1.txt', 'subdir/file3.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -827,7 +827,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -838,7 +838,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolName: 'search_project',
 				toolInput: {
-					filePattern: 'file2.js',
+					resourcePattern: 'file2.js',
 				},
 			};
 
@@ -850,7 +850,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 1 files matching the search criteria: file pattern "file2.js`,
+					`BB found 1 resources matching the search criteria: resource pattern "file2.js`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -858,24 +858,24 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Found 1 files matching the search criteria: file pattern "file2.js"',
+				'Found 1 resources matching the search criteria: resource pattern "file2.js"',
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
-				'1 files match the search criteria: file pattern "file2.js"',
+				'1 resources match the search criteria: resource pattern "file2.js"',
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file2.js'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file2.js'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -883,20 +883,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with specific content and file pattern',
+	name: 'SearchProjectTool - Search with specific content and resource pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
 			assert(tool, 'Failed to get tool');
 
-			// Create a test file with the specific content
-			const testFilePath = join(testProjectRoot, 'bui', 'src', 'islands', 'Chat.tsx');
+			// Create a test resource with the specific content
+			const testResourcePath = join(testProjectRoot, 'bui', 'src', 'islands', 'Chat.tsx');
 			await Deno.mkdir(join(testProjectRoot, 'bui', 'src', 'islands'), { recursive: true });
-			await Deno.writeTextFile(testFilePath, 'const title = currentConversation?.title;');
+			await Deno.writeTextFile(testResourcePath, 'const title = currentConversation?.title;');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
@@ -904,15 +904,15 @@ Deno.test({
 				toolName: 'search_project',
 				toolInput: {
 					contentPattern: String.raw`currentConversation\?\.title`,
-					filePattern: 'bui/src/islands/Chat.tsx',
+					resourcePattern: 'bui/src/islands/Chat.tsx',
 				},
 			};
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('Search with specific content and file pattern - bbResponse:', result.bbResponse);
-			console.log('Search with specific content and file pattern - toolResponse:', result.toolResponse);
-			console.log('Search with specific content and file pattern - toolResults:', result.toolResults);
+			//console.log('Search with specific content and resource pattern - bbResponse:', result.bbResponse);
+			//console.log('Search with specific content and resource pattern - toolResponse:', result.toolResponse);
+			//console.log('Search with specific content and resource pattern - toolResults:', result.toolResults);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -920,7 +920,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, file pattern "bui/src/islands/Chat.tsx"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -929,28 +929,28 @@ Deno.test({
 			assertStringIncludes(
 				result.toolResponse,
 				String
-					.raw`Found 1 files matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, file pattern "bui/src/islands/Chat.tsx"`,
+					.raw`Found 1 resources matching the search criteria: content pattern "currentConversation\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
 			);
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(
 				toolResults,
 				String
-					.raw`1 files match the search criteria: content pattern "currentConversation\?\.title", case-insensitive, file pattern "bui/src/islands/Chat.tsx"`,
+					.raw`1 resources match the search criteria: content pattern "currentConversation\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
 			);
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['bui/src/islands/Chat.tsx'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['bui/src/islands/Chat.tsx'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
-			// Clean up the test file
-			await Deno.remove(testFilePath);
+			// Clean up the test resource
+			await Deno.remove(testResourcePath);
 		});
 	},
 	sanitizeResources: false,
@@ -962,7 +962,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -974,7 +974,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolInput: {
 					contentPattern: String.raw`\btest\b`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -987,7 +987,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 3 files matching the search criteria: content pattern "\btest\b", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 resources matching the search criteria: content pattern "\btest\b", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1007,7 +1007,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1019,7 +1019,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1032,7 +1032,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1051,7 +1051,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1063,7 +1063,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1076,7 +1076,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1095,7 +1095,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1107,7 +1107,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1120,7 +1120,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1139,7 +1139,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1151,7 +1151,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1164,7 +1164,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1183,7 +1183,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1195,7 +1195,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test.*test`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 					caseSensitive: true,
 				},
 			};
@@ -1212,7 +1212,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "test.*test", case-sensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "test.*test", case-sensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1231,7 +1231,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1243,7 +1243,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test.*test`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 					caseSensitive: false,
 				},
 			};
@@ -1260,7 +1260,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 3 files matching the search criteria: content pattern "test.*test", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 resources matching the search criteria: content pattern "test.*test", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1279,7 +1279,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1291,7 +1291,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`[Tt]esting [0-9]+`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1304,7 +1304,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "[Tt]esting [0-9]+", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "[Tt]esting [0-9]+", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1323,7 +1323,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1335,7 +1335,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`Test(?=ing)`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1348,7 +1348,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 1 files matching the search criteria: content pattern "Test(?=ing)", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 1 resources matching the search criteria: content pattern "Test(?=ing)", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1367,7 +1367,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1379,7 +1379,7 @@ Deno.test({
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test(?!ing)`,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1395,7 +1395,7 @@ Deno.test({
 				assertStringIncludes(
 					result.bbResponse,
 					String
-						.raw`BB found 3 files matching the search criteria: content pattern "test(?!ing)", case-insensitive, file pattern "regex_test*.txt"`,
+						.raw`BB found 3 resources matching the search criteria: content pattern "test(?!ing)", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1403,17 +1403,17 @@ Deno.test({
 
 			const toolResults = result.toolResults as string;
 
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['regex_test1.txt', 'regex_test3.txt', 'regex_test4.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['regex_test1.txt', 'regex_test3.txt', 'regex_test4.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -1425,7 +1425,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1438,7 +1438,7 @@ Deno.test({
 				toolInput: {
 					contentPattern: 'Test',
 					caseSensitive: true,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1453,27 +1453,27 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: content pattern "Test", case-sensitive, file pattern "regex_test*.txt"`,
+					`BB found 2 resources matching the search criteria: content pattern "Test", case-sensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['regex_test2.txt', 'regex_test3.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['regex_test2.txt', 'regex_test3.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
-			assert(!toolResults.includes('regex_test1.txt'), `This file contains 'test' but not 'Test'`);
-			assert(!toolResults.includes('regex_test4.txt'), `This file contains 'test' but not 'Test'`);
+			assert(!toolResults.includes('regex_test1.txt'), `This resource contains 'test' but not 'Test'`);
+			assert(!toolResults.includes('regex_test4.txt'), `This resource contains 'test' but not 'Test'`);
 		});
 	},
 	sanitizeResources: false,
@@ -1485,7 +1485,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFiles(testProjectRoot);
+			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1498,7 +1498,7 @@ Deno.test({
 				toolInput: {
 					contentPattern: 'Test',
 					caseSensitive: false,
-					filePattern: 'regex_test*.txt',
+					resourcePattern: 'regex_test*.txt',
 				},
 			};
 
@@ -1513,24 +1513,24 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 4 files matching the search criteria: content pattern "Test", case-insensitive, file pattern "regex_test*.txt"`,
+					`BB found 4 resources matching the search criteria: content pattern "Test", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['regex_test1.txt', 'regex_test2.txt', 'regex_test3.txt', 'regex_test4.txt'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['regex_test1.txt', 'regex_test2.txt', 'regex_test3.txt', 'regex_test4.txt'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -1542,7 +1542,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFilesSimple(testProjectRoot);
+			await createTestResourcesSimple(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1553,7 +1553,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolUseId: 'test-id',
 				toolInput: {
-					filePattern: '*.js|*.ts|*.json',
+					resourcePattern: '*.js|*.ts|*.json',
 				},
 			};
 
@@ -1568,24 +1568,24 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 3 files matching the search criteria: file pattern "*.js|*.ts|*.json"`,
+					`BB found 3 resources matching the search criteria: resource pattern "*.js|*.ts|*.json"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['file1.js', 'file2.ts', 'data.json'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['file1.js', 'file2.ts', 'data.json'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -1597,7 +1597,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFilesSimpleDir(testProjectRoot);
+			await createTestResourcesSimpleDir(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1608,7 +1608,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolUseId: 'test-id',
 				toolInput: {
-					filePattern: 'src/*.js|test/*.ts',
+					resourcePattern: 'src/*.js|test/*.ts',
 				},
 			};
 
@@ -1623,24 +1623,24 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 2 files matching the search criteria: file pattern "src/*.js|test/*.ts"`,
+					`BB found 2 resources matching the search criteria: resource pattern "src/*.js|test/*.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = ['src/main.js', 'test/util.test.ts'];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const expectedResources = ['src/main.js', 'test/util.test.ts'];
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 		});
 	},
 	sanitizeResources: false,
@@ -1648,11 +1648,11 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - deep directory traversal with Kubernetes files',
+	name: 'SearchProjectTool - deep directory traversal with Kubernetes resources',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFilesKubernetes(testProjectRoot);
+			await createTestResourcesKubernetes(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1663,50 +1663,50 @@ Deno.test({
 				toolName: 'search_project',
 				toolUseId: 'test-id',
 				toolInput: {
-					filePattern: 'deploy/Kubernetes/**/*',
+					resourcePattern: 'deploy/Kubernetes/**/*',
 				},
 			};
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('deep directory traversal with Kubernetes files - bbResponse:', result.bbResponse);
-			console.log('deep directory traversal with Kubernetes files - toolResponse:', result.toolResponse);
-			console.log('deep directory traversal with Kubernetes files - toolResults:', result.toolResults);
+			// console.log('deep directory traversal with Kubernetes resources - bbResponse:', result.bbResponse);
+			// console.log('deep directory traversal with Kubernetes resources - toolResponse:', result.toolResponse);
+			// console.log('deep directory traversal with Kubernetes resources - toolResults:', result.toolResults);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 5 files matching the search criteria: file pattern "deploy/Kubernetes/**/*"`,
+					`BB found 5 resources matching the search criteria: resource pattern "deploy/Kubernetes/**/*"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = [
+			const expectedResources = [
 				'deploy/Kubernetes/kustomization.yaml',
 				'deploy/Kubernetes/base/deployment.yaml',
 				'deploy/Kubernetes/base/service.yaml',
 				'deploy/Kubernetes/overlays/dev/kustomization.yaml',
 				'deploy/Kubernetes/overlays/prod/kustomization.yaml',
 			];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
-			// Test that all files are found regardless of depth
-			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
-			assert(Math.min(...depths) === 2, 'Should find files at minimum depth (deploy/Kubernetes/)');
-			assert(Math.max(...depths) === 4, 'Should find files at maximum depth (deploy/Kubernetes/overlays/env/)');
+			// Test that all resources are found regardless of depth
+			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
+			assert(Math.min(...depths) === 2, 'Should find resources at minimum depth (deploy/Kubernetes/)');
+			assert(Math.max(...depths) === 4, 'Should find resources at maximum depth (deploy/Kubernetes/overlays/env/)');
 		});
 	},
 	sanitizeResources: false,
@@ -1718,7 +1718,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFilesSearchProjectTest(testProjectRoot);
+			await createTestResourcesSearchProjectTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1729,7 +1729,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolUseId: 'test-id',
 				toolInput: {
-					filePattern: '**/searchProject*test.ts',
+					resourcePattern: '**/searchProject*test.ts',
 				},
 			};
 
@@ -1744,37 +1744,37 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 3 files matching the search criteria: file pattern "**/searchProject*test.ts"`,
+					`BB found 3 resources matching the search criteria: resource pattern "**/searchProject*test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = [
+			const expectedResources = [
 				'src/tools/searchProject.test.ts',
 				'tests/deep/nested/searchProject.test.ts',
 				'lib/searchProjectUtil.test.ts',
 			];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
-			// Test that files at different depths are found
-			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
-			assert(Math.min(...depths) === 1, 'Should find files at minimum depth (lib/)');
-			assert(Math.max(...depths) === 3, 'Should find files at maximum depth (tests/deep/nested/)');
+			// Test that resources at different depths are found
+			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
+			assert(Math.min(...depths) === 1, 'Should find resources at minimum depth (lib/)');
+			assert(Math.max(...depths) === 3, 'Should find resources at maximum depth (tests/deep/nested/)');
 
-			// Verify non-matching files are not included
-			assert(!toolResults.includes('src/search.test.ts'), 'Should not include files without searchProject');
-			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include files without searchProject');
+			// Verify non-matching resources are not included
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
+			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include resources without searchProject');
 		});
 	},
 	sanitizeResources: false,
@@ -1785,7 +1785,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestFilesSearchProjectTest(testProjectRoot);
+			await createTestResourcesSearchProjectTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('search_project');
@@ -1796,7 +1796,7 @@ Deno.test({
 				toolName: 'search_project',
 				toolUseId: 'test-id',
 				toolInput: {
-					filePattern: '**/searchProject*/**/*.test.ts',
+					resourcePattern: '**/searchProject*/**/*.test.ts',
 				},
 			};
 
@@ -1811,37 +1811,37 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 1 files matching the search criteria: file pattern "**/searchProject*/**/*.test.ts"`,
+					`BB found 1 resources matching the search criteria: resource pattern "**/searchProject*/**/*.test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
 			}
 
 			const toolResults = result.toolResults as string;
-			assertStringIncludes(toolResults, '<files>');
-			assertStringIncludes(toolResults, '</files>');
+			assertStringIncludes(toolResults, '<resources>');
+			assertStringIncludes(toolResults, '</resources>');
 
-			const expectedFiles = [
+			const expectedResources = [
 				'src/tools/searchProject.tool/tests/tool.test.ts',
 			];
-			const fileContent = toolResults.split('<files>')[1].split('</files>')[0].trim();
-			const foundFiles = fileContent.split('\n');
+			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
+			const foundResources = resourceContent.split('\n');
 
-			expectedFiles.forEach((file) => {
-				assert(foundFiles.some((f) => f.endsWith(file)), `File ${file} not found in the result`);
+			expectedResources.forEach((resource) => {
+				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
 			});
-			assert(foundFiles.length === expectedFiles.length, 'Number of found files does not match expected');
+			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
 
-			// Test that files at different depths are found
-			const depths = foundFiles.map((f) => (f.match(/\//g) || []).length);
+			// Test that resources at different depths are found
+			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
 			assert(
 				Math.max(...depths) === 4,
-				'Should find files at maximum depth (src/tools/searchProject.tool/tests/)',
+				'Should find resources at maximum depth (src/tools/searchProject.tool/tests/)',
 			);
 
-			// Verify non-matching files are not included
-			assert(!toolResults.includes('src/search.test.ts'), 'Should not include files without searchProject');
-			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include files without searchProject');
+			// Verify non-matching resources are not included
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
+			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include resources without searchProject');
 		});
 	},
 	sanitizeResources: false,

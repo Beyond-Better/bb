@@ -11,23 +11,23 @@ import { countProjectFiles } from 'shared/dataDir.ts';
 export async function stageAndCommitAfterChanging(
 	interaction: LLMConversationInteraction,
 	dataSourceRoot: string,
-	changedFiles: Set<string>,
+	changedResources: Set<string>,
 	changeContents: Map<string, string>,
 	projectEditor: ProjectEditor,
 ): Promise<void> {
-	if (changedFiles.size === 0) {
+	if (changedResources.size === 0) {
 		return;
 	}
 
-	logger.info(`GitUtils: Starting commit process for ${changedFiles.size} files:`);
-	for (const file of changedFiles) {
+	logger.info(`GitUtils: Starting commit process for ${changedResources.size} files:`);
+	for (const file of changedResources) {
 		logger.info(`GitUtils:   - ${file}`);
 	}
 	logger.info(`GitUtils: Project root is: ${dataSourceRoot}`);
 
 	// Group files by their git repository root
 	const repoFiles = new Map<string, Set<string>>();
-	for (const file of changedFiles) {
+	for (const file of changedResources) {
 		logger.info(`GitUtils: Finding git root for file: ${file}`);
 		const fullPath = resolve(dataSourceRoot, file);
 		logger.info(`GitUtils:   Full path: ${fullPath}`);
@@ -82,14 +82,14 @@ export async function stageAndCommitAfterChanging(
 
 export async function generateCommitMessage(
 	interaction: LLMConversationInteraction,
-	changedFiles: Set<string>,
+	changedResources: Set<string>,
 	changeContents: Map<string, string>,
 	projectEditor: ProjectEditor,
 ): Promise<string> {
-	const changedFilesArray = Array.from(changedFiles);
-	const fileCount = changedFilesArray.length;
-	const fileList = changedFilesArray.map((file) => `- ${file}`).join('\n');
-	const fileChangeList = changedFilesArray
+	const changedResourcesArray = Array.from(changedResources);
+	const fileCount = changedResourcesArray.length;
+	const fileList = changedResourcesArray.map((file) => `- ${file}`).join('\n');
+	const fileChangeList = changedResourcesArray
 		.map((file) => {
 			const changeContent = changeContents.get(file) || '';
 			const result = createFileChangeXmlString(file, changeContent);

@@ -4,7 +4,7 @@ import { colors } from 'cliffy/ansi/colors';
 import { logger } from 'shared/logger.ts';
 import { basename } from '@std/path';
 import { getProjectId } from 'shared/dataDir.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 // Using ProjectType from v2 types
 
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -14,7 +14,7 @@ import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
 async function runWizard(
 	workingRoot: string,
-): Promise<Omit<CreateProjectData, 'dataSources' | 'primaryDataSourceRoot'>> {
+): Promise<Omit<CreateProjectData, 'dsConnections' | 'primaryDataSourceRoot'>> {
 	// Show password notice if not on Windows
 	if (Deno.build.os !== 'windows') {
 		console.log(colors.bold('\nImportant Note about Security Setup:'));
@@ -35,28 +35,18 @@ async function runWizard(
 	const existingProjectConfig: CreateProjectData = projectConfig
 		? {
 			name: projectConfig.name || 'unknown project',
-			dataSources: [
-				DataSource.createPrimaryFileSystem(
-					'primary',
-					workingRoot,
-				),
-			],
 			myPersonsName: projectConfig.myPersonsName,
 			myAssistantsName: projectConfig.myAssistantsName,
 			anthropicApiKey: projectConfig.api?.llmProviders?.anthropic?.apiKey,
+			dsConnections: [],
 			defaultModels: projectConfig.defaultModels,
 		}
 		: {
 			name: basename(workingRoot),
-			dataSources: [
-				DataSource.createPrimaryFileSystem(
-					'primary',
-					workingRoot,
-				),
-			],
 			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
 			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
 			anthropicApiKey: '',
+			dsConnections: [],
 			defaultModels: {
 				orchestrator: 'claude-3-7-sonnet-20250219',
 				agent: 'claude-3-7-sonnet-20250219',
@@ -133,7 +123,7 @@ async function runWizard(
 	//const projectType = existingProjectConfig?.type || await detectProjectType(workingRoot);
 
 	// Remove empty values
-	const filteredAnswers: Omit<CreateProjectData, 'dataSources'> = {
+	const filteredAnswers: Omit<CreateProjectData, 'dsConnections'> = {
 		name: answers.projectName?.trim() || workingRoot,
 		//type: projectType,
 	};
@@ -179,7 +169,7 @@ async function runWizard(
 async function printProjectDetails(
 	projectName: string,
 	//projectType: string,
-	createProjectData: Omit<CreateProjectData, 'dataSources'>,
+	createProjectData: Omit<CreateProjectData, 'dsConnections'>,
 	useTlsCert: boolean,
 ) {
 	const configManager = await getConfigManager();
@@ -260,11 +250,24 @@ export const init = new Command()
 			// Run the wizard
 			const createProjectData = await runWizard(workingRoot);
 
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const provider = dataSourceRegistry.getProvider('filesystem', 'bb');
+			if (!provider) throw new Error('Could not load provider');
+
+			const primaryDsConnection = dataSourceRegistry.createConnection(
+				provider,
+				'local',
+				{ dataSourceRoot: workingRoot },
+				{ isPrimary: true },
+			);
+
 			const projectPersistenceManager = await getProjectPersistenceManager();
 			const projectData = await projectPersistenceManager.createProject({
 				...createProjectData,
 				//primaryDataSourceRoot: workingRoot,
-				dataSources: [],
+				dsConnections: [
+					primaryDsConnection,
+				],
 			});
 
 			// Verify that API key is set either in user config or project config

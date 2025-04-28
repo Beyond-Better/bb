@@ -22,7 +22,6 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { join } from '@std/path';
 
 interface LLMToolRunCommandConfig extends LLMToolConfig {
@@ -46,10 +45,10 @@ export default class LLMToolRunCommand extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				command: {
 					type: 'string',
@@ -170,30 +169,30 @@ export default class LLMToolRunCommand extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { command, args = [], cwd, outputTruncation, dataSource: dataSourceId = undefined } =
+		const { command, args = [], cwd, outputTruncation, dataSourceId = undefined } =
 			toolInput as LLMToolRunCommandInput;
 
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 		if (!dataSourceRoot) {
 			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
 				name: 'data-source',
@@ -230,10 +229,11 @@ export default class LLMToolRunCommand extends LLMTool {
 		// Validate working directory if provided
 		let workingDir = dataSourceRoot;
 		if (cwd) {
-			if (!await isPathWithinDataSource(dataSourceRoot, cwd)) {
+			const resourceUri = dsConnectionToUse.getUriForResource(`file:./${cwd}`);
+			if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 				throw createError(
 					ErrorType.CommandExecution,
-					`Invalid working directory: ${cwd} is outside the data source directory`,
+					`Invalid working directory: ${cwd} is outside the data source`,
 					{
 						name: 'command-execution-error',
 						command,
@@ -280,12 +280,12 @@ export default class LLMToolRunCommand extends LLMTool {
 				}
 				: undefined;
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 
 			const toolResults =
-				`Used data source: ${dataSourceToUse.name}\nCommand executed with exit code: ${code}\n\nOutput:\n${truncatedStdout}${
+				`Used data source: ${dsConnectionToUse.name}\nCommand executed with exit code: ${code}\n\nOutput:\n${truncatedStdout}${
 					stdoutTruncatedInfo
 						? `\n[stdout truncated: kept ${stdoutTruncatedInfo.keptLines} of ${stdoutTruncatedInfo.originalLines} lines]`
 						: ''
@@ -298,7 +298,7 @@ export default class LLMToolRunCommand extends LLMTool {
 						}`
 						: ''
 				}`;
-			const toolResponse = dataSourceStatus + '\n\n' +
+			const toolResponse = dsConnectionStatus + '\n\n' +
 				(isError ? 'Command exited with non-zero status' : 'Command completed successfully');
 			const bbResponse = {
 				data: {
@@ -308,7 +308,11 @@ export default class LLMToolRunCommand extends LLMTool {
 					stdout: truncatedStdout,
 					stderr: truncatedStderr,
 					truncatedInfo,
-					dataSourceId,
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
 				},
 			};
 

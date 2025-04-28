@@ -10,13 +10,13 @@ import {
 	updateProject,
 } from './project.handlers.ts';
 import {
-	addDataSource,
-	getDataSource,
-	getDataSourceTypesForProject,
-	listDataSources,
-	removeDataSource,
-	setPrimaryDataSource,
-	updateDataSource,
+	addDsConnection,
+	getDsConnection,
+	getDsProvidersForProject,
+	listDsConnections,
+	removeDsConnection,
+	setPrimaryDsConnection,
+	updateDsConnection,
 } from './dataSource.handlers.ts';
 
 const projectRouter = new Router();
@@ -34,12 +34,12 @@ projectRouter
 
 // Data source routes
 projectRouter
-	.get('/:projectId/datasource', listDataSources)
-	.post('/:projectId/datasource', addDataSource)
-	.get('/:projectId/datasource/types', getDataSourceTypesForProject)
-	.get('/:projectId/datasource/:id', getDataSource)
-	.put('/:projectId/datasource/:id', updateDataSource)
-	.delete('/:projectId/datasource/:id', removeDataSource)
-	.put('/:projectId/primary-datasource', setPrimaryDataSource);
+	.get('/:projectId/datasource', listDsConnections)
+	.post('/:projectId/datasource', addDsConnection)
+	.get('/:projectId/datasource/types', getDsProvidersForProject)
+	.get('/:projectId/datasource/:id', getDsConnection)
+	.put('/:projectId/datasource/:id', updateDsConnection)
+	.delete('/:projectId/datasource/:id', removeDsConnection)
+	.put('/:projectId/primary-datasource', setPrimaryDsConnection);
 
 export default projectRouter;

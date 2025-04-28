@@ -4,7 +4,7 @@ import type {
 	//ClientProjectWithConfig,
 	ClientProjectWithConfigForUpdates,
 	ClientProjectWithConfigSources,
-	ConfigValue,
+	//ConfigValue,
 } from 'shared/types/project.ts';
 import type { MCPServerConfig } from 'shared/config/types.ts';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
@@ -174,7 +174,7 @@ export function ProjectEditor({
 	} = useProjectState(appState);
 
 	const name = useSignal(editingProject?.value?.data?.name || '');
-	const dataSources = useSignal(editingProject?.value?.data?.dataSources || []);
+	const dsConnections = useSignal(editingProject?.value?.data?.dsConnections || []);
 
 	// Get list of selected MCP server IDs from editingProject, or empty array if none
 	const mcpServers = useSignal<string[]>(
@@ -207,8 +207,8 @@ export function ProjectEditor({
 			: { global: '', project: null },
 	);
 	// Log the received project data - more detailed logging
-	console.log('ProjectEditor: editingProject:', JSON.stringify(editingProject?.value, null, 2));
-	console.log('ProjectEditor: config structure:', JSON.stringify(editingProject?.value?.config, null, 2));
+	console.log('ProjectEditor: editingProject:', editingProject?.value);
+	console.log('ProjectEditor: config structure:', editingProject?.value?.config);
 	console.log('ProjectEditor: mcpServers:', editingProject?.value?.data?.mcpServers);
 
 	// Check for raw config in the project sources - might be stored differently
@@ -257,7 +257,7 @@ export function ProjectEditor({
 			const projectData: ClientProjectWithConfigForUpdates = {
 				data: {
 					name: name.value,
-					dataSources: dataSources.value,
+					dsConnections: dsConnections.value,
 					mcpServers: mcpServers.value,
 					repoInfo: {
 						tokenLimit: 1024,

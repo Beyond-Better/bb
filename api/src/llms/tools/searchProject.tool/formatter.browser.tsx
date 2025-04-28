@@ -8,7 +8,7 @@ import { getContentFromToolResult } from 'api/utils/llms.ts';
 
 export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
 	const input = toolInput as LLMToolSearchProjectInput;
-	const { contentPattern, caseSensitive, filePattern, dateAfter, dateBefore, sizeMin, sizeMax } = input;
+	const { contentPattern, caseSensitive, resourcePattern, dateAfter, dateBefore, sizeMin, sizeMax } = input;
 
 	const criteria = [];
 	if (contentPattern) {
@@ -20,11 +20,11 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 			</>,
 		);
 	}
-	if (filePattern) {
+	if (resourcePattern) {
 		criteria.push(
 			<>
-				{LLMTool.TOOL_TAGS_BROWSER.base.label('File pattern:')}{' '}
-				{LLMTool.TOOL_TAGS_BROWSER.content.filename(filePattern)}
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Resource pattern:')}{' '}
+				{LLMTool.TOOL_TAGS_BROWSER.content.filename(resourcePattern)}
 			</>,
 		);
 	}
@@ -63,14 +63,14 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Use', 'Search Project'),
-		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Searching project files...'),
+		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Searching project resources...'),
 		content: LLMTool.TOOL_TAGS_BROWSER.base.container(
 			<>
 				{LLMTool.TOOL_TAGS_BROWSER.base.label('Search Parameters')}
 				{LLMTool.TOOL_TAGS_BROWSER.base.list(criteria)}
 			</>,
 		),
-		preview: 'Searching project files with specified criteria',
+		preview: 'Searching project resources with specified criteria',
 	};
 };
 
@@ -79,9 +79,9 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { toolResult, bbResponse } = resultContent;
 	const lines = getContentFromToolResult(toolResult).split('\n');
-	const fileList = (() => {
-		const startIndex = lines.findIndex((line) => line.includes('<files>'));
-		const endIndex = lines.findIndex((line) => line.includes('</files>'));
+	const resourceList = (() => {
+		const startIndex = lines.findIndex((line) => line.includes('<resources>'));
+		const endIndex = lines.findIndex((line) => line.includes('</resources>'));
 		if (startIndex === -1 || endIndex === -1) {
 			return [];
 		}
@@ -93,14 +93,14 @@ export const formatLogEntryToolResult = (
 		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(String(bbResponse)),
 		content: LLMTool.TOOL_TAGS_BROWSER.base.container(
 			<>
-				{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Files Found')}
-				{fileList.length > 0 && (
+				{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Resources Found')}
+				{resourceList.length > 0 && (
 					LLMTool.TOOL_TAGS_BROWSER.base.list(
-						fileList.map((file) => LLMTool.TOOL_TAGS_BROWSER.content.filename(file)),
+						resourceList.map((resource) => LLMTool.TOOL_TAGS_BROWSER.content.filename(resource)),
 					)
 				)}
 			</>,
 		),
-		preview: `Found ${fileList.length} files`,
+		preview: `Found ${resourceList.length} resources`,
 	};
 };

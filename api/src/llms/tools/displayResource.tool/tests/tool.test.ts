@@ -33,6 +33,7 @@ function isDisplayResourceResponse(
 	);
 }
 
+
 Deno.test({
 	name: 'DisplayResourceTool - display text resource',
 	async fn() {
@@ -229,6 +230,7 @@ Deno.test({
 	sanitizeOps: false,
 });
 
+
 Deno.test({
 	name: 'DisplayResourceTool - resource not found',
 	async fn() {
@@ -250,17 +252,18 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('resource outside project - bbResponse:', result.bbResponse);
-			console.log('resource outside project - toolResponse:', result.toolResponse);
-			console.log('resource outside project - toolResults:', result.toolResults);
+			// console.log('resource outside project - bbResponse:', result.bbResponse);
+			// console.log('resource outside project - toolResponse:', result.toolResponse);
+			// console.log('resource outside project - toolResults:', result.toolResults);
 
-			assertStringIncludes(result.toolResponse, 'Failed to display resource. Error: Failed to read file');
-			assertStringIncludes(String(result.toolResults), 'Failed to read file: nonexistent.txt');
+			assertStringIncludes(result.toolResponse, 'Failed to display resource. Error: File not found: nonexistent.txt');
+			assertStringIncludes(String(result.toolResults), 'File not found: nonexistent.txt');
 		});
 	},
 	sanitizeResources: false,
 	sanitizeOps: false,
 });
+
 
 Deno.test({
 	name: 'DisplayResourceTool - resource outside project',
@@ -283,14 +286,14 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('resource outside project - bbResponse:', result.bbResponse);
-			console.log('resource outside project - toolResponse:', result.toolResponse);
-			console.log('resource outside project - toolResults:', result.toolResults);
+			// console.log('resource outside project - bbResponse:', result.bbResponse);
+			// console.log('resource outside project - toolResponse:', result.toolResponse);
+			// console.log('resource outside project - toolResults:', result.toolResults);
 
-			assertStringIncludes(result.toolResponse, 'Failed to display resource');
+			assertStringIncludes(result.toolResponse, 'Failed to display resource. Error: File not found: ../outside.txt');
 			assertStringIncludes(
 				String(result.toolResults),
-				'Failed to read file: ../outside.txt. Access denied: ../outside.txt is outside the data source directory',
+				'File not found: ../outside.txt',
 			);
 		});
 	},

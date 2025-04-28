@@ -52,7 +52,7 @@ import type {
 	//ResourceMetadata,
 	ResourcesForConversation,
 	//ResourceRevisionMetadata,
-} from 'api/resources/resourceManager.ts';
+} from 'shared/types/dataSourceResource.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import BaseController from './baseController.ts';
 
@@ -285,7 +285,7 @@ class OrchestratorController extends BaseController {
 						logger.info(
 							`OrchestratorController: Adding to attachedResources: ${resourceMetadata.relativePath}`,
 						);
-						const uploadsDataSource = this.projectEditor.projectData.getUploadsDataSource();
+						const uploadsDataSource = this.projectEditor.projectData.getUploadsDsConnection();
 						const uploadUri = uploadsDataSource.getUriForResource(
 							`file:./${resourceMetadata.relativePath}`,
 						);

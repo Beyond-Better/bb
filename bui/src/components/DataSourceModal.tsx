@@ -1,26 +1,26 @@
 //import { type ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { useComputed } from '@preact/signals';
-import type { ClientDataSource } from 'shared/types/project.ts';
+import type { ClientDataSourceConnection } from 'shared/types/project.ts';
 import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
 import { CustomSelect, type SelectOption } from './CustomSelect.tsx';
 import { FileBrowser } from './FileBrowser.tsx';
 import { generateId } from 'shared/projectData.ts';
-import type { DataSourceTypeInfo } from 'api/resources/dataSourceRegistry.ts';
+import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 
 interface DataSourceModalProps {
-	dataSource?: ClientDataSource;
+	dsConnection?: ClientDataSourceConnection;
 	onClose: () => void;
-	onSave: (dataSource: ClientDataSource) => void;
+	onSave: (dsConnection: ClientDataSourceConnection) => void;
 	appState: Signal<AppState>;
-	dataSourceTypes: Signal<DataSourceTypeInfo[]>; // Add data source types prop
+	dsProviders: Signal<DataSourceProviderInfo[]>; // Add data source types prop
 }
 
-const DEFAULT_DATA_SOURCE = (): ClientDataSource => ({
+const DEFAULT_DATA_SOURCE = (): ClientDataSourceConnection => ({
 	id: `ds-${generateId()}`,
 	name: '',
-	type: 'filesystem',
+	providerType: 'filesystem',
 	accessMethod: 'bb',
 	enabled: true,
 	isPrimary: false,
@@ -33,22 +33,23 @@ const DEFAULT_DATA_SOURCE = (): ClientDataSource => ({
 /**
  * Modal component for creating or editing a data source
  */
-export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSourceTypes }: DataSourceModalProps) {
-	const [formData, setFormData] = useState<ClientDataSource>(
-		dataSource ? { ...dataSource } : DEFAULT_DATA_SOURCE(),
+export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsProviders }: DataSourceModalProps) {
+	const [formData, setFormData] = useState<ClientDataSourceConnection>(
+		dsConnection ? { ...dsConnection } : DEFAULT_DATA_SOURCE(),
 	);
-	// Initialize isCustomDescription based on whether dataSource has a description
-	const [isCustomDescription, setIsCustomDescription] = useState<boolean>(Boolean(dataSource?.description));
+	// Initialize isCustomDescription based on whether dsConnection has a description
+	const [isCustomDescription, setIsCustomDescription] = useState<boolean>(Boolean(dsConnection?.description));
 	const [errors, setErrors] = useState<Record<string, string>>({});
-	const [dataSourceType, setDataSourceType] = useState<DataSourceTypeInfo | null>(null);
+	const [dsProvider, setDsProvider] = useState<DataSourceProviderInfo | null>(null);
 
-	console.log('DataSourceModal: dataSourceTypes', dataSourceTypes.value);
-	const dataSourceTypeMap = useComputed(() =>
+	console.log('DataSourceModal: dsConnection', dsConnection);
+	console.log('DataSourceModal: dsProviders', dsProviders.value);
+	const dsProviderMap = useComputed(() =>
 		new Map(
-			dataSourceTypes.value ? dataSourceTypes.value.map((item) => [item.type, item]) : [],
+			dsProviders.value ? dsProviders.value.map((item) => [item.providerType, item]) : [],
 		)
 	);
-	console.log('DataSourceModal: dataSourceTypeMap', dataSourceTypeMap.value);
+	console.log('DataSourceModal: dsProviderMap', dsProviderMap.value);
 
 	// Validate the form data
 	const validate = (): boolean => {
@@ -59,11 +60,11 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 		}
 
 		// Type-specific validation
-		if (formData.type === 'filesystem') {
+		if (formData.providerType === 'filesystem') {
 			if (!formData.config.dataSourceRoot) {
 				newErrors.dataSourceRoot = 'Path is required';
 			}
-		} else if (formData.type === 'notion') {
+		} else if (formData.providerType === 'notion') {
 			if (!formData.config.apiKey) {
 				newErrors.apiKey = 'API Key is required';
 			}
@@ -77,27 +78,27 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 	};
 
 	// Handle form field changes
-	const handleChange = (field: keyof ClientDataSource, value: unknown) => {
+	const handleChange = (field: keyof ClientDataSourceConnection, value: unknown) => {
 		// Mark description as custom when user edits it directly
 		if (field === 'description') {
 			setIsCustomDescription(true);
 		}
-		setFormData((prev) => {
-			// If changing the type, reset the config
-			if (field === 'type' && prev.type !== value) {
-				const newDataSourceType = dataSourceTypeMap.value.get(value as string) || null;
-				setDataSourceType(newDataSourceType);
-				console.log(`DataSourceModal: using dataSourceType for ${value}`, newDataSourceType);
+		setFormData((prev:ClientDataSourceConnection) => {
+			// If changing the providerType, reset the config
+			if (field === 'providerType' && prev.providerType !== value) {
+				const newDsProvider = dsProviderMap.value.get(value as string) || null;
+				setDsProvider(newDsProvider);
+				console.log(`DataSourceModal: using dsProvider for ${value}`, newDsProvider);
 
 				// Only use the default description if user hasn't customized it
-				const newDescription = isCustomDescription ? prev.description : (newDataSourceType?.description || '');
+				const newDescription = isCustomDescription ? prev.description : (newDsProvider?.description || '');
 
 				// Type assertion to ensure the field is properly typed
 				return {
 					...prev,
-					type: value as string, // We know 'type' is a string
-					accessMethod: newDataSourceType?.accessMethod || 'bb',
-					capabilities: newDataSourceType?.capabilities || [],
+					providerType: value as string, // We know 'providerType' is a string
+					accessMethod: newDsProvider?.accessMethod || 'bb',
+					capabilities: newDsProvider?.capabilities || [],
 					description: newDescription,
 					config: {},
 				};
@@ -112,13 +113,13 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 	// Handle config field changes
 	const handleConfigChange = (configField: string, value: unknown) => {
 		const newName = configField === 'dataSourceRoot' || configField === 'workspace' ? String(value) : null;
-		if ((!dataSource || !dataSource?.name) && newName) {
-			setFormData((prev) => ({
+		if ((!dsConnection || !dsConnection?.name) && newName) {
+			setFormData((prev:ClientDataSourceConnection) => ({
 				...prev,
 				name: newName,
 			}));
 		}
-		setFormData((prev) => ({
+		setFormData((prev:ClientDataSourceConnection) => ({
 			...prev,
 			config: {
 				...prev.config,
@@ -136,19 +137,19 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 		}
 	};
 
-	const typeOptions = useComputed(() => {
-		const bbTypeOptions = dataSourceTypes.value
-			.filter((type) => type.accessMethod === 'bb')
-			.map((type) => ({
-				value: type.id,
-				label: type.name,
+	const dsProviderOptions = useComputed(() => {
+		const bbTypeOptions = dsProviders.value
+			.filter((dsProvider) => dsProvider.accessMethod === 'bb')
+			.map((dsProvider) => ({
+				value: dsProvider.providerType,
+				label: dsProvider.name,
 			} as SelectOption));
-		const mcpTypeOptions = dataSourceTypes.value
-			.filter((type) => type.accessMethod === 'mcp')
-			.map((type) => ({
-				value: type.id,
-				//label: `${type.name} (MCP)`,
-				label: type.name,
+		const mcpTypeOptions = dsProviders.value
+			.filter((dsProvider) => dsProvider.accessMethod === 'mcp')
+			.map((dsProvider) => ({
+				value: dsProvider.providerType,
+				//label: `${dsProvider.name} (MCP)`,
+				label: dsProvider.name,
 			} as SelectOption));
 
 		if (mcpTypeOptions.length > 0) {
@@ -169,9 +170,9 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 		];
 	});
 
-	// Render different config fields based on the data source type
+	// Render different config fields based on the data source providerType
 	const renderConfigFields = () => {
-		switch (formData.type) {
+		switch (formData.providerType) {
 			case 'filesystem':
 				return (
 					<div className='space-y-4 col-span-2'>
@@ -227,7 +228,7 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 			default:
 				return (
 					<p className='text-gray-600 dark:text-gray-400 col-span-2'>
-						{dataSourceType?.name || 'MCP Server'} is configured in{' '}
+						{dsProvider?.name || 'MCP Server'} is configured in{' '}
 						<a
 							href='/app/settings?tab=mcpservers'
 							className='text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
@@ -244,7 +245,7 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 			<div className='bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto'>
 				<div className='flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
 					<h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100'>
-						{dataSource ? 'Edit' : 'Add'} Data Source
+						{dsConnection ? 'Edit' : 'Add'} Data Source
 					</h3>
 					<button
 						type='button'
@@ -278,9 +279,9 @@ export function DataSourceModal({ dataSource, onClose, onSave, appState, dataSou
 									Type
 								</label>
 								<CustomSelect
-									options={typeOptions.value}
-									value={formData.type}
-									onChange={(value) => handleChange('type', value)}
+									options={dsProviderOptions.value}
+									value={formData.providerType}
+									onChange={(value) => handleChange('providerType', value)}
 									className='w-full'
 								/>
 							</div>

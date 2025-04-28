@@ -15,6 +15,12 @@ export enum ErrorType {
 	ProjectHandling = 'ProjectHandlingError',
 	DataSourceHandling = 'DataSourceHandlingError',
 	FileHandling = 'FileHandlingError',
+	FileChange = 'FileChangeError',
+	FileNotFound = 'FileNotFoundError',
+	FileRead = 'FileReadError',
+	FileWrite = 'FileWriteError',
+	FileMove = 'FileMoveError',
+	
 	ResourceHandling = 'ResourceHandlingError',
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
@@ -30,6 +36,11 @@ export const ErrorTypes = [
 	ErrorType.ProjectHandling,
 	ErrorType.DataSourceHandling,
 	ErrorType.FileHandling,
+	ErrorType.FileChange,
+	ErrorType.FileNotFound,
+	ErrorType.FileRead,
+	ErrorType.FileWrite,
+	ErrorType.FileMove,
 	ErrorType.ResourceHandling,
 	ErrorType.VectorSearch,
 	ErrorType.TokenUsageValidation,
@@ -264,6 +275,23 @@ export class FileMoveError extends FileHandlingError {
 		this.name = 'FileMoveError';
 	}
 }
+
+export const isFileChangeError = (value: unknown): value is FileChangeError => {
+	return value instanceof FileChangeError;
+};
+export const isFileNotFoundError = (value: unknown): value is FileNotFoundError => {
+	return value instanceof FileNotFoundError;
+};
+export const isFileReadError = (value: unknown): value is FileReadError => {
+	return value instanceof FileReadError;
+};
+export const isFileWriteError = (value: unknown): value is FileWriteError => {
+	return value instanceof FileWriteError;
+};
+export const isFileMoveError = (value: unknown): value is FileMoveError => {
+	return value instanceof FileMoveError;
+};
+
 
 export interface ResourceHandlingErrorOptions extends ErrorOptions {
 	filePath: string;

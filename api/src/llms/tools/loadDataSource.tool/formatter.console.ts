@@ -8,7 +8,7 @@ import { stripIndents } from 'common-tags';
 export const formatLogEntryToolUse = (
 	toolInput: LLMToolInputSchema,
 ): LLMToolLogEntryFormattedResult => {
-	const { dataSourceName, path, depth, pageSize, pageToken } = toolInput as LLMToolLoadDatasourceInput;
+	const { dataSourceId, path, depth, pageSize, pageToken } = toolInput as LLMToolLoadDatasourceInput;
 
 	// Build options list
 	const optionsParts = [];
@@ -22,14 +22,14 @@ export const formatLogEntryToolUse = (
 		: '';
 
 	const content = stripIndents`
-        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Loading data source:')} ${dataSourceName}${optionsText}
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Loading data source:')} ${dataSourceId}${optionsText}
     `;
 
 	return {
 		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Load Data Source'),
-		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`Listing resources from ${dataSourceName}`),
+		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`Listing resources from ${dataSourceId}`),
 		content,
-		preview: `Loading resources from data source: ${dataSourceName}`,
+		preview: `Loading resources from data source: ${dataSourceId}`,
 	};
 };
 
@@ -44,9 +44,9 @@ export const formatLogEntryToolResult = (
 
 		const contentParts = [];
 		contentParts.push(stripIndents`
-            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Data Source:')} ${data.dataSourceName} | ${
+            ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Data Source:')} ${data.dataSource.dsConnectionName} | ${
 			LLMTool.TOOL_STYLES_CONSOLE.base.label('Type:')
-		} ${data.dataSourceType}
+		} ${data.dataSource.dsProviderType}
         `);
 
 		if (resources.length > 0) {
@@ -55,7 +55,7 @@ export const formatLogEntryToolResult = (
                 ${
 				resources.map((resource) => {
 					const description = resource.description ? ` (${resource.description})` : '';
-					return `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource.name)}${description}`;
+					return `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource.name || resource.uri)}${description}`;
 				}).join('\n')
 			}
             `);
@@ -78,7 +78,7 @@ export const formatLogEntryToolResult = (
 			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Load Data Source'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`${resources.length} resources found`),
 			content,
-			preview: `Found ${resources.length} resources in ${data.dataSourceName}`,
+			preview: `Found ${resources.length} resources in ${data.dataSource.dsConnectionName}`,
 		};
 	} else {
 		logger.error('LLMToolLoadDatasource: Unexpected bbResponse format:', bbResponse);

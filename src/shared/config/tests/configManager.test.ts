@@ -7,7 +7,8 @@ import type { GlobalConfig, MigrationResult, ProjectConfig, ValidationResult } f
 import { type ConfigManagerV2, getConfigManager } from '../mod.ts';
 import { GlobalConfigSchema as GlobalConfigV1, ProjectConfigSchema as ProjectConfigV1 } from '../configSchema.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
 describe('ConfigManagerV2', () => {
 	let testDir: string;
@@ -101,16 +102,22 @@ describe('ConfigManagerV2', () => {
 
 	describe('Project Management', () => {
 		it('should create new project with valid ID', async () => {
+			const dataSourceRegistry = await getDataSourceRegistry();
 			const dataSourceRoot = await Deno.makeTempDir();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'primary',
+				dataSourceRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-fs-primary',
+					isPrimary: true,
+				},
+			);
+
 			const projectPersistenceManager = await getProjectPersistenceManager();
 			const projectData = await projectPersistenceManager.createProject({
 				name: 'Test Project',
-				dataSources: [
-					DataSource.createPrimaryFileSystem(
-						'primary',
-						dataSourceRoot,
-					),
-				],
+				dsConnections: [dsConnection],
 			});
 			const projectId = projectData.projectId;
 
@@ -128,16 +135,21 @@ describe('ConfigManagerV2', () => {
 		});
 
 		it('should load project config after creation', async () => {
+			const dataSourceRegistry = await getDataSourceRegistry();
 			const dataSourceRoot = await Deno.makeTempDir();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'primary',
+				dataSourceRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-fs-primary',
+					isPrimary: true,
+				},
+			);
 			const projectPersistenceManager = await getProjectPersistenceManager();
 			const projectData = await projectPersistenceManager.createProject({
 				name: 'Test Project',
-				dataSources: [
-					DataSource.createPrimaryFileSystem(
-						'primary',
-						dataSourceRoot,
-					),
-				],
+				dsConnections: [dsConnection],
 			});
 			const projectId = projectData.projectId;
 
@@ -153,16 +165,21 @@ describe('ConfigManagerV2', () => {
 		});
 
 		it('should update project config', async () => {
+			const dataSourceRegistry = await getDataSourceRegistry();
 			const dataSourceRoot = await Deno.makeTempDir();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'primary',
+				dataSourceRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-fs-primary',
+					isPrimary: true,
+				},
+			);
 			const projectPersistenceManager = await getProjectPersistenceManager();
 			const projectData = await projectPersistenceManager.createProject({
 				name: 'Test Project',
-				dataSources: [
-					DataSource.createPrimaryFileSystem(
-						'primary',
-						dataSourceRoot,
-					),
-				],
+				dsConnections: [dsConnection],
 			});
 			const projectId = projectData.projectId;
 
@@ -189,15 +206,20 @@ describe('ConfigManagerV2', () => {
 		it('should reject invalid project paths', async () => {
 			await assertRejects(
 				async () => {
+					const dataSourceRegistry = await getDataSourceRegistry();
+					const dsConnection = FilesystemProvider.createFileSystemDataSource(
+						'primary',
+						'/invalid/path',
+						dataSourceRegistry,
+						{
+							id: 'ds-fs-primary',
+							isPrimary: true,
+						},
+					);
 					const projectPersistenceManager = await getProjectPersistenceManager();
 					const projectData = await projectPersistenceManager.createProject({
 						name: 'Test Project',
-						dataSources: [
-							DataSource.createPrimaryFileSystem(
-								'primary',
-								'/invalid/path',
-							),
-						],
+						dsConnections: [dsConnection],
 					});
 				},
 				Error,

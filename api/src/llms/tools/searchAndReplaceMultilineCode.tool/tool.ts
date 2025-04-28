@@ -8,7 +8,6 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
-import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { logger } from 'shared/logger.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -190,10 +189,10 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				filePath: {
 					type: 'string',
@@ -518,43 +517,44 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { filePath, operations, createIfMissing = true, dataSource: dataSourceId = undefined } = toolInput as {
+		const { filePath, operations, createIfMissing = true, dataSourceId = undefined } = toolInput as {
 			filePath: string;
 			operations: Array<{ search: string; replace: string; replaceAll?: boolean; language?: string }>;
 			createIfMissing?: boolean;
-			dataSource?: string;
+			dataSourceId?: string;
 		};
 
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 		if (!dataSourceRoot) {
 			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
-		// [TODO] check that dataSourceToUse is type filesystem
+		// [TODO] check that dsConnectionToUse is type filesystem
 
-		if (!await isPathWithinDataSource(dataSourceRoot, filePath)) {
+		const resourceUri = dsConnectionToUse.getUriForResource(`file:./${filePath}`);
+		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 			throw createError(
 				ErrorType.FileHandling,
 				`Access denied: ${filePath} is outside the data source directory`,
@@ -664,15 +664,20 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 					JSON.stringify(operations),
 				);
 
-				const dataSourceStatus = notFound.length > 0
+				const dsConnectionStatus = notFound.length > 0
 					? `Could not find data source for: [${notFound.join(', ')}]`
-					: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+					: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 
-				const toolResults = `${dataSourceStatus}\n${toolWarning}`;
-				const toolResponse = dataSourceStatus + '\n\n' + isNewFile
+				const toolResults = `${dsConnectionStatus}\n${toolWarning}`;
+				const toolResponse = dsConnectionStatus + '\n\n' + isNewFile
 					? `File created and search and replace operations applied successfully to file: ${filePath}`
 					: `Search and replace operations applied successfully to file: ${filePath}`;
-				const bbResponse = `BB applied search and replace operations: ${toolWarning}\n${dataSourceStatus}`;
+				const bbResponse = `BB applied search and replace operations: ${toolWarning}\n${dsConnectionStatus}`;
+					//dataSource: {
+					//	dsConnectionId: dsConnectionToUse.id,
+					//	dsConnectionName: dsConnectionToUse.name,
+					//	dsProviderType: dsConnectionToUse.providerType,
+					//},
 
 				return { toolResults, toolResponse, bbResponse };
 			} else {

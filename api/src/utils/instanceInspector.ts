@@ -12,7 +12,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 export interface EditorInstanceInfo {
 	conversationId: string;
 	projectId: string;
-	primaryDataSourceRoot: string;
+	primaryDsConnectionRoot: string;
 	hasInitialized: boolean;
 	components: {
 		orchestratorController: {
@@ -89,7 +89,7 @@ async function inspectEditor(conversationId: string, editor: ProjectEditor): Pro
 	return {
 		conversationId,
 		projectId: editor.projectId,
-		primaryDataSourceRoot: editor.primaryDataSourceRoot || 'not defined',
+		primaryDsConnectionRoot: editor.primaryDsConnectionRoot || 'not defined',
 		hasInitialized: baseController !== undefined,
 		components: {
 			orchestratorController: {
@@ -311,7 +311,7 @@ export async function formatInstanceOverview(options: { detailed?: boolean } = {
 	lines.push(`\nPROJECT EDITORS:`);
 	for (const [conversationId, editor] of Object.entries(overview.editors)) {
 		lines.push(`• Editor[${conversationId}]:`);
-		lines.push(`  - Project: ${editor.projectId} (${editor.primaryDataSourceRoot})`);
+		lines.push(`  - Project: ${editor.projectId} (${editor.primaryDsConnectionRoot})`);
 		lines.push(`  - Components:`);
 
 		// Orchestrator Controller

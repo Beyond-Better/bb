@@ -1,4 +1,4 @@
-import { relative } from '@std/path';
+import { relative, extname } from '@std/path';
 import { walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
 import { contentType } from '@std/media-types';
@@ -73,7 +73,7 @@ async function generateFileListingTier(
 
 		if (includeMetadata) {
 			const stat = await Deno.stat(entry.path);
-			const mimeType = contentType(entry.name) || 'application/octet-stream';
+			const mimeType = contentType(extname(entry.name)) || 'application/octet-stream';
 			listing.push(`${relativePath} (${mimeType}, ${stat.size} bytes, modified: ${stat.mtime?.toISOString()})`);
 		} else {
 			listing.push(relativePath);

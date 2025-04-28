@@ -1,0 +1,8 @@
+{
+	"name": "remove_resources",
+	"description": "Remove resources from the data source, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone. When no data source is specified, operates on the primary data source.",
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT",
+	"mutates": true
+}

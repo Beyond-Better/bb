@@ -7,7 +7,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type { ConversationMetadata } from 'shared/types.ts';
-import type { ResourceMetadata, ResourceRevisionMetadata } from 'api/resources/resourceManager.ts';
+import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 
 /**
@@ -289,8 +289,8 @@ export async function migrateConversationResources(
 					const revisionId = parts[1];
 
 					// Create new URI format
-					const primaryDataSource = projectPersistence.getPrimaryDataSource();
-					const resourceUri = primaryDataSource!.getUriForResource(`file:./${filePath}`);
+					const primaryDsConnection = projectPersistence.getPrimaryDsConnection();
+					const resourceUri = primaryDsConnection!.getUriForResource(`file:./${filePath}`);
 					const newKey = generateResourceRevisionKey(resourceUri, revisionId);
 
 					// Update metadata with the URI
@@ -321,11 +321,14 @@ export async function migrateConversationResources(
 						// Add this revision
 						existingInfo.revisions.push(revisionId);
 
+						const updatedLastModified = updatedResourceMetadata.lastModified instanceof Date
+							? updatedResourceMetadata.lastModified
+							: new Date(updatedResourceMetadata.lastModified);
+						const existingLastModified = existingInfo.metadata.lastModified instanceof Date
+							? existingInfo.metadata.lastModified
+							: new Date(existingInfo.metadata.lastModified);
 						// Update latest if this is newer
-						if (
-							new Date(updatedResourceMetadata.lastModified) >
-								new Date(existingInfo.metadata.lastModified)
-						) {
+						if (updatedLastModified > existingLastModified) {
 							existingInfo.latestRevision = revisionId;
 							existingInfo.metadata = updatedResourceMetadata;
 						}

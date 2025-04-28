@@ -1,6 +1,7 @@
 import type { Context } from '@oak/oak';
 import { extname, join, resolve } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
+import { contentType } from '@std/media-types';
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { isPathWithinDataSource, listDirectory, type ListDirectoryOptions } from 'api/utils/fileHandling.ts';
@@ -12,7 +13,6 @@ import {
 	suggestFilesForPath as getSuggestionsForPath,
 } from 'api/utils/fileSuggestions.ts';
 import type { ResourceManager } from 'api/resources/resourceManager.ts';
-import { getContentType } from 'api/utils/contentTypes.ts';
 //import type { FileMetadata } from 'shared/types.ts';
 
 // Define file metadata interface
@@ -105,7 +105,7 @@ export const addFile = async (
 		logger.info(`FileHandler: Wrote uploaded file to: ${filePath}`);
 
 		// Determine MIME type and if it's an image
-		const mimeType = isFileObject(file) && 'type' in file ? file.type : getContentType(sanitizedName);
+		const mimeType = isFileObject(file) && 'type' in file ? file.type : (contentType(extname(sanitizedName)) || 'text/plain');
 		const isImage = mimeType.startsWith('image/');
 
 		// Create metadata for the file

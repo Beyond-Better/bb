@@ -422,7 +422,7 @@ Deno.test({
 				assert(false, 'bbResponse does not have the expected structure for LoadResourcesTool');
 			}
 
-			assertStringIncludes(result.toolResponse, 'outside the data source directory');
+			assertStringIncludes(result.toolResponse, 'Failed to load resource: File not found');
 
 			// Check toolResults
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -435,7 +435,7 @@ Deno.test({
 
 			const errorResult = result.toolResults[1];
 			assert(errorResult.type === 'text', 'Second result should be of type text');
-			assertStringIncludes(errorResult.text, 'outside the data source directory');
+			assertStringIncludes(errorResult.text, 'Failed to load resource: File not found');
 		});
 	},
 	sanitizeResources: false,
@@ -499,7 +499,7 @@ Deno.test({
 				assert(false, 'bbResponse does not have the expected structure for LoadResourcesTool');
 			}
 
-			assertStringIncludes(result.toolResponse, 'outside the data source directory');
+			assertStringIncludes(result.toolResponse, 'Failed to load resource: File not found');
 
 			// Check toolResults
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -512,7 +512,7 @@ Deno.test({
 
 			const errorResult = result.toolResults[1];
 			assert(errorResult.type === 'text', 'Second result should be of type text');
-			assertStringIncludes(errorResult.text, 'outside the data source directory');
+			assertStringIncludes(errorResult.text, 'Failed to load resource: File not found');
 		});
 	},
 	sanitizeResources: false,

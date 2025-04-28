@@ -70,6 +70,7 @@ export const listProjects = async (
 					config: null,
 				};
 			}
+			//logger.info(`ProjectHandler: Getting client data for project: ${project.projectId}`, {clientData});
 
 			return enhanceProjectWithSources(
 				clientData,
@@ -114,7 +115,7 @@ export const blankProject = async (
 			projectId: '',
 			name: '',
 			status: 'draft',
-			dataSources: [],
+			dsConnections: [],
 			mcpServers: [],
 			repoInfo: { tokenLimit: 1024 },
 		};
@@ -246,7 +247,7 @@ export const createProject = async (
 		const projectData: Omit<ClientProjectData, 'projectId'> = {
 			name,
 			status,
-			dataSources: [],
+			dsConnections: [],
 			mcpServers: [],
 			repoInfo: { tokenLimit: 1024 },
 		};

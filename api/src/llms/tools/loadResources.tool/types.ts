@@ -1,7 +1,8 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface LLMToolLoadResourcesInput {
-	dataSource?: string;
+	dataSourceId?: string;
 	mode: 'template' | 'direct';
 	uriTemplate?: string;
 	templateResources?: Array<Record<string, string>>;
@@ -12,7 +13,12 @@ export interface LLMToolLoadResourcesResponseData {
 	data: {
 		resourcesAdded: string[];
 		resourcesError: string[];
-		dataSourceId: string;
+
+		dataSource: {
+			dsConnectionId: string;
+			dsConnectionName: string;
+			dsProviderType: DataSourceProviderType;
+		};
 	};
 }
 

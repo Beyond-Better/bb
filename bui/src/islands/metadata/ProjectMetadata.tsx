@@ -20,8 +20,8 @@ export function ProjectMetadata({
 	const projectId = chatState.value.projectData?.projectId || '.';
 	//const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
-	const projectPath = chatState.value.projectData?.primaryDataSource?.config?.dataSourceRoot?.toString() || 'default';
-	//projectWithSources?.data?.primaryDataSource?.config?.dataSourceRoot?.toString() || ''
+	const projectPath = chatState.value.projectData?.primaryDsConnection?.config?.dataSourceRoot?.toString() || 'default';
+	//projectWithSources?.data?.primaryDsConnection?.config?.dataSourceRoot?.toString() || ''
 
 	return (
 		<div className='flex items-center justify-between px-4'>

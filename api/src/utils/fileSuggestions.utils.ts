@@ -1,10 +1,10 @@
 import { globToRegExp } from '@std/path';
 import { walk } from '@std/fs';
 import { relative } from '@std/path';
-import { createExcludeRegexPatterns, getExcludeOptions, isPathWithinDataSource } from 'api/utils/fileHandling.ts';
+import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+//import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 
 export interface PatternOptions {
@@ -45,25 +45,6 @@ export interface FileSuggestionsResponse {
 /**
  * Main function to get file suggestions based on partial path and project ID
  */
-// export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
-// 	const { partialPath, projectId, limit, caseSensitive, type } = options;
-//
-// 	const projectRoot = await getWorkingRoot(projectId);
-//
-// 	// Validate path is within project
-// 	if (!isPathWithinDataSource(projectRoot, partialPath)) {
-// 		throw createError(ErrorType.FileHandling, 'Path outside project directory');
-// 	}
-//
-// 	return suggestFilesForPath({
-// 		partialPath,
-// 		rootPath: projectRoot,
-// 		limit,
-// 		caseSensitive,
-// 		type,
-// 	});
-// }
-
 export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
 	const { partialPath, projectId, limit, caseSensitive, type } = options;
 
@@ -76,17 +57,22 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		};
 	}
 
-	const dataSourcePaths = DataSource.getDataSourcePathsFromDataSources(projectData.dataSources);
-
 	// Aggregate results from all data sources
 	const allSuggestions: FileSuggestion[] = [];
 	let hasMore = false;
 
-	for (const dataSourcePath of dataSourcePaths) {
+	//logger.info('SuggestionPatterns: searching for:', { projectId, partialPath, dsConnections: projectData.dsConnections });
+	for (const dsConnection of projectData.dsConnections) {
 		// Validate path is within this data source
-		if (!isPathWithinDataSource(dataSourcePath, partialPath)) {
+		const pathToCheck = partialPath.startsWith('/') ? partialPath.substring(1) : partialPath;
+		const resourceUri = dsConnection.getUriForResource(`file:./${pathToCheck}`);
+		//logger.info('SuggestionPatterns: Checking dsConnection path within root:', { resourceUri });
+		if (!await dsConnection.isResourceWithinDataSource(resourceUri)) {
 			continue; // Skip this data source if path is outside
 		}
+		const dataSourcePath = dsConnection.getDataSourceRoot();
+		if (!dataSourcePath) continue;
+		//logger.info('SuggestionPatterns: Searching in:', { dataSourcePath });
 
 		const suggestionsResponse = await suggestFilesForPath({
 			partialPath,
@@ -95,16 +81,17 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 			caseSensitive,
 			type,
 		});
-		allSuggestions.push(...suggestionsResponse.suggestions);
+		//allSuggestions.push(...suggestionsResponse.suggestions);
 		if (suggestionsResponse.hasMore) hasMore = true;
 
-		// // Enhance suggestions with data source name
-		// const enhancedSuggestions = suggestions.map(file => ({
-		//   ...file,
-		//   dataSourceName: dataSource.name
-		// }));
-		//
-		// allSuggestions.push(...enhancedSuggestions);
+		// Enhance suggestions with data source name
+		const enhancedSuggestions = suggestionsResponse.suggestions.map(file => ({
+		  ...file,
+		  dataSourceName: dsConnection.name
+		}));
+		//logger.info('SuggestionPatterns: Suggestions:', { enhancedSuggestions });
+		
+		allSuggestions.push(...enhancedSuggestions);
 	}
 
 	// // Sort and limit the combined results

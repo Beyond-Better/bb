@@ -6,7 +6,7 @@ import { migrateConversationResources } from 'shared/conversationMigration.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
-import { DataSource } from 'api/resources/dataSource.ts';
+import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 //import type { RepoInfoConfigSchema } from 'shared/config/types.ts';
 import type { CreateProjectData, ProjectData } from 'shared/types/project.ts';
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
@@ -128,9 +128,9 @@ class ProjectPersistenceManager {
 	 */
 	private scheduleCleanup(projectId: string, operation: Promise<ProjectPersistence | undefined>): void {
 		const cleanup = async () => {
-			logger.info(
-				`ProjectPersistenceManager: Waiting to clean up after creating ProjectPersistence for ${projectId}`,
-			);
+			// logger.info(
+			// 	`ProjectPersistenceManager: Waiting to clean up after creating ProjectPersistence for ${projectId}`,
+			// );
 			try {
 				await operation;
 			} finally {
@@ -195,13 +195,13 @@ class ProjectPersistenceManager {
 				projectId,
 				name: projectData.name,
 				status: projectData.status || 'draft',
-				dataSources: projectData.dataSources as DataSource[],
+				dsConnections: projectData.dsConnections as DataSourceConnection[],
 				repoInfo: projectData.repoInfo || { tokenLimit: 1024 },
 				mcpServers: projectData.mcpServers || [],
 			};
 
 			// Extract filesystem paths from data sources
-			const dataSourcePaths = DataSource.getDataSourcePathsFromDataSources(projectData.dataSources);
+			const dataSourcePaths = DataSourceConnection.getDataSourcePathsFromDsConnections(projectData.dsConnections);
 			const primaryDataSourceRoot = dataSourcePaths[0] || '';
 			//logger.info(`ProjectPersistenceManager: createProject[${projectId}]: `, {
 			//	primaryDataSourceRoot,
@@ -273,9 +273,9 @@ class ProjectPersistenceManager {
 			await projectPersistence.update(newProjectData);
 			//logger.info(`ProjectPersistenceManager: createProject[${projectId}]: updated project data instance`);
 
-			for (const dataSource of projectData.dataSources) {
-				if (dataSource.type === 'filesystem' && dataSource.config.dataSourceRoot) {
-					const dataSourcePath = dataSource.config.dataSourceRoot as string;
+			for (const dsConnection of projectData.dsConnections) {
+				if (dsConnection.providerType === 'filesystem' && dsConnection.config.dataSourceRoot) {
+					const dataSourcePath = dsConnection.config.dataSourceRoot as string;
 					// Create .bb dir and ignore file for filesystem data sources
 					await createDataSourceBbDir(dataSourcePath);
 					await createDataSourceBbIgnore(dataSourcePath);
@@ -285,7 +285,7 @@ class ProjectPersistenceManager {
 					}
 				}
 			}
-			//logger.info(`ProjectPersistenceManager: createProject[${projectId}]: initialized data sources`, {project: projectPersistence.dataSources});
+			//logger.info(`ProjectPersistenceManager: createProject[${projectId}]: initialized data sources`, {project: projectPersistence.dsConnections});
 
 			logger.info(`ProjectPersistenceManager: Created project ${projectId}`);
 

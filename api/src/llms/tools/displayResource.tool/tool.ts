@@ -49,10 +49,10 @@ export default class LLMToolDisplayResource extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				resourcePath: {
 					type: 'string',
@@ -84,21 +84,21 @@ export default class LLMToolDisplayResource extends LLMTool {
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const { resourcePath, dataSource: dataSourceId = undefined } = toolUse.toolInput as LLMToolDisplayResourceInput;
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { resourcePath, dataSourceId = undefined } = toolUse.toolInput as LLMToolDisplayResourceInput;
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
@@ -106,12 +106,19 @@ export default class LLMToolDisplayResource extends LLMTool {
 		}
 
 		try {
-			//const projectData = projectEditor.projectData;
-			const resourceManager = projectEditor.resourceManager;
+			// //const projectData = projectEditor.projectData;
+			// const resourceManager = projectEditor.resourceManager;
+			// 
+			// const resourceUri = dsConnectionToUse.getUriForResource(`file:./${resourcePath}`, { resourcePath });
+			// //logger.error(`LLMToolDisplayResource: display resource for: ${resourceUri}`);
+			// 
+			// const resource = await resourceManager.loadResource(resourceUri);
 
-			const resourceUri = dataSourceToUse.getUriForResource(`file:./${resourcePath}`);
-			//const resource = await projectData.getProjectResource(resourceUri			);
-			const resource = await resourceManager.loadResource(resourceUri);
+			// const resourceUri = `file:./${resourcePath}`;
+			const resourceUri = dsConnectionToUse.getUriForResource(`file:./${resourcePath}`);
+			const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+			//logger.error(`LLMToolDisplayResource: display resource for: ${resourceUri}`, {resourceAccessor});
+			const resource = await resourceAccessor.loadResource(resourceUri);
 			if (!resource) {
 				throw createError(ErrorType.DataSourceHandling, `Could not load resource`, {
 					operation: 'read',
@@ -127,17 +134,21 @@ export default class LLMToolDisplayResource extends LLMTool {
 					lastModified: resource.metadata?.lastModified, // new Date(),
 				} as ResourceMetadata,
 				//truncated: resource.truncated,
-				dataSourceId,
+				dataSource: {
+					dsConnectionId: dsConnectionToUse.id,
+					dsConnectionName: dsConnectionToUse.name,
+					dsProviderType: dsConnectionToUse.providerType,
+				},
 			};
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 
 			const toolResults =
-				`Used data source: ${dataSourceToUse.name}\nResource: ${resourcePath} - Size: ${displayResult.metadata.size} - MimeType: ${displayResult.metadata.mimeType} - LastModified: ${displayResult.metadata.lastModified} - Content: <not displayed here>`;
+				`Used data source: ${dsConnectionToUse.name}\nResource: ${resourcePath} - Size: ${displayResult.metadata.size} - MimeType: ${displayResult.metadata.mimeType} - LastModified: ${displayResult.metadata.lastModified} - Content: <not displayed here>`;
 			const toolResponse =
-				`${dataSourceStatus}\n\nDisplayed resource: ${resourcePath}\nThe resource has been displayed for the user only, and you have been provided with the metadata of the resource. Since this tool is for benefit of the user you are not being shown the content.`;
+				`${dsConnectionStatus}\n\nDisplayed resource: ${resourcePath}\nThe resource has been displayed for the user only, and you have been provided with the metadata of the resource. Since this tool is for benefit of the user you are not being shown the content.`;
 
 			return {
 				toolResults,

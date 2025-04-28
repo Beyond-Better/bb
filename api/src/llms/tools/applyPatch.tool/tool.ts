@@ -14,7 +14,6 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinDataSource } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
@@ -27,10 +26,10 @@ export default class LLMToolApplyPatch extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				dataSource: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				filePath: {
 					type: 'string',
@@ -109,36 +108,36 @@ Notes:
 		const patchedFiles: string[] = [];
 		const patchContents: string[] = [];
 		const { toolInput } = toolUse;
-		const { filePath, patch, dataSource: dataSourceId = undefined } = toolInput as LLMToolApplyPatchInput;
+		const { filePath, patch, dataSourceId = undefined } = toolInput as LLMToolApplyPatchInput;
 
-		const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
 		);
-		if (!primaryDataSource) {
+		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceToUse = dataSources[0] || primaryDataSource;
-		const dataSourceToUseId = dataSourceToUse.id;
-		if (!dataSourceToUseId) {
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dataSourceToUse.getDataSourceRoot();
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 		if (!dataSourceRoot) {
 			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
 				name: 'data-source',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
-		// [TODO] check that dataSourceToUse is type filesystem
+		// [TODO] check that dsConnectionToUse is type filesystem
 
 		const parsedPatch = diff.parsePatch(patch);
 		const modifiedFiles: string[] = [];
@@ -151,8 +150,8 @@ Notes:
 					throw new Error('File path is undefined');
 				}
 				logger.info(`LLMToolApplyPatch: Checking location of file: ${currentFilePath}`);
-
-				if (!await isPathWithinDataSource(dataSourceRoot, currentFilePath)) {
+				const resourceUri = dsConnectionToUse.getUriForResource(`file:./${currentFilePath}`);
+				if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 					throw createError(
 						ErrorType.FileHandling,
 						`Access denied: ${currentFilePath} is outside the data source directory`,
@@ -202,7 +201,7 @@ Notes:
 
 				// [TODO] the `logChangeAndCommit` (used below) is already adding to patchedFiles and patchContents
 				// Is this legacy usage and should be removed, or do we need it for multi-part patches
-				projectEditor.changedFiles.add(currentFilePath);
+				projectEditor.changedResources.add(currentFilePath);
 				// [TODO] for multiple patch parts - will subsequent overwrite the first??
 				projectEditor.changeContents.set(currentFilePath, patch);
 			}
@@ -234,23 +233,27 @@ Notes:
 				} as LLMMessageContentPartTextBlock)),
 			];
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 			toolResultContentParts.unshift({
 				type: 'text',
-				text: `Used data source: ${dataSourceToUse.name}`,
+				text: `Used data source: ${dsConnectionToUse.name}`,
 			});
 
 			const toolResults = toolResultContentParts;
-			const toolResponse = `${dataSourceStatus}\nApplied patch successfully to ${
+			const toolResponse = `${dsConnectionStatus}\nApplied patch successfully to ${
 				modifiedFiles.length + newFiles.length
 			} file(s)`;
 			const bbResponse = {
 				data: {
 					modifiedFiles,
 					newFiles,
-					dataSourceId,
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
 				},
 			};
 
@@ -269,7 +272,7 @@ Notes:
 			const toolResultContentParts: LLMMessageContentParts = [
 				{
 					type: 'text',
-					text: `Used data source: ${dataSourceToUse.name}`,
+					text: `Used data source: ${dsConnectionToUse.name}`,
 				},
 				{
 					type: 'text',

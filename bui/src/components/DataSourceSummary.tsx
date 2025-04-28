@@ -15,21 +15,21 @@ interface DataSourceSummaryProps {
  */
 export function DataSourceSummary({ project, showAdditionalCount = true, className = '' }: DataSourceSummaryProps) {
 	const { data } = project;
-	const primarySource = data.primaryDataSource;
-	const additionalSourcesCount = data.dataSources.length - (primarySource ? 1 : 0);
+	const primaryDsConnection = data.primaryDsConnection;
+	const additionalSourcesCount = data.dsConnections.length - (primaryDsConnection ? 1 : 0);
 	const appState = useAppState();
 
-	if (!primarySource) {
+	if (!primaryDsConnection) {
 		return <span className={`${className}`}>No data sources</span>;
 	}
 
 	let sourceDetails = '';
 	let icon = null;
 
-	// Different display based on data source type
-	if (primarySource.type === 'filesystem') {
+	// Different display based on data source providerType
+	if (primaryDsConnection.providerType === 'filesystem') {
 		sourceDetails = formatPathForDisplay(
-			primarySource.config.dataSourceRoot as string,
+			primaryDsConnection.config.dataSourceRoot as string,
 			appState.value.systemMeta?.pathSeparator,
 		);
 		icon = (
@@ -51,8 +51,8 @@ export function DataSourceSummary({ project, showAdditionalCount = true, classNa
 				<span className='font-mono'>{sourceDetails}</span>
 			</>
 		);
-	} else if (primarySource.type === 'notion') {
-		sourceDetails = (primarySource.config.workspace as string) || 'Workspace';
+	} else if (primaryDsConnection.providerType === 'notion') {
+		sourceDetails = (primaryDsConnection.config.workspace as string) || 'Workspace';
 		icon = (
 			<>
 				<svg className='w-4 h-4 mr-1 flex-shrink-0' viewBox='0 0 24 24' fill='currentColor'>
@@ -62,7 +62,7 @@ export function DataSourceSummary({ project, showAdditionalCount = true, classNa
 			</>
 		);
 	} else {
-		sourceDetails = `${primarySource.type}`;
+		sourceDetails = `${primaryDsConnection.providerType}`;
 		icon = (
 			<>
 				<svg className='w-4 h-4 mr-1 flex-shrink-0' viewBox='0 0 24 24' fill='currentColor'>

@@ -31,7 +31,7 @@ export default class LLMToolLoadResources extends LLMTool {
 				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source name to operate on. Defaults to the primary data source if omitted. Examples: 'filesystem-local', 'database-prod'.",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
 				},
 				mode: {
 					type: 'string',
@@ -76,10 +76,10 @@ Two modes are supported based on the data source's capability:
    
    Examples:
    
-   For a file system with template 'filesystem-local://{path}':
+   For a file system with template 'filesystem-local:./{path}':
    {
      "mode": "template",
-     "uriTemplate": "filesystem-local://{path}",
+     "uriTemplate": "filesystem-local:./{path}",
      "templateResources": [
        { "path": "src/config.ts" },
        { "path": "tests/config.test.ts" }
@@ -116,8 +116,8 @@ Two modes are supported based on the data source's capability:
    {
      "mode": "direct",
      "directUris": [
-       "filesystem-local://src/config.ts", 
-       "filesystem-local://package.json"
+       "filesystem-local:./src/config.ts", 
+       "filesystem-local:./package.json"
      ]
    }
    
@@ -127,9 +127,40 @@ Two modes are supported based on the data source's capability:
      "directUris": [
        "mcp-supabase://public?query=SELECT%20*%20FROM%20users",
        "api-service://auth/users.json",
-       "filesystem-local://config/database.yml"
+       "filesystem-local:./config/database.yml"
      ]
    }
+
+## Use relative paths for filesystem data sources.
+
+# CORRECT filesystem URIs:
+filesystem-local:./path/to/file.ts
+filesystem-local:./project/site/routes/_middleware.ts
+filesystem-local:./docs/readme.md
+
+# When using the template pattern:
+uriTemplate: "filesystem-local:./{path}"
+templateResources: [{ "path": "project/site/routes/_middleware.ts" }]
+
+# INCORRECT - Using web URI format with double slash:
+filesystem-local://path/to/file.ts        ❌ Will try to access absolute path /path/to/file.ts
+filesystem-local://project/site/file.ts   ❌ Will fail with "File not found: /project/site/file.ts"
+
+# INCORRECT - Missing the dot in relative path:
+filesystem-local:/path/to/file.ts         ❌ Missing the dot for relative paths
+filesystem-local:/project/site/file.ts    ❌ Will also be treated as absolute
+
+### Understanding Path Errors
+
+When you see errors like:
+"Failed to load resource: File not found: /site/routes/_middleware.ts"
+
+Note the leading slash (/) indicates the system is trying to use an absolute path 
+from the root directory. This typically means your URI format is incorrect.
+
+Correct: filesystem-local:./project/site/routes/_middleware.ts
+Incorrect: filesystem-local://project/site/routes/_middleware.ts
+
 
 Always use load_datasource first to discover available resources and their URI formats.
 Then use this tool to request specific resources to be added to the conversation.`,
@@ -158,7 +189,7 @@ Then use this tool to request specific resources to be added to the conversation
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { mode, uriTemplate, templateResources, directUris, dataSource: dataSourceId = undefined } =
+		const { mode, uriTemplate, templateResources, directUris, dataSourceId = undefined } =
 			toolInput as LLMToolLoadResourcesInput;
 		// 	dataSource?: string;
 		// 	mode: 'template' | 'direct';
@@ -167,20 +198,20 @@ Then use this tool to request specific resources to be added to the conversation
 		// 	directUris?: string[];
 
 		try {
-			const { primaryDataSource, dataSources, notFound } = this.getDataSources(
+			const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 				projectEditor,
 				dataSourceId ? [dataSourceId] : undefined,
 			);
-			if (!primaryDataSource) {
+			if (!primaryDsConnection) {
 				throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 					name: 'data-source',
 					dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 				} as DataSourceHandlingErrorOptions);
 			}
 
-			const dataSourceToUse = dataSources[0] || primaryDataSource;
-			const dataSourceToUseId = dataSourceToUse.id;
-			if (!dataSourceToUseId) {
+			const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+			const dsConnectionToUseId = dsConnectionToUse.id;
+			if (!dsConnectionToUseId) {
 				throw createError(ErrorType.DataSourceHandling, `No data source id`, {
 					name: 'data-source',
 					dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
@@ -193,7 +224,7 @@ Then use this tool to request specific resources to be added to the conversation
 					operation: 'tool-input',
 				} as ToolHandlingErrorOptions);
 			}
-			//if (mode === 'template' && ((!uriTemplate && !dataSourceToUse.uriTemplate) || !templateResources)) {
+			//if (mode === 'template' && ((!uriTemplate && !dsConnectionToUse.uriTemplate) || !templateResources)) {
 			if (mode === 'template' && (!uriTemplate || !templateResources)) {
 				throw createError(
 					ErrorType.ToolHandling,
@@ -222,7 +253,7 @@ Then use this tool to request specific resources to be added to the conversation
 				: mode === 'direct'
 				? (directUris || [])
 				: []).map((uri) =>
-					dataSourceToUse.getUriForResource(uri)
+					dsConnectionToUse.getUriForResource(uri)
 				);
 			//logger.error(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
 			const resourcesAdded = await projectEditor.prepareResourcesForConversation(
@@ -273,24 +304,27 @@ Then use this tool to request specific resources to be added to the conversation
 				);
 			}
 
-			const dataSourceStatus = notFound.length > 0
+			const dsConnectionStatus = notFound.length > 0
 				? `Could not find data source for: [${notFound.join(', ')}]`
-				: `Data source: ${dataSourceToUse.name} [${dataSourceToUse.id}]`;
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
 			toolResultContentParts.unshift({
 				type: 'text',
-				text: `Used data source: ${dataSourceToUse.name}`,
+				text: `Used data source: ${dsConnectionToUse.name}`,
 			});
 
 			const toolResults = toolResultContentParts;
-			const toolResponse = dataSourceStatus + '\n\n' + (allResourcesFailed ? 'No resources added\n' : '') +
+			const toolResponse = dsConnectionStatus + '\n\n' + (allResourcesFailed ? 'No resources added\n' : '') +
 				toolResponses.join('\n\n');
 			const bbResponse = {
 				data: {
 					resourcesAdded: resourcesSuccess.map((f) => f.name),
 					resourcesError: resourcesError.map((f) => f.name),
-					dataSourceName: dataSourceToUse.name,
-					dataSourceType: dataSourceToUse.type,
-					dataSourceId: dataSourceToUse.id,
+
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
 				},
 			};
 

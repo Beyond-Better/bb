@@ -5,8 +5,16 @@ import {
 	ProjectType,
 	RepoInfoConfigSchema,
 } from 'shared/config/types.ts';
-import type { DataSource, DataSourceAccessMethod, DataSourceType, DataSourceValues } from 'api/resources/dataSource.ts';
-import type { DataSourceTypeInfo } from 'api/resources/dataSourceRegistry.ts';
+import type {
+	DataSourceAccessMethod,
+	DataSourceProviderInfo,
+	DataSourceProviderType,
+	DataSourceCapability,
+} from 'shared/types/dataSource.ts';
+import type {
+	DataSourceConnection,
+	DataSourceConnectionValues,
+} from 'api/dataSources/interfaces/dataSourceConnection.ts';
 
 export type ProjectStatus = 'draft' | 'active' | 'archived';
 
@@ -25,9 +33,9 @@ export interface ProjectData {
 	projectId: string;
 	name: string;
 	status: ProjectStatus;
-	dataSourceTypes?: DataSourceTypeInfo[];
-	dataSources: DataSource[];
-	primaryDataSource?: DataSource; // The primary data source, if any (computed value)
+	dataSourceProviders?: DataSourceProviderInfo[];
+	dsConnections: DataSourceConnection[];
+	primaryDsConnection?: DataSourceConnection; // The primary data source, if any (computed value)
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers: string[];
 	stats?: ProjectStats;
@@ -36,7 +44,7 @@ export interface ProjectData {
 export interface CreateProjectData {
 	name: string;
 	status?: ProjectStatus;
-	dataSources: DataSourceValues[]; // DataSource[];
+	dsConnections: DataSourceConnectionValues[]; // DataSourceConnection[];
 	repoInfo?: RepoInfoConfigSchema;
 	mcpServers?: string[];
 	anthropicApiKey?: string;
@@ -59,7 +67,7 @@ export interface SerializedProjectData {
 	projectId: string;
 	name: string;
 	status: ProjectStatus;
-	dataSources: DataSourceValues[];
+	dsConnections: DataSourceConnectionValues[];
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers: string[];
 	stats?: ProjectStats;
@@ -68,18 +76,18 @@ export interface SerializedProjectData {
 
 /**
  * Client-side data source interface
- * Subset of DataSource functionality suitable for client-side code (BUI)
+ * Subset of DataSourceConnection functionality suitable for client-side code (BUI)
  * Contains only data, no methods
  */
-export interface ClientDataSource {
+export interface ClientDataSourceConnection {
 	id: string;
-	type: DataSourceType;
+	providerType: DataSourceProviderType;
 	accessMethod: DataSourceAccessMethod;
 	name: string;
 	enabled: boolean;
 	isPrimary: boolean;
 	priority: number;
-	capabilities: string[];
+	capabilities: DataSourceCapability[];
 	description: string;
 	config: Record<string, unknown>;
 	// Add any other properties needed by UI
@@ -93,9 +101,9 @@ export interface ClientProjectData {
 	projectId: string;
 	name: string;
 	status: ProjectStatus;
-	dataSourceTypes?: DataSourceTypeInfo[];
-	dataSources: ClientDataSource[]; // | DataSourceValues[];
-	primaryDataSource?: ClientDataSource; // | DataSourceValues;
+	dataSourceProviders?: DataSourceProviderInfo[];
+	dsConnections: ClientDataSourceConnection[]; // | DataSourceValues[];
+	primaryDsConnection?: ClientDataSourceConnection; // | DataSourceValues;
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers?: string[];
 	stats?: ProjectStats;
@@ -175,7 +183,7 @@ export function toProject(projectWithSources: ProjectWithSources): Omit<ProjectC
 	return {
 		projectId: projectWithSources.projectId,
 		name: projectWithSources.name,
-		//primaryDataSourceRoot: projectWithSources.primaryDataSourceRoot,
+		//primaryDsConnectionRoot: projectWithSources.primaryDsConnectionRoot,
 		//type: projectWithSources.type,
 	};
 }

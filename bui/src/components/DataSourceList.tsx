@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
 import { useComputed } from '@preact/signals';
-import type { ClientDataSource, ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import type { ClientDataSourceConnection, ClientProjectWithConfigSources } from 'shared/types/project.ts';
 import { DataSourceItem } from './DataSourceItem.tsx';
 import { DataSourceModal } from './DataSourceModal.tsx';
 import type { AppState } from '../hooks/useAppState.ts';
@@ -15,10 +15,10 @@ interface DataSourceListProps {
 	appState: Signal<AppState>;
 }
 
-const DEFAULT_DATA_SOURCE = (isPrimary: boolean): ClientDataSource => ({
+const DEFAULT_DATA_SOURCE = (isPrimary: boolean): ClientDataSourceConnection => ({
 	id: `ds-${generateId()}`,
 	name: '',
-	type: 'filesystem',
+	providerType: 'filesystem',
 	accessMethod: 'bb',
 	enabled: true,
 	isPrimary,
@@ -32,32 +32,32 @@ const DEFAULT_DATA_SOURCE = (isPrimary: boolean): ClientDataSource => ({
  * Displays and manages a list of data sources for a project
  */
 export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }: DataSourceListProps) {
-	const [editingDataSource, setEditingDataSource] = useState<ClientDataSource | null>(null);
-	const [newDataSource, setNewDataSource] = useState<ClientDataSource | null>(null);
+	const [editingDsConnection, setEditingDsConnection] = useState<ClientDataSourceConnection | null>(null);
+	const [newDsConnection, setNewDsConnection] = useState<ClientDataSourceConnection | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const {
 		state: projectState,
-		addDataSource,
-		removeDataSource,
-		updateDataSource,
-		setPrimaryDataSource,
+		addDsConnection,
+		removeDsConnection,
+		updateDsConnection,
+		setPrimaryDsConnection,
 	} = useProjectState(appState);
 
 	const projectId = useComputed(() => editingProject.value?.data.projectId);
-	const dataSources = useComputed(() => editingProject.value?.data.dataSources || []);
-	const dataSourceTypes = useComputed(() => projectState.value?.dataSourceTypes || []);
+	const dsConnections = useComputed(() => editingProject.value?.data.dsConnections || []);
+	const dsProviders = useComputed(() => projectState.value?.dsProviders || []);
 
 	// Sort data sources: primary first, then by priority
-	const sortedDataSources = useComputed(() =>
-		[...dataSources.value].sort((a, b) => {
+	const sortedDsConnections = useComputed(() =>
+		[...dsConnections.value].sort((a, b) => {
 			if (a.isPrimary) return -1;
 			if (b.isPrimary) return 1;
 			return b.priority - a.priority;
 		})
 	);
 
-	const handleSetPrimary = async (dataSourceId: string) => {
+	const handleSetPrimary = async (dsConnectionId: string) => {
 		try {
 			if (!projectId.value) {
 				setLoading(false);
@@ -66,7 +66,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 			}
 			setLoading(true);
 			setError(null);
-			await setPrimaryDataSource(projectId.value, dataSourceId);
+			await setPrimaryDsConnection(projectId.value, dsConnectionId);
 			// // Get the updated project from projectState and pass to onUpdate
 			// const updatedProject = getSelectedProject();
 			// if (updatedProject) {
@@ -79,7 +79,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 		}
 	};
 
-	const handleAddDataSource = async (dataSource: ClientDataSource) => {
+	const handleAddDsConnection = async (dsConnection: ClientDataSourceConnection) => {
 		try {
 			if (!projectId.value) {
 				setLoading(false);
@@ -88,8 +88,8 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 			}
 			setLoading(true);
 			setError(null);
-			await addDataSource(projectId.value, dataSource);
-			setNewDataSource(null);
+			await addDsConnection(projectId.value, dsConnection);
+			setNewDsConnection(null);
 		} catch (err) {
 			setError(`Failed to add data source: ${(err as Error).message}`);
 		} finally {
@@ -97,7 +97,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 		}
 	};
 
-	const handleUpdateDataSource = async (dataSource: ClientDataSource) => {
+	const handleUpdateDsConnection = async (dsConnection: ClientDataSourceConnection) => {
 		try {
 			if (!projectId.value) {
 				setLoading(false);
@@ -106,8 +106,8 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 			}
 			setLoading(true);
 			setError(null);
-			await updateDataSource(projectId.value, dataSource.id, dataSource);
-			setEditingDataSource(null);
+			await updateDsConnection(projectId.value, dsConnection.id, dsConnection);
+			setEditingDsConnection(null);
 		} catch (err) {
 			setError(`Failed to update data source: ${(err as Error).message}`);
 		} finally {
@@ -115,7 +115,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 		}
 	};
 
-	const handleRemoveDataSource = async (dataSourceId: string) => {
+	const handleRemoveDsConnection = async (dsConnectionId: string) => {
 		try {
 			if (!projectId.value) {
 				setLoading(false);
@@ -124,7 +124,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 			}
 			setLoading(true);
 			setError(null);
-			await removeDataSource(projectId.value, dataSourceId);
+			await removeDsConnection(projectId.value, dsConnectionId);
 		} catch (err) {
 			setError(`Failed to remove data source: ${(err as Error).message}`);
 		} finally {
@@ -139,7 +139,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 				<button
 					type='button'
 					className='px-3 py-1.5 rounded text-sm bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 transition-colors'
-					onClick={() => setNewDataSource(DEFAULT_DATA_SOURCE(dataSources.value.length === 0))}
+					onClick={() => setNewDsConnection(DEFAULT_DATA_SOURCE(dsConnections.value.length === 0))}
 					disabled={loading}
 				>
 					Add Data Source
@@ -155,42 +155,42 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 			{loading && <div className='text-center py-2 text-gray-500 dark:text-gray-400'>Loading...</div>}
 
 			<div className='space-y-4'>
-				{sortedDataSources.value.length === 0
+				{sortedDsConnections.value.length === 0
 					? (
 						<div className='text-gray-500 dark:text-gray-400 text-center py-4'>
 							No data sources configured. Add one to get started.
 						</div>
 					)
 					: (
-						sortedDataSources.value.map((source) => (
+						sortedDsConnections.value.map((source) => (
 							<DataSourceItem
 								key={source.id}
-								dataSource={source}
+								dsConnection={source}
 								onSetPrimary={() => handleSetPrimary(source.id)}
-								onEdit={() => setEditingDataSource(source)}
-								onRemove={() => handleRemoveDataSource(source.id)}
+								onEdit={() => setEditingDsConnection(source)}
+								onRemove={() => handleRemoveDsConnection(source.id)}
 							/>
 						))
 					)}
 			</div>
 
-			{newDataSource && (
+			{newDsConnection && (
 				<DataSourceModal
-					dataSource={newDataSource}
+					dsConnection={newDsConnection}
 					appState={appState}
-					onClose={() => setNewDataSource(null)}
-					onSave={handleAddDataSource}
-					dataSourceTypes={dataSourceTypes}
+					onClose={() => setNewDsConnection(null)}
+					onSave={handleAddDsConnection}
+					dsProviders={dsProviders}
 				/>
 			)}
 
-			{editingDataSource && (
+			{editingDsConnection && (
 				<DataSourceModal
-					dataSource={editingDataSource}
+					dsConnection={editingDsConnection}
 					appState={appState}
-					onClose={() => setEditingDataSource(null)}
-					onSave={handleUpdateDataSource}
-					dataSourceTypes={dataSourceTypes}
+					onClose={() => setEditingDsConnection(null)}
+					onSave={handleUpdateDsConnection}
+					dsProviders={dsProviders}
 				/>
 			)}
 		</div>

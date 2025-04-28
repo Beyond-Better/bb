@@ -21,19 +21,6 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'moveFiles.tool',
-		'metadata': {
-			'name': 'move_files',
-			'description':
-				'Move one or more files or directories to a new location within the data source. Preserves file names while changing location. For renaming files, use rename_files instead. Consider impact on imports and references when moving files between directories. When no data source is specified, operates on the primary data source.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'mutates': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'conversationMetrics.tool',
 		'metadata': {
 			'name': 'conversation_metrics',
@@ -50,7 +37,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'search_project',
 			'description':
-				"Search files across one or more data sources by content pattern (grep-style regex), file name pattern (glob), modification date, or file size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. File Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project for unknown file paths. For known paths, use load_resources instead. When no data source is specified, operates on the primary data source.",
+				"Search resources across one or more data sources by content pattern (grep-style regex), resource name pattern (glob), modification date, or resource size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. Resource Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project for unknown file paths. For known paths, use load_resources instead. When no data source is specified, operates on the primary data source.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -58,19 +45,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 				{
 					'description': 'Find all TypeScript files in the docs directory (not subdirectories)',
 					'input': {
-						'filePattern': 'docs/*.ts',
+						'resourcePattern': 'docs/*.ts',
 					},
 				},
 				{
 					'description': 'Find all files in docs directory AND its subdirectories',
 					'input': {
-						'filePattern': 'docs/*|docs/**/*',
+						'resourcePattern': 'docs/*|docs/**/*',
 					},
 				},
 				{
 					'description': "Find TypeScript files containing 'util' in their name at any depth",
 					'input': {
-						'filePattern': '**/*util*.ts',
+						'resourcePattern': '**/*util*.ts',
 					},
 				},
 			],
@@ -90,6 +77,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'moveResources.tool',
+		'metadata': {
+			'name': 'move_resources',
+			'description':
+				'Move one or more resources to a new location within the data source. Preserves resource names while changing location. For renaming resources, use rename_resources instead. Consider impact on imports and references when moving resources between directories or paths. When no data source is specified, operates on the primary data source.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
+			'protocolType': 'bb',
+		},
+	},
+	{
 		'toolNamePath': 'loadResources.tool',
 		'metadata': {
 			'name': 'load_resources',
@@ -102,11 +102,24 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'removeResources.tool',
+		'metadata': {
+			'name': 'remove_resources',
+			'description':
+				'Remove resources from the data source, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone. When no data source is specified, operates on the primary data source.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
+			'protocolType': 'bb',
+		},
+	},
+	{
 		'toolNamePath': 'imageManipulation.tool',
 		'metadata': {
 			'name': 'image_manipulation',
 			'description':
-				'Manipulate image files for one data source with various operations like resize, crop, rotate, flip, blur, sharpen, grayscale, format conversion, and quality adjustment. Supports both local files and remote URLs as input sources. The processed image is saved to the specified output path. When no data source is specified, operates on the primary data source.',
+				'Manipulate image files for one data source with various operations like resize, crop, rotate, flip, blur, sharpen, grayscale, format conversion, and quality adjustment. Supports both data source resources and remote URLs as input sources. The processed image is saved to the specified output path. When no data source is specified, operates on the primary data source.',
 			'version': '1.0.0',
 			'category': 'file',
 			'enabled': true,
@@ -132,7 +145,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'search_and_replace',
 			'description':
-				'Apply a list of search and replace operations to a file for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source file exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.',
+				'Apply a list of search and replace operations to a resource for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source resource exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -177,6 +190,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'renameResources.tool',
+		'metadata': {
+			'name': 'rename_resources',
+			'description':
+				'Rename one or more resources within the data source. Handles both single resources and batch operations. Consider impact on imports and references. All paths must be relative to data source root. Use createMissingDirectories for new path structures. When no data source is specified, operates on the primary data source.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
 			'protocolType': 'bb',
 		},
 	},
@@ -238,7 +264,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'load_datasource',
 			'description':
-				'Retrieves a list of available resources for a datasource. The available datasources are in the system prompt of each conversation.',
+				'Retrieves metadata and a list of available resources for a datasource. The available datasources are in the system prompt of each conversation.',
 			'version': '1.0.0',
 			'category': 'data-retrieval',
 			'capabilities': [
@@ -276,19 +302,6 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'removeFiles.tool',
-		'metadata': {
-			'name': 'remove_files',
-			'description':
-				'Remove files from the data source, either by moving them to a trash directory or permanently deleting them. Includes safety features like protected paths and acknowledgement for permanent deletion. Use with caution as permanent deletion cannot be undone. When no data source is specified, operates on the primary data source.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'mutates': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'applyPatch.tool',
 		'metadata': {
 			'name': 'apply_patch',
@@ -302,26 +315,13 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'renameFiles.tool',
-		'metadata': {
-			'name': 'rename_files',
-			'description':
-				'Rename one or more files or directories within the data source. Handles both single files and batch operations. Consider impact on imports and references. All paths must be relative to data source root. Use createMissingDirectories for new path structures. When no data source is specified, operates on the primary data source.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'mutates': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'rewriteFile.tool',
 		'metadata': {
-			'name': 'rewrite_file',
+			'name': 'rewrite_resource',
 			'description':
-				'Completely replaces an existing file\'s contents or creates a new file for one data source. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.\nDANGER: Completely replaces file contents.\nREQUIRED STEPS:\n1. Use load_resources to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail.\n\nWhen no data source is specified, operates on the primary data source.',
+				'Completely replaces an existing resource\'s contents or creates a new resource for one data source. Use with caution as this overwrites the entire resource. Always check existing resource contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete resource content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire resource\nFor modifying specific parts of a resource, use search_and_replace instead.\nDANGER: Completely replaces resource contents.\nREQUIRED STEPS:\n1. Use load_resources to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail.\n\nWhen no data source is specified, operates on the primary data source.',
 			'version': '1.0.0',
-			'category': 'FileManipulation',
+			'category': 'ResourceManipulation',
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,

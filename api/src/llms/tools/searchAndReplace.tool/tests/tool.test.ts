@@ -36,17 +36,17 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				// Create a test file
-				const testFile = 'test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, world!');
+				// Create a test resource
+				const testResource = 'test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, world!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'world', replace: 'Deno' },
 						],
@@ -77,14 +77,14 @@ Deno.test({
 
 				const secondResult = result.toolResults[1];
 				assert(secondResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(secondResult.text, 'Search and replace operations applied to file: test.txt');
+				assertStringIncludes(secondResult.text, 'Search and replace operations applied to resource: test.txt');
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, Deno!');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -96,7 +96,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchAndReplaceTool - Multiple operations on new file',
+	name: 'SearchAndReplaceTool - Multiple operations on new resource',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -112,16 +112,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const newFile = 'multi_op_test.txt';
-				const newFilePath = getTestFilePath(testProjectRoot, newFile);
-				console.log(`testing with file: ${newFilePath}`);
+				const newResource = 'multi_op_test.txt';
+				const newResourcePath = getTestFilePath(testProjectRoot, newResource);
+				console.log(`testing with resource: ${newResourcePath}`);
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: newFile,
+						resourcePath: newResource,
 						operations: [
 							{ search: '', replace: 'Hello, world!' },
 							{ search: 'world', replace: 'Deno' },
@@ -132,10 +132,10 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log(`created file: ${newFilePath}`);
-				// console.log('Multiple operations on new file - bbResponse:', result.bbResponse);
-				// console.log('Multiple operations on new file - toolResponse:', result.toolResponse);
-				// console.log('Multiple operations on new file - toolResults:', result.toolResults);
+				console.log(`created resource: ${newResourcePath}`);
+				// console.log('Multiple operations on new resource - bbResponse:', result.bbResponse);
+				// console.log('Multiple operations on new resource - toolResponse:', result.toolResponse);
+				// console.log('Multiple operations on new resource - toolResults:', result.toolResults);
 
 				assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -158,7 +158,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'File created and search and replace operations applied to file: multi_op_test.txt',
+					'Resource created and search and replace operations applied to resource: multi_op_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -168,8 +168,8 @@ Deno.test({
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
 
-				const fileContent = await Deno.readTextFile(newFilePath);
-				assertEquals(fileContent, 'Greetings, Deno!');
+				const resourceContent = await Deno.readTextFile(newResourcePath);
+				assertEquals(resourceContent, 'Greetings, Deno!');
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -180,7 +180,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchAndReplaceTool - Attempt to create file outside project root',
+	name: 'SearchAndReplaceTool - Attempt to create resource outside project root',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -196,14 +196,14 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = '../outside_project.txt';
+				const testResource = '../outside_project.txt';
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: '', replace: 'This should not be created' },
 						],
@@ -242,16 +242,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'empty_ops_test.txt';
-				const testFilePath = join(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Original content');
+				const testResource = 'empty_ops_test.txt';
+				const testResourcePath = join(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Original content');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [],
 					},
 				};
@@ -259,11 +259,11 @@ Deno.test({
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
 					Error,
-					'No changes were made to the file',
+					'No changes were made to the resource',
 				);
 
-				const fileContent = await Deno.readTextFile(testFilePath);
-				assertEquals(fileContent, 'Original content');
+				const resourceContent = await Deno.readTextFile(testResourcePath);
+				assertEquals(resourceContent, 'Original content');
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -290,16 +290,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'unicode_test.txt';
-				const testFilePath = join(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, 世界!');
+				const testResource = 'unicode_test.txt';
+				const testResourcePath = join(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, 世界!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: '世界', replace: '🌍' },
 						],
@@ -329,7 +329,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: unicode_test.txt',
+					'Search and replace operations applied to resource: unicode_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -337,8 +337,8 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const fileContent = await Deno.readTextFile(testFilePath);
-				assertEquals(fileContent, 'Hello, 🌍!');
+				const resourceContent = await Deno.readTextFile(testResourcePath);
+				assertEquals(resourceContent, 'Hello, 🌍!');
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -349,7 +349,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: "SearchAndReplaceTool - Create new file if it doesn't exist",
+	name: "SearchAndReplaceTool - Create new resource if it doesn't exist",
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -365,15 +365,15 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const newFile = 'new_test.txt';
-				const newFilePath = getTestFilePath(testProjectRoot, newFile);
+				const newResource = 'new_test.txt';
+				const newResourcePath = getTestFilePath(testProjectRoot, newResource);
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: newFile,
+						resourcePath: newResource,
 						operations: [
 							{ search: '', replace: 'Hello, new file!' },
 						],
@@ -403,7 +403,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'File created and search and replace operations applied to file: new_test.txt',
+					'Resource created and search and replace operations applied to resource: new_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -411,14 +411,14 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const fileContent = await Deno.readTextFile(newFilePath);
-				assertEquals(fileContent, 'Hello, new file!');
+				const resourceContent = await Deno.readTextFile(newResourcePath);
+				assertEquals(resourceContent, 'Hello, new file!');
 
-				// Verify that the file is added to changedFiles and changeContents
-				// [TODO] the changedFiles and changedContents get cleared after saving to conversation
-				// So change assertions to check the changed files in persisted conversation
-				//assert(projectEditor.changedFiles.has(newFile));
-				//assert(projectEditor.changeContents.has(newFile));
+				// Verify that the resource is added to changedResources and changeContents
+				// [TODO] the changedResources and changedContents get cleared after saving to conversation
+				// So change assertions to check the changed resources in persisted conversation
+				//assert(projectEditor.changedResources.has(newResource));
+				//assert(projectEditor.changeContents.has(newResource));
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -445,16 +445,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'test.txt';
-				const testFilePath = join(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, world!');
+				const testResource = 'test.txt';
+				const testResourcePath = join(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, world!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'Deno', replace: 'TypeScript' },
 						],
@@ -464,10 +464,10 @@ Deno.test({
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
 					Error,
-					'No changes were made to the file',
+					'No changes were made to the resource',
 				);
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, world!');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -495,16 +495,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'multiline_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'function test() {\n\tconsole.log("Hello");\n}');
+				const testResource = 'multiline_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'function test() {\n\tconsole.log("Hello");\n}');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{
 								search: 'function test() {\n\tconsole.log("Hello");\n}',
@@ -536,7 +536,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: multiline_test.txt',
+					'Search and replace operations applied to resource: multiline_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -544,7 +544,7 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'function newTest() {\n\tconsole.log("Hello, World!");\n}');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -572,16 +572,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'empty_replace_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, world!');
+				const testResource = 'empty_replace_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, world!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'world', replace: '' },
 						],
@@ -610,7 +610,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: empty_replace_test.txt',
+					'Search and replace operations applied to resource: empty_replace_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -618,7 +618,7 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, 'Operation 1 completed successfully');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, !');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -646,16 +646,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'case_sensitive_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, World! hello, world!');
+				const testResource = 'case_sensitive_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, World! hello, world!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'World', replace: 'Deno' },
 						],
@@ -684,7 +684,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: case_sensitive_test.txt',
+					'Search and replace operations applied to resource: case_sensitive_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -692,7 +692,7 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, Deno! hello, world!');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -720,16 +720,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'case_insensitive_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, World! hello, world!');
+				const testResource = 'case_insensitive_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, World! hello, world!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'world', replace: 'Deno', replaceAll: true, caseSensitive: false },
 						],
@@ -761,7 +761,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: case_insensitive_test.txt',
+					'Search and replace operations applied to resource: case_insensitive_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -769,7 +769,7 @@ Deno.test({
 				assert(thirdResult.type === 'text', 'Second result should be of type text');
 				assertStringIncludes(thirdResult.text, '✅  Operation 1 completed successfully');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, Deno! hello, Deno!');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -797,16 +797,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'multiple_replace_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'The quick brown fox jumps over the lazy dog');
+				const testResource = 'multiple_replace_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'The quick brown fox jumps over the lazy dog');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'quick', replace: 'slow' },
 							{ search: 'brown', replace: 'red' },
@@ -838,7 +838,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: multiple_replace_test.txt',
+					'Search and replace operations applied to resource: multiple_replace_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -848,7 +848,7 @@ Deno.test({
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'The slow red fox jumps over the energetic dog');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -876,16 +876,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'multiple_replace_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'abcdefg');
+				const testResource = 'multiple_replace_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'abcdefg');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'abc', replace: 'ABC' },
 							{ search: 'efg', replace: 'EFG' },
@@ -916,7 +916,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: multiple_replace_test.txt',
+					'Search and replace operations applied to resource: multiple_replace_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -926,7 +926,7 @@ Deno.test({
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'ABCdEFG');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -954,16 +954,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'overlapping_replace_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'abcdefg');
+				const testResource = 'overlapping_replace_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'abcdefg');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: 'abc', replace: 'ABC' },
 							{ search: 'Cde', replace: 'CDE' },
@@ -994,7 +994,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: overlapping_replace_test.txt',
+					'Search and replace operations applied to resource: overlapping_replace_test.txt',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -1004,7 +1004,7 @@ Deno.test({
 					assertStringIncludes(operationResult.text, `✅  Operation ${i} completed successfully`);
 				}
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'ABCDEfg');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1032,16 +1032,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'regex_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'The quick brown fox jumps over the lazy dog');
+				const testResource = 'regex_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'The quick brown fox jumps over the lazy dog');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`qu\w+`, replace: 'fast', regexPattern: true },
 						],
@@ -1070,7 +1070,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					`Search and replace operations applied to file: regex_test.txt. All operations succeeded`,
+					`Search and replace operations applied to resource: regex_test.txt. All operations succeeded`,
 				);
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'First result should be of type text');
@@ -1081,7 +1081,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'The fast brown fox jumps over the lazy dog');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1109,16 +1109,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'regex_capture_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'Hello, John! Hello, Jane!');
+				const testResource = 'regex_capture_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'Hello, John! Hello, Jane!');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{
 								search: String.raw`Hello, (\w+)!`,
@@ -1149,7 +1149,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					`Search and replace operations applied to file: regex_capture_test.txt. All operations succeeded`,
+					`Search and replace operations applied to resource: regex_capture_test.txt. All operations succeeded`,
 				);
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'First result should be of type text');
@@ -1160,7 +1160,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hi, John! Hi, Jane!');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1188,16 +1188,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'regex_quantifier_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'aaa bbb ccccc dddd');
+				const testResource = 'regex_quantifier_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'aaa bbb ccccc dddd');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`\w{3,}`, replace: 'X', regexPattern: true, replaceAll: true },
 						],
@@ -1223,7 +1223,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					`Search and replace operations applied to file: regex_quantifier_test.txt. All operations succeeded`,
+					`Search and replace operations applied to resource: regex_quantifier_test.txt. All operations succeeded`,
 				);
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'First result should be of type text');
@@ -1234,7 +1234,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'X X X X');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1262,16 +1262,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'regex_character_class_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'a1 b2 c3 d4 e5');
+				const testResource = 'regex_character_class_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'a1 b2 c3 d4 e5');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`[a-c][1-3]`, replace: 'X', regexPattern: true, replaceAll: true },
 						],
@@ -1297,7 +1297,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					`Search and replace operations applied to file: regex_character_class_test.txt. All operations succeeded`,
+					`Search and replace operations applied to resource: regex_character_class_test.txt. All operations succeeded`,
 				);
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'First result should be of type text');
@@ -1308,7 +1308,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'X X X d4 e5');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1336,16 +1336,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'regex_word_boundary_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'The cat is in the category');
+				const testResource = 'regex_word_boundary_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'The cat is in the category');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`\bcat\b`, replace: 'dog', regexPattern: true },
 						],
@@ -1371,7 +1371,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					`Search and replace operations applied to file: regex_word_boundary_test.txt. All operations succeeded`,
+					`Search and replace operations applied to resource: regex_word_boundary_test.txt. All operations succeeded`,
 				);
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'First result should be of type text');
@@ -1382,7 +1382,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'The dog is in the category');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1410,16 +1410,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'literal_regex_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'The (quick) brown [fox] jumps over the {lazy} dog.');
+				const testResource = 'literal_regex_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'The (quick) brown [fox] jumps over the {lazy} dog.');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`(quick)`, replace: 'fast', regexPattern: false, caseSensitive: true },
 							{ search: String.raw`[fox]`, replace: 'cat', regexPattern: false, caseSensitive: true },
@@ -1443,7 +1443,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: literal_regex_test.txt. All operations succeeded',
+					'Search and replace operations applied to resource: literal_regex_test.txt. All operations succeeded',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -1455,7 +1455,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'The fast brown cat jumps over the active dog.');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -1483,16 +1483,16 @@ Deno.test({
 				Promise.resolve()
 			);
 			try {
-				const testFile = 'literal_regex_case_insensitive_test.txt';
-				const testFilePath = getTestFilePath(testProjectRoot, testFile);
-				await Deno.writeTextFile(testFilePath, 'The (QUICK) brown [FOX] jumps over the {LAZY} dog.');
+				const testResource = 'literal_regex_case_insensitive_test.txt';
+				const testResourcePath = getTestFilePath(testProjectRoot, testResource);
+				await Deno.writeTextFile(testResourcePath, 'The (QUICK) brown [FOX] jumps over the {LAZY} dog.');
 
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
 					toolName: 'search_and_replace',
 					toolInput: {
-						filePath: testFile,
+						resourcePath: testResource,
 						operations: [
 							{ search: String.raw`(quick)`, replace: 'fast', regexPattern: false, caseSensitive: false },
 							{ search: String.raw`[fox]`, replace: 'cat', regexPattern: false, caseSensitive: false },
@@ -1518,7 +1518,7 @@ Deno.test({
 				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
 					secondResult.text,
-					'Search and replace operations applied to file: literal_regex_case_insensitive_test.txt. All operations succeeded',
+					'Search and replace operations applied to resource: literal_regex_case_insensitive_test.txt. All operations succeeded',
 				);
 				assertStringIncludes(secondResult.text, 'All operations succeeded');
 
@@ -1530,7 +1530,7 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
 
-				const updatedContent = await Deno.readTextFile(testFilePath);
+				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'The fast brown cat jumps over the active dog.');
 			} finally {
 				logChangeAndCommitStub.restore();

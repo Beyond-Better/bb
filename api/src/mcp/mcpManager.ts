@@ -11,7 +11,8 @@ import { getVersionInfo } from 'shared/version.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { GlobalConfig, MCPServerConfig } from 'shared/config/types.ts';
-import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
+import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
+import type { DataSourceCapability } from 'shared/types/dataSource.ts';
 
 export class MCPManager {
 	private static instance: MCPManager;
@@ -22,6 +23,7 @@ export class MCPManager {
 		config: MCPServerConfig;
 		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
 		resources?: Array<ResourceMetadata>;
+		capabilities?: DataSourceCapability[];
 	}> = new Map();
 	private globalConfig!: GlobalConfig;
 
@@ -123,7 +125,7 @@ export class MCPManager {
 			await client.connect(transport);
 
 			// Store server info
-			this.servers.set(config.id, { server: client, config });
+			this.servers.set(config.id, { server: client, config, capabilities: ['read', 'list'] });
 
 			//return config.id;
 		} catch (error) {
@@ -206,6 +208,7 @@ export class MCPManager {
 				type: 'mcp',
 				contentType: resource.mimeType?.startsWith('image/') ? 'image' : 'text',
 				mimeType: resource.mimeType || 'text/plain',
+				lastModified: new Date(),
 			}));
 			return serverInfo.resources;
 		} catch (error) {
@@ -322,6 +325,10 @@ export class MCPManager {
 	// deno-lint-ignore require-await
 	private async getMCPServerConfigurations(): Promise<MCPServerConfig[]> {
 		return this.globalConfig.api?.mcpServers || [];
+	}
+
+	public getServerCapabilities(serverId: string): DataSourceCapability[] | null {
+		return this.servers.get(serverId)?.capabilities || null;
 	}
 
 	/**

@@ -75,6 +75,17 @@ export const createError = (
 			return new ResourceHandlingError(message, options as ResourceHandlingErrorOptions);
 		case ErrorType.DataSourceHandling:
 			return new DataSourceHandlingError(message, options as DataSourceHandlingErrorOptions);
+
+		case ErrorType.FileChange:
+			return new FileChangeError(message, options as FileHandlingErrorOptions);
+		case ErrorType.FileNotFound:
+			return new FileNotFoundError(message, options as FileHandlingErrorOptions);
+		case ErrorType.FileRead:
+			return new FileReadError(message, options as FileHandlingErrorOptions);
+		case ErrorType.FileWrite:
+			return new FileWriteError(message, options as FileHandlingErrorOptions);
+		case ErrorType.FileMove:
+			return new FileMoveError(message, options as FileHandlingErrorOptions);
 		case ErrorType.FileHandling: {
 			const fileOptions = options as FileHandlingErrorOptions;
 			switch (fileOptions.operation) {

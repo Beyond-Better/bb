@@ -6,7 +6,7 @@ import type {
 	ProjectData,
 	ProjectWithSources,
 } from 'shared/types/project.ts';
-import type { DataSource } from 'api/resources/dataSource.ts';
+import type { DataSourceConnection, DataSourceConnectionValues } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 
 /**
  * Helper function to create a config value with source information
@@ -30,13 +30,13 @@ export function enhanceProjectWithSources(
 	storedProject: ProjectData | ClientProjectData,
 	projectConfig: Partial<ProjectConfig>,
 	globalConfig: Partial<GlobalConfig>,
-	//primaryDataSourceRoot: string,
+	//primaryDsConnectionRoot: string,
 ): ClientProjectWithConfigSources {
 	// Create enhanced config with source information
 	const enhancedConfig: ProjectWithSources = {
 		projectId: storedProject.projectId,
 		name: storedProject.name,
-		//primaryDataSourceRoot,
+		//primaryDsConnectionRoot,
 		myPersonsName: createConfigValue(
 			projectConfig.myPersonsName,
 			globalConfig.myPersonsName,
@@ -73,7 +73,7 @@ export function enhanceProjectWithSources(
 }
 
 /**
- * Generate a unique project or DataSource ID
+ * Generate a unique project or DsConnection ID
  */
 export function generateId(): string {
 	// Generate a unique 12-character hex ID
@@ -84,14 +84,14 @@ export function generateId(): string {
 
 export function isProjectValid(project: ProjectData): boolean {
 	// Check if project has at least one data source
-	if (!project.dataSources || project.dataSources.length === 0) {
+	if (!project.dsConnections || project.dsConnections.length === 0) {
 		return false;
 	}
 
 	// Additional validation rules can be added here
 	// For example, validate that at least one data source is primary
-	const hasPrimaryDataSource = project.dataSources.some((ds: DataSource) => ds.isPrimary);
-	if (!hasPrimaryDataSource) {
+	const hasPrimaryDsConnection = project.dsConnections.some((ds: DataSourceConnectionValues) => ds.isPrimary);
+	if (!hasPrimaryDsConnection) {
 		return false;
 	}
 

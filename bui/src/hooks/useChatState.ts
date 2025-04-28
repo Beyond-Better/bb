@@ -107,8 +107,8 @@ export function useChatState(
 				name: project.data.name,
 				status: project.data.status,
 				// Using new data source structure
-				primaryDataSourceRoot: project.data.primaryDataSource?.config.dataSourceRoot,
-				dataSources: project.data.dataSources || [],
+				primaryDataSourceRoot: project.data.primaryDsConnection?.config.dataSourceRoot,
+				dsConnections: project.data.dsConnections || [],
 				repoInfo: {
 					tokenLimit: 1024,
 				},

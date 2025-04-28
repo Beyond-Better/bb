@@ -1,11 +1,12 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface LLMToolForgetResourcesInput {
+	dataSourceId?: string;
 	resources: Array<{
 		resourcePath: string;
 		revision: string;
 	}>;
-	dataSource?: string;
 }
 export interface LLMToolForgetResourcesResponseData {
 	data: {
@@ -20,7 +21,12 @@ export interface LLMToolForgetResourcesResponseData {
 			revision: string;
 			error: string;
 		}>;
-		dataSourceId?: string;
+
+		dataSource: {
+			dsConnectionId: string;
+			dsConnectionName: string;
+			dsProviderType: DataSourceProviderType;
+		};
 	};
 }
 

@@ -33,7 +33,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const primaryDataSource = projectEditor.projectData.getPrimaryDataSource();
+			const primaryDsConnection = projectEditor.projectData.getPrimaryDsConnection();
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('forget_resources');
@@ -44,13 +44,13 @@ Deno.test({
 			await Deno.writeTextFile(join(testProjectRoot, 'file1.txt'), 'Content of file1');
 			await Deno.writeTextFile(join(testProjectRoot, 'file2.txt'), 'Content of file2');
 			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			initialConversation.addResourceForMessage(primaryDataSource!.getUriForResource('file:./file1.txt'), {
+			initialConversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file1'.length,
 				lastModified: new Date(),
 			}, messageId);
-			initialConversation.addResourceForMessage(primaryDataSource!.getUriForResource('file:./file2.txt'), {
+			initialConversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file2.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file2'.length,
@@ -111,10 +111,10 @@ Deno.test({
 			// Check if resources are removed from the conversation
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const resource1 = conversation.getResourceRevisionMetadata(
-				generateResourceRevisionKey(primaryDataSource!.getUriForResource('file:./file1.txt'), '1'),
+				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./file1.txt'), '1'),
 			);
 			const resource2 = conversation.getResourceRevisionMetadata(
-				generateResourceRevisionKey(primaryDataSource!.getUriForResource('file:./file2.txt'), '2'),
+				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./file2.txt'), '2'),
 			);
 			assertEquals(resource1, undefined, 'file1.txt should not exist in the conversation');
 			assertEquals(resource2, undefined, 'file2.txt should not exist in the conversation');
@@ -199,7 +199,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const primaryDataSource = projectEditor.projectData.getPrimaryDataSource();
+			const primaryDsConnection = projectEditor.projectData.getPrimaryDsConnection();
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('forget_resources');
@@ -209,7 +209,7 @@ Deno.test({
 			// Create test resource and add it to the conversation
 			await Deno.writeTextFile(join(testProjectRoot, 'existing_file.txt'), 'Content of existing resource');
 			const conversation = await projectEditor.initConversation('test-conversation-id');
-			conversation.addResourceForMessage(primaryDataSource!.getUriForResource('file:./existing_file.txt'), {
+			conversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of existing resource'.length,
@@ -269,7 +269,7 @@ Deno.test({
 
 			// Check if existing resource is forgotten from the conversation
 			const existingResource = conversation.getResourceRevisionMetadata(
-				generateResourceRevisionKey(primaryDataSource!.getUriForResource('file:./existing_file.txt'), '1'),
+				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), '1'),
 			);
 			assertEquals(existingResource, undefined, 'existing_file.txt should not exist in the conversation');
 
