@@ -7,14 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes: This release removes 'project root' in favour of 'data sources'; moves 
+location of project config; changes format of storage and configurations; and more
+
 ### Added
 
+- Support for Data Sources - major refactor across whole code base
 
 ### Changed
 
+- System prompt lists data sources rather than showing file listing
+- Tools use data sources instead of project root
+- Updated content for home page
+- Layout and design improvements
 
 ### Fixed
 
+- various fixes and improvements during refactor
 
 
 ## [0.7.5] - 2025-04-10

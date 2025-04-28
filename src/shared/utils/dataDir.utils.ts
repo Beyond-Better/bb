@@ -32,7 +32,7 @@ export async function getWorkingRoot(projectId: string): Promise<string> {
 		}
 		throw new Error('No .bb directory found in workingRoot');
 	}
-	throw new Error('No .bb directory found in workingRoot');
+	throw new Error('No project found for workingRoot');
 }
 
 export async function getWorkingRootFromStartDir(startDir: string): Promise<string> {

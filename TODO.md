@@ -207,4 +207,12 @@
 √ Make error messages on login page more helpful "failed to fetch" means nothing
 √ check if user already exists during signup, or show error if user already exists
 √ Create doc to explain importance of guidelines file and how to create one
+√ remove path and type from project registry
+√ populate projectId/project.json with dataSources
+√ Data source editor in BUI
+√ Modify updateProjectInfo to use list of data sources
+√ Check usage of prepareSytemPrompt is correct
+√ Update tools to data source agnostic (using resource manager)
+√ remove use of deprecated useProjectApi
+√ conversation migration for v1 format
 
