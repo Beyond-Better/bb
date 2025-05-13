@@ -446,7 +446,8 @@ class BaseController {
 		return {
 			PROJECT_EDITOR: () => this.projectEditor,
 			PROJECT_ID: () => this.projectEditor.projectId,
-			PROJECT_DATA_SOURCES: () => this.projectEditor.dsConnectionsForSystemPrompt,
+			//PROJECT_DATA_SOURCES: () => this.projectEditor.dsConnectionsForSystemPrompt,
+			PROJECT_DATA_SOURCES: () => this.projectEditor.dsConnections,
 			PROJECT_MCP_TOOLS: async () => await this.projectEditor.getMCPToolsForSystemPrompt(),
 			PROJECT_INFO: () => this.projectEditor.projectInfo,
 			PROJECT_CONFIG: () => this.projectEditor.projectConfig,

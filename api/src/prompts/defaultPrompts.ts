@@ -71,7 +71,8 @@ function formatDsConnections(dsConnections: DataSourceConnection[]): string {
 		return 'No data sources available.';
 	}
 
-	const formattedSources = dsConnections.map((dsConnection, idx) => {
+	const formattedSources = dsConnections.map((dsConnectionObj, idx) => {
+		const dsConnection = dsConnectionObj.getForSystemPrompt();
 		//logger.info(`DefaultPrompts: formatting data source: `, { dsConnection });
 		const id = dsConnection.id,
 			name = dsConnection.name,
@@ -112,6 +113,71 @@ function formatDsConnections(dsConnections: DataSourceConnection[]): string {
 	return formattedSources;
 }
 
+/**
+ * Formats an array of DataSourceConnection objects into a structured, readable format for the LLM prompt
+ * @param dsConnections Array of DataSourceConnection objects to format
+ * @returns Formatted string representation of data source connections
+ */
+async function getGuidelinesContent(
+	guidelinesPath: string | undefined,
+	dsConnections: DataSourceConnection[],
+): Promise<string> {
+	logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath}`);
+	if (!dsConnections || dsConnections.length === 0) {
+		logger.error(`DefaultPrompts: getGuidelinesContent: No data sources available to load: ${guidelinesPath}`);
+		return '';
+	}
+	if (!guidelinesPath) {
+		logger.error(`DefaultPrompts: getGuidelinesContent: Guidelines path is empty`);
+		return '';
+	}
+
+	let guidelines = '';
+	try {
+		// Try to load guidelines from each available data source
+		for (const dsConnection of dsConnections) {
+			try {
+				// Construct the resource URI
+				const resourceUri = dsConnection.getUriForResource(`file:./${guidelinesPath}`);
+				//logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name} using ${resourceUri}`);
+
+				// Check if resource is within this data source
+				if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
+					// Get the accessor and try to load the resource
+					const accessor = await dsConnection.getResourceAccessor();
+					const result = await accessor.loadResource(resourceUri);
+					//logger.info(
+					//	`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name}`,
+					//	{ result },
+					//);
+
+					if (typeof result.content === 'string') {
+						guidelines = result.content;
+						break; // Exit the loop once we've found the guidelines
+					}
+				}
+			} catch (dsError) {
+				// Just continue to the next data source if there's an error
+				logger.debug(
+					`DefaultPrompts: getGuidelinesContent: Could not load guidelines from data source ${dsConnection.name}: ${
+						(dsError as Error).message
+					}`,
+				);
+			}
+		}
+
+		if (!guidelines) {
+			logger.error(
+				`DefaultPrompts: getGuidelinesContent: Failed to load guidelines from any data source: ${guidelinesPath}`,
+			);
+		}
+	} catch (error) {
+		logger.error(`DefaultPrompts: getGuidelinesContent: Failed to load guidelines: ${(error as Error).message}`);
+	}
+
+	return guidelines;
+}
+
 export const system: Prompt<SystemPromptVariables> = {
 	metadata: {
 		name: 'System Prompt',
@@ -128,41 +194,8 @@ export const system: Prompt<SystemPromptVariables> = {
 
 		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
 
-		let guidelines = '';
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
-		if (guidelinesPath) {
-			try {
-				// Try to load guidelines from each available data source
-				for (const dsConnection of dsConnections) {
-					try {
-						// Construct the resource URI
-						const resourceUri = `file:./${guidelinesPath}`;
-						
-						// Check if resource is within this data source
-						if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
-							// Get the accessor and try to load the resource
-							const accessor = await dsConnection.getResourceAccessor();
-							const result = await accessor.loadResource(resourceUri);
-							
-							if (typeof result.content === 'string') {
-								guidelines = result.content;
-								logger.info(`DefaultPrompts: Successfully loaded guidelines from ${dsConnection.name}`);
-								break; // Exit the loop once we've found the guidelines
-							}
-						}
-					} catch (dsError) {
-						// Just continue to the next data source if there's an error
-						logger.debug(`DefaultPrompts: Could not load guidelines from data source ${dsConnection.name}: ${(dsError as Error).message}`);
-					}
-				}
-				
-				if (!guidelines) {
-					logger.error(`DefaultPrompts: Failed to load guidelines from any data source: ${guidelinesPath}`);
-				}
-			} catch (error) {
-				logger.error(`DefaultPrompts: Failed to load guidelines: ${(error as Error).message}`);
-			}
-		}
+		const guidelines = await getGuidelinesContent(guidelinesPath, dsConnections);
 
 		const myPersonsName = globalConfig.myPersonsName;
 		const myAssistantsName = globalConfig.myAssistantsName;
@@ -224,6 +257,36 @@ For filesystem data sources specifically:
   - Paths may use backslashes (e.g., "src\\tools\\example.ts")
   - Convert to appropriate slashes when using tools
   - Treat paths as case-sensitive
+
+# CORRECT filesystem URIs:
+filesystem-local:./path/to/file.ts
+filesystem-local:./project/site/routes/_middleware.ts
+filesystem-local:./docs/readme.md
+
+# When using the template pattern:
+uriTemplate: "filesystem-local:./{path}"
+templateResources: [{ "path": "project/site/routes/_middleware.ts" }]
+
+# INCORRECT - Using web URI format with double slash:
+filesystem-local://path/to/file.ts        ❌ Will try to access absolute path /path/to/file.ts
+filesystem-local://project/site/file.ts   ❌ Will fail with "File not found: /project/site/file.ts"
+
+# INCORRECT - Missing the dot in relative path:
+filesystem-local:/path/to/file.ts         ❌ Missing the dot for relative paths
+filesystem-local:/project/site/file.ts    ❌ Will also be treated as absolute
+
+### Understanding Path Errors
+
+When you see errors like:
+"Failed to load resource: File not found: /site/routes/_middleware.ts"
+
+Note the leading slash (/) indicates the system is trying to use an absolute path 
+from the root directory. This typically means your URI format is incorrect.
+
+Correct: filesystem-local:./project/site/routes/_middleware.ts
+Incorrect: filesystem-local://project/site/routes/_middleware.ts
+
+## Project Details
 
 BB provides project information inside <project-details> tags. 
 
@@ -401,41 +464,8 @@ export const system_task: Prompt<SystemPromptVariables> = {
 
 		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
 
-		let guidelines = '';
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
-		if (guidelinesPath) {
-			try {
-				// Try to load guidelines from each available data source
-				for (const dsConnection of dsConnections) {
-					try {
-						// Construct the resource URI
-						const resourceUri = `file:./${guidelinesPath}`;
-						
-						// Check if resource is within this data source
-						if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
-							// Get the accessor and try to load the resource
-							const accessor = await dsConnection.getResourceAccessor();
-							const result = await accessor.loadResource(resourceUri);
-							
-							if (typeof result.content === 'string') {
-								guidelines = result.content;
-								logger.info(`DefaultPrompts: Successfully loaded guidelines from ${dsConnection.name}`);
-								break; // Exit the loop once we've found the guidelines
-							}
-						}
-					} catch (dsError) {
-						// Just continue to the next data source if there's an error
-						logger.debug(`DefaultPrompts: Could not load guidelines from data source ${dsConnection.name}: ${(dsError as Error).message}`);
-					}
-				}
-				
-				if (!guidelines) {
-					logger.error(`DefaultPrompts: Failed to load guidelines from any data source: ${guidelinesPath}`);
-				}
-			} catch (error) {
-				logger.error(`DefaultPrompts: Failed to load guidelines: ${(error as Error).message}`);
-			}
-		}
+		const guidelines = await getGuidelinesContent(guidelinesPath, dsConnections);
 
 		const myPersonsName = globalConfig.myPersonsName;
 		const myAssistantsName = globalConfig.myAssistantsName;
@@ -503,6 +533,25 @@ For filesystem data sources specifically:
   - Paths may use backslashes (e.g., "src\\tools\\example.ts")
   - Convert to appropriate slashes when using tools
   - Treat paths as case-insensitive
+
+# CORRECT filesystem URIs:
+filesystem-local:./path/to/file.ts
+filesystem-local:./project/site/routes/_middleware.ts
+filesystem-local:./docs/readme.md
+
+# When using the template pattern:
+uriTemplate: "filesystem-local:./{path}"
+templateResources: [{ "path": "project/site/routes/_middleware.ts" }]
+
+# INCORRECT - Using web URI format with double slash:
+filesystem-local://path/to/file.ts        ❌ Will try to access absolute path /path/to/file.ts
+filesystem-local://project/site/file.ts   ❌ Will fail with "File not found: /project/site/file.ts"
+
+# INCORRECT - Missing the dot in relative path:
+filesystem-local:/path/to/file.ts         ❌ Missing the dot for relative paths
+filesystem-local:/project/site/file.ts    ❌ Will also be treated as absolute
+
+## Tools 
 
 You have access to the same powerful tools as the main conversation, with the exception of delegation capabilities. When using tools:
 1. Batch multiple resource requests when possible
