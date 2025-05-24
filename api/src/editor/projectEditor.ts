@@ -390,6 +390,7 @@ class ProjectEditor {
 					lastModified: resource.metadata?.lastModified || new Date(),
 					error: null,
 				};
+				//logger.info(`ProjectEditor: Using metadata for resource ${resourceName}`, { resourceMetadata: resource.metadata, revisionMetadata });
 
 				// Add to resources for conversation
 				resourcesAdded.push({
@@ -398,7 +399,7 @@ class ProjectEditor {
 					metadata: revisionMetadata,
 				});
 
-				logger.info(`ProjectEditor: Prepared resource ${resourceName}`);
+				logger.info(`ProjectEditor: Prepared resource: ${resourceName}`);
 			} catch (error) {
 				logger.error(`ProjectEditor: Error adding resource ${resourceUri}: ${(error as Error).message}`);
 				const errorMessage = (error as Error).message;

@@ -8,7 +8,7 @@ import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
-import { createError } from 'api/utils/error.ts';
+import { createError, errorMessage } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
@@ -20,6 +20,7 @@ import type {
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	//LLMExtendedThinkingOptions,
+	LLMMessageStop,
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
@@ -139,7 +140,7 @@ class AnthropicLLM extends LLM {
 										}
 									} catch (e) {
 										summary.push(
-											`${indent}  - Error parsing file metadata: ${(e as Error).message}`,
+											`${indent}  - Error parsing file metadata: ${errorMessage(e)}`,
 										);
 									}
 								}
@@ -177,7 +178,7 @@ class AnthropicLLM extends LLM {
 								summary.push(`${indent}MIME Type: ${metadata.mime_type}`);
 							}
 						} catch (e) {
-							summary.push(`${indent}Error parsing file metadata: ${(e as Error).message}`);
+							summary.push(`${indent}Error parsing file metadata: ${errorMessage(e)}`);
 						}
 					} else if (hasFileNote) {
 						const match = part.text.match(
@@ -371,7 +372,7 @@ class AnthropicLLM extends LLM {
 			model,
 			max_tokens: maxTokens,
 			temperature,
-			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19'],
+			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19', 'interleaved-thinking-2025-05-14'],
 			//stream: false,
 
 			// Add extended thinking support if enabled in the request
@@ -384,6 +385,8 @@ class AnthropicLLM extends LLM {
 				}
 				: {}),
 		};
+		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', {maxTokens, model});
+		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', JSON.stringify(providerMessageRequest.messages));
 		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
 
@@ -411,18 +414,41 @@ class AnthropicLLM extends LLM {
 
 			// https://github.com/anthropics/anthropic-sdk-typescript/blob/6886b29e0a550d28aa082670381a4bb92101099c/src/resources/beta/prompt-caching/prompt-caching.ts
 			//const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.messages.create(
-			const { data: anthropicMessageStream, response: anthropicResponse } = await this.anthropic.beta.messages
-				.stream(
-					providerMessageRequest,
-					{
-						headers: {
-							'anthropic-beta':
-								'output-128k-2025-02-19,token-efficient-tools-2025-02-19,prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15',
-						},
-					},
-				).withResponse();
 
-			const anthropicMessage = (await anthropicMessageStream.finalMessage()) as Anthropic.Messages.Message;
+			//const anthropicMessage = (await anthropicMessageStream.finalMessage()) as Anthropic.Messages.Message;
+			let anthropicMessageStream;
+			let anthropicResponse;
+			let anthropicMessage: Anthropic.Messages.Message | undefined;
+			try {
+				const streamResponse = await this.anthropic.beta.messages
+					.stream(
+						providerMessageRequest,
+						{
+							headers: {
+								'anthropic-beta':
+									'output-128k-2025-02-19,token-efficient-tools-2025-02-19,interleaved-thinking-2025-05-14',
+							},
+						},
+					).withResponse();
+				anthropicMessageStream = streamResponse.data;
+				anthropicResponse = streamResponse.response;
+				// Add nested try/catch specifically for the finalMessage operation
+				anthropicMessage = (await anthropicMessageStream.finalMessage()) as Anthropic.Messages.Message;
+			} catch (streamError) {
+				logger.error('AnthropicLLM: Error in stream processing', streamError);
+				throw createError(
+					ErrorType.LLM,
+					`Invalid request sent to LLM`,
+					{
+						model: messageRequest.model,
+						provider: this.llmProviderName,
+						args: {
+							status: anthropicResponse?.status || 400,
+							reason: errorMessage(streamError),
+						},
+					} as LLMErrorOptions,
+				);
+			}
 			//const anthropicMessage = anthropicMessageStream as Anthropic.Messages.Message;
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicMessage', anthropicMessage);
 			//logger.info('AnthropicLLM: llms-anthropic-anthropicResponse', anthropicResponse);
@@ -480,13 +506,13 @@ class AnthropicLLM extends LLM {
 
 			//const requestId = headers.get('request-id');
 
-			const requestsRemaining = Number(headers.get('anthropic-ratelimit-requests-remaining'));
-			const requestsLimit = Number(headers.get('anthropic-ratelimit-requests-limit'));
-			const requestsResetDate = new Date(headers.get('anthropic-ratelimit-requests-reset') || '');
+			const requestsRemaining = Number(headers?.get('anthropic-ratelimit-requests-remaining') || 0);
+			const requestsLimit = Number(headers?.get('anthropic-ratelimit-requests-limit') || 0);
+			const requestsResetDate = new Date(headers?.get('anthropic-ratelimit-requests-reset') || '');
 
-			const tokensRemaining = Number(headers.get('anthropic-ratelimit-tokens-remaining'));
-			const tokensLimit = Number(headers.get('anthropic-ratelimit-tokens-limit'));
-			const tokensResetDate = new Date(headers.get('anthropic-ratelimit-tokens-reset') || '');
+			const tokensRemaining = Number(headers?.get('anthropic-ratelimit-tokens-remaining') || 0);
+			const tokensLimit = Number(headers?.get('anthropic-ratelimit-tokens-limit') || 0);
+			const tokensResetDate = new Date(headers?.get('anthropic-ratelimit-tokens-reset') || '');
 
 			//logger.debug(`AnthropicLLM: provider[${this.llmProviderName}] Creating message response from Anthropic message:`, {
 			//	messageType: anthropicMessage.type,
@@ -508,8 +534,8 @@ class AnthropicLLM extends LLM {
 				answer: extractTextFromContent(anthropicMessage.content as LLMMessageContentParts), // answer will get overridden in baseLLM - but this keeps type checking happy
 				isTool: anthropicMessage.stop_reason === 'tool_use',
 				messageStop: {
-					stopReason: anthropicMessage.stop_reason,
-					stopSequence: anthropicMessage.stop_sequence,
+					stopReason: anthropicMessage.stop_reason as LLMMessageStop['stopReason'],
+					stopSequence: anthropicMessage.stop_sequence as LLMMessageStop['stopSequence'],
 				},
 				usage: {
 					inputTokens: anthropicMessage.usage.input_tokens,
@@ -561,7 +587,7 @@ class AnthropicLLM extends LLM {
 			logger.error('AnthropicLLM: Error calling Anthropic API', err);
 			throw createError(
 				ErrorType.LLM,
-				`Could not get response from Anthropic API: ${(err as Error).message}`,
+				`Could not get response from Anthropic API: ${errorMessage(err)}`,
 				{
 					model: messageRequest.model,
 					provider: this.llmProviderName,
@@ -626,6 +652,9 @@ class AnthropicLLM extends LLM {
 					break;
 				case 'tool_use':
 					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response is using a tool`);
+					break;
+				case 'refusal':
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`);
 					break;
 				default:
 					logger.info(

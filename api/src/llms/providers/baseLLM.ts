@@ -243,6 +243,21 @@ class LLM {
 
 					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
+					} else if (statusCode === 400) {
+						logger.warn(`Request is invalid.`);
+						throw createError(
+							ErrorType.LLM,
+							`Error calling LLM service: ${
+								llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusText ||
+								'Request is invalid'
+							}`,
+							{
+								model: interaction.model,
+								provider: this.llmProviderName,
+								args: { status: statusCode, reason: 'Request is invalid' },
+								conversationId: interaction.id,
+							} as LLMErrorOptions,
+						);
 					} else if (statusCode === 413) {
 						logger.warn(`Request is too large.`);
 						throw createError(

@@ -179,12 +179,12 @@ export default class LLMToolRewriteResource extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
-		if (!dataSourceRoot) {
-			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
-				name: 'data-source',
-				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
-			} as DataSourceHandlingErrorOptions);
-		}
+		//if (!dataSourceRoot) {
+		//	throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+		//		name: 'data-source',
+		//		dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+		//	} as DataSourceHandlingErrorOptions);
+		//}
 		// [TODO] check that dsConnectionToUse is type filesystem
 
 		// Validate acknowledgment string
@@ -231,7 +231,9 @@ export default class LLMToolRewriteResource extends LLMTool {
 			 */
 		}
 
-		const resourceUri = dsConnectionToUse.getUriForResource(`file:./${resourcePath}`);
+		const resourceUri = (resourcePath.includes('://') || resourcePath.startsWith('file:'))
+			? dsConnectionToUse.getUriForResource(resourcePath) // Already a URI, use as is
+			: dsConnectionToUse.getUriForResource(`file:./${resourcePath}`); // Likely a file path, prepend file:./
 		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 			throw createError(
 				ErrorType.FileHandling,

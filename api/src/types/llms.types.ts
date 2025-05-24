@@ -9,6 +9,8 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 export enum AnthropicModel {
+	CLAUDE_4_0_OPUS = 'claude-opus-4-20250514',
+	CLAUDE_4_0_SONNET = 'claude-sonnet-4-20250514',
 	CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-20241022',
 	CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-20250219',
 	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
@@ -17,6 +19,8 @@ export enum AnthropicModel {
 	CLAUDE_3_OPUS = 'claude-3-opus-20240229',
 }
 export const AnthropicModels = [
+	AnthropicModel.CLAUDE_4_0_OPUS,
+	AnthropicModel.CLAUDE_4_0_SONNET,
 	AnthropicModel.CLAUDE_3_5_HAIKU,
 	AnthropicModel.CLAUDE_3_5_SONNET,
 	AnthropicModel.CLAUDE_3_7_SONNET,
@@ -214,6 +218,7 @@ export interface LLMMessageStop {
 		| 'stop_sequence'
 		| 'end_turn'
 		| 'max_tokens'
+		| 'refusal'
 		// openai stop reasons
 		| 'stop'
 		| 'length'

@@ -214,8 +214,8 @@ export class ResourceManager {
 			const metadata: ResourceMetadata = {
 				accessMethod: accessor.accessMethod,
 				type: result.metadata.type as ResourceType,
-				contentType: result.metadata.contentType?.startsWith('image/') ? 'image' : 'text',
-				name: `Resource: ${resourceUri}`,
+				contentType: result.metadata.mimeType?.startsWith('image/') ? 'image' : 'text',
+				name: `URI: ${resourceUri}`,
 				uri: resourceUri,
 				mimeType: result.metadata.mimeType || 'application/octet-stream',
 				size: result.metadata.size,

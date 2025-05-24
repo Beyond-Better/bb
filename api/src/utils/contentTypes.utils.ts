@@ -95,29 +95,29 @@ const sourceCodeTypes: Record<string, string> = {
  * @returns true if content appears to be binary, false if it appears to be text
  */
 export function isBinaryContent(buffer: Uint8Array): boolean {
-  // Check for NULL bytes or unexpected control characters
-  const sampleSize = Math.min(buffer.length, 1024);
-  let textCharCount = 0;
-  let binaryCharCount = 0;
+	// Check for NULL bytes or unexpected control characters
+	const sampleSize = Math.min(buffer.length, 1024);
+	let textCharCount = 0;
+	let binaryCharCount = 0;
 
-  for (let i = 0; i < sampleSize; i++) {
-    const byte = buffer[i];
-    // NULL byte or control characters (except common ones like tab, newline, etc.)
-    if (byte === 0 || (byte < 32 && ![9, 10, 13].includes(byte))) {
-      binaryCharCount++;
-    } else if (byte <= 127) {
-      // ASCII text characters
-      textCharCount++;
-    }
-  }
+	for (let i = 0; i < sampleSize; i++) {
+		const byte = buffer[i];
+		// NULL byte or control characters (except common ones like tab, newline, etc.)
+		if (byte === 0 || (byte < 32 && ![9, 10, 13].includes(byte))) {
+			binaryCharCount++;
+		} else if (byte <= 127) {
+			// ASCII text characters
+			textCharCount++;
+		}
+	}
 
-  // If we found any NULL bytes, almost certainly binary
-  if (buffer.includes(0)) {
-    return true;
-  }
+	// If we found any NULL bytes, almost certainly binary
+	if (buffer.includes(0)) {
+		return true;
+	}
 
-  // If more than 10% appear to be binary, consider it binary
-  return (binaryCharCount / sampleSize) > 0.1;
+	// If more than 10% appear to be binary, consider it binary
+	return (binaryCharCount / sampleSize) > 0.1;
 }
 
 /**
@@ -156,51 +156,52 @@ export function getContentType(filePath: string): string {
  * @returns The detected MIME type string
  */
 export async function detectContentType(filePath: string): Promise<string> {
-  // Skip content checks for directories
-  try {
-    const fileInfo = await Deno.stat(filePath);
-    if (fileInfo.isDirectory) {
-      return 'application/directory';
-    }
-  } catch (error) {
-    // If we can't stat the file, proceed with extension-based checks
-    logger.debug(`Error getting file info for ${filePath}: ${(error as Error).message}`);
-  }
-  
-  // 1. First try our custom MIME mapping
-  const mimeType = getContentType(filePath);
-  
-  // If we got a specific type (not the generic octet-stream), use it
-  if (mimeType && mimeType !== 'application/octet-stream') {
-    return mimeType;
-  }
-  
-  try {
-    // 2. For uncertain types, check the actual content
-    const file = await Deno.open(filePath, { read: true });
-    const buffer = new Uint8Array(1024);
-    const bytesRead = await file.read(buffer);
-    file.close();
-    
-    if (bytesRead === null) {
-      // Empty file, treat as text
-      return 'text/plain';
-    }
-    
-    const actualBuffer = buffer.subarray(0, bytesRead);
-    const isBinary = isBinaryContent(actualBuffer);
-    
-    if (!isBinary) {
-      // It's text content, so use a generic text type
-      return 'text/plain';
-    }
-  } catch (error) {
-    // If we can't read the file, just log and continue with the original type
-    logger.debug(`Unable to read file for MIME detection: ${filePath}. Using extension-based type.`);
-  }
-  
-  // 3. If we're here, it seems to be binary or we couldn't check, so use the original type
-  return mimeType;
+	// Skip content checks for directories
+	try {
+		const fileInfo = await Deno.stat(filePath);
+		if (fileInfo.isDirectory) {
+			return 'application/directory';
+		}
+	} catch (error) {
+		// If we can't stat the file, proceed with extension-based checks
+		logger.debug(`ContentTypes: Error getting file info for ${filePath}: ${(error as Error).message}`);
+	}
+
+	//logger.info(`ContentTypes: Checking content type for ${filePath}`);
+	// 1. First try our custom MIME mapping
+	const mimeType = getContentType(filePath);
+
+	// If we got a specific type (not the generic octet-stream), use it
+	if (mimeType && mimeType !== 'application/octet-stream') {
+		return mimeType;
+	}
+
+	try {
+		// 2. For uncertain types, check the actual content
+		const file = await Deno.open(filePath, { read: true });
+		const buffer = new Uint8Array(1024);
+		const bytesRead = await file.read(buffer);
+		file.close();
+
+		if (bytesRead === null) {
+			// Empty file, treat as text
+			return 'text/plain';
+		}
+
+		const actualBuffer = buffer.subarray(0, bytesRead);
+		const isBinary = isBinaryContent(actualBuffer);
+
+		if (!isBinary) {
+			// It's text content, so use a generic text type
+			return 'text/plain';
+		}
+	} catch (error) {
+		// If we can't read the file, just log and continue with the original type
+		logger.debug(`ContentTypes: Unable to read file for MIME detection: ${filePath}. Using extension-based type.`);
+	}
+
+	// 3. If we're here, it seems to be binary or we couldn't check, so use the original type
+	return mimeType;
 }
 
 /**
@@ -209,11 +210,11 @@ export async function detectContentType(filePath: string): Promise<string> {
  * @returns true if it represents text content, false otherwise
  */
 export function isTextMimeType(mimeType: string): boolean {
-  return mimeType.startsWith('text/') || 
-         mimeType === 'application/json' ||
-         mimeType === 'application/xml' ||
-         mimeType.includes('+json') ||
-         mimeType.includes('+xml') ||
-         mimeType === 'application/javascript' ||
-         mimeType === 'application/typescript';
+	return mimeType.startsWith('text/') ||
+		mimeType === 'application/json' ||
+		mimeType === 'application/xml' ||
+		mimeType.includes('+json') ||
+		mimeType.includes('+xml') ||
+		mimeType === 'application/javascript' ||
+		mimeType === 'application/typescript';
 }

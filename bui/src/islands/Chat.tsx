@@ -39,7 +39,7 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 
 // Default LLM request options
 const defaultInputOptions: LLMRequestParams = {
-	model: 'claude-3-7-sonnet-20250219',
+	model: 'claude-sonnet-4-20250514',
 	temperature: 0.7,
 	maxTokens: 16384,
 	extendedThinking: {

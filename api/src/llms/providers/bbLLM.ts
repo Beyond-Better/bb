@@ -472,6 +472,9 @@ class BbLLM extends LLM {
 				case 'tool_use':
 					logger.warn(`BbLLM: provider[${this.llmProviderName}] Response is using a tool`);
 					break;
+				case 'refusal':
+					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`);
+					break;
 				default:
 					logger.info(
 						`BbLLM: provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,

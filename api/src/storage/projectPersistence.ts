@@ -195,6 +195,7 @@ class ProjectPersistence implements ProjectData {
 	 * @returns The data source connection or undefined if not found
 	 */
 	getDsConnection(id: string): DataSourceConnection | undefined {
+		if (id === 'ds-uploads') return this.getUploadsDsConnection();
 		return this._dsConnectionsMap.get(id);
 	}
 

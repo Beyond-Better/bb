@@ -50,7 +50,7 @@ export class DataSourceRegistry {
 	 */
 	public static async getInstance(): Promise<DataSourceRegistry> {
 		if (!DataSourceRegistry.instance) {
-			logger.warn('DataSourceRegistry: Creating the instance of dataSourceRegistry');
+			//logger.warn('DataSourceRegistry: Creating the instance of dataSourceRegistry');
 
 			// If we don't have an instance but initialization is in progress, wait for it
 			if (DataSourceRegistry.pendingInitOperation) {
@@ -77,7 +77,7 @@ export class DataSourceRegistry {
 			// Wait for the initialization to complete
 			return await DataSourceRegistry.pendingInitOperation;
 		}
-		logger.warn('DataSourceRegistry: Returning the instance of dataSourceRegistry');
+		//logger.warn('DataSourceRegistry: Returning the instance of dataSourceRegistry');
 		return DataSourceRegistry.instance;
 	}
 

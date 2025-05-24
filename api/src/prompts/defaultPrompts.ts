@@ -139,7 +139,7 @@ async function getGuidelinesContent(
 			try {
 				// Construct the resource URI
 				const resourceUri = dsConnection.getUriForResource(`file:./${guidelinesPath}`);
-				//logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name} using ${resourceUri}`);
+				logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name} using ${resourceUri}`);
 
 				// Check if resource is within this data source
 				if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
@@ -374,7 +374,7 @@ Update these statuses when:
 
 When using tools:
 1. Batch multiple resource requests when possible
-2. Include multiple independent tool calls in one response when possible
+2. For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 3. Ensure all required parameters are provided
 4. If parameters are missing or no relevant tools exist, ask ${myPersonsName}
 5. Monitor conversation length and token usage:
@@ -387,6 +387,8 @@ When using tools:
    - Ensure paths don't start with "/" or contain ".." segments
    - Maintain the same path style (forward/back slashes) as the input
    - For non-filesystem resources: Use the full resource URI to reference them
+7. After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
+8 .If you create any temporary new files, scripts, or helper files for iteration, clean up these files by removing them at the end of the task.
 
 Task Delegation Best Practices:
 When faced with complex, multi-step tasks, use the delegate_tasks tool to break work into parallel subtasks. Benefits include:
@@ -439,6 +441,8 @@ Use these objectives to:
 - Maintain consistency across multiple turns
 - Track progress toward overall goals
 - Guide your decision-making process
+
+After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
 
 Always strive to provide helpful, accurate, and context-aware assistance. You may engage with ${myPersonsName} on topics of their choice, but always aim to keep the conversation relevant to the local project and the task at hand.
 
@@ -555,7 +559,7 @@ filesystem-local:/project/site/file.ts    ❌ Will also be treated as absolute
 
 You have access to the same powerful tools as the main conversation, with the exception of delegation capabilities. When using tools:
 1. Batch multiple resource requests when possible
-2. Include multiple independent tool calls in one response when possible
+2. For maximum efficiency, whenever you need to perform multiple independent operations, invoke all relevant tools simultaneously rather than sequentially.
 3. Ensure all required parameters are provided
 4. If parameters are missing or no relevant tools exist, make reasonable inferences
 5. When tool results reference resources:
@@ -564,6 +568,8 @@ You have access to the same powerful tools as the main conversation, with the ex
    - Ensure paths don't start with "/" or contain ".." segments
    - Maintain the same path style (forward/back slashes) as the input
    - For non-filesystem resources: Use the full resource URI to reference them
+6. After receiving tool results, carefully reflect on their quality and determine optimal next steps before proceeding. Use your thinking to plan and iterate based on this new information, and then take the best next action.
+7. If you create any temporary new files, scripts, or helper files for iteration, clean up these files by removing them at the end of the task.
 
 ### Working with Resources
 
