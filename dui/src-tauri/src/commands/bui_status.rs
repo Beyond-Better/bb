@@ -1,7 +1,7 @@
+use reqwest;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use reqwest;
 use tauri::command;
 
 use crate::config::read_global_config;
@@ -21,8 +21,8 @@ pub struct BuiStatusCheck {
 fn get_app_runtime_dir() -> Result<PathBuf, String> {
     #[cfg(target_os = "macos")]
     {
-        let home_dir = dirs::home_dir()
-            .ok_or_else(|| "Failed to get home directory".to_string())?;
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| "Failed to get home directory".to_string())?;
         let dir = home_dir
             .join("Library")
             .join("Application Support")
@@ -45,11 +45,9 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 
     #[cfg(target_os = "linux")]
     {
-        let home_dir = dirs::home_dir()
-            .ok_or_else(|| "Failed to get home directory".to_string())?;
-        let dir = home_dir
-            .join(".bb")
-            .join("run");
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| "Failed to get home directory".to_string())?;
+        let dir = home_dir.join(".bb").join("run");
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create runtime directory: {}", e))?;
         Ok(dir)
@@ -62,8 +60,7 @@ fn get_pid_file_path() -> Result<PathBuf, String> {
 
 pub async fn save_bui_pid(pid: i32) -> Result<(), String> {
     let pid_file = get_pid_file_path()?;
-    fs::write(&pid_file, pid.to_string())
-        .map_err(|e| format!("Failed to write PID file: {}", e))
+    fs::write(&pid_file, pid.to_string()).map_err(|e| format!("Failed to write PID file: {}", e))
 }
 
 pub async fn get_pid() -> Result<Option<i32>, String> {
@@ -81,8 +78,7 @@ pub async fn get_pid() -> Result<Option<i32>, String> {
 pub async fn remove_pid() -> Result<(), String> {
     let pid_file = get_pid_file_path()?;
     if pid_file.exists() {
-        fs::remove_file(&pid_file)
-            .map_err(|e| format!("Failed to remove PID file: {}", e))
+        fs::remove_file(&pid_file).map_err(|e| format!("Failed to remove PID file: {}", e))
     } else {
         Ok(())
     }
@@ -90,16 +86,14 @@ pub async fn remove_pid() -> Result<(), String> {
 
 #[cfg(target_family = "unix")]
 fn check_process_exists(pid: i32) -> bool {
-    unsafe {
-        libc::kill(pid, 0) == 0
-    }
+    unsafe { libc::kill(pid, 0) == 0 }
 }
 
 #[cfg(target_family = "windows")]
 fn check_process_exists(pid: i32) -> bool {
     use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
-    use windows_sys::Win32::System::Threading::{OpenProcess, GetExitCodeProcess};
-    
+    use windows_sys::Win32::System::Threading::{GetExitCodeProcess, OpenProcess};
+
     const PROCESS_QUERY_INFORMATION: u32 = 0x0400;
     const STILL_ACTIVE: u32 = 259;
 
@@ -120,15 +114,15 @@ fn check_process_exists(pid: i32) -> bool {
 async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
     let scheme = if use_tls { "https" } else { "http" };
     let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
-    
+
     println!("Checking Server status at: {}", url);
-    
+
     match reqwest::get(&url).await {
         Ok(response) => {
             let status = response.status();
             println!("Server responded with status: {}", status);
             Ok(status.is_success())
-        },
+        }
         Err(e) => {
             println!("Failed to connect to Server: {}", e);
             Ok(false)
@@ -139,7 +133,7 @@ async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
 #[command]
 pub async fn check_bui_status() -> Result<BuiStatusCheck, String> {
     println!("Checking Server status...");
-    
+
     let mut status = BuiStatusCheck {
         pid_exists: false,
         process_responds: false,
@@ -154,7 +148,7 @@ pub async fn check_bui_status() -> Result<BuiStatusCheck, String> {
         Some(pid) => {
             println!("Found PID file with PID: {}", pid);
             status.pid = Some(pid);
-            
+
             // Level 2: Check if process exists
             status.pid_exists = check_process_exists(pid);
             println!("Process exists: {}", status.pid_exists);
@@ -163,13 +157,18 @@ pub async fn check_bui_status() -> Result<BuiStatusCheck, String> {
             if status.pid_exists {
                 let config = read_global_config()
                     .map_err(|e| format!("Failed to read global config: {}", e))?;
-                
-                println!("Checking Server endpoint at {}:{}", config.bui.hostname, config.bui.port);
+
+                println!(
+                    "Checking Server endpoint at {}:{}",
+                    config.bui.hostname, config.bui.port
+                );
                 match check_bui_responds(
                     &config.bui.hostname,
                     config.bui.port,
-                    config.bui.tls.use_tls
-                ).await {
+                    config.bui.tls.use_tls,
+                )
+                .await
+                {
                     Ok(responds) => {
                         status.bui_responds = responds;
                         status.process_responds = responds;

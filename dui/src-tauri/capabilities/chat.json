@@ -14,7 +14,9 @@
 		"core:webview:default",
 		"core:webview:allow-create-webview-window",
 		"store:allow-load",
-		"store:default"
+		"store:default",
+		"opener:default",
+		"opener:allow-open-url"
 	],
 	"webviewConfig": {
 		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev", "https://localhost:8080"],

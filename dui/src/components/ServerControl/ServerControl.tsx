@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { GlobalConfig, ServerStartResult, ServerStatus } from '../../types/api';
-import { open } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import { getAllWebviewWindows, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { invoke } from '@tauri-apps/api/core';
 import { generateWebviewBuiUrl, generateWebviewBuiUrlWithPlatform } from '../../utils/url';
@@ -761,7 +761,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 						<div
 							onClick={async () => {
 								try {
-									await open(directBuiUrl);
+									await openUrl(directBuiUrl);
 								} catch (err) {
 									console.error('Failed to open direct BUI URL:', err);
 									alert(`Please open this URL manually: ${directBuiUrl}`);

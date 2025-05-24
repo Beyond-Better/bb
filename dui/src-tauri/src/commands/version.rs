@@ -1,16 +1,16 @@
 // This file contains core version checking functionality.
 // Installation/upgrade functionality has been moved to commands/upgrade.rs
 
-use tauri::command;
 use crate::api::get_bb_api_path;
-use std::process::Command;
-use serde::{Deserialize, Serialize};
-use log::{debug, info, warn, error};
-use semver::Version;
+use log::{debug, error, info, warn};
+use once_cell::sync::Lazy;
 use reqwest;
+use semver::Version;
+use serde::{Deserialize, Serialize};
+use std::process::Command;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use once_cell::sync::Lazy;
+use tauri::command;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
 const GITHUB_CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
@@ -56,7 +56,7 @@ fn compare_versions(current: &str, required: &str) -> bool {
         (Err(e1), _) => {
             error!("Error parsing current version '{}': {}", current, e1);
             false
-        },
+        }
         (_, Err(e2)) => {
             error!("Error parsing required version '{}': {}", required, e2);
             false
@@ -87,76 +87,85 @@ async fn fetch_latest_version() -> Option<String> {
         .header("User-Agent", "BB-DUI/0.4.1")
         .header("Accept", "application/vnd.github.v3+json")
         .send()
-        .await {
-            Ok(response) => {
-                if response.status() == reqwest::StatusCode::FORBIDDEN {
-                    warn!("GitHub API rate limit exceeded");
-                    return None;
-                }
-                
-                if !response.status().is_success() {
-                    error!("GitHub API error: {} - {}", response.status(), response.status().canonical_reason().unwrap_or("Unknown error"));
-                    return None;
-                }
+        .await
+    {
+        Ok(response) => {
+            if response.status() == reqwest::StatusCode::FORBIDDEN {
+                warn!("GitHub API rate limit exceeded");
+                return None;
+            }
 
-                match response.json::<GithubRelease>().await {
-                    Ok(release) => {
-                        let version = release.tag_name.trim_start_matches('v').to_string();
-                        // Update cache
-                        debug!("Successfully fetched latest version: {}", version);
-                        if let Ok(mut cache) = GITHUB_VERSION_CACHE.lock() {
-                            *cache = Some(VersionCache {
-                                version: version.clone(),
-                                timestamp: Instant::now(),
-                            });
-                        }
-                        Some(version)
-                    },
-                    Err(e) => {
-                        error!("Failed to parse GitHub API response: {}", e);
-                        None
+            if !response.status().is_success() {
+                error!(
+                    "GitHub API error: {} - {}",
+                    response.status(),
+                    response
+                        .status()
+                        .canonical_reason()
+                        .unwrap_or("Unknown error")
+                );
+                return None;
+            }
+
+            match response.json::<GithubRelease>().await {
+                Ok(release) => {
+                    let version = release.tag_name.trim_start_matches('v').to_string();
+                    // Update cache
+                    debug!("Successfully fetched latest version: {}", version);
+                    if let Ok(mut cache) = GITHUB_VERSION_CACHE.lock() {
+                        *cache = Some(VersionCache {
+                            version: version.clone(),
+                            timestamp: Instant::now(),
+                        });
                     }
+                    Some(version)
                 }
-            },
-            Err(e) => {
-                error!("Failed to fetch latest release from GitHub: {}", e);
-                None
+                Err(e) => {
+                    error!("Failed to parse GitHub API response: {}", e);
+                    None
+                }
             }
         }
+        Err(e) => {
+            error!("Failed to fetch latest release from GitHub: {}", e);
+            None
+        }
+    }
 }
 
 fn get_min_version() -> String {
     let version_file = include_str!("../../../../version.ts");
     debug!("Parsing minimum version from version.ts");
     debug!("Version file contents:\n{}", version_file);
-    
+
     for line in version_file.lines() {
         if line.contains("REQUIRED_API_VERSION") {
-            if let Some(raw_version) = line
-                .split('=')
-                .nth(1)
-                .map(|s| {
-                    // Remove all non-version characters
-                    let cleaned = s.trim()
-                        .trim_matches('"')
-                        .trim_matches('\'')
-                        .trim_matches(';')
-                        .trim();
-                    
-                    // Further clean to ensure only digits and dots remain
-                    clean_version_string(cleaned)
-                }) {
+            if let Some(raw_version) = line.split('=').nth(1).map(|s| {
+                // Remove all non-version characters
+                let cleaned = s
+                    .trim()
+                    .trim_matches('"')
+                    .trim_matches('\'')
+                    .trim_matches(';')
+                    .trim();
+
+                // Further clean to ensure only digits and dots remain
+                clean_version_string(cleaned)
+            }) {
                 // Validate that we have a proper semver string
                 match Version::parse(&raw_version) {
                     Ok(_) => return raw_version,
-                    Err(e) => error!("Invalid semver format after cleaning '{}': {}", raw_version, e)
+                    Err(e) => error!(
+                        "Invalid semver format after cleaning '{}': {}",
+                        raw_version, e
+                    ),
                 }
             }
         }
     }
 
     warn!("Could not find REQUIRED_API_VERSION in version.ts, falling back to DUI version");
-    
+
     env!("CARGO_PKG_VERSION").to_string() // Default to DUI version
 }
 
@@ -193,12 +202,21 @@ pub async fn get_binary_version() -> Result<Option<String>, String> {
         Some(line) => {
             let raw_version = line["BB API version ".len()..].trim().to_string();
             let cleaned_version = clean_version_string(&raw_version);
-            
+
             match Version::parse(&cleaned_version) {
-                Ok(_) => { debug!("Successfully parsed binary version: {}", cleaned_version); Ok(Some(cleaned_version)) },
-                Err(e) => { error!("Failed to parse binary version '{}': {}", cleaned_version, e); Ok(None) }
+                Ok(_) => {
+                    debug!("Successfully parsed binary version: {}", cleaned_version);
+                    Ok(Some(cleaned_version))
+                }
+                Err(e) => {
+                    error!(
+                        "Failed to parse binary version '{}': {}",
+                        cleaned_version, e
+                    );
+                    Ok(None)
+                }
             }
-        },
+        }
         None => {
             warn!("No valid version string found in output");
             Ok(None)
@@ -212,7 +230,10 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
     let api_version = get_binary_version().await?;
     let min_version = get_min_version();
 
-    debug!("Current API version: {:?}, minimum required version: {}", api_version, min_version);
+    debug!(
+        "Current API version: {:?}, minimum required version: {}",
+        api_version, min_version
+    );
     // First check if API is installed
     let api_installed = api_version.is_some();
 
@@ -222,11 +243,14 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
     } else {
         match api_version {
             Some(ref version) => compare_versions(version, &min_version),
-            None => false
+            None => false,
         }
     };
 
-    debug!("API installed: {}, compatible with minimum version: {}", api_installed, compatible);
+    debug!(
+        "API installed: {}, compatible with minimum version: {}",
+        api_installed, compatible
+    );
     // Only check GitHub if we're not compatible with required version
     let latest_version = if !compatible {
         None // Skip GitHub check if we already know we need to update
@@ -242,19 +266,17 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
     // 2. There's a newer version available on GitHub
     let update_available = if let Some(current) = api_version.as_ref() {
         let needs_min_update = match Version::parse(current) {
-            Ok(current_ver) => {
-                match Version::parse(&min_version) {
-                    Ok(min_ver) => current_ver < min_ver,
-                    Err(_) => false
-                }
+            Ok(current_ver) => match Version::parse(&min_version) {
+                Ok(min_ver) => current_ver < min_ver,
+                Err(_) => false,
             },
-            Err(_) => false
+            Err(_) => false,
         };
 
         let needs_latest_update = if let Some(latest) = latest_version.as_ref() {
             match (Version::parse(current), Version::parse(latest)) {
                 (Ok(current_ver), Ok(latest_ver)) => latest_ver > current_ver,
-                _ => false
+                _ => false,
             }
         } else {
             false
@@ -273,7 +295,7 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
         current_version: api_version.unwrap_or_else(|| "not installed".to_string()),
         required_version: min_version,
         update_available,
-        latest_version: if update_available { 
+        latest_version: if update_available {
             Some(min_version_clone) // Always use required version when update needed
         } else {
             latest_version // Only show latest version when we're compatible but there's a newer version

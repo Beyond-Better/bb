@@ -1,16 +1,16 @@
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
-use std::fs::{self, File};
-use log::{debug, info, error};
-use std::io::{self, Write};
-use tauri::{command, AppHandle, Emitter};
 use dirs;
-use reqwest;
-use tempfile::TempDir;
 #[cfg(not(target_os = "windows"))]
 use flate2::read::GzDecoder;
+use log::{debug, error, info};
+use reqwest;
+use serde::{Deserialize, Serialize};
+use std::fs::{self, File};
+use std::io::{self, Write};
+use std::path::PathBuf;
 #[cfg(not(target_os = "windows"))]
 use tar::Archive;
+use tauri::{command, AppHandle, Emitter};
+use tempfile::TempDir;
 #[cfg(target_os = "windows")]
 use zip::ZipArchive;
 
@@ -42,8 +42,16 @@ pub struct InstallLocation {
     is_user_install: bool,
 }
 
-fn emit_progress(app: &AppHandle, stage: &str, progress: f32, message: Option<String>) -> tauri::Result<()> {
-    debug!("Installation progress: {} - {}% - {:?}", stage, progress, message);
+fn emit_progress(
+    app: &AppHandle,
+    stage: &str,
+    progress: f32,
+    message: Option<String>,
+) -> tauri::Result<()> {
+    debug!(
+        "Installation progress: {} - {}% - {:?}",
+        stage, progress, message
+    );
     let progress = InstallProgress {
         stage: stage.to_string(),
         progress,
@@ -59,7 +67,10 @@ fn check_windows_path_length(path: &PathBuf) -> io::Result<()> {
         error!("Path exceeds Windows MAX_PATH limit: {:?}", path);
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("Installation path too long (Windows limit is {} characters)", MAX_PATH)
+            format!(
+                "Installation path too long (Windows limit is {} characters)",
+                MAX_PATH
+            ),
         ));
     }
     Ok(())
@@ -70,7 +81,11 @@ fn get_install_location() -> io::Result<InstallLocation> {
     // Try user-specific location first
     if let Some(home) = dirs::home_dir() {
         let user_install = if cfg!(target_os = "windows") {
-            let path = home.join("AppData").join("Local").join("BeyondBetter").join("bin");
+            let path = home
+                .join("AppData")
+                .join("Local")
+                .join("BeyondBetter")
+                .join("bin");
             #[cfg(target_os = "windows")]
             check_windows_path_length(&path)?;
             path
@@ -121,7 +136,10 @@ fn get_install_location() -> io::Result<InstallLocation> {
         false
     };
 
-    debug!("System install location: {:?}, writable: {}", system_install, writable);
+    debug!(
+        "System install location: {:?}, writable: {}",
+        system_install, writable
+    );
     Ok(InstallLocation {
         path: system_install,
         writable,
@@ -132,56 +150,103 @@ fn get_install_location() -> io::Result<InstallLocation> {
 #[command]
 pub async fn perform_install(app: AppHandle) -> Result<(), String> {
     info!("Starting fresh installation process");
-    emit_progress(&app, "preparing", 0.0, Some("Checking installation location...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
-    
+    emit_progress(
+        &app,
+        "preparing",
+        0.0,
+        Some("Checking installation location...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
+
     let install_location = get_install_location().map_err(|e| e.to_string())?;
-    
+
     if !install_location.writable {
         #[cfg(target_os = "windows")]
         {
-            error!("Installation location not writable: {:?}", install_location.path);
-            return Err("Installation requires administrator privileges. Please run DUI as administrator.".to_string());
+            error!(
+                "Installation location not writable: {:?}",
+                install_location.path
+            );
+            return Err(
+                "Installation requires administrator privileges. Please run DUI as administrator."
+                    .to_string(),
+            );
         }
 
         #[cfg(not(target_os = "windows"))]
         {
-            return Err("Installation location is not writable. Please run with elevated privileges.".to_string());
+            return Err(
+                "Installation location is not writable. Please run with elevated privileges."
+                    .to_string(),
+            );
         }
     }
 
     // Create installation directory if it doesn't exist
-    emit_progress(&app, "preparing", 10.0, Some("Creating installation directory...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "preparing",
+        10.0,
+        Some("Creating installation directory...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     fs::create_dir_all(&install_location.path)
-        .map_err(|e| { error!("Failed to create directory {:?}: {}", install_location.path, e); e })
+        .map_err(|e| {
+            error!(
+                "Failed to create directory {:?}: {}",
+                install_location.path, e
+            );
+            e
+        })
         .map_err(|e| format!("Failed to create installation directory: {}", e))?;
 
     // Download latest release
-    emit_progress(&app, "downloading", 20.0, Some("Fetching latest release information...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "downloading",
+        20.0,
+        Some("Fetching latest release information...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     let latest_release = fetch_latest_release().await?;
-    
+
     // Download and install binaries
-    emit_progress(&app, "installing", 40.0, Some("Installing binaries...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "installing",
+        40.0,
+        Some("Installing binaries...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     install_binaries(&app, &latest_release, &install_location).await?;
 
-    emit_progress(&app, "complete", 100.0, Some("Installation complete".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "complete",
+        100.0,
+        Some("Installation complete".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     Ok(())
 }
 
 #[command]
 pub async fn perform_upgrade(app: AppHandle) -> Result<(), String> {
     info!("Starting upgrade process");
-    emit_progress(&app, "preparing", 0.0, Some("Checking upgrade location...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
-    
+    emit_progress(
+        &app,
+        "preparing",
+        0.0,
+        Some("Checking upgrade location...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
+
     let install_location = get_install_location().map_err(|e| e.to_string())?;
-    
+
     if !install_location.writable {
-        return Err("Upgrade location is not writable. Please run with elevated privileges.".to_string());
+        return Err(
+            "Upgrade location is not writable. Please run with elevated privileges.".to_string(),
+        );
     }
 
     // Backup current installation
@@ -190,17 +255,32 @@ pub async fn perform_upgrade(app: AppHandle) -> Result<(), String> {
     backup_current_installation(&install_location)?;
 
     // Download latest release
-    emit_progress(&app, "downloading", 20.0, Some("Fetching latest release information...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "downloading",
+        20.0,
+        Some("Fetching latest release information...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     let latest_release = fetch_latest_release().await?;
-    
+
     // Download and install binaries
-    emit_progress(&app, "installing", 40.0, Some("Installing binaries...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "installing",
+        40.0,
+        Some("Installing binaries...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     install_binaries(&app, &latest_release, &install_location).await?;
 
-    emit_progress(&app, "complete", 100.0, Some("Upgrade complete".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        &app,
+        "complete",
+        100.0,
+        Some("Upgrade complete".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
     Ok(())
 }
 
@@ -212,12 +292,29 @@ async fn fetch_latest_release() -> Result<GithubRelease, String> {
         .header("User-Agent", "BB-DUI")
         .send()
         .await
-        .map_err(|e| { error!("GitHub API request failed: {}", e); e })
+        .map_err(|e| {
+            error!("GitHub API request failed: {}", e);
+            e
+        })
         .map_err(|e| format!("Failed to fetch latest release: {}", e))?;
 
     if !response.status().is_success() {
-        error!("GitHub API error: {} - {}", response.status(), response.status().canonical_reason().unwrap_or("Unknown error"));
-        return Err(format!("GitHub API error: {} - {}", response.status(), response.status().canonical_reason().unwrap_or("Unknown error")));
+        error!(
+            "GitHub API error: {} - {}",
+            response.status(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        );
+        return Err(format!(
+            "GitHub API error: {} - {}",
+            response.status(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        ));
     }
 
     response
@@ -226,7 +323,11 @@ async fn fetch_latest_release() -> Result<GithubRelease, String> {
         .map_err(|e| format!("Failed to parse GitHub response: {}", e))
 }
 
-async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &InstallLocation) -> Result<(), String> {
+async fn install_binaries(
+    app: &AppHandle,
+    release: &GithubRelease,
+    location: &InstallLocation,
+) -> Result<(), String> {
     info!("Starting binary installation process");
     // Determine platform-specific asset name
     let os = if cfg!(target_os = "windows") {
@@ -236,7 +337,7 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
     } else {
         "unknown-linux-gnu"
     };
-    
+
     let arch = if cfg!(target_arch = "x86_64") {
         "x86_64"
     } else if cfg!(target_arch = "aarch64") {
@@ -251,111 +352,198 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
         format!("bb-{}-{}-{}.tar.gz", arch, os, release.tag_name)
     };
     debug!("Looking for release asset: {}", asset_name);
-    
+
     // Find matching asset
-    let asset = release.assets
+    let asset = release
+        .assets
         .iter()
         .find(|a| a.name == asset_name)
-        .map_or_else(|| { error!("No matching asset found for {}", asset_name); None }, Some)
+        .map_or_else(
+            || {
+                error!("No matching asset found for {}", asset_name);
+                None
+            },
+            Some,
+        )
         .ok_or_else(|| format!("No compatible release found for {}-{}", arch, os))?;
 
-    debug!("Found matching asset: {} at URL: {}", asset.name, asset.browser_download_url);
-    emit_progress(app, "downloading", 50.0, Some(format!("Downloading {} from GitHub...", asset_name)))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    debug!(
+        "Found matching asset: {} at URL: {}",
+        asset.name, asset.browser_download_url
+    );
+    emit_progress(
+        app,
+        "downloading",
+        50.0,
+        Some(format!("Downloading {} from GitHub...", asset_name)),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
 
     // Create temporary directory for download
     let temp_dir = TempDir::new().map_err(|e| format!("Failed to create temp directory: {}", e))?;
-    let download_path = temp_dir.path().join(if cfg!(target_os = "windows") { "bb.zip" } else { "bb.tar.gz" });
+    let download_path = temp_dir.path().join(if cfg!(target_os = "windows") {
+        "bb.zip"
+    } else {
+        "bb.tar.gz"
+    });
 
     // Download the asset
     let response = reqwest::get(&asset.browser_download_url)
         .await
-        .map_err(|e| { error!("Failed to download asset: {}", e); e })
+        .map_err(|e| {
+            error!("Failed to download asset: {}", e);
+            e
+        })
         .map_err(|e| format!("Failed to download release: {}", e))?;
 
     if !response.status().is_success() {
-        error!("Asset download failed: {} - {}", response.status(), response.status().canonical_reason().unwrap_or("Unknown error"));
-        return Err(format!("Download failed: {} - {}", response.status(), response.status().canonical_reason().unwrap_or("Unknown error")));
+        error!(
+            "Asset download failed: {} - {}",
+            response.status(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        );
+        return Err(format!(
+            "Download failed: {} - {}",
+            response.status(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        ));
     }
 
-    emit_progress(app, "downloading", 70.0, Some("Saving download...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        app,
+        "downloading",
+        70.0,
+        Some("Saving download...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
 
     // Save the download
-    let content = response.bytes()
+    let content = response
+        .bytes()
         .await
-        .map_err(|e| { error!("Failed to read download content: {}", e); e })
+        .map_err(|e| {
+            error!("Failed to read download content: {}", e);
+            e
+        })
         .map_err(|e| format!("Failed to read download: {}", e))?;
-    
+
     let mut file = File::create(&download_path)
-        .map_err(|e| { error!("Failed to create file at {:?}: {}", download_path, e); e })
+        .map_err(|e| {
+            error!("Failed to create file at {:?}: {}", download_path, e);
+            e
+        })
         .map_err(|e| format!("Failed to create download file: {}", e))?;
-    
+
     file.write_all(&content)
-        .map_err(|e| { error!("Failed to write content to {:?}: {}", download_path, e); e })
+        .map_err(|e| {
+            error!("Failed to write content to {:?}: {}", download_path, e);
+            e
+        })
         .map_err(|e| format!("Failed to write download: {}", e))?;
 
-    emit_progress(app, "installing", 80.0, Some(format!("Extracting archive to {:?}...", temp_dir.path())))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        app,
+        "installing",
+        80.0,
+        Some(format!("Extracting archive to {:?}...", temp_dir.path())),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
 
     // Extract the archive
     #[cfg(target_os = "windows")]
     {
         debug!("Extracting Windows zip archive");
         let file = File::open(&download_path)
-            .map_err(|e| { error!("Failed to open zip archive: {}", e); e })
+            .map_err(|e| {
+                error!("Failed to open zip archive: {}", e);
+                e
+            })
             .map_err(|e| format!("Failed to open archive: {}", e))?;
-        
+
         let mut archive = ZipArchive::new(file)
-            .map_err(|e| { error!("Failed to read zip archive: {}", e); e })
+            .map_err(|e| {
+                error!("Failed to read zip archive: {}", e);
+                e
+            })
             .map_err(|e| format!("Failed to read archive: {}", e))?;
-        
+
         for i in 0..archive.len() {
-            let mut file = archive.by_index(i)
-                .map_err(|e| { error!("Failed to read zip entry: {}", e); e })
+            let mut file = archive
+                .by_index(i)
+                .map_err(|e| {
+                    error!("Failed to read zip entry: {}", e);
+                    e
+                })
                 .map_err(|e| format!("Failed to read zip entry: {}", e))?;
-            
+
             let outpath = temp_dir.path().join(file.name());
             debug!("Extracting to {:?}", outpath);
-            
+
             if file.name().ends_with('/') {
                 fs::create_dir_all(&outpath)
-                    .map_err(|e| { error!("Failed to create directory {:?}: {}", outpath, e); e })
+                    .map_err(|e| {
+                        error!("Failed to create directory {:?}: {}", outpath, e);
+                        e
+                    })
                     .map_err(|e| format!("Failed to create directory: {}", e))?;
             } else {
                 if let Some(p) = outpath.parent() {
                     if !p.exists() {
                         fs::create_dir_all(p)
-                            .map_err(|e| { error!("Failed to create parent directory {:?}: {}", p, e); e })
+                            .map_err(|e| {
+                                error!("Failed to create parent directory {:?}: {}", p, e);
+                                e
+                            })
                             .map_err(|e| format!("Failed to create parent directory: {}", e))?;
                     }
                 }
                 let mut outfile = File::create(&outpath)
-                    .map_err(|e| { error!("Failed to create file {:?}: {}", outpath, e); e })
+                    .map_err(|e| {
+                        error!("Failed to create file {:?}: {}", outpath, e);
+                        e
+                    })
                     .map_err(|e| format!("Failed to create file: {}", e))?;
                 io::copy(&mut file, &mut outfile)
-                    .map_err(|e| { error!("Failed to write file {:?}: {}", outpath, e); e })
+                    .map_err(|e| {
+                        error!("Failed to write file {:?}: {}", outpath, e);
+                        e
+                    })
                     .map_err(|e| format!("Failed to write file: {}", e))?;
             }
         }
     }
-    
+
     #[cfg(not(target_os = "windows"))]
     {
         debug!("Extracting Unix tar.gz archive");
-        let tar_gz = File::open(&download_path)
-            .map_err(|e| format!("Failed to open archive: {}", e))?;
-        
+        let tar_gz =
+            File::open(&download_path).map_err(|e| format!("Failed to open archive: {}", e))?;
+
         let tar = GzDecoder::new(tar_gz);
         let mut archive = Archive::new(tar);
-        
-        archive.unpack(temp_dir.path())
-            .map_err(|e| { error!("Failed to extract archive: {}", e); e })
+
+        archive
+            .unpack(temp_dir.path())
+            .map_err(|e| {
+                error!("Failed to extract archive: {}", e);
+                e
+            })
             .map_err(|e| format!("Failed to extract archive: {}", e))?;
     }
 
-    emit_progress(app, "installing", 90.0, Some("Installing binaries...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    emit_progress(
+        app,
+        "installing",
+        90.0,
+        Some("Installing binaries...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
 
     // Install the binaries
     let binaries = if cfg!(target_os = "windows") {
@@ -385,11 +573,21 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
             while retries > 0 {
                 match fs::copy(&source, &target) {
                     Ok(_) => {
-                        debug!("Successfully installed {} after {} retries", binary, 3 - retries);
+                        debug!(
+                            "Successfully installed {} after {} retries",
+                            binary,
+                            3 - retries
+                        );
                         break;
-                    },
+                    }
                     Err(e) => {
-                        error!("Attempt {} failed to copy {} to {:?}: {}", 4 - retries, binary, target, e);
+                        error!(
+                            "Attempt {} failed to copy {} to {:?}: {}",
+                            4 - retries,
+                            binary,
+                            target,
+                            e
+                        );
                         last_error = Some(e);
                         retries -= 1;
                         std::thread::sleep(std::time::Duration::from_millis(500));
@@ -397,23 +595,32 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
                 }
             }
             if retries == 0 {
-                return Err(format!("Failed to install {} after multiple attempts: {}", 
-                    binary, 
-                    last_error.map(|e| e.to_string()).unwrap_or_else(|| "Unknown error".to_string())
+                return Err(format!(
+                    "Failed to install {} after multiple attempts: {}",
+                    binary,
+                    last_error
+                        .map(|e| e.to_string())
+                        .unwrap_or_else(|| "Unknown error".to_string())
                 ));
             }
         }
 
         #[cfg(not(target_os = "windows"))]
         fs::copy(&source, &target)
-            .map_err(|e| { error!("Failed to copy {} to {:?}: {}", binary, target, e); e })
+            .map_err(|e| {
+                error!("Failed to copy {} to {:?}: {}", binary, target, e);
+                e
+            })
             .map_err(|e| format!("Failed to install {}: {}", binary, e))?;
 
         #[cfg(not(target_os = "windows"))]
         {
             use std::os::unix::fs::PermissionsExt;
             fs::set_permissions(&target, fs::Permissions::from_mode(0o755))
-                .map_err(|e| { error!("Failed to set permissions for {:?}: {}", target, e); e })
+                .map_err(|e| {
+                    error!("Failed to set permissions for {:?}: {}", target, e);
+                    e
+                })
                 .map_err(|e| format!("Failed to set permissions for {}: {}", binary, e))?;
         }
     }
@@ -425,8 +632,11 @@ async fn install_binaries(app: &AppHandle, release: &GithubRelease, location: &I
 /// Opens a URL externally in the user's default browser
 /// This is a workaround for downloading files that would otherwise be loaded in the webview
 pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), String> {
-    info!("[DOWNLOAD HANDLER] Got request to open URL externally: {}", url);
-    
+    info!(
+        "[DOWNLOAD HANDLER] Got request to open URL externally: {}",
+        url
+    );
+
     // Create command based on platform
     let cmd = if cfg!(target_os = "windows") {
         "cmd"
@@ -435,7 +645,7 @@ pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), Strin
     } else {
         "xdg-open"
     };
-    
+
     let args = if cfg!(target_os = "windows") {
         vec!["/c", "start", "", url.as_str()]
     } else if cfg!(target_os = "macos") {
@@ -443,28 +653,35 @@ pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), Strin
     } else {
         vec![url.as_str()]
     };
-    
-    info!("[DOWNLOAD HANDLER] Executing command: {} with args: {:?}", cmd, args);
-    
+
+    info!(
+        "[DOWNLOAD HANDLER] Executing command: {} with args: {:?}",
+        cmd, args
+    );
+
     // Open URL using the standard Rust command for compatibility
-    match std::process::Command::new(cmd)
-        .args(args)
-        .spawn() {
-            Ok(child) => {
-                info!("[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}", child.id());
-                Ok(())
-            },
-            Err(e) => {
-                error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e);
-                Err(format!("Failed to open URL: {}", e))
-            }
+    match std::process::Command::new(cmd).args(args).spawn() {
+        Ok(child) => {
+            info!(
+                "[DOWNLOAD HANDLER] Successfully spawned process with ID: {:?}",
+                child.id()
+            );
+            Ok(())
+        }
+        Err(e) => {
+            error!("[DOWNLOAD HANDLER] Failed to open URL: {}", e);
+            Err(format!("Failed to open URL: {}", e))
+        }
     }
 }
 
 fn backup_current_installation(location: &InstallLocation) -> Result<(), String> {
-    debug!("Creating backup of current installation from {:?}", location.path);
-    let backup_dir = tempfile::tempdir()
-        .map_err(|e| format!("Failed to create backup directory: {}", e))?;
+    debug!(
+        "Creating backup of current installation from {:?}",
+        location.path
+    );
+    let backup_dir =
+        tempfile::tempdir().map_err(|e| format!("Failed to create backup directory: {}", e))?;
 
     let binaries = if cfg!(target_os = "windows") {
         vec!["bb.exe", "bb-api.exe", "bb-bui.exe"]

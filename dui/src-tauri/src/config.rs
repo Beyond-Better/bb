@@ -1,8 +1,8 @@
+use dirs;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use dirs;
-use log::{debug, error};
 
 pub const APP_NAME: &str = "dev.beyondbetter.app";
 
@@ -190,25 +190,19 @@ impl Default for TlsConfig {
 
 impl Default for LlmProviderConfig {
     fn default() -> Self {
-        LlmProviderConfig {
-            api_key: None,
-        }
+        LlmProviderConfig { api_key: None }
     }
 }
 
 impl Default for LlmProviders {
     fn default() -> Self {
-        LlmProviders {
-            anthropic: None,
-        }
+        LlmProviders { anthropic: None }
     }
 }
 
 impl Default for LlmKeys {
     fn default() -> Self {
-        LlmKeys {
-            anthropic: None,
-        }
+        LlmKeys { anthropic: None }
     }
 }
 
@@ -293,9 +287,21 @@ impl Default for GlobalConfig {
             bui: BuiConfig::default(),
             cli: CliConfig::default(),
             dui: DuiConfig::default(),
-            bb_exe_name: if cfg!(target_os = "windows") { "bb.exe".to_string() } else { "bb".to_string() },
-            bb_api_exe_name: if cfg!(target_os = "windows") { "bb-api.exe".to_string() } else { "bb-api".to_string() },
-            bb_bui_exe_name: if cfg!(target_os = "windows") { "bb-bui.exe".to_string() } else { "bb-bui".to_string() },
+            bb_exe_name: if cfg!(target_os = "windows") {
+                "bb.exe".to_string()
+            } else {
+                "bb".to_string()
+            },
+            bb_api_exe_name: if cfg!(target_os = "windows") {
+                "bb-api.exe".to_string()
+            } else {
+                "bb-api".to_string()
+            },
+            bb_bui_exe_name: if cfg!(target_os = "windows") {
+                "bb-bui.exe".to_string()
+            } else {
+                "bb-bui".to_string()
+            },
         }
     }
 }
@@ -339,17 +345,28 @@ pub fn get_default_log_path(filename: &str) -> Option<String> {
 
 pub fn get_global_config_dir() -> Result<PathBuf, std::io::Error> {
     let config_dir = if cfg!(target_os = "windows") {
-        dirs::config_dir().ok_or_else(|| {
-            let err = std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find AppData directory");
-            error!("AppData directory not found");
-            err
-        })?.join("bb")
+        dirs::config_dir()
+            .ok_or_else(|| {
+                let err = std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Could not find AppData directory",
+                );
+                error!("AppData directory not found");
+                err
+            })?
+            .join("bb")
     } else {
-        dirs::home_dir().ok_or_else(|| {
-            let err = std::io::Error::new(std::io::ErrorKind::NotFound, "Could not find home directory");
-            error!("Home directory not found");
-            err
-        })?.join(".config").join("bb")
+        dirs::home_dir()
+            .ok_or_else(|| {
+                let err = std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Could not find home directory",
+                );
+                error!("Home directory not found");
+                err
+            })?
+            .join(".config")
+            .join("bb")
     };
     debug!("Config directory path: {:?}", config_dir);
     Ok(config_dir)
@@ -358,7 +375,7 @@ pub fn get_global_config_dir() -> Result<PathBuf, std::io::Error> {
 pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> {
     let config_dir = get_global_config_dir()?;
     let config_path = config_dir.join("config.yaml");
-    
+
     if !config_dir.exists() {
         debug!("Config directory does not exist: {:?}", config_dir);
         fs::create_dir_all(&config_dir).map_err(|e| {
@@ -366,19 +383,15 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
             e
         })?;
     }
-    
+
     match fs::read_to_string(&config_path) {
-        Ok(contents) => {
-            match serde_yaml::from_str(&contents) {
-                Ok(config) => {
-                    Ok(config)
-                }
-                Err(e) => {
-                    error!("Failed to parse config YAML: {}", e);
-                    Err(Box::new(e))
-                }
+        Ok(contents) => match serde_yaml::from_str(&contents) {
+            Ok(config) => Ok(config),
+            Err(e) => {
+                error!("Failed to parse config YAML: {}", e);
+                Err(Box::new(e))
             }
-        }
+        },
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             debug!("Config file not found, using defaults");
             Ok(GlobalConfig::default())
@@ -398,7 +411,7 @@ pub fn read_global_config() -> Result<GlobalConfig, Box<dyn std::error::Error>> 
 pub fn get_dui_debug_mode() -> bool {
     match read_global_config() {
         Ok(config) => config.dui.debug_mode,
-        Err(_) => false
+        Err(_) => false,
     }
 }
 
@@ -406,22 +419,20 @@ pub fn get_dui_debug_mode() -> bool {
 pub async fn set_dui_debug_mode(debug_mode: bool) -> Result<(), String> {
     let config_dir = get_global_config_dir().map_err(|e| e.to_string())?;
     let config_path = config_dir.join("config.yaml");
-    
+
     let mut config = read_global_config().map_err(|e| e.to_string())?;
     config.dui.debug_mode = debug_mode;
-    
+
     let yaml = serde_yaml::to_string(&config).map_err(|e| e.to_string())?;
     fs::write(config_path, yaml).map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
 
 #[tauri::command]
 pub async fn get_api_config() -> Result<ApiConfig, String> {
     match read_global_config() {
-        Ok(config) => {
-            Ok(config.api)
-        },
+        Ok(config) => Ok(config.api),
         Err(e) => {
             error!("Failed to read config for API config: {}", e);
             Err(format!("Failed to read config: {}", e))
@@ -432,9 +443,7 @@ pub async fn get_api_config() -> Result<ApiConfig, String> {
 #[tauri::command]
 pub async fn get_bui_config() -> Result<BuiConfig, String> {
     match read_global_config() {
-        Ok(config) => {
-            Ok(config.bui)
-        },
+        Ok(config) => Ok(config.bui),
         Err(e) => {
             error!("Failed to read config for BUI config: {}", e);
             Err(format!("Failed to read config: {}", e))
