@@ -33,7 +33,6 @@ function isDisplayResourceResponse(
 	);
 }
 
-
 Deno.test({
 	name: 'DisplayResourceTool - display text resource',
 	async fn() {
@@ -82,7 +81,8 @@ Deno.test({
 				assertEquals(displayResult.contentType, 'text');
 				assertEquals(displayResult.content, testContent);
 				assertEquals(displayResult.metadata.name, testResource);
-				assertEquals(displayResult.metadata.mimeType, 'text/plain; charset=UTF-8');
+				assertEquals(displayResult.metadata.mimeType, 'text/plain');
+				//assertEquals(displayResult.metadata.mimeType, 'text/plain; charset=UTF-8');
 				assert(!displayResult.truncated, 'Content should not be truncated');
 			} else {
 				assert(false, 'bbResponse does not have the expected structure for DisplayResourceTool');
@@ -92,7 +92,8 @@ Deno.test({
 			const content = result.toolResults as string;
 			assertStringIncludes(
 				content,
-				'Resource: test.txt - Size: 13 - MimeType: text/plain; charset=UTF-8 - LastModified:',
+				'Resource: test.txt - Size: 13 - MimeType: text/plain - LastModified:',
+				//'Resource: test.txt - Size: 13 - MimeType: text/plain; charset=UTF-8 - LastModified:',
 			);
 		});
 	},
@@ -230,7 +231,6 @@ Deno.test({
 	sanitizeOps: false,
 });
 
-
 Deno.test({
 	name: 'DisplayResourceTool - resource not found',
 	async fn() {
@@ -256,14 +256,16 @@ Deno.test({
 			// console.log('resource outside project - toolResponse:', result.toolResponse);
 			// console.log('resource outside project - toolResults:', result.toolResults);
 
-			assertStringIncludes(result.toolResponse, 'Failed to display resource. Error: File not found: nonexistent.txt');
+			assertStringIncludes(
+				result.toolResponse,
+				'Failed to display resource. Error: File not found: nonexistent.txt',
+			);
 			assertStringIncludes(String(result.toolResults), 'File not found: nonexistent.txt');
 		});
 	},
 	sanitizeResources: false,
 	sanitizeOps: false,
 });
-
 
 Deno.test({
 	name: 'DisplayResourceTool - resource outside project',
@@ -290,7 +292,10 @@ Deno.test({
 			// console.log('resource outside project - toolResponse:', result.toolResponse);
 			// console.log('resource outside project - toolResults:', result.toolResults);
 
-			assertStringIncludes(result.toolResponse, 'Failed to display resource. Error: File not found: ../outside.txt');
+			assertStringIncludes(
+				result.toolResponse,
+				'Failed to display resource. Error: File not found: ../outside.txt',
+			);
 			assertStringIncludes(
 				String(result.toolResults),
 				'File not found: ../outside.txt',

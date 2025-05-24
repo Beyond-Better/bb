@@ -105,7 +105,9 @@ export const addFile = async (
 		logger.info(`FileHandler: Wrote uploaded file to: ${filePath}`);
 
 		// Determine MIME type and if it's an image
-		const mimeType = isFileObject(file) && 'type' in file ? file.type : (contentType(extname(sanitizedName)) || 'text/plain');
+		const mimeType = isFileObject(file) && 'type' in file
+			? file.type
+			: (contentType(extname(sanitizedName)) || 'text/plain');
 		const isImage = mimeType.startsWith('image/');
 
 		// Create metadata for the file

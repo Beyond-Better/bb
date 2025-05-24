@@ -74,7 +74,9 @@ export function formatLogEntryToolResult(
 
 	const totalResources = data.resourcesMoved.length + data.resourcesError.length;
 	const successCount = data.resourcesMoved.length;
-	const subtitle = `${successCount} of ${totalResources} resource${totalResources === 1 ? '' : 's'} moved to ${data.destination}`;
+	const subtitle = `${successCount} of ${totalResources} resource${
+		totalResources === 1 ? '' : 's'
+	} moved to ${data.destination}`;
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Move Resources'),

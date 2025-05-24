@@ -42,7 +42,7 @@ import type {
 	ResourceWriteOptions,
 	ResourceWriteResult,
 } from 'shared/types/dataSourceResource.ts';
-import type { DataSourceCapability } from 'shared/types/dataSource.ts';
+import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
 /**
  * FilesystemAccessor for accessing filesystem resources
@@ -755,6 +755,384 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				} as FileHandlingErrorOptions,
 			);
 		}
+	}
+
+	/**
+	 * Get metadata about the filesystem data source
+	 * Reuses the same exclude patterns and filtering logic as listResources
+	 * @returns Promise<DataSourceMetadata> Metadata about the filesystem
+	 */
+	async getMetadata(): Promise<DataSourceMetadata> {
+		logger.debug('FilesystemAccessor: Getting metadata for filesystem');
+
+		const metadata: DataSourceMetadata = {
+			totalResources: 0,
+			resourceTypes: {},
+			lastScanned: new Date().toISOString(),
+			filesystem: {
+				totalDirectories: 0,
+				totalFiles: 0,
+				deepestPathDepth: 0,
+				fileExtensions: {},
+			},
+		};
+
+		try {
+			// Get exclude patterns (reuse the same logic as listResources)
+			const excludeOptions = await getExcludeOptions(this.rootPath);
+			const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, this.rootPath);
+
+			// Configure walk options (same as listResources but unlimited depth)
+			const walkOptions: WalkOptions = {
+				maxDepth: Number.POSITIVE_INFINITY, // Scan everything for metadata
+				includeDirs: true,
+				includeSymlinks: false,
+				skip: excludeOptionsRegex, // Use the same exclude patterns
+			};
+
+			// Initialize LLM-critical metadata
+			if (metadata.filesystem) {
+				metadata.filesystem.capabilities = {
+					canRead: true, // We can scan, so we can read
+					canWrite: false, // Will test below
+					canDelete: false, // Will test below
+					canMove: false, // Will test below
+					hasRestrictedAreas: false, // Will detect below
+				};
+
+				metadata.filesystem.contentVisibility = {
+					includesHiddenFiles: true, // Based on our exclude patterns
+					includesDotDirectories: false, // We skip .git, .bb, etc.
+					followsSymlinks: false, // walk options set includeSymlinks: false
+					brokenSymlinkCount: 0,
+					filteredByGitignore: true, // We use getExcludeOptions
+					filteredByBBIgnore: true,
+				};
+
+				metadata.filesystem.practicalLimits = {
+					maxFileSize: 10 * 1024 * 1024, // 10MB reasonable limit for text processing
+					recommendedPageSize: 50, // Good balance for filesystem
+					hasVeryLargeFiles: false, // Will detect below
+				};
+
+				metadata.filesystem.contentAnalysis = {
+					textFileCount: 0,
+					binaryFileCount: 0,
+					likelyEncodingIssues: 0,
+					emptyFileCount: 0,
+				};
+			}
+
+			// Test write capabilities once
+			try {
+				const testPath = join(this.rootPath, '.bb-write-test');
+				await Deno.writeTextFile(testPath, 'test');
+				await Deno.remove(testPath);
+				if (metadata.filesystem?.capabilities) {
+					metadata.filesystem.capabilities.canWrite = true;
+					metadata.filesystem.capabilities.canDelete = true;
+					metadata.filesystem.capabilities.canMove = true;
+				}
+			} catch (error) {
+				// Can't write to root, that's important info for LLM
+				logger.debug(`FilesystemAccessor: Cannot write to root: ${error}`);
+			}
+
+			// Walk the file system and collect metadata
+			for await (const entry of walk(this.rootPath, walkOptions)) {
+				// Get relative path and depth
+				const relativePath = relative(this.rootPath, entry.path);
+				const depth = relativePath === '' ? 0 : relativePath.split('/').length;
+
+				// Update deepest path depth
+				if (depth > (metadata.filesystem?.deepestPathDepth || 0)) {
+					if (metadata.filesystem) {
+						metadata.filesystem.deepestPathDepth = depth;
+					}
+				}
+
+				if (entry.isDirectory) {
+					// Count directories
+					if (metadata.filesystem) {
+						metadata.filesystem.totalDirectories = (metadata.filesystem.totalDirectories || 0) + 1;
+					}
+				} else if (entry.isFile) {
+					// Count files
+					if (metadata.filesystem) {
+						metadata.filesystem.totalFiles = (metadata.filesystem.totalFiles || 0) + 1;
+
+						// Track file extensions
+						const ext = entry.name.includes('.') ? '.' + entry.name.split('.').pop()! : '(no extension)';
+
+						if (!metadata.filesystem.fileExtensions) {
+							metadata.filesystem.fileExtensions = {};
+						}
+						metadata.filesystem.fileExtensions[ext] = (metadata.filesystem.fileExtensions[ext] || 0) + 1;
+
+						// Track file dates and sizes + LLM-critical analysis
+						try {
+							const stat = await Deno.stat(entry.path);
+
+							// Size tracking
+							if (stat.size && stat.size > (metadata.filesystem.largestFileSize || 0)) {
+								metadata.filesystem.largestFileSize = stat.size;
+							}
+
+							// LLM-critical: Detect problematic files
+							if (stat.size === 0 && metadata.filesystem.contentAnalysis) {
+								metadata.filesystem.contentAnalysis.emptyFileCount++;
+							}
+
+							if (stat.size && stat.size > 10 * 1024 * 1024 && metadata.filesystem.practicalLimits) {
+								metadata.filesystem.practicalLimits.hasVeryLargeFiles = true;
+							}
+
+							// Content type analysis (for LLM decision making)
+							const isBinary = this.isBinaryFile(entry.name, ext);
+							if (metadata.filesystem.contentAnalysis) {
+								if (isBinary) {
+									metadata.filesystem.contentAnalysis.binaryFileCount++;
+								} else {
+									metadata.filesystem.contentAnalysis.textFileCount++;
+								}
+							}
+
+							// Date tracking
+							if (stat.mtime) {
+								const fileDate = stat.mtime.toISOString();
+
+								if (
+									!metadata.filesystem.oldestFileDate ||
+									fileDate < metadata.filesystem.oldestFileDate
+								) {
+									metadata.filesystem.oldestFileDate = fileDate;
+								}
+
+								if (
+									!metadata.filesystem.newestFileDate ||
+									fileDate > metadata.filesystem.newestFileDate
+								) {
+									metadata.filesystem.newestFileDate = fileDate;
+								}
+							}
+						} catch (statError) {
+							// Permission denied or other access issue - important for LLM
+							if (metadata.filesystem?.capabilities) {
+								metadata.filesystem.capabilities.hasRestrictedAreas = true;
+							}
+							logger.debug(`FilesystemAccessor: Could not stat file ${entry.path}: ${statError}`);
+						}
+					}
+				}
+			}
+
+			// Set total resources and resource types
+			metadata.totalResources = (metadata.filesystem?.totalFiles || 0) +
+				(metadata.filesystem?.totalDirectories || 0);
+
+			metadata.resourceTypes = {
+				file: metadata.filesystem?.totalFiles || 0,
+				directory: metadata.filesystem?.totalDirectories || 0,
+			};
+
+			logger.debug('FilesystemAccessor: Metadata collection complete', {
+				totalResources: metadata.totalResources,
+				resourceTypes: metadata.resourceTypes,
+				deepestPathDepth: metadata.filesystem?.deepestPathDepth,
+				fileExtensionCount: Object.keys(metadata.filesystem?.fileExtensions || {}).length,
+			});
+		} catch (error) {
+			logger.error(
+				`FilesystemAccessor: Error collecting metadata: ${(error as Error).message}`,
+			);
+			// Return basic metadata even if scan failed
+			metadata.totalResources = 0;
+			metadata.resourceTypes = { file: 0, directory: 0 };
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Format filesystem metadata for display
+	 * @param metadata DataSourceMetadata to format
+	 * @returns Formatted string representation
+	 */
+	override formatMetadata(metadata: DataSourceMetadata): string {
+		const lines: string[] = [];
+
+		if (metadata.totalResources !== undefined) {
+			lines.push(`Total Resources: ${metadata.totalResources}`);
+		}
+
+		if (metadata.resourceTypes && Object.keys(metadata.resourceTypes).length > 0) {
+			lines.push(`Resource Types:`);
+			for (const [type, count] of Object.entries(metadata.resourceTypes)) {
+				lines.push(`  ${type}: ${count}`);
+			}
+		}
+
+		if (metadata.filesystem) {
+			lines.push(`Filesystem Details:`);
+			const fs = metadata.filesystem;
+
+			// LLM-critical capabilities
+			if (fs.capabilities) {
+				lines.push(
+					`  Capabilities: Read=${fs.capabilities.canRead}, Write=${fs.capabilities.canWrite}, Delete=${fs.capabilities.canDelete}`,
+				);
+				if (fs.capabilities.hasRestrictedAreas) {
+					lines.push(`  ⚠️  Has restricted areas (permission denied on some files)`);
+				}
+			}
+
+			// Content visibility (what LLM can/cannot see)
+			if (fs.contentVisibility) {
+				lines.push(
+					`  Visibility: Hidden files=${fs.contentVisibility.includesHiddenFiles}, Follows symlinks=${fs.contentVisibility.followsSymlinks}`,
+				);
+				lines.push(
+					`  Filtering: gitignore=${fs.contentVisibility.filteredByGitignore}, BB ignore=${fs.contentVisibility.filteredByBBIgnore}`,
+				);
+			}
+
+			// Content analysis (critical for LLM processing decisions)
+			if (fs.contentAnalysis) {
+				lines.push(
+					`  Content: ${fs.contentAnalysis.textFileCount} text files, ${fs.contentAnalysis.binaryFileCount} binary files`,
+				);
+				if (fs.contentAnalysis.emptyFileCount > 0) {
+					lines.push(`  Empty files: ${fs.contentAnalysis.emptyFileCount}`);
+				}
+			}
+
+			// Practical limits (helps LLM make informed requests)
+			if (fs.practicalLimits) {
+				lines.push(`  Recommended page size: ${fs.practicalLimits.recommendedPageSize}`);
+				if (fs.practicalLimits.hasVeryLargeFiles) {
+					lines.push(`  ⚠️  Contains very large files (>10MB) - may timeout`);
+				}
+			}
+
+			if (fs.deepestPathDepth !== undefined) {
+				lines.push(`  Directory depth: ${fs.deepestPathDepth}`);
+			}
+
+			if (fs.largestFileSize !== undefined) {
+				lines.push(`  Largest file: ${this.formatFileSize(fs.largestFileSize)}`);
+			}
+
+			if (fs.oldestFileDate && fs.newestFileDate) {
+				lines.push(
+					`  Date range: ${new Date(fs.oldestFileDate).toLocaleDateString()} - ${
+						new Date(fs.newestFileDate).toLocaleDateString()
+					}`,
+				);
+			}
+
+			if (fs.fileExtensions && Object.keys(fs.fileExtensions).length > 0) {
+				lines.push(`  File Extensions:`);
+				// Sort by count (descending) and show top 10
+				const sortedExts = Object.entries(fs.fileExtensions)
+					.sort(([, a]: [string, number], [, b]: [string, number]): number => b - a)
+					.slice(0, 10);
+				for (const [ext, count] of sortedExts) {
+					lines.push(`    ${ext}: ${count}`);
+				}
+				if (Object.keys(fs.fileExtensions).length > 10) {
+					lines.push(`    ... and ${Object.keys(fs.fileExtensions).length - 10} more`);
+				}
+			}
+		}
+
+		if (metadata.lastScanned) {
+			lines.push(`Last Scanned: ${new Date(metadata.lastScanned).toLocaleString()}`);
+		}
+
+		return lines.join('\n');
+	}
+
+	/**
+	 * Format file size in human-readable format
+	 * @param bytes File size in bytes
+	 * @returns Formatted string (e.g., "1.5 MB")
+	 */
+	private formatFileSize(bytes: number): string {
+		if (bytes === 0) return '0 Bytes';
+
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	/**
+	 * Determine if a file is likely binary based on extension and name
+	 * Critical for LLM to know what files it can meaningfully process
+	 * @param filename The name of the file
+	 * @param extension The file extension
+	 * @returns True if likely binary, false if likely text
+	 */
+	private isBinaryFile(filename: string, extension: string): boolean {
+		// Common binary extensions
+		const binaryExtensions = new Set([
+			'.png',
+			'.jpg',
+			'.jpeg',
+			'.gif',
+			'.bmp',
+			'.svg',
+			'.webp',
+			'.ico',
+			'.mp3',
+			'.mp4',
+			'.wav',
+			'.avi',
+			'.mov',
+			'.mkv',
+			'.webm',
+			'.pdf',
+			'.doc',
+			'.docx',
+			'.xls',
+			'.xlsx',
+			'.ppt',
+			'.pptx',
+			'.zip',
+			'.tar',
+			'.gz',
+			'.7z',
+			'.rar',
+			'.exe',
+			'.dll',
+			'.so',
+			'.dylib',
+			'.app',
+			'.wasm',
+			'.bin',
+			'.dat',
+			'.ttf',
+			'.otf',
+			'.woff',
+			'.woff2',
+			'.sqlite',
+			'.db',
+		]);
+
+		// Check extension
+		if (binaryExtensions.has(extension.toLowerCase())) {
+			return true;
+		}
+
+		// Check filename patterns
+		const lowerName = filename.toLowerCase();
+		if (lowerName.includes('binary') || lowerName.includes('.min.') || lowerName.endsWith('.min')) {
+			return true;
+		}
+
+		// Default to text if unknown
+		return false;
 	}
 
 	/**

@@ -18,6 +18,7 @@ import type {
 	ResourceWriteOptions,
 	ResourceWriteResult,
 } from 'shared/types/dataSourceResource.ts';
+import type { DataSourceMetadata } from 'shared/types/dataSource.ts';
 
 /**
  * ResourceAccessor interface
@@ -111,4 +112,19 @@ export interface ResourceAccessor {
 	 * @returns True if the capability is supported, false otherwise
 	 */
 	hasCapability(capability: string): boolean;
+
+	/**
+	 * Get metadata about the data source without loading all resources
+	 * This provides an efficient way to understand the data source structure
+	 * @returns Promise<DataSourceMetadata> Metadata about the data source
+	 */
+	getMetadata(): Promise<DataSourceMetadata>;
+
+	/**
+	 * Format metadata for display to users
+	 * Each accessor knows best how to present its own metadata
+	 * @param metadata The metadata to format
+	 * @returns Formatted string representation
+	 */
+	formatMetadata(metadata: DataSourceMetadata): string;
 }

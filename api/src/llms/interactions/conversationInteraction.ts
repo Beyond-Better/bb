@@ -26,11 +26,11 @@ import { logger } from 'shared/logger.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import type {
+	ResourceForConversation,
 	//ResourceManager,
 	ResourceMetadata,
 	ResourceRevisionMetadata,
 	ResourcesForConversation,
-	ResourceForConversation,
 } from 'shared/types/dataSourceResource.ts';
 import type { ResourceType } from 'api/types.ts';
 //import { GitUtils } from 'shared/git.ts';
@@ -855,6 +855,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			);
 		}
 
+		//logger.info(`ConversationInteraction: converse - using model`, {thisModel: this.model, defaultModelsAgent: this.projectConfig.defaultModels!.agent});
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
 		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);

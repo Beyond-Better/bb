@@ -201,18 +201,22 @@ Leave empty to search only by resource name, date, or size.`,
 			  Searched data sources: [${aggregatedResults.dsConnectionsSearched.join(', ')}]
 			  ${errorSection}
 			  ${aggregatedResults.resources.length} resources match the search criteria: ${searchCriteria}
-			  ${aggregatedResults.resources.length > 0 ? `\n<resources>\n${aggregatedResults.resources.join('\n')}\n</resources>` : ''}
+			  ${
+				aggregatedResults.resources.length > 0
+					? `\n<resources>\n${aggregatedResults.resources.join('\n')}\n</resources>`
+					: ''
+			}
 			`;
 
 			const toolResponse =
 				`${dsConnectionStatus}\nFound ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}`;
 			const bbResponse =
 				`BB found ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}\n${dsConnectionStatus}`;
-					//dataSource: {
-					//	dsConnectionId: dsConnectionToUse.id,
-					//	dsConnectionName: dsConnectionToUse.name,
-					//	dsProviderType: dsConnectionToUse.providerType,
-					//},
+			//dataSource: {
+			//	dsConnectionId: dsConnectionToUse.id,
+			//	dsConnectionName: dsConnectionToUse.name,
+			//	dsProviderType: dsConnectionToUse.providerType,
+			//},
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {

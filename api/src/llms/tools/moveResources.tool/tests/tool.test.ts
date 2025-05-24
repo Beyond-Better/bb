@@ -413,9 +413,15 @@ Deno.test({
 					`Destination 'multi_dest' not found in the result`,
 				);
 				expectedResources.forEach((resource) => {
-					assert(foundResources.some((f) => f === `- ${resource}`), `Resource ${resource} not found in the result`);
+					assert(
+						foundResources.some((f) => f === `- ${resource}`),
+						`Resource ${resource} not found in the result`,
+					);
 				});
-				assert(foundResources.length - 1 === expectedResources.length, 'Number of found resources does not match expected');
+				assert(
+					foundResources.length - 1 === expectedResources.length,
+					'Number of found resources does not match expected',
+				);
 
 				// Check that the resource exists in the destination
 				assert(await exists(join(destDir, 'file1.txt')), 'Source resource exists in destination');
@@ -527,9 +533,15 @@ Deno.test({
 					`Destination 'dest_dir' not found in the result`,
 				);
 				expectedResources.forEach((resource) => {
-					assert(foundResources.some((f) => f === `- ${resource}`), `Resource ${resource} not found in the result`);
+					assert(
+						foundResources.some((f) => f === `- ${resource}`),
+						`Resource ${resource} not found in the result`,
+					);
 				});
-				assert(foundResources.length - 1 === expectedResources.length, 'Number of found resources does not match expected');
+				assert(
+					foundResources.length - 1 === expectedResources.length,
+					'Number of found resources does not match expected',
+				);
 
 				// Check that the resource exists in the destination
 				assert(await exists(join(destDir, 'source_dir', 'file.txt')), 'Source resource exists in destination');

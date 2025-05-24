@@ -387,13 +387,19 @@ Deno.test({
 				);
 
 				if (isRemoveResourcesResponse(result.bbResponse)) {
-					assertEquals(result.bbResponse.data.resourcesRemoved.length, 2, 'Should have 2 successful removals');
+					assertEquals(
+						result.bbResponse.data.resourcesRemoved.length,
+						2,
+						'Should have 2 successful removals',
+					);
 
 					const dirResult = result.bbResponse.data.resourcesRemoved.find((r) => r.name === 'mixed_dir');
 					assert(dirResult, 'Should have result for mixed_dir');
 					assert(dirResult.isDirectory, 'mixed_dir should be marked as directory');
 
-					const resourceResult = result.bbResponse.data.resourcesRemoved.find((r) => r.name === 'single_file.txt');
+					const resourceResult = result.bbResponse.data.resourcesRemoved.find((r) =>
+						r.name === 'single_file.txt'
+					);
 					assert(resourceResult, 'Should have result for single_file.txt');
 					assert(!resourceResult.isDirectory, 'single_file.txt should not be marked as directory');
 				}
@@ -539,9 +545,16 @@ Deno.test({
 				);
 
 				if (isRemoveResourcesResponse(result1.bbResponse)) {
-					assertEquals(result1.bbResponse.data.resourcesRemoved.length, 1, 'Should have 1 successful removal');
+					assertEquals(
+						result1.bbResponse.data.resourcesRemoved.length,
+						1,
+						'Should have 1 successful removal',
+					);
 					const resourcesRemovedResult = result1.bbResponse.data.resourcesRemoved[0];
-					assert(resourcesRemovedResult.destination?.endsWith('collision_1.txt'), 'Should use increment naming');
+					assert(
+						resourcesRemovedResult.destination?.endsWith('collision_1.txt'),
+						'Should use increment naming',
+					);
 				}
 
 				const sourceResource2 = join(testProjectRoot, 'collision.txt');
@@ -571,9 +584,16 @@ Deno.test({
 				// console.log('Increment naming collision (2) - toolResults:', result2.toolResults);
 
 				if (isRemoveResourcesResponse(result2.bbResponse)) {
-					assertEquals(result2.bbResponse.data.resourcesRemoved.length, 1, 'Should have 1 successful removal');
+					assertEquals(
+						result2.bbResponse.data.resourcesRemoved.length,
+						1,
+						'Should have 1 successful removal',
+					);
 					const resourcesRemovedResult = result2.bbResponse.data.resourcesRemoved[0];
-					assert(resourcesRemovedResult.destination?.endsWith('collision_2.txt'), 'Should use next increment');
+					assert(
+						resourcesRemovedResult.destination?.endsWith('collision_2.txt'),
+						'Should use next increment',
+					);
 				}
 
 				// Verify resources in trash
@@ -802,7 +822,10 @@ Deno.test({
 				if (isRemoveResourcesResponse(result.bbResponse)) {
 					assertEquals(result.bbResponse.data.resourcesRemoved.length, 1, 'Should have 1 successful removal');
 					const resourcesRemovedResult = result.bbResponse.data.resourcesRemoved[0];
-					assert(resourcesRemovedResult.destination?.includes('timestamp_'), 'Should include timestamp in name');
+					assert(
+						resourcesRemovedResult.destination?.includes('timestamp_'),
+						'Should include timestamp in name',
+					);
 					assert(
 						/\d{8}_\d{6}/.test(resourcesRemovedResult.destination || ''),
 						'Should have timestamp format YYYYMMDD_HHMMSS',
@@ -993,7 +1016,11 @@ Deno.test({
 				);
 
 				if (isRemoveResourcesResponse(result.bbResponse)) {
-					assertEquals(result.bbResponse.data.resourcesRemoved.length, 3, 'Should have 3 successful removals');
+					assertEquals(
+						result.bbResponse.data.resourcesRemoved.length,
+						3,
+						'Should have 3 successful removals',
+					);
 					assertEquals(result.bbResponse.data.resourcesError.length, 0, 'Should have no errors');
 				}
 

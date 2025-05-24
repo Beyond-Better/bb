@@ -7,6 +7,17 @@ const formatNumber = (num: number, opts: { minimumFractionDigits?: number; maxim
 	return new Intl.NumberFormat('en-US', opts).format(num);
 };
 
+const formatByteSize = (bytes: number, decimals = 2): string => {
+	if (bytes === 0) return '0 Bytes';
+
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	const size = bytes / Math.pow(k, i);
+
+	return `${formatNumber(size, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${sizes[i]}`;
+};
+
 const formatDuration = (ms: number): string => {
 	const seconds = Math.floor(ms / 1000);
 	const minutes = Math.floor(seconds / 60);
@@ -173,18 +184,7 @@ export const TOOL_STYLES_CONSOLE = {
 		number: (value: number, opts: { minimumFractionDigits?: number; maximumFractionDigits?: number } = {}) =>
 			colors.blue(formatNumber(value, opts)),
 		bytes: (value: number, decimals = 1) => {
-			const units = ['B', 'KB', 'MB', 'GB'];
-			let size = value;
-			let unit = 0;
-			while (size >= 1024 && unit < units.length - 1) {
-				size /= 1024;
-				unit++;
-			}
-			return colors.blue(
-				`${formatNumber(size, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${
-					units[unit]
-				}`,
-			);
+			return colors.blue(formatByteSize(value, decimals));
 		},
 		speed: (value: number, unit: string, decimals = 1) =>
 			colors.blue(
@@ -412,7 +412,7 @@ export const createToolNumber = (value: number): JSX.Element => (
 
 export const createToolBytes = (bytes: number, decimals = 1): JSX.Element => (
 	<span className={TOOL_STYLES_BROWSER.content.bytes}>
-		{formatNumber(bytes, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} B
+		{formatByteSize(bytes, decimals)}
 	</span>
 );
 

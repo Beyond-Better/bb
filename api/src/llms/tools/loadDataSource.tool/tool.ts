@@ -28,22 +28,31 @@ export default class LLMToolLoadDatasource extends LLMTool {
 					description:
 						'The name of the data source to retrieve resources from. Data sources are identified by their Name (e.g., "local", "notion-work") and ID (e.g., "xyz123", "mcp-supabase").',
 				},
+				returnType: {
+					type: 'string',
+					enum: ['metadata', 'resources', 'both'],
+					description:
+						'What to return: "metadata" (default) returns data source summary with capabilities and constraints, "resources" returns actual resource list, "both" returns metadata plus sample resources for immediate context.',
+				},
 				path: {
 					type: 'string',
 					description:
-						'Optional path filter to only return resources within a specific directory or matching a pattern.',
+						'Optional path filter to only return resources within a specific directory or matching a pattern. Only used when returnType="resources".',
 				},
 				depth: {
 					type: 'number',
-					description: 'Optional depth for directory traversal. Default is 1 (immediate children only).',
+					description:
+						'Optional depth for directory traversal. Default is 1 (immediate children only). Only used when returnType="resources".',
 				},
 				pageSize: {
 					type: 'number',
-					description: 'Optional maximum number of resources to return per page.',
+					description:
+						'Optional maximum number of resources to return per page. Only used when returnType="resources".',
 				},
 				pageToken: {
 					type: 'string',
-					description: 'Optional token for pagination when retrieving large resource lists.',
+					description:
+						'Optional token for pagination when retrieving large resource lists. Only used when returnType="resources".',
 				},
 			},
 			required: ['dataSourceId'],
@@ -75,6 +84,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		logger.info(`LLMToolLoadDatasource: runTool input: `, { toolInput });
 		const {
 			dataSourceId,
+			returnType = 'metadata',
 			path,
 			depth = 1,
 			pageSize,
@@ -102,6 +112,119 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		}
 
 		try {
+			// Handle metadata return type
+			if (returnType === 'metadata' || returnType === 'both') {
+				// Get the resource accessor to call getMetadata on it
+				const resourceAccessor = await dsConnectionToLoad.getResourceAccessor();
+				const metadata = await resourceAccessor.getMetadata();
+
+				// For 'both' mode, also get a sample of resources
+				let sampleResources;
+				if (returnType === 'both') {
+					// Use recommended page size from metadata or default to 15
+					const sampleSize = metadata.filesystem?.practicalLimits?.recommendedPageSize || 15;
+					const resourcesResult = await resourceAccessor.listResources({
+						path,
+						depth: depth || 1,
+						pageSize: Math.min(sampleSize, 20), // Cap at 20 for 'both' mode
+						pageToken,
+					});
+					sampleResources = resourcesResult;
+				}
+
+				// Generate the result content for metadata
+				const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
+
+				const dsConnectionStatus = notFound.length > 0
+					? `Could not find data source for: [${notFound.join(', ')}]`
+					: `Data source: ${dsConnectionToLoad.id}\nName: ${dsConnectionToLoad.name}\nType: ${dsConnectionToLoad.providerType}`;
+
+				// Add header information
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': dsConnectionStatus,
+				});
+
+				// Format metadata using the accessor's method
+				const metadataText = resourceAccessor.formatMetadata(metadata);
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': `\nMetadata:\n${metadataText}`,
+				});
+
+				// Add sample resources if in 'both' mode
+				if (returnType === 'both' && sampleResources) {
+					const resources = sampleResources.resources;
+					const uriTemplate = sampleResources.uriTemplate ||
+						dsConnectionToLoad.getUriForResource('file:./{path}');
+
+					if (resources.length > 0) {
+						const resourcesWithMetadata = resources.map((r) => {
+							const uriExpression = 'path';
+							let entry = `- ${uriExpression}: "${r.uriTerm || r.uri || r.uriTemplate}"`;
+							if (r.type) entry += `\n  type: "${r.extraType || r.type}"`;
+							if (r.mimeType) entry += `\n  mimeType: "${r.mimeType}"`;
+							if (r.size !== undefined && r.size !== null) entry += `\n  size: ${r.size}`;
+							if (r.description) entry += `\n  description: "${r.description}"`;
+							if (r.lastModified) {
+								const formattedDate = r.lastModified instanceof Date
+									? r.lastModified.toISOString()
+									: r.lastModified;
+								entry += `\n  lastModified: "${formattedDate}"`;
+							}
+							return entry;
+						}).join('\n\n');
+
+						toolResultContentParts.push({
+							'type': 'text',
+							'text': `\nSample Resources (${resources.length} of ${
+								metadata.totalResources || 'unknown'
+							}):\nURI Template: ${uriTemplate}\n<resources>\n${resourcesWithMetadata}\n</resources>`,
+						});
+
+						if (sampleResources.pagination?.nextPageToken) {
+							toolResultContentParts.push({
+								'type': 'text',
+								'text':
+									`\nMore resources available. Use returnType='resources' with pageToken: ${sampleResources.pagination.nextPageToken}`,
+							});
+						}
+					} else {
+						toolResultContentParts.push({
+							'type': 'text',
+							'text': '\nNo resources found in sample.',
+						});
+					}
+				}
+
+				const toolResults = toolResultContentParts;
+				const toolResponse = returnType === 'both'
+					? `Retrieved metadata and sample resources for data source: ${dsConnectionToLoadId}`
+					: `Retrieved metadata for data source: ${dsConnectionToLoadId}`;
+				const bbResponse = {
+					data: {
+						metadata,
+						...(sampleResources && {
+							resources: sampleResources.resources,
+							uriTemplate: sampleResources.uriTemplate,
+							pagination: sampleResources.pagination,
+						}),
+						dataSource: {
+							dsConnectionId: dsConnectionToLoadId,
+							dsConnectionName: dsConnectionToLoad.name,
+							dsProviderType: dsConnectionToLoad.providerType,
+						},
+					},
+				};
+
+				return {
+					toolResults,
+					toolResponse,
+					bbResponse,
+				};
+			}
+
+			// Handle resources return type (existing logic)
 			// Check if data source supports listing
 			if (!dsConnectionToLoad.provider.hasCapability('list')) {
 				throw createError(

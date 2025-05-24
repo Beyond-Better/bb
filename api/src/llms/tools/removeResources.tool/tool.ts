@@ -88,8 +88,7 @@ export default class LLMToolRemoveResources extends LLMTool {
 					resources: {
 						type: 'array',
 						items: { type: 'string' },
-						description:
-							'Must exactly match the resources listed in the sources array, in any order.',
+						description: 'Must exactly match the resources listed in the sources array, in any order.',
 					},
 					hasDirectories: {
 						type: 'boolean',

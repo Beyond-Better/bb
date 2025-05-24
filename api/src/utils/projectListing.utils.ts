@@ -1,4 +1,4 @@
-import { relative, extname } from '@std/path';
+import { extname, relative } from '@std/path';
 import { walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
 import { contentType } from '@std/media-types';

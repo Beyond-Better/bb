@@ -83,7 +83,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 		if (field === 'description') {
 			setIsCustomDescription(true);
 		}
-		setFormData((prev:ClientDataSourceConnection) => {
+		setFormData((prev: ClientDataSourceConnection) => {
 			// If changing the providerType, reset the config
 			if (field === 'providerType' && prev.providerType !== value) {
 				const newDsProvider = dsProviderMap.value.get(value as string) || null;
@@ -114,12 +114,12 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 	const handleConfigChange = (configField: string, value: unknown) => {
 		const newName = configField === 'dataSourceRoot' || configField === 'workspace' ? String(value) : null;
 		if ((!dsConnection || !dsConnection?.name) && newName) {
-			setFormData((prev:ClientDataSourceConnection) => ({
+			setFormData((prev: ClientDataSourceConnection) => ({
 				...prev,
 				name: newName,
 			}));
 		}
-		setFormData((prev:ClientDataSourceConnection) => ({
+		setFormData((prev: ClientDataSourceConnection) => ({
 			...prev,
 			config: {
 				...prev.config,

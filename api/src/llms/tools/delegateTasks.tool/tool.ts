@@ -123,7 +123,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 									'Capabilities required by the agent, which may influence provider and model selection',
 							},
 							requirements: {
-								type: ['string', 'object'],
+								type: ['object', 'string'],
 								description:
 									'Requirements for the task output. If an object, it should be suitable for use as tool input_schema. Used to shape the JSON returned from tool use in the agent. Returned to the Orchestrator.',
 							},

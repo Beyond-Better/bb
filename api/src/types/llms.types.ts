@@ -54,7 +54,7 @@ export const DeepSeekModels = [
 export enum GoogleModel {
 	GOOGLE_GEMINI_1_5_FLASH = 'gemini-1.5-flash',
 	GOOGLE_GEMINI_2_0_FLASH = 'gemini-2.0-flash',
-	GOOGLE_GEMINI_2_5_FLASH = 'gemini-2.5-flash-preview',
+	GOOGLE_GEMINI_2_5_FLASH = 'gemini-2.5-flash-preview-05-20',
 	GOOGLE_GEMINI_2_5_PRO = 'gemini-2.5-pro-preview-05-06',
 	//GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
 }
@@ -345,7 +345,7 @@ export interface Task {
 export interface CompletedTask {
 	//type: string;
 	title: string;
-	status: 'completed' | 'failed';
+	status: 'completed' | 'failed'; // | 'error';
 	result?: string;
 	error?: string;
 }
@@ -358,7 +358,17 @@ export interface ErrorHandlingConfig {
 	continueOnErrorThreshold?: number;
 }
 
-export type ResourceType = 'url' | 'file' | 'directory' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp' | 'workspace' | 'page';
+export type ResourceType =
+	| 'url'
+	| 'file'
+	| 'directory'
+	| 'memory'
+	| 'api'
+	| 'database'
+	| 'vector_search'
+	| 'mcp'
+	| 'workspace'
+	| 'page';
 export interface Resource {
 	type: ResourceType;
 	uri: string;

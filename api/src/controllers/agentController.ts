@@ -22,6 +22,7 @@ import BaseController from './baseController.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import { logger } from 'shared/logger.ts';
+import { errorMessage } from 'shared/error.ts';
 
 // Hard-coded conversation token limit (192k to leave room for 8k response)
 const CONVERSATION_TOKEN_LIMIT = 192000;
@@ -423,11 +424,9 @@ class AgentController extends BaseController {
 								// You can use textContent & thinkingContent here as needed, e.g., add it to a separate array or log it
 							} catch (error) {
 								logger.warn(
-									`AgentController: Error handling tool ${toolUse.toolName}: ${
-										(error as Error).message
-									}`,
+									`AgentController: Error handling tool ${toolUse.toolName}: ${errorMessage(error)}`,
 								);
-								toolResponses.push(`Error with ${toolUse.toolName}: ${(error as Error).message}`);
+								toolResponses.push(`Error with ${toolUse.toolName}: ${errorMessage(error)}`);
 							}
 						}
 					}
@@ -558,16 +557,14 @@ class AgentController extends BaseController {
 					}
 				} catch (error) {
 					logger.error(
-						`AgentController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`,
+						`AgentController: Error in conversation turn ${loopTurnCount}: ${errorMessage(error)}`,
 					);
 					if (loopTurnCount === maxTurns - 1) {
 						throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 					}
 
 					const args = isLLMError(error) ? error.options?.args : null;
-					const errorMessage = args
-						? `${args.reason} - ${(error as Error).message}`
-						: (error as Error).message;
+					const llmErrorMessage = args ? `${args.reason} - ${errorMessage(error)}` : errorMessage(error);
 
 					//const logEntryInteraction = this.logEntryInteraction;
 					const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
@@ -586,7 +583,7 @@ class AgentController extends BaseController {
 								statementTurnCount: interaction.statementTurnCount,
 								conversationTurnCount: interaction.conversationTurnCount,
 							},
-							error: errorMessage,
+							error: llmErrorMessage,
 							code: 'RESPONSE_HANDLING' as const,
 						} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
 					);
@@ -596,9 +593,9 @@ class AgentController extends BaseController {
 						messageResponse: {
 							answerContent: [{
 								type: 'text',
-								text: `Error occurred: ${errorMessage}. Continuing conversation.`,
+								text: `Error occurred: ${llmErrorMessage}. Continuing conversation.`,
 							}],
-							answer: `Error occurred: ${errorMessage}. Continuing conversation.`,
+							answer: `Error occurred: ${llmErrorMessage}. Continuing conversation.`,
 						},
 						messageMeta: {},
 					} as LLMSpeakWithResponse;
@@ -661,12 +658,12 @@ class AgentController extends BaseController {
 			return completedTask;
 		} catch (error) {
 			logger.error(
-				`AgentController: Error in handle task: ${(error as Error).message}`,
+				`AgentController: Error in handle task: ${errorMessage(error)}`,
 			);
 			const completedTask: CompletedTask = {
 				title: task.title,
-				status: 'error',
-				result: `Task '${task.title}' encountered an error:\n${answer}`,
+				status: 'failed',
+				result: `Task '${task.title}' encountered an error:\n${errorMessage(error)}`,
 			};
 			//this.resetStatus(interaction.id);
 			return completedTask;

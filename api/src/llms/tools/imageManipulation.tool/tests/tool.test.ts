@@ -7,10 +7,7 @@ import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 import { errorMessage, isError } from 'shared/error.ts';
 
-import type {
-	LLMAnswerToolUse,
-	LLMMessageContentParts
-} from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import type { LLMToolImageProcessingResultData } from '../types.ts';
 
@@ -648,7 +645,10 @@ Deno.test({
 				String(result.bbResponse),
 				'BB failed to process image. Error: File not found: images/nonexistent.png',
 			);
-			assertStringIncludes(result.toolResponse, 'Failed to process image. Error: File not found: images/nonexistent.png');
+			assertStringIncludes(
+				result.toolResponse,
+				'Failed to process image. Error: File not found: images/nonexistent.png',
+			);
 			assertStringIncludes(String(result.toolResults), '⚠️  File not found: images/nonexistent.png');
 		});
 	},

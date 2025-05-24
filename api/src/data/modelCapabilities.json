@@ -400,6 +400,72 @@
 			"systemPromptBehavior": "optional",
 			"trainingCutoff": "2024-03-01",
 			"responseSpeed": "fast"
+		},
+		"gemini-2.5-flash-preview-05-20": {
+			"displayName": "Gemini Flash 2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000015
+				},
+				"outputTokens": {
+					"basePrice": 0.00000350
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
+			"responseSpeed": "fast"
+		},
+		"gemini-2.5-pro-preview-05-06": {
+			"displayName": "Gemini Pro 2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000250
+				},
+				"outputTokens": {
+					"basePrice": 0.00001500
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
+			"responseSpeed": "fast"
 		}
 	}
 }

@@ -29,7 +29,7 @@ import type {
 } from 'shared/types/dataSourceResource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
-import type { DataSourceCapability } from 'shared/types/dataSource.ts';
+import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
 /**
  * Resource types supported by Notion
@@ -951,6 +951,152 @@ export class NotionAccessor extends BBResourceAccessor {
 				} as FileHandlingErrorOptions,
 			);
 		}
+	}
+
+	/**
+	 * Get metadata about the Notion workspace
+	 * @returns Promise<DataSourceMetadata> Metadata about the Notion workspace
+	 */
+	async getMetadata(): Promise<DataSourceMetadata> {
+		logger.debug('NotionAccessor: Getting metadata for Notion workspace');
+
+		const metadata: DataSourceMetadata = {
+			totalResources: 0,
+			resourceTypes: {},
+			lastScanned: new Date().toISOString(),
+			notion: {
+				totalPages: 0,
+				totalDatabases: 0,
+				pageTypes: {},
+			},
+		};
+
+		try {
+			// Get workspace information
+			try {
+				const botUser = await this.client.getBotUser();
+				if (metadata.notion) {
+					metadata.notion.workspaceInfo = {
+						name: botUser.name || 'Unknown',
+						id: this.workspaceId,
+					};
+				}
+			} catch (error) {
+				logger.warn(`NotionAccessor: Could not get bot user info: ${errorMessage(error)}`);
+			}
+
+			// Search for all resources to count them
+			const searchResults = await this.client.search('', undefined, {
+				direction: 'descending',
+				timestamp: 'last_edited_time',
+			});
+
+			// Count pages and databases
+			for (const result of searchResults.results) {
+				if ('properties' in result) {
+					// This is a page
+					if (metadata.notion) {
+						metadata.notion.totalPages = (metadata.notion.totalPages || 0) + 1;
+
+						// Try to determine page type from parent
+						const page = result as NotionPage;
+						let pageType = 'page';
+						if (page.parent?.type === 'database_id') {
+							pageType = 'database-page';
+						} else if (page.parent?.type === 'page_id') {
+							pageType = 'child-page';
+						}
+
+						if (!metadata.notion.pageTypes) {
+							metadata.notion.pageTypes = {};
+						}
+						metadata.notion.pageTypes[pageType] = (metadata.notion.pageTypes[pageType] || 0) + 1;
+					}
+				} else if ('title' in result) {
+					// This is a database
+					if (metadata.notion) {
+						metadata.notion.totalDatabases = (metadata.notion.totalDatabases || 0) + 1;
+					}
+				}
+			}
+
+			// Set total resources and resource types
+			metadata.totalResources = (metadata.notion?.totalPages || 0) +
+				(metadata.notion?.totalDatabases || 0) + 1; // +1 for workspace
+
+			metadata.resourceTypes = {
+				workspace: 1,
+				page: metadata.notion?.totalPages || 0,
+				database: metadata.notion?.totalDatabases || 0,
+			};
+
+			logger.debug('NotionAccessor: Metadata collection complete', {
+				totalResources: metadata.totalResources,
+				resourceTypes: metadata.resourceTypes,
+				totalPages: metadata.notion?.totalPages,
+				totalDatabases: metadata.notion?.totalDatabases,
+			});
+		} catch (error) {
+			logger.error(
+				`NotionAccessor: Error collecting metadata: ${errorMessage(error)}`,
+			);
+			// Return basic metadata even if collection failed
+			metadata.totalResources = 0;
+			metadata.resourceTypes = { workspace: 1, page: 0, database: 0 };
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Format Notion metadata for display
+	 * @param metadata DataSourceMetadata to format
+	 * @returns Formatted string representation
+	 */
+	override formatMetadata(metadata: DataSourceMetadata): string {
+		const lines: string[] = [];
+
+		if (metadata.totalResources !== undefined) {
+			lines.push(`Total Resources: ${metadata.totalResources}`);
+		}
+
+		if (metadata.resourceTypes && Object.keys(metadata.resourceTypes).length > 0) {
+			lines.push(`Resource Types:`);
+			for (const [type, count] of Object.entries(metadata.resourceTypes)) {
+				lines.push(`  ${type}: ${count}`);
+			}
+		}
+
+		if (metadata.notion) {
+			lines.push(`Notion Details:`);
+			const notion = metadata.notion;
+
+			if (notion.workspaceInfo) {
+				lines.push(`  Workspace: ${notion.workspaceInfo.name || notion.workspaceInfo.id || 'Unknown'}`);
+				lines.push(`  Workspace ID: ${notion.workspaceInfo.id || 'Unknown'}`);
+			}
+
+			if (notion.totalPages !== undefined) {
+				lines.push(`  Total Pages: ${notion.totalPages}`);
+			}
+
+			if (notion.totalDatabases !== undefined) {
+				lines.push(`  Total Databases: ${notion.totalDatabases}`);
+			}
+
+			if (notion.pageTypes && Object.keys(notion.pageTypes).length > 0) {
+				lines.push(`  Page Types:`);
+				for (const [type, count] of Object.entries(notion.pageTypes)) {
+					lines.push(`    ${type}: ${count}`);
+				}
+			}
+		}
+
+		if (metadata.lastScanned) {
+			lines.push(`Last Scanned: ${new Date(metadata.lastScanned).toLocaleString()}`);
+		}
+
+		return lines.join('\n');
 	}
 
 	/**

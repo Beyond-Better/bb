@@ -20,7 +20,7 @@ export enum ErrorType {
 	FileRead = 'FileReadError',
 	FileWrite = 'FileWriteError',
 	FileMove = 'FileMoveError',
-	
+
 	ResourceHandling = 'ResourceHandlingError',
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
@@ -291,7 +291,6 @@ export const isFileWriteError = (value: unknown): value is FileWriteError => {
 export const isFileMoveError = (value: unknown): value is FileMoveError => {
 	return value instanceof FileMoveError;
 };
-
 
 export interface ResourceHandlingErrorOptions extends ErrorOptions {
 	filePath: string;

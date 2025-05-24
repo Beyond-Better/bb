@@ -256,7 +256,9 @@ export default class LLMToolRewriteResource extends LLMTool {
 			} catch (error) {
 				if (error instanceof Deno.errors.NotFound && createIfMissing) {
 					isNewResource = true;
-					logger.info(`LLMToolRewriteResource: Resource ${fullResourcePath} not found. Creating new resource.`);
+					logger.info(
+						`LLMToolRewriteResource: Resource ${fullResourcePath} not found. Creating new resource.`,
+					);
 					// Create missing directories
 					await ensureDir(dirname(fullResourcePath));
 					logger.info(`LLMToolRewriteResource: Created directory structure for ${fullResourcePath}`);

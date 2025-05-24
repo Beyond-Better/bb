@@ -28,7 +28,8 @@ export function formatLogEntryToolUse(
 
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Verified Items:')}
             ${
-			acknowledgement.resources.map((resource) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource)}`).join('\n')
+			acknowledgement.resources.map((resource) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource)}`)
+				.join('\n')
 		}`
 		: '';
 

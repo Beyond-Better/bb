@@ -91,6 +91,7 @@ class BaseController {
 		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
+		//logger.info(`BaseController: init: defaultModels`, {defaultModels: this.projectConfig.defaultModels});
 
 		this.llmProvider = LLMFactory.getProvider(
 			this.getInteractionCallbacks(),

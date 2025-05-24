@@ -6,7 +6,10 @@ import type {
 	ProjectData,
 	ProjectWithSources,
 } from 'shared/types/project.ts';
-import type { DataSourceConnection, DataSourceConnectionValues } from 'api/dataSources/interfaces/dataSourceConnection.ts';
+import type {
+	DataSourceConnection,
+	DataSourceConnectionValues,
+} from 'api/dataSources/interfaces/dataSourceConnection.ts';
 
 /**
  * Helper function to create a config value with source information

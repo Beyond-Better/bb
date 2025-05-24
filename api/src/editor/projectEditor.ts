@@ -341,6 +341,7 @@ class ProjectEditor {
 		await this.initConversation(conversationId);
 		logger.info(
 			`ProjectEditor: Initialized conversation with ID: ${conversationId}, handling statement`,
+			//{options, requestParams}
 		);
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,

@@ -20,7 +20,8 @@ export function ProjectMetadata({
 	const projectId = chatState.value.projectData?.projectId || '.';
 	//const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
-	const projectPath = chatState.value.projectData?.primaryDsConnection?.config?.dataSourceRoot?.toString() || 'default';
+	const projectPath = chatState.value.projectData?.primaryDsConnection?.config?.dataSourceRoot?.toString() ||
+		'default';
 	//projectWithSources?.data?.primaryDsConnection?.config?.dataSourceRoot?.toString() || ''
 
 	return (

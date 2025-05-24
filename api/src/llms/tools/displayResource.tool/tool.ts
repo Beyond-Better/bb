@@ -108,10 +108,10 @@ export default class LLMToolDisplayResource extends LLMTool {
 		try {
 			// //const projectData = projectEditor.projectData;
 			// const resourceManager = projectEditor.resourceManager;
-			// 
+			//
 			// const resourceUri = dsConnectionToUse.getUriForResource(`file:./${resourcePath}`, { resourcePath });
 			// //logger.error(`LLMToolDisplayResource: display resource for: ${resourceUri}`);
-			// 
+			//
 			// const resource = await resourceManager.loadResource(resourceUri);
 
 			// const resourceUri = `file:./${resourcePath}`;

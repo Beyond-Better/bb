@@ -22,7 +22,7 @@ import type {
 	// ResourceDeleteOptions,
 	// ResourceDeleteResult,
 } from 'shared/types/dataSourceResource.ts';
-import type { DataSourceCapability } from 'shared/types/dataSource.ts';
+import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
 /**
  * GenericMCPAccessor for accessing MCP-managed resources
@@ -71,6 +71,17 @@ export class GenericMCPAccessor extends MCPResourceAccessor {
 		//const resourcePath = extractResourcePath(resourceUri);
 		//if (!resourcePath) return false;
 		//const absolutePath = resourcePathToAbsolute(this.rootPath, resourcePath);
+	}
+
+	async getMetadata(): Promise<DataSourceMetadata> {
+		logger.debug('GenericMCPAccessor: Getting metadata for MCP Server (not implemented)');
+
+		const metadata: DataSourceMetadata = {
+			totalResources: 0,
+			resourceTypes: {},
+			lastScanned: new Date().toISOString(),
+		};
+		return metadata;
 	}
 
 	/**

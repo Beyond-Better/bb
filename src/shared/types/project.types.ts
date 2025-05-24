@@ -7,9 +7,9 @@ import {
 } from 'shared/config/types.ts';
 import type {
 	DataSourceAccessMethod,
+	DataSourceCapability,
 	DataSourceProviderInfo,
 	DataSourceProviderType,
-	DataSourceCapability,
 } from 'shared/types/dataSource.ts';
 import type {
 	DataSourceConnection,

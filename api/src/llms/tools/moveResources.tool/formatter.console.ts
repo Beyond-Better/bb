@@ -57,7 +57,11 @@ export function formatLogEntryToolResult(
 	const errorContent = data.resourcesError.length > 0
 		? stripIndents`
         ${LLMTool.TOOL_STYLES_CONSOLE.content.status.failed('Failed to move resources:')}
-        ${data.resourcesError.map((resource) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource)}`).join('\n')}
+        ${
+			data.resourcesError.map((resource) => `  ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource)}`).join(
+				'\n',
+			)
+		}
     `
 		: '';
 
@@ -65,7 +69,9 @@ export function formatLogEntryToolResult(
 
 	const totalResources = data.resourcesMoved.length + data.resourcesError.length;
 	const successCount = data.resourcesMoved.length;
-	const subtitle = `${successCount} of ${totalResources} resource${totalResources === 1 ? '' : 's'} moved to ${data.destination}`;
+	const subtitle = `${successCount} of ${totalResources} resource${
+		totalResources === 1 ? '' : 's'
+	} moved to ${data.destination}`;
 
 	return {
 		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Move Resources'),

@@ -41,7 +41,9 @@ export class NotionProvider extends BBDataSourceProvider {
 	createAccessor(connection: DataSourceConnection): ResourceAccessor {
 		// Verify the connection is for this provider
 		if (connection.providerType !== this.providerType) {
-			throw new Error(`Connection provider ID mismatch: expected ${this.providerType}, got ${connection.providerType}`);
+			throw new Error(
+				`Connection provider ID mismatch: expected ${this.providerType}, got ${connection.providerType}`,
+			);
 		}
 
 		// Auth is validated when creating the dsConnection
@@ -97,17 +99,17 @@ export class NotionProvider extends BBDataSourceProvider {
 	//		logger.warn('NotionProvider: Missing authentication configuration');
 	//		return false;
 	//	}
-//
+	//
 	//	if (auth.method !== 'apiKey') {
 	//		logger.warn(`NotionProvider: Unsupported authentication method: ${auth.method}`);
 	//		return false;
 	//	}
-//
+	//
 	//	if (!auth.apiKey) {
 	//		logger.warn('NotionProvider: Missing API key in authentication configuration');
 	//		return false;
 	//	}
-//
+	//
 	//	return true;
 	//}
 

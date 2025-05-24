@@ -72,7 +72,6 @@ export class FilesystemProvider extends BBDataSourceProvider {
 		return true;
 	}
 
-
 	/**
 	 * Create a filesystem data source with the specified configuration
 	 * @param name Human-readable name for the data source

@@ -79,7 +79,7 @@ export interface DataSourceConnection {
 	 * Get a ResourceAccessor for a data source connection
 	 * @returns A ResourceAccessor instance
 	 */
-	getResourceAccessor(): Promise<ResourceAccessor>
+	getResourceAccessor(): Promise<ResourceAccessor>;
 
 	/**
 	 * Is resource path within the data source - not an exists test, just valid path within data source

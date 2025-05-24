@@ -85,12 +85,12 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		if (suggestionsResponse.hasMore) hasMore = true;
 
 		// Enhance suggestions with data source name
-		const enhancedSuggestions = suggestionsResponse.suggestions.map(file => ({
-		  ...file,
-		  dataSourceName: dsConnection.name
+		const enhancedSuggestions = suggestionsResponse.suggestions.map((file) => ({
+			...file,
+			dataSourceName: dsConnection.name,
 		}));
 		//logger.info('SuggestionPatterns: Suggestions:', { enhancedSuggestions });
-		
+
 		allSuggestions.push(...enhancedSuggestions);
 	}
 

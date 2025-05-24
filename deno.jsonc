@@ -8,7 +8,7 @@
 		"tool:check-types-bui": "deno task -c ./bui/deno.jsonc check-types",
 		"tool:check-types-cli": "deno task -c ./cli/deno.jsonc check-types",
 		"tool:check-types-args": "deno check --all $DENO_ARGS",
-		"tool:test": "deno test --allow-all $DENO_ARGS",
+		"tool:test": "deno test --allow-all --unstable-kv $DENO_ARGS",
 		"tool:test:config": "deno test --allow-read --allow-write --allow-env src/shared/config/tests/",
 		"tool:format": "deno fmt $DENO_ARGS",
 		"tool:run-bui": "deno task -c ./bui/deno.jsonc start",

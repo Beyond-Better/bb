@@ -183,9 +183,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			// Add a delay before cleanup
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -247,9 +253,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -323,9 +335,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -397,9 +415,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -466,9 +490,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -527,9 +557,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -588,9 +624,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -649,9 +691,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -813,9 +861,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -873,9 +927,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -945,9 +1005,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			// Clean up the test resource
 			await Deno.remove(testResourcePath);
@@ -1411,9 +1477,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1468,9 +1540,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			assert(!toolResults.includes('regex_test1.txt'), `This resource contains 'test' but not 'Test'`);
 			assert(!toolResults.includes('regex_test4.txt'), `This resource contains 'test' but not 'Test'`);
@@ -1528,9 +1606,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1583,9 +1667,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1638,9 +1728,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1699,14 +1795,23 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			// Test that all resources are found regardless of depth
 			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
 			assert(Math.min(...depths) === 2, 'Should find resources at minimum depth (deploy/Kubernetes/)');
-			assert(Math.max(...depths) === 4, 'Should find resources at maximum depth (deploy/Kubernetes/overlays/env/)');
+			assert(
+				Math.max(...depths) === 4,
+				'Should find resources at maximum depth (deploy/Kubernetes/overlays/env/)',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1763,9 +1868,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			// Test that resources at different depths are found
 			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
@@ -1774,7 +1885,10 @@ Deno.test({
 
 			// Verify non-matching resources are not included
 			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
-			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include resources without searchProject');
+			assert(
+				!toolResults.includes('tests/project.test.ts'),
+				'Should not include resources without searchProject',
+			);
 		});
 	},
 	sanitizeResources: false,
@@ -1828,9 +1942,15 @@ Deno.test({
 			const foundResources = resourceContent.split('\n');
 
 			expectedResources.forEach((resource) => {
-				assert(foundResources.some((r) => r.endsWith(resource)), `Resource ${resource} not found in the result`);
+				assert(
+					foundResources.some((r) => r.endsWith(resource)),
+					`Resource ${resource} not found in the result`,
+				);
 			});
-			assert(foundResources.length === expectedResources.length, 'Number of found resources does not match expected');
+			assert(
+				foundResources.length === expectedResources.length,
+				'Number of found resources does not match expected',
+			);
 
 			// Test that resources at different depths are found
 			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
@@ -1841,7 +1961,10 @@ Deno.test({
 
 			// Verify non-matching resources are not included
 			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
-			assert(!toolResults.includes('tests/project.test.ts'), 'Should not include resources without searchProject');
+			assert(
+				!toolResults.includes('tests/project.test.ts'),
+				'Should not include resources without searchProject',
+			);
 		});
 	},
 	sanitizeResources: false,

@@ -673,11 +673,11 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 					? `File created and search and replace operations applied successfully to file: ${filePath}`
 					: `Search and replace operations applied successfully to file: ${filePath}`;
 				const bbResponse = `BB applied search and replace operations: ${toolWarning}\n${dsConnectionStatus}`;
-					//dataSource: {
-					//	dsConnectionId: dsConnectionToUse.id,
-					//	dsConnectionName: dsConnectionToUse.name,
-					//	dsProviderType: dsConnectionToUse.providerType,
-					//},
+				//dataSource: {
+				//	dsConnectionId: dsConnectionToUse.id,
+				//	dsConnectionName: dsConnectionToUse.name,
+				//	dsProviderType: dsConnectionToUse.providerType,
+				//},
 
 				return { toolResults, toolResponse, bbResponse };
 			} else {

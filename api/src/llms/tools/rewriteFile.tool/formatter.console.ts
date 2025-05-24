@@ -11,7 +11,9 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 	const contentPreview = content.length > 100 ? content.slice(0, 100) + '...' : content;
 
 	const formattedContent = stripIndents`
-        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Resource:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.filename(resourcePath)}
+        ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Resource:')} ${
+		LLMTool.TOOL_STYLES_CONSOLE.content.filename(resourcePath)
+	}
         ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Expected line count:')} ${
 		LLMTool.TOOL_STYLES_CONSOLE.content.number(expectedLineCount)
 	}

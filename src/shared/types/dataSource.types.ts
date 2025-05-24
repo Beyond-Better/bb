@@ -22,6 +22,56 @@ export interface DataSourceProviderInfo {
 	configFields?: string[]; // For future use
 }
 
+export interface DataSourceMetadata {
+	totalResources: number;
+	resourceTypes: Record<string, number>;
+	lastScanned: string;
+	filesystem?: {
+		totalDirectories: number;
+		totalFiles: number;
+		largestFileSize?: number;
+		deepestPathDepth?: number;
+		fileExtensions?: Record<string, number>;
+		oldestFileDate?: string;
+		newestFileDate?: string;
+		capabilities?: {
+			canRead: boolean; // We can scan, so we can read
+			canWrite: boolean; // Will test below
+			canDelete: boolean; // Will test below
+			canMove: boolean; // Will test below
+			hasRestrictedAreas: boolean; // Will detect below
+		};
+		contentVisibility?: {
+			includesHiddenFiles: boolean; // Based on our exclude patterns
+			includesDotDirectories: boolean; // We skip .git, .bb, etc.
+			followsSymlinks: boolean; // walk options set includeSymlinks: false
+			brokenSymlinkCount: number;
+			filteredByGitignore: boolean; // We use getExcludeOptions
+			filteredByBBIgnore: boolean;
+		};
+		practicalLimits?: {
+			maxFileSize: number; // 10MB reasonable limit for text processing
+			recommendedPageSize: number; // Good balance for filesystem
+			hasVeryLargeFiles: boolean; // Will detect below
+		};
+		contentAnalysis?: {
+			textFileCount: number;
+			binaryFileCount: number;
+			likelyEncodingIssues: number;
+			emptyFileCount: number;
+		};
+	};
+	notion?: {
+		totalPages: number;
+		totalDatabases: number;
+		pageTypes: Record<string, number>;
+		workspaceInfo?: {
+			name: string;
+			id: string;
+		};
+	};
+}
+
 /**
  * Access method for data sources - critical architectural distinction
  * How BB accesses the data source

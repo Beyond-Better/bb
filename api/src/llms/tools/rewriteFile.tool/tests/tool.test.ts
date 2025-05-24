@@ -105,7 +105,11 @@ Deno.test({
 						'Test response lineCount should be 1',
 					);
 
-					assertEquals(result.bbResponse.data.isNewResource, false, 'Test response isNewResource should be false');
+					assertEquals(
+						result.bbResponse.data.isNewResource,
+						false,
+						'Test response isNewResource should be false',
+					);
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -193,7 +197,11 @@ Deno.test({
 						'Test response lineCount should be 1',
 					);
 
-					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
+					assertEquals(
+						result.bbResponse.data.isNewResource,
+						true,
+						'Test response isNewResource should be true',
+					);
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -206,7 +214,10 @@ Deno.test({
 
 				assertStringIncludes(result.toolResponse, 'Created new-test.txt with 1 lines of content');
 				if (isString(result.toolResults)) {
-					assertStringIncludes(result.toolResults, 'Resource new-test.txt created with new contents (1 lines)');
+					assertStringIncludes(
+						result.toolResults,
+						'Resource new-test.txt created with new contents (1 lines)',
+					);
 				} else {
 					assert(false, 'toolResults is not a string as expected');
 				}
@@ -327,7 +338,11 @@ Deno.test({
 						'Test response lineCount should be 0',
 					);
 
-					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
+					assertEquals(
+						result.bbResponse.data.isNewResource,
+						true,
+						'Test response isNewResource should be true',
+					);
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,
@@ -378,7 +393,11 @@ Deno.test({
 						'Test response lineCount should be 0',
 					);
 
-					assertEquals(result2.bbResponse.data.isNewResource, false, 'Test response isNewResource should be false');
+					assertEquals(
+						result2.bbResponse.data.isNewResource,
+						false,
+						'Test response isNewResource should be false',
+					);
 
 					assertEquals(
 						result2.bbResponse.data.lineCountError,
@@ -475,7 +494,11 @@ Deno.test({
 						'Test response lineCount should be 3',
 					);
 
-					assertEquals(result.bbResponse.data.isNewResource, true, 'Test response isNewResource should be true');
+					assertEquals(
+						result.bbResponse.data.isNewResource,
+						true,
+						'Test response isNewResource should be true',
+					);
 
 					assertEquals(
 						result.bbResponse.data.lineCountError,

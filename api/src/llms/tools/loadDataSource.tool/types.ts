@@ -1,6 +1,6 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { PaginationInfo, ResourceMetadata } from 'shared/types/dataSourceResource.ts';
-import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
+import type { DataSourceMetadata, DataSourceProviderType } from 'shared/types/dataSource.ts';
 
 export interface LLMToolLoadDatasourceInput {
 	dataSourceId: string;
@@ -9,12 +9,19 @@ export interface LLMToolLoadDatasourceInput {
 	depth?: number;
 	pageSize?: number;
 	pageToken?: string;
+	/**
+	 * What to return: 'metadata' (default) returns data source summary,
+	 * 'resources' returns the actual resource list,
+	 * 'both' returns metadata plus a sample of resources
+	 */
+	returnType?: 'metadata' | 'resources' | 'both';
 }
 
 export interface LLMToolLoadDatasourceResponseData {
 	data: {
-		resources: ResourceMetadata[];
-		uriTemplate: string;
+		resources?: ResourceMetadata[]; // Only present when returnType='resources'
+		metadata?: DataSourceMetadata; // Only present when returnType='metadata'
+		uriTemplate?: string;
 		pagination?: PaginationInfo;
 
 		dataSource: {

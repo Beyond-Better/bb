@@ -94,7 +94,11 @@ abstract class LLMTool {
 	getDsConnectionsById(
 		projectEditor: ProjectEditor,
 		dataSourceIds?: Array<string>,
-	): { primaryDsConnection: DataSourceConnection | undefined; dsConnections: DataSourceConnection[]; notFound: string[] } {
+	): {
+		primaryDsConnection: DataSourceConnection | undefined;
+		dsConnections: DataSourceConnection[];
+		notFound: string[];
+	} {
 		logger.info(`LLMTool: getDsConnections for:`, { dataSourceIds });
 		const primaryDsConnection = projectEditor.projectData.getPrimaryDsConnection();
 		//logger.info(`LLMTool: getDsConnections`, { primaryDsConnection });

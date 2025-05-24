@@ -149,12 +149,11 @@ for (const signal of signals) {
 	Deno.addSignalListener(signal, cleanup);
 }
 
-addEventListener("unhandledrejection", (event) => {
-  logger.error("APIEventLoop: Unhandled Promise Rejection at:", event.promise, "reason:", event.reason);
-  // Optionally prevent default behavior (though this doesn't stop the error)
-  event.preventDefault();
+addEventListener('unhandledrejection', (event) => {
+	logger.error('APIEventLoop: Unhandled Promise Rejection at:', event.promise, 'reason:', event.reason);
+	// Optionally prevent default behavior (though this doesn't stop the error)
+	event.preventDefault();
 });
-
 
 if (import.meta.main) {
 	let listenOpts: ListenOptions = { hostname: customHostname, port: customPort };

@@ -14,9 +14,8 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
 		<>
 			<div>
-				{LLMTool.TOOL_TAGS_BROWSER.base.label('Resource:')} {LLMTool.TOOL_TAGS_BROWSER.content.filename(resourcePath)}
-				{' '}
-				({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
+				{LLMTool.TOOL_TAGS_BROWSER.base.label('Resource:')}{' '}
+				{LLMTool.TOOL_TAGS_BROWSER.content.filename(resourcePath)} ({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 					createIfMissing ?? false,
 					"create new resource/don't create new resource",
 				)})

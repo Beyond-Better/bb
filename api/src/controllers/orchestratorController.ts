@@ -345,6 +345,7 @@ class OrchestratorController extends BaseController {
 
 			const speakOptions: LLMSpeakWithOptions = {
 				...requestParams,
+				//model: this.projectConfig?.defaultModels?.orchestrator
 				// //temperature: 0.7,
 				// //maxTokens: 1000,
 				// extendedThinking: this.projectConfig.api?.extendedThinking ?? {
@@ -354,7 +355,7 @@ class OrchestratorController extends BaseController {
 			};
 			//logger.info(`OrchestratorController: Calling conversation.converse with speakOptions: `, speakOptions);
 			logger.info(
-				`OrchestratorController: Calling conversation.converse using model ${speakOptions.model} - MaxTokens: ${speakOptions.maxTokens} - ExtendedThinking: ${speakOptions.extendedThinking.enabled} [${speakOptions.extendedThinking.budgetTokens}]`,
+				`OrchestratorController: Calling conversation.converse using model ${speakOptions.model} - MaxTokens: ${speakOptions.maxTokens} - ExtendedThinking: ${speakOptions.extendedThinking?.enabled} [${speakOptions.extendedThinking?.budgetTokens}]`,
 			);
 
 			let currentResponse: LLMSpeakWithResponse | null = null;

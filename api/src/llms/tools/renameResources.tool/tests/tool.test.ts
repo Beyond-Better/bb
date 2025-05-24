@@ -107,7 +107,11 @@ Deno.test({
 				// Check that the resource was renamed
 				assert(!(await exists(sourceResource)), 'Source resource should not exist');
 				assert(await exists(destResource), 'Destination resource should exist');
-				assertEquals(await Deno.readTextFile(destResource), 'test content', 'Resource content should be preserved');
+				assertEquals(
+					await Deno.readTextFile(destResource),
+					'test content',
+					'Resource content should be preserved',
+				);
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -192,7 +196,11 @@ Deno.test({
 
 				assert(!(await exists(sourceResource)), 'Source resource should not exist');
 				assert(await exists(destResource), 'Destination resource should exist');
-				assertEquals(await Deno.readTextFile(destResource), 'test content', 'Resource content should be preserved');
+				assertEquals(
+					await Deno.readTextFile(destResource),
+					'test content',
+					'Resource content should be preserved',
+				);
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -387,8 +395,16 @@ Deno.test({
 				assert(!(await exists(sourceResource2)), 'Source resource 2 should not exist');
 				assert(await exists(destResource1), 'Destination resource 1 should exist');
 				assert(await exists(destResource2), 'Destination resource 2 should exist');
-				assertEquals(await Deno.readTextFile(destResource1), 'content1', 'Resource 1 content should be preserved');
-				assertEquals(await Deno.readTextFile(destResource2), 'content2', 'Resource 2 content should be preserved');
+				assertEquals(
+					await Deno.readTextFile(destResource1),
+					'content1',
+					'Resource 1 content should be preserved',
+				);
+				assertEquals(
+					await Deno.readTextFile(destResource2),
+					'content2',
+					'Resource 2 content should be preserved',
+				);
 			} finally {
 				logChangeAndCommitStub.restore();
 			}

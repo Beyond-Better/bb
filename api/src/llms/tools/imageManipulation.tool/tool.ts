@@ -18,7 +18,12 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions, ResourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
+import type {
+	DataSourceHandlingErrorOptions,
+	FileHandlingErrorOptions,
+	ResourceHandlingErrorOptions,
+	ToolHandlingErrorOptions,
+} from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { encodeBase64 } from '@std/encoding';
 import { extname, join } from '@std/path';
@@ -319,9 +324,8 @@ Example:
 				} as ToolHandlingErrorOptions);
 			}
 
-
 			// Handled by writeResource
-			/* 
+			/*
 			// Check if output file exists and whether we should overwrite
 			const resourceExists = await dsConnectionToUse.resourceExists(outputResourceUri, { isFile: true });
 			if (resourceExists && !overwrite) {
@@ -353,7 +357,6 @@ Example:
 				}
 				imageData = new Uint8Array(await response.arrayBuffer());
 			} else {
-
 				if (!await dsConnectionToUse.isResourceWithinDataSource(inputResourceUri)) {
 					throw createError(
 						ErrorType.FileHandling,
@@ -408,7 +411,6 @@ Example:
 			logger.info(
 				`LLMToolImageProcessing: Wrote ${results.bytesWritten} bytes for processed image: ${results.uri}`,
 			);
-
 
 			// Create a thumbnail of the result to display in the conversation
 			const thumbnailData = processedData;

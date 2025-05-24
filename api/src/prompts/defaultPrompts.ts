@@ -119,7 +119,7 @@ function formatDsConnections(dsConnections: DataSourceConnection[]): string {
  * @returns Formatted string representation of data source connections
  */
 async function getGuidelinesContent(
-	guidelinesPath: string | undefined,
+	guidelinesPath: string,
 	dsConnections: DataSourceConnection[],
 ): Promise<string> {
 	logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath}`);
@@ -139,7 +139,9 @@ async function getGuidelinesContent(
 			try {
 				// Construct the resource URI
 				const resourceUri = dsConnection.getUriForResource(`file:./${guidelinesPath}`);
-				logger.info(`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name} using ${resourceUri}`);
+				logger.info(
+					`DefaultPrompts: Loading guidelines for ${guidelinesPath} from data source ${dsConnection.name} using ${resourceUri}`,
+				);
 
 				// Check if resource is within this data source
 				if (await dsConnection.isResourceWithinDataSource(resourceUri)) {
@@ -195,7 +197,7 @@ export const system: Prompt<SystemPromptVariables> = {
 		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
 
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
-		const guidelines = await getGuidelinesContent(guidelinesPath, dsConnections);
+		const guidelines = guidelinesPath ? await getGuidelinesContent(guidelinesPath, dsConnections) : null;
 
 		const myPersonsName = globalConfig.myPersonsName;
 		const myAssistantsName = globalConfig.myAssistantsName;
@@ -469,7 +471,7 @@ export const system_task: Prompt<SystemPromptVariables> = {
 		const dsConnections = await interaction.llm.invoke(LLMCallbackType.PROJECT_DATA_SOURCES);
 
 		const guidelinesPath = projectConfig.llmGuidelinesFile;
-		const guidelines = await getGuidelinesContent(guidelinesPath, dsConnections);
+		const guidelines = guidelinesPath ? await getGuidelinesContent(guidelinesPath, dsConnections) : null;
 
 		const myPersonsName = globalConfig.myPersonsName;
 		const myAssistantsName = globalConfig.myAssistantsName;

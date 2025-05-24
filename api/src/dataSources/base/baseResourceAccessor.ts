@@ -5,7 +5,7 @@
 import { logger } from 'shared/logger.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
-import type { DataSourceAccessMethod } from 'shared/types/dataSource.ts';
+import type { DataSourceAccessMethod, DataSourceMetadata } from 'shared/types/dataSource.ts';
 import type {
 	ResourceListOptions,
 	ResourceListResult,
@@ -62,4 +62,32 @@ export abstract class BaseResourceAccessor implements ResourceAccessor {
 
 	abstract loadResource(resourceUri: string, options?: ResourceLoadOptions): Promise<ResourceLoadResult>;
 	abstract listResources(options?: ResourceListOptions): Promise<ResourceListResult>;
+	abstract getMetadata(): Promise<DataSourceMetadata>;
+
+	/**
+	 * Format metadata for display - provides a basic implementation
+	 * Subclasses can override for provider-specific formatting
+	 * @param metadata The metadata to format
+	 * @returns Formatted string representation
+	 */
+	formatMetadata(metadata: DataSourceMetadata): string {
+		const lines: string[] = [];
+
+		if (metadata.totalResources !== undefined) {
+			lines.push(`Total Resources: ${metadata.totalResources}`);
+		}
+
+		if (metadata.resourceTypes && Object.keys(metadata.resourceTypes).length > 0) {
+			lines.push(`Resource Types:`);
+			for (const [type, count] of Object.entries(metadata.resourceTypes)) {
+				lines.push(`  ${type}: ${count}`);
+			}
+		}
+
+		if (metadata.lastScanned) {
+			lines.push(`Last Scanned: ${new Date(metadata.lastScanned).toLocaleString()}`);
+		}
+
+		return lines.join('\n');
+	}
 }

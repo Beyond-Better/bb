@@ -14,13 +14,13 @@ import { logger } from 'shared/logger.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import type {
 	LLMCallbacks,
+	//LLMExtendedThinkingOptions,
+	LLMMessageStop,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
 	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
-	//LLMExtendedThinkingOptions,
-	LLMMessageStop,
 } from 'api/types.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
@@ -385,7 +385,7 @@ class AnthropicLLM extends LLM {
 				}
 				: {}),
 		};
-		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', {maxTokens, model});
+		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', { maxTokens, model });
 		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', JSON.stringify(providerMessageRequest.messages));
 		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);
@@ -654,7 +654,9 @@ class AnthropicLLM extends LLM {
 					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response is using a tool`);
 					break;
 				case 'refusal':
-					logger.warn(`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`);
+					logger.warn(
+						`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`,
+					);
 					break;
 				default:
 					logger.info(
