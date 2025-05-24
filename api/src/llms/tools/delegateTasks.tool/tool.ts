@@ -87,6 +87,12 @@ export default class LLMToolDelegateTasks extends LLMTool {
 								description:
 									'Background information needed to complete the task, included in the system prompt for the agent',
 							},
+							dataSources: {
+								type: 'array',
+								items: { type: 'string' },
+								description:
+									"Array of data source names to operate on. Defaults to the primary data source if omitted. Specify ['all'] to operate on all available data sources. Examples: ['primary'], ['filesystem-1', 'db-staging'], ['all']. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+							},
 							instructions: {
 								type: 'string',
 								description: 'Detailed instructions for the task, provided by you as the orchestrator',
@@ -117,7 +123,7 @@ export default class LLMToolDelegateTasks extends LLMTool {
 									'Capabilities required by the agent, which may influence provider and model selection',
 							},
 							requirements: {
-								type: ['string', 'object'],
+								type: ['object', 'string'],
 								description:
 									'Requirements for the task output. If an object, it should be suitable for use as tool input_schema. Used to shape the JSON returned from tool use in the agent. Returned to the Orchestrator.',
 							},

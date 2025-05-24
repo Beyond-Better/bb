@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
 import { RouteConfig } from '$fresh/server.ts';
 import { Partial } from '$fresh/runtime.ts';
-import { SettingsMetadata } from '../../../islands/metadata/index.ts';
-import Settings from '../../../islands/Settings.tsx';
+import { AppSettingsMetadata } from '../../../islands/metadata/index.ts';
+import AppSettings from '../../../islands/AppSettings.tsx';
 
 // Skip the app wrapper since we're rendering inside a Partial
 export const config: RouteConfig = {
@@ -14,13 +14,13 @@ export const config: RouteConfig = {
 const categoryState = signal<string>('General');
 const descriptionState = signal<string>('Manage your preferences and customize BB');
 
-export default function SettingsPartial() {
+export default function AppSettingsPartial() {
 	return (
 		<Partial name='page-content'>
 			<div class='flex flex-col flex-1'>
 				{/* Metadata Bar */}
 				<div class='border-b border-gray-200 dark:border-gray-700 px-4 py-2'>
-					<SettingsMetadata
+					<AppSettingsMetadata
 						category={categoryState.value}
 						description={descriptionState.value}
 					/>
@@ -28,7 +28,7 @@ export default function SettingsPartial() {
 
 				{/* Main content */}
 				<div class='flex-1 flex flex-col overflow-hidden'>
-					<Settings />
+					<AppSettings />
 				</div>
 			</div>
 		</Partial>

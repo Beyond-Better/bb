@@ -1,7 +1,7 @@
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
-import type { ApiConfig } from 'shared/config/v2/types.ts';
+import type { ApiConfig } from 'shared/config/types.ts';
 
 export default class ApiClient {
 	private baseUrl: string;
@@ -24,15 +24,13 @@ export default class ApiClient {
 		port?: number,
 		useTls?: boolean,
 	): Promise<ApiClient> {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 		let apiConfig: ApiConfig;
 		if (projectId) {
 			await configManager.ensureLatestProjectConfig(projectId);
 			const projectConfig = await configManager.getProjectConfig(projectId);
-			// we don't need to check projectConfig.useProjectApi here since caller
-			// is responsible for that; if we've got a projectId, we're using projectConfig
-			apiConfig = projectConfig.settings.api as ApiConfig || globalConfig.api;
+			apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 		} else {
 			apiConfig = globalConfig.api;
 		}

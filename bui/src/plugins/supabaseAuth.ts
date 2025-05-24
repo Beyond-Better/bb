@@ -2,7 +2,7 @@ import type { FreshContext, Plugin } from '$fresh/server.ts';
 //import { Session, User } from '@supabase/supabase-js';
 //import { type AuthState } from '../types/auth.ts';
 import { initializeAuthState, useAuthState } from '../hooks/useAuthStateSupabase.ts';
-import { type BuiConfig } from 'shared/config/v2/types.ts';
+import { type BuiConfig } from 'shared/config/types.ts';
 
 export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
 	//console.log('supabaseAuthPlugin: Auth system config:', buiConfig);

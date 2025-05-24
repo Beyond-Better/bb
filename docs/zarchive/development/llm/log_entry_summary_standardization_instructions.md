@@ -38,7 +38,7 @@ export interface LLMToolToolNameResult {
     bbResponse: {
         // Example fields (will be different for each tool):
         data: {
-            changedFiles: string[];
+            changedResources: string[];
             errorMessages?: string[];
         };
     };

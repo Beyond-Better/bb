@@ -1,0 +1,8 @@
+{
+	"name": "move_resources",
+	"description": "Move one or more resources to a new location within the data source. Preserves resource names while changing location. For renaming resources, use rename_resources instead. Consider impact on imports and references when moving resources between directories or paths. When no data source is specified, operates on the primary data source.",
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT",
+	"mutates": true
+}

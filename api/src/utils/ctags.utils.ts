@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { exists } from '@std/fs';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import { getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import { countTokens } from 'anthropic-tokenizer';
 //import { contentType } from '@std/media-types';
@@ -65,16 +65,16 @@ const FILE_LISTING_TIERS = [
  */
 
 async function generateCtagsTier(
-	projectRoot: string,
+	workingRoot: string,
 	ctagsFilePath: string,
 	tier: number,
 	tokenLimit: number,
 ): Promise<boolean> {
-	const excludeOptions = await getExcludeOptions(projectRoot);
+	const excludeOptions = await getExcludeOptions(workingRoot);
 
 	const command = new Deno.Command('ctags', {
 		args: [...TIERS[tier].args, '-f', ctagsFilePath, ...excludeOptions, '.'],
-		cwd: projectRoot,
+		cwd: workingRoot,
 	});
 
 	try {
@@ -94,11 +94,11 @@ async function generateCtagsTier(
 	}
 }
 
-async function getExcludeOptions(projectRoot: string): Promise<string[]> {
+async function getExcludeOptions(workingRoot: string): Promise<string[]> {
 	const excludeFiles = [
-		join(projectRoot, 'tags.ignore'),
-		join(projectRoot, '.gitignore'),
-		join(projectRoot, '.bb', 'tags.ignore'),
+		join(workingRoot, 'tags.ignore'),
+		join(workingRoot, '.gitignore'),
+		join(workingRoot, '.bb', 'tags.ignore'),
 	];
 
 	const excludeOptions = [];
@@ -116,10 +116,10 @@ async function getExcludeOptions(projectRoot: string): Promise<string[]> {
 }
 
 export async function generateCtags(bbDir: string, projectId: string): Promise<string | null> {
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	const repoInfoConfig = projectConfig.repoInfo;
-	const projectRoot = await getProjectRootFromStartDir(bbDir);
+	const workingRoot = await getWorkingRootFromStartDir(bbDir);
 
 	if (repoInfoConfig?.ctagsAutoGenerate === false) {
 		logger.info('Ctags auto-generation is disabled');
@@ -132,7 +132,7 @@ export async function generateCtags(bbDir: string, projectId: string): Promise<s
 
 	for (let tier = 0; tier < TIERS.length; tier++) {
 		logger.info(`Attempting to generate ctags with tier ${tier}`);
-		if (await generateCtagsTier(projectRoot, ctagsFilePath, tier, tokenLimit)) {
+		if (await generateCtagsTier(workingRoot, ctagsFilePath, tier, tokenLimit)) {
 			logger.info(`Ctags file generated successfully at ${ctagsFilePath} using tier ${tier}`);
 			return await Deno.readTextFile(ctagsFilePath);
 		}
@@ -143,7 +143,7 @@ export async function generateCtags(bbDir: string, projectId: string): Promise<s
 }
 
 export async function readCtagsFile(bbDir: string, projectId: string): Promise<string | null> {
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	const repoInfoConfig = projectConfig.repoInfo;
 

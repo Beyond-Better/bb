@@ -27,7 +27,7 @@ import LLMMessage from 'api/llms/llmMessage.ts';
 Deno.test({
 	name: 'ConversationPersistence - Token usage integration initialization',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
@@ -42,110 +42,108 @@ Deno.test({
 			const records = await interaction.conversationPersistence.getTokenUsage('conversation');
 			assertEquals(records.length, 0, 'Should start with no records');
 		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
 
-		Deno.test({
-			name: 'ConversationPersistence - Token usage persistence across sessions',
-			fn: async () => {
-				await withTestProject(async (testProjectId, testProjectRoot) => {
-					const projectEditor = await getProjectEditor(testProjectId);
-					const conversationId = 'persistence-test-conversation';
+Deno.test({
+	name: 'ConversationPersistence - Token usage persistence across sessions',
+	fn: async () => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+			const conversationId = 'persistence-test-conversation';
 
-					// First session
-					let interaction = await createTestInteraction(conversationId, projectEditor);
+			// First session
+			let interaction = await createTestInteraction(conversationId, projectEditor);
 
-					// Create and save some records
-					const records = createMockTokenUsageRecordSequence(3, {
-						startMessageId: 'session1',
-						type: 'conversation',
-					});
+			// Create and save some records
+			const records = createMockTokenUsageRecordSequence(3, {
+				startMessageId: 'session1',
+				type: 'conversation',
+			});
 
-					// Save records in first session
-					for (const record of records) {
-						await interaction.conversationPersistence.writeTokenUsage(record, 'conversation');
-					}
+			// Save records in first session
+			for (const record of records) {
+				await interaction.conversationPersistence.writeTokenUsage(record, 'conversation');
+			}
 
-					// Create a message and save the conversation
-					const message = new LLMMessage('assistant', [{ type: 'text', text: 'Session 1 message' }], {
-						statementCount: 1,
-						statementTurnCount: 1,
-						conversationTurnCount: 1,
-					});
-					interaction.addMessage(message);
-					await interaction.conversationPersistence.saveConversation(interaction);
+			// Create a message and save the conversation
+			const message = new LLMMessage('assistant', [{ type: 'text', text: 'Session 1 message' }], {
+				statementCount: 1,
+				statementTurnCount: 1,
+				conversationTurnCount: 1,
+			});
+			interaction.addMessage(message);
+			await interaction.conversationPersistence.saveConversation(interaction);
 
-					// Second session with same conversation ID
-					interaction = await createTestInteraction(conversationId, projectEditor);
+			// Second session with same conversation ID
+			interaction = await createTestInteraction(conversationId, projectEditor);
 
-					// Verify records persisted
-					const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
-					assertEquals(
-						savedRecords.length,
-						records.length,
-						'Should have same number of records across sessions',
-					);
+			// Verify records persisted
+			const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
+			assertEquals(
+				savedRecords.length,
+				records.length,
+				'Should have same number of records across sessions',
+			);
 
-					// Verify record content
-					for (let i = 0; i < records.length; i++) {
-						assertEquals(savedRecords[i].messageId, records[i].messageId, 'Record messageIds should match');
-						assertEquals(savedRecords[i].type, records[i].type, 'Record types should match');
-					}
-				});
-			},
-			sanitizeResources: false,
-			sanitizeOps: false,
+			// Verify record content
+			for (let i = 0; i < records.length; i++) {
+				assertEquals(savedRecords[i].messageId, records[i].messageId, 'Record messageIds should match');
+				assertEquals(savedRecords[i].type, records[i].type, 'Record types should match');
+			}
 		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
 
-		Deno.test({
-			name: 'ConversationPersistence - Handle concurrent token usage writes',
-			fn: async () => {
-				await withTestProject(async (testProjectId, testProjectRoot) => {
-					const projectEditor = await getProjectEditor(testProjectId);
-					const interaction = await createTestInteraction('concurrent-writes', projectEditor);
+Deno.test({
+	name: 'ConversationPersistence - Handle concurrent token usage writes',
+	fn: async () => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+			const interaction = await createTestInteraction('concurrent-writes', projectEditor);
 
-					// Create records with same messageId but different content
-					const baseRecord = createMockTokenUsageRecord('assistant', 'conversation', {
-						messageId: 'concurrent-message',
-						inputTokens: 100,
-						outputTokens: 50,
-					});
+			// Create records with same messageId but different content
+			const baseRecord = createMockTokenUsageRecord('assistant', 'conversation', {
+				messageId: 'concurrent-message',
+				inputTokens: 100,
+				outputTokens: 50,
+			});
 
-					const records = Array.from({ length: 5 }, (_, i) => ({
-						...baseRecord,
-						timestamp: new Date(Date.now() + i * 1000).toISOString(), // Stagger timestamps
-						rawUsage: {
-							...baseRecord.rawUsage,
-							inputTokens: baseRecord.rawUsage.inputTokens + i * 10,
-							outputTokens: baseRecord.rawUsage.outputTokens + i * 5,
-						},
-					}));
+			const records = Array.from({ length: 5 }, (_, i) => ({
+				...baseRecord,
+				timestamp: new Date(Date.now() + i * 1000).toISOString(), // Stagger timestamps
+				rawUsage: {
+					...baseRecord.rawUsage,
+					inputTokens: baseRecord.rawUsage.inputTokens + i * 10,
+					outputTokens: baseRecord.rawUsage.outputTokens + i * 5,
+				},
+			}));
 
-					// Write records concurrently
-					await Promise.all(
-						records.map((record) =>
-							interaction.conversationPersistence.writeTokenUsage(record, 'conversation')
-						),
-					);
+			// Write records concurrently
+			await Promise.all(
+				records.map((record) => interaction.conversationPersistence.writeTokenUsage(record, 'conversation')),
+			);
 
-					// Verify records
-					const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
+			// Verify records
+			const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
 
-					// Should have saved all records despite same messageId
-					assertEquals(savedRecords.length, records.length, 'Should save all concurrent records');
+			// Should have saved all records despite same messageId
+			assertEquals(savedRecords.length, records.length, 'Should save all concurrent records');
 
-					// Verify timestamps are preserved and ordered
-					let previousTimestamp = new Date(savedRecords[0].timestamp).getTime();
-					for (let i = 1; i < savedRecords.length; i++) {
-						const currentTimestamp = new Date(savedRecords[i].timestamp).getTime();
-						assert(
-							currentTimestamp >= previousTimestamp,
-							`Records should maintain chronological order. Index ${i} is out of order.`,
-						);
-						previousTimestamp = currentTimestamp;
-					}
-				});
-			},
-			sanitizeResources: false,
-			sanitizeOps: false,
+			// Verify timestamps are preserved and ordered
+			let previousTimestamp = new Date(savedRecords[0].timestamp).getTime();
+			for (let i = 1; i < savedRecords.length; i++) {
+				const currentTimestamp = new Date(savedRecords[i].timestamp).getTime();
+				assert(
+					currentTimestamp >= previousTimestamp,
+					`Records should maintain chronological order. Index ${i} is out of order.`,
+				);
+				previousTimestamp = currentTimestamp;
+			}
 		});
 	},
 	sanitizeResources: false,
@@ -155,7 +153,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Save conversation with token usage',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
@@ -210,7 +208,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Token usage analysis with history',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
@@ -269,7 +267,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Handle concurrent conversation saves',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
@@ -339,7 +337,7 @@ Deno.test({
 Deno.test({
 	name: 'ConversationPersistence - Token usage with chat interactions',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
 			const interaction = await createTestInteraction('test-conversation', projectEditor);

@@ -183,7 +183,7 @@ Tools that execute system commands. Example: RunCommand tool.
 ## Considerations for Specific Tool Types
 
 ### File Manipulation Tools
-- Always use `isPathWithinProject` to ensure file operations are restricted to the project directory.
+- Always use `isPathWithinDataSource` to ensure file operations are restricted to the project directory.
 - Use `ProjectEditor` methods for file operations when possible.
 - Handle file creation, modification, and deletion scenarios.
 

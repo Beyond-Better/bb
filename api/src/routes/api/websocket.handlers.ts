@@ -100,13 +100,27 @@ class WebSocketChatHandler {
 			options?: { maxTurns?: number }; // statement options
 			requestParams: LLMRequestParams; // LLM request params
 			filesToAttach?: string[]; // Array of file IDs to include in message
+			dataSourceIdForAttach?: string; // Data source to load attached files from
 		},
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, options, requestParams, filesToAttach } = message;
+			const { task, statement, projectId, options, requestParams, filesToAttach, dataSourceIdForAttach } =
+				message;
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
+
+			if (!projectId) {
+				logger.error(
+					`WebSocketChatHandler: projectId is required for conversationId: ${conversationId}`,
+				);
+				this.eventManager.emit('projectEditor:conversationError', {
+					conversationId,
+					error: 'Project ID is required',
+					code: 'PROJECT_ID_REQUIRED',
+				});
+				return;
+			}
 
 			const projectEditor = await projectEditorManager.getOrCreateEditor(
 				conversationId,
@@ -114,9 +128,10 @@ class WebSocketChatHandler {
 				sessionManager,
 			);
 
-			if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
+			//if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
+			if (!projectEditor) {
 				logger.error(
-					`WebSocketChatHandler: No projectEditor and type not greeting or cancel for conversationId: ${conversationId}`,
+					`WebSocketChatHandler: No projectEditor for conversationId: ${conversationId}`,
 				);
 				this.eventManager.emit('projectEditor:conversationError', {
 					conversationId,
@@ -127,18 +142,6 @@ class WebSocketChatHandler {
 			}
 
 			if (task === 'greeting') {
-				if (!projectId) {
-					logger.error(
-						`WebSocketChatHandler: Start directory is required for greeting for conversationId: ${conversationId}`,
-					);
-					this.eventManager.emit('projectEditor:conversationError', {
-						conversationId,
-						error: 'Project ID is required for greeting',
-						code: 'PROJECT_ID_REQUIRED',
-					});
-					return;
-				}
-
 				try {
 					const versionInfo = await getVersionInfo();
 					const interaction = projectEditor.orchestratorController.interactionManager.getInteractionStrict(
@@ -173,6 +176,7 @@ class WebSocketChatHandler {
 						options,
 						requestParams,
 						filesToAttach,
+						dataSourceIdForAttach,
 					);
 				} catch (error) {
 					logger.error(

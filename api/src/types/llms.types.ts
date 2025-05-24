@@ -9,6 +9,8 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 export enum AnthropicModel {
+	CLAUDE_4_0_OPUS = 'claude-opus-4-20250514',
+	CLAUDE_4_0_SONNET = 'claude-sonnet-4-20250514',
 	CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-20241022',
 	CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-20250219',
 	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
@@ -17,6 +19,8 @@ export enum AnthropicModel {
 	CLAUDE_3_OPUS = 'claude-3-opus-20240229',
 }
 export const AnthropicModels = [
+	AnthropicModel.CLAUDE_4_0_OPUS,
+	AnthropicModel.CLAUDE_4_0_SONNET,
 	AnthropicModel.CLAUDE_3_5_HAIKU,
 	AnthropicModel.CLAUDE_3_5_SONNET,
 	AnthropicModel.CLAUDE_3_7_SONNET,
@@ -50,11 +54,15 @@ export const DeepSeekModels = [
 export enum GoogleModel {
 	GOOGLE_GEMINI_1_5_FLASH = 'gemini-1.5-flash',
 	GOOGLE_GEMINI_2_0_FLASH = 'gemini-2.0-flash',
+	GOOGLE_GEMINI_2_5_FLASH = 'gemini-2.5-flash-preview-05-20',
+	GOOGLE_GEMINI_2_5_PRO = 'gemini-2.5-pro-preview-05-06',
 	//GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
 }
 export const GoogleModels = [
 	GoogleModel.GOOGLE_GEMINI_1_5_FLASH,
 	GoogleModel.GOOGLE_GEMINI_2_0_FLASH,
+	GoogleModel.GOOGLE_GEMINI_2_5_FLASH,
+	GoogleModel.GOOGLE_GEMINI_2_5_PRO,
 	//GoogleModel.GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP,
 ];
 
@@ -210,6 +218,7 @@ export interface LLMMessageStop {
 		| 'stop_sequence'
 		| 'end_turn'
 		| 'max_tokens'
+		| 'refusal'
 		// openai stop reasons
 		| 'stop'
 		| 'length'
@@ -326,6 +335,7 @@ export interface LLMSpeakWithOptions {
 export interface Task {
 	title: string;
 	background: string;
+	dataSources?: string[];
 	instructions: string;
 	resources?: Resource[];
 	capabilities?: string[];
@@ -335,7 +345,7 @@ export interface Task {
 export interface CompletedTask {
 	//type: string;
 	title: string;
-	status: 'completed' | 'failed';
+	status: 'completed' | 'failed'; // | 'error';
 	result?: string;
 	error?: string;
 }
@@ -348,8 +358,19 @@ export interface ErrorHandlingConfig {
 	continueOnErrorThreshold?: number;
 }
 
+export type ResourceType =
+	| 'url'
+	| 'file'
+	| 'directory'
+	| 'memory'
+	| 'api'
+	| 'database'
+	| 'vector_search'
+	| 'mcp'
+	| 'workspace'
+	| 'page';
 export interface Resource {
-	type: 'url' | 'file' | 'memory' | 'api' | 'database' | 'vector_search' | 'mcp';
+	type: ResourceType;
 	uri: string;
 }
 
@@ -363,14 +384,18 @@ export interface LLMSpeakWithResponse {
 export enum LLMCallbackType {
 	PROJECT_EDITOR = 'PROJECT_EDITOR',
 	PROJECT_ID = 'PROJECT_ID',
-	PROJECT_ROOT = 'PROJECT_ROOT',
+	PROJECT_DATA_SOURCES = 'PROJECT_DATA_SOURCES',
+	PROJECT_MCP_TOOLS = 'PROJECT_MCP_TOOLS',
+	//SYSTEM_PROMPT_DATA_SOURCES = 'SYSTEM_PROMPT_DATA_SOURCES',
 	PROJECT_INFO = 'PROJECT_INFO',
 	PROJECT_CONFIG = 'PROJECT_CONFIG',
-	PROJECT_FILE_CONTENT = 'PROJECT_FILE_CONTENT',
+	PROJECT_RESOURCE_CONTENT = 'PROJECT_RESOURCE_CONTENT',
 	LOG_ENTRY_HANDLER = 'LOG_ENTRY_HANDLER',
 	PREPARE_SYSTEM_PROMPT = 'PREPARE_SYSTEM_PROMPT',
 	PREPARE_MESSAGES = 'PREPARE_MESSAGES',
 	PREPARE_TOOLS = 'PREPARE_TOOLS',
+	// [TODO] PREPARE_DATA_SOURCES
+	// [TODO] PREPARE_RESOURCES
 }
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {

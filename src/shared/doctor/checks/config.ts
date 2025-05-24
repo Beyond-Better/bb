@@ -1,8 +1,8 @@
 import { DiagnosticResult } from '../types.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { GlobalConfig } from 'shared/config/v2/types.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { GlobalConfig } from 'shared/config/types.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 interface ConfigValidationRule {
 	path: string[]; // Config path (e.g., ['api', 'apiPort'])
@@ -133,11 +133,12 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
-		const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-		const projectId = await getProjectId(projectRoot);
+		const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+		const projectId = await getProjectId(workingRoot);
+		if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
 
@@ -151,12 +152,12 @@ export async function checkConfig(): Promise<DiagnosticResult[]> {
 
 		// Add project-specific config checks here if needed
 		// For now, just verify we can load it
-		if (!projectConfig.name || !projectConfig.type) {
+		if (!projectConfig.name) { // || !projectConfig.type
 			results.push({
 				category: 'config',
 				status: 'error',
 				message: 'Invalid project configuration',
-				details: 'Missing required project name or type',
+				details: 'Missing required project name',
 				fix: {
 					description: 'Run BB initialization',
 					command: 'bb init',

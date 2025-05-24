@@ -1,25 +1,24 @@
-use log::{debug, info, error, warn};
-use std::path::PathBuf;
-use serde::Serialize;
-use std::fs;
+use crate::config::read_global_config;
 use dirs;
 use libc;
-use crate::config::read_global_config;
+use log::{debug, error, info, warn};
+use serde::Serialize;
+use std::fs;
+use std::path::PathBuf;
 //use crate::commands::api_status::{check_api_status, reconcile_api_pid_state, save_api_pid};
 use crate::commands::bui_status::{check_bui_status, reconcile_bui_pid_state, save_bui_pid};
 
 #[cfg(target_os = "windows")]
-use std::os::windows::ffi::OsStrExt;
-#[cfg(target_os = "windows")]
 use std::ffi::OsStr;
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::System::Threading::{
-    PROCESS_INFORMATION, STARTUPINFOW, CreateProcessW,
-    NORMAL_PRIORITY_CLASS, CREATE_NO_WINDOW,
-    OpenProcess, TerminateProcess,
-};
+use std::os::windows::ffi::OsStrExt;
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+#[cfg(target_os = "windows")]
+use windows_sys::Win32::System::Threading::{
+    CreateProcessW, OpenProcess, TerminateProcess, CREATE_NO_WINDOW, NORMAL_PRIORITY_CLASS,
+    PROCESS_INFORMATION, STARTUPINFOW,
+};
 
 #[cfg(not(target_os = "windows"))]
 use std::process::Command;
@@ -45,10 +44,7 @@ pub(crate) fn get_default_log_dir() -> Option<PathBuf> {
 
     #[cfg(target_os = "linux")]
     {
-        dirs::home_dir().map(|home| {
-            home.join(".bb")
-                .join("logs")
-        })
+        dirs::home_dir().map(|home| home.join(".bb").join("logs"))
     }
 }
 
@@ -74,7 +70,11 @@ pub fn get_bui_log_path(config: &crate::config::BuiConfig) -> Option<PathBuf> {
 pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
     debug!("Starting binary search");
     let mut checked_paths = Vec::new();
-    let bui_name = if cfg!(target_os = "windows") { "bb-bui.exe" } else { "bb-bui" };
+    let bui_name = if cfg!(target_os = "windows") {
+        "bb-bui.exe"
+    } else {
+        "bb-bui"
+    };
     info!("Looking for {} executable", bui_name);
 
     // Try user-specific location first
@@ -83,7 +83,10 @@ pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
             if let Some(local_app_data) = dirs::data_local_dir() {
                 local_app_data.join("BeyondBetter").join("bin")
             } else {
-                home.join("AppData").join("Local").join("BeyondBetter").join("bin")
+                home.join("AppData")
+                    .join("Local")
+                    .join("BeyondBetter")
+                    .join("bin")
             }
         } else if cfg!(target_os = "macos") {
             home.join(".bb").join("bin")
@@ -96,7 +99,10 @@ pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
         checked_paths.push(user_binary.clone());
         debug!("Checking user install location: {}", user_binary.display());
         if !user_install.exists() {
-            debug!("User install directory does not exist: {}", user_install.display());
+            debug!(
+                "User install directory does not exist: {}",
+                user_install.display()
+            );
         } else if !user_binary.exists() {
             debug!("Binary not found in user install location");
         } else {
@@ -116,9 +122,15 @@ pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
 
     let system_binary = system_install.join(bui_name);
     checked_paths.push(system_binary.clone());
-    debug!("Checking system install location: {}", system_binary.display());
+    debug!(
+        "Checking system install location: {}",
+        system_binary.display()
+    );
     if !system_install.exists() {
-        debug!("System install directory does not exist: {}", system_install.display());
+        debug!(
+            "System install directory does not exist: {}",
+            system_install.display()
+        );
     } else if !system_binary.exists() {
         debug!("Binary not found in system install location");
     } else {
@@ -129,7 +141,8 @@ pub(crate) fn get_bb_bui_path() -> Result<PathBuf, String> {
     let error_msg = format!(
         "Could not find {} in any of these locations:\n{}",
         bui_name,
-        checked_paths.iter()
+        checked_paths
+            .iter()
             .map(|p| format!("- {}", p.display()))
             .collect::<Vec<_>>()
             .join("\n")
@@ -150,31 +163,28 @@ fn verify_bui_requirements() -> Result<(), String> {
     // Check if bb-bui binary exists
     get_bb_bui_path().map_err(|e| format!("BB BUI binary not found: {}", e))?;
 
-	// // Check if config exists and has required values
-	// let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
-	// 
-	// // Check for required BUI config values
-	// if let Some(bui_config) = &global_config.bui {
-	// 	if bui_config.supabase_url.trim().is_empty() {
-	// 		return Err("Supabase URL not configured".to_string());
-	// 	}
-	// 	if bui_config.supabase_anon_key.trim().is_empty() {
-	// 		return Err("Supabase anonymous key not configured".to_string());
-	// 	}
-	// } else {
-	// 	return Err("BUI configuration not found".to_string());
-	// }
+    // // Check if config exists and has required values
+    // let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+    //
+    // // Check for required BUI config values
+    // if let Some(bui_config) = &global_config.bui {
+    // 	if bui_config.supabase_url.trim().is_empty() {
+    // 		return Err("Supabase URL not configured".to_string());
+    // 	}
+    // 	if bui_config.supabase_anon_key.trim().is_empty() {
+    // 		return Err("Supabase anonymous key not configured".to_string());
+    // 	}
+    // } else {
+    // 	return Err("BUI configuration not found".to_string());
+    // }
 
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
-fn create_process_windows(
-    executable_path: PathBuf,
-    args: Vec<String>,
-) -> Result<u32, String> {
+fn create_process_windows(executable_path: PathBuf, args: Vec<String>) -> Result<u32, String> {
     use std::ptr::null_mut;
-    
+
     // Convert the command line to UTF-16 for Windows API
     let mut command_line = format!("\"{}\"", executable_path.to_string_lossy());
     for arg in args {
@@ -199,7 +209,7 @@ fn create_process_windows(
             wide_command.as_ptr() as *mut u16,
             null_mut(), // Process security attributes
             null_mut(), // Thread security attributes
-            FALSE,     // Don't inherit handles
+            FALSE,      // Don't inherit handles
             CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
             null_mut(), // Use parent's environment
             null_mut(), // Use parent's current directory
@@ -224,16 +234,16 @@ fn create_process_windows(
 
 #[tauri::command]
 pub async fn start_bui() -> Result<BuiStartResult, String> {
-	// // First check if API is running, as BUI requires it
-	// let api_status = check_api_status().await?;
-	// if !api_status.api_responds {
-	// 	return Ok(BuiStartResult {
-	// 		success: false,
-	// 		pid: None,
-	// 		error: Some("API must be running before starting BUI".to_string()),
-	// 		requires_settings: false,
-	// 	});
-	// }
+    // // First check if API is running, as BUI requires it
+    // let api_status = check_api_status().await?;
+    // if !api_status.api_responds {
+    // 	return Ok(BuiStartResult {
+    // 		success: false,
+    // 		pid: None,
+    // 		error: Some("API must be running before starting BUI".to_string()),
+    // 		requires_settings: false,
+    // 	});
+    // }
 
     // Verify all requirements are met before starting
     if let Err(e) = verify_bui_requirements() {
@@ -260,13 +270,14 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
     }
 
     // Get BUI configuration
-    let global_config = read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
+    let global_config =
+        read_global_config().map_err(|e| format!("Failed to read config: {}", e))?;
     let config = &global_config.bui;
-    
+
     // Get the full path to the bb-bui executable
-    let bb_bui_path = get_bb_bui_path()
-        .map_err(|e| format!("Failed to locate bb-bui executable: {}", e))?;
-    
+    let bb_bui_path =
+        get_bb_bui_path().map_err(|e| format!("Failed to locate bb-bui executable: {}", e))?;
+
     info!("Found bb-bui executable at: {}", bb_bui_path.display());
 
     // Build command arguments
@@ -280,8 +291,8 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
 
     // Get log file path
     //let log_path = get_bui_log_path(&config)
-    let log_path = get_bui_log_path(config)
-        .ok_or_else(|| "Failed to determine log path".to_string())?;
+    let log_path =
+        get_bui_log_path(config).ok_or_else(|| "Failed to determine log path".to_string())?;
 
     // Ensure log directory exists
     if let Some(parent) = log_path.parent() {
@@ -297,9 +308,16 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
     }
 
     // Add log file argument
-    args.extend_from_slice(&["--log-file".to_string(), log_path.to_string_lossy().to_string()]);
+    args.extend_from_slice(&[
+        "--log-file".to_string(),
+        log_path.to_string_lossy().to_string(),
+    ]);
 
-    info!("Starting BUI with command: {} {:?}", bb_bui_path.display(), args);
+    info!(
+        "Starting BUI with command: {} {:?}",
+        bb_bui_path.display(),
+        args
+    );
 
     // Start the process using platform-specific method
     let process_result = {
@@ -325,12 +343,12 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
             if let Err(e) = save_bui_pid(pid).await {
                 warn!("Failed to save PID file: {}", e);
             }
-            
+
             // Give the BUI a moment to start
             let max_attempts = 10;
             for attempt in 1..=max_attempts {
                 std::thread::sleep(std::time::Duration::from_millis(500));
-                
+
                 // Verify the BUI is responding
                 match check_bui_status().await {
                     Ok(status) if status.bui_responds => {
@@ -343,7 +361,8 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
                         });
                     }
                     Ok(_) if attempt == max_attempts => {
-                        let error_msg = "BUI process started but not responding after multiple attempts";
+                        let error_msg =
+                            "BUI process started but not responding after multiple attempts";
                         error!("{}", error_msg);
                         return Ok(BuiStartResult {
                             success: false,
@@ -353,7 +372,10 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
                         });
                     }
                     Ok(_) => {
-                        debug!("BUI not responding yet, attempt {}/{}", attempt, max_attempts);
+                        debug!(
+                            "BUI not responding yet, attempt {}/{}",
+                            attempt, max_attempts
+                        );
                         continue;
                     }
                     Err(e) => {
@@ -402,9 +424,7 @@ pub async fn stop_bui() -> Result<bool, String> {
         let stop_result = {
             #[cfg(target_family = "unix")]
             {
-                unsafe {
-                    libc::kill(pid, libc::SIGTERM) == 0
-                }
+                unsafe { libc::kill(pid, libc::SIGTERM) == 0 }
             }
 
             #[cfg(target_family = "windows")]
@@ -437,11 +457,17 @@ pub async fn stop_bui() -> Result<bool, String> {
                     return Ok(true);
                 }
                 Ok(_) if attempt == max_attempts => {
-                    error!("BUI failed to stop completely after {} attempts", max_attempts);
+                    error!(
+                        "BUI failed to stop completely after {} attempts",
+                        max_attempts
+                    );
                     break;
                 }
                 Ok(_) => {
-                    debug!("Waiting for BUI to stop, attempt {}/{}", attempt, max_attempts);
+                    debug!(
+                        "Waiting for BUI to stop, attempt {}/{}",
+                        attempt, max_attempts
+                    );
                     continue;
                 }
                 Err(e) => {

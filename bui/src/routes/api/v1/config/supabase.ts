@@ -1,9 +1,9 @@
 import { Handlers } from '$fresh/server.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 export const handler: Handlers = {
 	async GET(req, _ctx) {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
 		return new Response(

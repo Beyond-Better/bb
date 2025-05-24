@@ -164,9 +164,9 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('Output truncation with tail only - bbResponse:', result.bbResponse);
-			console.log('Output truncation with tail only - toolResponse:', result.toolResponse);
-			console.log('Output truncation with tail only - toolResults:', result.toolResults);
+			// console.log('Output truncation with tail only - bbResponse:', result.bbResponse);
+			// console.log('Output truncation with tail only - toolResponse:', result.toolResponse);
+			// console.log('Output truncation with tail only - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',

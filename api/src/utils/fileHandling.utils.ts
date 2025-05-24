@@ -1,16 +1,17 @@
 import { join, normalize, relative, resolve } from '@std/path';
 //import { TextLineStream } from '@std/streams';
 import { LRUCache } from 'npm:lru-cache';
-import { exists, walk } from '@std/fs';
+import { ensureDir, exists, walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
-import { globToRegExp } from '@std/path';
+import { dirname, extname, globToRegExp, isAbsolute } from '@std/path';
+//import { contentType } from '@std/media-types';
+import { detectContentType, isTextMimeType } from 'api/utils/contentTypes.ts';
 
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { getContentType } from 'api/utils/contentTypes.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
-import type { ResourceMetadata } from 'api/resources/resourceManager.ts';
+import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 
 // Size limits in bytes
 export const TEXT_DISPLAY_LIMIT = 1024 * 1024; // 1MB
@@ -18,7 +19,7 @@ export const TEXT_HARD_LIMIT = 10 * 1024 * 1024; // 10MB
 export const IMAGE_DISPLAY_LIMIT = 5 * 1024 * 1024; // 5MB
 export const IMAGE_HARD_LIMIT = 20 * 1024 * 1024; // 20MB
 
-function createMatchRegexPatterns(matchPattern: string, projectRoot: string): RegExp[] {
+function createMatchRegexPatterns(matchPattern: string, dataSourceRoot: string): RegExp[] {
 	// Split the pattern by '|' to handle multiple patterns
 	const patterns = matchPattern.split('|');
 
@@ -41,8 +42,8 @@ function createMatchRegexPatterns(matchPattern: string, projectRoot: string): Re
 			singlePattern = `**/${singlePattern}`;
 		}
 
-		// Prepend projectRoot to the pattern
-		const fullPattern = join(projectRoot, singlePattern);
+		// Prepend dataSourceRoot to the pattern
+		const fullPattern = join(dataSourceRoot, singlePattern);
 		logger.info(
 			`FileHandlingUtil: createMatchRegexPatterns - creating regex from file pattern: ${fullPattern}`,
 		);
@@ -56,9 +57,71 @@ function createMatchRegexPatterns(matchPattern: string, projectRoot: string): Re
 	});
 }
 
-export function createExcludeRegexPatterns(excludePatterns: string[], projectRoot: string): RegExp[] {
+// export function createExcludeRegexPatterns(excludePatterns: string[], dataSourceRoot: string): RegExp[] {
+// 	return excludePatterns.flatMap((pattern) => {
+// 		// Handle negation patterns
+// 		if (pattern.startsWith('!')) {
+// 			return [globToRegExp(pattern.slice(1), { extended: true, globstar: true })];
+// 		}
+//
+// 		// Split the pattern by '|' to handle multiple patterns
+// 		const patterns = pattern.split('|');
+//
+// 		return patterns.map((singlePattern) => {
+// 			// Handle directory patterns
+// 			if (singlePattern.endsWith('/')) {
+// 				singlePattern += '**';
+// 			}
+//
+// 			// Handle simple wildcard patterns
+// 			if (singlePattern.includes('*') && !singlePattern.includes('**')) {
+// 				singlePattern = `**/${singlePattern}`;
+// 			}
+//
+// 			// Handle bare filename (no path, no wildcards)
+// 			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
+// 				singlePattern = `**/${singlePattern}`;
+// 			}
+// 			// Prepend dataSourceRoot to the pattern
+// 			const fullPattern = join(dataSourceRoot, singlePattern);
+// 			// logger.info(
+// 			// 	`FileHandlingUtil: createExcludeRegexPatterns - creating regex from file pattern: ${fullPattern}`,
+// 			// );
+//
+// 			return globToRegExp(fullPattern, { extended: true, globstar: true });
+// 		});
+// 	});
+// }
+//
+// export async function getExcludeOptions(dataSourceRoot: string): Promise<string[]> {
+// 	const excludeFiles = [
+// 		join(dataSourceRoot, 'tags.ignore'),
+// 		join(dataSourceRoot, '.gitignore'),
+// 		join(dataSourceRoot, '.bb', 'ignore'),
+// 		join(dataSourceRoot, '.bb', 'tags.ignore'),
+// 	];
+//
+// 	const patterns = ['.bb/*', '.git/*', '.trash/*'];
+// 	for (const file of excludeFiles) {
+// 		if (await exists(file)) {
+// 			const content = await Deno.readTextFile(file);
+// 			patterns.push(
+// 				...content.split('\n')
+// 					.map((line) => line.trim())
+// 					.filter((line) => line && !line.startsWith('#'))
+// 					.map((line) => line.replace(/^\/*/, '')), // Remove leading slashes
+// 			);
+// 		}
+// 	}
+//
+// 	const uniquePatterns = [...new Set(patterns)];
+// 	//logger.debug(`FileHandlingUtil: Exclude patterns for data source: ${dataSourceRoot}`, uniquePatterns);
+// 	return uniquePatterns;
+// }
+
+export function createExcludeRegexPatterns(excludePatterns: string[], dataSourceRoot: string): RegExp[] {
 	return excludePatterns.flatMap((pattern) => {
-		// Handle negation patterns
+		// Handle negation patterns (currently just converts to regex, but doesn't implement the negation logic)
 		if (pattern.startsWith('!')) {
 			return [globToRegExp(pattern.slice(1), { extended: true, globstar: true })];
 		}
@@ -67,10 +130,18 @@ export function createExcludeRegexPatterns(excludePatterns: string[], projectRoo
 		const patterns = pattern.split('|');
 
 		return patterns.map((singlePattern) => {
+			// Normalize path separators for regex consistency
+			singlePattern = singlePattern.replace(/\\/g, '/');
+
 			// Handle directory patterns
 			if (singlePattern.endsWith('/')) {
 				singlePattern += '**';
 			}
+
+			// // Special handling for .bb, .git, .trash directories to ensure all contents are excluded
+			// if (/^\.(bb|git|trash)\/\*$/.test(singlePattern)) {
+			// 	singlePattern = singlePattern.replace(/\*$/, '**');
+			// }
 
 			// Handle simple wildcard patterns
 			if (singlePattern.includes('*') && !singlePattern.includes('**')) {
@@ -81,26 +152,29 @@ export function createExcludeRegexPatterns(excludePatterns: string[], projectRoo
 			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
 				singlePattern = `**/${singlePattern}`;
 			}
-			// Prepend projectRoot to the pattern
-			const fullPattern = join(projectRoot, singlePattern);
-			// logger.info(
-			// 	`FileHandlingUtil: createExcludeRegexPatterns - creating regex from file pattern: ${fullPattern}`,
-			// );
+
+			// Normalize and prepend dataSourceRoot to the pattern
+			const normalizedRoot = dataSourceRoot.replace(/\\/g, '/');
+			const fullPattern = normalizedRoot.endsWith('/')
+				? `${normalizedRoot}${singlePattern}`
+				: `${normalizedRoot}/${singlePattern}`;
 
 			return globToRegExp(fullPattern, { extended: true, globstar: true });
 		});
 	});
 }
 
-export async function getExcludeOptions(projectRoot: string): Promise<string[]> {
+export async function getExcludeOptions(dataSourceRoot: string): Promise<string[]> {
 	const excludeFiles = [
-		join(projectRoot, 'tags.ignore'),
-		join(projectRoot, '.gitignore'),
-		join(projectRoot, '.bb', 'ignore'),
-		join(projectRoot, '.bb', 'tags.ignore'),
+		join(dataSourceRoot, 'tags.ignore'),
+		join(dataSourceRoot, '.gitignore'),
+		join(dataSourceRoot, '.bb', 'ignore'),
+		join(dataSourceRoot, '.bb', 'tags.ignore'),
 	];
 
-	const patterns = ['.bb/*', '.git/*', '.trash/*'];
+	// Ensure these directories are fully excluded with all subdirectories
+	const patterns = ['.bb', '.git', '.trash', '.bb/**', '.git/**', '.trash/**'];
+
 	for (const file of excludeFiles) {
 		if (await exists(file)) {
 			const content = await Deno.readTextFile(file);
@@ -114,34 +188,40 @@ export async function getExcludeOptions(projectRoot: string): Promise<string[]> 
 	}
 
 	const uniquePatterns = [...new Set(patterns)];
-	//logger.debug(`FileHandlingUtil: Exclude patterns for project: ${projectRoot}`, uniquePatterns);
+	//logger.debug(`FileHandlingUtil: Exclude patterns for data source: ${dataSourceRoot}`, uniquePatterns);
 	return uniquePatterns;
 }
 
-export async function isPathWithinProject(projectRoot: string, filePath: string): Promise<boolean> {
-	const normalizedProjectRoot = normalize(projectRoot);
+/**
+ * Check if a path is within a data source root directory
+ * @param dataSourceRoot The root path of the data source
+ * @param filePath The path to check
+ * @returns True if the path is within the root, false otherwise
+ */
+export async function isPathWithinDataSource(dataSourceRoot: string, filePath: string): Promise<boolean> {
+	const normalizedDataSourceRoot = normalize(dataSourceRoot);
 	const normalizedFilePath = normalize(filePath);
-	const absoluteFilePath = resolve(normalizedProjectRoot, normalizedFilePath);
+	const absoluteFilePath = resolve(normalizedDataSourceRoot, normalizedFilePath);
 
 	try {
 		// For existing files, resolve symlinks
 		const resolvedPath = await Deno.realPath(absoluteFilePath);
-		return resolvedPath.startsWith(await Deno.realPath(normalizedProjectRoot));
+		return resolvedPath.startsWith(await Deno.realPath(normalizedDataSourceRoot));
 	} catch (error) {
 		if (error instanceof Deno.errors.NotFound) {
-			// For non-existing files, check if the absolute path is within the project root
-			return absoluteFilePath.startsWith(normalizedProjectRoot);
+			// For non-existing files, check if the absolute path is within the data source root
+			return absoluteFilePath.startsWith(normalizedDataSourceRoot);
 		}
 		// For other errors, re-throw
 		throw error;
 	}
 }
 
-export async function existsWithinProject(projectRoot: string, filePath: string): Promise<boolean> {
-	const normalizedProjectRoot = normalize(projectRoot);
+export async function existsWithinDataSource(dataSourceRoot: string, filePath: string): Promise<boolean> {
+	const normalizedDataSourceRoot = normalize(dataSourceRoot);
 	const normalizedFilePath = normalize(filePath);
-	const absoluteFilePath = resolve(normalizedProjectRoot, normalizedFilePath);
-	logger.info(`FileHandlingUtil: Checking file exists in project ${projectRoot} - ${filePath}`);
+	const absoluteFilePath = resolve(normalizedDataSourceRoot, normalizedFilePath);
+	logger.info(`FileHandlingUtil: Checking file exists in data source ${dataSourceRoot} - ${filePath}`);
 	logger.info(`FileHandlingUtil: Checking file exists - absoluteFilePath ${absoluteFilePath}`);
 
 	return await exists(absoluteFilePath);
@@ -149,8 +229,8 @@ export async function existsWithinProject(projectRoot: string, filePath: string)
 	//return await exists(absoluteFilePath, { isReadable: true });
 }
 
-export async function readProjectFileContent(projectRoot: string, filePath: string): Promise<string> {
-	const fullFilePath = join(projectRoot, filePath);
+export async function readFileContent(dataSourceRoot: string, filePath: string): Promise<string> {
+	const fullFilePath = join(dataSourceRoot, filePath);
 	logger.info(`FileHandlingUtil: Reading contents of File ${fullFilePath}`);
 	try {
 		const content = await Deno.readTextFile(fullFilePath);
@@ -163,29 +243,116 @@ export async function readProjectFileContent(projectRoot: string, filePath: stri
 	}
 }
 
+/**
+ * Safely check if a file or directory exists without throwing
+ * @param path The path to check
+ * @returns True if the path exists, false otherwise
+ */
+export async function safeExists(path: string): Promise<boolean> {
+	try {
+		return await exists(path);
+	} catch (error) {
+		logger.error(`filesystemUtils: Error checking if path exists: ${path}`, error);
+		return false;
+	}
+}
+
+/**
+ * Create parent directories for a path if they don't exist
+ * @param absolutePath The absolute path to ensure parent directories for
+ */
+export async function ensureParentDirectories(absolutePath: string): Promise<void> {
+	const parentDir = dirname(absolutePath);
+	await ensureDir(parentDir);
+}
+
+/**
+ * Convert a relative resource path to an absolute filesystem path
+ * @param dataSourceRoot The data source root path
+ * @param resourcePath The relative resource path
+ * @returns The absolute filesystem path
+ */
+export function resourcePathToAbsolute(dataSourceRoot: string, resourcePath: string): string {
+	// Handle already absolute paths (should not happen for well-formed resource paths)
+	if (isAbsolute(resourcePath)) {
+		logger.warn(`filesystemUtils: Given resource path is already absolute: ${resourcePath}`);
+		return resourcePath;
+	}
+
+	// Join the root path and the resource path
+	return join(dataSourceRoot, resourcePath);
+}
+
+/**
+ * Convert an absolute filesystem path to a relative resource path
+ * @param dataSourceRoot The data source root path
+ * @param absolutePath The absolute filesystem path
+ * @returns The relative resource path
+ */
+export async function absolutePathToResource(dataSourceRoot: string, absolutePath: string): Promise<string> {
+	// Make sure the path is within the data source
+	if (!await isPathWithinDataSource(absolutePath, dataSourceRoot)) {
+		throw new Error(`Path is not within data source: ${absolutePath}`);
+	}
+
+	// Get the relative path
+	let relativePath = relative(dataSourceRoot, absolutePath);
+
+	// Convert empty string to '.' to represent the root
+	if (relativePath === '') {
+		relativePath = '.';
+	}
+
+	return relativePath;
+}
+
 export interface FileLoadOptions {
 	maxSize?: number;
 	truncateAt?: number;
 }
 
+/**
+ * Get file metadata for a filePath
+ * @param fullPath The path to the file
+ * @returns Basic file metadata object
+ */
 export async function getFileMetadataAbsolute(
 	fullPath: string,
-): Promise<ResourceMetadata> {
-	//): Promise<Omit<ResourceMetadata, 'uri'>> {
-	const mimeType = getContentType(fullPath);
-	//const isImage = mimeType.startsWith('image/');
+): Promise<Omit<ResourceMetadata, 'uri'>> {
+	// Check if the file exists
+	//if (!await safeExists(fullPath)) {
+	//	throw createError(
+	//		ErrorType.FileHandling,
+	//		`FileEntry not found: ${fullPath}`,
+	//		{
+	//			filePath: fullPath,
+	//			operation: 'read',
+	//		} as FileHandlingErrorOptions,
+	//	);
+	//}
 
 	try {
-		const stat = await Deno.stat(fullPath);
+		const fileInfo = await Deno.stat(fullPath); // Deno.FileInfo
+		const mimeType = fileInfo.isDirectory ? 'application/directory' : (await detectContentType(fullPath) || '');
+		//logger.info(`FileHandlingUtil: Getting metadata for ${fullPath}`, { mimeType });
+
+		// Determine content type category
+		const isImage = mimeType.startsWith('image/');
+		const isText = isTextMimeType(mimeType);
+		//logger.debug(`FileHandlingUtil: Getting metadata for ${fullPath}: ${mimeType} (${isText ? 'text' : 'binary'})`);
+
 		return {
-			//type: isImage ? 'image' : 'text',
-			type: 'internal',
+			//contentType: isImage ? 'image' : (isText ? 'text' : 'binary'),
+			contentType: isImage ? 'image' : 'text', // LLM (anthropic) only supports image or text types for content blocks
+			accessMethod: 'bb',
+			type: 'file',
 			name: `File: ${fullPath}`,
-			uri: `file://${fullPath}`, // Store full path as URI
+			isFile: fileInfo.isFile,
+			isDirectory: fileInfo.isDirectory,
+			uriAbsolute: `file://${fullPath}`, // Store full path as URI
 			mimeType: mimeType as LLMMessageContentPartImageBlockSourceMediaType,
-			lastModified: stat.mtime || new Date(),
-			size: stat.size,
-			//path: fullPath,
+			lastModified: fileInfo.mtime || new Date(),
+			size: fileInfo.isFile ? fileInfo.size : undefined,
 			error: null,
 		};
 	} catch (error) {
@@ -203,15 +370,17 @@ export async function getFileMetadataAbsolute(
 }
 
 export async function getFileMetadata(
-	projectRoot: string,
+	dataSourceRoot: string,
 	filePath: string,
 ): Promise<ResourceMetadata> {
-	const fullPath = join(projectRoot, filePath);
-	const metadata: ResourceMetadata = {
-		...await getFileMetadataAbsolute(fullPath),
-		path: filePath, // Store relative path in metadata
-	};
-	return metadata;
+	const fullPath = join(dataSourceRoot, filePath);
+	const metadata = await getFileMetadataAbsolute(fullPath) as ResourceMetadata;
+	return {
+		...metadata,
+		name: `${metadata.isDirectory ? 'Directory' : 'File'}: ${filePath || '.'}`,
+		uri: `file:./${filePath}`, // Store relative path in metadata
+		uriTerm: filePath,
+	} as ResourceMetadata;
 }
 
 export function checkSizeLimits(size: number, isImage: boolean): {
@@ -234,20 +403,20 @@ export function checkSizeLimits(size: number, isImage: boolean): {
 }
 
 export async function readFileWithOptions(
-	projectRoot: string,
+	fileRoot: string,
 	filePath: string,
 	options?: FileLoadOptions,
 ): Promise<{ content: string | Uint8Array; truncated?: boolean }> {
-	const fullPath = join(projectRoot, filePath);
-	const mimeType = getContentType(fullPath);
+	const fullPath = join(fileRoot, filePath);
+	const mimeType = await detectContentType(fullPath) || 'text/plain';
 	const isImage = mimeType.startsWith('image/');
 
 	try {
-		const stat = await Deno.stat(fullPath);
-		const sizeLimits = checkSizeLimits(stat.size, isImage);
+		const fileInfo = await Deno.stat(fullPath);
+		const sizeLimits = checkSizeLimits(fileInfo.size, isImage);
 
 		// Check hard limit first
-		if (options?.maxSize && stat.size > options.maxSize || sizeLimits.exceedsHardLimit) {
+		if (options?.maxSize && fileInfo.size > options.maxSize || sizeLimits.exceedsHardLimit) {
 			throw createError(
 				ErrorType.FileHandling,
 				`File size exceeds maximum limit`,
@@ -305,9 +474,9 @@ export async function readFileWithOptions(
 	}
 }
 
-export async function updateFile(projectRoot: string, filePath: string, _content: string): Promise<void> {
-	if (!await isPathWithinProject(projectRoot, filePath)) {
-		throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the project directory`, {
+export async function updateFile(dataSourceRoot: string, filePath: string, _content: string): Promise<void> {
+	if (!await isPathWithinDataSource(dataSourceRoot, filePath)) {
+		throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the data source directory`, {
 			name: 'update-file',
 			filePath,
 			operation: 'write',
@@ -315,13 +484,13 @@ export async function updateFile(projectRoot: string, filePath: string, _content
 	}
 
 	// TODO: Implement file update logic
-	logger.info(`FileHandlingUtil: File ${filePath} updated in the project`);
+	logger.info(`FileHandlingUtil: File ${filePath} updated in the data source`);
 }
 
 const searchCache = new LRUCache<string, string[]>({ max: 100 });
 
 interface SearchFileOptions {
-	filePattern?: string;
+	resourcePattern?: string;
 	dateAfter?: string;
 	dateBefore?: string;
 	sizeMin?: number;
@@ -331,12 +500,12 @@ interface SearchFileOptions {
 const MAX_CONCURRENT = 20; // Adjust based on system capabilities
 
 export async function searchFilesContent(
-	projectRoot: string,
+	dataSourceRoot: string,
 	contentPattern: string,
 	caseSensitive: boolean,
 	searchFileOptions?: SearchFileOptions,
 ): Promise<{ files: string[]; errorMessage: string | null }> {
-	const cacheKey = `${projectRoot}:${contentPattern}:${caseSensitive ? 'caseSensitive' : 'caseInsensitive'}:${
+	const cacheKey = `${dataSourceRoot}:${contentPattern}:${caseSensitive ? 'caseSensitive' : 'caseInsensitive'}:${
 		JSON.stringify(searchFileOptions)
 	}`;
 	const cachedResult = searchCache.get(cacheKey);
@@ -345,7 +514,7 @@ export async function searchFilesContent(
 		return { files: cachedResult, errorMessage: null };
 	}
 	const matchingFiles: string[] = [];
-	logger.info(`FileHandlingUtil: Starting file content search in ${projectRoot} with pattern: ${contentPattern}`);
+	logger.info(`FileHandlingUtil: Starting file content search in ${dataSourceRoot} with pattern: ${contentPattern}`);
 
 	let regex: RegExp;
 	try {
@@ -362,34 +531,34 @@ export async function searchFilesContent(
 	try {
 		const filesToProcess = [];
 
-		const excludeOptions = await getExcludeOptions(projectRoot);
-		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, projectRoot);
+		const excludeOptions = await getExcludeOptions(dataSourceRoot);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, dataSourceRoot);
 		const walkOptions: WalkOptions = {
 			includeDirs: false,
 			skip: excludeOptionsRegex,
 		};
 
 		// Add match option if file pattern is provided
-		if (searchFileOptions?.filePattern) {
+		if (searchFileOptions?.resourcePattern) {
 			logger.info(
-				`FileHandlingUtil: searchFilesContent - search in ${projectRoot} with file pattern: ${searchFileOptions?.filePattern}`,
+				`FileHandlingUtil: searchFilesContent - search in ${dataSourceRoot} with file pattern: ${searchFileOptions?.resourcePattern}`,
 			);
-			walkOptions.match = createMatchRegexPatterns(searchFileOptions.filePattern, projectRoot);
+			walkOptions.match = createMatchRegexPatterns(searchFileOptions.resourcePattern, dataSourceRoot);
 		}
 		// logger.info(
-		// 	`FileHandlingUtil: searchFilesContent - Searching ${projectRoot} using walkOptions: ${
+		// 	`FileHandlingUtil: searchFilesContent - Searching ${dataSourceRoot} using walkOptions: ${
 		// 		JSON.stringify(walkOptions)
 		// 	}`,
 		// );
 
-		for await (const entry of walk(projectRoot, walkOptions)) {
-			const relativePath = relative(projectRoot, entry.path);
+		for await (const entry of walk(dataSourceRoot, walkOptions)) {
+			const relativePath = relative(dataSourceRoot, entry.path);
 
 			filesToProcess.push({ path: entry.path, relativePath });
 		}
 		logger.info(`FileHandlingUtil: File content search starting. Found ${filesToProcess.length} to search.`);
 		// logger.info(
-		// 	`FileHandlingUtil: searchFilesContent - Searching ${projectRoot} found files to process: ${
+		// 	`FileHandlingUtil: searchFilesContent - Searching ${dataSourceRoot} found files to process: ${
 		// 		JSON.stringify(filesToProcess)
 		// 	}`,
 		// );
@@ -427,9 +596,9 @@ async function processFileManualBuffer(
 	logger.debug(`FileHandlingUtil: Starting to process file: ${relativePath}`);
 	let file: Deno.FsFile | null = null;
 	try {
-		const stat = await Deno.stat(filePath);
+		const fileInfo = await Deno.stat(filePath);
 
-		if (!passesMetadataFilters(stat, searchFileOptions)) {
+		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
 			logger.debug(`FileHandlingUtil: File ${relativePath} did not pass metadata filters`);
 			return null;
 		}
@@ -492,9 +661,9 @@ async function processFileStreamLines(
 	let file: Deno.FsFile | null = null;
 	let reader: ReadableStreamDefaultReader<string> | null = null;
 	try {
-		const stat = await Deno.stat(filePath);
+		const fileInfo = await Deno.stat(filePath);
 
-		if (!passesMetadataFilters(stat, searchFileOptions)) {
+		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
 			logger.debug(`FileHandlingUtil: File ${relativePath} did not pass metadata filters`);
 			return null;
 		}
@@ -559,8 +728,8 @@ async function processFileStreamBuffer(
 	let file: Deno.FsFile | null = null;
 	let reader: ReadableStreamDefaultReader<string> | null = null;
 	try {
-		const stat = await Deno.stat(filePath);
-		if (!passesMetadataFilters(stat, searchFileOptions)) {
+		const fileInfo = await Deno.stat(filePath);
+		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
 			return null;
 		}
 
@@ -632,8 +801,8 @@ async function processFile(
 	let file: Deno.FsFile | null = null;
 	let reader: ReadableStreamDefaultReader<string> | null = null;
 	try {
-		const stat = await Deno.stat(filePath);
-		if (!passesMetadataFilters(stat, searchFileOptions)) {
+		const fileInfo = await Deno.stat(filePath);
+		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
 			return null;
 		}
 
@@ -697,12 +866,16 @@ async function processFile(
 	}
 }
 
-function passesMetadataFilters(stat: Deno.FileInfo, searchFileOptions: SearchFileOptions | undefined): boolean {
+function passesMetadataFilters(fileInfo: Deno.FileInfo, searchFileOptions: SearchFileOptions | undefined): boolean {
 	if (!searchFileOptions) return true;
-	if (searchFileOptions.dateAfter && stat.mtime && stat.mtime < new Date(searchFileOptions.dateAfter)) return false;
-	if (searchFileOptions.dateBefore && stat.mtime && stat.mtime > new Date(searchFileOptions.dateBefore)) return false;
-	if (searchFileOptions.sizeMin !== undefined && stat.size < searchFileOptions.sizeMin) return false;
-	if (searchFileOptions.sizeMax !== undefined && stat.size > searchFileOptions.sizeMax) return false;
+	if (searchFileOptions.dateAfter && fileInfo.mtime && fileInfo.mtime < new Date(searchFileOptions.dateAfter)) {
+		return false;
+	}
+	if (searchFileOptions.dateBefore && fileInfo.mtime && fileInfo.mtime > new Date(searchFileOptions.dateBefore)) {
+		return false;
+	}
+	if (searchFileOptions.sizeMin !== undefined && fileInfo.size < searchFileOptions.sizeMin) return false;
+	if (searchFileOptions.sizeMax !== undefined && fileInfo.size > searchFileOptions.sizeMax) return false;
 	return true;
 }
 
@@ -723,8 +896,8 @@ export async function listDirectory(
 ): Promise<ListDirectoryResponse> {
 	try {
 		const fullPath = join(rootDir, dirPath);
-		if (!await isPathWithinProject(rootDir, fullPath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${dirPath} is outside the project directory`);
+		if (!await isPathWithinDataSource(rootDir, fullPath)) {
+			throw createError(ErrorType.FileHandling, `Access denied: ${dirPath} is outside the data source directory`);
 		}
 
 		const items: Array<{ name: string; path: string; isDirectory: boolean }> = [];
@@ -766,9 +939,9 @@ export async function listDirectory(
 }
 
 export async function searchFilesMetadata(
-	projectRoot: string,
+	dataSourceRoot: string,
 	searchFileOptions: {
-		filePattern?: string;
+		resourcePattern?: string;
 		dateAfter?: string;
 		dateBefore?: string;
 		sizeMin?: number;
@@ -776,62 +949,62 @@ export async function searchFilesMetadata(
 	},
 ): Promise<{ files: string[]; errorMessage: string | null }> {
 	logger.info(
-		`FileHandlingUtil: Starting file metadata search in ${projectRoot} with file pattern: ${searchFileOptions?.filePattern}`,
+		`FileHandlingUtil: Starting file metadata search in ${dataSourceRoot} with file pattern: ${searchFileOptions?.resourcePattern}`,
 	);
 	try {
 		const matchingFiles: string[] = [];
 
-		const excludeOptions = await getExcludeOptions(projectRoot);
-		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, projectRoot);
+		const excludeOptions = await getExcludeOptions(dataSourceRoot);
+		const excludeOptionsRegex = createExcludeRegexPatterns(excludeOptions, dataSourceRoot);
 		const walkOptions: WalkOptions = {
 			includeDirs: false,
 			skip: excludeOptionsRegex,
 		};
 
 		// Add match option if file pattern is provided
-		if (searchFileOptions?.filePattern) {
-			walkOptions.match = createMatchRegexPatterns(searchFileOptions?.filePattern, projectRoot);
+		if (searchFileOptions?.resourcePattern) {
+			walkOptions.match = createMatchRegexPatterns(searchFileOptions?.resourcePattern, dataSourceRoot);
 		}
 		// logger.info(
-		// 	`FileHandlingUtil: searchFilesMetadata - Searching ${projectRoot} using walkOptions: ${
+		// 	`FileHandlingUtil: searchFilesMetadata - Searching ${dataSourceRoot} using walkOptions: ${
 		// 		JSON.stringify(walkOptions)
 		// 	}`,
 		// );
 
-		for await (const entry of walk(projectRoot, walkOptions)) {
-			const relativePath = relative(projectRoot, entry.path);
+		for await (const entry of walk(dataSourceRoot, walkOptions)) {
+			const relativePath = relative(dataSourceRoot, entry.path);
 
-			const stat = await Deno.stat(entry.path);
+			const fileInfo = await Deno.stat(entry.path);
 
 			// Check date range
-			if (!stat.mtime) {
+			if (!fileInfo.mtime) {
 				logger.info(`FileHandlingUtil: File ${relativePath} has no modification time, excluding from results`);
 				continue;
 			}
 			if (searchFileOptions.dateAfter) {
 				const afterDate = new Date(searchFileOptions.dateAfter);
-				//if (stat.mtime < afterDate || stat.mtime > now) {
-				if (stat.mtime < afterDate) {
+				//if (fileInfo.mtime < afterDate || fileInfo.mtime > now) {
+				if (fileInfo.mtime < afterDate) {
 					logger.info(
-						`FileHandlingUtil: File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (after ${searchFileOptions.dateAfter})`,
+						`FileHandlingUtil: File ${relativePath} modified at ${fileInfo.mtime.toISOString()} is outside the valid range (after ${searchFileOptions.dateAfter})`,
 					);
 					continue;
 				}
 			}
 			if (searchFileOptions.dateBefore) {
 				const beforeDate = new Date(searchFileOptions.dateBefore);
-				//if (stat.mtime >= beforeDate || stat.mtime > now) {
-				if (stat.mtime >= beforeDate) {
+				//if (fileInfo.mtime >= beforeDate || fileInfo.mtime > now) {
+				if (fileInfo.mtime >= beforeDate) {
 					logger.info(
-						`FileHandlingUtil: File ${relativePath} modified at ${stat.mtime.toISOString()} is outside the valid range (before ${searchFileOptions.dateBefore})`,
+						`FileHandlingUtil: File ${relativePath} modified at ${fileInfo.mtime.toISOString()} is outside the valid range (before ${searchFileOptions.dateBefore})`,
 					);
 					continue;
 				}
 			}
 
 			// Check file size
-			if (searchFileOptions.sizeMin !== undefined && stat.size < searchFileOptions.sizeMin) continue;
-			if (searchFileOptions.sizeMax !== undefined && stat.size > searchFileOptions.sizeMax) continue;
+			if (searchFileOptions.sizeMin !== undefined && fileInfo.size < searchFileOptions.sizeMin) continue;
+			if (searchFileOptions.sizeMax !== undefined && fileInfo.size > searchFileOptions.sizeMax) continue;
 
 			//logger.info(`FileHandlingUtil: File ${relativePath} matches all criteria`);
 			matchingFiles.push(relativePath);

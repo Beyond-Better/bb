@@ -103,12 +103,13 @@ A new `ResourceManager` class will be implemented to handle different resource t
 
 ```typescript
 class ResourceManager {
-  async loadResource(resource: Resource): Promise<string> {
-    switch (resource.type) {
+  async loadResource(resourceUri: string): Promise<string> {
+	const { resourceType } = parseDataSourceUri(resourceUri);
+    switch (resourceType) {
       case 'url':
-        return this.loadUrlResource(resource.uri);
+        return this.loadUrlResource(resourceUri);
       case 'file':
-        return this.loadFileResource(resource.uri);
+        return this.loadFileResource(resourceUri);
       // Implement other resource types
     }
   }

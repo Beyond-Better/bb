@@ -12,7 +12,7 @@ const fullConfig = await ConfigManager.fullConfig(startDir);
 const { apiHostname, apiPort, apiUseTls } = fullConfig.api;
 
 // After
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const globalConfig = await configManager.getGlobalConfig();
 const { hostname, port } = globalConfig.api;
 const useTls = globalConfig.api.tls?.useTls ?? true;
@@ -86,7 +86,7 @@ async function init(): Promise<void> {
 
 // After
 async function init(): Promise<void> {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   const globalConfig = await configManager.getGlobalConfig();
   const projectConfig = await configManager.getProjectConfig(projectId);
   // Use configs
@@ -190,7 +190,7 @@ Deno.test('config validation', async () => {
 
 // After
 Deno.test('config validation', async () => {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   const config = await configManager.getGlobalConfig();
   assertEquals(typeof config.api.port, 'number');
   assertEquals(typeof config.api.tls?.useTls, 'boolean');

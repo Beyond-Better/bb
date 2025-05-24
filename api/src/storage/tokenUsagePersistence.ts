@@ -333,7 +333,8 @@ export class TokenUsagePersistence {
 			return content
 				.split('\n')
 				.filter(Boolean)
-				.map((line) => JSON.parse(line));
+				.map((line) => JSON.parse(line))
+				.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 		} catch (error) {
 			if (error instanceof Deno.errors.NotFound) {
 				return [];

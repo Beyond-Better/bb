@@ -1,10 +1,10 @@
 import type { Context } from '@oak/oak';
 import { Router } from '@oak/oak';
 import swaggerJsdoc from 'swagger-jsdoc';
-//import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+//import { getConfigManager } from 'shared/config/configManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
 
-// const configManager = await ConfigManagerV2.getInstance();
+// const configManager = await getConfigManager();
 // const globalConfig = await configManager.getGlobalConfig();
 const versionInfo = await getVersionInfo();
 const swaggerDefinition = {

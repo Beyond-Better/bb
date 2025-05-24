@@ -3,6 +3,7 @@
  * This centralizes the logic for protocol handling across both API and WebSocket connections.
  */
 
+import { errorMessage } from 'shared/error.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from './url.utils.ts';
 
 interface ConnectionDetails {
@@ -69,7 +70,7 @@ export async function testApiConnection(hostname: string, port: string, useTls: 
 			error: response.ok ? undefined : new Error(`HTTP error: ${response.status}`),
 		};
 	} catch (error) {
-		console.error(`Connection test failed for ${url}:`, error);
+		console.error(`Connection test failed for ${url}:`, errorMessage(error));
 		return {
 			success: false,
 			useTls,
@@ -85,7 +86,7 @@ export function getPreferredProtocol(): boolean | null {
 	try {
 		const preference = localStorage.getItem(PROTOCOL_PREFERENCE_KEY);
 		return preference !== null ? preference === 'true' : null;
-	} catch (e) {
+	} catch (_e) {
 		return null;
 	}
 }

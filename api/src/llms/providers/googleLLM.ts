@@ -8,6 +8,7 @@ import type {
 	Content,
 	FunctionCall,
 	FunctionCallPart,
+	//FunctionDeclaration,
 	FunctionDeclarationSchema,
 	FunctionDeclarationsTool,
 	GenerateContentCandidate,
@@ -18,8 +19,9 @@ import type {
 	//HarmCategory,
 	//HarmProbability,
 	InlineDataPart,
-	//Part,
 	SafetyRating,
+	//Part,
+	Tool,
 	UsageMetadata,
 } from '@google/generative-ai';
 import { GoogleModel, LLMProvider } from 'api/types.ts';
@@ -49,7 +51,7 @@ import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
+import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 
 class GoogleLLM extends LLM {
 	private google!: GoogleGenerativeAI;
@@ -61,7 +63,7 @@ class GoogleLLM extends LLM {
 	}
 
 	private initializeGoogleClient() {
-		const apiKey = this.projectConfig.settings.api?.llmProviders?.google?.apiKey;
+		const apiKey = this.projectConfig.api?.llmProviders?.google?.apiKey;
 		if (!apiKey) {
 			throw createError(
 				ErrorType.LLM,
@@ -105,7 +107,7 @@ class GoogleLLM extends LLM {
 				parts: message.content.map((part) => {
 					if (part.type === 'text') {
 						// Check if this is a metadata block
-						if (part.text.includes(BB_FILE_METADATA_DELIMITER)) {
+						if (part.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
 							logger.debug('Found file metadata block, preserving as-is');
 							return { text: part.text };
 						}
@@ -134,7 +136,7 @@ class GoogleLLM extends LLM {
 						const processedContent = part.content?.map((p) => {
 							if (p.type === 'text') {
 								// Check if this is a metadata block
-								if (p.text.includes(BB_FILE_METADATA_DELIMITER)) {
+								if (p.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
 									logger.debug('Found file metadata in tool result, preserving as-is');
 									return { text: p.text };
 								}
@@ -242,6 +244,11 @@ class GoogleLLM extends LLM {
 
 			const cleaned = { ...obj };
 			delete cleaned.default;
+			delete cleaned.additionalProperties;
+
+			if (Array.isArray(cleaned.type)) {
+				cleaned.type = cleaned.type[0];
+			}
 
 			return Object.entries(cleaned).reduce((acc, [key, value]) => ({
 				...acc,
@@ -313,26 +320,29 @@ class GoogleLLM extends LLM {
 	}
  */
 
-	private asProviderToolType(tools: LLMTool[]): FunctionDeclarationsTool[] {
-		return tools.map((tool) => {
-			logger.debug(`Converting tool to Google format: ${tool.name}`);
+	private asProviderToolType(tools: LLMTool[]): Tool[] {
+		return [{
+			functionDeclarations: tools.map((tool) => {
+				logger.debug(`Converting tool to Google format: ${tool.name}`);
 
-			// Convert the input schema
-			const cleanedSchema = this.cleanSchema(tool.inputSchema);
-			logger.debug('Cleaned schema:', cleanedSchema);
+				// Convert the input schema
+				const cleanedSchema = this.cleanSchema(tool.inputSchema);
+				logger.debug('Cleaned schema:', cleanedSchema);
 
-			// Create function declaration
-			const functionDeclaration = {
-				name: tool.name,
-				description: tool.description,
-				parameters: cleanedSchema,
-			};
+				// Create function declaration
+				const functionDeclaration = {
+					name: tool.name,
+					description: tool.description,
+					parameters: cleanedSchema,
+				};
 
-			logger.debug('Created function declaration:', functionDeclaration);
-			return {
-				functionDeclarations: [functionDeclaration],
-			};
-		});
+				logger.debug('Created function declaration:', functionDeclaration);
+				return functionDeclaration;
+				// return {
+				// 	functionDeclarations: [functionDeclaration],
+				// };
+			}),
+		} as FunctionDeclarationsTool];
 	}
 
 	private asApiMessageContentPartsType(candidate: GenerateContentCandidate): LLMMessageContentPart[] {
@@ -445,6 +455,7 @@ class GoogleLLM extends LLM {
 			// Convert tools and log the result
 			const convertedTools = this.asProviderToolType(messageRequest.tools);
 			logger.debug('Converted tools:', JSON.stringify(convertedTools, null, 2));
+			//logger.info('Complete request with tools:', JSON.stringify(request.tools[15], null, 2));
 
 			// Add tools to request
 			request.tools = convertedTools;
@@ -455,7 +466,7 @@ class GoogleLLM extends LLM {
 			};
 
 			// Log the complete request for debugging
-			logger.debug('Complete request with tools:', JSON.stringify(request, null, 2));
+			//logger.info('Complete request with tools:', JSON.stringify(request, null, 2));
 		}
 
 		return request;
@@ -470,6 +481,7 @@ class GoogleLLM extends LLM {
 
 			const providerMessageRequest = await this.asProviderMessageRequest(messageRequest, interaction);
 			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_0_FLASH;
+			logger.info('Complete request with model:', { model });
 
 			const result = await this.google.getGenerativeModel({ model }).generateContent(providerMessageRequest);
 			logger.info('llms-google-result', result);
@@ -587,7 +599,7 @@ class GoogleLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -599,14 +611,14 @@ class GoogleLLM extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

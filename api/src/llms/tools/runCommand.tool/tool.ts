@@ -20,8 +20,8 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
+import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { join } from '@std/path';
 
 interface LLMToolRunCommandConfig extends LLMToolConfig {
@@ -45,6 +45,11 @@ export default class LLMToolRunCommand extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSourceId: {
+					type: 'string',
+					description:
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				command: {
 					type: 'string',
 					enum: this.allowedCommands,
@@ -78,16 +83,16 @@ export default class LLMToolRunCommand extends LLMTool {
 				cwd: {
 					type: 'string',
 					description:
-						`The working directory for command execution, relative to project root. Important considerations:\n\n` +
+						`The working directory for command execution, relative to data source root. Important considerations:\n\n` +
 						`1. Path Requirements:\n` +
-						`   * Must be relative to project root\n` +
-						`   * Cannot navigate outside project directory\n` +
+						`   * Must be relative to data source root\n` +
+						`   * Cannot navigate outside data source directory\n` +
 						`   * Parent directory references (..) not allowed\n` +
 						`   Examples:\n` +
-						`   * "src" - Run in project's src directory\n` +
+						`   * "src" - Run in data source's src directory\n` +
 						`   * "tests/fixtures" - Run in test fixtures directory\n\n` +
 						`2. Default Behavior:\n` +
-						`   * If not provided, commands run from project root\n` +
+						`   * If not provided, commands run from data source root\n` +
 						`   * Useful for commands that need specific context\n` +
 						`   * Affects how relative paths in args are resolved\n\n` +
 						`3. Common Use Cases:\n` +
@@ -164,7 +169,36 @@ export default class LLMToolRunCommand extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { command, args = [], cwd, outputTruncation } = toolInput as LLMToolRunCommandInput;
+		const { command, args = [], cwd, outputTruncation, dataSourceId = undefined } =
+			toolInput as LLMToolRunCommandInput;
+
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDsConnection) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
 
 		logger.info(
 			`LLMToolRunCommand: Validating command '${command}' against allowed commands:\n${
@@ -193,12 +227,13 @@ export default class LLMToolRunCommand extends LLMTool {
 		}
 
 		// Validate working directory if provided
-		let workingDir = projectEditor.projectRoot;
+		let workingDir = dataSourceRoot;
 		if (cwd) {
-			if (!await isPathWithinProject(projectEditor.projectRoot, cwd)) {
+			const resourceUri = dsConnectionToUse.getUriForResource(`file:./${cwd}`);
+			if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 				throw createError(
 					ErrorType.CommandExecution,
-					`Invalid working directory: ${cwd} is outside the project directory`,
+					`Invalid working directory: ${cwd} is outside the data source`,
 					{
 						name: 'command-execution-error',
 						command,
@@ -207,7 +242,7 @@ export default class LLMToolRunCommand extends LLMTool {
 					},
 				);
 			}
-			workingDir = join(projectEditor.projectRoot, cwd);
+			workingDir = join(dataSourceRoot, cwd);
 			logger.info(`LLMToolRunCommand: Using working directory: ${workingDir}`);
 		}
 
@@ -245,20 +280,26 @@ export default class LLMToolRunCommand extends LLMTool {
 				}
 				: undefined;
 
-			const toolResults = `Command executed with exit code: ${code}\n\nOutput:\n${truncatedStdout}${
-				stdoutTruncatedInfo
-					? `\n[stdout truncated: kept ${stdoutTruncatedInfo.keptLines} of ${stdoutTruncatedInfo.originalLines} lines]`
-					: ''
-			}${
-				truncatedStderr
-					? `\n\nError output:\n${truncatedStderr}${
-						stderrTruncatedInfo
-							? `\n[stderr truncated: kept ${stderrTruncatedInfo.keptLines} of ${stderrTruncatedInfo.originalLines} lines]`
-							: ''
-					}`
-					: ''
-			}`;
-			const toolResponse = isError ? 'Command exited with non-zero status' : 'Command completed successfully';
+			const dsConnectionStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
+
+			const toolResults =
+				`Used data source: ${dsConnectionToUse.name}\nCommand executed with exit code: ${code}\n\nOutput:\n${truncatedStdout}${
+					stdoutTruncatedInfo
+						? `\n[stdout truncated: kept ${stdoutTruncatedInfo.keptLines} of ${stdoutTruncatedInfo.originalLines} lines]`
+						: ''
+				}${
+					truncatedStderr
+						? `\n\nError output:\n${truncatedStderr}${
+							stderrTruncatedInfo
+								? `\n[stderr truncated: kept ${stderrTruncatedInfo.keptLines} of ${stderrTruncatedInfo.originalLines} lines]`
+								: ''
+						}`
+						: ''
+				}`;
+			const toolResponse = dsConnectionStatus + '\n\n' +
+				(isError ? 'Command exited with non-zero status' : 'Command completed successfully');
 			const bbResponse = {
 				data: {
 					code,
@@ -267,6 +308,11 @@ export default class LLMToolRunCommand extends LLMTool {
 					stdout: truncatedStdout,
 					stderr: truncatedStderr,
 					truncatedInfo,
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
 				},
 			};
 

@@ -1,4 +1,4 @@
-import { Context } from '@oak/oak';
+import type { Context } from '@oak/oak';
 import { formatInstanceOverview, getInstanceOverview, logInstanceOverview } from '../../utils/instanceInspector.ts';
 
 /**
@@ -14,19 +14,19 @@ export const getInstanceOverviewHandler = async (ctx: Context) => {
 
 		// Optionally write to log file
 		if (logToFile) {
-			logInstanceOverview({ detailed });
+			await logInstanceOverview({ detailed });
 		}
 
 		if (format === 'text') {
 			// Return formatted text representation
 			ctx.response.type = 'text/plain';
-			ctx.response.body = formatInstanceOverview({ detailed });
+			ctx.response.body = await formatInstanceOverview({ detailed });
 		} else {
 			// Return JSON overview
 			ctx.response.type = 'application/json';
 			ctx.response.body = {
 				success: true,
-				overview: getInstanceOverview({ detailed }),
+				overview: await getInstanceOverview({ detailed }),
 			};
 		}
 	} catch (error) {

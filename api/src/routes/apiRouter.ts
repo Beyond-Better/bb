@@ -16,6 +16,7 @@ import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
 import { getInstanceOverviewHandler } from './api/instanceInspector.handlers.ts';
 import projectRouter from './api/projectRouter.ts';
+import datasourceRouter from './api/datasourceRouter.ts';
 import fileRouter from './api/fileRouter.ts';
 import authRouter from './api/authRouter.ts';
 import userRouter from './api/userRouter.ts';
@@ -205,6 +206,7 @@ apiRouter
 	.post('/v1/doctor/fix/:type', applyFixHandler)
 	// Mount sub-routers
 	.use('/v1/project', projectRouter.routes(), projectRouter.allowedMethods())
+	.use('/v1/datasource', datasourceRouter.routes(), datasourceRouter.allowedMethods())
 	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods())
 	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods())
 	.use('/v1/user', userRouter.routes(), userRouter.allowedMethods())

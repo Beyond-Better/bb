@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.0] - 2025-05-24
+
+### BREAKING CHANGES: This release removes 'project root' in favour of 'data sources'; moves 
+location of project config; changes format of storage and configurations; and more.
+
+### IMPORTANT: Backup your project `.bb` and `.config/bb` directories before upgrading.
+
+### Added
+
+- Support for Claude v4 (Sonnet and Opus)
+- Support for Data Sources - major refactor across whole code base
+- [BETA] Support for Notion data source
+- Reading MCP resources
+- Use Google Gemini models on local-only mode
+
+### Changed
+
+- System prompt lists data sources rather than showing file listing
+- Tools use data sources instead of project root
+- Updated content for home page
+- Layout and design improvements
+- Moved all project config and data to shared bb directory
+
+### Fixed
+
+- various fixes and improvements during refactor
+
+
 ## [0.7.5] - 2025-04-10
 
 ### Added

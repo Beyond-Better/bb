@@ -1,5 +1,107 @@
 {
 	"anthropic": {
+		"claude-sonnet-4-20250514": {
+			"displayName": "Claude Sonnet 4.0",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000003,
+					"cachedPrice": 0.00000375
+				},
+				"outputTokens": {
+					"basePrice": 0.000015
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-23"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"responseSpeed": "medium"
+		},
+		"claude-opus-4-20250514": {
+			"displayName": "Claude Opus 4.0",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000015,
+					"cachedPrice": 0.00001875
+				},
+				"outputTokens": {
+					"basePrice": 0.000075
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-23"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"responseSpeed": "slow"
+		},
+		"claude-3-7-sonnet-20250219": {
+			"displayName": "Claude Sonnet 3.7",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.000003,
+					"cachedPrice": 0.00000375
+				},
+				"outputTokens": {
+					"basePrice": 0.000015
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-04-25"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-10-01",
+			"responseSpeed": "medium"
+		},
 		"claude-3-5-sonnet-20241022": {
 			"displayName": "Claude Sonnet 3.5",
 			"contextWindow": 200000,
@@ -65,40 +167,6 @@
 			"systemPromptBehavior": "optional",
 			"trainingCutoff": "2023-08-01",
 			"responseSpeed": "fast"
-		},
-		"claude-3-7-sonnet-20250219": {
-			"displayName": "Claude Sonnet 3.7",
-			"contextWindow": 200000,
-			"maxOutputTokens": 128000,
-			"pricing": {
-				"inputTokens": {
-					"basePrice": 0.000005,
-					"cachedPrice": 0.00000025
-				},
-				"outputTokens": {
-					"basePrice": 0.000025
-				},
-				"currency": "USD",
-				"effectiveDate": "2024-04-25"
-			},
-			"supportedFeatures": {
-				"functionCalling": true,
-				"json": true,
-				"streaming": true,
-				"vision": true,
-				"promptCaching": true,
-				"extendedThinking": true
-			},
-			"defaults": {
-				"temperature": 0.7,
-				"maxTokens": 16384
-			},
-			"constraints": {
-				"temperature": { "min": 0.0, "max": 1.0 }
-			},
-			"systemPromptBehavior": "optional",
-			"trainingCutoff": "2023-10-01",
-			"responseSpeed": "medium"
 		},
 		"claude-3-haiku-20240307": {
 			"displayName": "Claude Haiku 3",
@@ -331,6 +399,72 @@
 			},
 			"systemPromptBehavior": "optional",
 			"trainingCutoff": "2024-03-01",
+			"responseSpeed": "fast"
+		},
+		"gemini-2.5-flash-preview-05-20": {
+			"displayName": "Gemini Flash 2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000015
+				},
+				"outputTokens": {
+					"basePrice": 0.00000350
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
+			"responseSpeed": "fast"
+		},
+		"gemini-2.5-pro-preview-05-06": {
+			"displayName": "Gemini Pro 2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.00000250
+				},
+				"outputTokens": {
+					"basePrice": 0.00001500
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
 			"responseSpeed": "fast"
 		}
 	}

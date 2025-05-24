@@ -383,7 +383,7 @@ This document outlines the design and implementation plan for the file suggestio
 5. **Error Handling**:
    ```typescript
    // Handle common error cases
-   if (!isPathWithinProject(startDir, partialPath)) {
+   if (!isPathWithinDataSource(startDir, partialPath)) {
      throw createError(ErrorType.FileHandling, 'Path outside project directory');
    }
 

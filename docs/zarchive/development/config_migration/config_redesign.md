@@ -7,15 +7,15 @@
 The singleton pattern with explicit instance creation has proven effective:
 ```typescript
 // Single source of truth
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 
 // Avoid multiple instances
 // Bad: Creating multiple instances
-const config1 = await ConfigManagerV2.getInstance();
-const config2 = await ConfigManagerV2.getInstance();
+const config1 = await getConfigManager();
+const config2 = await getConfigManager();
 
 // Good: Share single instance
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const globalConfig = await configManager.getGlobalConfig();
 const projectConfig = await configManager.getProjectConfig(projectId);
 ```
@@ -102,12 +102,10 @@ interface ProjectConfig {
   version: string;
   name: string;
   type: ProjectType;
-  settings?: {
-    api?: Partial<ApiConfig>;
-    bui?: Partial<BuiConfig>;
-    cli?: Partial<CliConfig>;
-    dui?: Partial<DuiConfig>;
-  }
+  api?: Partial<ApiConfig>;
+  bui?: Partial<BuiConfig>;
+  cli?: Partial<CliConfig>;
+  dui?: Partial<DuiConfig>;
 }
 ```
 

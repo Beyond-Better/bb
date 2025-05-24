@@ -23,6 +23,8 @@ import { GeminiProvider } from './providers/gemini.ts';
 
 const MODELS = [
 	//anthropic
+	'claude-opus-4-20250514',
+	'claude-sonnet-4-20250514',
 	'claude-3-7-sonnet-20250219',
 	'claude-3-5-sonnet-20241022',
 	'claude-3-opus-20240229',
@@ -128,7 +130,7 @@ Each model will receive exactly the same prompt text and their complete response
    * gemini-pro
 
 Example selections:
-* ["claude-3-7-sonnet-20250219", "gpt-4o"] - Compare latest models
+* ["claude-sonnet-4-20250514", "gpt-4o"] - Compare latest models
 * ["claude-3-opus-20240229", "claude-3-haiku-20240307"] - Compare Claude variants
 * ["gpt-4o", "gpt-3.5-turbo", "gemini-pro"] - Compare across providers
 

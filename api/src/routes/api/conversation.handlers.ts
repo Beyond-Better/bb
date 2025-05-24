@@ -5,6 +5,7 @@ import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
+import { errorMessage } from 'shared/error.ts';
 
 /**
  * @openapi
@@ -118,12 +119,12 @@ export const chatConversation = async (
 	} catch (error) {
 		logger.error(
 			`ConversationHandler: Error in chatConversation for conversationId: ${conversationId}: ${
-				(error as Error).message
+				errorMessage(error)
 			}`,
 			error,
 		);
 		response.status = 500;
-		response.body = { error: 'Failed to generate response', details: (error as Error).message };
+		response.body = { error: 'Failed to generate response', details: errorMessage(error) };
 	}
 };
 
@@ -207,7 +208,7 @@ export const getConversation = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in getConversation: ${(error as Error).message}`);
+		logger.error(`ConversationHandler: Error in getConversation: ${errorMessage(error)}`);
 		response.status = 404;
 		response.body = { error: 'Conversation not found' };
 	}
@@ -268,7 +269,7 @@ export const deleteConversation = async (
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} deleted` };
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in deleteConversation: ${(error as Error).message}`);
+		logger.error(`ConversationHandler: Error in deleteConversation: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to delete conversation' };
 	}
@@ -366,10 +367,9 @@ export const listConversations = async (
 			},
 		};
 	} catch (error) {
-		const errorMessage = (error as Error).message;
-		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage}`, error);
+		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage(error)}`, error);
 		response.status = 500;
-		response.body = { error: 'Failed to list conversations', details: errorMessage };
+		response.body = { error: 'Failed to list conversations', details: errorMessage(error) };
 	}
 };
 
@@ -415,7 +415,7 @@ export const clearConversation = async (
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} cleared` };
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in clearConversation: ${(error as Error).message}`);
+		logger.error(`ConversationHandler: Error in clearConversation: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to clear conversation' };
 	}

@@ -3,7 +3,7 @@ import { colors } from 'cliffy/ansi/colors';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';
 //import { ensureApiReady } from '../utils/api.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 // Debug commands for the CLI
 export const debug = new Command()
@@ -28,11 +28,12 @@ export const debug = new Command()
 
 				try {
 					// Get project ID from the current directory
-					let projectId: string;
+					let projectId: string | undefined;
 					try {
 						const startDir = resolve(options.directory);
-						const projectRoot = await getProjectRootFromStartDir(startDir);
-						projectId = await getProjectId(projectRoot);
+						const workingRoot = await getWorkingRootFromStartDir(startDir);
+						projectId = await getProjectId(workingRoot);
+						if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 					} catch (_error) {
 						console.error('Not a valid project directory. Run `bb init`.');
 						Deno.exit(1);

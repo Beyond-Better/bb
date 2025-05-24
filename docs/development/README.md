@@ -7,6 +7,7 @@ This directory contains comprehensive documentation for BB developers and contri
 ### [reference/](reference/)
 Core implementation documentation and guidelines:
 - [File Handling](reference/file_handling.md) - File operation guidelines and best practices
+- [Project Architecture](reference/project_architecture.md) - Project management system architecture
 - [Tools](reference/tools.md) - Comprehensive tool documentation
 - [Conversation Management](reference/conversation_management.md) - Conversation feature implementation
 - [Objectives System](reference/objectives_system.md) - System architecture and implementation

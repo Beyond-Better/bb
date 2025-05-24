@@ -1,10 +1,10 @@
 import { logger } from 'shared/logger.ts';
 
-export async function runFormatCommand(projectRoot: string, formatCommand: string): Promise<void> {
+export async function runFormatCommand(dataSourceRoot: string, formatCommand: string): Promise<void> {
 	try {
 		const command = new Deno.Command(formatCommand.split(' ')[0], {
 			args: formatCommand.split(' ').slice(1),
-			cwd: projectRoot,
+			cwd: dataSourceRoot,
 		});
 
 		const process = command.spawn();

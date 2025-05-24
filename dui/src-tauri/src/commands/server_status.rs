@@ -1,7 +1,7 @@
+use reqwest;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
-use reqwest;
 use tauri::command;
 
 use crate::config::read_global_config;
@@ -29,8 +29,8 @@ pub struct ServerStatus {
 fn get_app_runtime_dir() -> Result<PathBuf, String> {
     #[cfg(target_os = "macos")]
     {
-        let home_dir = dirs::home_dir()
-            .ok_or_else(|| "Failed to get home directory".to_string())?;
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| "Failed to get home directory".to_string())?;
         let dir = home_dir
             .join("Library")
             .join("Application Support")
@@ -53,11 +53,9 @@ fn get_app_runtime_dir() -> Result<PathBuf, String> {
 
     #[cfg(target_os = "linux")]
     {
-        let home_dir = dirs::home_dir()
-            .ok_or_else(|| "Failed to get home directory".to_string())?;
-        let dir = home_dir
-            .join(".bb")
-            .join("run");
+        let home_dir =
+            dirs::home_dir().ok_or_else(|| "Failed to get home directory".to_string())?;
+        let dir = home_dir.join(".bb").join("run");
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create runtime directory: {}", e))?;
         Ok(dir)
@@ -75,8 +73,7 @@ fn get_pid_file_path(service: &str) -> Result<PathBuf, String> {
 
 pub async fn save_pid(service: &str, pid: i32) -> Result<(), String> {
     let pid_file = get_pid_file_path(service)?;
-    fs::write(&pid_file, pid.to_string())
-        .map_err(|e| format!("Failed to write PID file: {}", e))
+    fs::write(&pid_file, pid.to_string()).map_err(|e| format!("Failed to write PID file: {}", e))
 }
 
 pub async fn get_pid(service: &str) -> Result<Option<i32>, String> {
@@ -94,8 +91,7 @@ pub async fn get_pid(service: &str) -> Result<Option<i32>, String> {
 pub async fn remove_pid(service: &str) -> Result<(), String> {
     let pid_file = get_pid_file_path(service)?;
     if pid_file.exists() {
-        fs::remove_file(&pid_file)
-            .map_err(|e| format!("Failed to remove PID file: {}", e))
+        fs::remove_file(&pid_file).map_err(|e| format!("Failed to remove PID file: {}", e))
     } else {
         Ok(())
     }
@@ -103,16 +99,14 @@ pub async fn remove_pid(service: &str) -> Result<(), String> {
 
 #[cfg(target_family = "unix")]
 fn check_process_exists(pid: i32) -> bool {
-    unsafe {
-        libc::kill(pid, 0) == 0
-    }
+    unsafe { libc::kill(pid, 0) == 0 }
 }
 
 #[cfg(target_family = "windows")]
 fn check_process_exists(pid: i32) -> bool {
     use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
-    use windows_sys::Win32::System::Threading::{OpenProcess, GetExitCodeProcess};
-    
+    use windows_sys::Win32::System::Threading::{GetExitCodeProcess, OpenProcess};
+
     const PROCESS_QUERY_INFORMATION: u32 = 0x0400;
     const STILL_ACTIVE: u32 = 259;
 
@@ -133,15 +127,15 @@ fn check_process_exists(pid: i32) -> bool {
 async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
     let scheme = if use_tls { "https" } else { "http" };
     let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
-    
+
     println!("Checking API status at: {}", url);
-    
+
     match reqwest::get(&url).await {
         Ok(response) => {
             let status = response.status();
             println!("API responded with status: {}", status);
             Ok(status.is_success())
-        },
+        }
         Err(e) => {
             println!("Failed to connect to API: {}", e);
             Ok(false)
@@ -152,15 +146,15 @@ async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
 async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
     let scheme = if use_tls { "https" } else { "http" };
     let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
-    
+
     println!("Checking BUI status at: {}", url);
-    
+
     match reqwest::get(&url).await {
         Ok(response) => {
             let status = response.status();
             println!("BUI responded with status: {}", status);
             Ok(status.is_success())
-        },
+        }
         Err(e) => {
             println!("Failed to connect to BUI: {}", e);
             Ok(false)
@@ -170,7 +164,7 @@ async fn check_bui_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
 
 async fn check_service_status(service: &str) -> Result<ServiceStatus, String> {
     println!("Checking {} status...", service.to_uppercase());
-    
+
     let mut status = ServiceStatus {
         pid_exists: false,
         process_responds: false,
@@ -185,7 +179,7 @@ async fn check_service_status(service: &str) -> Result<ServiceStatus, String> {
         Some(pid) => {
             println!("Found PID file with PID: {}", pid);
             status.pid = Some(pid);
-            
+
             // Level 2: Check if process exists
             status.pid_exists = check_process_exists(pid);
             println!("Process exists: {}", status.pid_exists);
@@ -194,15 +188,20 @@ async fn check_service_status(service: &str) -> Result<ServiceStatus, String> {
             if status.pid_exists {
                 let config = read_global_config()
                     .map_err(|e| format!("Failed to read global config: {}", e))?;
-                
+
                 match service {
                     "api" => {
-                        println!("Checking API endpoint at {}:{}", config.api.hostname, config.api.port);
+                        println!(
+                            "Checking API endpoint at {}:{}",
+                            config.api.hostname, config.api.port
+                        );
                         match check_api_responds(
                             &config.api.hostname,
                             config.api.port,
-                            config.api.tls.use_tls
-                        ).await {
+                            config.api.tls.use_tls,
+                        )
+                        .await
+                        {
                             Ok(responds) => {
                                 status.service_responds = responds;
                                 status.process_responds = responds;
@@ -213,14 +212,19 @@ async fn check_service_status(service: &str) -> Result<ServiceStatus, String> {
                                 status.error = Some(e);
                             }
                         }
-                    },
+                    }
                     "bui" => {
-                        println!("Checking BUI endpoint at {}:{}", config.bui.hostname, config.bui.port);
+                        println!(
+                            "Checking BUI endpoint at {}:{}",
+                            config.bui.hostname, config.bui.port
+                        );
                         match check_bui_responds(
                             &config.bui.hostname,
                             config.bui.port,
-                            config.bui.tls.use_tls
-                        ).await {
+                            config.bui.tls.use_tls,
+                        )
+                        .await
+                        {
                             Ok(responds) => {
                                 status.service_responds = responds;
                                 status.process_responds = responds;
@@ -231,7 +235,7 @@ async fn check_service_status(service: &str) -> Result<ServiceStatus, String> {
                                 status.error = Some(e);
                             }
                         }
-                    },
+                    }
                     _ => {
                         status.error = Some(format!("Invalid service: {}", service));
                     }
@@ -270,11 +274,18 @@ pub async fn reconcile_service_state(service: &str) -> Result<(), String> {
         remove_pid(service).await?;
     } else if status.pid_exists && !status.service_responds {
         // Process exists but service doesn't respond - potential zombie
-        println!("{} process exists but is not responding. Consider restarting.", service.to_uppercase());
+        println!(
+            "{} process exists but is not responding. Consider restarting.",
+            service.to_uppercase()
+        );
     } else if status.service_responds && pid.is_none() {
         // Service responds but no PID file - recover state if possible
         if let Some(pid) = status.pid {
-            println!("Recovering PID file for {} with process ID: {}", service.to_uppercase(), pid);
+            println!(
+                "Recovering PID file for {} with process ID: {}",
+                service.to_uppercase(),
+                pid
+            );
             save_pid(service, pid).await?;
         }
     }

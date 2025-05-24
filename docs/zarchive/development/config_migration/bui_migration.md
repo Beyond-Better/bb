@@ -45,7 +45,7 @@ await ConfigManager.fullConfig() → await configManager.getGlobalConfig()
 await ConfigManager.projectConfig() → await configManager.getProjectConfig()
 
 // Instance creation
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 ```
 
 3. URL Generation

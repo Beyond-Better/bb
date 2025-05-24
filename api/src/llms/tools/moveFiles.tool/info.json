@@ -1,8 +1,0 @@
-{
-	"name": "move_files",
-	"description": "Move one or more files or directories to a new location within the project. Preserves file names while changing location. For renaming files, use rename_files instead. Consider impact on imports and references when moving files between directories.",
-	"version": "1.0.0",
-	"author": "BB Team",
-	"license": "MIT",
-	"mutates": true
-}

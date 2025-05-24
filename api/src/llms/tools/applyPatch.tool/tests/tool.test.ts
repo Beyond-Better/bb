@@ -109,15 +109,15 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, '✅ Patch applied successfully to 1 file(s)');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 element');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '📝 Modified: test.txt');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, '✅ Patch applied successfully to 1 file(s)');
+
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '📝 Modified: test.txt');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(updatedContent, 'Hello, Deno!');
@@ -215,19 +215,19 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 3, 'toolResults should have 3 elements');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, '✅ Patch applied successfully to 2 file(s)');
+				assert(result.toolResults.length === 4, 'toolResults should have 4 elements');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '📝 Modified: file1.txt');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, '✅ Patch applied successfully to 2 file(s)');
 
 				const thirdResult = result.toolResults[2];
-				assert(thirdResult.type === 'text', 'Third result should be of type text');
-				assertStringIncludes(thirdResult.text, '📝 Modified: file2.txt');
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '📝 Modified: file1.txt');
+
+				const fourthResult = result.toolResults[3];
+				assert(fourthResult.type === 'text', 'Third result should be of type text');
+				assertStringIncludes(fourthResult.text, '📝 Modified: file2.txt');
 
 				// Verify content of file1.txt
 				const updatedContent1 = await Deno.readTextFile(testFilePath1);
@@ -326,15 +326,15 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, '✅ Patch applied successfully to 1 file(s)');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 element');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '📝 Modified: complex.txt');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, '✅ Patch applied successfully to 1 file(s)');
+
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '📝 Modified: complex.txt');
 
 				const updatedContent = await Deno.readTextFile(testFilePath);
 				assertEquals(
@@ -421,15 +421,15 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
-
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, '✅ Patch applied successfully to 1 file(s)');
+				assert(result.toolResults.length === 3, 'toolResults should have 3 element');
 
 				const secondResult = result.toolResults[1];
-				assert(secondResult.type === 'text', 'Second result should be of type text');
-				assertStringIncludes(secondResult.text, '📄 Created: new_file.txt');
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, '✅ Patch applied successfully to 1 file(s)');
+
+				const thirdResult = result.toolResults[2];
+				assert(thirdResult.type === 'text', 'Second result should be of type text');
+				assertStringIncludes(thirdResult.text, '📄 Created: new_file.txt');
 
 				const fileContent = await Deno.readTextFile(newFilePath);
 				assertEquals(fileContent, 'This is a new file created by patch.');
@@ -489,7 +489,7 @@ Deno.test({
 				if (isString(result.bbResponse)) {
 					assertStringIncludes(
 						result.bbResponse,
-						'BB failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the project directory',
+						'BB failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the data source directory',
 					);
 				} else {
 					assert(false, 'bbResponse is not a string as expected');
@@ -497,18 +497,18 @@ Deno.test({
 
 				assertStringIncludes(
 					result.toolResponse,
-					'Failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the project directory',
+					'Failed to apply patch. Error: Failed to apply patch: Access denied: ../outside_project.txt is outside the data source directory',
 				);
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 1, 'toolResults should have 1 element');
+				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
 				assertStringIncludes(
-					firstResult.text,
-					'⚠️  Failed to apply patch: Access denied: ../outside_project.txt is outside the project directory',
+					secondResult.text,
+					'⚠️  Failed to apply patch: Access denied: ../outside_project.txt is outside the data source directory',
 				);
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -590,11 +590,11 @@ Deno.test({
 
 				// Check toolResults
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-				assert(result.toolResults.length === 1, 'toolResults should have 1 element');
+				assert(result.toolResults.length === 2, 'toolResults should have 2 element');
 
-				const firstResult = result.toolResults[0];
-				assert(firstResult.type === 'text', 'First result should be of type text');
-				assertStringIncludes(firstResult.text, '⚠️  Failed to apply patch:');
+				const secondResult = result.toolResults[1];
+				assert(secondResult.type === 'text', 'First result should be of type text');
+				assertStringIncludes(secondResult.text, '⚠️  Failed to apply patch:');
 
 				// Verify that the file content hasn't changed
 				const unchangedContent = await Deno.readTextFile(testFilePath);

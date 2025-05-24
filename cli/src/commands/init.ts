@@ -4,14 +4,17 @@ import { colors } from 'cliffy/ansi/colors';
 import { logger } from 'shared/logger.ts';
 import { basename } from '@std/path';
 import { getProjectId } from 'shared/dataDir.ts';
-import { GitUtils } from 'shared/git.ts';
+import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 // Using ProjectType from v2 types
 
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { CreateProjectData, ProjectType } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
+import type { CreateProjectData } from 'shared/types/project.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
-async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, 'path'>> {
+async function runWizard(
+	workingRoot: string,
+): Promise<Omit<CreateProjectData, 'dsConnections' | 'primaryDataSourceRoot'>> {
 	// Show password notice if not on Windows
 	if (Deno.build.os !== 'windows') {
 		console.log(colors.bold('\nImportant Note about Security Setup:'));
@@ -24,31 +27,30 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 		console.log('\nThis is a one-time setup step to ensure secure communication.\n');
 	}
 
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
 	console.log('globalConfig', globalConfig);
-	const projectConfig = await configManager.loadProjectConfigFromProjectRoot(projectRoot);
+	const projectId = await getProjectId(workingRoot);
+	const projectConfig = projectId ? await configManager.loadProjectConfig(projectId) : null;
 	const existingProjectConfig: CreateProjectData = projectConfig
 		? {
-			name: projectConfig.name,
-			type: projectConfig.type,
-			path: projectRoot,
+			name: projectConfig.name || 'unknown project',
 			myPersonsName: projectConfig.myPersonsName,
 			myAssistantsName: projectConfig.myAssistantsName,
-			anthropicApiKey: projectConfig.settings.api?.llmProviders?.anthropic?.apiKey,
+			anthropicApiKey: projectConfig.api?.llmProviders?.anthropic?.apiKey,
+			dsConnections: [],
 			defaultModels: projectConfig.defaultModels,
 		}
 		: {
-			name: basename(projectRoot),
-			type: 'local' as ProjectType,
-			path: projectRoot,
+			name: basename(workingRoot),
 			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
 			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
 			anthropicApiKey: '',
+			dsConnections: [],
 			defaultModels: {
-				orchestrator: 'claude-3-7-sonnet-20250219',
-				agent: 'claude-3-7-sonnet-20250219',
-				chat: 'claude-3-haiku-20240307',
+				orchestrator: 'claude-sonnet-4-20250514',
+				agent: 'claude-sonnet-4-20250514',
+				chat: 'claude-3-5-haiku-20241022',
 			},
 		};
 
@@ -118,12 +120,12 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 	]);
 
 	// Detect project type
-	const projectType = existingProjectConfig?.type || await detectProjectType(projectRoot);
+	//const projectType = existingProjectConfig?.type || await detectProjectType(workingRoot);
 
 	// Remove empty values
-	const filteredAnswers: Omit<CreateProjectData, 'path'> = {
-		name: answers.projectName?.trim() || projectRoot,
-		type: projectType,
+	const filteredAnswers: Omit<CreateProjectData, 'dsConnections'> = {
+		name: answers.projectName?.trim() || workingRoot,
+		//type: projectType,
 	};
 
 	if (answers.anthropicApiKey && answers.anthropicApiKey.trim() !== '') {
@@ -142,39 +144,39 @@ async function runWizard(projectRoot: string): Promise<Omit<CreateProjectData, '
 	return filteredAnswers;
 }
 
-async function detectProjectType(projectRoot: string): Promise<ProjectType> {
-	//try {
-	//	const gitSimpleCheck = new Deno.Command('git', {
-	//		args: ['--version'],
-	//	});
-	//	const { code } = await gitSimpleCheck.output();
-	//	if (code === 0) {
-	//		return 'git';
-	//	} else {
-	//		return 'local';
-	//	}
-	//} catch (_) {
-	//	return 'local';
-	//}
-	// findGitRoot calls getGit which throws if git isn't installed, so just do the above manual check instead.
-	const gitRoot = await GitUtils.findGitRoot(projectRoot);
-	if (!gitRoot) await GitUtils.initGit(projectRoot);
-	// [TODO] type 'git' is deprecated, so return 'local' for both
-	//return gitRoot ? 'git' : 'local';
-	return 'local';
-}
+// async function detectProjectType(workingRoot: string): Promise<ProjectType> {
+// 	//try {
+// 	//	const gitSimpleCheck = new Deno.Command('git', {
+// 	//		args: ['--version'],
+// 	//	});
+// 	//	const { code } = await gitSimpleCheck.output();
+// 	//	if (code === 0) {
+// 	//		return 'git';
+// 	//	} else {
+// 	//		return 'local';
+// 	//	}
+// 	//} catch (_) {
+// 	//	return 'local';
+// 	//}
+// 	// findGitRoot calls getGit which throws if git isn't installed, so just do the above manual check instead.
+// 	const gitRoot = await GitUtils.findGitRoot(workingRoot);
+// 	if (!gitRoot) await GitUtils.initGit(workingRoot);
+// 	// [TODO] type 'git' is deprecated, so return 'local' for both
+// 	//return gitRoot ? 'git' : 'local';
+// 	return 'local';
+// }
 
 async function printProjectDetails(
 	projectName: string,
-	projectType: string,
-	createProjectData: Omit<CreateProjectData, 'path'>,
+	//projectType: string,
+	createProjectData: Omit<CreateProjectData, 'dsConnections'>,
 	useTlsCert: boolean,
 ) {
-	const configManager = await ConfigManagerV2.getInstance();
+	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
 	console.log(`\n${colors.bold.blue.underline('BB Project Details:')}`);
 	console.log(`  ${colors.bold('Name:')} ${colors.green(projectName)}`);
-	console.log(`  ${colors.bold('Type:')} ${colors.green(projectType)}`);
+	//console.log(`  ${colors.bold('Type:')} ${colors.green(projectType)}`);
 	console.log(`  ${colors.bold('Your Name:')} ${colors.green(createProjectData.myPersonsName || 'Not set')}`);
 	console.log(`  ${colors.bold('Assistant Name:')} ${colors.green(createProjectData.myAssistantsName || 'Not set')}`);
 	console.log(
@@ -235,33 +237,48 @@ export const init = new Command()
 	.description('Initialize BB in the current directory')
 	.action(async () => {
 		const startDir = Deno.cwd();
-		const projectRoot = startDir; //await getProjectRootFromStartDir(startDir);
-		//const projectId = await getProjectId(projectRoot);
+		const workingRoot = startDir; //await getWorkingRootFromStartDir(startDir);
+		//const projectId = await getProjectId(workingRoot);
 
 		try {
-			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(projectRoot)}`);
+			console.log(`${colors.bold('Initializing BB for: ')} ${colors.green(workingRoot)}`);
 
 			// Create or update config with wizard answers and project info
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			await configManager.ensureGlobalConfig();
 
 			// Run the wizard
-			const createProjectData = await runWizard(projectRoot);
+			const createProjectData = await runWizard(workingRoot);
 
-			await configManager.createProject({
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const provider = dataSourceRegistry.getProvider('filesystem', 'bb');
+			if (!provider) throw new Error('Could not load provider');
+
+			const primaryDsConnection = dataSourceRegistry.createConnection(
+				provider,
+				'local',
+				{ dataSourceRoot: workingRoot },
+				{ isPrimary: true },
+			);
+
+			const projectPersistenceManager = await getProjectPersistenceManager();
+			const projectData = await projectPersistenceManager.createProject({
 				...createProjectData,
-				path: projectRoot,
+				//primaryDataSourceRoot: workingRoot,
+				dsConnections: [
+					primaryDsConnection,
+				],
 			});
 
 			// Verify that API key is set either in user config or project config
 			const finalGlobalConfig = await configManager.getGlobalConfig();
-			const projectId = await getProjectId(projectRoot);
+			const projectId = projectData.projectId; //await getProjectId(workingRoot);
 			//await configManager.ensureLatestProjectConfig(projectId);
-			const finalProjectConfig = await configManager.getProjectConfig(projectId);
+			const finalProjectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
 
 			if (
 				!finalGlobalConfig.api?.llmProviders?.anthropic?.apiKey &&
-				!finalProjectConfig.settings.api?.llmProviders?.anthropic?.apiKey
+				!finalProjectConfig?.api?.llmProviders?.anthropic?.apiKey
 			) {
 				throw new Error(
 					'Anthropic API key is required. Please set it in either user or project configuration.',
@@ -298,7 +315,7 @@ export const init = new Command()
 			//logger.debug('Printing project details...');
 			await printProjectDetails(
 				createProjectData.name,
-				createProjectData.type,
+				//createProjectData.type,
 				createProjectData,
 				useTlsCert,
 			);

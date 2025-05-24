@@ -1,9 +1,9 @@
 import { PageProps } from '$fresh/server.ts';
 import { signal } from '@preact/signals';
-import { SettingsMetadata } from '../../../islands/metadata/index.ts';
-import Settings from '../../../islands/Settings.tsx';
+import { AppSettingsMetadata } from '../../../islands/metadata/index.ts';
+import AppSettings from '../../../islands/AppSettings.tsx';
 
-interface SettingsPageProps {
+interface AppSettingsPageProps {
 	category?: string;
 }
 
@@ -11,12 +11,12 @@ interface SettingsPageProps {
 const categoryState = signal<string>('General');
 const descriptionState = signal<string>('Manage your preferences and customize BB');
 
-export default function SettingsPage(_props: PageProps<SettingsPageProps>) {
+export default function AppSettingsPage(_props: PageProps<AppSettingsPageProps>) {
 	return (
 		<div class='flex flex-col flex-1'>
 			{/* Metadata Bar */}
 			<div class='border-b border-gray-200 dark:border-gray-700 px-4 py-2'>
-				<SettingsMetadata
+				<AppSettingsMetadata
 					category={categoryState.value}
 					description={descriptionState.value}
 				/>
@@ -24,7 +24,7 @@ export default function SettingsPage(_props: PageProps<SettingsPageProps>) {
 
 			{/* Main content */}
 			<div class='flex-1 flex flex-col overflow-hidden'>
-				<Settings />
+				<AppSettings />
 			</div>
 		</div>
 	);

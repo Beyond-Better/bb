@@ -35,6 +35,7 @@
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact"
 	},
+	"nodeModulesDir": "auto",
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -51,5 +52,5 @@
 			"src/fixtures/**/*.ts"
 		]
 	},
-	"version": "0.7.5"
+	"version": "0.8.0"
 }

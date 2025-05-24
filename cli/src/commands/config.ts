@@ -1,9 +1,9 @@
 import { Command } from 'cliffy/command';
 import { colors } from 'cliffy/ansi/colors';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-//import type { ProjectType } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+//import type { ProjectType } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 const formatValue = (value: unknown, indent = ''): string => {
 	const nextIndent = indent + '    ';
@@ -58,14 +58,15 @@ export const config = new Command()
 				Deno.exit(1);
 			}
 
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			let config: unknown;
 			if (global) {
 				config = await configManager.getGlobalConfig();
 				console.log(colors.bold('Global configuration:'));
 			} else if (project) {
-				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-				const projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(workingRoot);
+				if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 				await configManager.ensureLatestProjectConfig(projectId);
 				config = await configManager.getProjectConfig(projectId);
 				console.log(colors.bold('Project configuration:'));
@@ -91,13 +92,14 @@ export const config = new Command()
 			}
 
 			let value: unknown;
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			if (global) {
 				const config = await configManager.getGlobalConfig();
 				value = await getConfigValue(key, config);
 			} else if (project) {
-				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-				const projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(workingRoot);
+				if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 				await configManager.ensureLatestProjectConfig(projectId);
 				const config = await configManager.getProjectConfig(projectId);
 				value = await getConfigValue(key, config);
@@ -129,7 +131,7 @@ export const config = new Command()
 				Deno.exit(1);
 			}
 
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			if (global) {
 				await configManager.updateGlobalConfig({
 					[key]: value,
@@ -139,8 +141,9 @@ export const config = new Command()
 				);
 			} else {
 				// Default to project config
-				const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-				const projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+				const projectId = await getProjectId(workingRoot);
+				if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 				await configManager.updateProjectConfig(projectId, {
 					[key]: value,
 				});

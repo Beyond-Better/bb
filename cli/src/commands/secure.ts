@@ -1,6 +1,6 @@
 import { Command } from 'cliffy/command';
 import { colors } from 'cliffy/ansi/colors';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { type ConfigManagerV2, getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import {
 	addToSystemTrustStore,
@@ -11,7 +11,7 @@ import {
 import { join } from '@std/path';
 import { exists } from '@std/fs';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 async function enableTls(configManager: ConfigManagerV2, projectId?: string): Promise<void> {
 	console.log('Enabling TLS for BB API...');
@@ -43,12 +43,9 @@ async function enableTls(configManager: ConfigManagerV2, projectId?: string): Pr
 			// Update configuration
 			if (projectId && projectConfig) {
 				await configManager.updateProjectConfig(projectId, {
-					settings: {
-						...projectConfig.settings,
-						api: {
-							...projectConfig.settings.api,
-							tls: { ...projectConfig.settings.api?.tls, useTls: true },
-						},
+					api: {
+						...projectConfig.api,
+						tls: { ...projectConfig.api?.tls, useTls: true },
 					},
 				});
 			} else {
@@ -64,12 +61,9 @@ async function enableTls(configManager: ConfigManagerV2, projectId?: string): Pr
 		} else {
 			if (projectId && projectConfig) {
 				await configManager.updateProjectConfig(projectId, {
-					settings: {
-						...projectConfig.settings,
-						api: {
-							...projectConfig.settings.api,
-							tls: { ...projectConfig.settings.api?.tls, useTls: false },
-						},
+					api: {
+						...projectConfig.api,
+						tls: { ...projectConfig.api?.tls, useTls: false },
 					},
 				});
 			} else {
@@ -103,12 +97,9 @@ async function disableTls(configManager: ConfigManagerV2, projectId?: string): P
 		// Update configuration
 		if (projectId && projectConfig) {
 			await configManager.updateProjectConfig(projectId, {
-				settings: {
-					...projectConfig.settings,
-					api: {
-						...projectConfig.settings.api,
-						tls: { ...projectConfig.settings.api?.tls, useTls: false },
-					},
+				api: {
+					...projectConfig.api,
+					tls: { ...projectConfig.api?.tls, useTls: false },
 				},
 			});
 		} else {
@@ -147,10 +138,10 @@ export const secure = new Command()
 			Deno.exit(1);
 		}
 		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		const workingRoot = await getWorkingRootFromStartDir(startDir);
+		const projectId = await getProjectId(workingRoot);
 		try {
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			await enableTls(configManager, project ? projectId : undefined);
 		} catch (error) {
 			console.error(colors.red(`Error: ${(error as Error).message}`));
@@ -166,10 +157,10 @@ export const secure = new Command()
 			Deno.exit(1);
 		}
 		const startDir = Deno.cwd();
-		const projectRoot = await getProjectRootFromStartDir(startDir);
-		const projectId = await getProjectId(projectRoot);
+		const workingRoot = await getWorkingRootFromStartDir(startDir);
+		const projectId = await getProjectId(workingRoot);
 		try {
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			await disableTls(configManager, project ? projectId : undefined);
 		} catch (error) {
 			console.error(colors.red(`Error: ${(error as Error).message}`));
@@ -185,20 +176,21 @@ export const secure = new Command()
 			Deno.exit(1);
 		}
 		// const startDir = Deno.cwd();
-		// const projectRoot = await getProjectRootFromStartDir(startDir);
-		// const projectId = await getProjectId(projectRoot);
+		// const workingRoot = await getWorkingRootFromStartDir(startDir);
+		// const projectId = await getProjectId(workingRoot);
 		try {
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			const config = await configManager.getGlobalConfig();
 			let tlsEnabled;
 			let configSource = 'Global';
 
 			if (project) {
 				const startDir = Deno.cwd();
-				const projectRoot = await getProjectRootFromStartDir(startDir);
-				const projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(startDir);
+				const projectId = await getProjectId(workingRoot);
+				if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 				const projectConfig = await configManager.getProjectConfig(projectId);
-				tlsEnabled = projectConfig.settings.api?.tls?.useTls;
+				tlsEnabled = projectConfig.api?.tls?.useTls;
 				configSource = 'Project';
 			} else {
 				tlsEnabled = config.api.tls?.useTls;

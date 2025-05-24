@@ -1,7 +1,7 @@
+use crate::proxy::HttpProxy;
 use log::{debug, info};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use crate::proxy::HttpProxy;
 
 #[tauri::command]
 pub async fn get_proxy_info(
@@ -11,7 +11,7 @@ pub async fn get_proxy_info(
     let proxy = state.read().await;
     let target = proxy.target_url.read().await.clone();
     let is_running = proxy.is_running().await;
-    
+
     Ok(crate::proxy::ProxyInfo {
         port: proxy.port,
         target,
@@ -56,16 +56,23 @@ pub async fn set_proxy_target(
 ) -> Result<(), String> {
     debug!("set_proxy_target called with target: {}", target);
     // Validate target URL
-    let parsed_url = reqwest::Url::parse(&target)
-        .map_err(|e| format!("Invalid target URL: {}", e))?;
-    
+    let parsed_url =
+        reqwest::Url::parse(&target).map_err(|e| format!("Invalid target URL: {}", e))?;
+
     if parsed_url.scheme() != "https" {
-        return Err(format!("Invalid URL scheme: {}. Only HTTPS URLs are allowed.", parsed_url.scheme()));
+        return Err(format!(
+            "Invalid URL scheme: {}. Only HTTPS URLs are allowed.",
+            parsed_url.scheme()
+        ));
     }
-    
-    debug!("Parsed target URL - scheme: {}, host: {:?}, port: {:?}",
-           parsed_url.scheme(), parsed_url.host_str(), parsed_url.port());
-    
+
+    debug!(
+        "Parsed target URL - scheme: {}, host: {:?}, port: {:?}",
+        parsed_url.scheme(),
+        parsed_url.host_str(),
+        parsed_url.port()
+    );
+
     debug!("Setting proxy target to: {}", target);
     let proxy = state.read().await;
     *proxy.target_url.write().await = target.clone();

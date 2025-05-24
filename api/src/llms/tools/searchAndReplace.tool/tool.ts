@@ -10,16 +10,21 @@ import {
 	formatLogEntryToolResult as formatLogEntryToolResultConsole,
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
+import type { LLMToolSearchAndReplaceInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
+import type {
+	DataSourceHandlingErrorOptions,
+	FileHandlingErrorOptions,
+	ToolHandlingErrorOptions,
+} from 'api/errors/error.ts';
+import { isFileNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { dirname, join } from '@std/path';
-import { ensureDir } from '@std/fs';
+// import { dirname, join } from '@std/path';
+// import { ensureDir } from '@std/fs';
 
 export default class LLMToolSearchAndReplace extends LLMTool {
 	private static readonly MIN_SEARCH_LENGTH = 1;
@@ -28,10 +33,15 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
-				filePath: {
+				dataSourceId: {
 					type: 'string',
 					description:
-						'The path of the file to be modified or created, relative to the project root. Example: "src/config.ts"',
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
+				resourcePath: {
+					type: 'string',
+					description:
+						'The path of the resource to be modified or created, relative to the data source root. Example: "src/config.ts"',
 				},
 				operations: {
 					type: 'array',
@@ -41,7 +51,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 							search: {
 								type: 'string',
 								description:
-									'The text to search for in the file. Two modes available:\n\n1. Literal mode (default):\n* Must match the file content EXACTLY, including all whitespace and indentation\n* Special characters are matched literally\n* Example: "  const x = 10;" will only match if the spaces and semicolon exist\n\n2. Regex mode (set regexPattern: true):\n* Use JavaScript regex patterns\n* Can match varying whitespace with patterns like "\\s+"\n* Example: "const\\s+x\\s*=\\s*10" matches various spacing around "const x = 10"',
+									'The text to search for in the resource. Two modes available:\n\n1. Literal mode (default):\n* Must match the resource content EXACTLY, including all whitespace and indentation\n* Special characters are matched literally\n* Example: "  const x = 10;" will only match if the spaces and semicolon exist\n\n2. Regex mode (set regexPattern: true):\n* Use JavaScript regex patterns\n* Can match varying whitespace with patterns like "\\s+"\n* Example: "const\\s+x\\s*=\\s*10" matches various spacing around "const x = 10"',
 							},
 							replace: {
 								type: 'string',
@@ -75,11 +85,11 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				createIfMissing: {
 					type: 'boolean',
 					description:
-						"When true (recommended), creates the file and any missing parent directories if they don't exist. When false, fails if the file doesn't exist.",
+						"When true (recommended), creates the resource and any missing parent directories if they don't exist. When false, fails if the resource doesn't exist.",
 					default: true,
 				},
 			},
-			required: ['filePath', 'operations'],
+			required: ['resourcePath', 'operations'],
 		};
 	}
 
@@ -107,44 +117,93 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 		let allOperationsFailed = true;
 		let allOperationsSucceeded = true;
 		const { toolUseId: _toolUseId, toolInput } = toolUse;
-		const { filePath, operations, createIfMissing = true } = toolInput as {
-			filePath: string;
-			operations: Array<
-				{
-					search: string;
-					replace: string;
-					regexPattern?: boolean;
-					replaceAll?: boolean;
-					caseSensitive?: boolean;
-				}
-			>;
-			createIfMissing?: boolean;
-		};
+		const { resourcePath, operations, createIfMissing = true, dataSourceId = undefined } =
+			toolInput as LLMToolSearchAndReplaceInput;
 
-		if (!await isPathWithinProject(projectEditor.projectRoot, filePath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${filePath} is outside the project directory`, {
-				name: 'search-and-replace',
-				filePath,
-				operation: 'search-replace',
-			} as FileHandlingErrorOptions);
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDsConnection) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
 		}
 
-		const fullFilePath = join(projectEditor.projectRoot, filePath);
-		logger.info(`LLMToolSearchAndReplace: Handling search and replace for file: ${fullFilePath}`);
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
+		//if (!dataSourceRoot) {
+		//	throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+		//		name: 'data-source',
+		//		dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+		//	} as DataSourceHandlingErrorOptions);
+		//}
+		// [TODO] check that dsConnectionToUse is type filesystem
+
+		// const resourceUri = `file:./${resourcePath}`;
+		const resourceUri = (resourcePath.includes('://') || resourcePath.startsWith('file:'))
+			? dsConnectionToUse.getUriForResource(resourcePath) // Already a URI, use as is
+			: dsConnectionToUse.getUriForResource(`file:./${resourcePath}`); // Likely a file path, prepend file:./
+		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${resourcePath} is outside the data source`,
+				{
+					name: 'search-and-replace',
+					filePath: resourcePath,
+					operation: 'search-replace',
+				} as FileHandlingErrorOptions,
+			);
+		}
+
+		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+		if (!resourceAccessor.writeResource) {
+			throw createError(ErrorType.ToolHandling, `No writeResource method on resourceAccessor`, {
+				toolName: 'image_manipulation',
+				operation: 'tool-run',
+			} as ToolHandlingErrorOptions);
+		}
+		//logger.error(`LLMToolDisplayResource: display resource for: ${resourceUri}`, {resourceAccessor});
+
+		logger.info(`LLMToolSearchAndReplace: Handling search and replace for resource: ${resourceUri}`);
 
 		try {
-			let content: string;
-			let isNewFile = false;
+			let isNewResource = false;
+
+			let content: string | Uint8Array; // we only work with strings - we throw an error below if we don't get a string back from loadResource
 			try {
-				content = await Deno.readTextFile(fullFilePath);
+				const resource = await resourceAccessor.loadResource(resourceUri);
+				content = resource.content; // as string;
+				// Validate that content is actually text
+				if (typeof content !== 'string') {
+					if (content instanceof Uint8Array) {
+						throw new Error(
+							`Cannot perform search and replace on binary content: ${resourcePath}. The resource appears to be binary data (${content.length} bytes).`,
+						);
+					} else {
+						throw new Error(
+							`Cannot perform search and replace on non-string content: ${resourcePath}. Content type: ${typeof content}`,
+						);
+					}
+				}
 			} catch (error) {
-				if (error instanceof Deno.errors.NotFound && createIfMissing) {
+				//if (error instanceof Deno.errors.NotFound && createIfMissing) {
+				if (isFileNotFoundError(error) && createIfMissing) {
 					content = '';
-					isNewFile = true;
-					logger.info(`LLMToolSearchAndReplace: File ${fullFilePath} not found. Creating new file.`);
+					isNewResource = true;
+					logger.info(`LLMToolSearchAndReplace: Resource ${resourceUri} not found. Creating new resource.`);
 					// Create missing directories
-					await ensureDir(dirname(fullFilePath));
-					logger.info(`LLMToolSearchAndReplace: Created directory structure for ${fullFilePath}`);
+					await resourceAccessor.ensureResourcePathExists(resourceUri);
+					logger.info(`LLMToolSearchAndReplace: Created directory structure for ${resourceUri}`);
 				} else {
 					throw error;
 				}
@@ -158,9 +217,9 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				let operationSuccess = false;
 
 				// Validate search string
-				if (!isNewFile && search.length < LLMToolSearchAndReplace.MIN_SEARCH_LENGTH) {
+				if (!isNewResource && search.length < LLMToolSearchAndReplace.MIN_SEARCH_LENGTH) {
 					operationWarnings.push(
-						`Search string is too short (minimum ${LLMToolSearchAndReplace.MIN_SEARCH_LENGTH} character(s)) for existing file.`,
+						`Search string is too short (minimum ${LLMToolSearchAndReplace.MIN_SEARCH_LENGTH} character(s)) for existing resource.`,
 					);
 					continue;
 				}
@@ -171,7 +230,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					continue;
 				}
 
-				const originalContent = content;
+				const originalContent = content as string;
 
 				let searchPattern: string | RegExp;
 
@@ -200,7 +259,7 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					successfulOperations.push(operation);
 				} else {
 					operationWarnings.push(
-						'No changes were made. The search string was not found in the file content.',
+						'No changes were made. The search string was not found in the resource content.',
 					);
 					allOperationsSucceeded = false;
 				}
@@ -228,15 +287,36 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				}
 			}
 
-			if (successfulOperations.length > 0 || isNewFile) {
-				await Deno.writeTextFile(fullFilePath, content);
-
+			if (successfulOperations.length > 0 || isNewResource) {
+				const results = await resourceAccessor.writeResource(resourceUri, content, {
+					overwrite: true,
+					createMissingDirectories: true,
+				});
+				// success: true,
+				// uri: resourceUri,
+				// metadata: resourceMetadata,
+				// bytesWritten: typeof content === 'string' ? new TextEncoder().encode(content).length : content.length,
+				if (!results.success) {
+					throw createError(
+						ErrorType.FileHandling,
+						`Writing resource failed for ${resourcePath}`,
+						{
+							name: 'search-and-replace',
+							filePath: resourcePath,
+							operation: 'write',
+						} as FileHandlingErrorOptions,
+					);
+				}
+				logger.info(
+					`LLMToolSearchAndReplace: Wrote ${results.bytesWritten} bytes for: ${results.uri}`,
+				);
 				logger.info(
 					`LLMToolSearchAndReplace: Saving conversation search and replace operations: ${interaction.id}`,
 				);
 				await projectEditor.orchestratorController.logChangeAndCommit(
 					interaction,
-					filePath,
+					dataSourceRoot,
+					resourcePath,
 					JSON.stringify(successfulOperations),
 				);
 
@@ -247,30 +327,44 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 					text: `${result.status === 'success' ? '✅  ' : '⚠️  '}${result.message}`,
 				}));
 
+				const dsConnectionStatus = notFound.length > 0
+					? `Could not find data source for: [${notFound.join(', ')}]`
+					: 'Data source searched';
+
 				const operationStatus = allOperationsSucceeded
 					? 'All operations succeeded'
 					: (allOperationsFailed ? 'All operations failed' : 'Partial operations succeeded');
 				toolResultContentParts.unshift({
 					type: 'text',
 					text: `${
-						isNewFile ? 'File created and s' : 'S'
-					}earch and replace operations applied to file: ${filePath}. ${operationStatus}.`,
+						isNewResource ? 'Resource created and s' : 'S'
+					}earch and replace operations applied to resource: ${resourcePath}. ${operationStatus}.`,
+				});
+
+				toolResultContentParts.unshift({
+					type: 'text',
+					text: `Searched data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`,
 				});
 
 				const toolResults = toolResultContentParts;
-				const toolResponse = operationStatus;
-				const bbResponse = `BB applied search and replace operations.`;
+				const toolResponse = `${dsConnectionStatus}\n${operationStatus}`;
+				const bbResponse = `BB applied search and replace operations.\n${dsConnectionStatus}`;
+				//dataSource: {
+				//	dsConnectionId: dsConnectionToUse.id,
+				//	dsConnectionName: dsConnectionToUse.name,
+				//	dsProviderType: dsConnectionToUse.providerType,
+				//},
 
 				return { toolResults, toolResponse, bbResponse };
 			} else {
-				const noChangesMessage = `No changes were made to the file: ${filePath}. Results: ${
+				const noChangesMessage = `No changes were made to the resource: ${resourcePath}. Results: ${
 					JSON.stringify(operationResults)
 				}`;
 				logger.info(`LLMToolSearchAndReplace: ${noChangesMessage}`);
 
 				throw createError(ErrorType.FileHandling, noChangesMessage, {
 					name: 'search-and-replace',
-					filePath: filePath,
+					filePath: resourcePath,
 					operation: 'search-replace',
 				} as FileHandlingErrorOptions);
 
@@ -284,12 +378,12 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			if ((error as Error).name === 'search-and-replace') {
 				throw error;
 			}
-			const errorMessage = `Failed to apply search and replace to ${filePath}: ${(error as Error).message}`;
+			const errorMessage = `Failed to apply search and replace to ${resourcePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolSearchAndReplace: ${errorMessage}`);
 
 			throw createError(ErrorType.FileHandling, errorMessage, {
 				name: 'search-and-replace',
-				filePath: filePath,
+				filePath: resourcePath,
 				operation: 'search-replace',
 			} as FileHandlingErrorOptions);
 		}

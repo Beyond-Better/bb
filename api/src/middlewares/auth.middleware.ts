@@ -1,5 +1,5 @@
 import type { Context, Next } from '@oak/oak';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { BbState } from '../types/app.types.ts';
 
@@ -9,7 +9,7 @@ import type { BbState } from '../types/app.types.ts';
  */
 export async function authMiddleware(ctx: Context<BbState>, next: Next) {
 	try {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
 		// Skip auth check in localMode

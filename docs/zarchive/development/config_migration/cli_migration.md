@@ -64,7 +64,7 @@ export const config = new Command()
   .option('--global', 'Show only global configuration')
   .option('--project', 'Show only project configuration')
   .action(async ({ global, project, format }) => {
-    const config = await ConfigManagerV2.getInstance();
+    const config = await getConfigManager();
     
     try {
       let result: unknown;
@@ -99,7 +99,7 @@ export const apiStart = new Command()
   .description('Start the BB API server')
   .action(async (options) => {
     try {
-      const config = await ConfigManagerV2.getInstance();
+      const config = await getConfigManager();
       const apiConfig = await config.getApiConfig();
       
       // Merge command options with config
@@ -143,7 +143,7 @@ export const init = new Command()
   .description('Initialize a new BB project')
   .action(async () => {
     try {
-      const config = await ConfigManagerV2.getInstance();
+      const config = await getConfigManager();
       
       // Get project details
       const answers = await promptProjectDetails();

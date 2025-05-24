@@ -25,6 +25,11 @@ import * as $auth_signup_index from './routes/auth/signup/index.tsx';
 import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
+import * as $AppSettings from './islands/AppSettings.tsx';
+import * as $AppSettings_DefaultProjectSettings from './islands/AppSettings/DefaultProjectSettings.tsx';
+import * as $AppSettings_MCPServerItem from './islands/AppSettings/MCPServerItem.tsx';
+import * as $AppSettings_MCPServersSection from './islands/AppSettings/MCPServersSection.tsx';
+import * as $AppSettings_SubscriptionSettings from './islands/AppSettings/SubscriptionSettings.tsx';
 import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Context_appConfig from './islands/Context/appConfig.tsx';
@@ -32,11 +37,6 @@ import * as $Home from './islands/Home.tsx';
 import * as $LandingHero from './islands/LandingHero.tsx';
 import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
-import * as $Settings from './islands/Settings.tsx';
-import * as $Settings_MCPServerItem from './islands/Settings/MCPServerItem.tsx';
-import * as $Settings_MCPServersSection from './islands/Settings/MCPServersSection.tsx';
-import * as $Settings_ProjectSettings from './islands/Settings/ProjectSettings.tsx';
-import * as $Settings_SubscriptionSettings from './islands/Settings/SubscriptionSettings.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
 import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
@@ -45,9 +45,9 @@ import * as $auth_ResendVerificationEmail from './islands/auth/ResendVerificatio
 import * as $auth_SignupContent from './islands/auth/SignupContent.tsx';
 import * as $auth_SignupForm from './islands/auth/SignupForm.tsx';
 import * as $auth_VerifyContent from './islands/auth/VerifyContent.tsx';
+import * as $metadata_AppSettingsMetadata from './islands/metadata/AppSettingsMetadata.tsx';
 import * as $metadata_ProjectManagerMetadata from './islands/metadata/ProjectManagerMetadata.tsx';
 import * as $metadata_ProjectMetadata from './islands/metadata/ProjectMetadata.tsx';
-import * as $metadata_SettingsMetadata from './islands/metadata/SettingsMetadata.tsx';
 import * as $metadata_index from './islands/metadata/index.ts';
 import type { Manifest } from '$fresh/server.ts';
 
@@ -78,6 +78,11 @@ const manifest = {
 		'./routes/index.tsx': $index,
 	},
 	islands: {
+		'./islands/AppSettings.tsx': $AppSettings,
+		'./islands/AppSettings/DefaultProjectSettings.tsx': $AppSettings_DefaultProjectSettings,
+		'./islands/AppSettings/MCPServerItem.tsx': $AppSettings_MCPServerItem,
+		'./islands/AppSettings/MCPServersSection.tsx': $AppSettings_MCPServersSection,
+		'./islands/AppSettings/SubscriptionSettings.tsx': $AppSettings_SubscriptionSettings,
 		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
 		'./islands/Context/appConfig.tsx': $Context_appConfig,
@@ -85,11 +90,6 @@ const manifest = {
 		'./islands/LandingHero.tsx': $LandingHero,
 		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,
 		'./islands/ProjectManager.tsx': $ProjectManager,
-		'./islands/Settings.tsx': $Settings,
-		'./islands/Settings/MCPServerItem.tsx': $Settings_MCPServerItem,
-		'./islands/Settings/MCPServersSection.tsx': $Settings_MCPServersSection,
-		'./islands/Settings/ProjectSettings.tsx': $Settings_ProjectSettings,
-		'./islands/Settings/SubscriptionSettings.tsx': $Settings_SubscriptionSettings,
 		'./islands/SideNav.tsx': $SideNav,
 		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
@@ -98,9 +98,9 @@ const manifest = {
 		'./islands/auth/SignupContent.tsx': $auth_SignupContent,
 		'./islands/auth/SignupForm.tsx': $auth_SignupForm,
 		'./islands/auth/VerifyContent.tsx': $auth_VerifyContent,
+		'./islands/metadata/AppSettingsMetadata.tsx': $metadata_AppSettingsMetadata,
 		'./islands/metadata/ProjectManagerMetadata.tsx': $metadata_ProjectManagerMetadata,
 		'./islands/metadata/ProjectMetadata.tsx': $metadata_ProjectMetadata,
-		'./islands/metadata/SettingsMetadata.tsx': $metadata_SettingsMetadata,
 		'./islands/metadata/index.ts': $metadata_index,
 	},
 	baseUrl: import.meta.url,

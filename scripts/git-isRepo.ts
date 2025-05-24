@@ -10,7 +10,7 @@ import fs from 'node:fs';
 // Explicitly provide the path polyfill
 globalThis.path = { join };
 
-const findGitRoot = async (startPath: string = Deno.cwd(), projectRoot?: string): Promise<string | null> => {
+const findGitRoot = async (startPath: string = Deno.cwd(), workingRoot?: string): Promise<string | null> => {
 	try {
 		// Get the directory path if startPath is a file
 		let dirPath = startPath;
@@ -34,11 +34,11 @@ const findGitRoot = async (startPath: string = Deno.cwd(), projectRoot?: string)
 		const resolvedGitRoot = await Deno.realPath(resolve(normalizedPath));
 		console.log(`Resolved`, { resolvedGitRoot });
 
-		// If projectRoot is provided, verify the git root is within the project
-		if (projectRoot) {
-			const isWithinProject = await isPathWithinProject(projectRoot, resolvedGitRoot);
+		// If workingRoot is provided, verify the git root is within the project
+		if (workingRoot) {
+			const isWithinProject = await isPathWithinDataSource(workingRoot, resolvedGitRoot);
 			if (!isWithinProject) {
-				console.log(`Git root ${resolvedGitRoot} is outside project root ${projectRoot}`);
+				console.log(`Git root ${resolvedGitRoot} is outside project root ${workingRoot}`);
 				return null;
 			}
 		}

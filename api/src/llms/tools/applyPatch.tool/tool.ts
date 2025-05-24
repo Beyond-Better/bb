@@ -14,9 +14,8 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { isPathWithinProject } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { dirname, join } from '@std/path';
 import { ensureDir } from '@std/fs';
@@ -27,10 +26,15 @@ export default class LLMToolApplyPatch extends LLMTool {
 		return {
 			type: 'object',
 			properties: {
+				dataSourceId: {
+					type: 'string',
+					description:
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+				},
 				filePath: {
 					type: 'string',
 					description:
-						'The path of the file to be patched, relative to project root. Required for single-file patches, optional for multi-file patches that include file paths. Example: "src/config.ts"',
+						'The path of the file to be patched, relative to data source root. Required for single-file patches, optional for multi-file patches that include file paths. Example: "src/config.ts"',
 				},
 				patch: {
 					type: 'string',
@@ -104,7 +108,36 @@ Notes:
 		const patchedFiles: string[] = [];
 		const patchContents: string[] = [];
 		const { toolInput } = toolUse;
-		const { filePath, patch } = toolInput as LLMToolApplyPatchInput;
+		const { filePath, patch, dataSourceId = undefined } = toolInput as LLMToolApplyPatchInput;
+
+		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
+			projectEditor,
+			dataSourceId ? [dataSourceId] : undefined,
+		);
+		if (!primaryDsConnection) {
+			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+		const dsConnectionToUseId = dsConnectionToUse.id;
+		if (!dsConnectionToUseId) {
+			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
+		if (!dataSourceRoot) {
+			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
+				name: 'data-source',
+				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
+			} as DataSourceHandlingErrorOptions);
+		}
+		// [TODO] check that dsConnectionToUse is type filesystem
 
 		const parsedPatch = diff.parsePatch(patch);
 		const modifiedFiles: string[] = [];
@@ -117,11 +150,11 @@ Notes:
 					throw new Error('File path is undefined');
 				}
 				logger.info(`LLMToolApplyPatch: Checking location of file: ${currentFilePath}`);
-
-				if (!await isPathWithinProject(projectEditor.projectRoot, currentFilePath)) {
+				const resourceUri = dsConnectionToUse.getUriForResource(`file:./${currentFilePath}`);
+				if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 					throw createError(
 						ErrorType.FileHandling,
-						`Access denied: ${currentFilePath} is outside the project directory`,
+						`Access denied: ${currentFilePath} is outside the data source directory`,
 						{
 							name: 'apply-patch',
 							filePath: currentFilePath,
@@ -130,7 +163,7 @@ Notes:
 					);
 				}
 
-				const fullFilePath = join(projectEditor.projectRoot, currentFilePath);
+				const fullFilePath = join(dataSourceRoot, currentFilePath);
 
 				if (patchPart.oldFileName === '/dev/null') {
 					// This is a new file
@@ -168,7 +201,7 @@ Notes:
 
 				// [TODO] the `logChangeAndCommit` (used below) is already adding to patchedFiles and patchContents
 				// Is this legacy usage and should be removed, or do we need it for multi-part patches
-				projectEditor.changedFiles.add(currentFilePath);
+				projectEditor.changedResources.add(currentFilePath);
 				// [TODO] for multiple patch parts - will subsequent overwrite the first??
 				projectEditor.changeContents.set(currentFilePath, patch);
 			}
@@ -180,6 +213,7 @@ Notes:
 			// Log patch and commit for all modified files
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
+				dataSourceRoot,
 				patchedFiles,
 				patchContents,
 			);
@@ -199,12 +233,27 @@ Notes:
 				} as LLMMessageContentPartTextBlock)),
 			];
 
+			const dsConnectionStatus = notFound.length > 0
+				? `Could not find data source for: [${notFound.join(', ')}]`
+				: `Data source: ${dsConnectionToUse.name} [${dsConnectionToUse.id}]`;
+			toolResultContentParts.unshift({
+				type: 'text',
+				text: `Used data source: ${dsConnectionToUse.name}`,
+			});
+
 			const toolResults = toolResultContentParts;
-			const toolResponse = `Applied patch successfully to ${modifiedFiles.length + newFiles.length} file(s)`;
+			const toolResponse = `${dsConnectionStatus}\nApplied patch successfully to ${
+				modifiedFiles.length + newFiles.length
+			} file(s)`;
 			const bbResponse = {
 				data: {
 					modifiedFiles,
 					newFiles,
+					dataSource: {
+						dsConnectionId: dsConnectionToUse.id,
+						dsConnectionName: dsConnectionToUse.name,
+						dsProviderType: dsConnectionToUse.providerType,
+					},
 				},
 			};
 
@@ -221,6 +270,10 @@ Notes:
 			logger.error(`LLMToolApplyPatch: ${errorMessage}`);
 
 			const toolResultContentParts: LLMMessageContentParts = [
+				{
+					type: 'text',
+					text: `Used data source: ${dsConnectionToUse.name}`,
+				},
 				{
 					type: 'text',
 					text: `⚠️  ${errorMessage}`,

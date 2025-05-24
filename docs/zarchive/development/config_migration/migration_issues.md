@@ -24,17 +24,17 @@ const hostname = config.api?.hostname;
 **Issue:** Multiple configManager declarations in different scopes.
 ```typescript
 if (global) {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   // Use configManager
 } else {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   // Use configManager
 }
 ```
 
 **Solution:** Move declaration to parent scope:
 ```typescript
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 if (global) {
   // Use configManager
 } else {
@@ -46,14 +46,14 @@ if (global) {
 **Issue:** Creating multiple instances in async loops.
 ```typescript
 for (const item of items) {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   // Use configManager
 }
 ```
 
 **Solution:** Move instance creation outside loop:
 ```typescript
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 for (const item of items) {
   // Use configManager
 }
@@ -196,7 +196,7 @@ const config = await ConfigManager.fullConfig(startDir);
 const { apiHostname } = config.api;
 
 // After migration:
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const config = await configManager.getGlobalConfig();
 const { hostname } = config.api;
 ```

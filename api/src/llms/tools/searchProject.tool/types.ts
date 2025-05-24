@@ -1,7 +1,10 @@
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
+
 export interface LLMToolSearchProjectInput {
+	dataSourceIds?: string[];
 	contentPattern?: string;
 	caseSensitive?: boolean;
-	filePattern?: string;
+	resourcePattern?: string;
 	dateAfter?: string;
 	dateBefore?: string;
 	sizeMin?: number;
@@ -10,9 +13,16 @@ export interface LLMToolSearchProjectInput {
 
 export interface LLMToolSearchProjectResponseData {
 	data: {
-		files: string[];
+		resources: string[];
 		errorMessage?: string;
 		searchCriteria: string;
+		dataSources: Array<
+			{
+				dsConnectionId: string;
+				dsConnectionName: string;
+				dsProviderType: DataSourceProviderType;
+			}
+		>;
 	};
 }
 

@@ -409,7 +409,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		if (toolName.includes('rewrite') || toolName.includes('search_and_replace')) {
 			return { path: toolUse.toolInput.filePath as string, operation: 'modified' };
 		}
-		if (toolName === 'request_files') {
+		if (toolName === 'load_resources') {
 			return { path: (toolUse.toolInput.fileNames as string[])[0], operation: 'added' };
 		}
 		if (toolName === 'forget_files') {

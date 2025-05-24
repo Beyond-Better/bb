@@ -1,0 +1,7 @@
+{
+	"name": "load_resources",
+	"description": "Request one or more resources from one data source to be added to the conversation. Resources are specified using information returned from a previous load_datasource call. For discovering available resources, use load_datasource first. Always review resource contents before making suggestions or changes. When no data source is specified, operates on the primary data source.",
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT"
+}

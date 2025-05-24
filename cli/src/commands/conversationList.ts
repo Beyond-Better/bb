@@ -2,9 +2,9 @@ import { Command } from 'cliffy/command';
 import type { ConversationMetadata } from 'shared/types.ts';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 // import { createSpinner, startSpinner, stopSpinner } from '../utils/terminalHandler.utils.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const conversationList = new Command()
 	.description('List saved conversations')
@@ -16,18 +16,19 @@ export const conversationList = new Command()
 		// 		startSpinner(spinner, 'Fetching saved conversations...');
 
 		try {
-			let projectId: string;
+			let projectId: string | undefined;
 			try {
 				const startDir = resolve(directory);
-				const projectRoot = await getProjectRootFromStartDir(startDir);
-				projectId = await getProjectId(projectRoot);
+				const workingRoot = await getWorkingRootFromStartDir(startDir);
+				projectId = await getProjectId(workingRoot);
+				if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 			} catch (_error) {
 				//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 				console.error('Not a valid project directory. Run `bb init`.');
 				Deno.exit(1);
 			}
 
-			const configManager = await ConfigManagerV2.getInstance();
+			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			//const projectConfig = await configManager.getProjectConfig(projectId);
 			const apiClient = await ApiClient.create(projectId);

@@ -1,0 +1,8 @@
+{
+	"name": "forget_resources",
+	"description": "Remove resources from the conversation context to reduce token usage. When prompt caching is enabled, resources remain in the cached context but should be mentally excluded. When prompt caching is disabled, resources are actively removed from the context. Use this to manage conversation scope and reduce cognitive load.",
+	"version": "1.0.0",
+	"category": "ResourceManipulation",
+	"author": "BB Team",
+	"license": "MIT"
+}

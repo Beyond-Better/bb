@@ -12,9 +12,23 @@
 		"core:webview:allow-create-webview-window",
 		"core:window:allow-close",
 		"core:default",
-		"shell:allow-open",
 		"store:default",
-		"store:allow-load", 
+		"store:allow-load",
+		"opener:default",
+		{
+			"identifier": "opener:allow-open-url",
+			"allow": [
+				{
+				  "url": "http://localhost:*"
+				},
+				{
+				  "url": "https://localhost:*"
+				},
+				{
+				  "url": "https://chat.beyondbetter.dev"
+				}
+			]
+		},
 		{
 			"identifier": "fs:allow-open",
 			"allow": [
@@ -89,7 +103,7 @@
 		}
 	],
 	"webviewConfig": {
-		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev","https://localhost:8080"],
+		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev", "https://localhost:8080"],
 		"allowedProtocols": ["ws", "wss", "http", "https"]
 	}
 }

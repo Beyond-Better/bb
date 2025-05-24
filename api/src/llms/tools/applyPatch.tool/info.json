@@ -1,6 +1,6 @@
 {
 	"name": "apply_patch",
-	"description": "Apply a unified diff format patch to one or more files. Supports both modifying existing files and creating new ones. Use for complex multi-line changes where context is important. For simpler changes, prefer search_and_replace. Patches must match file content closely, with a small fuzz factor for nearby lines.",
+	"description": "Apply a unified diff format patch to one or more files for one data source. Supports both modifying existing files and creating new ones. Use for complex multi-line changes where context is important. For simpler changes, prefer search_and_replace. Patches must match file content closely, with a small fuzz factor for nearby lines. When no data source is specified, operates on the primary data source.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",

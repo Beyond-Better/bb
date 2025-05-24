@@ -235,6 +235,49 @@ class ModelCapabilitiesFetcher {
 			// Anthropic doesn't have a models endpoint yet, so we'll use known models
 			// with info from their documentation
 
+			// Claude 3.5 Haiku
+			this.registerModel({
+				modelId: 'claude-3-5-haiku-20241022',
+				displayName: 'Claude 3.5 Haiku',
+				provider: 'anthropic',
+				family: 'Claude-3',
+				contextWindow: 200000,
+				maxOutputTokens: 4096,
+				pricing: {
+					inputTokens: {
+						basePrice: 0.00000080,
+						cachedPrice: 0.00000100, // 5% of base price for cached input tokens
+					},
+					outputTokens: {
+						basePrice: 0.00000400,
+					},
+					currency: 'USD',
+					effectiveDate: '2024-10-22',
+				},
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: true,
+					promptCaching: true,
+				},
+				defaults: {
+					temperature: 0.7,
+					maxTokens: 4096,
+				},
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
+				},
+				systemPromptBehavior: 'optional',
+				trainingCutoff: '2023-08-01',
+				releaseDate: '2024-10-22',
+				responseSpeed: 'fast',
+				modality: 'text-and-vision',
+				description: 'Fast and cost-effective model for routine tasks',
+				source: 'documentation',
+				lastUpdated: new Date().toISOString(),
+			});
+
 			// Claude 3.5 Sonnet
 			this.registerModel({
 				modelId: 'claude-3-5-sonnet-20241022',
@@ -246,7 +289,7 @@ class ModelCapabilitiesFetcher {
 				pricing: {
 					inputTokens: {
 						basePrice: 0.000003,
-						cachedPrice: 0.00000015, // 5% of base price for cached input tokens
+						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
 					},
 					outputTokens: {
 						basePrice: 0.000015,
@@ -278,49 +321,6 @@ class ModelCapabilitiesFetcher {
 				lastUpdated: new Date().toISOString(),
 			});
 
-			// Claude 3.5 Haiku
-			this.registerModel({
-				modelId: 'claude-3-5-haiku-20241022',
-				displayName: 'Claude 3.5 Haiku',
-				provider: 'anthropic',
-				family: 'Claude-3',
-				contextWindow: 200000,
-				maxOutputTokens: 4096,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.00000025,
-						cachedPrice: 0.0000000125, // 5% of base price for cached input tokens
-					},
-					outputTokens: {
-						basePrice: 0.00000125,
-					},
-					currency: 'USD',
-					effectiveDate: '2024-10-22',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					promptCaching: true,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 4096,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-08-01',
-				releaseDate: '2024-10-22',
-				responseSpeed: 'fast',
-				modality: 'text-and-vision',
-				description: 'Fast and cost-effective model for routine tasks',
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
-
 			// Claude 3.7 Sonnet
 			this.registerModel({
 				modelId: 'claude-3-7-sonnet-20250219',
@@ -331,11 +331,11 @@ class ModelCapabilitiesFetcher {
 				maxOutputTokens: 128000,
 				pricing: {
 					inputTokens: {
-						basePrice: 0.000005,
-						cachedPrice: 0.00000025, // 5% of base price for cached input tokens
+						basePrice: 0.000003,
+						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
 					},
 					outputTokens: {
-						basePrice: 0.000025,
+						basePrice: 0.000015,
 					},
 					currency: 'USD',
 					effectiveDate: '2024-04-25',
@@ -361,6 +361,94 @@ class ModelCapabilitiesFetcher {
 				responseSpeed: 'medium',
 				modality: 'text-and-vision',
 				description: "Anthropic's most advanced model with extended thinking capabilities",
+				source: 'documentation',
+				lastUpdated: new Date().toISOString(),
+			});
+
+			// Claude 4.0 Sonnet
+			this.registerModel({
+				modelId: 'claude-sonnet-4-20250514',
+				displayName: 'Claude 4.0 Sonnet',
+				provider: 'anthropic',
+				family: 'Claude-4',
+				contextWindow: 200000,
+				maxOutputTokens: 128000,
+				pricing: {
+					inputTokens: {
+						basePrice: 0.000003,
+						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
+					},
+					outputTokens: {
+						basePrice: 0.000015,
+					},
+					currency: 'USD',
+					effectiveDate: '2025-05-23',
+				},
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: true,
+					extendedThinking: true,
+					promptCaching: true,
+				},
+				defaults: {
+					temperature: 0.7,
+					maxTokens: 8192,
+				},
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
+				},
+				systemPromptBehavior: 'optional',
+				trainingCutoff: '2025-03-01',
+				releaseDate: '2025-05-23',
+				responseSpeed: 'medium',
+				modality: 'text-and-vision',
+				description: "Anthropic's advanced model with extended thinking capabilities",
+				source: 'documentation',
+				lastUpdated: new Date().toISOString(),
+			});
+
+			// Claude 4.0 Opus
+			this.registerModel({
+				modelId: 'claude-opus-4-20250514',
+				displayName: 'Claude 4.0 Opus',
+				provider: 'anthropic',
+				family: 'Claude-4',
+				contextWindow: 200000,
+				maxOutputTokens: 128000,
+				pricing: {
+					inputTokens: {
+						basePrice: 0.000015,
+						cachedPrice: 0.00001875, // 5% of base price for cached input tokens
+					},
+					outputTokens: {
+						basePrice: 0.000075,
+					},
+					currency: 'USD',
+					effectiveDate: '2025-05-23',
+				},
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: true,
+					extendedThinking: true,
+					promptCaching: true,
+				},
+				defaults: {
+					temperature: 0.7,
+					maxTokens: 8192,
+				},
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
+				},
+				systemPromptBehavior: 'optional',
+				trainingCutoff: '2025-03-01',
+				releaseDate: '2025-05-23',
+				responseSpeed: 'medium',
+				modality: 'text-and-vision',
+				description: "Anthropic's advanced model with extended thinking capabilities",
 				source: 'documentation',
 				lastUpdated: new Date().toISOString(),
 			});

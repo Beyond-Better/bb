@@ -32,7 +32,7 @@ import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
@@ -80,7 +80,7 @@ class LLMInteraction {
 	};
 	// Task-oriented metrics
 	protected _objectives: ObjectivesData;
-	protected _resources: ResourceMetrics = {
+	protected _resourceMetrics: ResourceMetrics = {
 		accessed: new Set<string>(),
 		modified: new Set<string>(),
 		active: new Set<string>(),
@@ -442,10 +442,10 @@ class LLMInteraction {
 		this._toolStats.set(toolName, stats);
 	}
 
-	public updateResourceAccess(resource: string, modified: boolean = false): void {
-		this._resources.accessed.add(resource);
-		if (modified) this._resources.modified.add(resource);
-		this._resources.active.add(resource);
+	public updateResourceAccess(resourceMetric: string, modified: boolean = false): void {
+		this._resourceMetrics.accessed.add(resourceMetric);
+		if (modified) this._resourceMetrics.modified.add(resourceMetric);
+		this._resourceMetrics.active.add(resourceMetric);
 	}
 
 	public setObjectives(conversation?: string, statement?: string): void {
@@ -491,7 +491,7 @@ class LLMInteraction {
 					timestamp: this._objectives.timestamp,
 				}
 				: undefined,
-			resources: this._resources,
+			resources: this._resourceMetrics,
 			toolUsage: {
 				currentToolSet: this._currentToolSet,
 				toolStats: this._toolStats,
@@ -823,7 +823,7 @@ class LLMInteraction {
 
 		const effectiveProvider = provider || LLMModelToProvider[model];
 		// Get user preferences from project config
-		const userPreferences = this.projectConfig?.settings?.api?.llmProviders?.[effectiveProvider]?.userPreferences;
+		const userPreferences = this.projectConfig?.api?.llmProviders?.[effectiveProvider]?.userPreferences;
 
 		// Get interaction-specific preferences
 		const interactionPreferences = this.getInteractionPreferences();

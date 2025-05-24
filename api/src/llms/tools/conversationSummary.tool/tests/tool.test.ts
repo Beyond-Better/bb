@@ -15,6 +15,7 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { ConversationStats } from 'shared/types.ts';
+import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 
 import { makeChatInteractionStub, makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import {
@@ -27,9 +28,9 @@ import {
 } from 'api/tests/testSetup.ts';
 
 // Helper function to set up conversation directory structure
-async function setupConversationDir(testProjectRoot: string, conversationId: string) {
-	const bbDir = join(testProjectRoot, '.bb');
-	const conversationsDir = join(bbDir, 'data', 'conversations', conversationId);
+async function setupConversationDir(projectId: string, conversationId: string) {
+	const projectAdminDir = await getProjectAdminDataDir(projectId);
+	const conversationsDir = join(projectAdminDir, 'conversations', conversationId);
 	await ensureDir(conversationsDir);
 	return conversationsDir;
 }
@@ -95,10 +96,10 @@ async function createTestMessages(
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Empty Messages',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			// const conversationStats = {
 			// 	statementCount: 0,
@@ -187,10 +188,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Very large token count',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -302,10 +303,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle edge case - Minimum allowed token count',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -417,10 +418,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - user',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -521,10 +522,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - tool',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -625,10 +626,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle requestSource parameter - default',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -727,10 +728,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle invalid requestSource value',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -820,10 +821,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify backup creation and truncation',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1113,10 +1114,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle file operations in summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1133,7 +1134,7 @@ Deno.test({
 				},
 				{
 					role: 'assistant',
-					content: [{ type: 'tool_use', text: 'Using request_files to get config.ts' }],
+					content: [{ type: 'tool_use', text: 'Using load_resources to get config.ts' }],
 					conversationStats: incrementConversationStats(conversationStats),
 					providerResponse: { usage: { totalTokens: 2050 } },
 				},
@@ -1195,7 +1196,7 @@ Deno.test({
   * Modified configuration settings
 
 ### Tools Used
-- request_files: Retrieved config.ts
+- load_resources: Retrieved config.ts
 - search_and_replace: Modified config.ts
 
 ### Key Decisions
@@ -1254,7 +1255,7 @@ Deno.test({
 
 				// Verify Tools Used section
 				const toolSection = data.summary.split('### Tools Used')[1].split('###')[0];
-				assert(toolSection.includes('request_files'), 'Tools section should list request_files');
+				assert(toolSection.includes('load_resources'), 'Tools section should list load_resources');
 				assert(toolSection.includes('search_and_replace'), 'Tools section should list search_and_replace');
 				assert(toolSection.includes('Retrieved config.ts'), 'Tools section should describe file retrieval');
 				assert(toolSection.includes('Modified config.ts'), 'Tools section should describe file modification');
@@ -1287,7 +1288,7 @@ Deno.test({
 				assert(!metadata.fallbackUsed, 'Fallback should not be used in normal operation');
 
 				// Verify tool uses are captured
-				assert(data.summary.includes('request_files'), 'Summary should mention request_files tool');
+				assert(data.summary.includes('load_resources'), 'Summary should mention load_resources tool');
 				assert(data.summary.includes('search_and_replace'), 'Summary should mention search_and_replace tool');
 			} finally {
 				chatStub.restore();
@@ -1302,10 +1303,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - short summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1434,10 +1435,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - medium summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1555,10 +1556,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Verify summary length requirements - long summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1676,10 +1677,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle interrupted tool sequence',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -1875,10 +1876,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Basic functionality - Generate summary without truncation',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			// Create test messages
 			const conversationStats = {
@@ -2098,10 +2099,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Generate long summary with complex context',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -2294,10 +2295,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle invalid summary formats',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -2439,10 +2440,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle tool use as last message',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -2609,10 +2610,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle minimum token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -2743,10 +2744,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle complex tool sequences and token limits',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -2900,10 +2901,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Truncate conversation with tool uses',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -3080,10 +3081,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Handle failed chat interaction',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			// Create test messages
 			const conversationStats = {
@@ -3159,10 +3160,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Validate tool use/result pairing',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			// Create test messages with broken tool use/result pairing
 			const conversationStats = {
@@ -3301,10 +3302,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on missing required sections in summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			// Create test messages
 			const conversationStats = {
@@ -3390,10 +3391,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on broken message alternation',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -3509,10 +3510,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Generate short summary',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -3629,10 +3630,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Truncate conversation with token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,
@@ -3762,10 +3763,10 @@ Deno.test({
 Deno.test({
 	name: 'ConversationSummaryTool - Error on invalid token limit',
 	fn: async () => {
-		await withTestProject(async (testProjectId, testProjectRoot) => {
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
 			const conversationId = 'test-conversation';
-			const conversationsDir = await setupConversationDir(testProjectRoot, conversationId);
+			const conversationsDir = await setupConversationDir(testProjectId, conversationId);
 
 			const conversationStats = {
 				statementCount: 0,

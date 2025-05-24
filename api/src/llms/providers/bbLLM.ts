@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 //import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
-import { BB_FILE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
+import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -51,7 +51,7 @@ class BbLLM extends LLM {
 	// Helper function to check for file metadata blocks
 	private hasFileMetadata(text: string): boolean {
 		try {
-			return text.includes(BB_FILE_METADATA_DELIMITER);
+			return text.includes(BB_RESOURCE_METADATA_DELIMITER);
 		} catch (_e) {
 			return false;
 		}
@@ -110,7 +110,7 @@ class BbLLM extends LLM {
 									}
 								} else if (this.hasFileMetadata(p.text)) {
 									try {
-										const metadataText = p.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+										const metadataText = p.text.split(BB_RESOURCE_METADATA_DELIMITER)[1].trim();
 										const metadata = JSON.parse(metadataText);
 										summary.push(
 											`${indent}  - ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -149,7 +149,7 @@ class BbLLM extends LLM {
 
 					if (hasFileContent) {
 						try {
-							const metadataText = part.text.split(BB_FILE_METADATA_DELIMITER)[1].trim();
+							const metadataText = part.text.split(BB_RESOURCE_METADATA_DELIMITER)[1].trim();
 							const metadata = JSON.parse(metadataText);
 							summary.push(
 								`${indent}File: ${metadata.path} (${metadata.type}) [revision: ${metadata.revision}]`,
@@ -217,10 +217,10 @@ class BbLLM extends LLM {
 
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		// Log detailed message information
-		if (this.projectConfig.settings.api?.logFileHydration ?? false) this.logMessageDetails(messages);
+		if (this.projectConfig.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
 		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET;
-		const usePromptCaching = this.projectConfig.settings.api?.usePromptCaching ?? true;
+		const usePromptCaching = this.projectConfig.api?.usePromptCaching ?? true;
 
 		// Resolve parameters using model capabilities
 		let temperature: number;
@@ -302,7 +302,7 @@ class BbLLM extends LLM {
 			//logger.info('BbLLM: llms-bb-error', error);
 
 			const bbResponseMessage = data as BBLLMResponse;
-			//if (this.projectConfig.settings.api?.logLevel === 'debug1') {
+			//if (this.projectConfig.api?.logLevel === 'debug1') {
 			//	interaction.conversationPersistence.writeLLMRequest({
 			//		messageId: bbResponseMessage.metadata.requestId,
 			//		requestBody: messageRequest,
@@ -471,6 +471,11 @@ class BbLLM extends LLM {
 					break;
 				case 'tool_use':
 					logger.warn(`BbLLM: provider[${this.llmProviderName}] Response is using a tool`);
+					break;
+				case 'refusal':
+					logger.warn(
+						`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`,
+					);
 					break;
 				default:
 					logger.info(

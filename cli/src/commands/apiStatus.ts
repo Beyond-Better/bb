@@ -1,6 +1,6 @@
 import { Command } from 'cliffy/command';
 import { getApiStatus } from '../utils/apiControl.utils.ts';
-import { getProjectId, getProjectRootFromStartDir } from 'shared/dataDir.ts';
+import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const apiStatus = new Command()
 	.name('status')
@@ -10,8 +10,8 @@ export const apiStatus = new Command()
 		let projectId;
 		try {
 			const startDir = Deno.cwd();
-			const projectRoot = await getProjectRootFromStartDir(startDir);
-			projectId = await getProjectId(projectRoot);
+			const workingRoot = await getWorkingRootFromStartDir(startDir);
+			projectId = await getProjectId(workingRoot);
 		} catch (_error) {
 			//console.error(`Could not set ProjectId: ${(error as Error).message}`);
 			projectId = undefined;

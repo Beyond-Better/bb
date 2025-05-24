@@ -19,7 +19,7 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 		this.llmProviderName = LLMProvider.OLLAMA;
 
 		// Get Ollama base URL from project config
-		//const ollamaBaseURL = this.projectConfig.settings.api?.llmEndpoints?.ollama;
+		//const ollamaBaseURL = this.projectConfig.api?.llmEndpoints?.ollama;
 		const ollamaBaseURL = 'http://127.0.0.1:11434';
 		if (!ollamaBaseURL) {
 			throw createError(

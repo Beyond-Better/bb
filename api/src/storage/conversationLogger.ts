@@ -9,9 +9,9 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationId, ConversationLogDataEntry, ConversationStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
-import { getBbDataDir } from 'shared/dataDir.ts';
+import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 //import { ThinkingExtractor } from '../utils/thinkingExtractor.ts';
 import type {
 	LLMToolFormatterDestination,
@@ -48,7 +48,7 @@ export interface ConversationLogEntry {
 	toolName?: string;
 }
 
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const globalConfig = await configManager.getGlobalConfig();
 
 export default class ConversationLogger {
@@ -111,8 +111,8 @@ export default class ConversationLogger {
 		this.ensuredDir = true;
 	}
 	static async getLogFileDirPath(projectId: string, conversationId: string): Promise<string> {
-		const bbDataDir = await getBbDataDir(projectId);
-		const conversationLogsDir = join(bbDataDir, 'conversations', conversationId);
+		const projectAdminDir = await getProjectAdminDataDir(projectId);
+		const conversationLogsDir = join(projectAdminDir, 'conversations', conversationId);
 		//await ensureDir(conversationLogsDir);
 		return conversationLogsDir;
 	}

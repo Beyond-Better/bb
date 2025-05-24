@@ -79,7 +79,7 @@ export function ApiManager() {
   
   useEffect(() => {
     const loadConfig = async () => {
-      const configManager = await ConfigManagerV2.getInstance();
+      const configManager = await getConfigManager();
       const apiConfig = await configManager.getApiConfig();
       setConfig(apiConfig);
     };
@@ -98,7 +98,7 @@ export function ApiManager() {
 // dui/src/features/api/ApiControls.tsx
 export function ApiControls({ instance }: { instance: string }) {
   const startApi = async () => {
-    const config = await ConfigManagerV2.getInstance();
+    const config = await getConfigManager();
     const apiConfig = await config.getApiConfig(instance);
     await ApiService.start(apiConfig);
   };
@@ -121,7 +121,7 @@ export function ProjectManager() {
   
   useEffect(() => {
     const loadConfig = async () => {
-      const configManager = await ConfigManagerV2.getInstance();
+      const configManager = await getConfigManager();
       const projectConfig = await configManager.getProjectManagerConfig();
       setConfig(projectConfig);
     };
@@ -144,7 +144,7 @@ export function ProjectConfig({ projectId }: { projectId: string }) {
   const [config, setConfig] = useState<ProjectConfig>();
   
   const updateConfig = async (updates: Partial<ProjectConfig>) => {
-    const configManager = await ConfigManagerV2.getInstance();
+    const configManager = await getConfigManager();
     await configManager.updateProjectConfig(projectId, updates);
     // Refresh config
   };
@@ -165,7 +165,7 @@ class ConfigService {
   private config: ConfigManagerV2;
   
   async initialize() {
-    this.config = await ConfigManagerV2.getInstance();
+    this.config = await getConfigManager();
     await this.loadInitialConfig();
   }
   

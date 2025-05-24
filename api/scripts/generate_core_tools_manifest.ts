@@ -14,7 +14,7 @@ async function generateCoreTools() {
 			const infoPath = join(TOOLS_DIR, entry.name, 'info.json');
 			try {
 				const info = JSON.parse(await Deno.readTextFile(infoPath));
-				if (!info.type) info.type = 'internal';
+				if (!info.protocolType) info.protocolType = 'bb';
 				tools.push({
 					toolNamePath: entry.name,
 					metadata: info,

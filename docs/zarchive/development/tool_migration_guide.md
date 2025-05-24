@@ -64,6 +64,7 @@ Use interface methods instead of implementation details:
 // Before
 await projectEditor.orchestratorController.logChangeAndCommit(
   interaction,
+  dataSourceRoot,
   filePath,
   content
 );
@@ -107,7 +108,7 @@ const mockProjectEditor: IProjectEditor = {
   changedFiles: new Set(),
   changeContents: new Map(),
   logAndCommitChanges: async () => {},
-  prepareFilesForConversation: async () => []
+  prepareResourcesForConversation: async () => []
 };
 ```
 

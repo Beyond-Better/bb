@@ -1,4 +1,4 @@
-import { MCPServerConfig } from 'shared/config/v2/types.ts';
+import { MCPServerConfig } from 'shared/config/types.ts';
 import { useEffect, useState } from 'preact/hooks';
 
 interface MCPConfigModalProps {

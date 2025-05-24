@@ -4,8 +4,8 @@ import { join } from '@std/path';
 import { logger } from 'shared/logger.ts';
 
 /*
-export async function createDefaultConfig(projectRoot: string, wizardAnswers: WizardAnswers): Promise<void> {
-	const configManager = await ConfigManagerV2.getInstance();
+export async function createDefaultConfig(workingRoot: string, wizardAnswers: WizardAnswers): Promise<void> {
+	const configManager = await getConfigManager();
 	// v2 handles config creation differently
 	// await configManager.ensureUserConfig();
 
@@ -13,7 +13,8 @@ export async function createDefaultConfig(projectRoot: string, wizardAnswers: Wi
 		...wizardAnswers,
 	};
 
-	await configManager.createProject(projectConfig.name, projectConfig.type as ProjectType, projectRoot);
+	const projectPersistenceManager = await getProjectPersistenceManager();
+	const projectData = await projectPersistenceManager.createProject(projectConfig.name, projectConfig.type as ProjectType, workingRoot);
 	logger.info('Created default config files');
 }
  */

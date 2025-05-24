@@ -4,7 +4,7 @@ import { setConversation, setProject, useAppState } from '../../hooks/useAppStat
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import { ProjectList } from './ProjectList.tsx';
 import { ProjectTrigger } from './ProjectTrigger.tsx';
-import type { Project } from 'shared/types/project.ts';
+import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 
 interface ProjectSelectorProps {
@@ -33,7 +33,7 @@ export function ProjectSelector({
 	const loading = useComputed(() => projectState.value.loading);
 	const error = useComputed(() => projectState.value.error);
 	const currentProject = useComputed(() => {
-		return projects.value.find((p) => p.projectId === appState.value.projectId);
+		return projects.value.find((p) => p.data.projectId === appState.value.projectId);
 	});
 
 	// Load projects on mount
@@ -95,8 +95,8 @@ export function ProjectSelector({
 		return () => globalThis.removeEventListener('mousedown', handleClickOutside);
 	}, [isOpen.value]);
 
-	const handleProjectSelect = (project: Project) => {
-		setProject(project.projectId);
+	const handleProjectSelect = (project: ClientProjectWithConfigSources) => {
+		setProject(project.data.projectId);
 		setConversation(shortenConversationId(generateConversationId()));
 		isOpen.value = false;
 		triggerRef.current?.focus();
@@ -139,11 +139,31 @@ export function ProjectSelector({
 					{/* Project List */}
 					<ProjectList
 						projects={projects.value
-							.filter((project) =>
-								searchQuery.value === '' ||
-								project.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-								project.path.toLowerCase().includes(searchQuery.value.toLowerCase())
-							)}
+							.filter((project) => {
+								const query = searchQuery.value.toLowerCase();
+								if (query === '') return true;
+
+								// Check project name
+								if (project.data.name.toLowerCase().includes(query)) return true;
+
+								// Check primary data source
+								if (
+									project.data.primaryDsConnection?.config.dataSourceRoot?.toString().toLowerCase()
+										.includes(query)
+								) return true;
+
+								// Check other data sources
+								if (
+									project.data.dsConnections.some((ds) =>
+										ds.name.toLowerCase().includes(query) ||
+										(ds.config.dataSourceRoot?.toString().toLowerCase().includes(query))
+									)
+								) {
+									return true;
+								}
+
+								return false;
+							})}
 						selectedIndex={selectedIndex.value}
 						currentProjectId={appState.value.projectId}
 						loading={loading.value}

@@ -1,8 +1,8 @@
 {
-	"name": "rewrite_file",
-	"description": "Completely replaces an existing file's contents or creates a new file. Use with caution as this overwrites the entire file. Always check existing file contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete file content including ALL imports, types, and code\n- Never use placeholder comments like \"// Previous code remains...\"\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn't explicitly included in content\n- Will completely delete and replace the entire file\nFor modifying specific parts of a file, use search_and_replace instead.\nDANGER: Completely replaces file contents.\nREQUIRED STEPS:\n1. Use request_files to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail",
+	"name": "rewrite_resource",
+	"description": "Completely replaces an existing resource's contents or creates a new resource for one data source. Use with caution as this overwrites the entire resource. Always check existing resource contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete resource content including ALL imports, types, and code\n- Never use placeholder comments like \"// Previous code remains...\"\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn't explicitly included in content\n- Will completely delete and replace the entire resource\nFor modifying specific parts of a resource, use search_and_replace instead.\nDANGER: Completely replaces resource contents.\nREQUIRED STEPS:\n1. Use load_resources to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail.\n\nWhen no data source is specified, operates on the primary data source.",
 	"version": "1.0.0",
-	"category": "FileManipulation",
+	"category": "ResourceManipulation",
 	"author": "BB Team",
 	"license": "MIT",
 	"mutates": true

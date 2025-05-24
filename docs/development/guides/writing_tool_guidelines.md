@@ -101,7 +101,7 @@ Tools can pose risks because they are used autonomously by LLMs without human ov
 3. Resource Boundaries:
    ```typescript
    // Good: Check file operations are within project
-   if (!projectEditor.isPathWithinProject(filePath)) {
+   if (!projectEditor.isPathWithinDataSource(filePath)) {
      throw new Error("File operations must be within project directory");
    }
    ```
@@ -155,7 +155,7 @@ Tools can pose risks because they are used autonomously by LLMs without human ov
        const { pattern, maxResults } = toolUse.toolInput;
        
        // Validate search is within project
-       if (!projectEditor.isPathWithinProject(searchPath)) {
+       if (!projectEditor.isPathWithinDataSource(searchPath)) {
          throw new Error("Search must be within project directory");
        }
 

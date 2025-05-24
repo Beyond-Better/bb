@@ -7,10 +7,7 @@ import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 import { errorMessage, isError } from 'shared/error.ts';
 
-import type {
-	LLMAnswerToolUse,
-	//LLMMessageContentParts
-} from 'api/llms/llmMessage.ts';
+import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import type { LLMToolImageProcessingResultData } from '../types.ts';
 
@@ -101,6 +98,7 @@ async function setupTestFiles(testProjectRoot: string): Promise<{
 }
 
 /*
+ */
 const getImageContent = (contentParts: LLMMessageContentParts): string => {
 	const content = contentParts[0] || { source: { data: '' } };
 	if ('source' in content) {
@@ -114,7 +112,6 @@ const displayImage = (filename: string, toolResults: LLMMessageContentParts): vo
 	const formattedContent = `\u001b]1337;File=name=${filename};inline=1:${content}\u0007`;
 	console.log(formattedContent);
 };
- */
 
 Deno.test({
 	name: 'ImageManipulationTool - Format conversion (PNG to JPEG)',
@@ -155,10 +152,10 @@ Deno.test({
 
 			const conversation = await projectEditor.initConversation('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			// console.log('Format conversion (PNG to JPEG) - bbResponse:', result.bbResponse);
-			// console.log('Format conversion (PNG to JPEG) - toolResponse:', result.toolResponse);
-			// console.log('Format conversion (PNG to JPEG) - toolResults:', result.toolResults);
-			// displayImage(pngPath, result.toolResults as LLMMessageContentParts);
+			console.log('Format conversion (PNG to JPEG) - bbResponse:', result.bbResponse);
+			console.log('Format conversion (PNG to JPEG) - toolResponse:', result.toolResponse);
+			console.log('Format conversion (PNG to JPEG) - toolResults:', result.toolResults);
+			displayImage(pngPath, result.toolResults as LLMMessageContentParts);
 
 			// Check basic response structure
 			assert(
@@ -193,7 +190,7 @@ Deno.test({
 
 			// Check toolResults (thumbnail) is provided
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
-			assert(result.toolResults.length === 1, 'toolResults should have 1 element');
+			assert(result.toolResults.length === 2, 'toolResults should have 2 element');
 
 			// const firstResult = result.toolResults[0];
 			// assert(firstResult.type === 'image', 'First result should be of type image');
@@ -527,7 +524,7 @@ Deno.test({
 				assert(false, 'Should have thrown an error for path outside project');
 			} catch (error: unknown) {
 				if (isError(error)) {
-					assertStringIncludes(errorMessage(error), 'outside the project directory');
+					assertStringIncludes(errorMessage(error), 'outside the data source');
 				} else {
 					assert(false, 'Error should be an instance of Error');
 				}
@@ -585,7 +582,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					'BB failed to process image. Error: Output file images/converted.jpg already exists and overwrite is set to false',
+					'BB failed to process image. Error: File already exists and overwrite is false: images/converted.jpg',
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -593,13 +590,13 @@ Deno.test({
 
 			assertStringIncludes(
 				result.toolResponse,
-				'Failed to process image. Error: Output file images/converted.jpg already exists and overwrite is set to false',
+				'Failed to process image. Error: File already exists and overwrite is false: images/converted.jpg',
 			);
 
 			assert(isString(result.toolResults), 'bbResponse should be a string');
 			assertStringIncludes(
 				result.toolResults,
-				'⚠️  Output file images/converted.jpg already exists and overwrite is set to false',
+				'⚠️  File already exists and overwrite is false: images/converted.jpg',
 			);
 		});
 	},
@@ -646,10 +643,13 @@ Deno.test({
 			// Check error response
 			assertStringIncludes(
 				String(result.bbResponse),
-				'BB failed to process image. Error: No such file or directory',
+				'BB failed to process image. Error: File not found: images/nonexistent.png',
 			);
-			assertStringIncludes(result.toolResponse, 'Failed to process image. Error: No such file or directory');
-			assertStringIncludes(String(result.toolResults), '⚠️  No such file or directory');
+			assertStringIncludes(
+				result.toolResponse,
+				'Failed to process image. Error: File not found: images/nonexistent.png',
+			);
+			assertStringIncludes(String(result.toolResults), '⚠️  File not found: images/nonexistent.png');
 		});
 	},
 	sanitizeResources: false,

@@ -24,7 +24,7 @@ class NewProviderLLM extends LLM {
 - Handle configuration errors appropriately
 ```typescript
 private async initializeClient() {
-    const apiKey = this.projectConfig.settings.api?.llmProviders?.newProvider?.apiKey;
+    const apiKey = this.projectConfig.api?.llmProviders?.newProvider?.apiKey;
     if (!apiKey) {
         throw createError(
             ErrorType.LLM,
@@ -167,16 +167,14 @@ interface ProviderConfig {
 
 // In projectConfig.ts
 export interface ProjectConfig {
-    settings: {
-        api?: {
-            llmProviders?: {
-                newProvider?: {
-                    apiKey: string;
-                    config: ProviderConfig;
-                };
-            };
-        };
-    };
+	api?: {
+		llmProviders?: {
+			newProvider?: {
+				apiKey: string;
+				config: ProviderConfig;
+			};
+		};
+	};
 }
 ```
 

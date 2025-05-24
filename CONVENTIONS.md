@@ -124,7 +124,14 @@ Key API Endpoints:
 - The CLI tool is named `bb` (lowercase) (`bb.exe` for Windows)
 - The API server is referred to as 'api'
 - The Browser User Interface is referred to as 'bui'
-- The future Desktop User Interface will be referred to as 'dui'
+- The Desktop User Interface is referred to as 'dui'
+
+## Guidelines for 'bui'
+- Include as many relevant features and interactions as possible.
+- Add thoughtful details like hover states, transitions, and micro-interactions.
+- Create an impressive demonstration showcasing web development capabilities.
+- Apply design principles: hierarchy, contrast, balance, and movement.
+- Use Tailwind CSS and always include dark mode classes where relevant
 
 ## Configuration
 - Use `deno.jsonc` for project configuration
@@ -157,7 +164,7 @@ Key API Endpoints:
 - Sanitize and validate all data input
 - Restrict LLM access to files added to conversation by `bb`
 - Prevent `bb` from adding files outside the current git repo
-- Always use `isPathWithinProject` to ensure file operations are restricted to the project directory
+- Always use `dsConnection.isResourceWithinDataSource` to ensure file operations are restricted to the project directory
 - Implement proper error handling for network requests in data retrieval tools
 - Sanitize and validate command inputs to prevent injection attacks in system command tools
 

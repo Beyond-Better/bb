@@ -22,7 +22,7 @@ const fullConfig = await ConfigManager.fullConfig(startDir);
 const { environment, apiHostname, apiPort, apiUseTls } = fullConfig.api;
 
 // Change to:
-const config = await ConfigManagerV2.getInstance();
+const config = await getConfigManager();
 const apiConfig = await config.getApiConfig();
 const { environment, hostname, port, useTls } = apiConfig;
 ```
@@ -41,7 +41,7 @@ Dependencies: Group 1
 this.fullConfig = this.invokeSync(LLMCallbackType.PROJECT_CONFIG);
 
 // Change to:
-this.config = await ConfigManagerV2.getInstance();
+this.config = await getConfigManager();
 this.llmConfig = await this.config.getLLMConfig();
 ```
 Tests:
@@ -81,7 +81,7 @@ Dependencies: Group 1
 config = await ConfigManager.globalConfig();
 
 // Change to:
-const config = await ConfigManagerV2.getInstance();
+const config = await getConfigManager();
 const globalConfig = await config.getGlobalConfig();
 ```
 Tests:
@@ -95,7 +95,7 @@ Tests:
 const fullConfig = await ConfigManager.fullConfig(startDir);
 
 // Change to:
-const config = await ConfigManagerV2.getInstance();
+const config = await getConfigManager();
 const apiConfig = await config.getApiConfig();
 ```
 Tests:
@@ -113,7 +113,7 @@ Dependencies: Group 1
 const { buiHostname, buiPort, buiUseTls } = fullConfig.bui;
 
 // Change to:
-const config = await ConfigManagerV2.getInstance();
+const config = await getConfigManager();
 const buiConfig = await config.getBuiConfig();
 const { hostname, port, useTls } = buiConfig;
 ```
@@ -132,7 +132,7 @@ Dependencies: Groups 1, 3
 this.fullConfig = await ConfigManager.fullConfig(this.projectRoot);
 
 // Change to:
-this.config = await ConfigManagerV2.getInstance();
+this.config = await getConfigManager();
 this.projectConfig = await this.config.getProjectConfig(projectId);
 ```
 Tests:

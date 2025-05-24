@@ -1,5 +1,5 @@
 import type { FreshContext, Plugin } from '$fresh/server.ts';
-import type { BuiConfig } from 'shared/config/v2/types.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
 import { initializeAuthState, useAuthState } from '../hooks/useAuthState.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 

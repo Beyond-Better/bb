@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use log::{debug};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -34,7 +34,11 @@ impl AccessLogger {
             entry.status,
             entry.duration_ms,
             entry.target,
-            entry.error.as_ref().map(|e| format!(" ({})", e)).unwrap_or_default()
+            entry
+                .error
+                .as_ref()
+                .map(|e| format!(" ({})", e))
+                .unwrap_or_default()
         );
 
         // In non-debug mode, only log errors or non-200 responses

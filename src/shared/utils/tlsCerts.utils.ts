@@ -9,7 +9,7 @@ import {
 	getBbDir,
 	getGlobalConfigDir,
 	getProjectId,
-	getProjectRootFromStartDir,
+	getWorkingRootFromStartDir,
 	writeToGlobalConfigDir,
 } from 'shared/dataDir.ts';
 
@@ -100,8 +100,9 @@ export async function isCertSelfSigned(certPem: string): Promise<boolean> {
 export const certificateFileExists = async (certFileName: string = 'localhost.pem') => {
 	//console.debug(`${YELLOW}Checking for certificate file '${certFileName}'${NC}`);
 	const globalCertFile = join(globalDir, certFileName);
-	const projectRoot = await getProjectRootFromStartDir(Deno.cwd());
-	const projectId = await getProjectId(projectRoot);
+	const workingRoot = await getWorkingRootFromStartDir(Deno.cwd());
+	const projectId = await getProjectId(workingRoot);
+	if (!projectId) throw new Error(`Could not find a project for: ${workingRoot}`);
 	const bbCertFile = join(await getBbDir(projectId), certFileName) || '';
 	//console.debug(`${YELLOW}Need to find either '${globalCertFile}' or '${bbCertFile}'${NC}`);
 	return (bbCertFile ? await exists(bbCertFile) : false) || await exists(globalCertFile);

@@ -1,10 +1,9 @@
 import { useState } from 'preact/hooks';
-import { MCPServerConfig } from 'shared/config/v2/types.ts';
+import { MCPServerConfig } from 'shared/config/types.ts';
 
 interface MCPServersOverviewProps {
 	servers: MCPServerConfig[];
 	onConfigureClick: () => void;
-	isGlobal?: boolean;
 }
 
 /**
@@ -13,7 +12,6 @@ interface MCPServersOverviewProps {
 export default function MCPServersOverview({
 	servers = [],
 	onConfigureClick,
-	isGlobal = true,
 }: MCPServersOverviewProps) {
 	return (
 		<div className='mcp-servers-overview'>
@@ -21,11 +19,6 @@ export default function MCPServersOverview({
 				<div>
 					<h3 className='text-base font-medium text-gray-900 dark:text-gray-100'>
 						MCP Servers
-						{!isGlobal && (
-							<span className='ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'>
-								Project Setting
-							</span>
-						)}
 					</h3>
 					<p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 						Configure Model Context Protocol servers for external integrations
@@ -72,7 +65,7 @@ export default function MCPServersOverview({
 				)
 				: (
 					<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4 text-center text-sm text-gray-500 dark:text-gray-400'>
-						{isGlobal ? 'No global MCP servers configured' : 'No project-specific MCP servers configured'}
+						No MCP servers configured
 					</div>
 				)}
 		</div>

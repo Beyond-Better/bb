@@ -1,7 +1,7 @@
 import { assertEquals } from 'testing/asserts.ts';
 import { Context, testing } from 'oak';
 import { authMiddleware, requireAuth } from './auth.middleware.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { ConfigManagerV2 } from 'shared/config/configManager.ts';
 import type { BbState } from '../types/app.types.ts';
 import type { Session } from '../types/auth.ts';
 

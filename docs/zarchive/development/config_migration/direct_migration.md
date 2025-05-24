@@ -9,10 +9,10 @@ This guide provides step-by-step instructions for migrating individual files to 
 import { ConfigManager } from 'shared/configManager.ts';
 
 // Add new import
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 // Add types if needed
-import type { ProjectType } from 'shared/config/v2/types.ts';
+import type { ProjectType } from 'shared/config/types.ts';
 ```
 
 ## Step 2: Update Instance Creation
@@ -22,14 +22,14 @@ import type { ProjectType } from 'shared/config/v2/types.ts';
 const configManager = await ConfigManager.getInstance();
 
 // New pattern
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 
 // For static methods
 // Old
 const config = await ConfigManager.fullConfig(startDir);
 
 // New
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 const config = await configManager.getGlobalConfig();
 ```
 
@@ -107,12 +107,12 @@ await configManager.updateProjectConfig(startDir, {
 ```typescript
 // Bad
 if (condition) {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   // Use configManager
 }
 
 // Good
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 if (condition) {
   // Use configManager
 }
@@ -123,12 +123,12 @@ if (condition) {
 // Bad
 let config: unknown;
 if (global) {
-  const configManager = await ConfigManagerV2.getInstance();
+  const configManager = await getConfigManager();
   config = await configManager.getGlobalConfig();
 }
 
 // Good
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 let config: unknown;
 if (global) {
   config = await configManager.getGlobalConfig();
@@ -144,7 +144,7 @@ if (global) {
 const config = await configManager.getGlobalConfig() as GlobalConfig;
 
 // Import and use specific types
-import type { ProjectType, GlobalConfig } from 'shared/config/v2/types.ts';
+import type { ProjectType, GlobalConfig } from 'shared/config/types.ts';
 ```
 
 ## Common Issues and Solutions

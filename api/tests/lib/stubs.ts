@@ -1,8 +1,8 @@
 import { stub } from 'api/tests/deps.ts';
-import type ProjectEditor from '../../src/editor/projectEditor.ts';
-import type OrchestratorController from '../../src/controllers/orchestratorController.ts';
-import LLMChatInteraction from '../../src/llms/interactions/chatInteraction.ts';
-import { LLMSpeakWithResponse } from 'api/types.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type OrchestratorController from 'api/controllers/orchestratorController.ts';
+import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
+import type { LLMSpeakWithResponse } from 'api/types.ts';
 //import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
 //import type { LLMSpeakWithResponse } from '../../src/types.ts';
 //import { ConversationId, ConversationResponse } from 'shared/types.ts';

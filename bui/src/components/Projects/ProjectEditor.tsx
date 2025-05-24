@@ -1,8 +1,19 @@
-import { batch, Signal, useComputed, useSignal } from '@preact/signals';
-import type { Project, ProjectWithSources } from 'shared/types/project.ts';
+import { batch, Signal, signal, useComputed, useSignal } from '@preact/signals';
+import type {
+	//ClientProjectData,
+	//ClientProjectWithConfig,
+	ClientProjectWithConfigForUpdates,
+	ClientProjectWithConfigSources,
+	//ConfigValue,
+} from 'shared/types/project.ts';
+import type { MCPServerConfig } from 'shared/config/types.ts';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
-import MCPServersOverview from '../MCPServersOverview.tsx';
-import MCPConfigModal from '../MCPConfigModal.tsx';
+//import MCPServersOverview from '../MCPServersOverview.tsx';
+// import MCPConfigModal from '../MCPConfigModal.tsx';
+import { DataSourcesTab } from './DataSourcesTab.tsx';
+import { useProjectState } from '../../hooks/useProjectState.ts';
+import type { AppState } from '../../hooks/useAppState.ts';
+//import { FileBrowser } from '../FileBrowser.tsx';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -25,11 +36,6 @@ const TOOLS_PLACEHOLDER = `run_command:
     - pwd
     - mv
     - cp`;
-
-import { MCPServerConfig, ProjectType } from 'shared/config/v2/types.ts';
-import { ConfigValue } from 'shared/types/project.ts';
-import { FileBrowser } from '../FileBrowser.tsx';
-import type { AppState } from '../../hooks/useAppState.ts';
 
 interface ConfigValueFieldProps<T> {
 	value: {
@@ -130,83 +136,97 @@ function ConfigValueField<T extends string | number | undefined>({
 }
 
 interface ProjectEditorProps {
-	projectWithSources?: ProjectWithSources;
+	editingProject: Signal<ClientProjectWithConfigSources | undefined>;
 	appState: Signal<AppState>;
 	onSave?: () => void;
 	onCancel?: () => void;
 	className?: string;
-	onCreateProject: (projectWithSources: Omit<Project, 'projectId'>) => Promise<void>;
-	onUpdateProject: (projectId: string, updates: Partial<Omit<Project, 'projectId'>>) => Promise<void>;
+	//onCreateProject: (projectWithSources: ClientProjectWithConfigForUpdates) => Promise<void>;
+	onUpdateProject: (
+		projectId: string,
+		updates: Partial<ClientProjectWithConfigForUpdates>,
+	) => Promise<void>;
 }
 
+// [TODO] This should be an attribute of editingProject, which means editingProject needs to be uplifted to a new object interface,
+// with the current project signal value, as well as supporting state value like activeTab
+// { project: Signal<ClientProjectWithConfigSources>; activeTab: Signal<string>; }
+const activeTab = signal('general');
+
 export function ProjectEditor({
-	projectWithSources,
+	editingProject,
 	appState,
 	onSave,
 	onCancel,
 	className = '',
-	onCreateProject,
+	//onCreateProject,
 	onUpdateProject,
 }: ProjectEditorProps) {
-	const name = useSignal(projectWithSources?.name || '');
-	const path = useSignal(projectWithSources?.path || '');
-	const type = useSignal<ProjectType>(projectWithSources?.type || 'local');
-	const myPersonsName = useSignal(projectWithSources?.myPersonsName || { global: '', project: null });
-	const myAssistantsName = useSignal(projectWithSources?.myAssistantsName || { global: '', project: null });
-	const llmGuidelinesFile = useSignal(projectWithSources?.llmGuidelinesFile || { global: '', project: null });
-	const maxTurns = useSignal(projectWithSources?.settings?.api?.maxTurns || { global: 50, project: null });
+	// Get projectState from appState
+	const {
+		state: projectState,
+		// 	loadProjects,
+		// 	createProject,
+		// 	updateProject,
+		// 	deleteProject,
+		// 	setSelectedProject,
+		// 	getBlankProject,
+	} = useProjectState(appState);
+
+	const name = useSignal(editingProject?.value?.data?.name || '');
+	const dsConnections = useSignal(editingProject?.value?.data?.dsConnections || []);
+
+	// Get list of selected MCP server IDs from editingProject, or empty array if none
+	const mcpServers = useSignal<string[]>(
+		editingProject?.value?.data?.mcpServers || [],
+	);
+
+	// Assume projectState.value.mcpServers has the global servers list (would come from appState)
+	const globalMcpServers = useSignal<MCPServerConfig[]>(
+		projectState.value.mcpServers || [],
+	);
+
+	const myPersonsName = useSignal(editingProject?.value?.config?.myPersonsName || { global: '', project: null });
+	const myAssistantsName = useSignal(
+		editingProject?.value?.config?.myAssistantsName || { global: '', project: null },
+	);
+	const llmGuidelinesFile = useSignal(
+		editingProject?.value?.config?.llmGuidelinesFile || { global: '', project: null },
+	);
+	const maxTurns = useSignal(editingProject?.value?.config?.api?.maxTurns || { global: 50, project: null });
 	const toolConfigs = useSignal(
-		projectWithSources?.settings?.api?.toolConfigs
+		editingProject?.value?.config?.api?.toolConfigs
 			? {
-				global: projectWithSources?.settings?.api?.toolConfigs.global
-					? formatYaml(projectWithSources?.settings?.api?.toolConfigs.global)
+				global: editingProject?.value?.config?.api?.toolConfigs.global
+					? formatYaml(editingProject?.value?.config?.api?.toolConfigs.global)
 					: '',
-				project: projectWithSources?.settings?.api?.toolConfigs.project
-					? formatYaml(projectWithSources?.settings?.api?.toolConfigs.project)
+				project: editingProject?.value?.config?.api?.toolConfigs.project
+					? formatYaml(editingProject?.value?.config?.api?.toolConfigs.project)
 					: null,
 			}
 			: { global: '', project: null },
 	);
 	// Log the received project data - more detailed logging
-	console.log('ProjectEditor: projectWithSources:', JSON.stringify(projectWithSources, null, 2));
-	console.log('ProjectEditor: settings structure:', JSON.stringify(projectWithSources?.settings, null, 2));
-	console.log('ProjectEditor: settings.api structure:', JSON.stringify(projectWithSources?.settings?.api, null, 2));
-	console.log('ProjectEditor: mcpServers from source:', projectWithSources?.settings?.api?.mcpServers);
+	console.log('ProjectEditor: editingProject:', editingProject?.value);
+	console.log('ProjectEditor: config structure:', editingProject?.value?.config);
+	console.log('ProjectEditor: mcpServers:', editingProject?.value?.data?.mcpServers);
 
 	// Check for raw config in the project sources - might be stored differently
-	if (projectWithSources) {
-		console.log('ProjectEditor: Raw project keys:', Object.keys(projectWithSources));
-		if (projectWithSources.settings) {
-			console.log('ProjectEditor: Raw settings keys:', Object.keys(projectWithSources.settings));
-			if (projectWithSources.settings.api) {
-				console.log('ProjectEditor: Raw api keys:', Object.keys(projectWithSources.settings.api));
-			}
+	if (editingProject?.value) {
+		console.log('ProjectEditor: Raw project keys:', Object.keys(editingProject?.value));
+		if (editingProject?.value.config) {
+			console.log('ProjectEditor: Raw config keys:', Object.keys(editingProject?.value.config));
 		}
 	}
 
-	// Also check for raw mcpServers value in case it's at a different path
-	const rawProject = projectWithSources as any;
-	if (rawProject?.mcpServers) {
-		console.log('ProjectEditor: Found mcpServers at root level:', rawProject.mcpServers);
-	}
-	if (rawProject?.settings?.mcpServers) {
-		console.log('ProjectEditor: Found mcpServers at settings level:', rawProject.settings.mcpServers);
-	}
-
-	const mcpServers = useSignal<ConfigValue<MCPServerConfig[] | undefined>>(
-		projectWithSources?.settings?.api?.mcpServers
-			? projectWithSources.settings.api.mcpServers
-			: { global: [], project: null },
-	);
-
 	// Log the initialized mcpServers signal value
 	console.log('ProjectEditor: initialized mcpServers signal:', JSON.stringify(mcpServers.value, null, 2));
-	const isDirectoryValid = useSignal(projectWithSources && projectWithSources.projectId ? true : false);
-	const activeTab = useSignal('general');
+	// const isDirectoryValid = useSignal(editingProject?.value && editingProject?.value.data?.projectId ? true : false);
+
+	//const activeTab = useSignal('general');
 
 	// Show a helper message about tab switching if this is the first time
-	const showTabHelper = useSignal(true);
-	const showMCPModal = useSignal(false);
+	//const showTabHelper = useSignal(true);
 
 	// File suggestion state
 	const suggestions = useSignal<Array<{ path: string; display: string }>>([]);
@@ -217,9 +237,10 @@ export function ProjectEditor({
 	const error = useSignal<string | null>(null);
 
 	const isValid = useComputed(() => {
-		const valid = name.value.trim() !== '' &&
-			path.value.trim() !== '' &&
-			isDirectoryValid.value;
+		const valid = name.value.trim() !== '';
+		//const valid = name.value.trim() !== '' &&
+		//	primaryDataSourceRoot.value.trim() !== '' &&
+		//	isDirectoryValid.value;
 		return valid;
 	});
 
@@ -233,28 +254,36 @@ export function ProjectEditor({
 
 		try {
 			// Create the project data with correct typing
-			const projectData = {
-				name: name.value,
-				path: path.value,
-				type: type.value,
-				myPersonsName: myPersonsName.value.project ?? undefined,
-				myAssistantsName: myAssistantsName.value.project ?? undefined,
-				llmGuidelinesFile: llmGuidelinesFile.value.project ?? undefined,
-				settings: {
+			const projectData: ClientProjectWithConfigForUpdates = {
+				data: {
+					name: name.value,
+					dsConnections: dsConnections.value,
+					mcpServers: mcpServers.value,
+					repoInfo: {
+						tokenLimit: 1024,
+					},
+				},
+				config: {
+					version: '2.2.0', // Required by ProjectConfig type
+					//name: name.value,
+					//primaryDataSourceRoot: primaryDataSourceRoot.value,
+					//type: type.value,
+					myPersonsName: myPersonsName.value.project ?? undefined,
+					myAssistantsName: myAssistantsName.value.project ?? undefined,
+					llmGuidelinesFile: llmGuidelinesFile.value.project ?? undefined,
 					api: {
 						maxTurns: maxTurns.value.project ?? undefined,
 						toolConfigs: toolConfigs.value.project?.trim()
-							? parseYaml(toolConfigs.value.project)
+							? parseYaml(toolConfigs.value.project) as Record<string, unknown>
 							: undefined,
-						mcpServers: mcpServers.value.project ?? undefined,
 					},
 				},
-			} as Omit<Project, 'projectId'>;
+			};
 
-			if (projectWithSources && projectWithSources.projectId) {
-				await onUpdateProject(projectWithSources.projectId, projectData);
-			} else {
-				await onCreateProject(projectData);
+			if (editingProject?.value && editingProject?.value.data?.projectId) {
+				await onUpdateProject(editingProject?.value.data.projectId, projectData);
+				//} else {
+				//	await onCreateProject(projectData);
 			}
 
 			onSave?.();
@@ -283,7 +312,29 @@ export function ProjectEditor({
 				}}
 			>
 				<h2 class='text-xl font-bold text-gray-900 dark:text-gray-100'>
-					{projectWithSources && projectWithSources.projectId ? 'Edit Project' : 'Create New Project'}
+					{editingProject?.value && editingProject?.value.data?.projectId
+						? 'Edit Project'
+						: 'Create New Project'}
+
+					{editingProject?.value?.data?.status && editingProject?.value?.data?.status !== 'active' && (
+						<>
+							<span
+								className={` ml-8 px-3 py-1 text-sm rounded-full ${
+									editingProject.value.data.status === 'draft'
+										? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+										: editingProject.value.data.status === 'archived'
+										? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+										: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+								}`}
+							>
+								{editingProject.value.data.status.charAt(0).toUpperCase() +
+									editingProject.value.data.status.slice(1)}
+							</span>
+							<span className=' ml-2 px-3 py-1 font-medium text-sm text-gray-500  dark:text-gray-400'>
+								Ensure project has a primary data source
+							</span>
+						</>
+					)}
 				</h2>
 
 				{/* Project Name and Type Section */}
@@ -307,7 +358,8 @@ export function ProjectEditor({
 						</div>
 					</div>
 
-					<div class='form-group'>
+					{
+						/*<div class='form-group'>
 						<label class='block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2'>
 							Project Type
 						</label>
@@ -322,19 +374,17 @@ export function ProjectEditor({
 								class='mt-1 w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 dark:border-gray-700 bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100 dark:focus:ring-blue-400 focus:outline-none '
 							>
 								<option value='local'>Local Directory</option>
-								{
-									/*
-								<option value='notion'>Notion (beta)</option>
-								<option value='gdrive'>Google Drive (beta)</option>
-									*/
-								}
+								//<option value='notion'>Notion (beta)</option>
+								//<option value='gdrive'>Google Drive (beta)</option>
 							</select>
 						</div>
-					</div>
+					</div>*/
+					}
 				</div>
 
 				{/* Project Path Section */}
-				<div class='form-group'>
+				{
+					/*<div class='form-group'>
 					<label class='block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2'>
 						Project Path
 					</label>
@@ -342,21 +392,22 @@ export function ProjectEditor({
 						Select the root directory of your project
 					</p>
 					<FileBrowser
-						value={path.value}
+						value={primaryDataSourceRoot.value}
 						onChange={(value) => {
-							path.value = value;
+							primaryDataSourceRoot.value = value;
 						}}
 						type='directory'
 						className='w-full mt-3'
 						appState={appState}
-						defaultExpanded={!projectWithSources || !projectWithSources.projectId}
+						defaultExpanded={!editingProject?.value || !editingProject?.value.data?.projectId}
 						alwaysShowPath
 						onSelectionValid={(isValid, selectedPath) => {
 							isDirectoryValid.value = isValid;
-							if (selectedPath) path.value = selectedPath;
+							if (selectedPath) primaryDataSourceRoot.value = selectedPath;
 						}}
 					/>
-				</div>
+				</div>*/
+				}
 
 				{/* Tabs Navigation */}
 				<div className='mb-4 border-t border-b border-gray-200 dark:border-gray-700 py-2 mt-4'>
@@ -385,6 +436,32 @@ export function ProjectEditor({
 									/>
 								</svg>
 								General
+							</button>
+						</li>
+						<li className='mr-4'>
+							<button
+								type='button'
+								onClick={() => activeTab.value = 'datasources'}
+								className={`inline-flex items-center px-4 py-2 rounded-md ${
+									activeTab.value === 'datasources'
+										? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+										: 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
+								}`}
+							>
+								<svg
+									className='w-4 h-4 mr-2'
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+								>
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4'
+									/>
+								</svg>
+								Data Sources
 							</button>
 						</li>
 						<li className='mr-4'>
@@ -590,7 +667,7 @@ export function ProjectEditor({
 												try {
 													const response = await appState.value.apiClient?.suggestFiles(
 														value,
-														projectWithSources?.projectId || '',
+														editingProject?.value?.data.projectId || '',
 													);
 													batch(() => {
 														selectedIndex.value = undefined; // Reset selection with new suggestions
@@ -726,8 +803,137 @@ export function ProjectEditor({
 							/>
 						</div>
 
-						{/* Tool Configs Section */}
+						{/* MCP Servers Section */}
+						<div className='mt-6'>
+							<div class='grid grid-cols-1 md:grid-cols-2 gap-6'>
+								<div class='form-group'>
+									<div class='flex items-center gap-2'>
+										<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
+											MCP Servers
+										</label>
+									</div>
+									<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+										Select which MCP servers to include in this project &mdash; MCP servers are{' '}
+										<a
+											href='/app/settings?tab=mcpservers'
+											className='text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300'
+										>
+											configured in Settings
+										</a>
+									</p>
+
+									<div class={`relative ${className}`}>
+										{/* Server Selection UI */}
+										{globalMcpServers.value.length > 0
+											? (
+												<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4 mb-2'>
+													<div className='space-y-3'>
+														{globalMcpServers.value.map((server: MCPServerConfig) => {
+															// Check if this server is selected in the project config
+															const isSelected = mcpServers.value.includes(server.id);
+
+															return (
+																<div
+																	key={server.id}
+																	className='flex items-center justify-between'
+																>
+																	<div className='flex items-center'>
+																		<input
+																			type='checkbox'
+																			id={`mcp-server-${server.id}`}
+																			checked={isSelected}
+																			onChange={() => {
+																				// Toggle this server selection
+																				if (isSelected) {
+																					// Remove this server from selection
+																					mcpServers.value = mcpServers.value
+																						.filter((id) =>
+																							id !== server.id
+																						);
+																				} else {
+																					// Add this server to selection
+																					mcpServers.value = [
+																						...mcpServers.value,
+																						server.id,
+																					];
+																				}
+																			}}
+																			className='w-4 h-4 text-blue-600 dark:text-blue-400 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 dark:bg-gray-700'
+																		/>
+																		<label
+																			for={`mcp-server-${server.id}`}
+																			className='ml-2 text-sm font-medium text-gray-900 dark:text-gray-100'
+																		>
+																			{server.name || server.id}
+																		</label>
+																	</div>
+																	<div className='text-xs text-gray-500 dark:text-gray-400'>
+																		Env: {Object.keys(server.env || {}).length}{' '}
+																		variable{Object.keys(server.env || {})
+																				.length !== 1
+																			? 's'
+																			: ''}
+																	</div>
+																</div>
+															);
+														})}
+													</div>
+
+													{/* Select All / None buttons */}
+													<div className='flex justify-left mt-4'>
+														<button
+															type='button'
+															onClick={() => {
+																// Select all global servers
+																mcpServers.value = globalMcpServers.value.map(
+																	(server) => server.id,
+																);
+															}}
+															className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mr-4'
+														>
+															Select All
+														</button>
+														<button
+															type='button'
+															onClick={() => {
+																// Clear server selection
+																mcpServers.value = [];
+															}}
+															className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'
+														>
+															Clear Selection
+														</button>
+													</div>
+												</div>
+											)
+											: (
+												<div className='text-center bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
+													<p className='text-sm text-gray-500 dark:text-gray-400'>
+														No global MCP servers have been configured. Configure MCP
+														servers in global settings first.
+													</p>
+												</div>
+											)}
+									</div>
+								</div>
+							</div>
+						</div>
 					</div>
+				)}
+
+				{activeTab.value === 'datasources' && (
+					<DataSourcesTab
+						editingProject={editingProject}
+						appState={appState}
+						onUpdate={async (updatedProject) => {
+							if (updatedProject && updatedProject.data.projectId) {
+								await onUpdateProject(updatedProject.data.projectId, {
+									data: { name: updatedProject.data.name },
+									// Only pass the necessary properties
+								});
+							}
+						}}
+					/>
 				)}
 
 				{activeTab.value === 'tools' && (
@@ -793,98 +999,6 @@ export function ProjectEditor({
 								)}
 							</div>
 						</div>
-
-						{/* MCP Servers Section */}
-						<div className='mb-6'>
-							<div className='flex items-center gap-2 mb-2'>
-								<h3 className='text-sm font-medium text-gray-700 dark:text-gray-200'>MCP Servers</h3>
-								<span
-									class={`px-2 py-0.5 text-xs rounded-full ${
-										!mcpServers.value.project
-											? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-											: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-									}`}
-								>
-									{!mcpServers.value.project ? 'Global Default' : 'Project Setting'}
-								</span>
-							</div>
-							<p className='mb-4 text-sm text-gray-500 dark:text-gray-400'>
-								Configure Model Context Protocol servers for external integrations
-							</p>
-
-							<div className='flex justify-between items-center mb-4'>
-								<div className='text-sm text-gray-700 dark:text-gray-300'>
-									{(() => {
-										console.log(
-											'ProjectEditor rendering: mcpServers.value',
-											JSON.stringify(mcpServers.value, null, 2),
-										);
-										return mcpServers.value.project
-											? mcpServers.value.project.length
-											: (mcpServers.value.global || []).length;
-									})()} MCP servers configured
-								</div>
-								<button
-									type='button'
-									onClick={() => showMCPModal.value = true}
-									className='inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-								>
-									Configure Servers
-								</button>
-							</div>
-
-							{mcpServers.value.project || ((mcpServers.value.global || []).length > 0)
-								? (
-									<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-3'>
-										<div className='space-y-2'>
-											{(mcpServers.value.project || mcpServers.value.global || []).map((
-												server: MCPServerConfig,
-											) => (
-												<div
-													key={server.id}
-													className='flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0 last:pb-0'
-												>
-													<div className='flex flex-col'>
-														<span className='font-medium text-gray-900 dark:text-gray-100'>
-															{server.name || server.id}
-														</span>
-														<span className='text-xs text-gray-500 dark:text-gray-400'>
-															{server.command}
-														</span>
-													</div>
-													<div className='text-xs px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200'>
-														{server.args?.length || 0} args,{' '}
-														{Object.keys(server.env || {}).length} env vars
-													</div>
-												</div>
-											))}
-										</div>
-									</div>
-								)
-								: (
-									<div className='text-center bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
-										<p className='text-sm text-gray-500 dark:text-gray-400'>
-											No MCP servers configured
-										</p>
-									</div>
-								)}
-
-							{/* Reset to global defaults button */}
-							{mcpServers.value.project && (
-								<button
-									type='button'
-									onClick={() => {
-										mcpServers.value = {
-											...mcpServers.value,
-											project: null,
-										};
-									}}
-									className='mt-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300'
-								>
-									Reset to global defaults
-								</button>
-							)}
-						</div>
 					</div>
 				)}
 
@@ -913,23 +1027,6 @@ export function ProjectEditor({
 				)}
 
 				<div class='flex justify-end space-x-3 pt-4'>
-					{/* MCP Config Modal */}
-					{showMCPModal.value && (
-						<MCPConfigModal
-							isOpen={showMCPModal.value}
-							onClose={() => showMCPModal.value = false}
-							servers={mcpServers.value.project || mcpServers.value.global || []}
-							onSave={(updatedServers) => {
-								mcpServers.value = {
-									...mcpServers.value,
-									project: updatedServers,
-								};
-								showMCPModal.value = false;
-							}}
-							isGlobal={false}
-							projectId={projectWithSources?.projectId}
-						/>
-					)}
 					{onCancel && (
 						<button
 							type='button'
@@ -946,7 +1043,7 @@ export function ProjectEditor({
 					>
 						{saving.value
 							? 'Saving...'
-							: (projectWithSources && projectWithSources.projectId
+							: (editingProject?.value && editingProject?.value.data?.projectId
 								? 'Update Project'
 								: 'Create Project')}
 					</button>

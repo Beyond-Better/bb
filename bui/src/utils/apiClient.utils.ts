@@ -2,8 +2,14 @@ import type { JSX } from 'preact';
 
 import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
-import type { Project, ProjectWithSources } from 'shared/types/project.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import type {
+	ClientDataSourceConnection,
+	ClientProjectData,
+	ClientProjectWithConfigForUpdates,
+	ClientProjectWithConfigSources,
+} from 'shared/types/project.ts';
+import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
@@ -248,14 +254,22 @@ export class ApiClient {
 		return await this.request<T>(endpoint, { method: 'DELETE' }, allowedCodes);
 	}
 
-	async post<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
+	async post<T, D = Record<string, unknown>>(
+		endpoint: string,
+		data: D,
+		allowedCodes: number[] = [],
+	): Promise<T | null> {
 		return await this.request<T>(endpoint, {
 			method: 'POST',
 			body: JSON.stringify(data),
 		}, allowedCodes);
 	}
 
-	async put<T>(endpoint: string, data: Record<string, unknown>, allowedCodes: number[] = []): Promise<T | null> {
+	async put<T, D = Record<string, unknown>>(
+		endpoint: string,
+		data: D,
+		allowedCodes: number[] = [],
+	): Promise<T | null> {
 		return await this.request<T>(endpoint, {
 			method: 'PUT',
 			body: JSON.stringify(data),
@@ -479,37 +493,106 @@ export class ApiClient {
 	}
 
 	// Project Management Methods
-	async listProjects(): Promise<{ projects: ProjectWithSources[] } | null> {
-		return await this.get<{ projects: ProjectWithSources[] }>('/api/v1/project');
+	async listProjects(): Promise<{ projects: ClientProjectWithConfigSources[] } | null> {
+		return await this.get<{ projects: ClientProjectWithConfigSources[] }>('/api/v1/project');
 	}
 
-	async getProject(projectId: string): Promise<{ project: ProjectWithSources } | null> {
-		const result = await this.get<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, [404]);
+	async getProject(projectId: string): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		const result = await this.get<{ project: ClientProjectWithConfigSources }>(`/api/v1/project/${projectId}`, [
+			404,
+		]);
 		console.log('APIClient.getProject response:', JSON.stringify(result, null, 2));
 		return result;
 	}
 
-	async blankProject(): Promise<{ project: ProjectWithSources } | null> {
-		return await this.get<{ project: ProjectWithSources }>(`/api/v1/project/new`);
+	async blankProject(): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.get<{ project: ClientProjectWithConfigSources }>(`/api/v1/project/new`);
 	}
 
-	async createProject(project: Omit<Project, 'projectId'>): Promise<{ project: ProjectWithSources } | null> {
-		return await this.post<{ project: ProjectWithSources }>('/api/v1/project', project);
+	async createProject(
+		project: ClientProjectWithConfigForUpdates,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.post<{ project: ClientProjectWithConfigSources }, ClientProjectWithConfigForUpdates>(
+			'/api/v1/project',
+			project,
+		);
 	}
 
 	async updateProject(
 		projectId: string,
-		updates: Partial<Omit<Project, 'projectId'>>,
-	): Promise<{ project: ProjectWithSources } | null> {
-		return await this.put<{ project: ProjectWithSources }>(`/api/v1/project/${projectId}`, updates);
+		updates: Partial<ClientProjectWithConfigForUpdates>,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.put<{ project: ClientProjectWithConfigSources }, Partial<ClientProjectWithConfigForUpdates>>(
+			`/api/v1/project/${projectId}`,
+			updates,
+		);
 	}
 
 	async deleteProject(projectId: string): Promise<void> {
 		await this.delete(`/api/v1/project/${projectId}`, [404]);
 	}
 
-	async migrateAndAddProject(projectPath: string): Promise<Project | null> {
+	async migrateAndAddProject(projectPath: string): Promise<ClientProjectData | null> {
 		return await this.post('/api/v1/project/migrate', { projectPath });
+	}
+
+	// Data Source Management Methods
+	async updateDsConnection(
+		projectId: string,
+		dsConnectionId: string,
+		updates: Partial<ClientDataSourceConnection>,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.put<{ project: ClientProjectWithConfigSources }>(
+			`/api/v1/project/${projectId}/datasource/${dsConnectionId}`,
+			updates,
+		);
+	}
+
+	async setPrimaryDsConnection(
+		projectId: string,
+		dsConnectionId: string,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.put<{ project: ClientProjectWithConfigSources }>(
+			`/api/v1/project/${projectId}/primary-datasource`,
+			{ dsConnectionId },
+		);
+	}
+
+	async addDsConnection(
+		projectId: string,
+		dsConnection: ClientDataSourceConnection,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.post<{ project: ClientProjectWithConfigSources }, ClientDataSourceConnection>(
+			`/api/v1/project/${projectId}/datasource`,
+			dsConnection,
+		);
+	}
+
+	async removeDsConnection(
+		projectId: string,
+		dsConnectionId: string,
+	): Promise<{ project: ClientProjectWithConfigSources } | null> {
+		return await this.delete<{ project: ClientProjectWithConfigSources }>(
+			`/api/v1/project/${projectId}/datasource/${dsConnectionId}`,
+		);
+	}
+
+	async getDsProvidersForProject(projectId: string): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
+		console.log(`APIClient: getDsProvidersForProject: ${projectId}`);
+		return await this.get<{ dsProviders: DataSourceProviderInfo[] }>(
+			`/api/v1/project/${projectId}/datasource/types`,
+		);
+	}
+	async getDsProviders(mcpServers?: string[]): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
+		let endpoint = `/api/v1/datasource/types`;
+
+		// If mcpServers parameter is provided, add it as a query parameter
+		if (mcpServers && mcpServers.length > 0) {
+			const mcpServersParam = encodeURIComponent(JSON.stringify(mcpServers));
+			endpoint += `?mcpServers=${mcpServersParam}`;
+		}
+
+		return await this.get<{ dsProviders: DataSourceProviderInfo[] }>(endpoint);
 	}
 
 	async findV1Projects(searchDir: string): Promise<{ projects: string[] } | null> {

@@ -57,10 +57,10 @@ await ConfigManager.projectConfig() → await configManager.getProjectConfig()
 3. Instance Creation
 ```typescript
 // Add import
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 // Update instance creation
-const configManager = await ConfigManagerV2.getInstance();
+const configManager = await getConfigManager();
 ```
 
 ## Migration Steps

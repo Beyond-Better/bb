@@ -1,67 +1,15 @@
 import type { Context, RouterContext } from '@oak/oak';
-import { join, normalize, relative } from '@std/path';
-import { toUnixPath } from '../../utils/path.utils.ts';
+import { join, normalize } from '@std/path';
 
 import { logger } from 'shared/logger.ts';
-import ProjectPersistence from 'api/storage/projectPersistence.ts';
-import type { StoredProject } from 'api/storage/projectPersistence.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
-import type { ConfigValue, Project, ProjectWithSources } from 'shared/types/project.ts';
-
-/**
- * Helper function to create a config value with source information
- */
-function createConfigValue<T>(projectValue: T | undefined, globalValue: T | undefined): ConfigValue<T | undefined> {
-	return {
-		global: globalValue,
-		project: projectValue,
-		//source: projectValue !== undefined ? 'project' : 'global',
-	};
-}
-
-/**
- * Helper function to enhance a project with source information for config values
- */
-function enhanceProjectWithSources(
-	storedProject: StoredProject,
-	projectConfig: Partial<ProjectConfig>,
-	globalConfig: Partial<GlobalConfig>,
-	path: string,
-): ProjectWithSources {
-	return {
-		...storedProject,
-		path,
-		myPersonsName: createConfigValue(
-			projectConfig.myPersonsName,
-			globalConfig.myPersonsName,
-		),
-		myAssistantsName: createConfigValue(
-			projectConfig.myAssistantsName,
-			globalConfig.myAssistantsName,
-		),
-		llmGuidelinesFile: createConfigValue(
-			projectConfig.llmGuidelinesFile,
-			globalConfig.llmGuidelinesFile,
-		),
-		settings: {
-			api: {
-				maxTurns: createConfigValue(
-					projectConfig.settings?.api?.maxTurns,
-					globalConfig.api?.maxTurns,
-				),
-				toolConfigs: createConfigValue(
-					projectConfig.settings?.api?.toolConfigs,
-					globalConfig.api?.toolConfigs,
-				),
-				mcpServers: createConfigValue(
-					projectConfig.settings?.api?.mcpServers,
-					globalConfig.api?.mcpServers,
-				),
-			},
-		},
-	};
-}
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
+import type ProjectPersistence from 'api/storage/projectPersistence.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ClientProjectData } from 'shared/types/project.ts';
+//import type { DataSourceValues } from 'api/resources/dataSource.ts';
+import { enhanceProjectWithSources, isProjectValid } from 'shared/projectData.ts';
+//import { getDataSourceRegistry } from 'api/resources/dataSourceRegistry.ts';
+import { errorMessage } from 'shared/error.ts';
 
 /**
  * @openapi
@@ -79,34 +27,64 @@ export const listProjects = async (
 	{ response }: { response: Context['response'] },
 ) => {
 	try {
-		logger.info('ProjectHandler: listProjects called');
-		const projectPersistence = await new ProjectPersistence().init();
-		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
-		const configManager = await ConfigManagerV2.getInstance();
+		//logger.info('ProjectHandler: listProjects called');
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
-		const storedProjects: StoredProject[] = await projectPersistence.listProjects();
 
-		const projects = await Promise.all(storedProjects.map(async (project) => {
+		//logger.info(`ProjectHandler: Listing all projects`);
+		// Get projects as ProjectPersistence instances
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const projectInstances = await projectPersistenceManager.listProjects();
+
+		//logger.info(`ProjectHandler: Getting client data for all projects`);
+		const projects = await Promise.all(projectInstances.map(async (project) => {
+			if (!project) {
+				return {
+					data: null,
+					config: null,
+				};
+			}
 			let projectConfig = {};
 			try {
 				projectConfig = await configManager.loadProjectConfig(project.projectId);
 			} catch (_e) {
-				// Failed to load project config: No such file or directory (os error 2): readfile '/Users/.../.bb/config.yaml'
+				logger.error(`ProjectHandler: Failed to load project config for: ${project.projectId}`);
+				// Failed to load project config: No such file or directory
 			}
+			//const projectDataPath = await project.getProjectDataPath();
+			//logger.info(`ProjectHandler: Getting project with data at: ${projectDataPath}`);
+			//logger.info(`ProjectHandler: Getting client data for project: ${project.projectId}`);
+
+			let clientData: ClientProjectData | null = null;
+			try {
+				// Convert to client format before enhancing
+				clientData = project.toClientData();
+			} catch (_error) {
+				logger.error(
+					`ProjectHandler: Error in listProjects, could not get client data for: ${project.projectId}`,
+				);
+			}
+			if (!clientData) {
+				return {
+					data: null,
+					config: null,
+				};
+			}
+			//logger.info(`ProjectHandler: Getting client data for project: ${project.projectId}`, {clientData});
+
 			return enhanceProjectWithSources(
-				project,
+				clientData,
 				projectConfig,
 				globalConfig,
-				toUnixPath(relative(rootPath, project.path)),
 			);
 		}));
 
 		response.status = 200;
 		response.body = { projects };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in listProjects: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in listProjects: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to list projects', details: (error as Error).message };
+		response.body = { error: 'Failed to list projects', details: errorMessage(error) };
 	}
 };
 
@@ -126,29 +104,34 @@ export const blankProject = async (
 	{ request: _request, response }: RouterContext<'/new'>,
 ) => {
 	try {
-		logger.info('ProjectHandler: blankProject called');
+		//logger.info('ProjectHandler: blankProject called');
 
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
+		// Create blank client data
+		//const clientData: Omit<ClientProjectData, 'projectId'> = {
+		const clientData: ClientProjectData = {
+			projectId: '',
+			name: '',
+			status: 'draft',
+			dsConnections: [],
+			mcpServers: [],
+			repoInfo: { tokenLimit: 1024 },
+		};
+
 		const project = enhanceProjectWithSources(
-			{
-				projectId: '',
-				name: '',
-				type: 'local',
-				path: '',
-			} as StoredProject,
+			clientData,
 			{},
 			globalConfig,
-			'',
 		);
 
 		response.status = 200;
 		response.body = { project };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in getProject: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in getProject: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to get project', details: (error as Error).message };
+		response.body = { error: 'Failed to get project', details: errorMessage(error) };
 	}
 };
 
@@ -177,36 +160,44 @@ export const getProject = async (
 	{ params, request: _request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
 	try {
-		logger.info('ProjectHandler: getProject called');
+		//logger.info('ProjectHandler: getProject called');
 
 		const { id: projectId } = params;
 
-		const projectPersistence = await new ProjectPersistence().init();
-		const storedProject: StoredProject | null = await projectPersistence.getProject(projectId);
-		if (!storedProject) {
+		// Get project as ProjectPersistence instance
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const project = await projectPersistenceManager.getProject(projectId);
+		if (!project) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };
 			return;
 		}
 
-		const rootPath = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
 
-		const project = enhanceProjectWithSources(
-			storedProject,
+		// Convert to client format before enhancing
+		const clientData = project.toClientData();
+
+		//// Get available data source types
+		//const dataSourceRegistry = await getDataSourceRegistry()
+		//clientData.dataSourceTypes = dataSourceRegistry.getAllTypes();
+
+		const enhancedProject = enhanceProjectWithSources(
+			clientData,
 			projectConfig,
 			globalConfig,
-			toUnixPath(relative(rootPath, storedProject.path)),
 		);
 
 		response.status = 200;
-		response.body = { project };
+		response.body = {
+			project: enhancedProject,
+		};
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in getProject: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in getProject: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to get project', details: (error as Error).message };
+		response.body = { error: 'Failed to get project', details: errorMessage(error) };
 	}
 };
 
@@ -225,15 +216,11 @@ export const getProject = async (
  *             required:
  *               - name
  *               - path
- *               - type
  *             properties:
  *               name:
  *                 type: string
  *               path:
  *                 type: string
- *               type:
- *                 type: string
- *                 enum: [local, git]
  *     responses:
  *       200:
  *         description: Project created successfully
@@ -246,76 +233,74 @@ export const createProject = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	try {
-		logger.info('ProjectHandler: createProject called');
+		//logger.info('ProjectHandler: createProject called');
 		const body = await request.body.json();
-		const { name, path, type } = body;
-		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
+		const { name = 'New Project', status } = body;
 
-		if (!name || !path || !type) {
+		if (!name) {
 			response.status = 400;
 			response.body = { error: 'Missing required fields' };
 			return;
 		}
 
-		const projectPersistence = await new ProjectPersistence().init();
-
-		const storedProject: Omit<StoredProject, 'projectId'> = {
+		// Create project data with a filesystem data source
+		const projectData: Omit<ClientProjectData, 'projectId'> = {
 			name,
-			path: join(rootPath, path),
-			type,
+			status,
+			dsConnections: [],
+			mcpServers: [],
+			repoInfo: { tokenLimit: 1024 },
 		};
 
-		const projectId = await projectPersistence.createProject(storedProject);
+		// Create project
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const newProject = await projectPersistenceManager.createProject(projectData);
+		const projectId = newProject.projectId;
+
+		// Get the created project instance
+		const project = await projectPersistenceManager.getProject(projectId);
+
+		if (!project) {
+			throw new Error('Failed to get created project');
+		}
 
 		// Update project config values
-		const configManager = await ConfigManagerV2.getInstance();
-		// For new projects, always set type and name
-		await configManager.setProjectConfigValue(projectId, 'type', type);
+		const configManager = await getConfigManager();
+		// For new projects, always set name
 		await configManager.setProjectConfigValue(projectId, 'name', name);
-		if (body.llmGuidelinesFile !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
+		if (body.config.llmGuidelinesFile !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.config.llmGuidelinesFile);
 		}
-		if (body.myPersonsName !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.myPersonsName);
+		if (body.config.myPersonsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.config.myPersonsName);
 		}
-		if (body.myAssistantsName !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.myAssistantsName);
+		if (body.config.myAssistantsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.config.myAssistantsName);
 		}
 
-		// Handle settings if provided
-		if (body.settings) {
-			logger.info('ProjectHandler: Processing settings:', body.settings);
-			if (body.settings.api?.maxTurns !== undefined) {
-				logger.info('ProjectHandler: Setting maxTurns:', {
-					value: body.settings.api.maxTurns,
-					type: typeof body.settings.api.maxTurns,
-				});
+		// Handle api settings if provided
+		if (body.config.api) {
+			//logger.info('ProjectHandler: Processing api settings:', body.config.api);
+			if (body.config.api?.maxTurns !== undefined) {
+				//logger.info('ProjectHandler: Setting maxTurns:', {
+				//	value: body.config.api.maxTurns,
+				//	type: typeof body.config.api.maxTurns,
+				//});
 				await configManager.setProjectConfigValue(
 					projectId,
-					'settings.api.maxTurns',
-					body.settings.api.maxTurns,
+					'api.maxTurns',
+					body.config.api.maxTurns,
 				);
 			}
-			if (body.settings.api?.toolConfigs !== undefined) {
-				logger.info('ProjectHandler: Setting toolConfigs:', {
-					value: body.settings.api.toolConfigs,
-					type: typeof body.settings.api.toolConfigs,
-				});
+			if (body.config.api.toolConfigs !== undefined) {
+				//logger.info('ProjectHandler: Setting toolConfigs:', {
+				//	value: body.config.api.toolConfigs,
+				//	type: typeof body.config.api.toolConfigs,
+				//});
 				await configManager.setProjectConfigValue(
 					projectId,
-					'settings.api.toolConfigs',
-					body.settings.api.toolConfigs,
-				);
-			}
-			if (body.settings.api?.mcpServers !== undefined) {
-				logger.info('ProjectHandler: Setting mcpServers:', {
-					value: body.settings.api.mcpServers,
-					type: typeof body.settings.api.mcpServers,
-				});
-				await configManager.setProjectConfigValue(
-					projectId,
-					'settings.api.mcpServers',
-					body.settings.api.mcpServers,
+					'api.toolConfigs',
+					body.config.api.toolConfigs,
 				);
 			}
 		}
@@ -323,19 +308,22 @@ export const createProject = async (
 		// Return the created project with source information
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
-		const project = enhanceProjectWithSources(
-			{ ...storedProject, projectId },
+
+		// Convert to client data format
+		const clientData = project.toClientData();
+
+		const enhancedProject = enhanceProjectWithSources(
+			clientData,
 			projectConfig,
 			globalConfig,
-			rootPath,
 		);
 
 		response.status = 200;
-		response.body = { project };
+		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in createProject: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in createProject: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to create project', details: (error as Error).message };
+		response.body = { error: 'Failed to create project', details: errorMessage(error) };
 	}
 };
 
@@ -361,15 +349,11 @@ export const createProject = async (
  *             required:
  *               - name
  *               - path
- *               - type
  *             properties:
  *               name:
  *                 type: string
  *               path:
  *                 type: string
- *               type:
- *                 type: string
- *                 enum: [local, git]
  *     responses:
  *       200:
  *         description: Project updated successfully
@@ -382,99 +366,91 @@ export const updateProject = async (
 	{ params, request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
 	try {
-		logger.info('ProjectHandler: updateProject called');
+		//logger.info('ProjectHandler: updateProject called');
 
 		const { id: projectId } = params;
-
 		const body = await request.body.json();
-		const { name, path, type } = body;
-		const rootPath = body.rootPath || Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
-		if (!name || !path || !type) {
-			response.status = 400;
-			response.body = { error: 'Missing required fields' };
-			return;
-		}
-
-		const projectPersistence = await new ProjectPersistence().init();
-
-		const storedProject: StoredProject | null = await projectPersistence.getProject(projectId);
-		if (!storedProject) {
+		// Get project as ProjectPersistence instance
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const project = await projectPersistenceManager.getProject(projectId);
+		if (!project) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };
 			return;
 		}
 
+		// Update project values if changed
+		if (project.name !== body.data.name) {
+			await project.setName(body.data.name);
+		}
+		if (JSON.stringify([...project.mcpServers].sort()) !== JSON.stringify([...body.data.mcpServers].sort())) {
+			await project.setMCPServers(body.data.mcpServers);
+		}
+
+		//logger.info('ProjectHandler: updateProject with:', { body });
 		// Update project config values
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		const projectConfigToChange = await configManager.loadProjectConfig(projectId);
-		// Only update type and name if different from current config
-		if (projectConfigToChange.type !== type) {
-			await configManager.setProjectConfigValue(projectId, 'type', type);
+		// Only update name if different from current config
+		if (body.data.name !== undefined && projectConfigToChange.name !== body.data.name) {
+			await configManager.setProjectConfigValue(projectId, 'name', body.data.name);
 		}
-		if (projectConfigToChange.name !== name) {
-			await configManager.setProjectConfigValue(projectId, 'name', name);
+		if (body.config.llmGuidelinesFile !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.config.llmGuidelinesFile);
 		}
-		if (body.llmGuidelinesFile !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'llmGuidelinesFile', body.llmGuidelinesFile);
+		if (body.config.myPersonsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.config.myPersonsName);
 		}
-		if (body.myPersonsName !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'myPersonsName', body.myPersonsName);
+		if (body.config.myAssistantsName !== undefined) {
+			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.config.myAssistantsName);
 		}
-		if (body.myAssistantsName !== undefined) {
-			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.myAssistantsName);
-		}
-		// Handle settings if provided
-		if (body.settings) {
-			if (body.settings.api?.maxTurns !== undefined) {
+		// Handle api settings if provided
+		if (body.config.api) {
+			if (body.config.api.maxTurns !== undefined) {
 				await configManager.setProjectConfigValue(
 					projectId,
-					'settings.api.maxTurns',
-					body.settings.api.maxTurns,
+					'api.maxTurns',
+					body.config.api.maxTurns,
 				);
 			}
-			if (body.settings.api?.toolConfigs !== undefined) {
+			if (body.config.api.toolConfigs !== undefined) {
 				await configManager.setProjectConfigValue(
 					projectId,
-					'settings.api.toolConfigs',
-					body.settings.api.toolConfigs,
-				);
-			}
-			if (body.settings.api?.mcpServers !== undefined) {
-				await configManager.setProjectConfigValue(
-					projectId,
-					'settings.api.mcpServers',
-					body.settings.api.mcpServers,
+					'api.toolConfigs',
+					body.config.api.toolConfigs,
 				);
 			}
 		}
 
-		const project: Project = {
-			projectId,
-			name,
-			path: join(rootPath, path),
-			type,
-		};
+		// Check if project is valid and update status accordingly
+		const isValid = isProjectValid(project);
 
-		// Save project metadata
-		await projectPersistence.saveProject(project);
+		// If project is currently draft and is now valid, promote to active
+		if (project.status === 'draft' && isValid) await project.setStatus('active');
+
+		// If project is currently active and is no longer valid, demote to draft
+		if (project.status === 'active' && !isValid) await project.setStatus('draft');
 
 		// Return the updated project with source information
 		const globalConfig = await configManager.getGlobalConfig();
 		const projectConfig = await configManager.loadProjectConfig(projectId);
+
+		// Convert to client data format
+		const clientData = project.toClientData();
+
 		const enhancedProject = enhanceProjectWithSources(
-			project,
+			clientData,
 			projectConfig,
 			globalConfig,
-			rootPath,
 		);
 
 		response.status = 200;
 		response.body = { project: enhancedProject };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in updateProject: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in updateProject: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to update project', details: (error as Error).message };
+		response.body = { error: 'Failed to update project', details: errorMessage(error) };
 	}
 };
 
@@ -503,27 +479,28 @@ export const deleteProject = async (
 	{ params, request: _request, response }: RouterContext<'/:id', { id: string }>,
 ) => {
 	try {
-		logger.info('ProjectHandler: deleteProject called');
+		//logger.info('ProjectHandler: deleteProject called');
 
 		const { id: projectId } = params;
 
-		const projectPersistence = await new ProjectPersistence().init();
-
-		const project: StoredProject | null = await projectPersistence.getProject(projectId);
+		// Get project as ProjectPersistence instance
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const project = await projectPersistenceManager.getProject(projectId);
 		if (!project) {
 			response.status = 404;
 			response.body = { error: 'Project not found' };
 			return;
 		}
 
-		await projectPersistence.deleteProject(projectId);
+		// Delete the project
+		await project.delete();
 
 		response.status = 200;
 		response.body = { message: 'Project deleted successfully' };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in deleteProject: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in deleteProject: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to delete project', details: (error as Error).message };
+		response.body = { error: 'Failed to delete project', details: errorMessage(error) };
 	}
 };
 
@@ -565,58 +542,74 @@ export const deleteProject = async (
  *       500:
  *         description: Internal server error
  */
-export const migrateProject = async (
-	{ request, response }: { request: Context['request']; response: Context['response'] },
-) => {
-	try {
-		logger.info('ProjectHandler: migrateProject called');
-		const body = await request.body.json();
-		const { projectPath } = body;
-
-		if (!projectPath) {
-			response.status = 400;
-			response.body = { error: 'Missing projectPath in request body' };
-			return;
-		}
-
-		const projectPersistence = await new ProjectPersistence().init();
-		const project = await projectPersistence.migrateV1Project(projectPath);
-
-		response.status = 200;
-		response.body = { project };
-	} catch (error) {
-		logger.error(`ProjectHandler: Error in migrateProject: ${(error as Error).message}`);
-		response.status = 500;
-		response.body = { error: 'Failed to migrate project', details: (error as Error).message };
-	}
-};
+// export const migrateProject = async (
+// 	{ request, response }: { request: Context['request']; response: Context['response'] },
+// ) => {
+// 	try {
+// 		logger.info('ProjectHandler: migrateProject called');
+// 		const body = await request.body.json();
+// 		const { projectPath } = body;
+//
+// 		if (!projectPath) {
+// 			response.status = 400;
+// 			response.body = { error: 'Missing projectPath in request body' };
+// 			return;
+// 		}
+//
+// 		// Migrate and get project as ProjectPersistence instance
+// 		const projectPersistenceManager = await getProjectPersistenceManager();
+// 		const project = await projectPersistenceManager.migrateV1Project(projectPath);
+//
+// 		// Convert to client format
+// 		const clientData = project.toClientData();
+//
+// 		response.status = 200;
+// 		response.body = { project: clientData };
+// 	} catch (error) {
+// 		logger.error(`ProjectHandler: Error in migrateProject: ${errorMessage(error)}`);
+// 		response.status = 500;
+// 		response.body = { error: 'Failed to migrate project', details: errorMessage(error) };
+// 	}
+// };
 
 export const findV1Projects = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	try {
-		logger.info('ProjectHandler: findV1Projects called');
-		const projectPersistence = await new ProjectPersistence().init();
+		//logger.info('ProjectHandler: findV1Projects called');
 
 		const params = request.url.searchParams;
 		const searchDir = params.get('searchDir') || '';
-		logger.info('ProjectHandler: searchDir', searchDir);
+		//logger.info('ProjectHandler: searchDir', searchDir);
 
 		if (!searchDir) {
 			throw new Error('searchDir param not set');
 		}
 		const rootDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 		const findInDir = normalize(join(rootDir, searchDir));
-		logger.info('ProjectHandler: findInDir', findInDir);
+		//logger.info('ProjectHandler: findInDir', findInDir);
 
-		const projects = await projectPersistence.findV1Projects(findInDir);
-		logger.info('ProjectHandler: projects', projects);
+		// Find projects and convert results to client format if needed
+		const projectPersistenceManager = await getProjectPersistenceManager();
+		const foundProjects = await projectPersistenceManager.findV1Projects(findInDir);
+		//logger.info('ProjectHandler: projects', foundProjects);
+
+		// Since these are legacy projects, they're probably already in a simple format,
+		// but we should ensure they match the expected format for the BUI
+		const projects = foundProjects.map((project) => {
+			// If the result is a ProjectPersistence instance with toClientData method
+			if (typeof project === 'object' && project !== null && 'toClientData' in project) {
+				return (project as ProjectPersistence).toClientData();
+			}
+			// Otherwise return as-is
+			return project;
+		});
 
 		response.status = 200;
 		response.body = { projects };
 	} catch (error) {
-		logger.error(`ProjectHandler: Error in findV1Projects: ${(error as Error).message}`);
+		logger.error(`ProjectHandler: Error in findV1Projects: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to find v1 projects', details: (error as Error).message };
+		response.body = { error: 'Failed to find v1 projects', details: errorMessage(error) };
 	}
 };

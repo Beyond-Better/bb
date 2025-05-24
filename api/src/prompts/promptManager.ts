@@ -4,8 +4,9 @@ import { parse as parseYaml } from '@std/yaml';
 import { stripIndents } from 'common-tags';
 import { getBbDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
 import * as defaultPrompts from './defaultPrompts.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { ProjectConfig } from 'shared/config/v2/types.ts';
+import type { PromptVariableMap } from './defaultPrompts.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 
 interface PromptMetadata {
@@ -28,9 +29,13 @@ class PromptManager {
 	}
 
 	async init(projectId: string): Promise<PromptManager> {
-		const bbDir = await getBbDir(projectId);
-		this.userPromptsDir = join(bbDir, 'prompts');
-		const configManager = await ConfigManagerV2.getInstance();
+		try {
+			const bbDir = await getBbDir(projectId);
+			this.userPromptsDir = join(bbDir, 'prompts');
+		} catch (error) {
+			logger.error(`PromptManager: Could not set userPromptsDir: ${(error as Error).message}`);
+		}
+		const configManager = await getConfigManager();
 		this.projectConfig = await configManager.getProjectConfig(projectId);
 		return this;
 	}
@@ -45,7 +50,10 @@ class PromptManager {
 		return await readFileContent(resolvedPath);
 	}
 
-	async getPrompt(promptName: string, variables: Record<string, unknown> = {}): Promise<string> {
+	async getPrompt<K extends keyof PromptVariableMap>(
+		promptName: K,
+		variables: PromptVariableMap[K],
+	): Promise<string> {
 		const userPrompt = await this.loadUserPrompt(promptName);
 		const defaultPrompt = defaultPrompts[promptName as keyof typeof defaultPrompts];
 
@@ -58,7 +66,7 @@ class PromptManager {
 		}
 
 		if (defaultPrompt) {
-			return defaultPrompt.getContent(variables);
+			return (defaultPrompt.getContent as (vars: PromptVariableMap[K]) => Promise<string>)(variables);
 		}
 
 		throw new Error(`Prompt '${promptName}' content not found`);

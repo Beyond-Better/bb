@@ -1,6 +1,6 @@
 {
 	"name": "search_and_replace_multiline_code",
-	"description": "Apply a list of search and replace operations to a file, supporting multiline code",
+	"description": "Apply a list of search and replace operations to a file for one data source, supporting multiline code. When no data source is specified, operates on the primary data source.",
 	"enabled": false,
 	"version": "1.0.0",
 	"author": "BB Team",

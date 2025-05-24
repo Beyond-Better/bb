@@ -1,22 +1,24 @@
+use crate::logging::{AccessLogEntry, AccessLogger};
+use chrono::Utc;
+use futures_util::{SinkExt, StreamExt};
+use http::{Request, Response};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Client, Server};
+use hyper_tls::HttpsConnector;
+use log::{debug, error, info};
+use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use futures_util::{StreamExt, SinkExt};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
-use chrono::Utc;
-use http::{Request, Response};
-use hyper::{Body, Client, Server};
-use hyper_tls::HttpsConnector;
-use hyper::service::{make_service_fn, service_fn};
-use log::{error, info, debug};
 use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
-use std::convert::Infallible;
-use tokio::task::JoinHandle;
-use crate::logging::{AccessLogger, AccessLogEntry};
 
-const FALLBACK_PORTS: &[u16] = &[45000, 45001, 45002, 45003, 45004, 45005, 45006, 45007, 45008, 45009];
+const FALLBACK_PORTS: &[u16] = &[
+    45000, 45001, 45002, 45003, 45004, 45005, 45006, 45007, 45008, 45009,
+];
 const DEFAULT_TARGET: &str = "https://chat.beyondbetter.dev";
 const MAINTENANCE_HTML: &str = include_str!("maintenance.html");
 
@@ -54,13 +56,13 @@ pub struct ProxyInfo {
 
 impl HttpProxy {
     pub async fn new(log_dir: std::path::PathBuf) -> std::io::Result<Self> {
-        let debug_mode = Arc::new(RwLock::new(cfg!(debug_assertions)));  // Default to compile-time setting
+        let debug_mode = Arc::new(RwLock::new(cfg!(debug_assertions))); // Default to compile-time setting
 
         // Try ports until one works
         for &port in FALLBACK_PORTS {
             if Self::is_port_available(port) {
                 info!("Starting proxy server on port {}", port);
-                
+
                 return Ok(Self {
                     client: {
                         debug!("Creating HTTP connector with HTTPS support");
@@ -73,20 +75,23 @@ impl HttpProxy {
                     },
                     target_url: Arc::new(RwLock::new(DEFAULT_TARGET.to_string())),
                     port,
-                    access_logger: Arc::new(RwLock::new(AccessLogger::new(log_dir, debug_mode.clone())?)),
+                    access_logger: Arc::new(RwLock::new(AccessLogger::new(
+                        log_dir,
+                        debug_mode.clone(),
+                    )?)),
                     debug_mode,
                     server_handle: Arc::new(RwLock::new(None)),
                 });
             }
         }
-        
+
         error!("No available ports found in range {:?}", FALLBACK_PORTS);
         Err(std::io::Error::new(
             std::io::ErrorKind::AddrInUse,
-            format!("No available ports in range {:?}", FALLBACK_PORTS)
+            format!("No available ports in range {:?}", FALLBACK_PORTS),
         ))
     }
-    
+
     fn is_port_available(port: u16) -> bool {
         std::net::TcpListener::bind(format!("127.0.0.1:{}", port)).is_ok()
     }
@@ -115,21 +120,27 @@ impl HttpProxy {
 
     async fn handle_websocket_request(
         &self,
-        req: Request<Body>
+        req: Request<Body>,
     ) -> Result<Response<Body>, std::io::Error> {
         let target = self.target_url.read().await.clone();
         let path = req.uri().path().to_string();
-        let query = req.uri().query().map(|q| format!("?{}", q)).unwrap_or_default();
+        let query = req
+            .uri()
+            .query()
+            .map(|q| format!("?{}", q))
+            .unwrap_or_default();
 
         // Convert http(s):// to ws(s):// for the target URL
         let ws_target = if target.starts_with("https://") {
-            format!("wss://{}{}{}", 
+            format!(
+                "wss://{}{}{}",
                 target.strip_prefix("https://").unwrap(),
                 path,
                 query
             )
         } else {
-            format!("ws://{}{}{}", 
+            format!(
+                "ws://{}{}{}",
                 target.strip_prefix("http://").unwrap_or(&target),
                 path,
                 query
@@ -142,16 +153,19 @@ impl HttpProxy {
         match connect_async(&ws_target).await {
             Ok((ws_stream, _)) => {
                 debug!("Websocket: Connection established to target");
-                
+
                 // Get WebSocket key before starting upgrade
-                let ws_key = req.headers()
+                let ws_key = req
+                    .headers()
                     .get("Sec-WebSocket-Key")
                     .and_then(|h| h.to_str().ok())
                     .map(|s| s.to_string())
-                    .ok_or_else(|| std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        "Missing Sec-WebSocket-Key header"
-                    ))?;
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "Missing Sec-WebSocket-Key header",
+                        )
+                    })?;
 
                 let (_response_sender, response_body) = Body::channel();
 
@@ -171,8 +185,9 @@ impl HttpProxy {
                     let client_ws = tokio_tungstenite::WebSocketStream::from_raw_socket(
                         upgraded,
                         tokio_tungstenite::tungstenite::protocol::Role::Server,
-                        None
-                    ).await;
+                        None,
+                    )
+                    .await;
 
                     let (mut client_write, mut client_read) = client_ws.split();
                     let (mut server_write, mut server_read) = ws_stream_clone.split();
@@ -241,8 +256,10 @@ impl HttpProxy {
                     .status(101)
                     .header(hyper::header::UPGRADE, "websocket")
                     .header(hyper::header::CONNECTION, "upgrade")
-                    .header("Sec-WebSocket-Accept", 
-                        tungstenite::handshake::derive_accept_key(ws_key.as_bytes()))
+                    .header(
+                        "Sec-WebSocket-Accept",
+                        tungstenite::handshake::derive_accept_key(ws_key.as_bytes()),
+                    )
                     .header("Sec-WebSocket-Version", "13")
                     .body(response_body)
                     .unwrap())
@@ -268,7 +285,10 @@ impl HttpProxy {
             debug!("Starting proxy server in debug mode");
         }
         let addr = SocketAddr::from(([127, 0, 0, 1], self.port));
-        debug!("Starting proxy server with debug_mode={:?}", *self.debug_mode.read().await);
+        debug!(
+            "Starting proxy server with debug_mode={:?}",
+            *self.debug_mode.read().await
+        );
 
         // Create a new proxy instance for the service
         let proxy = self.clone();
@@ -301,10 +321,7 @@ impl HttpProxy {
         Ok(())
     }
 
-    async fn handle_request(
-        &self,
-        req: Request<Body>,
-    ) -> Result<Response<Body>, std::io::Error> {
+    async fn handle_request(&self, req: Request<Body>) -> Result<Response<Body>, std::io::Error> {
         // Extract headers before consuming the request
         let headers = req.headers().clone();
 
@@ -332,7 +349,10 @@ impl HttpProxy {
             "{}{}{}",
             target,
             path,
-            req.uri().query().map(|q| format!("?{}", q)).unwrap_or_default()
+            req.uri()
+                .query()
+                .map(|q| format!("?{}", q))
+                .unwrap_or_default()
         );
 
         debug!("Proxying request: {} {} -> {}", method, path, url);
@@ -348,16 +368,23 @@ impl HttpProxy {
                 .unwrap());
         }
         if let Ok(parsed_url) = reqwest::Url::parse(&url) {
-            debug!("Parsed URL - scheme: {}, host: {:?}, port: {:?}",
-                  parsed_url.scheme(), parsed_url.host_str(), parsed_url.port());
+            debug!(
+                "Parsed URL - scheme: {}, host: {:?}, port: {:?}",
+                parsed_url.scheme(),
+                parsed_url.host_str(),
+                parsed_url.port()
+            );
         }
         debug!("Request headers: {:?}", headers);
-        debug!("Target URL scheme: {}", reqwest::Url::parse(&url).map(|u| u.scheme().to_string()).unwrap_or_else(|_| "invalid URL".to_string()));
+        debug!(
+            "Target URL scheme: {}",
+            reqwest::Url::parse(&url)
+                .map(|u| u.scheme().to_string())
+                .unwrap_or_else(|_| "invalid URL".to_string())
+        );
 
         // Create proxied request builder with extracted headers
-        let mut proxy_req_builder = Request::builder()
-            .method(req.method())
-            .uri(&url);
+        let mut proxy_req_builder = Request::builder().method(req.method()).uri(&url);
 
         // Copy headers (host was already removed)
         for (key, value) in headers.iter() {
@@ -368,10 +395,7 @@ impl HttpProxy {
         proxy_req_builder = proxy_req_builder
             .header("X-Forwarded-For", "127.0.0.1")
             .header("X-Forwarded-Proto", "http")
-            .header(
-                "X-Forwarded-Host",
-                format!("localhost:{}", self.port)
-            );
+            .header("X-Forwarded-Host", format!("localhost:{}", self.port));
 
         // Build the request with the original body
         let proxy_req = proxy_req_builder
@@ -379,73 +403,74 @@ impl HttpProxy {
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
         // Send request with timeout
-        let response = match tokio::time::timeout(
-            Duration::from_secs(10),
-            self.client.request(proxy_req)
-        ).await {
-            Ok(Ok(resp)) => {
-                let status = resp.status().as_u16();
-                let duration = start_time.elapsed().as_millis() as u64;
+        let response =
+            match tokio::time::timeout(Duration::from_secs(10), self.client.request(proxy_req))
+                .await
+            {
+                Ok(Ok(resp)) => {
+                    let status = resp.status().as_u16();
+                    let duration = start_time.elapsed().as_millis() as u64;
 
-                debug!("Proxy request successful: {} {} -> {} ({}ms)", 
-                      method, path, target, duration);
-                debug!("Response status: {}, headers: {:?}", status, resp.headers());
+                    debug!(
+                        "Proxy request successful: {} {} -> {} ({}ms)",
+                        method, path, target, duration
+                    );
+                    debug!("Response status: {}, headers: {:?}", status, resp.headers());
 
-                // Log successful request
-                self.log_access(
-                    &method,
-                    &path,
-                    status,
-                    duration,
-                    &target,
-                    None
-                ).await;
+                    // Log successful request
+                    self.log_access(&method, &path, status, duration, &target, None)
+                        .await;
 
-                Ok(resp)
-            }
-            Ok(Err(e)) => {
-                let error_msg = e.to_string();
-                error!("Proxy request failed: {}", error_msg);
-                
-                self.log_access(
-                    &method,
-                    &path,
-                    500,
-                    start_time.elapsed().as_millis() as u64,
-                    &target,
-                    Some(&error_msg)
-                ).await;
+                    Ok(resp)
+                }
+                Ok(Err(e)) => {
+                    let error_msg = e.to_string();
+                    error!("Proxy request failed: {}", error_msg);
 
-                Ok(Response::builder()
-                    .status(500)
-                    .body(Body::from(MAINTENANCE_HTML.replace(
-                        "<!--ERROR_MESSAGE-->",
-                        &format!("<p class='text-red-600 dark:text-red-400'>Error: {}</p>", error_msg)
-                    )))
-                    .unwrap())
-            }
-            Err(_) => {
-                let error_msg = "Request timed out".to_string();
-                error!("Proxy request timed out");
-                
-                self.log_access(
-                    &method,
-                    &path,
-                    504,
-                    start_time.elapsed().as_millis() as u64,
-                    &target,
-                    Some(&error_msg)
-                ).await;
+                    self.log_access(
+                        &method,
+                        &path,
+                        500,
+                        start_time.elapsed().as_millis() as u64,
+                        &target,
+                        Some(&error_msg),
+                    )
+                    .await;
 
-                Ok(Response::builder()
+                    Ok(Response::builder()
+                        .status(500)
+                        .body(Body::from(MAINTENANCE_HTML.replace(
+                            "<!--ERROR_MESSAGE-->",
+                            &format!(
+                                "<p class='text-red-600 dark:text-red-400'>Error: {}</p>",
+                                error_msg
+                            ),
+                        )))
+                        .unwrap())
+                }
+                Err(_) => {
+                    let error_msg = "Request timed out".to_string();
+                    error!("Proxy request timed out");
+
+                    self.log_access(
+                        &method,
+                        &path,
+                        504,
+                        start_time.elapsed().as_millis() as u64,
+                        &target,
+                        Some(&error_msg),
+                    )
+                    .await;
+
+                    Ok(Response::builder()
                     .status(504)
                     .body(Body::from(MAINTENANCE_HTML.replace(
                         "<!--ERROR_MESSAGE-->",
                         "<p class='text-red-600 dark:text-red-400'>Error: Request timed out</p>"
                     )))
                     .unwrap())
-            }
-        };
+                }
+            };
 
         response
     }

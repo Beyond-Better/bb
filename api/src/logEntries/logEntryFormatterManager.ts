@@ -5,8 +5,8 @@ import type { JSX } from 'preact';
 import LLMToolManager from '../llms/llmToolManager.ts';
 import type { ConversationLogEntry, ConversationLogEntryContent, ConversationLogEntryType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
-import { ConfigManagerV2 } from 'shared/config/v2/configManager.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/v2/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { AuxiliaryChatContent, LogEntryFormattedResult, LogEntryTitleData } from 'api/logEntries/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import {
@@ -28,13 +28,13 @@ export default class LogEntryFormatterManager {
 	constructor(
 		private projectEditor: ProjectEditor,
 	) {
-		this.projectConfig = projectEditor.projectConfig;
+		this.projectConfig = this.projectEditor.projectConfig;
 	}
 
 	public async init(): Promise<LogEntryFormatterManager> {
-		const configManager = await ConfigManagerV2.getInstance();
+		const configManager = await getConfigManager();
 		this.globalConfig = await configManager.getGlobalConfig();
-		this.toolManager = await new LLMToolManager(this.projectConfig, 'core', this.projectEditor.mcpManager).init(); // Pass MCPManager to LLMToolManager
+		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init(); // Pass MCPManager to LLMToolManager
 		//logger.debug(`LogEntryFormatterManager: Initialized toolManager:`, this.toolManager.getAllToolsMetadata());
 		return this;
 	}

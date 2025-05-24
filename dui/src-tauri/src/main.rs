@@ -1,9 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use beyond_better_lib::{
-    run
-};
+use beyond_better_lib::run;
 
 fn main() {
     run();
@@ -21,14 +19,14 @@ fn main() {
 //            .duration_since(SystemTime::UNIX_EPOCH)
 //            .unwrap_or_default()
 //            .as_secs();
-//        
+//
 //        let log_msg = format!("[{}] {}\n", timestamp, msg);
-//        
+//
 //        // Ensure directory exists
 //        if let Some(parent) = log_path.parent() {
 //            let _ = fs::create_dir_all(parent);
 //        }
-//        
+//
 //        // Append to log file
 //        if let Ok(mut content) = fs::read_to_string(&log_path) {
 //            content.push_str(&log_msg);
@@ -48,7 +46,7 @@ fn main() {
 //                .join("logs")
 //        })
 //    }
-//    
+//
 //    #[cfg(not(target_os = "windows"))]
 //    {
 //        None
@@ -63,9 +61,9 @@ fn main() {
 //        println!("Current exe: {:?}", std::env::current_exe().unwrap_or_default());
 //        println!("Current dir: {:?}", std::env::current_dir().unwrap_or_default());
 //    }
-//    
+//
 //    log_to_file("Application starting");
-//    
+//
 //    // Log environment info
 //    if let Ok(exe_path) = std::env::current_exe() {
 //        log_to_file(&format!("Executable path: {:?}", exe_path));
@@ -73,7 +71,7 @@ fn main() {
 //    if let Ok(current_dir) = std::env::current_dir() {
 //        log_to_file(&format!("Current directory: {:?}", current_dir));
 //    }
-//    
+//
 //    // Start the application
 //    log_to_file("Starting Tauri application");
 //    run();

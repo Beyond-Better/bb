@@ -22,6 +22,7 @@ import BaseController from './baseController.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import { logger } from 'shared/logger.ts';
+import { errorMessage } from 'shared/error.ts';
 
 // Hard-coded conversation token limit (192k to leave room for 8k response)
 const CONVERSATION_TOKEN_LIMIT = 192000;
@@ -228,40 +229,40 @@ class AgentController extends BaseController {
 		//this.resetStatus();
 
 		//this.emitStatus(ApiStatus.API_BUSY);
+		try {
+			if (!interaction) {
+				throw new Error(`No agent interaction provided for handle task`);
+			}
 
-		if (!interaction) {
-			throw new Error(`No agent interaction provided for handle task`);
-		}
+			logger.info('AgentController: handleTask ', task.title);
 
-		logger.info('AgentController: handleTask ', task.title);
+			if (!task.instructions) {
+				//const logEntryInteraction = this.logEntryInteraction;
+				const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
+					interaction;
+				const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
+				this.eventManager.emit(
+					'projectEditor:conversationError',
+					{
+						conversationId: logEntryInteraction.id,
+						conversationTitle: interaction.title || '',
+						agentInteractionId: agentInteractionId,
+						timestamp: new Date().toISOString(),
+						conversationStats: {
+							statementCount: interaction.statementCount,
+							statementTurnCount: interaction.statementTurnCount,
+							conversationTurnCount: interaction.conversationTurnCount,
+						},
+						error: 'Missing instructions',
+						code: 'EMPTY_PROMPT' as const,
+					} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+				);
+				throw new Error('Missing instructions');
+			}
 
-		if (!task.instructions) {
-			//const logEntryInteraction = this.logEntryInteraction;
-			const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
-				interaction;
-			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
-			this.eventManager.emit(
-				'projectEditor:conversationError',
-				{
-					conversationId: logEntryInteraction.id,
-					conversationTitle: interaction.title || '',
-					agentInteractionId: agentInteractionId,
-					timestamp: new Date().toISOString(),
-					conversationStats: {
-						statementCount: interaction.statementCount,
-						statementTurnCount: interaction.statementTurnCount,
-						conversationTurnCount: interaction.conversationTurnCount,
-					},
-					error: 'Missing instructions',
-					code: 'EMPTY_PROMPT' as const,
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
-			);
-			throw new Error('Missing instructions');
-		}
+			const statement = `Instructions:\n${task.instructions}\n\nResponse format:\n${task.requirements}`;
 
-		const statement = `Instructions:\n${task.instructions}\n\nResponse format:\n${task.requirements}`;
-
-		/*
+			/*
 		try {
 			// Get current conversation metrics to check objectives
 			const currentMetrics = interaction.conversationMetrics;
@@ -303,350 +304,370 @@ class AgentController extends BaseController {
 		}
 		 */
 
-		const speakOptions: LLMSpeakWithOptions = {
-			//temperature: 0.7,
-			//maxTokens: 1000,
-		};
-
-		let currentResponse: LLMSpeakWithResponse | null = null;
-		const maxTurns = options.maxTurns ?? this.projectConfig.settings.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
-
-		try {
-			logger.info(
-				`AgentController: Calling conversation.converse for turn ${interaction.statementTurnCount} with statement: "${
-					statement.substring(0, 50)
-				}..."`,
-			);
-
-			// START OF STATEMENT - REQUEST TO LLM
-			//this.emitStatus(ApiStatus.LLM_PROCESSING);
-			//this.emitPromptCacheTimer();
-
-			// Create metadata object with task information
-			const metadata: ConversationStatementMetadata = {
-				system: {
-					timestamp: new Date().toISOString(),
-					os: Deno.build.os,
-					//bb_version: (await getVersionInfo()).version,
-					// Add: git_branch, git_commit
-				},
-				task: {
-					title: task.title,
-					type: 'agent_task',
-				},
-				conversation: {
-					counts: {
-						statements: interaction.statementCount,
-						statement_turns: interaction.statementTurnCount,
-						conversation_turns: interaction.conversationTurnCount,
-						//max_turns_per_statement: 15,
-					},
-				},
-				resources: { // Add this section
-					files_active: interaction.getFiles().size,
-				},
+			const speakOptions: LLMSpeakWithOptions = {
+				//temperature: 0.7,
+				//maxTokens: 1000,
 			};
 
-			currentResponse = await interaction.converse(statement, parentMessageId, metadata, speakOptions);
+			let currentResponse: LLMSpeakWithResponse | null = null;
+			const maxTurns = options.maxTurns ?? this.projectConfig.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
-			//this.emitStatus(ApiStatus.API_BUSY);
-			logger.info('AgentController: Received response from LLM');
-			//logger.debug('AgentController: LLM Response:', currentResponse);
-
-			// Update orchestrator's stats
-			this.updateStats(interaction.id, interaction.conversationStats);
-		} catch (error) {
-			logger.info('AgentController: Received error from LLM converse: ', error);
-			throw this.handleLLMError(error as Error, interaction);
-		}
-
-		// Save the conversation immediately after the first response
-		logger.info(
-			`AgentController: Saving conversation at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
-		);
-		await this.saveInitialConversationWithResponse(interaction, currentResponse);
-
-		let loopTurnCount = 0;
-
-		//while (loopTurnCount < 1 && !this.isCancelled) {
-		while (loopTurnCount < maxTurns && !this.isCancelled) {
-			logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
 			try {
-				// Handle tool calls and collect toolResponse
-				const toolResponses = [];
-				if (currentResponse.messageResponse.toolsUsed && currentResponse.messageResponse.toolsUsed.length > 0) {
-					// Extract text and thinking content from the response
-					const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
-					const thinkingContent = this.extractThinkingContent(currentResponse.messageResponse);
-					logger.debug(
-						`AgentController: Text and Thinking content for tool use for turn ${interaction.statementTurnCount}:`,
-						{ textContent, thinkingContent },
-					);
+				logger.info(
+					`AgentController: Calling conversation.converse for turn ${interaction.statementTurnCount} with statement: "${
+						statement.substring(0, 50)
+					}..."`,
+				);
 
-					// Only log assistant message if tools are being used
-					if (textContent) {
-						const conversationStats: ConversationStats = interaction.conversationStats;
+				// START OF STATEMENT - REQUEST TO LLM
+				//this.emitStatus(ApiStatus.LLM_PROCESSING);
+				//this.emitPromptCacheTimer();
 
-						interaction.conversationLogger.logAssistantMessage(
-							interaction.getLastMessageId(),
-							parentMessageId,
-							interaction.id,
-							textContent,
-							thinkingContent,
-							conversationStats,
-							{
-								tokenUsageTurn: interaction.tokenUsageTurn,
-								tokenUsageStatement: interaction.tokenUsageStatement,
-								tokenUsageConversation: interaction.tokenUsageInteraction,
-							},
+				// Create metadata object with task information
+				const metadata: ConversationStatementMetadata = {
+					system: {
+						timestamp: new Date().toISOString(),
+						os: Deno.build.os,
+						//bb_version: (await getVersionInfo()).version,
+						// Add: git_branch, git_commit
+					},
+					task: {
+						title: task.title,
+						type: 'agent_task',
+					},
+					conversation: {
+						counts: {
+							statements: interaction.statementCount,
+							statement_turns: interaction.statementTurnCount,
+							conversation_turns: interaction.conversationTurnCount,
+							//max_turns_per_statement: 15,
+						},
+					},
+					resources: { // Add this section
+						resources_active: interaction.getResources().size,
+					},
+				};
+
+				currentResponse = await interaction.converse(statement, parentMessageId, metadata, speakOptions);
+
+				//this.emitStatus(ApiStatus.API_BUSY);
+				logger.info('AgentController: Received response from LLM');
+				//logger.debug('AgentController: LLM Response:', currentResponse);
+
+				// Update orchestrator's stats
+				this.updateStats(interaction.id, interaction.conversationStats);
+			} catch (error) {
+				logger.info('AgentController: Received error from LLM converse: ', error);
+				throw this.handleLLMError(error as Error, interaction);
+			}
+
+			// Save the conversation immediately after the first response
+			logger.info(
+				`AgentController: Saving conversation at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+			);
+			await this.saveInitialConversationWithResponse(interaction, currentResponse);
+
+			let loopTurnCount = 0;
+
+			//while (loopTurnCount < 1 && !this.isCancelled) {
+			while (loopTurnCount < maxTurns && !this.isCancelled) {
+				logger.warn(`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns}`);
+				try {
+					// Handle tool calls and collect toolResponse
+					const toolResponses = [];
+					if (
+						currentResponse.messageResponse.toolsUsed &&
+						currentResponse.messageResponse.toolsUsed.length > 0
+					) {
+						// Extract text and thinking content from the response
+						const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
+						const thinkingContent = this.extractThinkingContent(currentResponse.messageResponse);
+						logger.debug(
+							`AgentController: Text and Thinking content for tool use for turn ${interaction.statementTurnCount}:`,
+							{ textContent, thinkingContent },
 						);
-					}
 
-					for (const toolUse of currentResponse.messageResponse.toolsUsed) {
-						logger.info('AgentController: Handling tool', toolUse);
-						try {
-							//this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
+						// Only log assistant message if tools are being used
+						if (textContent) {
+							const conversationStats: ConversationStats = interaction.conversationStats;
 
-							// logToolUse is called in handleToolUse
-							// logToolResult is called in handleToolUse
-							const { toolResponse } = await this.handleToolUse(
+							interaction.conversationLogger.logAssistantMessage(
+								interaction.getLastMessageId(),
 								parentMessageId,
-								interaction,
-								toolUse,
-								currentResponse.messageResponse,
+								interaction.id,
+								textContent,
+								thinkingContent,
+								conversationStats,
+								{
+									tokenUsageTurn: interaction.tokenUsageTurn,
+									tokenUsageStatement: interaction.tokenUsageStatement,
+									tokenUsageConversation: interaction.tokenUsageInteraction,
+								},
 							);
-							//bbResponses.push(bbResponse);
-							toolResponses.push(toolResponse);
-							// You can use textContent & thinkingContent here as needed, e.g., add it to a separate array or log it
-						} catch (error) {
-							logger.warn(
-								`AgentController: Error handling tool ${toolUse.toolName}: ${(error as Error).message}`,
-							);
-							toolResponses.push(`Error with ${toolUse.toolName}: ${(error as Error).message}`);
+						}
+
+						for (const toolUse of currentResponse.messageResponse.toolsUsed) {
+							//logger.info('AgentController: Handling tool', toolUse);
+							try {
+								//this.emitStatus(ApiStatus.TOOL_HANDLING, { toolName: toolUse.toolName });
+
+								// logToolUse is called in handleToolUse
+								// logToolResult is called in handleToolUse
+								const { toolResponse } = await this.handleToolUse(
+									parentMessageId,
+									interaction,
+									toolUse,
+									currentResponse.messageResponse,
+								);
+								//bbResponses.push(bbResponse);
+								toolResponses.push(toolResponse);
+								// You can use textContent & thinkingContent here as needed, e.g., add it to a separate array or log it
+							} catch (error) {
+								logger.warn(
+									`AgentController: Error handling tool ${toolUse.toolName}: ${errorMessage(error)}`,
+								);
+								toolResponses.push(`Error with ${toolUse.toolName}: ${errorMessage(error)}`);
+							}
 						}
 					}
-				}
-				logger.warn(
-					`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`,
-				);
-
-				loopTurnCount++;
-
-				// Check total token usage including cache operations
-				const totalTurnTokens = interaction.tokenUsageTurn.totalTokens +
-					(interaction.tokenUsageTurn.cacheCreationInputTokens ?? 0) +
-					(interaction.tokenUsageTurn.cacheReadInputTokens ?? 0);
-				if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
 					logger.warn(
-						`AgentController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
-							`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
-							`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
-							`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
+						`AgentController: LOOP: turns ${loopTurnCount}/${maxTurns} - handled all tools in response`,
 					);
 
-					// Log auxiliary message about forced summary
-					const timestamp = new Date().toISOString();
-					await interaction.conversationLogger.logAuxiliaryMessage(
-						`force-summary-${timestamp}`,
-						parentMessageId,
-						interaction.id,
-						{
-							message:
-								`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
-							purpose: 'Token Limit Enforcement',
-						},
-					);
+					loopTurnCount++;
 
-					// Manually construct tool use for conversation summary
-					const toolUse: LLMAnswerToolUse = {
-						toolName: 'conversation_summary',
-						toolInput: {
-							requestSource: 'tool',
-							// Calculate maxTokensToKeep:
-							// - Target keeping 75% of limit for conversation
-							// - Ensure minimum of 1000 tokens (tool requirement)
-							// - If limit is very low, warn but maintain minimum
-							maxTokensToKeep: (() => {
-								const targetTokens = Math.floor(CONVERSATION_TOKEN_LIMIT * 0.75);
-								if (targetTokens < 1000) {
-									logger.warn(
-										`AgentController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
-											`Using minimum of 1000 tokens for conversation summary.`,
-									);
-								}
-								return Math.max(1000, targetTokens);
-							})(),
-							summaryLength: 'long',
-						},
-						toolUseId: `force-summary-${Date.now()}`,
-						toolValidation: { validated: true, results: 'Tool input validation passed' },
-					};
-
-					// Handle the tool use directly without adding its response to toolResponses
-					await this.handleToolUse(parentMessageId, interaction, toolUse, currentResponse.messageResponse);
-
-					// Only add summary note to toolResponses if there are already responses to process
-					// This avoids triggering another loop iteration if LLM was done
-					if (toolResponses.length > 0) {
-						toolResponses.push(
-							'\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.',
+					// Check total token usage including cache operations
+					const totalTurnTokens = interaction.tokenUsageTurn.totalTokens +
+						(interaction.tokenUsageTurn.cacheCreationInputTokens ?? 0) +
+						(interaction.tokenUsageTurn.cacheReadInputTokens ?? 0);
+					if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
+						logger.warn(
+							`AgentController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
+								`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
+								`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
+								`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
 						);
-					}
-				}
 
-				// If there's tool toolResponse, send it back to the LLM
-				if (toolResponses.length > 0) {
-					try {
-						await this.projectEditor.updateProjectInfo();
+						// Log auxiliary message about forced summary
+						const timestamp = new Date().toISOString();
+						await interaction.conversationLogger.logAuxiliaryMessage(
+							`force-summary-${timestamp}`,
+							parentMessageId,
+							interaction.id,
+							{
+								message:
+									`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
+								purpose: 'Token Limit Enforcement',
+							},
+						);
 
-						const statement = `Tool results feedback:\n${
-							formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
-						}\n${toolResponses.join('\n')}`;
-
-						//this.emitStatus(ApiStatus.LLM_PROCESSING);
-						//this.emitPromptCacheTimer();
-
-						// Update metadata with current information
-						const toolMetadata: ConversationStatementMetadata = {
-							system: {
-								timestamp: new Date().toISOString(),
-								os: Deno.build.os,
-								//bb_version: (await getVersionInfo()).version,
-								// Add: git_branch, git_commit
+						// Manually construct tool use for conversation summary
+						const toolUse: LLMAnswerToolUse = {
+							toolName: 'conversation_summary',
+							toolInput: {
+								requestSource: 'tool',
+								// Calculate maxTokensToKeep:
+								// - Target keeping 75% of limit for conversation
+								// - Ensure minimum of 1000 tokens (tool requirement)
+								// - If limit is very low, warn but maintain minimum
+								maxTokensToKeep: (() => {
+									const targetTokens = Math.floor(CONVERSATION_TOKEN_LIMIT * 0.75);
+									if (targetTokens < 1000) {
+										logger.warn(
+											`AgentController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
+												`Using minimum of 1000 tokens for conversation summary.`,
+										);
+									}
+									return Math.max(1000, targetTokens);
+								})(),
+								summaryLength: 'long',
 							},
-							task: {
-								title: task.title,
-								type: 'agent_task',
-							},
-							conversation: {
-								counts: {
-									statements: interaction.statementCount,
-									statement_turns: interaction.statementTurnCount,
-									conversation_turns: interaction.conversationTurnCount,
-									//max_turns_per_statement: 15,
-								},
-								turn: {
-									number: loopTurnCount,
-									max: maxTurns,
-								},
-							},
-							resources: { // Add this section
-								files_active: interaction.getFiles().size,
-							},
+							toolUseId: `force-summary-${Date.now()}`,
+							toolValidation: { validated: true, results: 'Tool input validation passed' },
 						};
 
-						currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
+						// Handle the tool use directly without adding its response to toolResponses
+						await this.handleToolUse(
+							parentMessageId,
+							interaction,
+							toolUse,
+							currentResponse.messageResponse,
+						);
 
-						//this.emitStatus(ApiStatus.API_BUSY);
-						//logger.info('AgentController: tool response', currentResponse);
-					} catch (error) {
-						throw this.handleLLMError(error as Error, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
+						// Only add summary note to toolResponses if there are already responses to process
+						// This avoids triggering another loop iteration if LLM was done
+						if (toolResponses.length > 0) {
+							toolResponses.push(
+								'\nNote: The conversation has been automatically summarized and truncated to stay within token limits. The summary has been added to the conversation history.',
+							);
+						}
 					}
-				} else {
-					// No more tool toolResponse, exit the loop
-					break;
-				}
-			} catch (error) {
-				logger.error(
-					`AgentController: Error in conversation turn ${loopTurnCount}: ${(error as Error).message}`,
-				);
-				if (loopTurnCount === maxTurns - 1) {
-					throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
-				}
 
-				const args = isLLMError(error) ? error.options?.args : null;
-				const errorMessage = args ? `${args.reason} - ${(error as Error).message}` : (error as Error).message;
+					// If there's tool toolResponse, send it back to the LLM
+					if (toolResponses.length > 0) {
+						try {
+							await this.projectEditor.updateProjectInfo();
 
-				//const logEntryInteraction = this.logEntryInteraction;
-				const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
-					interaction;
-				const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
-				// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
-				this.eventManager.emit(
-					'projectEditor:conversationError',
-					{
-						conversationId: interaction.id,
-						conversationTitle: interaction.title || '',
-						agentInteractionId: agentInteractionId,
-						timestamp: new Date().toISOString(),
-						conversationStats: {
-							statementCount: interaction.statementCount,
-							statementTurnCount: interaction.statementTurnCount,
-							conversationTurnCount: interaction.conversationTurnCount,
+							const statement = `Tool results feedback:\n${
+								formatToolObjectivesAndStats(interaction, loopTurnCount, maxTurns)
+							}\n${toolResponses.join('\n')}`;
+
+							//this.emitStatus(ApiStatus.LLM_PROCESSING);
+							//this.emitPromptCacheTimer();
+
+							// Update metadata with current information
+							const toolMetadata: ConversationStatementMetadata = {
+								system: {
+									timestamp: new Date().toISOString(),
+									os: Deno.build.os,
+									//bb_version: (await getVersionInfo()).version,
+									// Add: git_branch, git_commit
+								},
+								task: {
+									title: task.title,
+									type: 'agent_task',
+								},
+								conversation: {
+									counts: {
+										statements: interaction.statementCount,
+										statement_turns: interaction.statementTurnCount,
+										conversation_turns: interaction.conversationTurnCount,
+										//max_turns_per_statement: 15,
+									},
+									turn: {
+										number: loopTurnCount,
+										max: maxTurns,
+									},
+								},
+								resources: { // Add this section
+									resources_active: interaction.getResources().size,
+								},
+							};
+
+							currentResponse = await interaction.relayToolResult(statement, toolMetadata, speakOptions);
+
+							//this.emitStatus(ApiStatus.API_BUSY);
+							//logger.info('AgentController: tool response', currentResponse);
+						} catch (error) {
+							throw this.handleLLMError(error as Error, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
+						}
+					} else {
+						// No more tool toolResponse, exit the loop
+						break;
+					}
+				} catch (error) {
+					logger.error(
+						`AgentController: Error in conversation turn ${loopTurnCount}: ${errorMessage(error)}`,
+					);
+					if (loopTurnCount === maxTurns - 1) {
+						throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
+					}
+
+					const args = isLLMError(error) ? error.options?.args : null;
+					const llmErrorMessage = args ? `${args.reason} - ${errorMessage(error)}` : errorMessage(error);
+
+					//const logEntryInteraction = this.logEntryInteraction;
+					const logEntryInteraction = this.interactionManager.getParentInteraction(interaction.id) ??
+						interaction;
+					const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
+					// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
+					this.eventManager.emit(
+						'projectEditor:conversationError',
+						{
+							conversationId: interaction.id,
+							conversationTitle: interaction.title || '',
+							agentInteractionId: agentInteractionId,
+							timestamp: new Date().toISOString(),
+							conversationStats: {
+								statementCount: interaction.statementCount,
+								statementTurnCount: interaction.statementTurnCount,
+								conversationTurnCount: interaction.conversationTurnCount,
+							},
+							error: llmErrorMessage,
+							code: 'RESPONSE_HANDLING' as const,
+						} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+					);
+
+					// For non-fatal errors, log and continue to the next turn
+					currentResponse = {
+						messageResponse: {
+							answerContent: [{
+								type: 'text',
+								text: `Error occurred: ${llmErrorMessage}. Continuing conversation.`,
+							}],
+							answer: `Error occurred: ${llmErrorMessage}. Continuing conversation.`,
 						},
-						error: errorMessage,
-						code: 'RESPONSE_HANDLING' as const,
-					} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
-				);
-
-				// For non-fatal errors, log and continue to the next turn
-				currentResponse = {
-					messageResponse: {
-						answerContent: [{
-							type: 'text',
-							text: `Error occurred: ${errorMessage}. Continuing conversation.`,
-						}],
-						answer: `Error occurred: ${errorMessage}. Continuing conversation.`,
-					},
-					messageMeta: {},
-				} as LLMSpeakWithResponse;
+						messageMeta: {},
+					} as LLMSpeakWithResponse;
+				}
 			}
+			logger.warn(`AgentController: LOOP: DONE turns ${loopTurnCount}`);
+
+			if (this.isCancelled) {
+				logger.warn('AgentController: Operation was cancelled.');
+			} else if (loopTurnCount >= maxTurns) {
+				logger.warn(`AgentController: Reached maximum number of turns (${maxTurns}) in conversation.`);
+			}
+
+			// Final save of the entire conversation at the end of the loop
+			logger.debug(
+				`AgentController: Saving conversation at end of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+			);
+
+			await this.saveConversationAfterStatement(interaction, currentResponse);
+
+			logger.info(
+				`AgentController: Final save of conversation: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+			);
+
+			// Extract full answer text
+			const answer = currentResponse.messageResponse.answer; // this is the canonical answer
+			//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
+
+			// Extract thinking content using our standardized extractor
+			const assistantThinking = currentResponse.messageResponse.answerContent
+				? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
+				: '';
+
+			interaction.conversationLogger.logAnswerMessage(
+				interaction.getLastMessageId(),
+				parentMessageId,
+				interaction.id,
+				answer,
+				assistantThinking,
+				{
+					statementCount: interaction.statementCount,
+					statementTurnCount: interaction.statementTurnCount,
+					conversationTurnCount: interaction.conversationTurnCount,
+				},
+				{
+					tokenUsageTurn: interaction.tokenUsageTurn,
+					tokenUsageStatement: interaction.tokenUsageStatement,
+					tokenUsageConversation: interaction.tokenUsageInteraction,
+				},
+				currentResponse.messageMeta.requestParams,
+			);
+
+			const completedTask: CompletedTask = {
+				title: task.title,
+				status: 'completed',
+				result: `Task '${task.title}' completed successfully:\n${answer}`,
+			};
+
+			//this.resetStatus();
+			return completedTask;
+		} catch (error) {
+			logger.error(
+				`AgentController: Error in handle task: ${errorMessage(error)}`,
+			);
+			const completedTask: CompletedTask = {
+				title: task.title,
+				status: 'failed',
+				result: `Task '${task.title}' encountered an error:\n${errorMessage(error)}`,
+			};
+			//this.resetStatus(interaction.id);
+			return completedTask;
 		}
-		logger.warn(`AgentController: LOOP: DONE turns ${loopTurnCount}`);
-
-		if (this.isCancelled) {
-			logger.warn('AgentController: Operation was cancelled.');
-		} else if (loopTurnCount >= maxTurns) {
-			logger.warn(`AgentController: Reached maximum number of turns (${maxTurns}) in conversation.`);
-		}
-
-		// Final save of the entire conversation at the end of the loop
-		logger.debug(
-			`AgentController: Saving conversation at end of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
-		);
-
-		await this.saveConversationAfterStatement(interaction, currentResponse);
-
-		logger.info(
-			`AgentController: Final save of conversation: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
-		);
-
-		// Extract full answer text
-		const answer = currentResponse.messageResponse.answer; // this is the canonical answer
-		//const answer = extractTextFromContent(currentResponse.messageResponse.answerContent);
-
-		// Extract thinking content using our standardized extractor
-		const assistantThinking = currentResponse.messageResponse.answerContent
-			? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
-			: '';
-
-		interaction.conversationLogger.logAnswerMessage(
-			interaction.getLastMessageId(),
-			parentMessageId,
-			interaction.id,
-			answer,
-			assistantThinking,
-			{
-				statementCount: interaction.statementCount,
-				statementTurnCount: interaction.statementTurnCount,
-				conversationTurnCount: interaction.conversationTurnCount,
-			},
-			{
-				tokenUsageTurn: interaction.tokenUsageTurn,
-				tokenUsageStatement: interaction.tokenUsageStatement,
-				tokenUsageConversation: interaction.tokenUsageInteraction,
-			},
-			currentResponse.messageMeta.requestParams,
-		);
-
-		const completedTask: CompletedTask = {
-			title: task.title,
-			status: 'completed',
-			result: `Task '${task.title}' completed successfully:\n${answer}`,
-		};
-
-		//this.resetStatus();
-		return completedTask;
 	}
 }
 

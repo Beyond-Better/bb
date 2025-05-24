@@ -89,20 +89,12 @@ export interface Conversation {
 	updatedAt: string;
 }
 
-export interface FileForConversation {
-	fileName: string;
-	metadata: Omit<FileMetadata, 'path' | 'inSystemPrompt'>;
-}
-
-export type FilesForConversation = Array<FileForConversation>;
-
 export interface FileMetadata {
 	type: 'text' | 'image';
 	mimeType?: LLMMessageContentPartImageBlockSourceMediaType;
 	path: string;
 	size: number;
 	lastModified: Date;
-	inSystemPrompt: boolean;
 	messageId?: string; // also used as revisionId
 	toolUseId?: string;
 	lastCommit?: string;
@@ -135,7 +127,7 @@ export interface ConversationStatementMetadata {
 		};
 	};
 	resources?: {
-		files_active: number;
+		resources_active: number;
 	};
 	tools?: { // see formatToolObjectivesAndStats for example of toolStats
 		recent: Array<
@@ -143,11 +135,6 @@ export interface ConversationStatementMetadata {
 		>;
 	};
 }
-
-export type ConversationFilesMetadata = Record<string, FileMetadata>;
-// export interface ConversationFilesMetadata {
-// 	files: Map<string, FileMetadata>;
-// }
 
 /*
  * Token usage for an individual turn

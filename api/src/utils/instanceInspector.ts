@@ -2,6 +2,7 @@ import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { interactionManager } from 'api/llms/interactionManager.ts';
+import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 
@@ -11,7 +12,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 export interface EditorInstanceInfo {
 	conversationId: string;
 	projectId: string;
-	projectRoot: string;
+	primaryDsConnectionRoot: string;
 	hasInitialized: boolean;
 	components: {
 		orchestratorController: {
@@ -33,11 +34,6 @@ export interface EditorInstanceInfo {
 			promptManager?: {
 				initialized: boolean;
 			};
-		};
-		mcpManager: {
-			initialized: boolean;
-			serverCount: number;
-			serverIds: string[];
 		};
 		resourceManager: {
 			initialized: boolean;
@@ -77,18 +73,23 @@ export interface InstanceOverview {
 			childToParent: Record<string, string>; // Child ID to parent ID mapping
 		};
 	};
+	mcpManager: {
+		initialized: boolean;
+		serverCount: number;
+		serverIds: string[];
+	};
 }
 
 /**
  * Collects metadata about a ProjectEditor instance without capturing the entire object
  */
-function inspectEditor(conversationId: string, editor: ProjectEditor): EditorInstanceInfo {
+async function inspectEditor(conversationId: string, editor: ProjectEditor): Promise<EditorInstanceInfo> {
 	const baseController = editor.orchestratorController;
 
 	return {
 		conversationId,
 		projectId: editor.projectId,
-		projectRoot: editor.projectRoot,
+		primaryDsConnectionRoot: editor.primaryDsConnectionRoot || 'not defined',
 		hasInitialized: baseController !== undefined,
 		components: {
 			orchestratorController: {
@@ -121,11 +122,6 @@ function inspectEditor(conversationId: string, editor: ProjectEditor): EditorIns
 					}
 					: undefined,
 			},
-			mcpManager: {
-				initialized: editor.mcpManager !== undefined,
-				serverCount: editor.mcpManager?.servers?.size || 0,
-				serverIds: Array.from(editor.mcpManager?.servers?.keys() || []),
-			},
 			resourceManager: {
 				initialized: editor.resourceManager !== undefined,
 			},
@@ -152,12 +148,15 @@ function inspectInteraction(interaction: LLMInteraction): InteractionInfo {
 		parentId: interactionManager.getParentInteraction(interaction.id)?.id,
 		childrenCount: interactionManager.getChildInteractions(interaction.id).length,
 		childrenIds: interactionManager.getChildInteractions(interaction.id).map((child) => child.id),
-		fileCount: 'getFiles' in interaction ? (interaction as LLMConversationInteraction).getFiles()?.size : undefined,
+		fileCount: 'getResources' in interaction
+			? (interaction as LLMConversationInteraction).getResources()?.size
+			: undefined,
 	};
 }
 
-export function getInstanceOverview(_options: { detailed?: boolean } = {}): InstanceOverview {
+export async function getInstanceOverview(_options: { detailed?: boolean } = {}): Promise<InstanceOverview> {
 	const projectEditors = projectEditorManager.getActiveEditors();
+	const mcpManager = await getMCPManager();
 
 	// Get all interactions from interactionManager
 	const allInteractions = interactionManager.getAllInteractions();
@@ -206,11 +205,16 @@ export function getInstanceOverview(_options: { detailed?: boolean } = {}): Inst
 				childToParent: childToParentMap,
 			},
 		},
+		mcpManager: {
+			initialized: mcpManager !== undefined,
+			serverCount: mcpManager?.servers?.size || 0,
+			serverIds: Array.from(mcpManager?.servers?.keys() || []),
+		},
 	};
 
 	// Inspect each ProjectEditor instance
 	for (const [conversationId, editor] of projectEditors) {
-		result.editors[conversationId] = inspectEditor(conversationId, editor);
+		result.editors[conversationId] = await inspectEditor(conversationId, editor);
 	}
 
 	return result;
@@ -220,8 +224,8 @@ export function getInstanceOverview(_options: { detailed?: boolean } = {}): Inst
  * Logs the instance overview to the console
  * @param options Configuration options
  */
-export function logInstanceOverview(options: { detailed?: boolean } = {}): void {
-	const overview = getInstanceOverview(options);
+export async function logInstanceOverview(options: { detailed?: boolean } = {}): Promise<void> {
+	const overview = await getInstanceOverview(options);
 
 	logger.info(
 		`API Instance Overview - ${overview.projectEditorCount} active editors, ${overview.interactions.totalCount} interactions (${overview.interactions.orphanedCount} orphaned)`,
@@ -236,9 +240,6 @@ export function logInstanceOverview(options: { detailed?: boolean } = {}): void 
 		for (const [conversationId, editor] of Object.entries(overview.editors)) {
 			logger.info(`Editor[${conversationId}]: Project ${editor.projectId} - Components:`, {
 				orchestrator: editor.components.orchestratorController.initialized ? '✓' : '✗',
-				mcpManager: editor.components.mcpManager.initialized
-					? `✓ (${editor.components.mcpManager.serverCount} servers)`
-					: '✗',
 				resourceManager: editor.components.resourceManager.initialized ? '✓' : '✗',
 				agentController: editor.components.orchestratorController.hasAgentController ? '✓' : '✗',
 				toolManager: editor.components.orchestratorController.toolManager
@@ -273,11 +274,16 @@ export function logInstanceOverview(options: { detailed?: boolean } = {}): void 
 				logger.warn(`Found ${overview.interactions.orphanedCount} orphaned root interactions!`);
 			}
 		}
+
+		logger.info('===== MCP SERVERS =====');
+		logger.info(`Servers:`, {
+			mcpManager: overview.mcpManager.initialized ? `✓ (${overview.mcpManager.serverCount} servers)` : '✗',
+		});
 	}
 
 	// Always log the formatted overview to a separate log file for reference
 	try {
-		const formattedOutput = formatInstanceOverview(options);
+		const formattedOutput = await formatInstanceOverview(options);
 		Deno.writeTextFileSync('bb-instances.log', formattedOutput);
 		logger.info(`Instance overview written to bb-instances.log`);
 	} catch (err) {
@@ -290,8 +296,8 @@ export function logInstanceOverview(options: { detailed?: boolean } = {}): void 
  * @param options Configuration options
  * @returns A string representation of the instance overview
  */
-export function formatInstanceOverview(options: { detailed?: boolean } = {}): string {
-	const overview = getInstanceOverview(options);
+export async function formatInstanceOverview(options: { detailed?: boolean } = {}): Promise<string> {
+	const overview = await getInstanceOverview(options);
 	const detailed = options.detailed ?? false;
 
 	const lines = [
@@ -305,7 +311,7 @@ export function formatInstanceOverview(options: { detailed?: boolean } = {}): st
 	lines.push(`\nPROJECT EDITORS:`);
 	for (const [conversationId, editor] of Object.entries(overview.editors)) {
 		lines.push(`• Editor[${conversationId}]:`);
-		lines.push(`  - Project: ${editor.projectId} (${editor.projectRoot})`);
+		lines.push(`  - Project: ${editor.projectId} (${editor.primaryDsConnectionRoot})`);
 		lines.push(`  - Components:`);
 
 		// Orchestrator Controller
@@ -335,16 +341,6 @@ export function formatInstanceOverview(options: { detailed?: boolean } = {}): st
 				const stats = editor.components.orchestratorController.interactionStats;
 				lines.push(`      ▪ Interactions Tracked: ${stats.totalStats}, Token Usage: ${stats.totalTokenUsage}`);
 			}
-		}
-
-		// MCP Manager
-		lines.push(`    ◦ MCPManager: ${editor.components.mcpManager.initialized ? '✓' : '✗'}`);
-		if (editor.components.mcpManager.serverCount > 0) {
-			lines.push(
-				`      ▪ Servers (${editor.components.mcpManager.serverCount}): ${
-					editor.components.mcpManager.serverIds.join(', ')
-				}`,
-			);
 		}
 
 		// Resource Manager
@@ -401,6 +397,18 @@ export function formatInstanceOverview(options: { detailed?: boolean } = {}): st
 					lines.push(`  • ${orphaned.id} (${orphaned.type})${orphaned.title ? `: ${orphaned.title}` : ''}`);
 				}
 			}
+		}
+	}
+	// MCP Manager Section
+	lines.push(`\nMCP MANAGER:`);
+	if (!overview.mcpManager.initialized) {
+		lines.push('  No active MCP servers');
+	} else {
+		// Servers
+		if (overview.mcpManager.serverCount > 0) {
+			lines.push(
+				`  ▪ Servers (${overview.mcpManager.serverCount}): ${overview.mcpManager.serverIds.join(', ')}`,
+			);
 		}
 	}
 

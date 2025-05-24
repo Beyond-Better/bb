@@ -35,14 +35,11 @@ export function Tabs({ tabs, activeTab, children }: TabsProps) {
 								activeTab.value = tab.id;
 								history.pushState(null, '', tab.href);
 							}}
-							class={`
-                group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
-                ${
+							class={`group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
 								activeTab.value === tab.id
 									? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
 									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600'
-							}
-              `}
+							}`}
 							aria-current={activeTab.value === tab.id ? 'page' : undefined}
 						>
 							<svg
