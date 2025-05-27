@@ -15,7 +15,7 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 import { ensureDir } from '@std/fs';
@@ -197,11 +197,11 @@ export default class LLMToolRewriteResource extends LLMTool {
 				'3. Placeholder comments like "// Rest of file remains..." are not allowed\n' +
 				'4. You must provide ALL imports, types, and code';
 
-			throw createError(ErrorType.FileHandling, errorMessage, {
+			throw createError(ErrorType.ResourceHandling, errorMessage, {
 				name: 'rewrite-resource',
 				filePath: resourcePath,
-				operation: 'rewrite-file',
-			} as FileHandlingErrorOptions);
+				operation: 'rewrite-resource',
+			} as ResourceHandlingErrorOptions);
 		}
 
 		// Validate line count
@@ -223,11 +223,11 @@ export default class LLMToolRewriteResource extends LLMTool {
 				'4. Ensure no content is accidentally omitted\n' +
 				'5. Check for missing closing braces or tags';
 
-			throw createError(ErrorType.FileHandling, errorMessage, {
+			throw createError(ErrorType.ResourceHandling, errorMessage, {
 				name: 'rewrite-resource',
 				filePath: resourcePath,
-				operation: 'rewrite-file',
-			} as FileHandlingErrorOptions);
+				operation: 'rewrite-resource',
+			} as ResourceHandlingErrorOptions);
 			 */
 		}
 
@@ -236,13 +236,13 @@ export default class LLMToolRewriteResource extends LLMTool {
 			: dsConnectionToUse.getUriForResource(`file:./${resourcePath}`); // Likely a file path, prepend file:./
 		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Access denied: ${resourcePath} is outside the data source directory`,
 				{
 					name: 'rewrite-resource',
 					filePath: resourcePath,
-					operation: 'rewrite-file',
-				} as FileHandlingErrorOptions,
+					operation: 'rewrite-resource',
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 
@@ -272,11 +272,11 @@ export default class LLMToolRewriteResource extends LLMTool {
 					`No changes were made to the resource: ${resourcePath}. The content is empty and allowEmptyContent is false.\n\n` +
 					'To intentionally empty a resource, set allowEmptyContent: true';
 				logger.info(`LLMToolRewriteResource: ${noChangesMessage}`);
-				throw createError(ErrorType.FileHandling, noChangesMessage, {
+				throw createError(ErrorType.ResourceHandling, noChangesMessage, {
 					name: 'rewrite-resource',
 					filePath: resourcePath,
-					operation: 'rewrite-file',
-				} as FileHandlingErrorOptions);
+					operation: 'rewrite-resource',
+				} as ResourceHandlingErrorOptions);
 			}
 
 			await Deno.writeTextFile(fullResourcePath, content);
@@ -329,11 +329,11 @@ export default class LLMToolRewriteResource extends LLMTool {
 			const errorMessage = `Failed to write contents to ${resourcePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolRewriteResource: ${errorMessage}`);
 
-			throw createError(ErrorType.FileHandling, errorMessage, {
+			throw createError(ErrorType.ResourceHandling, errorMessage, {
 				name: 'rewrite-resource',
 				filePath: resourcePath,
-				operation: 'rewrite-file',
-			} as FileHandlingErrorOptions);
+				operation: 'rewrite-resource',
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 }

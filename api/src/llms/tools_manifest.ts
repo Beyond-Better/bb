@@ -33,11 +33,36 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'searchProject.tool',
+		'toolNamePath': 'fetchWebScreenshot.tool',
 		'metadata': {
-			'name': 'search_project',
+			'name': 'fetch_web_screenshot',
 			'description':
-				"Search resources across one or more data sources by content pattern (grep-style regex), resource name pattern (glob), modification date, or resource size. Important glob pattern notes:\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. Resource Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\nUse search_project for unknown file paths. For known paths, use load_resources instead. When no data source is specified, operates on the primary data source.",
+				"Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'moveResources.tool',
+		'metadata': {
+			'name': 'move_resources',
+			'description':
+				'Move one or more resources to a new location within the data source. Preserves resource names while changing location. For renaming resources, use rename_resources instead. Consider impact on imports and references when moving resources between directories or paths. When no data source is specified, operates on the primary data source.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'findResources.tool',
+		'metadata': {
+			'name': 'find_resources',
+			'description':
+				"Find resources across one or more data sources by content pattern (grep-style regex), resource name pattern (glob), modification date, or resource size. \n\n**SEARCH MODES:**\n\n1. **Metadata Search** (default): Returns resource URLs only, not resource content; use load_resource for resource content.\n\n2. **Content Search with Context**: When `contentPattern` is provided with `contextLines` or `maxMatchesPerFile`, returns enhanced results showing:\n   * Exact line numbers where matches occur\n   * Matching line content\n   * Configurable context lines before/after each match\n   * Character positions of matches within lines\n   * Limited number of matches per file for focused results\n\n**IMPORTANT GLOB PATTERN NOTES:**\n\n1. Directory Traversal:\n   * `**` matches zero or more directory levels\n   * ONLY use `**` between directory separators\n   * Cannot use `**` within a filename\n\n2. Resource Matching:\n   * `*` matches any characters within a filename or directory name\n   * Use `*` for matching parts of filenames\n\n3. Common Patterns:\n   * `docs/*` - files IN docs directory only\n   * `docs/**/*` - files in docs SUBDIRECTORIES only\n   * `docs/*|docs/**/*` - files in docs AND its subdirectories\n   * `src/*.ts|src/**/*.ts` - TypeScript files in src and subdirectories\n   * `**/*.test.ts` - test files at any depth\n\n4. Pattern Components:\n   * `**/dir/*` - files in any 'dir' directory\n   * `path/to/**/file.ts` - specific file at any depth\n   * `**/*util*.ts` - files containing 'util' at any depth\n\n**CONTENT SEARCH PARAMETERS:**\n\n* `contextLines` (0-10): Number of lines to show before/after each match\n* `maxMatchesPerFile` (1-20): Maximum matches to return per file\n* `caseSensitive`: Controls case sensitivity of content pattern matching\n\nUse find_resources for unknown file paths. For known paths, use load_resources instead. When no data source is specified, operates on the primary data source.",
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
@@ -65,36 +90,11 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'fetchWebScreenshot.tool',
-		'metadata': {
-			'name': 'fetch_web_screenshot',
-			'description':
-				"Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'protocolType': 'bb',
-		},
-	},
-	{
-		'toolNamePath': 'moveResources.tool',
-		'metadata': {
-			'name': 'move_resources',
-			'description':
-				'Move one or more resources to a new location within the data source. Preserves resource names while changing location. For renaming resources, use rename_resources instead. Consider impact on imports and references when moving resources between directories or paths. When no data source is specified, operates on the primary data source.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'mutates': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'loadResources.tool',
 		'metadata': {
 			'name': 'load_resources',
 			'description':
-				'Request one or more resources from one data source to be added to the conversation. Resources are specified using information returned from a previous load_datasource call. For discovering available resources, use load_datasource first. Always review resource contents before making suggestions or changes. When no data source is specified, operates on the primary data source.',
+				'Load resources using information returned from a previous load_datasource call. Always review resource contents before making suggestions or changes. When no data source is specified, operates on the primary data source.\n\nIMPORTANT: Use load_datasource to learn about the resources available and their format before using the load_resources tool.\n\nTwo modes are supported based on the data source\'s capability:\n\n1. TEMPLATE MODE (set mode: \'template\'):\n   - Used when load_datasource returns URI templates\n   - Specify uriTemplate parameter if multiple templates are available\n   - Provide templateResources matching the template variables\n   \n   Examples:\n   \n   For a file system with template \'filesystem-local:./{path}\':\n   {\n     "mode": "template",\n     "uriTemplate": "filesystem-local:./{path}",\n     "templateResources": [\n       { "path": "src/config.ts" },\n       { "path": "tests/config.test.ts" }\n     ]\n   }\n   \n   For a database with template \'mcp-supabase://{schema}{?query}\':\n   {\n     "mode": "template",\n     "uriTemplate": "mcp-supabase://{schema}{?query}",\n     "templateResources": [\n       { "schema": "public", "query": "SELECT * FROM users LIMIT 10" },\n       { "schema": "auth", "query": "SELECT * FROM users WHERE role=\'admin\'" }\n     ]\n   }\n   \n   For an API with template \'api-service://{service}/{endpoint}{.format}\':\n   {\n     "mode": "template",\n     "uriTemplate": "api-service://{service}/{endpoint}{.format}",\n     "templateResources": [\n       { "service": "auth", "endpoint": "users", "format": "json" },\n       { "service": "data", "endpoint": "metrics", "format": "csv" }\n     ]\n   }\n\n2. DIRECT MODE (set mode: \'direct\'):\n   - Used when load_datasource returns complete resource URIs\n   - Provide directUris exactly as returned by load_datasource\n   \n   Examples:\n   \n   For a collection of files:\n   {\n     "mode": "direct",\n     "directUris": [\n       "filesystem-local:./src/config.ts", \n       "filesystem-local:./package.json"\n     ]\n   }\n   \n   For mixed resource types:\n   {\n     "mode": "direct",\n     "directUris": [\n       "mcp-supabase://public?query=SELECT%20*%20FROM%20users",\n       "api-service://auth/users.json",\n       "filesystem-local:./config/database.yml"\n     ]\n   }\n\n## Use relative paths for filesystem data sources.\n\n# CORRECT filesystem URIs:\nfilesystem-local:./path/to/file.ts\nfilesystem-local:./project/site/routes/_middleware.ts\nfilesystem-local:./docs/readme.md\n\n# When using the template pattern:\nuriTemplate: "filesystem-local:./{path}"\ntemplateResources: [{ "path": "project/site/routes/_middleware.ts" }]\n\n# INCORRECT - Using web URI format with double slash:\nfilesystem-local://path/to/file.ts        ❌ Will try to access absolute path /path/to/file.ts\nfilesystem-local://project/site/file.ts   ❌ Will fail with "File not found: /project/site/file.ts"\n\n# INCORRECT - Missing the dot in relative path:\nfilesystem-local:/path/to/file.ts         ❌ Missing the dot for relative paths\nfilesystem-local:/project/site/file.ts    ❌ Will also be treated as absolute\n\n### Understanding Path Errors\n\nWhen you see errors like:\n"Failed to load resource: File not found: /site/routes/_middleware.ts"\n\nNote the leading slash (/) indicates the system is trying to use an absolute path \nfrom the root directory. This typically means your URI format is incorrect.\n\nCorrect: filesystem-local:./project/site/routes/_middleware.ts\nIncorrect: filesystem-local://project/site/routes/_middleware.ts\n\n\nAlways use load_datasource first to discover available resources and their URI formats.\nThen use this tool to request specific resources to be added to the conversation.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',

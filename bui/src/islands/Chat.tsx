@@ -351,6 +351,7 @@ export default function Chat({
 			if (modelName && chatState.value.apiClient) {
 				try {
 					const modelResponse = await chatState.value.apiClient.getModelCapabilities(modelName);
+					console.info('Chat: Updated model capabilities', { modelResponse });
 					if (modelResponse) {
 						modelData.value = modelResponse.model;
 						console.info('Chat: Updated model capabilities', modelData.value);
@@ -739,6 +740,9 @@ export default function Chat({
 										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
+										primaryDataSourceName={chatState.value.projectData?.dsConnections?.find((ds) =>
+											ds.id === chatState.value.projectData?.primaryDsConnection?.id
+										)?.name}
 										textareaRef={chatInputRef}
 										onChange={(value) => {
 											if (!chatState.value.status.isReady) return;

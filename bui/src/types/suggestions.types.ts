@@ -8,4 +8,5 @@ export interface DisplaySuggestion {
 	parent: string; // Parent directory path
 	size?: number; // File size in bytes (optional)
 	modified?: string; // Last modified date (optional)
+	dataSourceName?: string; // Data source name (optional)
 }

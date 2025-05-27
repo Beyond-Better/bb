@@ -231,6 +231,41 @@ export interface ResourceListResult {
 // ========================================================================
 
 /**
+ * Content match information for enhanced search results
+ */
+export interface ContentMatch {
+	/**
+	 * Line number where the match was found (1-based)
+	 */
+	lineNumber: number;
+
+	/**
+	 * The actual content of the matching line
+	 */
+	content: string;
+
+	/**
+	 * Lines of context before the match
+	 */
+	contextBefore: string[];
+
+	/**
+	 * Lines of context after the match
+	 */
+	contextAfter: string[];
+
+	/**
+	 * Character position where match starts in the line
+	 */
+	matchStart: number;
+
+	/**
+	 * Character position where match ends in the line
+	 */
+	matchEnd: number;
+}
+
+/**
  * Options for searching resources
  */
 export interface ResourceSearchOptions {
@@ -259,6 +294,76 @@ export interface ResourceSearchOptions {
 	 * File pattern to filter by name (glob syntax)
 	 */
 	filePattern?: string;
+
+	/**
+	 * Content pattern (regex) to search within resources
+	 */
+	contentPattern?: string;
+
+	/**
+	 * Resource name pattern (glob) to filter resources
+	 */
+	resourcePattern?: string;
+
+	/**
+	 * Include only resources modified after this date (YYYY-MM-DD)
+	 */
+	dateAfter?: string;
+
+	/**
+	 * Include only resources modified before this date (YYYY-MM-DD)
+	 */
+	dateBefore?: string;
+
+	/**
+	 * Minimum resource size in bytes
+	 */
+	sizeMin?: number;
+
+	/**
+	 * Maximum resource size in bytes
+	 */
+	sizeMax?: number;
+
+	/**
+	 * Number of context lines to include around matches (0-10)
+	 */
+	contextLines?: number;
+
+	/**
+	 * Maximum number of matches per resource (1-20)
+	 */
+	maxMatchesPerFile?: number;
+
+	/**
+	 * Whether to include content extraction for matches
+	 */
+	includeContent?: boolean;
+}
+
+/**
+ * Enhanced resource match information
+ */
+export interface ResourceMatch {
+	/**
+	 * Resource metadata
+	 */
+	resource: ResourceMetadata;
+
+	/**
+	 * Matched content snippets (if basic content search)
+	 */
+	snippets?: string[];
+
+	/**
+	 * Enhanced content matches with context (if content search with context)
+	 */
+	contentMatches?: ContentMatch[];
+
+	/**
+	 * Match score/relevance (0-1)
+	 */
+	score?: number;
 }
 
 /**
@@ -268,27 +373,17 @@ export interface ResourceSearchResult {
 	/**
 	 * Array of matching resources with metadata
 	 */
-	matches: Array<{
-		/**
-		 * Resource metadata
-		 */
-		resource: ResourceMetadata;
-
-		/**
-		 * Matched content snippets (if content search)
-		 */
-		snippets?: string[];
-
-		/**
-		 * Match score/relevance (0-1)
-		 */
-		score?: number;
-	}>;
+	matches: ResourceMatch[];
 
 	/**
 	 * Total number of matches found (may be more than returned)
 	 */
 	totalMatches?: number;
+
+	/**
+	 * Error message if search encountered issues
+	 */
+	errorMessage?: string | null;
 }
 
 // ========================================================================

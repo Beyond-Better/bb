@@ -239,6 +239,26 @@ ${formattedDsConnections}
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.
 
+### Resource References in User Prompts
+
+When ${myPersonsName} references resources in their prompts, they can use two formats:
+
+1. **Bare Resource References**: References without a datasource prefix refer to the primary datasource.
+   - Example: \`defaultPrompts.ts\` refers to the file in the primary datasource
+   - Example: \`src/config.ts\` refers to the file in the primary datasource
+   - Example: \`docs/README.md\` refers to the file in the primary datasource
+
+2. **Prefixed Resource References**: References with a datasource name prefix refer to that specific datasource.
+   - Example: \`local:defaultPrompts.ts\` refers to the file in the 'local' datasource
+   - Example: \`notion-work:project-notes\` refers to a resource in the 'Notion-work' datasource
+   - Example: \`bb-abi:src/types.ts\` refers to a file in the 'bb-abi' datasource
+
+When processing these references:
+- Always identify which datasource the user is referring to
+- Use the appropriate datasource ID when making tool calls
+- If a bare reference is ambiguous (exists in multiple datasources), default to the primary datasource but clarify with the user if needed
+- Convert user-friendly resource references to proper URIs when using tools
+
 ### Resource Identification
 
 All resources are identified by URIs with this general format:
@@ -518,6 +538,26 @@ ${formattedDsConnections}
 </data-sources>
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.
+
+### Resource References in User Prompts
+
+When the Orchestrator references resources in their prompts, they can use two formats:
+
+1. **Bare Resource References**: References without a datasource prefix refer to the primary datasource.
+   - Example: \`defaultPrompts.ts\` refers to the file in the primary datasource
+   - Example: \`src/config.ts\` refers to the file in the primary datasource
+   - Example: \`docs/README.md\` refers to the file in the primary datasource
+
+2. **Prefixed Resource References**: References with a datasource name prefix refer to that specific datasource.
+   - Example: \`local:defaultPrompts.ts\` refers to the file in the 'local' datasource
+   - Example: \`notion-work:project-notes\` refers to a resource in the 'Notion-work' datasource
+   - Example: \`bb-abi:src/types.ts\` refers to a file in the 'bb-abi' datasource
+
+When processing these references:
+- Always identify which datasource the Orchestrator is referring to
+- Use the appropriate datasource ID when making tool calls
+- If a bare reference is ambiguous (exists in multiple datasources), default to the primary datasource but clarify with the Orchestrator if needed
+- Convert user-friendly resource references to proper URIs when using tools
 
 ### Resource Identification
 

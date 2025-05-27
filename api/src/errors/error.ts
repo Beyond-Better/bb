@@ -300,15 +300,15 @@ export interface ResourceHandlingErrorOptions extends ErrorOptions {
 		| 'delete'
 		| 'move'
 		| 'change'
-		| 'search-project'
+		| 'search-resources'
 		| 'apply-patch'
 		| 'search-replace'
-		| 'rewrite-file'
-		| 'move-file'
+		| 'rewrite-resource'
+		//| 'move-resource'
 		| 'create-dir'
-		// these are not really filehandling (filesystem) - they only affect files in the conversation
-		| 'request-files'
-		| 'forget-files';
+		// these are not really resourceHandling (datasource) - they only affect files in the conversation
+		| 'request-resources'
+		| 'forget-resources';
 }
 
 export class ResourceHandlingError extends Error {

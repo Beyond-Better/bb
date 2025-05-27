@@ -35,6 +35,7 @@ export interface FileSuggestion {
 	isDirectory: boolean;
 	size?: number;
 	modified?: string;
+	dataSourceName?: string;
 }
 
 export interface FileSuggestionsResponse {

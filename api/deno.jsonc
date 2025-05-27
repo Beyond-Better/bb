@@ -9,7 +9,7 @@
 		"tool:debug-instances-log": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --log",
 		"tool:debug-instances-orphaned": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --orphaned --detailed",
 		"tool:debug-instances-file": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts --output instances-report.json --json",
-		"tool:test": "deno test --allow-all $DENO_ARGS",
+		"tool:test": "DENO_TLS_CA_STORE=system deno test --allow-all --unstable-kv $DENO_ARGS",
 		"start": "DENO_TLS_CA_STORE=system deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"dev": "DENO_TLS_CA_STORE=system deno run --watch --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"debug": "DENO_TLS_CA_STORE=system LOG_LEVEL=debug deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",

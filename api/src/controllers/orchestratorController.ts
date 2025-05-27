@@ -395,7 +395,7 @@ class OrchestratorController extends BaseController {
 					},
 					//tools: { // see formatToolObjectivesAndStats for example of toolStats
 					//	recent: [
-					//		{ name: 'search_project', success: true, count: 2 },
+					//		{ name: 'find_resources', success: true, count: 2 },
 					//		{ name: 'request_files', success: true, count: 1 },
 					//	],
 					//},

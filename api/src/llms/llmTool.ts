@@ -53,7 +53,7 @@ export type LLMToolRunResultFormatter = (
 // Each formatted result type can be string for console or JSX.Element for browser
 export interface LLMToolLogEntryFormattedResult {
 	// For the left side next to icon
-	title: string | JSX.Element; // e.g. "Setting Title" or "search_project"
+	title: string | JSX.Element; // e.g. "Setting Title" or "find_resources"
 	subtitle?: string | JSX.Element; // e.g. "3 operations" or "Found 5 files"
 
 	// For the main body

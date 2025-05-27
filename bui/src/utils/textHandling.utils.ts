@@ -59,8 +59,10 @@ export function getTextPositions(text: string, cursorPos: number): TextPosition 
 /**
  * Formats a path for insertion into text, handling backticks and list items
  */
-export function formatPathForInsertion(path: string, pos: TextPosition): string {
-	const wrappedPath = pos.isInline ? `\`${path}\`` : `\`${path}\``;
+export function formatPathForInsertion(path: string, pos: TextPosition, dataSourceName?: string): string {
+	// Add data source prefix if provided
+	const fullPath = dataSourceName ? `${dataSourceName}:${path}` : path;
+	const wrappedPath = pos.isInline ? `\`${fullPath}\`` : `\`${fullPath}\``;
 
 	// If on empty line, make it a list item
 	if (pos.beforeText.trim() === '' && pos.afterText.trim() === '') {
@@ -79,6 +81,7 @@ export function processSuggestions(
 		isDirectory: boolean;
 		size?: number;
 		modified?: string;
+		dataSourceName?: string;
 	}>,
 ): DisplaySuggestion[] {
 	return suggestions
