@@ -42,6 +42,7 @@ interface ChatInputProps {
 	statusState: Signal<ChatStatus>;
 	maxLength?: number;
 	conversationId: string | null;
+	onHeightChange?: (height: number) => void;
 }
 
 enum TabState {
@@ -109,9 +110,11 @@ export function ChatInput({
 	projectId,
 	primaryDataSourceName,
 	conversationId,
+	onHeightChange,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
@@ -474,6 +477,24 @@ export function ChatInput({
 		adjustTextareaHeight();
 	}, [chatInputText.value]);
 
+	// Track container height changes
+	useEffect(() => {
+		if (!containerRef.current || !onHeightChange) return;
+
+		const resizeObserver = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const newHeight = entry.contentRect.height;
+				onHeightChange(newHeight);
+			}
+		});
+
+		resizeObserver.observe(containerRef.current);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, [onHeightChange]);
+
 	// Cleanup debounce timer
 	useEffect(() => {
 		return () => {
@@ -651,7 +672,10 @@ export function ChatInput({
 		cursorPosition.value = newPosition;
 		onChange(newValue);
 
-		// Debounce input updates
+		// Update input value immediately without debounce to prevent jumping
+		onChange(newValue);
+
+		// Debounce other updates
 		if (inputDebounceRef.current) {
 			clearTimeout(inputDebounceRef.current);
 		}
@@ -659,7 +683,6 @@ export function ChatInput({
 		inputDebounceRef.current = setTimeout(() => {
 			try {
 				batch(() => {
-					onChange(newValue);
 
 					// Track performance
 					const duration = performance.now() - startTime;
@@ -1143,7 +1166,7 @@ export function ChatInput({
 	});
 
 	return (
-		<div className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
+		<div ref={containerRef} className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
 			<InputStatusBar
 				visible={statusInfo.value.visible}
 				message={statusInfo.value.message}

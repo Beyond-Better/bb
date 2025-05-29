@@ -60,7 +60,7 @@ export function Toast({
 
 	return (
 		<div
-			className={`fixed bottom-4 right-4 ${bg} text-white px-6 py-3 rounded-lg shadow-lg dark:shadow-black/30`}
+			className={`fixed bottom-4 right-4 ${bg} text-white px-6 py-3 z-40 rounded-lg shadow-lg dark:shadow-black/30`}
 			style={transition.style}
 			role='status'
 			aria-live='polite'

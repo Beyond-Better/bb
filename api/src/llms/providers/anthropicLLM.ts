@@ -385,7 +385,7 @@ class AnthropicLLM extends LLM {
 				}
 				: {}),
 		};
-		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', { maxTokens, model });
+		logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', { maxTokens, model, usePromptCaching });
 		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', JSON.stringify(providerMessageRequest.messages));
 		//logger.info('AnthropicLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
 		//logger.dir(providerMessageRequest);

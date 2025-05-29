@@ -40,9 +40,6 @@
 3. Implement new tools:
    - Record memory, remember instruction/guideline
 
-## For CHANGELOG
-- Implement a repoInfo persistence solution
-- Create an 'add task' tool allowing Claude to give BB a list of tasks to complete
 
 ## Completed Tasks
 1. ✓ `searchFiles` is now using exclude patterns read from the file instead of file names for exclude pattern
@@ -215,4 +212,12 @@
 √ Update tools to data source agnostic (using resource manager)
 √ remove use of deprecated useProjectApi
 √ conversation migration for v1 format
+
+√ Add Notion as data source
+√ Change load_datasource to always provide metadata, with resource list as optional
+√ Change searchProject tool to use accessors instead of searchFilesContent and searchFilesMetadata
+√ file suggestions need data source - the popup needs to show the data source - the entered resource needs to have datasource name prefix.
+√ The system prompt and loadResource tool need to explain the datasource prefix (they aren't fully formed URLs)
+√ search project is misleading the LLM - it keeps trying to get file content by searching - either update tool description to make clear the tool only returns resource names (URLs) or modify the tool to return content. Or (this may be better) change the tool to accept "range" criteria, either `-n` grep style, or line numbers (or both)
+√ Auto-scroll of chat history should take into account the height of chat input box (since it grows)
 

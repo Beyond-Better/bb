@@ -110,6 +110,9 @@ export default function Chat({
 	const [showToast, setShowToast] = useState(false);
 	const [toastMessage, setToastMessage] = useState('');
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+	const [inputAreaHeight, setInputAreaHeight] = useState(80); // Default height estimate
+	const inputAreaRef = useRef<HTMLDivElement>(null);
+	const lastScrollPositionRef = useRef<number>(0);
 	const statusState = useComputed(() => chatState.value.status);
 
 	// Refs
@@ -456,7 +459,25 @@ export default function Chat({
 		return () => globalThis.removeEventListener('popstate', handlePopState);
 	}, [chatState.value.conversationId]);
 
-	// Handle scroll behavior
+	// Track input area height changes
+	useEffect(() => {
+		if (!inputAreaRef.current || !IS_BROWSER) return;
+
+		const resizeObserver = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const newHeight = entry.contentRect.height;
+				setInputAreaHeight(newHeight);
+			}
+		});
+
+		resizeObserver.observe(inputAreaRef.current);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, []);
+
+	// Handle scroll behavior with stable positioning
 	useEffect(() => {
 		console.log('Chat: Scroll useEffect');
 		if (!messagesEndRef.current) return;
@@ -465,21 +486,15 @@ export default function Chat({
 
 		const handleScroll = () => {
 			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+			lastScrollPositionRef.current = scrollTop;
+			
 			// Consider user at bottom if within 50 pixels of bottom
+			// Account for any rounding errors with a small tolerance
 			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 			const isAtBottom = distanceFromBottom <= 50;
 
-			// Only log if something is changing
-			// if (shouldAutoScroll !== isAtBottom || scrollIndicatorState.value.unreadCount > 0) {
-			// 	console.log('ChatIsland: Scroll state:', {
-			// 		distanceFromBottom,
-			// 		isAtBottom,
-			// 		shouldAutoScroll,
-			// 		scrollIndicator: scrollIndicatorState.value,
-			// 	});
-			// }
-
 			// Always update scroll indicator UI based on current scroll position
+			// Pass false to show indicator when NOT at bottom
 			handlers.updateScrollVisibility(isAtBottom);
 
 			// Update auto-scroll behavior only when it changes
@@ -487,21 +502,62 @@ export default function Chat({
 				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
 				setShouldAutoScroll(isAtBottom);
 			}
+			
+			// Log current state for debugging
+			console.debug('ChatIsland: Scroll state debug', {
+				isAtBottom,
+				distanceFromBottom,
+				currentVisibility: scrollIndicatorState.value.isVisible,
+				scrollHeight: messagesContainer.scrollHeight,
+				clientHeight: messagesContainer.clientHeight,
+				scrollTop
+			});
 		};
 
 		// Add scroll event listener
 		messagesContainer.addEventListener('scroll', handleScroll);
 
-		// Auto-scroll only if at bottom
+		// Trigger initial scroll check to set indicator state
+		handleScroll();
+
+		// Auto-scroll only if at bottom and content has changed
 		if (shouldAutoScroll) {
-			messagesContainer.scrollTo({
-				top: messagesContainer.scrollHeight,
-				behavior: 'smooth',
+			requestAnimationFrame(() => {
+				messagesContainer.scrollTo({
+					top: messagesContainer.scrollHeight,
+					behavior: 'smooth',
+				});
 			});
 		}
 
 		return () => messagesContainer.removeEventListener('scroll', handleScroll);
 	}, [chatState.value.logDataEntries, shouldAutoScroll]);
+
+	// Maintain scroll position when input height changes
+	useEffect(() => {
+		if (!messagesEndRef.current || inputAreaHeight === 0) return;
+
+		const messagesContainer = messagesEndRef.current;
+		const { scrollHeight, clientHeight } = messagesContainer;
+		const maxScroll = scrollHeight - clientHeight;
+
+		// If user was at bottom, stay at bottom
+		if (shouldAutoScroll && maxScroll > 0) {
+			requestAnimationFrame(() => {
+				messagesContainer.scrollTop = maxScroll;
+			});
+		} else if (lastScrollPositionRef.current > 0) {
+			// Otherwise maintain relative position
+			requestAnimationFrame(() => {
+				messagesContainer.scrollTop = lastScrollPositionRef.current;
+			});
+		}
+		
+		// Trigger scroll handler to update indicator visibility
+		setTimeout(() => {
+			messagesContainer.dispatchEvent(new Event('scroll'));
+		}, 100);
+	}, [inputAreaHeight]);
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
@@ -683,7 +739,7 @@ export default function Chat({
 								/>
 
 								{/* Messages */}
-								<div className='flex-1 min-h-0 relative flex flex-col'>
+								<div className='flex-1 min-h-0 relative flex flex-col' style={{ paddingBottom: `${inputAreaHeight}px` }}>
 									{scrollIndicatorState.value.isVisible && (
 										<button
 											type='button'
@@ -697,7 +753,8 @@ export default function Chat({
 													handlers.updateScrollVisibility(true);
 												}
 											}}
-											className={`absolute bottom-4 right-8 z-10 flex items-center gap-2 px-3 py-2 ${
+											style={{ bottom: `${inputAreaHeight + 20}px` }}
+											className={`absolute right-8 z-30 flex items-center gap-2 px-3 py-2 mb-2 ${
 												scrollIndicatorState.value.isAnswerMessage
 													? 'bg-green-500 hover:bg-green-600 scale-110 animate-pulse'
 													: 'bg-blue-500 hover:bg-blue-600'
@@ -761,7 +818,9 @@ export default function Chat({
 								</div>
 
 								{/* Input area */}
-								<div className='border-t border-gray-200 dark:border-gray-700 flex-none bg-white dark:bg-gray-800 flex justify-center'>
+								<div 
+									ref={inputAreaRef}
+									className='absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-center z-20'>
 									<ChatInput
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}
@@ -782,6 +841,7 @@ export default function Chat({
 										onCancelProcessing={handlers.cancelProcessing}
 										maxLength={INPUT_MAX_CHAR_LENGTH}
 										conversationId={chatState.value.conversationId}
+										onHeightChange={setInputAreaHeight}
 									/>
 								</div>
 							</main>
@@ -809,7 +869,7 @@ export default function Chat({
 					<button
 						type='button'
 						onClick={() => handlers.clearError()}
-						className='ml-4 text-red-700 hover:text-red-800'
+						className='ml-4 text-red-700 hover:text-red-800 z-50'
 						aria-label='Dismiss error'
 					>
 						<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
