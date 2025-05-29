@@ -2,7 +2,7 @@
 //import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
-import { LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider } from 'api/types.ts';
+import { type LLMCallbacks, LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider } from 'api/types.ts';
 import type {
 	CacheImpact,
 	ConversationId,
@@ -34,8 +34,11 @@ import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import LLMFactory from '../llmProvider.ts';
+import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 
 class LLMInteraction {
 	public id: string;
@@ -88,8 +91,6 @@ class LLMInteraction {
 	protected _toolStats: Map<string, ToolStats> = new Map();
 	protected _currentToolSet?: string;
 
-	// [TODO] change llm to protected attribute and create a getter for other classes to call
-	public llm: LLM;
 	protected messages: LLMMessage[] = [];
 	protected tools: Map<string, LLMTool> = new Map();
 	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
@@ -98,7 +99,10 @@ class LLMInteraction {
 	public conversationLogger!: ConversationLogger;
 	protected projectConfig!: ProjectConfig;
 
+	private _llmProvider!: LLM;
+	private _interactionCallbacks!: LLMCallbacks;
 	private _model: string = '';
+	private _localMode: boolean = false;
 
 	protected _maxTokens: number = 16384; //8192;
 	protected _temperature: number = 0.2;
@@ -113,9 +117,9 @@ class LLMInteraction {
 	// 		usePromptCaching: false,
 	// 	};
 
-	constructor(llm: LLM, conversationId?: ConversationId) {
+	constructor(conversationId?: ConversationId) {
 		this.id = conversationId ?? shortenConversationId(generateConversationId());
-		this.llm = llm;
+		//this.llm = llm;
 		this._interactionType = 'base';
 		// Ensure objectives are properly initialized
 		this._objectives = {
@@ -125,8 +129,27 @@ class LLMInteraction {
 		};
 	}
 
-	public async init(parentInteractionId?: ConversationId): Promise<LLMInteraction> {
+	public async init(
+		interactionModel: string,
+		interactionCallbacks: LLMCallbacks,
+		parentInteractionId?: ConversationId,
+	): Promise<LLMInteraction> {
 		try {
+			this._model = interactionModel;
+			this._interactionCallbacks = interactionCallbacks;
+			const configManager = await getConfigManager();
+			const globalConfig = await configManager.getGlobalConfig();
+			this._localMode = globalConfig.api.localMode ?? false;
+			this._llmProvider = LLMFactory.getProvider(
+				this._interactionCallbacks,
+				this._localMode
+					//? LLMModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
+					? LLMModelToProvider[this._model]
+					: LLMProviderEnum.BB,
+				//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
+				//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
+			);
+
 			//const projectId = await this.llm.invoke(LLMCallbackType.PROJECT_ID);
 			const logEntryHandler = async (
 				messageId: string,
@@ -174,6 +197,13 @@ class LLMInteraction {
 
 	public get interactionType(): 'chat' | 'conversation' | 'base' {
 		return this._interactionType;
+	}
+
+	public get llm(): LLM {
+		return this._llmProvider;
+	}
+	public get llmProvider(): LLM {
+		return this._llmProvider;
 	}
 
 	public get conversationStats(): ConversationStats {
@@ -760,7 +790,14 @@ class LLMInteraction {
 	}
 
 	set model(value: string) {
+		const updateProvider = this._model !== value;
 		this._model = value;
+		if (updateProvider) {
+			this._llmProvider = LLMFactory.getProvider(
+				this._interactionCallbacks,
+				this._localMode ? LLMModelToProvider[this._model] : LLMProviderEnum.BB,
+			);
+		}
 	}
 
 	get maxTokens(): number {

@@ -13,7 +13,12 @@ import {
 	LLMError,
 	ProjectHandlingError,
 	RateLimitError,
+	ResourceChangeError,
 	ResourceHandlingError,
+	ResourceMoveError,
+	ResourceNotFoundError,
+	ResourceReadError,
+	ResourceWriteError,
 	ToolHandlingError,
 	ValidationError,
 	VectorSearchError,
@@ -71,8 +76,37 @@ export const createError = (
 			return new ValidationError(message, options as LLMValidationErrorOptions);
 		case ErrorType.ProjectHandling:
 			return new ProjectHandlingError(message, options as ProjectHandlingErrorOptions);
-		case ErrorType.ResourceHandling:
-			return new ResourceHandlingError(message, options as ResourceHandlingErrorOptions);
+
+		case ErrorType.ResourceChange:
+			return new ResourceChangeError(message, options as ResourceHandlingErrorOptions);
+		case ErrorType.ResourceNotFound:
+			return new ResourceNotFoundError(message, options as ResourceHandlingErrorOptions);
+		case ErrorType.ResourceRead:
+			return new ResourceReadError(message, options as ResourceHandlingErrorOptions);
+		case ErrorType.ResourceWrite:
+			return new ResourceWriteError(message, options as ResourceHandlingErrorOptions);
+		case ErrorType.ResourceMove:
+			return new ResourceMoveError(message, options as ResourceHandlingErrorOptions);
+		//case ErrorType.ResourceHandling:
+		//	return new ResourceHandlingError(message, options as ResourceHandlingErrorOptions);
+		case ErrorType.ResourceHandling: {
+			const fileOptions = options as ResourceHandlingErrorOptions;
+			switch (fileOptions.operation) {
+				case 'change':
+					return new ResourceChangeError(message, fileOptions);
+				case 'read':
+					return fileOptions.filePath
+						? new ResourceNotFoundError(message, fileOptions)
+						: new ResourceReadError(message, fileOptions);
+				case 'write':
+					return new ResourceWriteError(message, fileOptions);
+				case 'move':
+					return new ResourceMoveError(message, fileOptions);
+				default:
+					return new ResourceHandlingError(message, fileOptions);
+			}
+		}
+
 		case ErrorType.DataSourceHandling:
 			return new DataSourceHandlingError(message, options as DataSourceHandlingErrorOptions);
 

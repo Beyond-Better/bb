@@ -284,6 +284,31 @@ export function useChatState(
 				const logDataEntries = createNestedLogDataEntries(conversation?.logDataEntries || []);
 				//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
 
+				// Update conversations array with the loaded conversation
+				const updatedConversations = [...conversations];
+				if (conversation) {
+					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
+					const conversationData = {
+						id: conversation.id,
+						title: conversation.title || 'Untitled Conversation',
+						tokenUsageStats: conversation.tokenUsageStats,
+						requestParams: conversation.requestParams,
+						conversationStats: conversation.conversationStats,
+						createdAt: conversation.createdAt || new Date().toISOString(),
+						updatedAt: conversation.updatedAt || new Date().toISOString(),
+						llmProviderName: conversation.llmProviderName || 'anthropic',
+						model: conversation.model || 'claude-3',
+					};
+
+					if (existingIndex >= 0) {
+						// Update existing conversation
+						updatedConversations[existingIndex] = conversationData;
+					} else {
+						// Add new conversation
+						updatedConversations.push(conversationData);
+					}
+				}
+
 				if (!mounted) {
 					console.log(`useChatState: url/projectId effect[${effectId}]: not mounted, bailing`);
 					wsManager?.disconnect();
@@ -296,7 +321,7 @@ export function useChatState(
 					apiClient,
 					wsManager,
 					conversationId,
-					conversations,
+					conversations: updatedConversations,
 					logDataEntries,
 				};
 
@@ -854,10 +879,36 @@ export function useChatState(
 					: null;
 				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logDataEntries);
 
+				// Update conversations array with the loaded conversation
+				const updatedConversations = [...chatState.value.conversations];
+				if (conversation) {
+					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
+					const conversationData = {
+						id: conversation.id,
+						title: conversation.title || 'Untitled Conversation',
+						tokenUsageStats: conversation.tokenUsageStats,
+						requestParams: conversation.requestParams,
+						conversationStats: conversation.conversationStats,
+						createdAt: conversation.createdAt || new Date().toISOString(),
+						updatedAt: conversation.updatedAt || new Date().toISOString(),
+						llmProviderName: conversation.llmProviderName || 'anthropic',
+						model: conversation.model || 'claude-3',
+					};
+
+					if (existingIndex >= 0) {
+						// Update existing conversation
+						updatedConversations[existingIndex] = conversationData;
+					} else {
+						// Add new conversation
+						updatedConversations.push(conversationData);
+					}
+				}
+
 				// Update conversation ID and logDataEntries
 				chatState.value = {
 					...chatState.value,
 					conversationId: id,
+					conversations: updatedConversations,
 					logDataEntries: conversation?.logDataEntries || [],
 					//status: { ...chatState.value.status, isLoading: false, isReady: true },
 				};

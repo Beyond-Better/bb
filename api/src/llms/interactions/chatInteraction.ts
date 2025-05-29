@@ -1,5 +1,4 @@
 import LLMInteraction from 'api/llms/baseInteraction.ts';
-import type LLM from '../providers/baseLLM.ts';
 //import type { AnthropicModel } from 'api/types.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { ConversationId } from 'shared/types.ts';
@@ -11,8 +10,8 @@ import type LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 
 class LLMChatInteraction extends LLMInteraction {
-	constructor(llm: LLM, conversationId?: ConversationId) {
-		super(llm, conversationId);
+	constructor(conversationId?: ConversationId) {
+		super(conversationId);
 		this._interactionType = 'chat';
 	}
 
@@ -47,6 +46,7 @@ class LLMChatInteraction extends LLMInteraction {
 		//this.conversationLogger.logAuxiliaryMessage(messageId, null, null, prompt);
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.chat, ...speakOptions };
+		if (speakOptions.model) this.model = speakOptions.model;
 		if (!this.model) this.model = this.projectConfig.defaultModels!.chat;
 		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);

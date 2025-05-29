@@ -1,10 +1,10 @@
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type LLM from '../providers/baseLLM.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 //import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import type { ConversationId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
+import type { LLMCallbacks } from 'api/types.ts';
 
 class InteractionManager {
 	private interactionResults: Map<string, unknown>;
@@ -20,7 +20,8 @@ class InteractionManager {
 	async createInteraction(
 		type: 'conversation' | 'chat',
 		interactionId: ConversationId,
-		llmProvider: LLM,
+		interactionModel: string,
+		interactionCallbacks: LLMCallbacks,
 		parentInteractionId?: string,
 	): Promise<LLMInteraction> {
 		//const interactionId = shortenConversationId(generateConversationId());
@@ -29,9 +30,17 @@ class InteractionManager {
 		logger.info('InteractionManager: Creating interaction of type: ', type);
 
 		if (type === 'conversation') {
-			interaction = await new LLMConversationInteraction(llmProvider, interactionId).init(parentInteractionId);
+			interaction = await new LLMConversationInteraction(interactionId).init(
+				interactionModel,
+				interactionCallbacks,
+				parentInteractionId,
+			);
 		} else {
-			interaction = await new LLMChatInteraction(llmProvider, interactionId).init(parentInteractionId);
+			interaction = await new LLMChatInteraction(interactionId).init(
+				interactionModel,
+				interactionCallbacks,
+				parentInteractionId,
+			);
 		}
 
 		this.interactions.set(interactionId, interaction);

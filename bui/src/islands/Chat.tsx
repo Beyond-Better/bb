@@ -37,9 +37,10 @@ const getConversationId = () => {
 
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
-// Default LLM request options
-const defaultInputOptions: LLMRequestParams = {
-	model: 'claude-sonnet-4-20250514',
+// Default LLM request options - will be populated from API response
+// This is a signal that gets updated with proper API defaults when available
+const defaultInputOptions = signal<LLMRequestParams>({
+	model: 'claude-sonnet-4-20250514', // Fallback only, should be overridden by API
 	temperature: 0.7,
 	maxTokens: 16384,
 	extendedThinking: {
@@ -47,7 +48,7 @@ const defaultInputOptions: LLMRequestParams = {
 		budgetTokens: 4096,
 	},
 	usePromptCaching: true,
-};
+});
 
 const defaultChatConfig: ChatConfig = {
 	apiUrl: '',
@@ -60,18 +61,23 @@ const defaultChatConfig: ChatConfig = {
 };
 
 // Helper to get options from conversation or defaults
+// For new conversations, this will use the requestParams provided by the API
+// which includes proper defaults from global/project configuration
 const getInputOptionsFromConversation = (
 	conversationId: string | null,
 	conversations: ConversationMetadata[],
 ): LLMRequestParams => {
-	if (!conversationId) return defaultInputOptions;
+	//console.log('ChatIsland: getInputOptionsFromConversation', {defaultInputOptions: defaultInputOptions.value});
+	if (!conversationId) return defaultInputOptions.value;
 
 	const conversation = conversations.find((conv) => conv.id === conversationId);
-	if (!conversation || !conversation.requestParams) return defaultInputOptions;
+	if (!conversation || !conversation.requestParams) return defaultInputOptions.value;
+	//console.log('ChatIsland: getInputOptionsFromConversation', {requestParams: conversation.requestParams});
 
-	// Return conversation params with fallbacks to defaults
+	// Return conversation params with fallbacks to local defaults
+	// The conversation.requestParams should now include proper API defaults
 	return {
-		...defaultInputOptions,
+		...defaultInputOptions.value,
 		...conversation.requestParams,
 	};
 };
@@ -83,7 +89,7 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<LLMRequestParams>({ ...defaultInputOptions });
+const chatInputOptions = signal<LLMRequestParams>({ ...defaultInputOptions.value });
 const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
@@ -235,6 +241,29 @@ export default function Chat({
 		return () => clearInterval(intervalId);
 	}, [chatState.value.status.lastApiCallTime]);
 
+	// Fetch API defaults when project and API client are available
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+		if (!projectId || !chatState.value.apiClient) return;
+
+		// Fetch defaults from API to replace hardcoded fallbacks
+		chatState.value.apiClient.getConversationDefaults(projectId)
+			.then((apiDefaults) => {
+				if (apiDefaults) {
+					//console.log('ChatIsland: Updated defaultInputOptions from API', apiDefaults);
+					defaultInputOptions.value = apiDefaults;
+					// If current options are still using hardcoded defaults, update them too
+					// conversation inputOptions could have the same model value, so the following is dangerous
+					//if (chatInputOptions.value.model === 'claude-sonnet-4-20250514') {
+					//	chatInputOptions.value = { ...apiDefaults };
+					//}
+				}
+			})
+			.catch((error) => {
+				console.warn('Chat: Failed to fetch API defaults, using hardcoded fallbacks:', error);
+			});
+	}, [projectId, chatState.value.apiClient]);
+
 	// Utility functions
 
 	const handleCopy = async (text: string) => {
@@ -344,7 +373,7 @@ export default function Chat({
 
 			// Update options based on the selected conversation
 			chatInputOptions.value = getInputOptionsFromConversation(id, chatState.value.conversations);
-			console.info('Chat: Updated options for selected conversation', id, chatInputOptions.value);
+			console.info('ChatIsland: Updated options for selected conversation', id, chatInputOptions.value);
 
 			// Fetch model capabilities for the selected model
 			const modelName = chatInputOptions.value.model;
@@ -400,7 +429,7 @@ export default function Chat({
 				chatState.value.conversationId,
 				chatState.value.conversations,
 			);
-			console.info('Chat: Initialized options from conversation', chatInputOptions.value);
+			//console.info(`ChatIsland: Initialized chatInputOptions from conversation: ${chatState.value.conversationId}`, chatInputOptions.value);
 
 			// Fetch model capabilities for the current model
 			const modelName = chatInputOptions.value.model;

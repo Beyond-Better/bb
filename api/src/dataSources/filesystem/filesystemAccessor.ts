@@ -153,7 +153,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check if the file exists
 			if (!await safeExists(absolutePath)) {
 				throw createError(
-					ErrorType.FileNotFound,
+					ErrorType.ResourceNotFound,
 					`File not found: ${resourcePath}`,
 					{
 						filePath: resourcePath,

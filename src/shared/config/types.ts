@@ -406,9 +406,9 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
 	defaultModels: {
-		orchestrator: 'claude-3-7-sonnet-20250219',
-		agent: 'claude-3-7-sonnet-20250219',
-		chat: 'claude-3-haiku-20240307',
+		orchestrator: 'claude-sonnet-4-20250514',
+		agent: 'claude-sonnet-4-20250514',
+		chat: 'claude-3-5-haiku-20241022',
 	},
 	noBrowser: false,
 	api: ApiConfigDefaults,

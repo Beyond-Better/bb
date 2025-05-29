@@ -21,7 +21,7 @@ import type {
 	ResourceHandlingErrorOptions,
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
-import { isFileNotFoundError } from 'api/errors/error.ts';
+import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 // import { dirname, join } from '@std/path';
 // import { ensureDir } from '@std/fs';
@@ -197,7 +197,8 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				}
 			} catch (error) {
 				//if (error instanceof Deno.errors.NotFound && createIfMissing) {
-				if (isFileNotFoundError(error) && createIfMissing) {
+
+				if (isResourceNotFoundError(error) && createIfMissing) {
 					content = '';
 					isNewResource = true;
 					logger.info(`LLMToolSearchAndReplace: Resource ${resourceUri} not found. Creating new resource.`);

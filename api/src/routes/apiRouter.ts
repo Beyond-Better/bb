@@ -5,6 +5,7 @@ import {
 	clearConversation,
 	deleteConversation,
 	getConversation,
+	getConversationDefaults,
 	listConversations,
 } from './api/conversation.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
@@ -49,6 +50,7 @@ apiRouter
 	.get('/v1/ws/conversation/:id', websocketConversation)
 	// Conversation endpoints
 	.get('/v1/conversation', listConversations)
+	.get('/v1/conversation/defaults', getConversationDefaults)
 	.get('/v1/conversation/:id', getConversation)
 	.post('/v1/conversation/:id', chatConversation)
 	.delete('/v1/conversation/:id', deleteConversation)

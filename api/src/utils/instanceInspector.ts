@@ -9,6 +9,29 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 /**
  * Structure representing a ProjectEditor instance and its components
  */
+/**
+ * Structure representing interaction information for instance inspection
+ */
+export interface InteractionInstanceInfo {
+	id: string;
+	type: string;
+	title?: string;
+	model: string;
+	llmProvider: {
+		name: string;
+	};
+	requestParams?: {
+		model: string;
+		temperature?: number;
+		maxTokens?: number;
+		extendedThinking?: boolean;
+		usePromptCaching?: boolean;
+	};
+}
+
+/**
+ * Structure representing a ProjectEditor instance and its components
+ */
 export interface EditorInstanceInfo {
 	conversationId: string;
 	projectId: string;
@@ -27,10 +50,7 @@ export interface EditorInstanceInfo {
 				totalStats: number;
 				totalTokenUsage: number;
 			};
-			llmProvider?: {
-				name: string;
-				model?: string;
-			};
+			interactions?: InteractionInstanceInfo[];
 			promptManager?: {
 				initialized: boolean;
 			};
@@ -81,10 +101,41 @@ export interface InstanceOverview {
 }
 
 /**
+ * Collects information about an interaction for instance inspection
+ */
+function inspectInteractionForEditor(interaction: LLMInteraction): InteractionInstanceInfo {
+	return {
+		id: interaction.id,
+		type: interaction.interactionType,
+		title: interaction.title,
+		model: interaction.model,
+		llmProvider: {
+			name: interaction.llmProviderName,
+		},
+		requestParams: interaction.requestParams
+			? {
+				model: interaction.requestParams.model,
+				temperature: interaction.requestParams.temperature,
+				maxTokens: interaction.requestParams.maxTokens,
+				extendedThinking: interaction.requestParams.extendedThinking?.enabled,
+				usePromptCaching: interaction.requestParams.usePromptCaching,
+			}
+			: undefined,
+	};
+}
+
+/**
  * Collects metadata about a ProjectEditor instance without capturing the entire object
  */
 async function inspectEditor(conversationId: string, editor: ProjectEditor): Promise<EditorInstanceInfo> {
 	const baseController = editor.orchestratorController;
+
+	// Collect interactions from the controller's interactionManager
+	let interactions: InteractionInstanceInfo[] | undefined;
+	if (baseController?.interactionManager) {
+		const allInteractions = baseController.interactionManager.getAllInteractions();
+		interactions = allInteractions.map((interaction) => inspectInteractionForEditor(interaction));
+	}
 
 	return {
 		conversationId,
@@ -110,12 +161,7 @@ async function inspectEditor(conversationId: string, editor: ProjectEditor): Pro
 						totalTokenUsage: baseController.getInteractionTokenUsageCount(),
 					}
 					: undefined,
-				llmProvider: baseController?.llmProvider
-					? {
-						name: baseController.llmProvider.llmProviderName,
-						model: baseController.llmProvider.getDefaultModel(),
-					}
-					: undefined,
+				interactions,
 				promptManager: baseController?.promptManager
 					? {
 						initialized: true,
@@ -245,8 +291,24 @@ export async function logInstanceOverview(options: { detailed?: boolean } = {}):
 				toolManager: editor.components.orchestratorController.toolManager
 					? `✓ (${editor.components.orchestratorController.toolManager.toolCount} tools)`
 					: '✗',
-				llmProvider: editor.components.orchestratorController.llmProvider?.name || '✗',
+				interactions: editor.components.orchestratorController.interactions
+					? `✓ (${editor.components.orchestratorController.interactions.length} interactions)`
+					: '✗',
 			});
+
+			// Log interaction details if available
+			if (
+				editor.components.orchestratorController.interactions &&
+				editor.components.orchestratorController.interactions.length > 0
+			) {
+				for (const interaction of editor.components.orchestratorController.interactions) {
+					logger.info(`  Interaction[${interaction.id}]: ${interaction.type}`, {
+						title: interaction.title || '(no title)',
+						model: interaction.model,
+						provider: interaction.llmProvider.name,
+					});
+				}
+			}
 		}
 
 		// Log interactions summary
@@ -330,10 +392,32 @@ export async function formatInstanceOverview(options: { detailed?: boolean } = {
 				}
 			}
 
-			// LLM Provider
-			if (editor.components.orchestratorController.llmProvider) {
-				const llm = editor.components.orchestratorController.llmProvider;
-				lines.push(`      ▪ LLMProvider: ${llm.name}${llm.model ? ` (${llm.model})` : ''}`);
+			// Interactions
+			if (editor.components.orchestratorController.interactions) {
+				const interactions = editor.components.orchestratorController.interactions;
+				lines.push(`      ▪ Interactions: ${interactions.length}`);
+				if (detailed || interactions.length <= 3) {
+					for (const interaction of interactions) {
+						lines.push(
+							`        ${interaction.id} (${interaction.type}): ${interaction.llmProvider.name} - ${interaction.model}`,
+						);
+						if (interaction.title) {
+							lines.push(`          Title: ${interaction.title}`);
+						}
+						if (interaction.requestParams) {
+							lines.push(
+								`          Params: temp=${interaction.requestParams.temperature}, maxTokens=${interaction.requestParams.maxTokens}, cache=${interaction.requestParams.usePromptCaching}`,
+							);
+						}
+					}
+				} else {
+					lines.push(`        (showing first 3 of ${interactions.length})`);
+					for (const interaction of interactions.slice(0, 3)) {
+						lines.push(
+							`        ${interaction.id} (${interaction.type}): ${interaction.llmProvider.name} - ${interaction.model}`,
+						);
+					}
+				}
 			}
 
 			// Interaction Stats

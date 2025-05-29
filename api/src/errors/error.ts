@@ -22,6 +22,12 @@ export enum ErrorType {
 	FileMove = 'FileMoveError',
 
 	ResourceHandling = 'ResourceHandlingError',
+	ResourceChange = 'ResourceChangeError',
+	ResourceNotFound = 'ResourceNotFoundError',
+	ResourceRead = 'ResourceReadError',
+	ResourceWrite = 'ResourceWriteError',
+	ResourceMove = 'ResourceMoveError',
+
 	VectorSearch = 'VectorSearchError',
 	TokenUsageValidation = 'TokenUsageValidationError',
 	ExternalServiceError = 'ExternalServiceError',
@@ -35,13 +41,21 @@ export const ErrorTypes = [
 	ErrorType.ToolHandling,
 	ErrorType.ProjectHandling,
 	ErrorType.DataSourceHandling,
+
 	ErrorType.FileHandling,
 	ErrorType.FileChange,
 	ErrorType.FileNotFound,
 	ErrorType.FileRead,
 	ErrorType.FileWrite,
 	ErrorType.FileMove,
+
 	ErrorType.ResourceHandling,
+	ErrorType.ResourceChange,
+	ErrorType.ResourceNotFound,
+	ErrorType.ResourceRead,
+	ErrorType.ResourceWrite,
+	ErrorType.ResourceMove,
+
 	ErrorType.VectorSearch,
 	ErrorType.TokenUsageValidation,
 	ErrorType.ExternalServiceError,
@@ -323,6 +337,57 @@ export class ResourceHandlingError extends Error {
 
 export const isResourceHandlingError = (value: unknown): value is ResourceHandlingError => {
 	return value instanceof ResourceHandlingError;
+};
+
+export class ResourceChangeError extends ResourceHandlingError {
+	constructor(message: string, options: ResourceHandlingErrorOptions) {
+		super(message, { ...options, operation: 'change' });
+		this.name = 'ResourceChangeError';
+	}
+}
+
+export class ResourceNotFoundError extends ResourceHandlingError {
+	constructor(message: string, options: ResourceHandlingErrorOptions) {
+		super(message, { ...options, operation: 'read' });
+		this.name = 'ResourceNotFoundError';
+	}
+}
+
+export class ResourceReadError extends ResourceHandlingError {
+	constructor(message: string, options: ResourceHandlingErrorOptions) {
+		super(message, { ...options, operation: 'read' });
+		this.name = 'ResourceReadError';
+	}
+}
+
+export class ResourceWriteError extends ResourceHandlingError {
+	constructor(message: string, options: ResourceHandlingErrorOptions) {
+		super(message, { ...options, operation: 'write' });
+		this.name = 'ResourceWriteError';
+	}
+}
+
+export class ResourceMoveError extends ResourceHandlingError {
+	constructor(message: string, options: ResourceHandlingErrorOptions) {
+		super(message, { ...options, operation: 'move' });
+		this.name = 'ResourceMoveError';
+	}
+}
+
+export const isResourceChangeError = (value: unknown): value is ResourceChangeError => {
+	return value instanceof ResourceChangeError;
+};
+export const isResourceNotFoundError = (value: unknown): value is ResourceNotFoundError => {
+	return value instanceof ResourceNotFoundError;
+};
+export const isResourceReadError = (value: unknown): value is ResourceReadError => {
+	return value instanceof ResourceReadError;
+};
+export const isResourceWriteError = (value: unknown): value is ResourceWriteError => {
+	return value instanceof ResourceWriteError;
+};
+export const isResourceMoveError = (value: unknown): value is ResourceMoveError => {
+	return value instanceof ResourceMoveError;
 };
 
 export interface VectorSearchErrorOptions extends ErrorOptions {

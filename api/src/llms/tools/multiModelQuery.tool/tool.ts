@@ -43,6 +43,8 @@ const MODELS = [
 
 const MODELS_PROVIDERS = {
 	//anthropic
+	'claude-opus-4-20250514': 'anthropic',
+	'claude-sonnet-4-20250514': 'anthropic',
 	'claude-3-7-sonnet-20250219': 'anthropic',
 	'claude-3-5-sonnet-20241022': 'anthropic',
 	'claude-3-opus-20240229': 'anthropic',

@@ -1,11 +1,13 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
-import type { ConversationId, ConversationResponse } from 'shared/types.ts';
+import type { ConversationId, ConversationLogDataEntry, ConversationResponse } from 'shared/types.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { LLMModelToProvider } from 'api/types/llms.ts';
 
 /**
  * @openapi
@@ -132,8 +134,8 @@ export const chatConversation = async (
  * @openapi
  * /api/v1/conversation/{id}:
  *   get:
- *     summary: Get conversation details
- *     description: Retrieves details of a specific conversation using the OrchestratorController
+ *     summary: Get conversation details or defaults
+ *     description: Retrieves details of a specific conversation. If the conversation doesn't exist, returns a template with default configuration values from global/project settings.
  *     parameters:
  *       - in: path
  *         name: id
@@ -141,11 +143,17 @@ export const chatConversation = async (
  *         schema:
  *           type: string
  *         description: The ID of the conversation to retrieve
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID for configuration context
  *     responses:
  *       200:
- *         description: Successful response with conversation details
- *       404:
- *         description: Conversation not found
+ *         description: Successful response with conversation details or default template
+ *       400:
+ *         description: Bad request, missing required parameters
  *       500:
  *         description: Internal server error
  */
@@ -158,6 +166,8 @@ export const getConversation = async (
 		const conversationId = params.id as ConversationId;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
+		logger.info(`ConversationHandler: getConversation for: ${conversationId}`);
+
 		const sessionManager: SessionManager = app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
@@ -168,24 +178,95 @@ export const getConversation = async (
 			return;
 		}
 
-		logger.debug(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
-		projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
+		let interaction;
+		try {
+			//logger.info(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
+			projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
+			//logger.info(`ConversationHandler: ProjectEditor created successfully`);
 
-		orchestratorController = projectEditor.orchestratorController;
-		if (!orchestratorController) {
-			throw new Error('Failed to initialize OrchestratorController');
+			orchestratorController = projectEditor.orchestratorController;
+			if (!orchestratorController) {
+				logger.info(`ConversationHandler: Failed to create orchestratorController`);
+				throw new Error('Failed to initialize OrchestratorController');
+			}
+
+			//logger.info(`ConversationHandler: Getting conversation: ${conversationId}`);
+			interaction = orchestratorController.interactionManager.getInteraction(conversationId);
+		} catch (error) {
+			// getInteraction throws an error when conversation doesn't exist
+			logger.info(
+				`ConversationHandler: Conversation ${conversationId} not found, will return defaults: ${
+					errorMessage(error)
+				}`,
+			);
+			interaction = null;
 		}
 
-		const interaction = orchestratorController.interactionManager.getInteraction(conversationId);
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.getProjectConfig(projectId);
 
 		if (!interaction) {
-			response.status = 404;
-			response.body = { error: 'Conversation not found' };
+			logger.info(`ConversationHandler: Conversation not found, return defaults`);
+			// Return a default conversation template with configuration defaults
+			// Use project defaults first, then global defaults
+			const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+			response.status = 200;
+			response.body = {
+				id: conversationId,
+				llmProviderName: LLMModelToProvider[defaultModels.orchestrator] || 'anthropic', // Default provider
+				title: '', // Empty for new conversation
+				system: '', // Will be populated when conversation starts
+				model: defaultModels.orchestrator,
+				maxTokens: 16384,
+				temperature: 0.7, // Default temperature
+				statementTurnCount: 0,
+				totalTokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+				logDataEntries: [], // Empty for new conversation
+				conversationStats: {
+					statementTurnCount: 0,
+					conversationTurnCount: 0,
+					statementCount: 0,
+				},
+				tokenUsageStats: {
+					tokenUsageConversation: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+				},
+				// Include default request params for this conversation
+				requestParams: {
+					model: defaultModels.orchestrator,
+					temperature: 0.7,
+					maxTokens: 16384,
+					extendedThinking: {
+						enabled: projectConfig.api?.extendedThinking?.enabled ??
+							globalConfig.api.extendedThinking?.enabled ?? true,
+						budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+							globalConfig.api.extendedThinking?.budgetTokens || 4096,
+					},
+					usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
+				},
+			};
 			return;
 		}
 
-		const logDataEntries = await ConversationLogger.getLogDataEntries(projectId, conversationId);
+		//logger.info(`ConversationHandler: Loading log data entries for conversation ${conversationId}`);
+		let logDataEntries: Array<ConversationLogDataEntry>;
+		try {
+			logDataEntries = await ConversationLogger.getLogDataEntries(projectId, conversationId);
+			logger.debug(`ConversationHandler: Log data entries loaded successfully`);
+		} catch (_error) {
+			// New conversations don't have log files yet
+			logger.debug(
+				`ConversationHandler: No log data found for new conversation ${conversationId}, using empty array`,
+			);
+			logDataEntries = [];
+		}
 		//logger.info(`ConversationHandler: logDataEntries`, logDataEntries);
+		// logger.info(`ConversationHandler: inputOptions`, {
+		// 	model: interaction.model,
+		// 	maxTokens: interaction.maxTokens,
+		// 	temperature: interaction.temperature,
+		// });
 		response.status = 200;
 		response.body = {
 			id: interaction.id,
@@ -205,6 +286,18 @@ export const getConversation = async (
 			},
 			tokenUsageStats: {
 				tokenUsageConversation: interaction.tokenUsageInteraction,
+			},
+			requestParams: {
+				model: interaction.model,
+				temperature: interaction.temperature,
+				maxTokens: interaction.maxTokens,
+				extendedThinking: {
+					enabled: projectConfig.api?.extendedThinking?.enabled ??
+						globalConfig.api.extendedThinking?.enabled ?? true,
+					budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+						globalConfig.api.extendedThinking?.budgetTokens || 4096,
+				},
+				usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
 			},
 		};
 	} catch (error) {
@@ -370,6 +463,67 @@ export const listConversations = async (
 		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage(error)}`, error);
 		response.status = 500;
 		response.body = { error: 'Failed to list conversations', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/conversation/defaults:
+ *   get:
+ *     summary: Get default conversation input options
+ *     description: Returns default LLM request parameters based on global and project configuration
+ *     parameters:
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID for configuration context
+ *     responses:
+ *       200:
+ *         description: Successful response with default input options
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const getConversationDefaults = async (
+	{ request, response }: { request: Context['request']; response: Context['response'] },
+) => {
+	try {
+		const projectId = request.url.searchParams.get('projectId') || '';
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		// Get configuration
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+
+		// Use project defaults first, then global defaults
+		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+		response.status = 200;
+		response.body = {
+			model: defaultModels.orchestrator,
+			temperature: 0.7,
+			maxTokens: 16384,
+			extendedThinking: {
+				enabled: projectConfig.api?.extendedThinking?.enabled ?? globalConfig.api.extendedThinking?.enabled ??
+					true,
+				budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+					globalConfig.api.extendedThinking?.budgetTokens || 4096,
+			},
+			usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
+		};
+	} catch (error) {
+		logger.error(`ConversationHandler: Error in getConversationDefaults: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to retrieve default conversation options' };
 	}
 };
 

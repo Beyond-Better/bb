@@ -2,7 +2,11 @@ import { stub } from 'api/tests/deps.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMSpeakWithResponse } from 'api/types.ts';
+import { LLMCallbackType } from 'api/types.ts';
+import LLMFactory from '../../src/llms/llmProvider.ts';
+
 //import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
 //import type { LLMSpeakWithResponse } from '../../src/types.ts';
 //import { ConversationId, ConversationResponse } from 'shared/types.ts';
@@ -140,6 +144,57 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 		//getInteractionResultStub,
 		//cleanupChildInteractionsStub,
 		//manageAgentTasksStub,
+	};
+}
+
+// Mock LLM interface to avoid import issues
+interface MockLLMInterface {
+	llmProviderName: string;
+	projectEditor: ProjectEditor | undefined;
+	invoke(callbackType: LLMCallbackType, ...args: any[]): Promise<any>;
+}
+
+// Mock LLM class for testing
+class MockLLM implements MockLLMInterface {
+	public llmProviderName: string = 'mock-llm';
+	public projectEditor: ProjectEditor | undefined;
+
+	constructor(projectEditor?: ProjectEditor) {
+		if (projectEditor) {
+			this.projectEditor = projectEditor;
+		}
+	}
+
+	async invoke(callbackType: LLMCallbackType, ..._args: any[]): Promise<any> {
+		switch (callbackType) {
+			case LLMCallbackType.PROJECT_DATA_SOURCES:
+				return [await Deno.makeTempDir()];
+			case LLMCallbackType.PROJECT_EDITOR:
+				return this.projectEditor || {}; // Return stored project editor or empty object
+			default:
+				return null;
+		}
+	}
+}
+
+export function makeConversationInteractionStub(
+	conversationInteraction: LLMConversationInteraction,
+	projectEditor?: ProjectEditor,
+) {
+	const mockLLM = new MockLLM(projectEditor);
+
+	// Stub the LLMFactory.getProvider method to return our mock LLM
+	// This prevents the init() method from creating a real provider
+	const factoryStub = stub(
+		LLMFactory,
+		'getProvider',
+		() => mockLLM as any,
+	);
+
+	return {
+		conversationInteraction,
+		mockLLM,
+		factoryStub,
 	};
 }
 

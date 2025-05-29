@@ -1,5 +1,7 @@
 import { join } from '@std/path';
 import { exists } from '@std/fs';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 //import type InteractionManager from 'api/llms/interactionManager.ts';
 //import { interactionManager } from 'api/llms/interactionManager.ts';
 //import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -38,6 +40,7 @@ import { ApiStatus } from 'shared/types.ts';
 import { isLLMError } from 'api/errors/error.ts';
 //import { createError } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
+import { errorMessage } from 'shared/error.ts';
 //import { getConfigManager } from 'shared/config/configManager.ts';
 //import type { ProjectConfig } from 'shared/config/types.ts';
 //import { LLMModelToProvider } from 'api/types/llms.ts';
@@ -140,14 +143,33 @@ class OrchestratorController extends BaseController {
 	// 	outputTokens: 0,
 	// };
 
+	constructor(
+		projectEditor: ProjectEditor & { projectInfo: ProjectInfo },
+	) {
+		super(projectEditor);
+		this._controllerType = 'orchestrator';
+	}
+
 	override async init(): Promise<OrchestratorController> {
 		await super.init();
 		return this;
 	}
 
 	async initializeInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
-		let interaction = await this.loadInteraction(conversationId);
+		let interaction;
+		try {
+			//logger.info('OrchestratorController: initializeInteraction:', { conversationId });
+			interaction = await this.loadInteraction(conversationId);
+		} catch (error) {
+			// loadInteraction throws an error when conversation doesn't exist
+			logger.error(
+				`OrchestratorController: Conversation ${conversationId} not found: ${errorMessage(error)}`,
+			);
+			interaction = null;
+		}
+
 		if (!interaction) {
+			logger.info('OrchestratorController: initializeInteraction: creating interaction', { conversationId });
 			interaction = await this.createInteraction(conversationId);
 		}
 		// [TODO] `createInteraction` calls interactionManager.createInteraction which adds it to manager
@@ -773,8 +795,8 @@ class OrchestratorController extends BaseController {
 			interaction.id,
 		).init();
 		logger.info(
-			'OrchestratorController: createAgentController - controller has llm for: ',
-			agentController.llmProvider.llmProviderName,
+			'OrchestratorController: createAgentController - controller created for interaction: ',
+			interaction.id,
 		);
 		//this.agentControllers.set(agentInteractionId, agentController);
 		this.agentController = agentController;
