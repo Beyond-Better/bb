@@ -10,7 +10,7 @@ import {
 	getToolManager,
 	withTestProject,
 } from 'api/tests/testSetup.ts';
-import { FileHandlingError } from 'api/errors/error.ts';
+import { ResourceHandlingError } from 'api/errors/error.ts';
 import type { LLMToolRewriteResourceResponseData } from '../types.ts';
 
 //const VALID_ACKNOWLEDGEMENT = 'I confirm this is the complete resource content with no omissions or placeholders';
@@ -266,7 +266,7 @@ Deno.test({
 
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
-					FileHandlingError,
+					ResourceHandlingError,
 					'Invalid acknowledgement string',
 				);
 			} finally {
@@ -424,7 +424,7 @@ Deno.test({
 
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse3, projectEditor),
-					FileHandlingError,
+					ResourceHandlingError,
 					'The content is empty and allowEmptyContent is false',
 				);
 			} finally {
@@ -558,7 +558,7 @@ Deno.test({
 
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
-					FileHandlingError,
+					ResourceHandlingError,
 					'Line count mismatch',
 				);
 			} finally {
@@ -703,7 +703,7 @@ Deno.test({
 
 				await assertRejects(
 					async () => await tool.runTool(interaction, toolUse, projectEditor),
-					FileHandlingError,
+					ResourceHandlingError,
 					`Access denied: ${testResourcePath} is outside the data source directory`,
 				);
 			} finally {

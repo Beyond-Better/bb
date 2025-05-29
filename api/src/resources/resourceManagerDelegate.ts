@@ -3,7 +3,8 @@
  * This handles the transition from the legacy system to the new data source architecture.
  */
 import { logger } from 'shared/logger.ts';
-import type { ResourceManager } from './resourceManager.ts';
+import { errorMessage } from 'shared/error.ts';
+import type { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
 	ResourceDeleteOptions,
 	ResourceListOptions,
@@ -13,7 +14,7 @@ import type {
 	ResourceWriteOptions,
 } from 'shared/types/dataSourceResource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 
 /**
  * Flags to control which implementation to use for different operations
@@ -87,7 +88,7 @@ export class ResourceManagerDelegate {
 			if (this.flags.useLoadResource) {
 				try {
 					logger.warn(
-						`ResourceManagerDelegate: loadResource failed, falling back to legacy: ${error.message}`,
+						`ResourceManagerDelegate: loadResource failed, falling back to legacy: ${errorMessage(error)}`,
 					);
 					return await this.resourceManager.loadResource(resourceUri, options);
 				} catch (fallbackError) {
@@ -122,7 +123,7 @@ export class ResourceManagerDelegate {
 			if (this.flags.useListResources) {
 				try {
 					logger.warn(
-						`ResourceManagerDelegate: listResources failed, falling back to legacy: ${error.message}`,
+						`ResourceManagerDelegate: listResources failed, falling back to legacy: ${errorMessage(error)}`,
 					);
 					return await this.resourceManager.listResources(dataSourceId, options);
 				} catch (fallbackError) {
@@ -150,18 +151,18 @@ export class ResourceManagerDelegate {
 				logger.debug(`ResourceManagerDelegate: Using new implementation for searchResources`);
 				return await this.resourceManager.searchResources(dataSourceId, query, options);
 			} catch (error) {
-				logger.error(`ResourceManagerDelegate: Error searching resources: ${error.message}`);
-				throw createError(ErrorType.FileHandling, `Failed to search resources: ${error.message}`, {
+				logger.error(`ResourceManagerDelegate: Error searching resources: ${errorMessage(error)}`);
+				throw createError(ErrorType.ResourceHandling, `Failed to search resources: ${errorMessage(error)}`, {
 					name: 'search-resources',
-					operation: 'search',
-				} as FileHandlingErrorOptions);
+					operation: 'search-resources',
+				} as ResourceHandlingErrorOptions);
 			}
 		} else {
 			// Legacy search is not implemented in the original ResourceManager
-			throw createError(ErrorType.FileHandling, 'Resource searching not implemented in legacy mode', {
+			throw createError(ErrorType.ResourceHandling, 'Resource searching not implemented in legacy mode', {
 				name: 'search-resources',
-				operation: 'search',
-			} as FileHandlingErrorOptions);
+				operation: 'search-resources',
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -183,18 +184,18 @@ export class ResourceManagerDelegate {
 				logger.debug(`ResourceManagerDelegate: Using new implementation for writeResource: ${resourceUri}`);
 				return await this.resourceManager.writeResource(resourceUri, content, options);
 			} catch (error) {
-				logger.error(`ResourceManagerDelegate: Error writing resource: ${error.message}`);
-				throw createError(ErrorType.FileHandling, `Failed to write resource: ${error.message}`, {
+				logger.error(`ResourceManagerDelegate: Error writing resource: ${errorMessage(error)}`);
+				throw createError(ErrorType.ResourceHandling, `Failed to write resource: ${errorMessage(error)}`, {
 					filePath: resourceUri,
 					operation: 'write',
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 		} else {
 			// Legacy write is handled by projectEditor.writeFile
-			throw createError(ErrorType.FileHandling, 'Use projectEditor.writeFile for writing in legacy mode', {
+			throw createError(ErrorType.ResourceHandling, 'Use projectEditor.writeFile for writing in legacy mode', {
 				filePath: resourceUri,
 				operation: 'write',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -214,18 +215,18 @@ export class ResourceManagerDelegate {
 				);
 				return await this.resourceManager.moveResource(sourceUri, destinationUri, options);
 			} catch (error) {
-				logger.error(`ResourceManagerDelegate: Error moving resource: ${error.message}`);
-				throw createError(ErrorType.FileHandling, `Failed to move resource: ${error.message}`, {
+				logger.error(`ResourceManagerDelegate: Error moving resource: ${errorMessage(error)}`);
+				throw createError(ErrorType.ResourceHandling, `Failed to move resource: ${errorMessage(error)}`, {
 					filePath: sourceUri,
 					operation: 'move',
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 		} else {
 			// Legacy move is handled by projectEditor.moveFile
-			throw createError(ErrorType.FileHandling, 'Use projectEditor.moveFile for moving in legacy mode', {
+			throw createError(ErrorType.ResourceHandling, 'Use projectEditor.moveFile for moving in legacy mode', {
 				filePath: sourceUri,
 				operation: 'move',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -242,18 +243,18 @@ export class ResourceManagerDelegate {
 				logger.debug(`ResourceManagerDelegate: Using new implementation for deleteResource: ${resourceUri}`);
 				return await this.resourceManager.deleteResource(resourceUri, options);
 			} catch (error) {
-				logger.error(`ResourceManagerDelegate: Error deleting resource: ${error.message}`);
-				throw createError(ErrorType.FileHandling, `Failed to delete resource: ${error.message}`, {
+				logger.error(`ResourceManagerDelegate: Error deleting resource: ${errorMessage(error)}`);
+				throw createError(ErrorType.ResourceHandling, `Failed to delete resource: ${errorMessage(error)}`, {
 					filePath: resourceUri,
 					operation: 'delete',
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 		} else {
 			// Legacy delete is handled by projectEditor.deleteFile
-			throw createError(ErrorType.FileHandling, 'Use projectEditor.deleteFile for deletion in legacy mode', {
+			throw createError(ErrorType.ResourceHandling, 'Use projectEditor.deleteFile for deletion in legacy mode', {
 				filePath: resourceUri,
 				operation: 'delete',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 }

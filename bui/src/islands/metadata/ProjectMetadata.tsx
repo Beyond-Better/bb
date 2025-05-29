@@ -1,7 +1,7 @@
 import { Signal } from '@preact/signals';
 import { ChatState } from '../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx';
+//import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx';
 //import type { ApiClient } from '../../utils/apiClient.utils.ts';
 //import type { ConversationLogDataEntry } from 'shared/types.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
@@ -14,13 +14,15 @@ interface ProjectMetadataProps {
 export function ProjectMetadata({
 	chatState,
 }: ProjectMetadataProps) {
-	//if (IS_BROWSER) console.log('ProjectMetadata: chatState', chatState);
+	//if (IS_BROWSER) console.log('ProjectMetadata: chatState', chatState.value);
 
 	// Get projectId and conversationId from URL
 	const projectId = chatState.value.projectData?.projectId || '.';
 	//const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
-	const projectPath = chatState.value.projectData?.primaryDsConnection?.config?.dataSourceRoot?.toString() ||
+	const primaryDsConnection = chatState.value.projectData?.dsConnections?.find((ds) => ds.isPrimary);
+	const projectPath = primaryDsConnection?.config?.dataSourceRoot?.toString() || // filesystem
+		primaryDsConnection?.config?.workspaceId?.toString() || // notion
 		'default';
 	//projectWithSources?.data?.primaryDsConnection?.config?.dataSourceRoot?.toString() || ''
 
@@ -176,12 +178,15 @@ export function ProjectMetadata({
 				<div className='h-4 w-px bg-gray-200 dark:bg-gray-700' />
 
 				{/* Cache Status */}
-				<div className='flex items-center space-x-2'>
+				{
+					/*<div className='flex items-center space-x-2'>
 					<CacheStatusIndicator status={chatState.value.status.cacheStatus} />
-				</div>
+				</div>*/
+				}
 
 				{/* API Status */}
-				<div className='flex items-center space-x-2'>
+				{
+					/*<div className='flex items-center space-x-2'>
 					<span
 						className={`flex items-center ${
 							chatState.value.status.apiStatus === ApiStatus.ERROR
@@ -194,7 +199,8 @@ export function ProjectMetadata({
 						{chatState.value.status.apiStatus === ApiStatus.API_BUSY && 'API is processing...'}
 						{chatState.value.status.apiStatus === ApiStatus.ERROR && 'Error occurred'}
 					</span>
-				</div>
+				</div>*/
+				}
 
 				{/* Connection Status */}
 				<div className='flex items-center space-x-2'>

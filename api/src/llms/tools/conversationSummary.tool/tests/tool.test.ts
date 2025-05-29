@@ -2119,7 +2119,7 @@ Deno.test({
 				},
 				{
 					role: 'assistant',
-					content: [{ type: 'tool_use', text: 'Using search_project to find auth files' }],
+					content: [{ type: 'tool_use', text: 'Using find_resources to find auth files' }],
 					conversationStats: incrementConversationStats(conversationStats),
 					providerResponse: { usage: { totalTokens: 100 } },
 				},
@@ -2185,7 +2185,7 @@ Deno.test({
 - Related configuration files identified but not modified
 
 ### Tools Used
-- search_project: Located authentication-related files
+- find_resources: Located authentication-related files
   - Found main implementation and test files
   - Identified related configuration files
 - search_and_replace: Updated authentication implementation
@@ -2275,7 +2275,7 @@ Deno.test({
 					'Files section should include detailed file descriptions',
 				);
 				assert(
-					data.summary.includes('search_project:') && data.summary.includes('search_and_replace:'),
+					data.summary.includes('find_resources:') && data.summary.includes('search_and_replace:'),
 					'Tools section should include detailed tool usage',
 				);
 				assert(

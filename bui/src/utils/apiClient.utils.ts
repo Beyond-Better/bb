@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 
-import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
+import type { ConversationLogDataEntry, ConversationMetadata, TokenUsage } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type {
 	ClientDataSourceConnection,
@@ -13,6 +13,7 @@ import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
+import type { LLMRequestParams } from '../types/llm.types.ts';
 import type {
 	BillingPreviewResults,
 	BillingPreviewWithUsage,
@@ -90,12 +91,30 @@ export interface ModelResponse {
 interface ConversationResponse {
 	id: string;
 	title: string;
+	llmProviderName: string;
+	model: string;
 	updatedAt: string;
+	createdAt: string;
 	conversationStats: {
+		statementTurnCount: number;
 		conversationTurnCount: number;
+		statementCount: number;
 	};
-	tokenUsageConversation: {
-		totalTokensTotal: number;
+	tokenUsageStats: {
+		tokenUsageConversation: TokenUsage;
+		tokenUsageTurn: TokenUsage;
+		tokenUsageStatement: TokenUsage;
+		totalTokensTotal: TokenUsage;
+	};
+	requestParams: {
+		model: string;
+		temperature: number;
+		maxTokens: number;
+		extendedThinking: {
+			enabled: boolean;
+			budgetTokens: number;
+		};
+		usePromptCaching: boolean;
 	};
 }
 
@@ -649,6 +668,12 @@ export class ApiClient {
 	async getConversations(projectId: string, limit = 200): Promise<ConversationListResponse | null> {
 		return await this.get<ConversationListResponse>(
 			`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
+		);
+	}
+
+	async getConversationDefaults(projectId: string): Promise<LLMRequestParams | null> {
+		return await this.get<LLMRequestParams>(
+			`/api/v1/conversation/defaults?projectId=${encodeURIComponent(projectId)}`,
 		);
 	}
 

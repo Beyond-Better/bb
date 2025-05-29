@@ -28,7 +28,7 @@ import type {
 	ResourceWriteResult,
 } from 'shared/types/dataSourceResource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
 /**
@@ -219,12 +219,12 @@ export class NotionAccessor extends BBResourceAccessor {
 		} catch (error) {
 			logger.error(`NotionAccessor: Error loading resource ${resourceUri}: ${errorMessage(error)}`);
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to load Notion resource: ${errorMessage(error)}`,
 				{
 					filePath: resourceUri,
 					operation: 'read',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -605,12 +605,12 @@ export class NotionAccessor extends BBResourceAccessor {
 		} catch (error) {
 			logger.error(`NotionAccessor: Error writing resource ${resourceUri}: ${errorMessage(error)}`);
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to write Notion resource: ${errorMessage(error)}`,
 				{
 					filePath: resourceUri,
 					operation: 'write',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -753,12 +753,12 @@ export class NotionAccessor extends BBResourceAccessor {
 		} catch (error) {
 			logger.error(`NotionAccessor: Error creating page: ${errorMessage(error)}`);
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to create Notion page: ${errorMessage(error)}`,
 				{
 					filePath: parentUri,
 					operation: 'write',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -865,13 +865,13 @@ export class NotionAccessor extends BBResourceAccessor {
 		} catch (error) {
 			logger.error(`NotionAccessor: Error listing resources: ${errorMessage(error)}`);
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to list Notion resources: ${errorMessage(error)}`,
 				{
 					name: 'list-resources',
 					filePath: 'notion://',
 					operation: 'read',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -884,20 +884,44 @@ export class NotionAccessor extends BBResourceAccessor {
 	 */
 	override async searchResources(query: string, options: ResourceSearchOptions = {}): Promise<ResourceSearchResult> {
 		try {
+			// Determine search mode
+			const isContentSearch = !!options.contentPattern;
+			const searchQuery = options.contentPattern || query;
+			const caseSensitive = options.caseSensitive ?? false;
+
 			// Search Notion for the query
-			const searchResults = await this.client.search(query, undefined, {
+			const searchResults = await this.client.search(searchQuery, undefined, {
 				direction: 'descending',
 				timestamp: 'last_edited_time',
 			});
 
+			// Filter results based on date constraints if provided
+			let filteredResults = searchResults.results;
+			if (options.dateAfter || options.dateBefore) {
+				filteredResults = filteredResults.filter((result) => {
+					const lastEditedTime = 'last_edited_time' in result ? result.last_edited_time : null;
+					if (!lastEditedTime) return false;
+
+					const editDate = typeof lastEditedTime === 'object'
+						? lastEditedTime as Date
+						: new Date(lastEditedTime);
+
+					if (options.dateAfter && editDate < new Date(options.dateAfter)) return false;
+					if (options.dateBefore && editDate >= new Date(options.dateBefore)) return false;
+
+					return true;
+				});
+			}
+
 			// Extract matches
 			const matches: ResourceSearchResult['matches'] = [];
-			for (const result of searchResults.results) {
+			for (const result of filteredResults) {
 				if (matches.length >= (options.pageSize || 100)) {
 					break;
 				}
 
 				let resource: ResourceMetadata;
+				let contentMatches = undefined;
 
 				if ('properties' in result) {
 					// This is a page
@@ -912,6 +936,39 @@ export class NotionAccessor extends BBResourceAccessor {
 							? page.last_edited_time as Date
 							: new Date(page.last_edited_time),
 					};
+
+					// For content search, attempt to search within page content
+					if (isContentSearch) {
+						try {
+							// Load page content for content search
+							const pageContent = await this.loadPageResource(page.id);
+							const content = pageContent.content as string;
+
+							// Simple content matching (Note: Context extraction not implemented for Notion)
+							const regex = new RegExp(searchQuery, caseSensitive ? 'g' : 'ig');
+							const hasMatch = regex.test(content);
+
+							if (hasMatch) {
+								// For Notion, we indicate that context extraction is not supported
+								contentMatches = [{
+									lineNumber: 1,
+									content: 'Content match found (context extraction not supported for Notion)',
+									contextBefore: [],
+									contextAfter: [],
+									matchStart: 0,
+									matchEnd: 0,
+								}];
+							} else {
+								// Content doesn't match, skip this page
+								continue;
+							}
+						} catch (error) {
+							logger.warn(
+								`NotionAccessor: Error loading page content for search: ${errorMessage(error)}`,
+							);
+							// Continue with basic match if content can't be loaded
+						}
+					}
 				} else if ('title' in result) {
 					// This is a database
 					const db = result as NotionDatabase;
@@ -925,30 +982,60 @@ export class NotionAccessor extends BBResourceAccessor {
 							? db.last_edited_time as Date
 							: new Date(db.last_edited_time),
 					};
+
+					// For databases in content search, check database title/description
+					if (isContentSearch) {
+						const dbTitle = this.getDatabaseTitle(db) || '';
+						const regex = new RegExp(searchQuery, caseSensitive ? 'g' : 'ig');
+						const hasMatch = regex.test(dbTitle);
+
+						if (hasMatch) {
+							contentMatches = [{
+								lineNumber: 1,
+								content: `Database title match: ${dbTitle}`,
+								contextBefore: [],
+								contextAfter: [],
+								matchStart: 0,
+								matchEnd: dbTitle.length,
+							}];
+						} else {
+							// Title doesn't match, skip this database
+							continue;
+						}
+					}
 				} else {
 					// Unknown type, skip
 					continue;
 				}
 
-				matches.push({
+				// Create match object
+				const match: ResourceSearchResult['matches'][0] = {
 					resource,
 					score: 1.0, // Notion doesn't provide scores
-				});
+				};
+
+				// Add content matches if this was a content search
+				if (contentMatches) {
+					match.contentMatches = contentMatches;
+				}
+
+				matches.push(match);
 			}
 
 			return {
 				matches,
-				totalMatches: searchResults.results.length,
+				totalMatches: matches.length,
+				errorMessage: null,
 			};
 		} catch (error) {
 			logger.error(`NotionAccessor: Error searching resources: ${errorMessage(error)}`);
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to search Notion resources: ${errorMessage(error)}`,
 				{
 					filePath: 'notion://',
-					operation: 'search-project',
-				} as FileHandlingErrorOptions,
+					operation: 'search-resources',
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}

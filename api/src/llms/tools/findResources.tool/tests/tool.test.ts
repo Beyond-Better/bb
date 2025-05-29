@@ -2,7 +2,7 @@ import { join } from '@std/path';
 //import { existsSync } from '@std/fs';
 
 import { assert, assertStringIncludes } from 'api/tests/deps.ts';
-//import type LLMToolSearchProject from '../tool.ts';
+//import type LLMToolFindResources from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 
@@ -60,32 +60,32 @@ async function createTestResourcesSimpleDir(testProjectRoot: string) {
 	await Deno.writeTextFile(join(testProjectRoot, 'test', 'util.test.ts'), 'test("greet", () => {});');
 }
 
-async function createTestResourcesSearchProjectTest(testProjectRoot: string) {
+async function createTestResourcesFindResourcesTest(testProjectRoot: string) {
 	// Create directories at different depths
 	await Deno.mkdir(join(testProjectRoot, 'src', 'tools'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'tests', 'deep', 'nested'), { recursive: true });
 	await Deno.mkdir(join(testProjectRoot, 'lib'), { recursive: true });
-	await Deno.mkdir(join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests'), { recursive: true });
+	await Deno.mkdir(join(testProjectRoot, 'src', 'tools', 'findResources.tool', 'tests'), { recursive: true });
 
-	// Add test resources at various depths with searchProject in the name
+	// Add test resources at various depths with findResources in the name
 	await Deno.writeTextFile(
-		join(testProjectRoot, 'src', 'tools', 'searchProject.tool', 'tests', 'tool.test.ts'),
+		join(testProjectRoot, 'src', 'tools', 'findResources.tool', 'tests', 'tool.test.ts'),
 		'export const test = true;',
 	);
 	await Deno.writeTextFile(
-		join(testProjectRoot, 'src', 'tools', 'searchProject.test.ts'),
+		join(testProjectRoot, 'src', 'tools', 'findResources.test.ts'),
 		'export const test = true;',
 	);
 	await Deno.writeTextFile(
-		join(testProjectRoot, 'tests', 'deep', 'nested', 'mySearchProject.test.ts'),
+		join(testProjectRoot, 'tests', 'deep', 'nested', 'myFindResources.test.ts'),
 		'describe("test", () => {});',
 	);
 	await Deno.writeTextFile(
-		join(testProjectRoot, 'tests', 'deep', 'nested', 'searchProject.test.ts'),
+		join(testProjectRoot, 'tests', 'deep', 'nested', 'findResources.test.ts'),
 		'describe("test", () => {});',
 	);
 	await Deno.writeTextFile(
-		join(testProjectRoot, 'lib', 'searchProjectUtil.test.ts'),
+		join(testProjectRoot, 'lib', 'findResourcesUtil.test.ts'),
 		'test("util", () => {});',
 	);
 	// Add some non-matching resources
@@ -133,20 +133,20 @@ function isString(value: unknown): value is string {
 }
 
 Deno.test({
-	name: 'SearchProjectTool - Basic content search functionality',
+	name: 'FindResourcesTool - Basic content search functionality',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'Hello',
 				},
@@ -202,20 +202,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search pattern spanning multiple buffers',
+	name: 'FindResourcesTool - Search pattern spanning multiple buffers',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'Start of pattern\\n[B]+\\nEnd of pattern',
 				},
@@ -269,20 +269,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Date-based search',
+	name: 'FindResourcesTool - Date-based search',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					dateAfter: '2024-01-01',
 					dateBefore: '2026-01-01',
@@ -351,20 +351,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Resource-only search (metadata)',
+	name: 'FindResourcesTool - Resource-only search (metadata)',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					resourcePattern: '*.txt',
 					sizeMin: 1,
@@ -431,20 +431,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Combining all search criteria',
+	name: 'FindResourcesTool - Combining all search criteria',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'Hello',
 					resourcePattern: '*.txt',
@@ -506,20 +506,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Edge case: empty resource',
+	name: 'FindResourcesTool - Edge case: empty resource',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					resourcePattern: '*.txt',
 					sizeMax: 0,
@@ -573,20 +573,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with resource pattern',
+	name: 'FindResourcesTool - Search with resource pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'Hello',
 					resourcePattern: '*.txt',
@@ -640,20 +640,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with resource size criteria',
+	name: 'FindResourcesTool - Search with resource size criteria',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					resourcePattern: '*.txt',
 					sizeMin: 5000,
@@ -707,20 +707,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with no results',
+	name: 'FindResourcesTool - Search with no results',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'NonexistentPattern',
 				},
@@ -755,20 +755,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Error handling for invalid search pattern',
+	name: 'FindResourcesTool - Error handling for invalid search pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: '[', // Invalid regex pattern
 				},
@@ -809,20 +809,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with multiple criteria',
+	name: 'FindResourcesTool - Search with multiple criteria',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: 'Hello',
 					resourcePattern: '*.txt',
@@ -877,20 +877,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with bare filename',
+	name: 'FindResourcesTool - Search with bare filename',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					resourcePattern: 'file2.js',
 				},
@@ -943,14 +943,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with specific content and resource pattern',
+	name: 'FindResourcesTool - Search with specific content and resource pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			// Create a test resource with the specific content
@@ -961,7 +961,7 @@ Deno.test({
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: String.raw`currentConversation\?\.title`,
 					resourcePattern: 'bui/src/islands/Chat.tsx',
@@ -1024,20 +1024,20 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with word boundary regex',
+	name: 'FindResourcesTool - Search with word boundary regex',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolInput: {
 					contentPattern: String.raw`\btest\b`,
 					resourcePattern: 'regex_test*.txt',
@@ -1069,19 +1069,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with email regex pattern',
+	name: 'FindResourcesTool - Search with email regex pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`,
@@ -1113,19 +1113,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with URL regex pattern',
+	name: 'FindResourcesTool - Search with URL regex pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`,
@@ -1157,19 +1157,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with phone number regex pattern',
+	name: 'FindResourcesTool - Search with phone number regex pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})`,
@@ -1201,19 +1201,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with complex regex pattern',
+	name: 'FindResourcesTool - Search with complex regex pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`,
@@ -1245,19 +1245,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with regex using quantifiers - case-sensitive',
+	name: 'FindResourcesTool - Search with regex using quantifiers - case-sensitive',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test.*test`,
@@ -1293,19 +1293,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with regex using quantifiers - case-insensitive',
+	name: 'FindResourcesTool - Search with regex using quantifiers - case-insensitive',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test.*test`,
@@ -1341,19 +1341,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with regex using character classes',
+	name: 'FindResourcesTool - Search with regex using character classes',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`[Tt]esting [0-9]+`,
@@ -1385,19 +1385,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with lookahead regex',
+	name: 'FindResourcesTool - Search with lookahead regex',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`Test(?=ing)`,
@@ -1429,19 +1429,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Search with negative lookahead regex',
+	name: 'FindResourcesTool - Search with negative lookahead regex',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: String.raw`test(?!ing)`,
@@ -1493,19 +1493,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Case-sensitive search',
+	name: 'FindResourcesTool - Case-sensitive search',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: 'Test',
@@ -1559,19 +1559,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - Case-insensitive search',
+	name: 'FindResourcesTool - Case-insensitive search',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResources(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					contentPattern: 'Test',
@@ -1622,19 +1622,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - complex pattern with multiple extensions',
+	name: 'FindResourcesTool - complex pattern with multiple extensions',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResourcesSimple(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					resourcePattern: '*.js|*.ts|*.json',
@@ -1683,19 +1683,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - complex pattern with different directories',
+	name: 'FindResourcesTool - complex pattern with different directories',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResourcesSimpleDir(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					resourcePattern: 'src/*.js|test/*.ts',
@@ -1744,19 +1744,19 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - deep directory traversal with Kubernetes resources',
+	name: 'FindResourcesTool - deep directory traversal with Kubernetes resources',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			await createTestResourcesKubernetes(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
 					resourcePattern: 'deploy/Kubernetes/**/*',
@@ -1819,22 +1819,22 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'SearchProjectTool - deep directory traversal with double-star pattern',
+	name: 'FindResourcesTool - deep directory traversal with double-star pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestResourcesSearchProjectTest(testProjectRoot);
+			await createTestResourcesFindResourcesTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
-					resourcePattern: '**/searchProject*test.ts',
+					resourcePattern: '**/findResources*test.ts',
 				},
 			};
 
@@ -1849,7 +1849,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 3 resources matching the search criteria: resource pattern "**/searchProject*test.ts"`,
+					`BB found 3 resources matching the search criteria: resource pattern "**/findResources*test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1860,9 +1860,9 @@ Deno.test({
 			assertStringIncludes(toolResults, '</resources>');
 
 			const expectedResources = [
-				'src/tools/searchProject.test.ts',
-				'tests/deep/nested/searchProject.test.ts',
-				'lib/searchProjectUtil.test.ts',
+				'src/tools/findResources.test.ts',
+				'tests/deep/nested/findResources.test.ts',
+				'lib/findResourcesUtil.test.ts',
 			];
 			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
 			const foundResources = resourceContent.split('\n');
@@ -1884,10 +1884,10 @@ Deno.test({
 			assert(Math.max(...depths) === 3, 'Should find resources at maximum depth (tests/deep/nested/)');
 
 			// Verify non-matching resources are not included
-			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without findResources');
 			assert(
 				!toolResults.includes('tests/project.test.ts'),
-				'Should not include resources without searchProject',
+				'Should not include resources without findResources',
 			);
 		});
 	},
@@ -1895,22 +1895,22 @@ Deno.test({
 	sanitizeOps: false,
 });
 Deno.test({
-	name: 'SearchProjectTool - deep directory traversal with dual double-star pattern',
+	name: 'FindResourcesTool - deep directory traversal with dual double-star pattern',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			await createTestResourcesSearchProjectTest(testProjectRoot);
+			await createTestResourcesFindResourcesTest(testProjectRoot);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('search_project');
+			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
-				toolName: 'search_project',
+				toolName: 'find_resources',
 				toolUseId: 'test-id',
 				toolInput: {
-					resourcePattern: '**/searchProject*/**/*.test.ts',
+					resourcePattern: '**/findResources*/**/*.test.ts',
 				},
 			};
 
@@ -1925,7 +1925,7 @@ Deno.test({
 			if (isString(result.bbResponse)) {
 				assertStringIncludes(
 					result.bbResponse,
-					`BB found 1 resources matching the search criteria: resource pattern "**/searchProject*/**/*.test.ts"`,
+					`BB found 1 resources matching the search criteria: resource pattern "**/findResources*/**/*.test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1936,7 +1936,7 @@ Deno.test({
 			assertStringIncludes(toolResults, '</resources>');
 
 			const expectedResources = [
-				'src/tools/searchProject.tool/tests/tool.test.ts',
+				'src/tools/findResources.tool/tests/tool.test.ts',
 			];
 			const resourceContent = toolResults.split('<resources>')[1].split('</resources>')[0].trim();
 			const foundResources = resourceContent.split('\n');
@@ -1956,14 +1956,14 @@ Deno.test({
 			const depths = foundResources.map((r) => (r.match(/\//g) || []).length);
 			assert(
 				Math.max(...depths) === 4,
-				'Should find resources at maximum depth (src/tools/searchProject.tool/tests/)',
+				'Should find resources at maximum depth (src/tools/findResources.tool/tests/)',
 			);
 
 			// Verify non-matching resources are not included
-			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without searchProject');
+			assert(!toolResults.includes('src/search.test.ts'), 'Should not include resources without findResources');
 			assert(
 				!toolResults.includes('tests/project.test.ts'),
-				'Should not include resources without searchProject',
+				'Should not include resources without findResources',
 			);
 		});
 	},

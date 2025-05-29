@@ -2,7 +2,12 @@
  * FilesystemAccessor implementation for accessing filesystem resources.
  */
 import { basename, dirname, join, relative } from '@std/path';
-import { ensureDir, exists, expandGlob, walk } from '@std/fs';
+import {
+	ensureDir,
+	exists,
+	//expandGlob,
+	walk,
+} from '@std/fs';
 
 import { logger } from 'shared/logger.ts';
 import { BBResourceAccessor } from '../base/bbResourceAccessor.ts';
@@ -19,12 +24,14 @@ import {
 	isPathWithinDataSource,
 	resourcePathToAbsolute,
 	safeExists,
+	searchFilesContent,
+	searchFilesMetadata,
 } from 'api/utils/fileHandling.ts';
 import type { WalkOptions } from '@std/fs';
 import { errorMessage } from 'shared/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isFileHandlingError } from 'api/errors/error.ts';
-import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
+import { isResourceHandlingError } from 'api/errors/error.ts';
+import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type {
 	PaginationInfo,
@@ -146,12 +153,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check if the file exists
 			if (!await safeExists(absolutePath)) {
 				throw createError(
-					ErrorType.FileNotFound,
+					ErrorType.ResourceNotFound,
 					`File not found: ${resourcePath}`,
 					{
 						filePath: resourcePath,
 						operation: 'read',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -222,16 +229,16 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			};
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error loading resource ${resourceUri}`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to load resource: ${errorMessage(error)}`,
 				{
 					filePath: resourceUri,
 					operation: 'read',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -261,13 +268,13 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check if the path exists
 			if (!await safeExists(baseDir)) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Directory not found: ${path}`,
 					{
 						name: 'list-resources',
 						filePath: path,
 						operation: 'read',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -275,13 +282,13 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			const baseDirInfo = await Deno.stat(baseDir);
 			if (!baseDirInfo.isDirectory) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Path is not a directory: ${path}`,
 					{
 						name: 'list-resources',
 						filePath: path,
 						operation: 'read',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -372,16 +379,16 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			};
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error listing resources at ${this.rootPath}/${path}`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to list resources: ${errorMessage(error)}`,
 				{
 					filePath: options.path || '.',
 					operation: 'read',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -394,118 +401,110 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	 */
 	override async searchResources(query: string, options: ResourceSearchOptions = {}): Promise<ResourceSearchResult> {
 		try {
-			const path = options.path || '.';
+			// Determine search mode based on options
+			const isContentSearch = !!options.contentPattern;
+			const searchPattern = options.contentPattern || query;
+			const caseSensitive = options.caseSensitive ?? false;
 
-			// Convert to absolute path
-			const absolutePath = resourcePathToAbsolute(this.rootPath, path);
+			// Prepare search options for utility functions
+			const searchFileOptions = {
+				resourcePattern: options.resourcePattern,
+				dateAfter: options.dateAfter,
+				dateBefore: options.dateBefore,
+				sizeMin: options.sizeMin,
+				sizeMax: options.sizeMax,
+				contextLines: options.contextLines ?? 2,
+				maxMatchesPerFile: options.maxMatchesPerFile ?? 5,
+				includeContent: options.includeContent ?? isContentSearch,
+			};
 
-			// Set up the pattern for file matching
-			const filePattern = options.filePattern || '*';
-
-			// Use expandGlob to get matching entries
-			const globPattern = join(absolutePath, filePattern);
-			const entries = expandGlob(globPattern);
-
-			// Process entries
-			const matches: ResourceSearchResult['matches'] = [];
-			let count = 0;
-			const pageSize = options.pageSize || 100; // Default pageSize
-
-			// Whether to use case-sensitive search
-			const caseSensitive = options.caseSensitive || false;
-
-			// Create RegExp for content search
-			let regex: RegExp;
-			try {
-				regex = new RegExp(query, caseSensitive ? 'g' : 'ig');
-			} catch (error) {
-				throw new Error(`Invalid search query regex: ${errorMessage(error)}`);
-			}
-
-			for await (const entry of entries) {
-				if (count >= pageSize) break;
-
-				// Skip directories for content search
-				if (!entry.isFile) continue;
-
-				// Create resource metadata
-				//const relativePath = await absolutePathToResource(this.rootPath, entry.path);
-
-				const resourceMetadata = await getFileMetadata(
+			if (isContentSearch) {
+				// Use enhanced content search
+				const result = await searchFilesContent(
 					this.rootPath,
-					entry.path,
+					searchPattern,
+					caseSensitive,
+					searchFileOptions,
 				);
 
-				// Create URI for this resource
-				//const uri =
-				//	`${this.connection.accessMethod}+${this.connection.providerType}+${this.connection.name}://${relativePath}`;
+				// Convert utility results to accessor format
+				const matches: ResourceSearchResult['matches'] = [];
+				for (const match of result.matches) {
+					try {
+						// Get resource metadata
+						const resourceMetadata = await getFileMetadata(
+							this.rootPath,
+							match.resourcePath,
+						);
 
-				// Perform content search
-				try {
-					// Skip binary files
-					if (
-						resourceMetadata.mimeType?.startsWith('image/') ||
-						resourceMetadata.mimeType?.startsWith('audio/') ||
-						resourceMetadata.mimeType?.startsWith('video/')
-					) {
-						continue;
-					}
-
-					// Read file content
-					const content = await Deno.readTextFile(entry.path);
-
-					// Check for matches
-					const contentMatches = content.match(regex);
-					if (contentMatches) {
-						// Extract snippets around matches
-						const snippets: string[] = [];
-						let match;
-						regex.lastIndex = 0; // Reset regex index
-
-						while ((match = regex.exec(content)) !== null && snippets.length < 5) {
-							const matchIndex = match.index;
-							const snippetStart = Math.max(0, matchIndex - 40);
-							const snippetEnd = Math.min(content.length, matchIndex + match[0].length + 40);
-
-							let snippet = content.substring(snippetStart, snippetEnd);
-							// Add ellipsis if truncated
-							if (snippetStart > 0) snippet = '...' + snippet;
-							if (snippetEnd < content.length) snippet = snippet + '...';
-
-							snippets.push(snippet);
-						}
-
+						// Create enhanced match
 						matches.push({
 							resource: resourceMetadata,
-							snippets,
-							score: 1.0, // Simple scoring for now
+							contentMatches: match.contentMatches,
+							score: 1.0,
 						});
-
-						count++;
+					} catch (error) {
+						logger.warn(
+							`FilesystemAccessor: Error getting metadata for ${match.resourcePath}: ${
+								errorMessage(error)
+							}`,
+						);
 					}
-				} catch (error) {
-					logger.warn(`FilesystemAccessor: Error searching file ${entry.path}: ${errorMessage(error)}`);
-					// Continue with next file
 				}
-			}
 
-			return {
-				matches,
-				totalMatches: matches.length,
-			};
+				return {
+					matches,
+					totalMatches: matches.length,
+					errorMessage: result.errorMessage,
+				};
+			} else {
+				// Use metadata-only search
+				const result = await searchFilesMetadata(
+					this.rootPath,
+					searchFileOptions,
+				);
+
+				// Convert utility results to accessor format
+				const matches: ResourceSearchResult['matches'] = [];
+				for (const filePath of result.files) {
+					try {
+						// Get resource metadata
+						const resourceMetadata = await getFileMetadata(
+							this.rootPath,
+							filePath,
+						);
+
+						// Create basic match
+						matches.push({
+							resource: resourceMetadata,
+							score: 1.0,
+						});
+					} catch (error) {
+						logger.warn(
+							`FilesystemAccessor: Error getting metadata for ${filePath}: ${errorMessage(error)}`,
+						);
+					}
+				}
+
+				return {
+					matches,
+					totalMatches: matches.length,
+					errorMessage: result.errorMessage,
+				};
+			}
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error searching resources`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to search resources: ${errorMessage(error)}`,
 				{
 					name: 'search-resources',
 					filePath: options.path || '.',
-					operation: 'search-project',
-				} as FileHandlingErrorOptions,
+					operation: 'search-resources',
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -541,12 +540,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check overwrite option
 			if (exists && options.overwrite === false) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`File already exists and overwrite is false: ${resourcePath}`,
 					{
 						filePath: resourcePath,
 						operation: 'write',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -580,16 +579,16 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			};
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error writing resource ${resourceUri}`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to write resource: ${errorMessage(error)}`,
 				{
 					filePath: resourceUri,
 					operation: 'write',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -625,12 +624,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check if source exists
 			if (!await safeExists(sourceAbsPath)) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Source file not found: ${sourcePath}`,
 					{
 						filePath: sourcePath,
 						operation: 'move',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -640,12 +639,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check overwrite option
 			if (destExists && options.overwrite === false) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Destination file already exists and overwrite is false: ${destFile}`,
 					{
 						filePath: destPath,
 						operation: 'move',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -670,16 +669,16 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			};
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error moving resource ${sourceUri} to ${destinationUri}`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to move resource: ${errorMessage(error)}`,
 				{
 					filePath: sourceUri,
 					operation: 'move',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -707,12 +706,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Check if the resource exists
 			if (!await safeExists(absolutePath)) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Resource not found: ${resourcePath}`,
 					{
 						filePath: resourcePath,
 						operation: 'delete',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -724,12 +723,12 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			// Handle based on resource type
 			if (isDirectory && options.recursive !== true) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Cannot delete directory without recursive option: ${resourcePath}`,
 					{
 						filePath: resourcePath,
 						operation: 'delete',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -743,16 +742,16 @@ export class FilesystemAccessor extends BBResourceAccessor {
 			};
 		} catch (error) {
 			logger.error(`FilesystemAccessor: Error deleting resource ${resourceUri}`, error);
-			if (isFileHandlingError(error)) {
+			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Failed to delete resource: ${errorMessage(error)}`,
 				{
 					filePath: resourceUri,
 					operation: 'delete',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}

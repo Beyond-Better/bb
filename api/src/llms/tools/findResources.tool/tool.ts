@@ -4,7 +4,11 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import type { LLMToolSearchProjectInput } from './types.ts';
+import type {
+	LLMToolFindResourcesInput,
+	LLMToolFindResourcesResourceMatch,
+	LLMToolFindResourcesResourceMatches,
+} from './types.ts';
 
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -15,13 +19,13 @@ import {
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import LLMTool from 'api/llms/llmTool.ts';
-import { searchFilesContent, searchFilesMetadata } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
+import type { ResourceSearchOptions } from 'shared/types/dataSourceResource.ts';
 
-export default class LLMToolSearchProject extends LLMTool {
+export default class LLMToolFindResources extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
 		return {
 			type: 'object',
@@ -55,7 +59,6 @@ Leave empty to search only by resource name, date, or size.`,
 					type: 'string',
 					description:
 						'Glob pattern(s) to filter resources by name. IMPORTANT PATTERN RULES:\n\n1. Directory Traversal (`**`):\n   * ONLY use between directory separators\n   * Matches one or more directory levels\n   * Example: `src/**/*.ts` matches TypeScript files in src subdirectories\n   * CANNOT use within filenames\n\n2. Character Matching (`*`):\n   * Use within directory or file names\n   * Matches any characters except directory separator\n   * Example: `src/*.ts` matches TypeScript files in src directory only\n\n3. Common Patterns:\n   * `dir/*` - files IN directory only\n   * `dir/**/*` - files in subdirectories only\n   * `dir/*|dir/**/*` - files in directory AND subdirectories\n   * `**/*.test.ts` - test files at any depth\n   * `**/util/*.ts` - TypeScript files in any util directory\n\n4. Multiple Patterns:\n   * Use pipe | to separate\n   * Example: `*.ts|*.js` matches both TypeScript and JavaScript files\n   * Example: `src/*|test/*` matches files in both directories',
-					//'Glob pattern(s) to filter files by name. Use pipe | to separate multiple patterns. Examples:\n* "*.ts" for TypeScript files\n* "src/**/*.ts" for TypeScript files in src and subdirectories\n* "*.js|*.ts" for both JavaScript and TypeScript files\n* "test_*.py|*_test.py" for Python test files with prefix or suffix',
 				},
 				dateAfter: {
 					type: 'string',
@@ -76,6 +79,22 @@ Leave empty to search only by resource name, date, or size.`,
 					type: 'number',
 					description:
 						'Include only resources smaller than this size in bytes. Examples:\n* 1024 for resources smaller than 1KB\n* 1048576 for resources smaller than 1MB',
+				},
+				contextLines: {
+					type: 'number',
+					description:
+						'Number of lines to include before and after each match for context. Only applies when contentPattern is provided. Default is 2.',
+					default: 2,
+					minimum: 0,
+					maximum: 10,
+				},
+				maxMatchesPerFile: {
+					type: 'number',
+					description:
+						'Maximum number of matches to return per file. Only applies when contentPattern is provided. Default is 5.',
+					default: 5,
+					minimum: 1,
+					maximum: 20,
 				},
 			},
 		};
@@ -102,7 +121,7 @@ Leave empty to search only by resource name, date, or size.`,
 		toolUse: LLMAnswerToolUse,
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
-		const input = toolUse.toolInput as LLMToolSearchProjectInput;
+		const input = toolUse.toolInput as LLMToolFindResourcesInput;
 		const {
 			contentPattern,
 			caseSensitive = false,
@@ -111,6 +130,8 @@ Leave empty to search only by resource name, date, or size.`,
 			dateBefore,
 			sizeMin,
 			sizeMax,
+			contextLines = 2,
+			maxMatchesPerFile = 5,
 			dataSourceIds = [],
 		} = input;
 		// caseSensitive controls the regex flag
@@ -128,13 +149,16 @@ Leave empty to search only by resource name, date, or size.`,
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const searchOptions = {
-			resourcePattern,
-			dateAfter,
-			dateBefore,
-			sizeMin,
-			sizeMax,
-		};
+		// const searchOptions = {
+		// 	resourcePattern,
+		// 	dateAfter,
+		// 	dateBefore,
+		// 	sizeMin,
+		// 	sizeMax,
+		// 	contextLines,
+		// 	maxMatchesPerFile,
+		// 	includeContent: !!contentPattern, // Only include content when doing content search
+		// };
 
 		const searchCriteria = [
 			contentPattern && `content pattern "${contentPattern}"`,
@@ -152,36 +176,82 @@ Leave empty to search only by resource name, date, or size.`,
 				resources: [] as string[],
 				errorMessages: [] as string[],
 				dsConnectionsSearched: [] as string[],
+				enhancedMatches: [] as LLMToolFindResourcesResourceMatches, // Store enhanced matches for content searches
 			};
 
 			// Process each data source
 			for (const dsConnection of dsConnections) {
-				const dataSourceRoot = dsConnection.getDataSourceRoot();
-				if (!dataSourceRoot) {
-					aggregatedResults.errorMessages.push(`No root for data source: ${dsConnection.name}`);
-					continue;
-				}
-
 				logger.warn(
-					`LLMToolSearchProject: runTool - Search in ${dataSourceRoot}: ${JSON.stringify(input)}`,
+					`LLMToolFindResources: runTool - Search in ${dsConnection.name}: ${JSON.stringify(input)}`,
 				);
 
-				let result;
 				try {
-					if (contentPattern) {
-						result = await searchFilesContent(dataSourceRoot, contentPattern, caseSensitive, searchOptions);
-					} else {
-						result = await searchFilesMetadata(dataSourceRoot, searchOptions);
+					// Get the resource accessor for this data source
+					const resourceAccessor = await dsConnection.getResourceAccessor();
+					if (!resourceAccessor.searchResources) {
+						throw createError(
+							ErrorType.ToolHandling,
+							`No searchResources method on resourceAccessor for ${dsConnection.name}`,
+							{
+								toolName: 'find_resources',
+								operation: 'tool-run',
+							} as ToolHandlingErrorOptions,
+						);
 					}
 
-					const { files: resources, errorMessage } = result;
+					// Prepare search options for the accessor
+					const accessorSearchOptions: ResourceSearchOptions = {
+						contentPattern,
+						resourcePattern,
+						caseSensitive,
+						dateAfter,
+						dateBefore,
+						sizeMin,
+						sizeMax,
+						contextLines,
+						maxMatchesPerFile,
+						pageSize: 100, // Default page size
+						includeContent: !!contentPattern, // Include content when doing content search
+					};
+
+					// Use a dummy query string if no content pattern (for basic metadata search)
+					const searchQuery = contentPattern || '';
+
+					// Call the accessor's search method
+					const searchResult = await resourceAccessor.searchResources(searchQuery, accessorSearchOptions);
+
+					// Extract resource paths from matches
+					const resources = searchResult.matches.map((match) => {
+						// Extract relative path from URI
+						const uri = match.resource.uri;
+						// For filesystem resources, extract the path after 'file:./'
+						if (uri.startsWith('file:./')) {
+							return uri.substring(7); // Remove 'file:./'
+						}
+						// For other resources, use a more generic approach
+						const pathPart = uri.includes('://') ? uri.split('://')[1] : uri;
+						return pathPart || uri;
+					});
+
+					// Store enhanced matches for formatters (with data source prefix)
+					if (contentPattern && searchResult.matches.some((match) => match.contentMatches)) {
+						const enhancedMatches = searchResult.matches
+							.filter((match) => match.contentMatches)
+							.map((match) => ({
+								resourcePath: `[${dsConnection.name}] ${
+									resources[searchResult.matches.indexOf(match)]
+								}`,
+								contentMatches: match.contentMatches,
+							} as LLMToolFindResourcesResourceMatch));
+						aggregatedResults.enhancedMatches.push(...enhancedMatches);
+					}
 
 					// Add source prefix to resources for clarity
-					const prefixedResources = resources.map((resource) => `[${dsConnection.name}] ${resource}`);
+					const prefixedResources = resources.map((resource: string) => `[${dsConnection.name}] ${resource}`);
 
 					aggregatedResults.resources.push(...prefixedResources);
-					if (errorMessage) {
-						aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${errorMessage}`);
+					if (searchResult.errorMessage) {
+						aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${searchResult.errorMessage}`);
 					}
 					aggregatedResults.dsConnectionsSearched.push(dsConnection.name);
 				} catch (error) {
@@ -197,16 +267,36 @@ Leave empty to search only by resource name, date, or size.`,
 				? `Errors:\n${aggregatedResults.errorMessages.join('\n')}\n\n`
 				: '';
 
-			const toolResults = stripIndents`
-			  Searched data sources: [${aggregatedResults.dsConnectionsSearched.join(', ')}]
-			  ${errorSection}
-			  ${aggregatedResults.resources.length} resources match the search criteria: ${searchCriteria}
-			  ${
-				aggregatedResults.resources.length > 0
-					? `\n<resources>\n${aggregatedResults.resources.join('\n')}\n</resources>`
-					: ''
+			// Generate tool results with enhanced data if available
+			let toolResults: string;
+			if (contentPattern && aggregatedResults.enhancedMatches.length > 0) {
+				// Enhanced format with content matches
+				toolResults = stripIndents`
+				  Searched data sources: [${aggregatedResults.dsConnectionsSearched.join(', ')}]
+				  ${errorSection}
+				  ${aggregatedResults.resources.length} resources match the search criteria: ${searchCriteria}
+				  
+				  <enhanced-results>
+				  ${JSON.stringify({ matches: aggregatedResults.enhancedMatches }, null, 2)}
+				  </enhanced-results>
+				  
+				  <resources>
+				  ${aggregatedResults.resources.join('\n')}
+				  </resources>
+				`;
+			} else {
+				// Simple format (backward compatibility)
+				toolResults = stripIndents`
+				  Searched data sources: [${aggregatedResults.dsConnectionsSearched.join(', ')}]
+				  ${errorSection}
+				  ${aggregatedResults.resources.length} resources match the search criteria: ${searchCriteria}
+				  ${
+					aggregatedResults.resources.length > 0
+						? `\n<resources>\n${aggregatedResults.resources.join('\n')}\n</resources>`
+						: ''
+				}
+				`;
 			}
-			`;
 
 			const toolResponse =
 				`${dsConnectionStatus}\nFound ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}`;
@@ -220,7 +310,7 @@ Leave empty to search only by resource name, date, or size.`,
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			logger.error(`LLMToolSearchProject: Error searching project: ${(error as Error).message}`);
+			logger.error(`LLMToolFindResources: Error searching project: ${(error as Error).message}`);
 
 			throw createError(ErrorType.FileHandling, `Error searching project: ${(error as Error).message}`, {
 				name: 'search-project',

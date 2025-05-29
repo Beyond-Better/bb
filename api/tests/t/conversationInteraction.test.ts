@@ -4,24 +4,80 @@ import { join } from '@std/path';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
-import { LLMCallbackType } from 'api/types.ts';
+import type {
+	//LLMCallbackType,
+	LLMCallbacks,
+} from 'api/types.ts';
 import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';
+import { makeConversationInteractionStub } from '../lib/stubs.ts';
+import type { LLMRequestParams } from 'api/types/llms.ts';
+
+import type {
+	ConversationId,
+	ConversationLogEntry,
+	ConversationStats,
+	//ObjectivesData,
+	TokenUsageStats,
+} from 'shared/types.ts';
+
+import type LLMTool from 'api/llms/llmTool.ts';
 
 // Mock LLM class
-class MockLLM {
-	async invoke(callbackType: LLMCallbackType, ..._args: any[]): Promise<any> {
-		if (callbackType === LLMCallbackType.PROJECT_DATA_SOURCES) {
-			return Deno.makeTempDir();
-		}
+//class MockLLM {
+//	async invoke(callbackType: LLMCallbackType, ..._args: any[]): Promise<any> {
+//		if (callbackType === LLMCallbackType.PROJECT_DATA_SOURCES) {
+//			return Deno.makeTempDir();
+//		}
+//		return null;
+//	}
+//}
+
+const mockInteractionCallbacks: LLMCallbacks = {
+	PROJECT_EDITOR: () => undefined,
+	PROJECT_ID: () => undefined,
+	PROJECT_DATA_SOURCES: () => [Deno.makeTempDir()],
+	PROJECT_MCP_TOOLS: () => [],
+	PROJECT_INFO: () => {},
+	PROJECT_CONFIG: () => {},
+	PROJECT_RESOURCE_CONTENT: async (_dsConnectionId: string, _filePath: string): Promise<string | null> => {
 		return null;
-	}
-}
+	},
+	// deno-lint-ignore require-await
+	LOG_ENTRY_HANDLER: async (
+		_messageId: string,
+		_parentMessageId: string | null,
+		_parentInteractionId: ConversationId,
+		_agentInteractionId: ConversationId | null,
+		_timestamp: string,
+		_logEntry: ConversationLogEntry,
+		_conversationStats: ConversationStats,
+		_tokenUsageStats: TokenUsageStats,
+		_requestParams?: LLMRequestParams,
+	): Promise<void> => {
+	},
+	PREPARE_SYSTEM_PROMPT: async (_system: string, _interactionId: string): Promise<string> => {
+		return '';
+	},
+	PREPARE_MESSAGES: async (_messages: LLMMessage[], _interactionId: string): Promise<LLMMessage[]> => {
+		return [];
+	},
+	PREPARE_TOOLS: async (_tools: Map<string, LLMTool>, _interactionId: string): Promise<LLMTool[]> => {
+		return [];
+	},
+	// [TODO] PREPARE_DATA_SOURCES
+	// [TODO] PREPARE_RESOURCES
+};
 
 async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
 	await GitUtils.initGit(dataSourceRoot);
 	const projectEditor = await getProjectEditor(projectId);
-	const mockLLM = new MockLLM();
-	const conversation = new LLMConversationInteraction(mockLLM as any, 'test-conversation-id');
+
+	// Create conversation and stub the LLMFactory to prevent real provider creation
+	const conversation = new LLMConversationInteraction('test-conversation-id');
+	const { factoryStub } = makeConversationInteractionStub(conversation, projectEditor);
+
+	// Now init the conversation - it will use the stubbed factory
+	await conversation.init('claude-3-5-haiku-20241022', mockInteractionCallbacks);
 
 	// Create test files
 	const testFiles = ['file1.txt', 'file2.txt'];
@@ -30,14 +86,14 @@ async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
 		await Deno.writeTextFile(filePath, `Content of ${file}`);
 	}
 
-	return { projectEditor, conversation, dataSourceRoot, testFiles };
+	return { projectEditor, conversation, dataSourceRoot, testFiles, factoryStub };
 }
 
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
-			const { projectEditor: _projectEditor, conversation, dataSourceRoot, testFiles } =
+			const { projectEditor: _projectEditor, conversation, dataSourceRoot, testFiles, factoryStub } =
 				await setupTestEnvironment(
 					testProjectId,
 					testProjectRoot,
@@ -123,6 +179,9 @@ Deno.test({
 				lastHydratedContent?.includes('Note: File file1.txt content is up-to-date as of turn'),
 				'Fourth message should contain a note about file1.txt being up-to-date',
 			);
+
+			// Clean up stubs
+			factoryStub.restore();
 		});
 	},
 	sanitizeResources: false,

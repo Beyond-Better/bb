@@ -1,6 +1,9 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-import { migrateConversationResources, migrateConversationsFileIfNeeded } from 'shared/conversationMigration.ts';
+import {
+	//migrateConversationResources,
+	migrateConversationsFileIfNeeded,
+} from 'shared/conversationMigration.ts';
 import type { ConversationsFileV1 } from 'shared/conversationMigration.ts';
 import {
 	getProjectAdminDataDir,
@@ -9,7 +12,6 @@ import {
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type LLM from '../llms/providers/baseLLM.ts';
 import type {
 	ConversationDetailedMetadata,
 	ConversationId,
@@ -24,6 +26,7 @@ import type {
 	TokenUsageRecord,
 	TokenUsageStats,
 } from 'shared/types.ts';
+import type { LLMCallbacks } from 'api/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { ConversationResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
@@ -506,7 +509,7 @@ class ConversationPersistence {
 		}
 	}
 
-	async loadConversation(llm: LLM): Promise<LLMConversationInteraction | null> {
+	async loadConversation(interactionCallbacks: LLMCallbacks): Promise<LLMConversationInteraction | null> {
 		try {
 			await this.ensureInitialized();
 
@@ -516,13 +519,13 @@ class ConversationPersistence {
 			}
 
 			const metadata: ConversationDetailedMetadata = await this.getMetadata();
-			const conversation = new LLMConversationInteraction(llm, this.conversationId);
-			await conversation.init();
+			const conversation = new LLMConversationInteraction(this.conversationId);
+			await conversation.init(metadata.model, interactionCallbacks);
 
 			conversation.id = metadata.id;
 			conversation.title = metadata.title;
 			//conversation.baseSystem = metadata.system;
-			conversation.model = metadata.model;
+			//conversation.model = metadata.model; // set during init
 			conversation.maxTokens = metadata.maxTokens;
 			conversation.temperature = metadata.temperature;
 

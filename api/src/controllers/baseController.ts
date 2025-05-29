@@ -4,8 +4,6 @@ import type InteractionManager from 'api/llms/interactionManager.ts';
 import { interactionManager } from 'api/llms/interactionManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
-import type LLM from '../llms/providers/baseLLM.ts';
-import LLMFactory from '../llms/llmProvider.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
@@ -17,7 +15,6 @@ import PromptManager from '../prompts/promptManager.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
-import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
 import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
 import type {
@@ -43,7 +40,6 @@ import type { ProjectConfig } from 'shared/config/types.ts';
 import { extractThinkingFromContent } from 'api/utils/llms.ts';
 import { readFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithResponse } from 'api/types.ts';
-import { LLMModelToProvider } from 'api/types/llms.ts';
 import {
 	//generateConversationObjective,
 	generateConversationTitle,
@@ -55,11 +51,11 @@ import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 //import { getVersionInfo } from 'shared/version.ts';
 
 class BaseController {
+	protected _controllerType: 'base' | 'orchestrator' | 'agent';
 	public projectConfig!: ProjectConfig;
 	public interactionManager: InteractionManager;
 	public promptManager!: PromptManager;
 	public toolManager!: LLMToolManager;
-	public llmProvider!: LLM;
 	public eventManager!: EventManager;
 	protected projectEditorRef!: WeakRef<ProjectEditor>;
 	//protected _providerRequestCount: number = 0;
@@ -80,27 +76,17 @@ class BaseController {
 	protected statusSequence: number = 0;
 
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
+		this._controllerType = 'base';
 		this.projectEditorRef = new WeakRef(projectEditor);
 		this.interactionManager = interactionManager; //new InteractionManager();
 	}
 
 	async init(): Promise<BaseController> {
 		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
 		this.toolManager = await new LLMToolManager(this.projectConfig, 'core').init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
-		//logger.info(`BaseController: init: defaultModels`, {defaultModels: this.projectConfig.defaultModels});
-
-		this.llmProvider = LLMFactory.getProvider(
-			this.getInteractionCallbacks(),
-			globalConfig.api.localMode
-				? LLMModelToProvider[this.projectConfig.defaultModels?.agent ?? 'claude-sonnet-4-20250514']
-				: LLMProviderEnum.BB,
-			//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
-			//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
-		);
 
 		return this;
 	}
@@ -253,7 +239,7 @@ class BaseController {
 		try {
 			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
 
-			const conversation = await persistence.loadConversation(this.llmProvider);
+			const conversation = await persistence.loadConversation(this.getInteractionCallbacks());
 			if (!conversation) {
 				logger.warn(`BaseController: No conversation found for ID: ${conversationId}`);
 				return null;
@@ -283,10 +269,12 @@ class BaseController {
 
 	async createInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
 		logger.info(`BaseController: Creating new conversation: ${conversationId}`);
+		const interactionModel = this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514';
 		const interaction = await this.interactionManager.createInteraction(
 			'conversation',
 			conversationId,
-			this.llmProvider,
+			interactionModel,
+			this.getInteractionCallbacks(),
 		);
 		const systemPrompt = await this.promptManager.getPrompt('system', {
 			userDefinedContent: 'You are an AI assistant helping with code and project management.',
@@ -300,10 +288,12 @@ class BaseController {
 
 	async createChatInteraction(parentInteractionId: ConversationId, title: string): Promise<LLMChatInteraction> {
 		const interactionId = shortenConversationId(generateConversationId());
+		const interactionModel = this.projectConfig.defaultModels?.chat ?? 'claude-3-5-haiku-20241022';
 		const chatInteraction = await this.interactionManager.createInteraction(
 			'chat',
 			interactionId,
-			this.llmProvider,
+			interactionModel,
+			this.getInteractionCallbacks(),
 			parentInteractionId,
 		) as LLMChatInteraction;
 		chatInteraction.title = title;

@@ -5,7 +5,7 @@ import type { ConversationLogEntryContent } from 'shared/types.ts';
 // source data to be formatted
 export interface LogEntrySourceData {
 	// For the left side next to icon
-	title: string; // e.g. "Setting Title" or "search_project"
+	title: string; // e.g. "Setting Title" or "find_resources"
 	subtitle?: string; // e.g. "3 operations" or "Found 5 files"
 
 	// For the main body
@@ -17,14 +17,14 @@ export interface LogEntrySourceData {
 
 export interface LogEntryTitleData {
 	// For the left side next to icon
-	title: string; // e.g. "Setting Title" or "search_project"
+	title: string; // e.g. "Setting Title" or "find_resources"
 	subtitle?: string; // e.g. "3 operations" or "Found 5 files"
 }
 
 // Each formatted result type can be string for console or JSX.Element for browser
 export interface LogEntryFormattedResult {
 	// For the left side next to icon
-	title: string | JSX.Element; // e.g. "Setting Title" or "search_project"
+	title: string | JSX.Element; // e.g. "Setting Title" or "find_resources"
 	subtitle?: string | JSX.Element; // e.g. "3 operations" or "Found 5 files"
 
 	// For the main body

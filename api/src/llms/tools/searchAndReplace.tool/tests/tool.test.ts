@@ -132,7 +132,7 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log(`created resource: ${newResourcePath}`);
+				// console.log(`created resource: ${newResourcePath}`);
 				// console.log('Multiple operations on new resource - bbResponse:', result.bbResponse);
 				// console.log('Multiple operations on new resource - toolResponse:', result.toolResponse);
 				// console.log('Multiple operations on new resource - toolResults:', result.toolResults);

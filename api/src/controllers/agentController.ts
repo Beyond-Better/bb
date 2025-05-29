@@ -82,6 +82,7 @@ class AgentController extends BaseController {
 		orchestratorInteractionId: ConversationId,
 	) {
 		super(projectEditor);
+		this._controllerType = 'agent';
 		this.orchestratorInteractionId = orchestratorInteractionId;
 	}
 
@@ -110,10 +111,13 @@ class AgentController extends BaseController {
 		logger.info(
 			`AgentController: createAgentInteraction - creating interaction for: ${agentInteractionId} with parent ${this.orchestratorInteractionId}`,
 		);
+		const interactionModel = this.projectConfig.defaultModels?.agent ?? 'claude-sonnet-4-20250514';
 		const agentInteraction = await this.interactionManager.createInteraction(
 			'conversation',
 			agentInteractionId,
-			this.llmProvider,
+			//this.llmProvider,
+			interactionModel,
+			this.getInteractionCallbacks(),
 			this.orchestratorInteractionId,
 		) as LLMConversationInteraction;
 		agentInteraction.title = title;

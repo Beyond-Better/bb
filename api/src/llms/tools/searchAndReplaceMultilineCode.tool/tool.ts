@@ -7,7 +7,7 @@ import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -556,13 +556,13 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 		const resourceUri = dsConnectionToUse.getUriForResource(`file:./${filePath}`);
 		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Access denied: ${filePath} is outside the data source directory`,
 				{
 					name: 'search-and-replace',
 					filePath,
 					operation: 'search-replace',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 
@@ -686,11 +686,11 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 					: `${toolWarning}No changes were made to the file: ${filePath}. The search strings were not found in the file content.`;
 				logger.info(`LLMToolSearchAndReplaceCode: ${noChangesMessage}`);
 
-				throw createError(ErrorType.FileHandling, noChangesMessage, {
+				throw createError(ErrorType.ResourceHandling, noChangesMessage, {
 					name: 'search-and-replace',
 					filePath: filePath,
 					operation: 'search-replace',
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 		} catch (error) {
 			if ((error as Error).name === 'search-and-replace') {
@@ -699,11 +699,11 @@ export default class LLMToolSearchAndReplaceCode extends LLMTool {
 			const errorMessage = `Failed to apply search and replace to ${filePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolSearchAndReplaceCode: ${errorMessage}`);
 
-			throw createError(ErrorType.FileHandling, errorMessage, {
+			throw createError(ErrorType.ResourceHandling, errorMessage, {
 				name: 'search-and-replace',
 				filePath: filePath,
 				operation: 'search-replace',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 }

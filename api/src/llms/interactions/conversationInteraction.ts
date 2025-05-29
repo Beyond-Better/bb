@@ -1,10 +1,8 @@
-//import { join } from '@std/path';
 import { encodeBase64 } from '@std/encoding';
 
-import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { ConversationId, ConversationStatementMetadata, TokenUsage } from 'shared/types.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
-import type LLM from '../providers/baseLLM.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
 	LLMMessageContentPart,
@@ -112,13 +110,17 @@ class LLMConversationInteraction extends LLMInteraction {
 	};
 	//private currentCommit: string | null = null;
 
-	constructor(llm: LLM, conversationId?: ConversationId) {
-		super(llm, conversationId);
+	constructor(conversationId?: ConversationId) {
+		super(conversationId);
 		this._interactionType = 'conversation';
 	}
 
-	public override async init(parentInteractionId?: ConversationId): Promise<LLMConversationInteraction> {
-		await super.init(parentInteractionId);
+	public override async init(
+		interactionModel: string,
+		interactionCallbacks: LLMCallbacks,
+		parentInteractionId?: ConversationId,
+	): Promise<LLMConversationInteraction> {
+		await super.init(interactionModel, interactionCallbacks, parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 		//this.resourceManager = projectEditor.resourceManager;
 		this.projectData = projectEditor.projectData;
@@ -753,6 +755,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this.addMessageForUserRole(contentParts);
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (speakOptions.model) this.model = speakOptions.model;
 		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`BaseInteraction: relayToolResult - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
@@ -857,6 +860,7 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		//logger.info(`ConversationInteraction: converse - using model`, {thisModel: this.model, defaultModelsAgent: this.projectConfig.defaultModels!.agent});
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
+		if (speakOptions.model) this.model = speakOptions.model;
 		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);

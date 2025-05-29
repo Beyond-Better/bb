@@ -13,7 +13,7 @@ import { parseDataSourceUri } from 'shared/dataSource.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, FileHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { ResourceType } from 'api/types.ts';
 //import type { DataSourceAccessMethod } from 'shared/types/dataSource.ts';
 import type {
@@ -231,10 +231,10 @@ export class ResourceManager {
 			};
 		} catch (error) {
 			logger.error(`ResourceManager: Error loading resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.FileHandling, `Failed to load resource: ${(error as Error).message}`, {
+			throw createError(ErrorType.ResourceHandling, `Failed to load resource: ${(error as Error).message}`, {
 				filePath: resourceUri,
 				operation: 'read',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -353,17 +353,17 @@ export class ResourceManager {
 				throw createError(ErrorType.DataSourceHandling, `Data source does not support writing`, {
 					name: 'write-resource',
 					filePath: resourceUri,
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 
 			// Use the accessor to write the resource
 			return await accessor.writeResource!(resourceUri, content, options);
 		} catch (error) {
 			logger.error(`ResourceManager: Error writing resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.FileHandling, `Failed to write resource: ${(error as Error).message}`, {
+			throw createError(ErrorType.ResourceHandling, `Failed to write resource: ${(error as Error).message}`, {
 				filePath: resourceUri,
 				operation: 'write',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -388,17 +388,17 @@ export class ResourceManager {
 				throw createError(ErrorType.DataSourceHandling, `Data source does not support moving`, {
 					name: 'move-resource',
 					filePath: sourceUri,
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 
 			// Use the accessor to move the resource
 			return await accessor.moveResource!(sourceUri, destinationUri, options);
 		} catch (error) {
 			logger.error(`ResourceManager: Error moving resource ${sourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.FileHandling, `Failed to move resource: ${(error as Error).message}`, {
+			throw createError(ErrorType.ResourceHandling, `Failed to move resource: ${(error as Error).message}`, {
 				filePath: sourceUri,
 				operation: 'move',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 
@@ -418,17 +418,17 @@ export class ResourceManager {
 				throw createError(ErrorType.DataSourceHandling, `Data source does not support deletion`, {
 					name: 'delete-resource',
 					filePath: resourceUri,
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 			}
 
 			// Use the accessor to delete the resource
 			return await accessor.deleteResource!(resourceUri, options);
 		} catch (error) {
 			logger.error(`ResourceManager: Error deleting resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.FileHandling, `Failed to delete resource: ${(error as Error).message}`, {
+			throw createError(ErrorType.ResourceHandling, `Failed to delete resource: ${(error as Error).message}`, {
 				filePath: resourceUri,
 				operation: 'delete',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 }

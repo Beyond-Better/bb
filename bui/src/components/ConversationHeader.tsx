@@ -104,7 +104,7 @@ export function ConversationHeader({
 	return (
 		<header className='bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 py-2 px-4 shadow-sm relative'>
 			<div className='flex justify-between items-center'>
-				<div className='flex items-center space-x-8'>
+				<div className='flex items-center space-x-3'>
 					{/* Toggle List Button */}
 					<button
 						type='button'
@@ -148,9 +148,12 @@ export function ConversationHeader({
 						className='w-96'
 					/>
 
+					{/* Spacer */}
+					<div className='w-3'></div>
+
 					{/* Current Conversation Stats */}
 					{currentConversation.value && (
-						<div className='flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400 ml-4'>
+						<div className='flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400'>
 							{currentConversation.value && (
 								<>
 									<div className='flex items-center space-x-4'>

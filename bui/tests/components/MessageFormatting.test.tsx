@@ -21,10 +21,10 @@ const markdownEntry = {
 const toolEntry = {
 	logEntry: {
 		entryType: 'tool_use',
-		toolName: 'search_project',
+		toolName: 'find_resources',
 		content: {
 			type: 'tool_use',
-			toolName: 'search_project',
+			toolName: 'find_resources',
 			parameters: {
 				filePattern: '*.ts',
 				contentPattern: 'function',
@@ -75,7 +75,7 @@ Deno.test('MessageEntry - Tool Message Rendering', () => {
 
 	const toolName = container.querySelector('.font-semibold');
 	assertEquals(
-		toolName?.textContent?.includes('Tool Input: search_project'),
+		toolName?.textContent?.includes('Tool Input: find_resources'),
 		true,
 	);
 });
@@ -85,7 +85,7 @@ Deno.test('MessageEntryTool - Parameters Display', () => {
 	const { container } = render(
 		<MessageEntryTool
 			type='input'
-			toolName='search_project'
+			toolName='find_resources'
 			content={{
 				parameters: {
 					test: 'value',

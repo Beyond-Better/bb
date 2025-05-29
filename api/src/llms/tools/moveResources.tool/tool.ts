@@ -8,7 +8,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type {
 	DataSourceHandlingErrorOptions,
-	FileHandlingErrorOptions,
+	ResourceHandlingErrorOptions,
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
@@ -162,13 +162,13 @@ export default class LLMToolMoveResources extends LLMTool {
 			const destinationResourceUri = dsConnectionToUse.getUriForResource(`file:./${destination}`);
 			if (!await dsConnectionToUse.isResourceWithinDataSource(destinationResourceUri)) {
 				throw createError(
-					ErrorType.FileHandling,
+					ErrorType.ResourceHandling,
 					`Access denied: ${destination} is outside the data source`,
 					{
-						name: 'move-file',
+						name: 'move-resource',
 						filePath: destination,
 						operation: 'move',
-					} as FileHandlingErrorOptions,
+					} as ResourceHandlingErrorOptions,
 				);
 			}
 
@@ -207,13 +207,13 @@ export default class LLMToolMoveResources extends LLMTool {
 					// metadata: resourceMetadata,
 					if (!results.success) {
 						throw createError(
-							ErrorType.FileHandling,
+							ErrorType.ResourceHandling,
 							`Moving resource failed for ${source}`,
 							{
 								name: 'move-resource',
 								filePath: source,
 								operation: 'move',
-							} as FileHandlingErrorOptions,
+							} as ResourceHandlingErrorOptions,
 						);
 					}
 

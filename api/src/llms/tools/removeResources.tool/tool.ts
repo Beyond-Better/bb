@@ -10,7 +10,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
 import type {
 	DataSourceHandlingErrorOptions,
-	FileHandlingErrorOptions,
+	ResourceHandlingErrorOptions,
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
@@ -364,13 +364,13 @@ export default class LLMToolRemoveResources extends LLMTool {
 					await ensureDir(trashDir);
 				} catch (error) {
 					throw createError(
-						ErrorType.FileHandling,
+						ErrorType.ResourceHandling,
 						`Failed to create trash directory: ${(error as Error).message}`,
 						{
 							name: 'remove-resources',
 							filePath: trashDir,
 							operation: 'create-dir',
-						} as FileHandlingErrorOptions,
+						} as ResourceHandlingErrorOptions,
 					);
 				}
 			}

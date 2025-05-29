@@ -18,10 +18,10 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type {
 	DataSourceHandlingErrorOptions,
-	FileHandlingErrorOptions,
+	ResourceHandlingErrorOptions,
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
-import { isFileNotFoundError } from 'api/errors/error.ts';
+import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 // import { dirname, join } from '@std/path';
 // import { ensureDir } from '@std/fs';
@@ -155,13 +155,13 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			: dsConnectionToUse.getUriForResource(`file:./${resourcePath}`); // Likely a file path, prepend file:./
 		if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 			throw createError(
-				ErrorType.FileHandling,
+				ErrorType.ResourceHandling,
 				`Access denied: ${resourcePath} is outside the data source`,
 				{
 					name: 'search-and-replace',
 					filePath: resourcePath,
 					operation: 'search-replace',
-				} as FileHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 
@@ -197,7 +197,8 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				}
 			} catch (error) {
 				//if (error instanceof Deno.errors.NotFound && createIfMissing) {
-				if (isFileNotFoundError(error) && createIfMissing) {
+
+				if (isResourceNotFoundError(error) && createIfMissing) {
 					content = '';
 					isNewResource = true;
 					logger.info(`LLMToolSearchAndReplace: Resource ${resourceUri} not found. Creating new resource.`);
@@ -298,13 +299,13 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				// bytesWritten: typeof content === 'string' ? new TextEncoder().encode(content).length : content.length,
 				if (!results.success) {
 					throw createError(
-						ErrorType.FileHandling,
+						ErrorType.ResourceHandling,
 						`Writing resource failed for ${resourcePath}`,
 						{
 							name: 'search-and-replace',
 							filePath: resourcePath,
 							operation: 'write',
-						} as FileHandlingErrorOptions,
+						} as ResourceHandlingErrorOptions,
 					);
 				}
 				logger.info(
@@ -362,11 +363,11 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 				}`;
 				logger.info(`LLMToolSearchAndReplace: ${noChangesMessage}`);
 
-				throw createError(ErrorType.FileHandling, noChangesMessage, {
+				throw createError(ErrorType.ResourceHandling, noChangesMessage, {
 					name: 'search-and-replace',
 					filePath: resourcePath,
 					operation: 'search-replace',
-				} as FileHandlingErrorOptions);
+				} as ResourceHandlingErrorOptions);
 
 				//const toolResultContentParts: LLMMessageContentParts = [{
 				//	type: 'text',
@@ -381,11 +382,11 @@ export default class LLMToolSearchAndReplace extends LLMTool {
 			const errorMessage = `Failed to apply search and replace to ${resourcePath}: ${(error as Error).message}`;
 			logger.error(`LLMToolSearchAndReplace: ${errorMessage}`);
 
-			throw createError(ErrorType.FileHandling, errorMessage, {
+			throw createError(ErrorType.ResourceHandling, errorMessage, {
 				name: 'search-and-replace',
 				filePath: resourcePath,
 				operation: 'search-replace',
-			} as FileHandlingErrorOptions);
+			} as ResourceHandlingErrorOptions);
 		}
 	}
 }

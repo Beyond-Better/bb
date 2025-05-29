@@ -30,6 +30,7 @@ interface ErrorState {
 interface ChatInputProps {
 	apiClient: ApiClient;
 	projectId: string;
+	primaryDataSourceName?: string;
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
 	chatInputOptions: Signal<LLMRequestParams>;
@@ -41,6 +42,7 @@ interface ChatInputProps {
 	statusState: Signal<ChatStatus>;
 	maxLength?: number;
 	conversationId: string | null;
+	onHeightChange?: (height: number) => void;
 }
 
 enum TabState {
@@ -81,6 +83,7 @@ const isShowingSuggestions = signal<boolean>(false);
 const tabState = signal<TabState>(TabState.INITIAL);
 const cursorPosition = signal<number>(0);
 const selectedIndex = signal<number>(-1);
+const shouldShowDataSourceInfo = signal<boolean>(false);
 
 // State for options panel visibility
 const isOptionsOpen = signal<boolean>(false);
@@ -105,10 +108,13 @@ export function ChatInput({
 	maxLength = INPUT_MAX_CHAR_LENGTH,
 	onCancelProcessing,
 	projectId,
+	primaryDataSourceName,
 	conversationId,
+	onHeightChange,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
+	const containerRef = useRef<HTMLDivElement>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
@@ -179,6 +185,16 @@ export function ChatInput({
 
 			// Process suggestions into display format
 			const processedSuggestions = processSuggestions(response.suggestions);
+
+			// Check if we need to show data source info:
+			// 1. When multiple data sources are represented, OR
+			// 2. When any suggestion is from a non-primary data source
+			const dataSourceNames = new Set(processedSuggestions.map((s) => s.dataSourceName).filter(Boolean));
+			const hasMultipleDataSources = dataSourceNames.size > 1;
+			const hasNonPrimaryDataSource = processedSuggestions.some((s) =>
+				s.dataSourceName && s.dataSourceName !== primaryDataSourceName
+			);
+			shouldShowDataSourceInfo.value = hasMultipleDataSources || hasNonPrimaryDataSource;
 			// console.debug('ChatInput: Processed suggestions', processedSuggestions);
 
 			// Update suggestions list
@@ -257,6 +273,7 @@ export function ChatInput({
 	};
 
 	// Add upload function
+	// deno-lint-ignore require-await
 	const uploadFile = async (file: File, fileId: string): Promise<string | undefined> => {
 		if (!apiClient) {
 			console.error('ChatInput: uploadFile - API client not initialized');
@@ -460,6 +477,24 @@ export function ChatInput({
 		adjustTextareaHeight();
 	}, [chatInputText.value]);
 
+	// Track container height changes
+	useEffect(() => {
+		if (!containerRef.current || !onHeightChange) return;
+
+		const resizeObserver = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const newHeight = entry.contentRect.height;
+				onHeightChange(newHeight);
+			}
+		});
+
+		resizeObserver.observe(containerRef.current);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, [onHeightChange]);
+
 	// Cleanup debounce timer
 	useEffect(() => {
 		return () => {
@@ -637,7 +672,10 @@ export function ChatInput({
 		cursorPosition.value = newPosition;
 		onChange(newValue);
 
-		// Debounce input updates
+		// Update input value immediately without debounce to prevent jumping
+		onChange(newValue);
+
+		// Debounce other updates
 		if (inputDebounceRef.current) {
 			clearTimeout(inputDebounceRef.current);
 		}
@@ -645,8 +683,6 @@ export function ChatInput({
 		inputDebounceRef.current = setTimeout(() => {
 			try {
 				batch(() => {
-					onChange(newValue);
-
 					// Track performance
 					const duration = performance.now() - startTime;
 					if (duration > 50) {
@@ -866,6 +902,17 @@ export function ChatInput({
 				// console.debug(`ChatInput: ${e.key} pressed, selecting suggestion`, { newIndex, tabState:tabState.value });
 				selectedIndex.value = newIndex;
 				tabState.value = TabState.SUGGESTIONS;
+
+				// Auto-scroll to keep selected item visible
+				setTimeout(() => {
+					const selectedElement = document.getElementById(`suggestion-${newIndex}`);
+					if (selectedElement) {
+						selectedElement.scrollIntoView({
+							block: 'nearest',
+							behavior: 'smooth',
+						});
+					}
+				}, 0);
 				return;
 			}
 			if (e.key === 'ArrowUp') {
@@ -877,6 +924,17 @@ export function ChatInput({
 				if (tabState.value !== TabState.SUGGESTIONS) {
 					tabState.value = TabState.SUGGESTIONS;
 				}
+
+				// Auto-scroll to keep selected item visible
+				setTimeout(() => {
+					const selectedElement = document.getElementById(`suggestion-${newIndex}`);
+					if (selectedElement) {
+						selectedElement.scrollIntoView({
+							block: 'nearest',
+							behavior: 'smooth',
+						});
+					}
+				}, 0);
 				return;
 			}
 			if (e.key === 'Enter' && selectedIndex.value >= 0) {
@@ -975,7 +1033,11 @@ export function ChatInput({
 			// Final selection - use full formatting
 			const pos = getTextPositions(chatInputText.value, cursorPosition.value);
 			// console.debug('ChatInput: Text positions for final selection', pos);
-			newText = formatPathForInsertion(suggestion.path, pos);
+			newText = formatPathForInsertion(
+				suggestion.path,
+				pos,
+				shouldShowDataSourceInfo.value ? suggestion.dataSourceName : undefined,
+			);
 			// For final selection, place cursor at end of the line
 			setTimeout(() => {
 				if (internalTextareaRef.current) {
@@ -1103,7 +1165,7 @@ export function ChatInput({
 	});
 
 	return (
-		<div className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
+		<div ref={containerRef} className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
 			<InputStatusBar
 				visible={statusInfo.value.visible}
 				message={statusInfo.value.message}
@@ -1282,7 +1344,9 @@ export function ChatInput({
 									{suggestions.value.map((suggestion, index) => (
 										<li
 											id={`suggestion-${index}`}
-											key={suggestion.path}
+											key={suggestion.dataSourceName
+												? `${suggestion.dataSourceName}:${suggestion.path}`
+												: suggestion.path}
 											role='option'
 											aria-selected={index === selectedIndex.value}
 											className={`cursor-pointer py-2 pl-3 pr-9 ${
@@ -1316,7 +1380,10 @@ export function ChatInput({
 															: 'text-gray-500'
 													}`}
 												>
-													({suggestion.parent})
+													({suggestion.parent}){' '}
+													{shouldShowDataSourceInfo.value && suggestion.dataSourceName
+														? <span className='ml-1'>[{suggestion.dataSourceName}]</span>
+														: ''}
 												</span>
 											</div>
 										</li>

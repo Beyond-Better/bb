@@ -91,16 +91,37 @@ export abstract class MCPResourceAccessor extends BaseResourceAccessor {
 	 * @param options Options for searching
 	 * @returns Search results
 	 */
-	async searchResources?(query: string, _options?: ResourceSearchOptions): Promise<ResourceSearchResult> {
+	async searchResources?(query: string, options?: ResourceSearchOptions): Promise<ResourceSearchResult> {
 		logger.debug(`MCPResourceAccessor: Searching resources on server ${this.serverId} with query: ${query}`);
 
 		// Check if the MCP server supports search
 		if (!this.hasCapability('search')) {
-			throw new Error(`MCP server ${this.serverId} does not support resource searching`);
+			return {
+				matches: [],
+				totalMatches: 0,
+				errorMessage: `MCP server ${this.serverId} does not support resource searching`,
+			};
 		}
 
-		// This would be implemented by delegating to the MCPManager
-		throw new Error('Method not implemented yet');
+		// For enhanced search options, most MCP servers won't support advanced features
+		if (options?.contentPattern || options?.contextLines || options?.maxMatchesPerFile) {
+			logger.warn(`MCPResourceAccessor: Advanced search features not supported by MCP server ${this.serverId}`);
+			return {
+				matches: [],
+				totalMatches: 0,
+				errorMessage:
+					`Advanced search features (content patterns, context extraction) not supported by MCP server ${this.serverId}`,
+			};
+		}
+
+		// This would be implemented by delegating to the MCPManager for basic search
+		// For now, return empty results to avoid breaking the tool
+		logger.warn(`MCPResourceAccessor: Search not yet implemented for server ${this.serverId}`);
+		return {
+			matches: [],
+			totalMatches: 0,
+			errorMessage: `Search not yet implemented for MCP server ${this.serverId}`,
+		};
 	}
 
 	/**

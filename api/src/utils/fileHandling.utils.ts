@@ -3,9 +3,17 @@ import { join, normalize, relative, resolve } from '@std/path';
 import { LRUCache } from 'npm:lru-cache';
 import { ensureDir, exists, walk } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
-import { dirname, extname, globToRegExp, isAbsolute } from '@std/path';
+import {
+	dirname,
+	//extname,
+	globToRegExp,
+	isAbsolute,
+} from '@std/path';
 //import { contentType } from '@std/media-types';
-import { detectContentType, isTextMimeType } from 'api/utils/contentTypes.ts';
+import {
+	detectContentType,
+	//isTextMimeType
+} from 'api/utils/contentTypes.ts';
 
 import { logger } from 'shared/logger.ts';
 import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
@@ -32,7 +40,7 @@ function createMatchRegexPatterns(matchPattern: string, dataSourceRoot: string):
 		// Handle simple wildcard patterns
 		if (singlePattern.includes('*') && !singlePattern.includes('**')) {
 			// we were just changing '*' to '**' - why was that needed (it wasn't working to match subdirectories)
-			// [TODO] add more tests to search_project test to check for more complex file patterns with deeply nested sub directories
+			// [TODO] add more tests to find_resources test to check for more complex file patterns with deeply nested sub directories
 			// singlePattern = singlePattern.split('*').join('**');
 			singlePattern = `**/${singlePattern}`;
 		}
@@ -56,68 +64,6 @@ function createMatchRegexPatterns(matchPattern: string, dataSourceRoot: string):
 		// return regexPattern;
 	});
 }
-
-// export function createExcludeRegexPatterns(excludePatterns: string[], dataSourceRoot: string): RegExp[] {
-// 	return excludePatterns.flatMap((pattern) => {
-// 		// Handle negation patterns
-// 		if (pattern.startsWith('!')) {
-// 			return [globToRegExp(pattern.slice(1), { extended: true, globstar: true })];
-// 		}
-//
-// 		// Split the pattern by '|' to handle multiple patterns
-// 		const patterns = pattern.split('|');
-//
-// 		return patterns.map((singlePattern) => {
-// 			// Handle directory patterns
-// 			if (singlePattern.endsWith('/')) {
-// 				singlePattern += '**';
-// 			}
-//
-// 			// Handle simple wildcard patterns
-// 			if (singlePattern.includes('*') && !singlePattern.includes('**')) {
-// 				singlePattern = `**/${singlePattern}`;
-// 			}
-//
-// 			// Handle bare filename (no path, no wildcards)
-// 			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
-// 				singlePattern = `**/${singlePattern}`;
-// 			}
-// 			// Prepend dataSourceRoot to the pattern
-// 			const fullPattern = join(dataSourceRoot, singlePattern);
-// 			// logger.info(
-// 			// 	`FileHandlingUtil: createExcludeRegexPatterns - creating regex from file pattern: ${fullPattern}`,
-// 			// );
-//
-// 			return globToRegExp(fullPattern, { extended: true, globstar: true });
-// 		});
-// 	});
-// }
-//
-// export async function getExcludeOptions(dataSourceRoot: string): Promise<string[]> {
-// 	const excludeFiles = [
-// 		join(dataSourceRoot, 'tags.ignore'),
-// 		join(dataSourceRoot, '.gitignore'),
-// 		join(dataSourceRoot, '.bb', 'ignore'),
-// 		join(dataSourceRoot, '.bb', 'tags.ignore'),
-// 	];
-//
-// 	const patterns = ['.bb/*', '.git/*', '.trash/*'];
-// 	for (const file of excludeFiles) {
-// 		if (await exists(file)) {
-// 			const content = await Deno.readTextFile(file);
-// 			patterns.push(
-// 				...content.split('\n')
-// 					.map((line) => line.trim())
-// 					.filter((line) => line && !line.startsWith('#'))
-// 					.map((line) => line.replace(/^\/*/, '')), // Remove leading slashes
-// 			);
-// 		}
-// 	}
-//
-// 	const uniquePatterns = [...new Set(patterns)];
-// 	//logger.debug(`FileHandlingUtil: Exclude patterns for data source: ${dataSourceRoot}`, uniquePatterns);
-// 	return uniquePatterns;
-// }
 
 export function createExcludeRegexPatterns(excludePatterns: string[], dataSourceRoot: string): RegExp[] {
 	return excludePatterns.flatMap((pattern) => {
@@ -338,7 +284,7 @@ export async function getFileMetadataAbsolute(
 
 		// Determine content type category
 		const isImage = mimeType.startsWith('image/');
-		const isText = isTextMimeType(mimeType);
+		//const isText = isTextMimeType(mimeType);
 		//logger.debug(`FileHandlingUtil: Getting metadata for ${fullPath}: ${mimeType} (${isText ? 'text' : 'binary'})`);
 
 		return {
@@ -495,6 +441,29 @@ interface SearchFileOptions {
 	dateBefore?: string;
 	sizeMin?: number;
 	sizeMax?: number;
+	// Context options for content searches
+	contextLines?: number;
+	maxMatchesPerFile?: number;
+	includeContent?: boolean;
+}
+
+export interface ContentMatch {
+	lineNumber: number;
+	content: string;
+	contextBefore: string[];
+	contextAfter: string[];
+	matchStart: number;
+	matchEnd: number;
+}
+
+export interface ResourceMatch {
+	resourcePath: string;
+	contentMatches?: ContentMatch[];
+}
+
+export interface ContentSearchResult {
+	matches: ResourceMatch[];
+	errorMessage: string | null;
 }
 
 const MAX_CONCURRENT = 20; // Adjust based on system capabilities
@@ -504,28 +473,35 @@ export async function searchFilesContent(
 	contentPattern: string,
 	caseSensitive: boolean,
 	searchFileOptions?: SearchFileOptions,
-): Promise<{ files: string[]; errorMessage: string | null }> {
+): Promise<ContentSearchResult> {
 	const cacheKey = `${dataSourceRoot}:${contentPattern}:${caseSensitive ? 'caseSensitive' : 'caseInsensitive'}:${
 		JSON.stringify(searchFileOptions)
 	}`;
 	const cachedResult = searchCache.get(cacheKey);
-	if (cachedResult) {
+	if (cachedResult && !searchFileOptions?.includeContent) {
+		// Only use cache for simple file list results
 		logger.info(`FileHandlingUtil: Returning cached result for search: ${cacheKey}`);
-		return { files: cachedResult, errorMessage: null };
+		return { matches: cachedResult.map((file) => ({ resourcePath: file })), errorMessage: null };
 	}
-	const matchingFiles: string[] = [];
+
 	logger.info(`FileHandlingUtil: Starting file content search in ${dataSourceRoot} with pattern: ${contentPattern}`);
+
+	// Default options for content extraction
+	const contextLines = searchFileOptions?.contextLines ?? 2;
+	const maxMatchesPerFile = searchFileOptions?.maxMatchesPerFile ?? 5;
+	const includeContent = searchFileOptions?.includeContent ?? false;
 
 	let regex: RegExp;
 	try {
 		// We're only supporting 'g' and 'i' flags at present - there are a few more we can support if needed
 		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions#advanced_searching_with_flags
-		//const regexFlags = `${!caseSensitive ? 'i' : ''}${replaceAll ? 'g' : ''}`;
-		const regexFlags = `${caseSensitive ? '' : 'i'}`;
+		// For error validation, use only case sensitivity flag to maintain backward compatibility
+		// The global flag will be applied later for actual content extraction if needed
+		const regexFlags = caseSensitive ? '' : 'i';
 		regex = new RegExp(contentPattern, regexFlags);
 	} catch (error) {
 		logger.error(`FileHandlingUtil: Invalid regular expression: ${contentPattern}`);
-		return { files: [], errorMessage: `Invalid regular expression: ${(error as Error).message}` };
+		return { matches: [], errorMessage: (error as Error).message };
 	}
 
 	try {
@@ -545,40 +521,59 @@ export async function searchFilesContent(
 			);
 			walkOptions.match = createMatchRegexPatterns(searchFileOptions.resourcePattern, dataSourceRoot);
 		}
-		// logger.info(
-		// 	`FileHandlingUtil: searchFilesContent - Searching ${dataSourceRoot} using walkOptions: ${
-		// 		JSON.stringify(walkOptions)
-		// 	}`,
-		// );
 
 		for await (const entry of walk(dataSourceRoot, walkOptions)) {
 			const relativePath = relative(dataSourceRoot, entry.path);
-
 			filesToProcess.push({ path: entry.path, relativePath });
 		}
 		logger.info(`FileHandlingUtil: File content search starting. Found ${filesToProcess.length} to search.`);
-		// logger.info(
-		// 	`FileHandlingUtil: searchFilesContent - Searching ${dataSourceRoot} found files to process: ${
-		// 		JSON.stringify(filesToProcess)
-		// 	}`,
-		// );
 
-		const results = await Promise.all(
-			chunk(filesToProcess, MAX_CONCURRENT).map(async (batch) =>
-				Promise.all(
-					batch.map(({ path, relativePath }) => processFile(path, regex, searchFileOptions, relativePath)),
-				)
-			),
-		);
+		if (includeContent) {
+			// Create a global regex for content matching
+			const globalRegex = new RegExp(contentPattern, `g${caseSensitive ? '' : 'i'}`);
+			// Process files with content extraction
+			const contentResults = await Promise.all(
+				chunk(filesToProcess, MAX_CONCURRENT).map(async (batch) =>
+					Promise.all(
+						batch.map(({ path, relativePath }) =>
+							processFileWithContent(
+								path,
+								globalRegex,
+								searchFileOptions,
+								relativePath,
+								contextLines,
+								maxMatchesPerFile,
+							)
+						),
+					)
+				),
+			);
 
-		matchingFiles.push(...results.flat().filter((result): result is string => result !== null));
+			const validResults = contentResults.flat().filter((result): result is ResourceMatch => result !== null);
+			logger.info(
+				`FileHandlingUtil: File content search with context completed. Found ${validResults.length} matching files.`,
+			);
+			return { matches: validResults, errorMessage: null };
+		} else {
+			// Process files for simple matching
+			const simpleResults = await Promise.all(
+				chunk(filesToProcess, MAX_CONCURRENT).map(async (batch) =>
+					Promise.all(
+						batch.map(({ path, relativePath }) =>
+							processFile(path, regex, searchFileOptions, relativePath)
+						),
+					)
+				),
+			);
 
-		logger.info(`FileHandlingUtil: File content search completed. Found ${matchingFiles.length} matching files.`);
-		searchCache.set(cacheKey, matchingFiles);
-		return { files: matchingFiles, errorMessage: null };
+			const validFiles = simpleResults.flat().filter((result): result is string => result !== null);
+			logger.info(`FileHandlingUtil: File content search completed. Found ${validFiles.length} matching files.`);
+			searchCache.set(cacheKey, validFiles);
+			return { matches: validFiles.map((file) => ({ resourcePath: file })), errorMessage: null };
+		}
 	} catch (error) {
 		logger.error(`FileHandlingUtil: Error in searchFilesContent: ${(error as Error).message}`);
-		return { files: [], errorMessage: (error as Error).message };
+		return { matches: [], errorMessage: (error as Error).message };
 	}
 }
 
@@ -586,210 +581,111 @@ function chunk<T>(array: T[], size: number): T[][] {
 	return Array.from({ length: Math.ceil(array.length / size) }, (_, i) => array.slice(i * size, i * size + size));
 }
 
-/*
-async function processFileManualBuffer(
+async function processFileWithContent(
 	filePath: string,
 	regex: RegExp,
 	searchFileOptions: SearchFileOptions | undefined,
 	relativePath: string,
-): Promise<string | null> {
-	logger.debug(`FileHandlingUtil: Starting to process file: ${relativePath}`);
-	let file: Deno.FsFile | null = null;
-	try {
-		const fileInfo = await Deno.stat(filePath);
-
-		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
-			logger.debug(`FileHandlingUtil: File ${relativePath} did not pass metadata filters`);
-			return null;
-		}
-
-		file = await Deno.open(filePath);
-		logger.debug(`FileHandlingUtil: File opened successfully: ${relativePath}`);
-
-		const decoder = new TextDecoder();
-		const buffer = new Uint8Array(1024); // Adjust buffer size as needed
-		let leftover = '';
-
-		while (true) {
-			const bytesRead = await file.read(buffer);
-			if (bytesRead === null) break; // End of file
-
-			const chunk = decoder.decode(buffer.subarray(0, bytesRead), { stream: true });
-			const lines = (leftover + chunk).split('\n');
-			leftover = lines.pop() || '';
-
-			for (const line of lines) {
-				if (regex.test(line)) {
-					logger.debug(`FileHandlingUtil: Match found in file: ${relativePath}`);
-					return relativePath;
-				}
-			}
-		}
-
-		// Check the last line
-		if (leftover && regex.test(leftover)) {
-			logger.debug(`FileHandlingUtil: Match found in file: ${relativePath}`);
-			return relativePath;
-		}
-
-		logger.debug(`FileHandlingUtil: No match found in file: ${relativePath}`);
-		return null;
-	} catch (error) {
-		logger.warn(`FileHandlingUtil: Error processing file ${filePath}: ${error.message}`);
-		return null;
-	} finally {
-		logger.debug(`FileHandlingUtil: Entering finally block for file: ${relativePath}`);
-		if (file) {
-			try {
-				file.close();
-				logger.debug(`FileHandlingUtil: File closed successfully: ${relativePath}`);
-			} catch (closeError) {
-				logger.warn(`FileHandlingUtil: Error closing file ${filePath}: ${closeError.message}`);
-			}
-		}
-		logger.debug(`FileHandlingUtil: Exiting finally block for file: ${relativePath}`);
-	}
-}
-
-async function processFileStreamLines(
-	filePath: string,
-	regex: RegExp,
-	searchFileOptions: SearchFileOptions | undefined,
-	relativePath: string,
-): Promise<string | null> {
-	logger.debug(`FileHandlingUtil: Starting to process file: ${relativePath}`);
-	let file: Deno.FsFile | null = null;
-	let reader: ReadableStreamDefaultReader<string> | null = null;
-	try {
-		const fileInfo = await Deno.stat(filePath);
-
-		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
-			logger.debug(`FileHandlingUtil: File ${relativePath} did not pass metadata filters`);
-			return null;
-		}
-
-		file = await Deno.open(filePath);
-		logger.debug(`FileHandlingUtil: File opened successfully: ${relativePath}`);
-		const lineStream = file.readable
-			.pipeThrough(new TextDecoderStream())
-			.pipeThrough(new TextLineStream());
-
-		reader = lineStream.getReader();
-		while (true) {
-			const { done, value: line } = await reader.read();
-			if (done) {
-				logger.debug(`FileHandlingUtil: Finished reading file: ${relativePath}`);
-				break;
-			}
-			if (regex.test(line)) {
-				logger.debug(`FileHandlingUtil: Match found in file: ${relativePath}`);
-				return relativePath;
-			}
-		}
-		return null;
-	} catch (error) {
-		logger.warn(`FileHandlingUtil: Error processing file ${filePath}: ${error.message}`);
-		return null;
-	} finally {
-		logger.debug(`FileHandlingUtil: Entering finally block for file: ${relativePath}`);
-		if (reader) {
-			try {
-				await reader.cancel();
-				logger.debug(`FileHandlingUtil: Reader cancelled for file: ${relativePath}`);
-			} catch (cancelError) {
-				logger.warn(`FileHandlingUtil: Error cancelling reader for ${filePath}: ${cancelError.message}`);
-			}
-			reader.releaseLock();
-			logger.debug(`FileHandlingUtil: Reader lock released for file: ${relativePath}`);
-		}
-		if (file) {
-			try {
-				file.close();
-				logger.debug(`FileHandlingUtil: File closed successfully: ${relativePath}`);
-			} catch (closeError) {
-				if (closeError instanceof Deno.errors.BadResource) {
-					logger.debug(`FileHandlingUtil: File was already closed: ${relativePath}`);
-				} else {
-					logger.warn(`FileHandlingUtil: Error closing file ${filePath}: ${closeError.message}`);
-				}
-			}
-		}
-		logger.debug(`FileHandlingUtil: Exiting finally block for file: ${relativePath}`);
-	}
-}
-
-async function processFileStreamBuffer(
-	filePath: string,
-	regex: RegExp,
-	searchFileOptions: SearchFileOptions | undefined,
-	relativePath: string,
-): Promise<string | null> {
-	logger.debug(`FileHandlingUtil: Starting to process file: ${relativePath}`);
-	let file: Deno.FsFile | null = null;
-	let reader: ReadableStreamDefaultReader<string> | null = null;
+	contextLines: number,
+	maxMatchesPerFile: number,
+): Promise<ResourceMatch | null> {
+	logger.debug(`FileHandlingUtil: Starting to process file with content: ${relativePath}`);
 	try {
 		const fileInfo = await Deno.stat(filePath);
 		if (!passesMetadataFilters(fileInfo, searchFileOptions)) {
 			return null;
 		}
 
-		file = await Deno.open(filePath);
-		const textStream = file.readable
-			.pipeThrough(new TextDecoderStream());
+		const content = await Deno.readTextFile(filePath);
+		const lines = content.split('\n');
+		const contentMatches: ContentMatch[] = [];
+		let matchCount = 0;
 
-		reader = textStream.getReader();
-		let buffer = '';
-		const maxBufferSize = 1024 * 1024; // 1MB, adjust as needed
+		// Reset regex lastIndex
+		regex.lastIndex = 0;
 
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
+		// Check if pattern contains newlines (multi-line pattern)
+		const isMultiLinePattern = regex.source.includes('\\n');
 
-			buffer += value;
+		if (isMultiLinePattern) {
+			// For multi-line patterns, search the entire content
+			let match;
+			regex.lastIndex = 0;
 
-			// Check for matches
-			if (regex.test(buffer)) {
-				return relativePath;
+			while ((match = regex.exec(content)) !== null && matchCount < maxMatchesPerFile) {
+				// Find which line this match starts on
+				const beforeMatch = content.substring(0, match.index);
+				const lineNumber = beforeMatch.split('\n').length;
+				const lineIndex = lineNumber - 1;
+
+				// Get the line where the match starts
+				const matchLine = lines[lineIndex] || '';
+
+				// Calculate match position within the starting line
+				const lineStart = beforeMatch.lastIndexOf('\n') + 1;
+				const matchStartInLine = match.index - lineStart;
+
+				const contextBefore = lines.slice(Math.max(0, lineIndex - contextLines), lineIndex);
+				const contextAfter = lines.slice(lineIndex + 1, Math.min(lines.length, lineIndex + 1 + contextLines));
+
+				contentMatches.push({
+					lineNumber: lineNumber, // 1-based line numbers
+					content: matchLine,
+					contextBefore,
+					contextAfter,
+					matchStart: Math.max(0, matchStartInLine),
+					matchEnd: Math.min(matchLine.length, matchStartInLine + match[0].length),
+				});
+
+				matchCount++;
+
+				// Break if regex doesn't have global flag
+				if (!regex.global) break;
 			}
+		} else {
+			// For single-line patterns, search line by line (original behavior)
+			for (let lineIndex = 0; lineIndex < lines.length && matchCount < maxMatchesPerFile; lineIndex++) {
+				const line = lines[lineIndex];
+				let match;
+				regex.lastIndex = 0; // Reset for each line
 
-			// Trim buffer if it gets too large
-			if (buffer.length > maxBufferSize) {
-				buffer = buffer.slice(-maxBufferSize);
+				while ((match = regex.exec(line)) !== null && matchCount < maxMatchesPerFile) {
+					const contextBefore = lines.slice(Math.max(0, lineIndex - contextLines), lineIndex);
+					const contextAfter = lines.slice(
+						lineIndex + 1,
+						Math.min(lines.length, lineIndex + 1 + contextLines),
+					);
+
+					contentMatches.push({
+						lineNumber: lineIndex + 1, // 1-based line numbers
+						content: line,
+						contextBefore,
+						contextAfter,
+						matchStart: match.index,
+						matchEnd: match.index + match[0].length,
+					});
+
+					matchCount++;
+
+					// Break if regex doesn't have global flag
+					if (!regex.global) break;
+				}
 			}
 		}
 
-		// Final check on remaining buffer
-		if (regex.test(buffer)) {
-			return relativePath;
+		if (contentMatches.length > 0) {
+			return {
+				resourcePath: relativePath,
+				contentMatches,
+			};
 		}
 
 		return null;
 	} catch (error) {
-		logger.warn(`FileHandlingUtil: Error processing file ${filePath}: ${error.message}`);
+		logger.warn(`FileHandlingUtil: Error processing file with content ${filePath}: ${(error as Error).message}`);
 		return null;
-	} finally {
-		if (reader) {
-			try {
-				await reader.cancel();
-				reader.releaseLock();
-			} catch (cancelError) {
-				logger.warn(`FileHandlingUtil: Error cancelling reader for ${filePath}: ${cancelError.message}`);
-			}
-		}
-		if (file) {
-			try {
-				file.close();
-			} catch (closeError) {
-				if (closeError instanceof Deno.errors.BadResource) {
-					logger.debug(`FileHandlingUtil: File was already closed: ${relativePath}`);
-				} else {
-					logger.warn(`FileHandlingUtil: Error closing file ${filePath}: ${closeError.message}`);
-				}
-			}
-		}
 	}
 }
- */
 
 async function processFile(
 	filePath: string,

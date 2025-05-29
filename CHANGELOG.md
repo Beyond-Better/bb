@@ -17,6 +17,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.1] - 2025-05-29
+
+### Added
+
+- return contextual content for find resource tool
+
+### Changed
+
+- moved handling of llmProvider from controller to interaction
+- UI updates and improvements
+- resource auto-complete (suggestions) include data source name
+
+### Fixed
+
+- scrolling behaviour for chat history when prompt input is modified
+- model selection and defaults
+
+
 ## [0.8.0] - 2025-05-24
 
 ### BREAKING CHANGES: This release removes 'project root' in favour of 'data sources'; moves 

@@ -193,7 +193,7 @@ export default class LLMToolForgetResources extends LLMTool {
 				`Error removing resources from conversation: ${(error as Error).message}`,
 				{
 					name: 'forget-resources',
-					operation: 'forget-files',
+					operation: 'forget-resources',
 				} as ResourceHandlingErrorOptions,
 			);
 		}

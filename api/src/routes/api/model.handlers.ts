@@ -93,6 +93,7 @@ export const listModels = async (
 				responseSpeed: capabilities.responseSpeed || 'medium',
 			};
 		});
+		//logger.info('ModelHandler: listModels called', { allModels });
 
 		// Apply pagination
 		const total = allModels.length;
@@ -171,6 +172,7 @@ export const getModelCapabilities = async (
 
 		// Get the model's capabilities
 		const capabilities = capabilitiesManager.getModelCapabilities(modelId);
+		//logger.info(`ModelHandler: getModelCapabilities called for model ${params.modelId}`, { capabilities });
 
 		if (!capabilities) {
 			response.status = 404;
