@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.8.1] - 2025-05-29
+
+### Added
+
 - return contextual content for find resource tool
 
 ### Changed

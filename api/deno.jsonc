@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.8.0",
+	"version": "0.8.1",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"tool:debug-instances": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts",

@@ -487,7 +487,7 @@ export default function Chat({
 		const handleScroll = () => {
 			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
 			lastScrollPositionRef.current = scrollTop;
-			
+
 			// Consider user at bottom if within 50 pixels of bottom
 			// Account for any rounding errors with a small tolerance
 			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
@@ -502,7 +502,7 @@ export default function Chat({
 				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
 				setShouldAutoScroll(isAtBottom);
 			}
-			
+
 			// Log current state for debugging
 			console.debug('ChatIsland: Scroll state debug', {
 				isAtBottom,
@@ -510,7 +510,7 @@ export default function Chat({
 				currentVisibility: scrollIndicatorState.value.isVisible,
 				scrollHeight: messagesContainer.scrollHeight,
 				clientHeight: messagesContainer.clientHeight,
-				scrollTop
+				scrollTop,
 			});
 		};
 
@@ -552,7 +552,7 @@ export default function Chat({
 				messagesContainer.scrollTop = lastScrollPositionRef.current;
 			});
 		}
-		
+
 		// Trigger scroll handler to update indicator visibility
 		setTimeout(() => {
 			messagesContainer.dispatchEvent(new Event('scroll'));
@@ -739,7 +739,10 @@ export default function Chat({
 								/>
 
 								{/* Messages */}
-								<div className='flex-1 min-h-0 relative flex flex-col' style={{ paddingBottom: `${inputAreaHeight}px` }}>
+								<div
+									className='flex-1 min-h-0 relative flex flex-col'
+									style={{ paddingBottom: `${inputAreaHeight}px` }}
+								>
 									{scrollIndicatorState.value.isVisible && (
 										<button
 											type='button'
@@ -818,9 +821,10 @@ export default function Chat({
 								</div>
 
 								{/* Input area */}
-								<div 
+								<div
 									ref={inputAreaRef}
-									className='absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-center z-20'>
+									className='absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex justify-center z-20'
+								>
 									<ChatInput
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}

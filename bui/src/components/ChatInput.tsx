@@ -683,7 +683,6 @@ export function ChatInput({
 		inputDebounceRef.current = setTimeout(() => {
 			try {
 				batch(() => {
-
 					// Track performance
 					const duration = performance.now() - startTime;
 					if (duration > 50) {
