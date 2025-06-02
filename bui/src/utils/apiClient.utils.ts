@@ -807,6 +807,15 @@ export class ApiClient {
 		);
 	}
 
+	// List all available models
+	async listModels(page?: number, pageSize?: number): Promise<{ models: Array<{ id: string; displayName: string; provider: string; providerLabel: string; contextWindow: number; responseSpeed: string; }>; pagination: { total: number; page: number; pageSize: number; pageCount: number; } } | null> {
+		const params = new URLSearchParams();
+		if (page !== undefined) params.append('page', page.toString());
+		if (pageSize !== undefined) params.append('pageSize', pageSize.toString());
+		const query = params.toString() ? `?${params.toString()}` : '';
+		return await this.get<{ models: Array<{ id: string; displayName: string; provider: string; providerLabel: string; contextWindow: number; responseSpeed: string; }>; pagination: { total: number; page: number; pageSize: number; pageCount: number; } }>(`/api/v1/model${query}`);
+	}
+
 	// Get model capabilities from the API
 	async getModelCapabilities(modelName: string): Promise<ModelResponse | null> {
 		return await this.get<ModelResponse>(`/api/v1/model/${encodeURIComponent(modelName)}`);

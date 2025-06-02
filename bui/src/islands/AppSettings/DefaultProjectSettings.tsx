@@ -3,6 +3,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
+import { ModelSelector, ModelCombinations, type ModelSelectionValue } from '../../components/ModelSelector.tsx';
+import type { DefaultModels } from 'shared/config/types.ts';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -23,6 +25,11 @@ interface FormState {
 	extendedThinkingEnabled: boolean;
 	extendedThinkingBudget: number;
 	activeTab: string;
+	defaultModels: {
+		orchestrator: string;
+		agent: string;
+		chat: string;
+	};
 }
 
 interface FormErrors {
@@ -33,6 +40,11 @@ interface FormErrors {
 	extendedThinkingEnabled?: string;
 	extendedThinkingBudget?: string;
 	activeTab?: string;
+	defaultModels?: {
+		orchestrator?: string;
+		agent?: string;
+		chat?: string;
+	};
 }
 
 const loading = signal(true);
@@ -145,6 +157,11 @@ export default function DefaultProjectSettings() {
 		extendedThinkingEnabled: true,
 		extendedThinkingBudget: 4000,
 		activeTab: 'general',
+		defaultModels: {
+			orchestrator: 'claude-sonnet-4-20250514',
+			agent: 'claude-sonnet-4-20250514',
+			chat: 'claude-3-5-haiku-20241022',
+		},
 	});
 
 	// Load initial config
@@ -163,6 +180,11 @@ export default function DefaultProjectSettings() {
 						extendedThinkingEnabled: config.api.extendedThinking?.enabled ?? true,
 						extendedThinkingBudget: config.api.extendedThinking?.budgetTokens ?? 4000,
 						activeTab: 'general',
+						defaultModels: {
+							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-20250514',
+							agent: config.defaultModels?.agent || 'claude-sonnet-4-20250514',
+							chat: config.defaultModels?.chat || 'claude-3-5-haiku-20241022',
+						},
 					});
 				}
 			} catch (error) {
@@ -177,10 +199,18 @@ export default function DefaultProjectSettings() {
 
 	const validateField = (
 		name: keyof FormState,
-		value: string | number | boolean | string,
+		value: string | number | boolean | string | { orchestrator: string; agent: string; chat: string },
 	): string | undefined => {
 		// Skip validation for these types
 		if (name === 'activeTab') {
+			return undefined;
+		}
+		
+		if (name === 'defaultModels') {
+			const models = value as { orchestrator: string; agent: string; chat: string };
+			if (!models.orchestrator || !models.agent || !models.chat) {
+				return 'All model roles must be selected';
+			}
 			return undefined;
 		}
 
@@ -243,6 +273,28 @@ export default function DefaultProjectSettings() {
 		};
 	};
 
+	// Helper function for model updates
+	const handleModelChange = (role: 'orchestrator' | 'agent' | 'chat', modelId: string) => {
+		const newModels = {
+			...formState.defaultModels,
+			[role]: modelId,
+		};
+		setFormState((prev) => ({ ...prev, defaultModels: newModels }));
+		
+		// Validate and update errors
+		const error = validateField('defaultModels', newModels);
+		formErrors.value = {
+			...formErrors.value,
+			defaultModels: error ? { [role]: error } : undefined,
+		};
+	};
+
+	// Handle model combo application
+	const handleApplyCombo = (combo: { orchestrator: string; agent: string; chat: string }) => {
+		setFormState((prev) => ({ ...prev, defaultModels: combo }));
+		markTabDirty('models');
+	};
+
 	const handleSubmit = async (e: Event) => {
 		e.preventDefault();
 
@@ -275,6 +327,8 @@ export default function DefaultProjectSettings() {
 				'api.extendedThinking.budgetTokens',
 				formState.extendedThinkingBudget.toString(),
 			);
+			// Update default models
+			await appState.value.apiClient?.updateGlobalConfig('defaultModels', JSON.stringify(formState.defaultModels));
 
 			// Reset dirty tabs state
 			dirtyTabs.value = new Set();
@@ -608,18 +662,78 @@ export default function DefaultProjectSettings() {
 				)}
 
 				{formState.activeTab === 'models' && (
-					<div className='models-tab'>
-						<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
-							<h3 className='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>
-								Model Configuration
+					<div className='models-tab space-y-6'>
+						<div class='mb-6'>
+							<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+								Default Models
 							</h3>
-							<p className='text-sm text-gray-500 dark:text-gray-400'>
-								This section will contain model-specific settings in the future.
+							<p class='text-sm text-gray-500 dark:text-gray-400'>
+								Set the default AI models for different roles. These will be used across all projects unless overridden.
 							</p>
-							<div className='flex items-center justify-center h-32'>
-								<span className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-									Coming Soon
-								</span>
+						</div>
+
+						{/* Model Selection */}
+						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
+							{/* Orchestrator Model */}
+							<ModelSelector
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='orchestrator'
+								value={formState.defaultModels.orchestrator}
+								onChange={(value) => {
+									handleModelChange('orchestrator', value as string);
+									markTabDirty('models');
+								}}
+								label='Orchestrator Model'
+								description='Handles complex reasoning and coordination'
+							/>
+
+							{/* Agent Model */}
+							<ModelSelector
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='agent'
+								value={formState.defaultModels.agent}
+								onChange={(value) => {
+									handleModelChange('agent', value as string);
+									markTabDirty('models');
+								}}
+								label='Agent Model'
+								description='Executes tasks and uses tools'
+							/>
+
+							{/* Chat Model */}
+							<ModelSelector
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='chat'
+								value={formState.defaultModels.chat}
+								onChange={(value) => {
+									handleModelChange('chat', value as string);
+									markTabDirty('models');
+								}}
+								label='Chat Model'
+								description='Powers conversational interactions'
+							/>
+						</div>
+
+						{/* Suggested Combinations */}
+						<div class='mt-8'>
+							<ModelCombinations
+								onApplyCombo={handleApplyCombo}
+								className='max-w-2xl'
+							/>
+						</div>
+
+						{/* Display current selection summary */}
+						<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+							<h4 class='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
+								Current Selection
+							</h4>
+							<div class='text-sm text-blue-800 dark:text-blue-200'>
+								<div><strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}</div>
+								<div><strong>Agent:</strong> {formState.defaultModels.agent}</div>
+								<div><strong>Chat:</strong> {formState.defaultModels.chat}</div>
 							</div>
 						</div>
 					</div>
