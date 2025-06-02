@@ -4,6 +4,7 @@ import { marked } from 'marked';
 import { escape as escapeHtmlEntities } from '@std/html';
 import type { ConversationLogEntry } from 'shared/types.ts';
 import type { LogEntryTitleData } from 'api/logEntries/types.ts';
+import { getApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
 
 // Configure marked options
 marked.setOptions({
@@ -11,6 +12,66 @@ marked.setOptions({
 	gfm: true,
 	breaks: true,
 });
+
+
+
+// File icon mapping based on file extension
+function getFileIcon(fileExt: string): string {
+	const iconMap: Record<string, string> = {
+		// Documents
+		pdf: '📄',
+		doc: '📄',
+		docx: '📄',
+		txt: '📄',
+		rtf: '📄',
+		// Spreadsheets
+		xls: '📊',
+		xlsx: '📊',
+		csv: '📊',
+		// Presentations
+		ppt: '📊',
+		pptx: '📊',
+		// Images
+		jpg: '🖼️',
+		jpeg: '🖼️',
+		png: '🖼️',
+		gif: '🖼️',
+		webp: '🖼️',
+		svg: '🖼️',
+		bmp: '🖼️',
+		// Video
+		mp4: '🎥',
+		avi: '🎥',
+		mkv: '🎥',
+		mov: '🎥',
+		wmv: '🎥',
+		// Audio
+		mp3: '🎵',
+		wav: '🎵',
+		flac: '🎵',
+		aac: '🎵',
+		// Archives
+		zip: '📦',
+		rar: '📦',
+		'7z': '📦',
+		tar: '📦',
+		gz: '📦',
+		// Code
+		js: '💻',
+		ts: '💻',
+		py: '💻',
+		java: '💻',
+		cpp: '💻',
+		c: '💻',
+		html: '💻',
+		css: '💻',
+		// Default
+		default: '📄',
+	};
+	
+	return iconMap[fileExt] || iconMap.default;
+}
+
 
 export const formatLogEntryTitle = (titleData: LogEntryTitleData): string => {
 	const title = escapeHtmlEntities(titleData.title);
@@ -33,7 +94,7 @@ export const formatLogEntryPreview = (preview: string): string => {
   `.trim();
 };
 
-export const formatLogEntryContent = (logEntry: ConversationLogEntry): string => {
+export const formatLogEntryContent = (logEntry: ConversationLogEntry, projectId?: string): string => {
 	let formattedThinking = '';
 
 	// Format the thinking content if it exists in the logEntry
@@ -109,6 +170,47 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 						'</div>\n';
 				});
 				processedContent = processedContent.replace(/<prompt>/g, '');
+
+				// Handle file references: ![name](bb+filesystem+uploads+file:./resourceId) and [name](bb+filesystem+uploads+file:./resourceId)
+				// Get API base URL for dynamic URL generation
+				const apiBaseUrl = getApiBaseUrl();
+				
+				processedContent = processedContent.replace(
+					/!\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
+					(match, altText, resourceId) => {
+						const encodedResourceUrl = btoa(`bb+filesystem+uploads+file:./${resourceId}`);
+						const currentProjectId = projectId || 'current';
+						const thumbnailUrl = `${apiBaseUrl}/api/v1/files/serve/${encodeURIComponent(encodedResourceUrl)}?thumbnail=true&projectId=${currentProjectId}`;
+						const fullUrl = `${apiBaseUrl}/api/v1/files/serve/${encodeURIComponent(encodedResourceUrl)}?projectId=${currentProjectId}`;
+						
+						return `<div class="bb-file-attachment bb-image-attachment inline-block my-2">
+							<img src="${thumbnailUrl}" alt="${escapeHtmlEntities(altText)}" 
+								 class="bb-image-thumbnail cursor-pointer max-w-xs max-h-48 rounded border shadow-sm hover:shadow-md transition-shadow" 
+								 onclick="globalThis.bbShowImageModal('${fullUrl}', '${escapeHtmlEntities(altText)}')" 
+								 title="Click to view full size" />
+							<div class="bb-file-info text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">${escapeHtmlEntities(altText)}</div>
+						</div>`;
+					}
+				);
+				
+				processedContent = processedContent.replace(
+					/\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
+					(match, linkText, resourceId) => {
+						const encodedResourceUrl = btoa(`bb+filesystem+uploads+file:./${resourceId}`);
+						const currentProjectId = projectId || 'current';
+						const downloadUrl = `${apiBaseUrl}/api/v1/files/serve/${encodeURIComponent(encodedResourceUrl)}?projectId=${currentProjectId}`;
+						
+						// Get file extension for icon
+						const fileExt = resourceId.split('.').pop()?.toLowerCase() || 'file';
+						const fileIcon = getFileIcon(fileExt);
+						
+						return `<div class="bb-file-attachment bb-download-attachment inline-flex items-center gap-2 p-2 border rounded bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">
+							<span class="bb-file-icon text-lg">${fileIcon}</span>
+							<a href="${downloadUrl}" download class="bb-file-link text-blue-600 dark:text-blue-400 hover:underline">${escapeHtmlEntities(linkText)}</a>
+							<span class="bb-download-icon text-gray-500 hover:text-gray-700 cursor-pointer" title="Download">↓</span>
+						</div>`;
+					}
+				);
 
 				// Parse remaining content as markdown
 				return marked.parse(processedContent);

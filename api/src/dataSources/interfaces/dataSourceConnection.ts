@@ -4,7 +4,7 @@
  */
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
 import type { DataSourceAccessMethod, DataSourceCapability, DataSourceProviderType } from 'shared/types/dataSource.ts';
-import type { AuthConfig } from './authentication.ts';
+import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 
 /**

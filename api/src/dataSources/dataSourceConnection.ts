@@ -11,7 +11,7 @@ import type {
 	DataSourceConnectionValues,
 } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
-import type { AuthConfig } from './interfaces/authentication.ts';
+import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type { DataSourceAccessMethod, DataSourceCapability, DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import { getDataSourceFactory } from 'api/dataSources/dataSourceFactory.ts';

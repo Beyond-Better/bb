@@ -1,11 +1,12 @@
 import type { Context } from '@oak/oak';
-import { extname, join, resolve } from '@std/path';
+import { basename, extname, join, resolve } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
 import { contentType } from '@std/media-types';
+import { encodeBase64 } from '@std/encoding';
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isPathWithinDataSource, listDirectory, type ListDirectoryOptions } from 'api/utils/fileHandling.ts';
 import { getProjectAdminDir } from 'shared/projectPath.ts';
+import { isPathWithinDataSource, listDirectory, type ListDirectoryOptions } from 'api/utils/fileHandling.ts';
 import {
 	type FileSuggestionsForPathOptions,
 	type FileSuggestionsOptions,
@@ -307,6 +308,140 @@ export const suggestFiles = async (
 			response.status = 500;
 			response.body = { error: 'Failed to get file suggestions' };
 		}
+	}
+};
+
+export const serveFile = async (
+	{ params, request, response }: {
+		params: { resourceUrl: string };
+		request: Context['request'];
+		response: Context['response'];
+	},
+) => {
+	try {
+		const { resourceUrl } = params;
+		const url = new URL(request.url);
+		const thumbnail = url.searchParams.get('thumbnail') === 'true';
+		const projectId = url.searchParams.get('projectId');
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Project ID is required' };
+			return;
+		}
+
+		// Decode the resource URL (base64 encoded to handle special characters)
+		let decodedResourceUrl: string;
+		try {
+			decodedResourceUrl = atob(decodeURIComponent(resourceUrl));
+		} catch {
+			// If decoding fails, try using the URL as-is
+			decodedResourceUrl = decodeURIComponent(resourceUrl);
+		}
+		logger.info(`FileHandler: Serving file for: ${decodedResourceUrl}`);
+
+		// Parse the internal resource URL format: bb+filesystem+uploads+file:./resourceId
+		if (!decodedResourceUrl.startsWith('bb+filesystem+uploads+file:./')) {
+			response.status = 400;
+			response.body = { error: 'Invalid resource URL format' };
+			return;
+		}
+
+		// Strip file extension from resourceId to get the UUID for metadata lookup
+		const resourceId = basename(decodedResourceUrl, extname(decodedResourceUrl));
+		// let resourceId = decodedResourceUrl.replace('bb+filesystem+uploads+file:./', '');
+
+		const projectAdminDir = await getProjectAdminDir(projectId);
+		const metadataPath = join(projectAdminDir, '.uploads', '.metadata', `${resourceId}.json`);
+		logger.info(`FileHandler: Checking metadata file for: ${metadataPath}`);
+
+		if (!(await exists(metadataPath))) {
+			response.status = 404;
+			response.body = { error: 'File not found' };
+			return;
+		}
+
+		// Read file metadata
+		const metadataContent = await Deno.readTextFile(metadataPath);
+		const metadata = JSON.parse(metadataContent);
+
+		// Get the actual file path
+		const filePath = join(projectAdminDir, '.uploads', metadata.relativePath);
+		logger.info(`FileHandler: Checking content file for: ${filePath}`);
+
+		if (!(await exists(filePath))) {
+			response.status = 404;
+			response.body = { error: 'File content not found' };
+			return;
+		}
+
+		const isImage = metadata.mimeType?.startsWith('image/') || false;
+
+		if (thumbnail && isImage) {
+			// Generate thumbnail for images
+			const imageData = await Deno.readFile(filePath);
+		logger.info(`FileHandler: Creating thumbnail for: ${filePath}`);
+			
+			// Use ImageMagick to create thumbnail (max 200px)
+			try {
+				// Import ImageMagick dynamically to avoid loading if not needed
+				const { ImageMagick, initialize, MagickFormat } = await import('imagemagick');
+				await initialize();
+
+				const thumbnailData = await new Promise<Uint8Array>((resolve, reject) => {
+					try {
+						ImageMagick.read(imageData, (image) => {
+							try {
+								// Resize to max 200px on either dimension
+								const MAX_THUMBNAIL_SIZE = 100;
+								if (image.width > MAX_THUMBNAIL_SIZE || image.height > MAX_THUMBNAIL_SIZE) {
+									if (image.width > image.height) {
+										image.resize(MAX_THUMBNAIL_SIZE, 0);
+									} else {
+										image.resize(0, MAX_THUMBNAIL_SIZE);
+									}
+								}
+								// Convert to PNG for consistent format
+								image.write(MagickFormat.Png, (data) => {
+									resolve(data);
+								});
+							} catch (err) {
+								reject(err);
+							}
+						});
+					} catch (err) {
+						reject(err);
+					}
+				});
+
+				response.headers.set('Content-Type', 'image/png');
+				response.headers.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+				response.body = thumbnailData;
+				return;
+			} catch (error) {
+				logger.error(`FileHandler: Failed to generate thumbnail: ${(error as Error).message}`);
+				// Fall through to serve original file
+			}
+		}
+
+		// Serve the original file
+		const fileData = await Deno.readFile(filePath);
+		const mimeType = metadata.mimeType || contentType(extname(metadata.name)) || 'application/octet-stream';
+
+		response.headers.set('Content-Type', mimeType);
+		response.headers.set('Content-Length', fileData.length.toString());
+		response.headers.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+		
+		// Set content disposition for download (except for images)
+		if (!isImage || !thumbnail) {
+			response.headers.set('Content-Disposition', `attachment; filename="${metadata.name}"`);
+		}
+
+		response.body = fileData;
+	} catch (error) {
+		logger.error(`FileHandler: Error serving file: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to serve file' };
 	}
 };
 

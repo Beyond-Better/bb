@@ -47,6 +47,39 @@
 		max-w-full w-full overflow-x-auto break-words;
 }
 
+/* File attachment specific styles (backup for edge cases) */
+.bb-file-attachment {
+	@apply inline-block;
+}
+
+.bb-image-attachment {
+	@apply my-2;
+}
+
+.bb-download-attachment {
+	@apply inline-flex items-center gap-2 p-2 border rounded;
+}
+
+.bb-image-thumbnail {
+	@apply cursor-pointer max-w-xs max-h-48 rounded border shadow-sm hover:shadow-md transition-shadow;
+}
+
+.bb-file-info {
+	@apply text-xs text-gray-500 dark:text-gray-400 mt-1 truncate;
+}
+
+.bb-file-icon {
+	@apply text-lg;
+}
+
+.bb-file-link {
+	@apply text-blue-600 dark:text-blue-400 hover:underline;
+}
+
+.bb-download-icon {
+	@apply text-gray-500 hover:text-gray-700 cursor-pointer;
+}
+
 /* 
  * These are custom styles; not extending classes.
  * Need to figure out how to add them to tailwind.config.ts

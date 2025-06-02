@@ -15,6 +15,7 @@ import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
+import { setApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 
@@ -156,6 +157,11 @@ addEventListener('unhandledrejection', (event) => {
 });
 
 if (import.meta.main) {
+	// Initialize API base URL for use throughout the application
+	const baseUrl = `${customUseTls ? 'https' : 'http'}://${customHostname}:${customPort}`;
+	setApiBaseUrl(baseUrl);
+	logger.info(`APIStartup: Set API base URL to ${baseUrl}`);
+
 	let listenOpts: ListenOptions = { hostname: customHostname, port: customPort };
 	if (customUseTls) {
 		const cert = apiConfig.tls.certPem ||

@@ -814,8 +814,40 @@ class LLMConversationInteraction extends LLMInteraction {
 			);
 		}
 
-		const resourcesToAdd = attachedResources
-			? attachedResources.map((resourceToAdd: ResourceForConversation) => {
+		// Safety limit: max 20 files per message
+		const MAX_FILES_PER_MESSAGE = 20;
+		const limitedAttachedResources = attachedResources?.slice(0, MAX_FILES_PER_MESSAGE);
+		
+		// Inject file references into the prompt for chat history
+		let modifiedPrompt = prompt;
+		if (limitedAttachedResources && limitedAttachedResources.length > 0) {
+			let fileReferences = limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
+				// Extract resourceId from uploads URI
+				const resourceUri = resourceToAdd.resourceUri;
+				if (resourceUri.startsWith('bb+filesystem+__uploads+file:./')) {
+					const resourceId = resourceUri.replace('bb+filesystem+__uploads+file:./', '');
+					const metadata = resourceToAdd.metadata;
+					
+					if (metadata.mimeType?.startsWith('image/')) {
+						// For images, use image markdown syntax
+						return `![${metadata.name || 'Attached Image'}](bb+filesystem+uploads+file:./${resourceId})`;
+					} else {
+						// For other files, use link markdown syntax
+						return `[${metadata.name || 'Attached File'}](bb+filesystem+uploads+file:./${resourceId})`;
+					}
+				}
+				return `[${resourceToAdd.metadata.name || 'Attached File'}](${resourceUri})`;
+			}).join('\n');
+			
+			if (attachedResources && attachedResources.length > MAX_FILES_PER_MESSAGE) {
+				fileReferences += `\n\n*Note: Only the first ${MAX_FILES_PER_MESSAGE} files are shown above. ${attachedResources.length - MAX_FILES_PER_MESSAGE} additional files were attached but not displayed.*`;
+			}
+			
+			modifiedPrompt = `${prompt}\n\n${fileReferences}`;
+		}
+		
+		const resourcesToAdd = limitedAttachedResources
+			? limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
 				return {
 					'type': 'text',
 					'text': `Resource added: <${resourceToAdd.resourceUri}>`,
@@ -839,13 +871,13 @@ class LLMConversationInteraction extends LLMInteraction {
 				messageId,
 				parentMessageId,
 				this.id,
-				prompt,
+				modifiedPrompt,
 				this.conversationStats,
 			);
 		} else {
 			this.conversationLogger.logUserMessage(
 				messageId,
-				prompt,
+				modifiedPrompt,
 				this.conversationStats,
 			);
 		}

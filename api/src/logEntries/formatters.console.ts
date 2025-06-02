@@ -9,6 +9,33 @@ export const formatLogEntryPreview = (preview: string): string => {
 	return preview;
 };
 
+// File icon mapping for console output using Unicode symbols
+function getFileIconConsole(fileName: string): string {
+	const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
+	const iconMap: Record<string, string> = {
+		// Documents
+		pdf: '📄', doc: '📝', docx: '📝', txt: '📝', rtf: '📝',
+		// Spreadsheets
+		xls: '📊', xlsx: '📊', csv: '📊',
+		// Presentations
+		ppt: '📽️', pptx: '📽️',
+		// Images
+		jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️', bmp: '🖼️',
+		// Video
+		mp4: '🎥', avi: '🎥', mkv: '🎥', mov: '🎥', wmv: '🎥',
+		// Audio
+		mp3: '🎵', wav: '🎵', flac: '🎵', aac: '🎵',
+		// Archives
+		zip: '📦', rar: '📦', '7z': '📦', tar: '📦', gz: '📦',
+		// Code
+		js: '💻', ts: '💻', py: '💻', java: '💻', cpp: '💻', c: '💻', html: '💻', css: '💻',
+		// Default
+		default: '📄',
+	};
+	
+	return iconMap[fileExt] || iconMap.default;
+}
+
 export const formatLogEntryContent = (logEntry: ConversationLogEntry): string => {
 	// Format the main content
 	const contentArray: Array<{ type: string; content: string }> = formatContentParts(logEntry.content);
@@ -25,6 +52,25 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 					return [firstLine, ...lines.slice(1)].join('\n');
 				});
 				processedContent = processedContent.replace(/<prompt>/g, '');
+
+				// Handle file references: ![name](bb+filesystem+uploads+file:./resourceId) and [name](bb+filesystem+uploads+file:./resourceId)
+				// Images
+				processedContent = processedContent.replace(
+					/!\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
+					(match, altText, resourceId) => {
+						const icon = getFileIconConsole(altText || resourceId);
+						return `\n┌── ${icon} IMAGE ATTACHMENT\n│ ${altText || 'Attached Image'}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
+					}
+				);
+				
+				// Other files
+				processedContent = processedContent.replace(
+					/\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
+					(match, linkText, resourceId) => {
+						const icon = getFileIconConsole(linkText || resourceId);
+						return `\n┌── ${icon} FILE ATTACHMENT\n│ ${linkText || 'Attached File'}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
+					}
+				);
 
 				// Remove any remaining HTML tags
 				return processedContent.replace(/<[^>]+>/g, '');

@@ -2,7 +2,7 @@
  * NotionClient for interacting with the Notion API.
  */
 import { logger } from 'shared/logger.ts';
-import type { AuthConfig } from '../interfaces/authentication.ts';
+import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 
 // Common Notion types
 export type NotionObjectType =
