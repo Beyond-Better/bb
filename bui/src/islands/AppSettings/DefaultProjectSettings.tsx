@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
-import { ModelSelector, ModelCombinations, type ModelSelectionValue } from '../../components/ModelSelector.tsx';
+import { ModelSelector, ModelCombinations, ModelIconLegend, ModelRoleExplanations, type ModelSelectionValue } from '../../components/ModelSelector.tsx';
 import type { DefaultModels } from 'shared/config/types.ts';
 
 // Helper function to format YAML with proper array syntax
@@ -28,7 +28,7 @@ interface FormState {
 	defaultModels: {
 		orchestrator: string;
 		agent: string;
-		chat: string;
+		admin: string;
 	};
 }
 
@@ -43,7 +43,7 @@ interface FormErrors {
 	defaultModels?: {
 		orchestrator?: string;
 		agent?: string;
-		chat?: string;
+		admin?: string;
 	};
 }
 
@@ -160,7 +160,7 @@ export default function DefaultProjectSettings() {
 		defaultModels: {
 			orchestrator: 'claude-sonnet-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
-			chat: 'claude-3-5-haiku-20241022',
+			admin: 'claude-3-5-haiku-20241022',
 		},
 	});
 
@@ -183,7 +183,7 @@ export default function DefaultProjectSettings() {
 						defaultModels: {
 							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-20250514',
 							agent: config.defaultModels?.agent || 'claude-sonnet-4-20250514',
-							chat: config.defaultModels?.chat || 'claude-3-5-haiku-20241022',
+							admin: config.defaultModels?.admin || 'claude-3-5-haiku-20241022',
 						},
 					});
 				}
@@ -274,7 +274,7 @@ export default function DefaultProjectSettings() {
 	};
 
 	// Helper function for model updates
-	const handleModelChange = (role: 'orchestrator' | 'agent' | 'chat', modelId: string) => {
+	const handleModelChange = (role: 'orchestrator' | 'agent' | 'admin', modelId: string) => {
 		const newModels = {
 			...formState.defaultModels,
 			[role]: modelId,
@@ -290,7 +290,7 @@ export default function DefaultProjectSettings() {
 	};
 
 	// Handle model combo application
-	const handleApplyCombo = (combo: { orchestrator: string; agent: string; chat: string }) => {
+	const handleApplyCombo = (combo: { orchestrator: string; agent: string; admin: string }) => {
 		setFormState((prev) => ({ ...prev, defaultModels: combo }));
 		markTabDirty('models');
 	};
@@ -663,14 +663,23 @@ export default function DefaultProjectSettings() {
 
 				{formState.activeTab === 'models' && (
 					<div className='models-tab space-y-6'>
-						<div class='mb-6'>
-							<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
-								Default Models
-							</h3>
-							<p class='text-sm text-gray-500 dark:text-gray-400'>
-								Set the default AI models for different roles. These will be used across all projects unless overridden.
-							</p>
+						{/* Header with Icon Legend */}
+						<div class='flex justify-between items-start mb-6'>
+							<div>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+									Default Models
+								</h3>
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									Set the default AI models for different roles. These will be used across all projects unless overridden.
+								</p>
+							</div>
+							<div class='flex-shrink-0 w-64'>
+								<ModelIconLegend collapsible={true} />
+							</div>
 						</div>
+
+						{/* Model Role Explanations */}
+						<ModelRoleExplanations />
 
 						{/* Model Selection */}
 						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
@@ -702,18 +711,18 @@ export default function DefaultProjectSettings() {
 								description='Executes tasks and uses tools'
 							/>
 
-							{/* Chat Model */}
+							{/* Admin Model */}
 							<ModelSelector
 								apiClient={appState.value.apiClient!}
 								context='global'
-								role='chat'
-								value={formState.defaultModels.chat}
+								role='admin'
+								value={formState.defaultModels.admin}
 								onChange={(value) => {
-									handleModelChange('chat', value as string);
+									handleModelChange('admin', value as string);
 									markTabDirty('models');
 								}}
-								label='Chat Model'
-								description='Powers conversational interactions'
+								label='Admin Model'
+								description='Handles administrative tasks and meta-operations'
 							/>
 						</div>
 
@@ -733,7 +742,7 @@ export default function DefaultProjectSettings() {
 							<div class='text-sm text-blue-800 dark:text-blue-200'>
 								<div><strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}</div>
 								<div><strong>Agent:</strong> {formState.defaultModels.agent}</div>
-								<div><strong>Chat:</strong> {formState.defaultModels.chat}</div>
+								<div><strong>Admin:</strong> {formState.defaultModels.admin}</div>
 							</div>
 						</div>
 					</div>
