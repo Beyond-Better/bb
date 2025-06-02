@@ -9,6 +9,7 @@ import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { CreateProjectData } from 'shared/types/project.ts';
 import { certificateFileExists, generateCertificate } from 'shared/tlsCerts.ts';
 
@@ -47,11 +48,7 @@ async function runWizard(
 			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
 			anthropicApiKey: '',
 			dsConnections: [],
-			defaultModels: {
-				orchestrator: 'claude-sonnet-4-20250514',
-				agent: 'claude-sonnet-4-20250514',
-				chat: 'claude-3-5-haiku-20241022',
-			},
+			defaultModels: DefaultModelsConfigDefaults,
 		};
 
 	const defaultProjectName = existingProjectConfig.name;

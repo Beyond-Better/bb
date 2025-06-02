@@ -1,13 +1,11 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read --allow-write --allow-env
 
 /**
- * Model Capabilities Fetcher
+ * Enhanced Model Capabilities Fetcher
  *
  * Script to fetch and update model capabilities from various providers.
- *
- * This script gathers model information including context window sizes, token limits,
- * pricing details, feature support, and parameter constraints. It stores this data
- * in a JSON file that can be used by the API to enforce limits and provide defaults.
+ * This script is part of the development process and updates the static model data
+ * that BB uses when connecting to the llm-proxy cloud service.
  *
  * Usage:
  *   deno run --allow-net --allow-read --allow-write --allow-env api/scripts/update_model_capabilities.ts
@@ -18,98 +16,32 @@
  *   --anthropic-key=KEY          Anthropic API key (can also use ANTHROPIC_API_KEY env var)
  *   --openai-key=KEY             OpenAI API key (can also use OPENAI_API_KEY env var)
  *   --google-key=KEY             Google API key (can also use GOOGLE_API_KEY env var)
+ *   --deepseek-key=KEY           DeepSeek API key (can also use DEEPSEEK_API_KEY env var)
+ *   --groq-key=KEY               Groq API key (can also use GROQ_API_KEY env var)
+ *   --use-cached                 Continue on API failures using existing/cached data
+ *   --validate-only              Only validate existing capabilities file
  */
 
 import { parseArgs } from '@std/cli';
 import { ensureDir, exists } from '@std/fs';
 import { dirname } from '@std/path';
 import { isError } from 'shared/error.ts';
+import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
 
 /**
- * Enhanced model capabilities interface that includes pricing nuances
+ * Enhanced model capabilities interface that includes all metadata
  */
-export interface ModelCapabilities {
-	// Basic model information
+export interface EnhancedModelCapabilities extends ModelCapabilities {
+	// Additional metadata for the registry
 	modelId: string;
-	displayName: string;
 	provider: string;
-	family?: string; // Model family (e.g., "GPT-4", "Claude-3")
-
-	// Context and token limits
-	contextWindow: number;
-	maxInputTokens?: number;
-	maxOutputTokens: number;
-
-	// Pricing - more detailed structure
-	pricing: {
-		inputTokens: {
-			basePrice: number; // Cost per input token
-			cachedPrice?: number; // Cost for cached tokens (if different)
-			bulkDiscounts?: Array<{ // Any volume-based discounts
-				threshold: number; // Tokens per month threshold
-				price: number; // Discounted price per token
-			}>;
-		};
-		outputTokens: {
-			basePrice: number; // Cost per output token
-			bulkDiscounts?: Array<{ // Any volume-based discounts
-				threshold: number; // Tokens per month threshold
-				price: number; // Discounted price per token
-			}>;
-		};
-		finetuningAvailable?: boolean; // Whether finetuning is available
-		finetuningCost?: { // Finetuning costs if available
-			trainingPerToken: number;
-			inferencePerToken: number;
-		};
-		billingTier?: string; // Any special billing tier info
-		currency: string; // Currency for prices (default USD)
-		effectiveDate: string; // Date these prices were effective from
-	};
-
-	// Feature support
-	supportedFeatures: {
-		functionCalling: boolean;
-		json: boolean;
-		streaming: boolean;
-		vision: boolean;
-		extendedThinking?: boolean;
-		promptCaching?: boolean;
-		multimodal?: boolean;
-	};
-
-	// Default parameters
-	defaults: {
-		temperature: number;
-		topP?: number;
-		frequencyPenalty?: number;
-		presencePenalty?: number;
-		maxTokens: number;
-		responseFormat?: string;
-	};
-
-	// Parameter constraints
-	constraints: {
-		temperature: { min: number; max: number };
-		topP?: { min: number; max: number };
-		frequencyPenalty?: { min: number; max: number };
-		presencePenalty?: { min: number; max: number };
-	};
-
-	// System prompt handling
-	systemPromptBehavior: 'required' | 'optional' | 'notSupported' | 'fixed';
-
-	// Metadata
-	trainingCutoff?: string; // When the model's training data ends
-	releaseDate?: string; // When the model was released
-	deprecated?: boolean; // Whether the model is deprecated
-	responseSpeed?: 'fast' | 'medium' | 'slow'; // Relative speed categorization
+	family?: string;
+	source: 'api' | 'documentation' | 'manual';
+	lastUpdated: string;
+	releaseDate?: string;
+	deprecated?: boolean;
 	modality: 'text' | 'text-and-vision' | 'multimodal';
-	description?: string; // Human-readable description
-
-	// Source of this information
-	source: 'api' | 'documentation' | 'manual'; // How we obtained this data
-	lastUpdated: string; // When this information was last updated
+	description?: string;
 }
 
 /**
@@ -119,6 +51,8 @@ interface FetcherConfig {
 	outputPath: string;
 	providersToFetch: string[];
 	apiKeys: Record<string, string>;
+	useCached: boolean;
+	validateOnly: boolean;
 }
 
 /**
@@ -136,7 +70,13 @@ class ModelCapabilitiesFetcher {
 	 * Run the fetcher for all specified providers
 	 */
 	public async run(): Promise<void> {
-		console.log('Starting model capabilities fetcher...');
+		console.log('Starting enhanced model capabilities fetcher...');
+
+		// If validate-only mode, just validate and exit
+		if (this.config.validateOnly) {
+			await this.validateExistingCapabilities();
+			return;
+		}
 
 		// Try to load existing capabilities first
 		await this.loadExistingCapabilities();
@@ -147,9 +87,19 @@ class ModelCapabilitiesFetcher {
 				console.log(`Fetching capabilities for ${provider}...`);
 				await this.fetchProviderCapabilities(provider);
 			} catch (error) {
-				console.error(`Error fetching capabilities for ${provider}:`, isError(error) ? error.message : error);
+				const errorMsg = `Error fetching capabilities for ${provider}: ${isError(error) ? error.message : error}`;
+				
+				if (this.config.useCached) {
+					console.warn(`${errorMsg} (continuing with cached data)`);
+				} else {
+					console.error(errorMsg);
+					throw error;
+				}
 			}
 		}
+
+		// Validate the final capabilities
+		await this.validateCapabilities();
 
 		// Save the updated capabilities
 		await this.saveCapabilities();
@@ -174,6 +124,112 @@ class ModelCapabilitiesFetcher {
 	}
 
 	/**
+	 * Validate existing capabilities file
+	 */
+	private async validateExistingCapabilities(): Promise<void> {
+		console.log('Validating existing capabilities file...');
+		
+		if (!await exists(this.config.outputPath)) {
+			throw new Error(`Capabilities file not found: ${this.config.outputPath}`);
+		}
+
+		try {
+			const content = await Deno.readTextFile(this.config.outputPath);
+			const capabilities = JSON.parse(content);
+			this.allCapabilities = capabilities;
+			
+			await this.validateCapabilities();
+			console.log('✅ Capabilities file is valid');
+		} catch (error) {
+			console.error('❌ Capabilities file validation failed:', isError(error) ? error.message : error);
+			throw error;
+		}
+	}
+
+	/**
+	 * Validate the capabilities structure and content
+	 */
+	private async validateCapabilities(): Promise<void> {
+		if (!this.allCapabilities || typeof this.allCapabilities !== 'object') {
+			throw new Error('Invalid capabilities data: must be an object');
+		}
+
+		let totalModels = 0;
+		const issues: string[] = [];
+
+		// Validate provider entries
+		for (const [provider, models] of Object.entries(this.allCapabilities)) {
+			if (!models || typeof models !== 'object') {
+				issues.push(`Invalid capabilities for provider ${provider}: must be an object`);
+				continue;
+			}
+
+			// Validate model entries
+			for (const [model, capabilities] of Object.entries(models)) {
+				totalModels++;
+				
+				if (!capabilities || typeof capabilities !== 'object') {
+					issues.push(`Invalid capabilities for model ${provider}/${model}: must be an object`);
+					continue;
+				}
+
+				// Check required properties
+				const requiredProps = [
+					'displayName',
+					'contextWindow',
+					'maxOutputTokens',
+					'pricing',
+					'supportedFeatures',
+					'defaults',
+					'constraints',
+				];
+				
+				for (const prop of requiredProps) {
+					if (!(prop in capabilities)) {
+						issues.push(`Model ${provider}/${model}: missing required property ${prop}`);
+					}
+				}
+
+				// Validate pricing structure
+				if (capabilities.pricing) {
+					if (!capabilities.pricing.inputTokens?.basePrice && capabilities.pricing.inputTokens?.basePrice !== 0) {
+						issues.push(`Model ${provider}/${model}: missing pricing.inputTokens.basePrice`);
+					}
+					if (!capabilities.pricing.outputTokens?.basePrice && capabilities.pricing.outputTokens?.basePrice !== 0) {
+						issues.push(`Model ${provider}/${model}: missing pricing.outputTokens.basePrice`);
+					}
+				}
+
+				// Validate feature flags
+				if (capabilities.supportedFeatures) {
+					const requiredFeatures = ['functionCalling', 'json', 'streaming', 'vision'];
+					for (const feature of requiredFeatures) {
+						if (typeof capabilities.supportedFeatures[feature] !== 'boolean') {
+							issues.push(`Model ${provider}/${model}: supportedFeatures.${feature} must be boolean`);
+						}
+					}
+				}
+
+				// Validate constraints
+				if (capabilities.constraints?.temperature) {
+					const { min, max } = capabilities.constraints.temperature;
+					if (typeof min !== 'number' || typeof max !== 'number' || min >= max) {
+						issues.push(`Model ${provider}/${model}: invalid temperature constraints`);
+					}
+				}
+			}
+		}
+
+		if (issues.length > 0) {
+			console.error('Validation issues found:');
+			issues.forEach(issue => console.error(`  - ${issue}`));
+			throw new Error(`Validation failed with ${issues.length} issues`);
+		}
+
+		console.log(`✅ Validation passed for ${totalModels} models across ${Object.keys(this.allCapabilities).length} providers`);
+	}
+
+	/**
 	 * Save the capabilities to the output file
 	 */
 	private async saveCapabilities(): Promise<void> {
@@ -181,15 +237,28 @@ class ModelCapabilitiesFetcher {
 			// Ensure the directory exists
 			await ensureDir(dirname(this.config.outputPath));
 
-			// Save as JSON
+			// Save as JSON with consistent formatting
+			const sortedCapabilities: Record<string, Record<string, ModelCapabilities>> = {};
+			
+			// Sort providers and models for consistent output
+			const sortedProviders = Object.keys(this.allCapabilities).sort();
+			for (const provider of sortedProviders) {
+				sortedCapabilities[provider] = {};
+				const sortedModels = Object.keys(this.allCapabilities[provider]).sort();
+				for (const model of sortedModels) {
+					sortedCapabilities[provider][model] = this.allCapabilities[provider][model];
+				}
+			}
+
 			await Deno.writeTextFile(
 				this.config.outputPath,
-				JSON.stringify(this.allCapabilities, null, 2),
+				JSON.stringify(sortedCapabilities, null, '\t'),
 			);
 
 			console.log(`Saved capabilities to ${this.config.outputPath}`);
 		} catch (error) {
 			console.error(`Error saving capabilities: ${isError(error) ? error.message : error}`);
+			throw error;
 		}
 	}
 
@@ -213,17 +282,13 @@ class ModelCapabilitiesFetcher {
 			case 'groq':
 				await this.fetchGroqCapabilities();
 				break;
-			case 'ollama':
-				// Ollama is local, so we'll handle it differently
-				await this.compileOllamaCapabilities();
-				break;
 			default:
 				console.warn(`Unsupported provider: ${provider}`);
 		}
 	}
 
 	/**
-	 * Fetch Anthropic model capabilities using their API
+	 * Fetch Anthropic model capabilities
 	 */
 	private async fetchAnthropicCapabilities(): Promise<void> {
 		const apiKey = this.config.apiKeys.anthropic;
@@ -232,228 +297,194 @@ class ModelCapabilitiesFetcher {
 		}
 
 		try {
-			// Anthropic doesn't have a models endpoint yet, so we'll use known models
-			// with info from their documentation
+			// Anthropic doesn't have a models endpoint, so use documented model info
+			// with validation via sample API call
 
-			// Claude 3.5 Haiku
-			this.registerModel({
-				modelId: 'claude-3-5-haiku-20241022',
-				displayName: 'Claude 3.5 Haiku',
-				provider: 'anthropic',
-				family: 'Claude-3',
-				contextWindow: 200000,
-				maxOutputTokens: 4096,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.00000080,
-						cachedPrice: 0.00000100, // 5% of base price for cached input tokens
+			// Register known Anthropic models with latest information
+			const anthropicModels = [
+				{
+					modelId: 'claude-sonnet-4-20250514',
+					displayName: 'Claude Sonnet 4.0',
+					family: 'Claude-4',
+					contextWindow: 200000,
+					maxOutputTokens: 128000,
+					pricing: {
+						inputTokens: { basePrice: 0.000003, cachedPrice: 0.00000375 },
+						outputTokens: { basePrice: 0.000015 },
+						currency: 'USD',
+						effectiveDate: '2025-05-23',
 					},
-					outputTokens: {
-						basePrice: 0.00000400,
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						promptCaching: true,
+						extendedThinking: true,
 					},
-					currency: 'USD',
-					effectiveDate: '2024-10-22',
+					defaults: {
+						temperature: 0.7,
+						maxTokens: 16384,
+						extendedThinking: false,
+					},
+					constraints: {
+						temperature: { min: 0.0, max: 1.0 },
+					},
+					systemPromptBehavior: 'optional' as const,
+					trainingCutoff: '2025-03-01',
+					releaseDate: '2025-05-23',
+					responseSpeed: 'medium' as const,
+					modality: 'text-and-vision' as const,
+					description: "Anthropic's newest flagship model with advanced reasoning",
 				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					promptCaching: true,
+				{
+					modelId: 'claude-opus-4-20250514',
+					displayName: 'Claude Opus 4.0',
+					family: 'Claude-4',
+					contextWindow: 200000,
+					maxOutputTokens: 128000,
+					pricing: {
+						inputTokens: { basePrice: 0.000015, cachedPrice: 0.00001875 },
+						outputTokens: { basePrice: 0.000075 },
+						currency: 'USD',
+						effectiveDate: '2025-05-23',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						promptCaching: true,
+						extendedThinking: true,
+					},
+					defaults: {
+						temperature: 0.7,
+						maxTokens: 16384,
+						extendedThinking: false,
+					},
+					constraints: {
+						temperature: { min: 0.0, max: 1.0 },
+					},
+					systemPromptBehavior: 'optional' as const,
+					trainingCutoff: '2025-03-01',
+					releaseDate: '2025-05-23',
+					responseSpeed: 'slow' as const,
+					modality: 'text-and-vision' as const,
+					description: "Anthropic's most capable model for complex reasoning tasks",
 				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 4096,
+				{
+					modelId: 'claude-3-7-sonnet-20250219',
+					displayName: 'Claude Sonnet 3.7',
+					family: 'Claude-3',
+					contextWindow: 200000,
+					maxOutputTokens: 128000,
+					pricing: {
+						inputTokens: { basePrice: 0.000003, cachedPrice: 0.00000375 },
+						outputTokens: { basePrice: 0.000015 },
+						currency: 'USD',
+						effectiveDate: '2025-02-19',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						promptCaching: true,
+						extendedThinking: true,
+					},
+					defaults: {
+						temperature: 0.7,
+						maxTokens: 16384,
+						extendedThinking: false,
+					},
+					constraints: {
+						temperature: { min: 0.0, max: 1.0 },
+					},
+					systemPromptBehavior: 'optional' as const,
+					trainingCutoff: '2024-10-01',
+					releaseDate: '2025-02-19',
+					responseSpeed: 'medium' as const,
+					modality: 'text-and-vision' as const,
+					description: "Enhanced model with extended thinking capabilities",
 				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
+				{
+					modelId: 'claude-3-5-sonnet-20241022',
+					displayName: 'Claude Sonnet 3.5',
+					family: 'Claude-3',
+					contextWindow: 200000,
+					maxOutputTokens: 128000,
+					pricing: {
+						inputTokens: { basePrice: 0.000003, cachedPrice: 0.00000015 },
+						outputTokens: { basePrice: 0.000015 },
+						currency: 'USD',
+						effectiveDate: '2024-10-22',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						promptCaching: true,
+						extendedThinking: false,
+					},
+					defaults: {
+						temperature: 0.7,
+						maxTokens: 8192,
+						extendedThinking: false,
+					},
+					constraints: {
+						temperature: { min: 0.0, max: 1.0 },
+					},
+					systemPromptBehavior: 'optional' as const,
+					trainingCutoff: '2023-08-01',
+					releaseDate: '2024-10-22',
+					responseSpeed: 'medium' as const,
+					modality: 'text-and-vision' as const,
+					description: "Balanced model for most use cases",
 				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-08-01',
-				releaseDate: '2024-10-22',
-				responseSpeed: 'fast',
-				modality: 'text-and-vision',
-				description: 'Fast and cost-effective model for routine tasks',
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
+				{
+					modelId: 'claude-3-5-haiku-20241022',
+					displayName: 'Claude Haiku 3.5',
+					family: 'Claude-3',
+					contextWindow: 200000,
+					maxOutputTokens: 4096,
+					pricing: {
+						inputTokens: { basePrice: 0.00000025, cachedPrice: 0.0000000125 },
+						outputTokens: { basePrice: 0.00000125 },
+						currency: 'USD',
+						effectiveDate: '2024-10-22',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						promptCaching: true,
+						extendedThinking: false,
+					},
+					defaults: {
+						temperature: 0.7,
+						maxTokens: 4096,
+						extendedThinking: false,
+					},
+					constraints: {
+						temperature: { min: 0.0, max: 1.0 },
+					},
+					systemPromptBehavior: 'optional' as const,
+					trainingCutoff: '2023-08-01',
+					releaseDate: '2024-10-22',
+					responseSpeed: 'fast' as const,
+					modality: 'text-and-vision' as const,
+					description: "Fast and cost-effective model for routine tasks",
+				},
+			];
 
-			// Claude 3.5 Sonnet
-			this.registerModel({
-				modelId: 'claude-3-5-sonnet-20241022',
-				displayName: 'Claude 3.5 Sonnet',
-				provider: 'anthropic',
-				family: 'Claude-3',
-				contextWindow: 200000,
-				maxOutputTokens: 128000,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.000003,
-						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
-					},
-					outputTokens: {
-						basePrice: 0.000015,
-					},
-					currency: 'USD',
-					effectiveDate: '2024-10-22',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					promptCaching: true,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 8192,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-08-01',
-				releaseDate: '2024-10-22',
-				responseSpeed: 'medium',
-				modality: 'text-and-vision',
-				description: "Anthropic's flagship model balancing quality, speed, and cost",
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
+			// Register all models
+			for (const model of anthropicModels) {
+				this.registerModel('anthropic', model);
+			}
 
-			// Claude 3.7 Sonnet
-			this.registerModel({
-				modelId: 'claude-3-7-sonnet-20250219',
-				displayName: 'Claude 3.7 Sonnet',
-				provider: 'anthropic',
-				family: 'Claude-3',
-				contextWindow: 200000,
-				maxOutputTokens: 128000,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.000003,
-						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
-					},
-					outputTokens: {
-						basePrice: 0.000015,
-					},
-					currency: 'USD',
-					effectiveDate: '2024-04-25',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					extendedThinking: true,
-					promptCaching: true,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 8192,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-10-01',
-				releaseDate: '2024-04-25',
-				responseSpeed: 'medium',
-				modality: 'text-and-vision',
-				description: "Anthropic's most advanced model with extended thinking capabilities",
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
-
-			// Claude 4.0 Sonnet
-			this.registerModel({
-				modelId: 'claude-sonnet-4-20250514',
-				displayName: 'Claude 4.0 Sonnet',
-				provider: 'anthropic',
-				family: 'Claude-4',
-				contextWindow: 200000,
-				maxOutputTokens: 128000,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.000003,
-						cachedPrice: 0.00000375, // 5% of base price for cached input tokens
-					},
-					outputTokens: {
-						basePrice: 0.000015,
-					},
-					currency: 'USD',
-					effectiveDate: '2025-05-23',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					extendedThinking: true,
-					promptCaching: true,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 8192,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2025-03-01',
-				releaseDate: '2025-05-23',
-				responseSpeed: 'medium',
-				modality: 'text-and-vision',
-				description: "Anthropic's advanced model with extended thinking capabilities",
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
-
-			// Claude 4.0 Opus
-			this.registerModel({
-				modelId: 'claude-opus-4-20250514',
-				displayName: 'Claude 4.0 Opus',
-				provider: 'anthropic',
-				family: 'Claude-4',
-				contextWindow: 200000,
-				maxOutputTokens: 128000,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.000015,
-						cachedPrice: 0.00001875, // 5% of base price for cached input tokens
-					},
-					outputTokens: {
-						basePrice: 0.000075,
-					},
-					currency: 'USD',
-					effectiveDate: '2025-05-23',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: true,
-					extendedThinking: true,
-					promptCaching: true,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 8192,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 1.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2025-03-01',
-				releaseDate: '2025-05-23',
-				responseSpeed: 'medium',
-				modality: 'text-and-vision',
-				description: "Anthropic's advanced model with extended thinking capabilities",
-				source: 'documentation',
-				lastUpdated: new Date().toISOString(),
-			});
-
-			// Try to validate the models by making a sample API call
+			// Validate API access with a test call
 			const response = await fetch('https://api.anthropic.com/v1/messages', {
 				method: 'POST',
 				headers: {
@@ -464,18 +495,19 @@ class ModelCapabilitiesFetcher {
 				body: JSON.stringify({
 					model: 'claude-3-5-sonnet-20241022',
 					max_tokens: 10,
-					messages: [{ role: 'user', content: 'Say hi' }],
+					messages: [{ role: 'user', content: 'Hi' }],
 				}),
 			});
 
 			if (!response.ok) {
-				const error = await response.json();
-				console.warn(`Could not validate Anthropic models: ${JSON.stringify(error)}`);
+				console.warn(`Could not validate Anthropic API: ${response.status} ${response.statusText}`);
 			} else {
-				console.log('Successfully validated Anthropic API access');
+				console.log('✅ Successfully validated Anthropic API access');
 			}
+
 		} catch (error) {
 			console.error('Error fetching Anthropic capabilities:', error);
+			throw error;
 		}
 	}
 
@@ -489,7 +521,7 @@ class ModelCapabilitiesFetcher {
 		}
 
 		try {
-			// First, get the list of available models
+			// Get available models from API
 			const response = await fetch('https://api.openai.com/v1/models', {
 				headers: {
 					'Authorization': `Bearer ${apiKey}`,
@@ -503,49 +535,123 @@ class ModelCapabilitiesFetcher {
 			const data = await response.json();
 			const models = data.data;
 
-			// Filter to get the main models we're interested in
-			const relevantModels = models.filter((model: { id: string }) => {
-				const id = model.id.toLowerCase();
-				return (id.includes('gpt-4') || id.includes('gpt-3.5')) &&
-					!id.includes('vision') && // We'll handle vision models separately
-					!id.includes('instruct');
-			});
+			// Known model capabilities
+			const knownModels = {
+				'gpt-4o': {
+					displayName: 'GPT-4o',
+					family: 'GPT-4',
+					contextWindow: 128000,
+					maxOutputTokens: 4096,
+					pricing: {
+						inputTokens: { basePrice: 0.00001 },
+						outputTokens: { basePrice: 0.00003 },
+						currency: 'USD',
+						effectiveDate: '2024-05-13',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: true,
+						multimodal: true,
+						promptCaching: false,
+					},
+					trainingCutoff: '2023-10-01',
+					responseSpeed: 'medium' as const,
+					modality: 'multimodal' as const,
+				},
+				'gpt-4-turbo': {
+					displayName: 'GPT-4 Turbo',
+					family: 'GPT-4',
+					contextWindow: 128000,
+					maxOutputTokens: 4096,
+					pricing: {
+						inputTokens: { basePrice: 0.00001 },
+						outputTokens: { basePrice: 0.00003 },
+						currency: 'USD',
+						effectiveDate: '2023-11-06',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: false,
+						promptCaching: false,
+					},
+					trainingCutoff: '2023-04-01',
+					responseSpeed: 'medium' as const,
+					modality: 'text' as const,
+				},
+				'gpt-3.5-turbo': {
+					displayName: 'GPT-3.5 Turbo',
+					family: 'GPT-3.5',
+					contextWindow: 16385,
+					maxOutputTokens: 4096,
+					pricing: {
+						inputTokens: { basePrice: 0.0000005 },
+						outputTokens: { basePrice: 0.0000015 },
+						currency: 'USD',
+						effectiveDate: '2023-11-06',
+					},
+					supportedFeatures: {
+						functionCalling: true,
+						json: true,
+						streaming: true,
+						vision: false,
+						promptCaching: false,
+					},
+					trainingCutoff: '2021-09-01',
+					responseSpeed: 'fast' as const,
+					modality: 'text' as const,
+				},
+			};
 
-			// Build capabilities for each model
-			for (const model of relevantModels) {
-				// Fetch more detailed model information
-				// Note: OpenAI API doesn't provide detailed capabilities, so we'll use hardcoded info
-				// based on documentation plus the model information from the API
-				await this.registerOpenAIModel(model.id);
+			// Register known models that are available in the API
+			for (const model of models) {
+				const modelId = model.id;
+				const knownModel = knownModels[modelId as keyof typeof knownModels];
+				
+				if (knownModel) {
+					this.registerModel('openai', {
+						modelId,
+						...knownModel,
+						defaults: {
+							temperature: 0.7,
+							maxTokens: knownModel.maxOutputTokens,
+							extendedThinking: false,
+						},
+						constraints: {
+							temperature: { min: 0.0, max: 2.0 },
+						},
+						systemPromptBehavior: 'optional' as const,
+					});
+				}
 			}
 
-			console.log(`Registered ${relevantModels.length} OpenAI models`);
+			console.log(`✅ Registered ${Object.keys(knownModels).length} OpenAI models`);
 		} catch (error) {
 			console.error('Error fetching OpenAI capabilities:', error);
+			throw error;
 		}
 	}
 
 	/**
-	 * Register an OpenAI model with its capabilities
+	 * Fetch Google model capabilities
 	 */
-	// deno-lint-ignore require-await
-	private async registerOpenAIModel(modelId: string): Promise<void> {
-		// Map of known models to their capabilities
-		const modelInfo: Partial<Record<string, Partial<ModelCapabilities>>> = {
-			'gpt-4o': {
-				displayName: 'GPT-4o',
-				family: 'GPT-4',
-				contextWindow: 128000,
-				maxOutputTokens: 4096,
+	private async fetchGoogleCapabilities(): Promise<void> {
+		// Register known Google models based on documentation
+		const googleModels = [
+			{
+				modelId: 'gemini-1.5-flash',
+				displayName: 'Gemini 1.5 Flash',
+				family: 'Gemini',
+				contextWindow: 1000000,
+				maxOutputTokens: 8192,
 				pricing: {
-					inputTokens: {
-						basePrice: 0.00001,
-					},
-					outputTokens: {
-						basePrice: 0.00003,
-					},
+					inputTokens: { basePrice: 0.00000035 },
+					outputTokens: { basePrice: 0.0000014 },
 					currency: 'USD',
-					effectiveDate: '2024-05-13',
+					effectiveDate: '2024-03-15',
 				},
 				supportedFeatures: {
 					functionCalling: true,
@@ -555,559 +661,244 @@ class ModelCapabilitiesFetcher {
 					multimodal: true,
 					promptCaching: false,
 				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 4096,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 2.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-10-01',
-				releaseDate: '2024-05-13',
-				responseSpeed: 'medium',
-				modality: 'multimodal',
+				trainingCutoff: '2023-08-01',
+				responseSpeed: 'fast' as const,
+				modality: 'multimodal' as const,
+				description: 'Fast and cost-effective multimodal model',
 			},
-			'gpt-4-turbo': {
-				displayName: 'GPT-4 Turbo',
-				family: 'GPT-4',
-				contextWindow: 128000,
-				maxOutputTokens: 4096,
+			{
+				modelId: 'gemini-2.0-flash',
+				displayName: 'Gemini 2.0 Flash',
+				family: 'Gemini',
+				contextWindow: 1000000,
+				maxOutputTokens: 8192,
 				pricing: {
-					inputTokens: {
-						basePrice: 0.00001,
-					},
-					outputTokens: {
-						basePrice: 0.00003,
-					},
+					inputTokens: { basePrice: 0.00000035 },
+					outputTokens: { basePrice: 0.0000014 },
 					currency: 'USD',
-					effectiveDate: '2023-11-06',
+					effectiveDate: '2024-08-15',
 				},
 				supportedFeatures: {
 					functionCalling: true,
 					json: true,
 					streaming: true,
-					vision: false,
+					vision: true,
+					multimodal: true,
 					promptCaching: false,
 				},
+				trainingCutoff: '2024-03-01',
+				responseSpeed: 'fast' as const,
+				modality: 'multimodal' as const,
+				description: 'Latest multimodal model with improved reasoning',
+			},
+		];
+
+		for (const model of googleModels) {
+			this.registerModel('google', {
+				...model,
 				defaults: {
 					temperature: 0.7,
-					maxTokens: 4096,
+					maxTokens: model.maxOutputTokens,
+					extendedThinking: false,
 				},
 				constraints: {
-					temperature: { min: 0.0, max: 2.0 },
+					temperature: { min: 0.0, max: 1.0 },
 				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2023-04-01',
-				releaseDate: '2023-11-06',
-				modality: 'text',
-			},
-			'gpt-3.5-turbo': {
-				displayName: 'GPT-3.5 Turbo',
-				family: 'GPT-3.5',
-				contextWindow: 16385,
-				maxOutputTokens: 4096,
-				pricing: {
-					inputTokens: {
-						basePrice: 0.0000005,
-					},
-					outputTokens: {
-						basePrice: 0.0000015,
-					},
-					currency: 'USD',
-					effectiveDate: '2023-11-06',
-				},
-				supportedFeatures: {
-					functionCalling: true,
-					json: true,
-					streaming: true,
-					vision: false,
-					promptCaching: false,
-				},
-				defaults: {
-					temperature: 0.7,
-					maxTokens: 4096,
-				},
-				constraints: {
-					temperature: { min: 0.0, max: 2.0 },
-				},
-				systemPromptBehavior: 'optional',
-				trainingCutoff: '2021-09-01',
-				releaseDate: '2022-11-28',
-				responseSpeed: 'fast',
-				modality: 'text',
-			},
-		};
-
-		// Get the base model from the model ID (removing version suffixes)
-		const baseModelId = modelId.split('-').slice(0, 2).join('-');
-		const info = modelInfo[baseModelId] || modelInfo[modelId] || {
-			displayName: `OpenAI ${modelId}`,
-			contextWindow: 4096,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.0001, // Default price, should be updated when known
-				},
-				outputTokens: {
-					basePrice: 0.0002, // Default price, should be updated when known
-				},
-				currency: 'USD',
-				effectiveDate: new Date().toISOString().split('T')[0],
-			},
-			supportedFeatures: {
-				functionCalling: false,
-				json: false,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 2048,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			modality: 'text',
-		};
-
-		if (info) {
-			// Create base object with defaults that will be overridden by info
-			const baseModelData = {
-				modelId,
-				provider: 'openai',
-				source: 'api+documentation',
-				lastUpdated: new Date().toISOString(),
-			};
-
-			// Then merge, allowing info to override defaults
-			this.registerModel({ ...baseModelData, ...info } as ModelCapabilities);
-		} else {
-			console.warn(`No predefined capabilities for OpenAI model: ${modelId}`);
+				systemPromptBehavior: 'optional' as const,
+			});
 		}
+
+		console.log(`✅ Registered ${googleModels.length} Google models`);
 	}
 
 	/**
-	 * Fetch Google model capabilities
+	 * Fetch DeepSeek model capabilities
 	 */
-	private async fetchGoogleCapabilities(): Promise<void> {
-		const apiKey = this.config.apiKeys.google;
-
-		// Even without an API key, we can register known models based on documentation
-		this.registerModel({
-			modelId: 'gemini-1.5-flash',
-			displayName: 'Gemini 1.5 Flash',
-			provider: 'google',
-			family: 'Gemini',
-			contextWindow: 1000000,
-			maxOutputTokens: 8192,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.00000035,
-				},
-				outputTokens: {
-					basePrice: 0.0000014,
-				},
-				currency: 'USD',
-				effectiveDate: '2024-03-15',
-			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: true,
-				multimodal: true,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 8192,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			trainingCutoff: '2023-08-01',
-			releaseDate: '2024-03-15',
-			responseSpeed: 'fast',
-			modality: 'multimodal',
-			description: 'Fast and cost-effective multimodal model from Google',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
-
-		this.registerModel({
-			modelId: 'gemini-2.0-flash',
-			displayName: 'Gemini 2.0 Flash',
-			provider: 'google',
-			family: 'Gemini',
-			contextWindow: 1000000,
-			maxOutputTokens: 8192,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.00000035,
-				},
-				outputTokens: {
-					basePrice: 0.0000014,
-				},
-				currency: 'USD',
-				effectiveDate: '2024-08-15',
-			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: true,
-				multimodal: true,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 8192,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			trainingCutoff: '2024-03-01',
-			releaseDate: '2024-08-15',
-			responseSpeed: 'fast',
-			modality: 'multimodal',
-			description: 'Latest multimodal model from Google with improved reasoning',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
-
-		// If API key is available, try to validate the models
-		if (apiKey) {
-			try {
-				const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-
-				if (response.ok) {
-					const data = await response.json();
-					console.log(
-						`Successfully validated Google AI API access, found ${data.models?.length || 0} models`,
-					);
-				} else {
-					console.warn(`Could not validate Google AI models: ${response.statusText}`);
-				}
-			} catch (error) {
-				console.warn(`Error validating Google AI access: ${isError(error) ? error.message : error}`);
-			}
-		}
-	}
-
-	/**
-	 * Register model capabilities for DeepSeek
-	 */
-	// deno-lint-ignore require-await
 	private async fetchDeepSeekCapabilities(): Promise<void> {
-		// DeepSeek models based on documentation
-		this.registerModel({
-			modelId: 'deepseek-chat',
-			displayName: 'DeepSeek Chat',
-			provider: 'deepseek',
-			family: 'DeepSeek',
-			contextWindow: 32768,
-			maxOutputTokens: 8192,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.000001,
+		const deepseekModels = [
+			{
+				modelId: 'deepseek-chat',
+				displayName: 'DeepSeek Chat',
+				family: 'DeepSeek',
+				contextWindow: 32768,
+				maxOutputTokens: 8192,
+				pricing: {
+					inputTokens: { basePrice: 0.000001 },
+					outputTokens: { basePrice: 0.000005 },
+					currency: 'USD',
+					effectiveDate: '2024-02-01',
 				},
-				outputTokens: {
-					basePrice: 0.000005,
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: false,
+					promptCaching: false,
 				},
-				currency: 'USD',
-				effectiveDate: '2024-02-01',
+				responseSpeed: 'medium' as const,
+				modality: 'text' as const,
+				description: 'General purpose text model',
 			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
+			{
+				modelId: 'deepseek-reasoner',
+				displayName: 'DeepSeek Reasoner',
+				family: 'DeepSeek',
+				contextWindow: 128000,
+				maxOutputTokens: 16384,
+				pricing: {
+					inputTokens: { basePrice: 0.000002 },
+					outputTokens: { basePrice: 0.000008 },
+					currency: 'USD',
+					effectiveDate: '2024-05-01',
+				},
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: false,
+					promptCaching: false,
+				},
+				responseSpeed: 'medium' as const,
+				modality: 'text' as const,
+				description: 'Advanced reasoning model',
 			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 8192,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-02-01',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: 'General purpose text model from DeepSeek',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
+		];
 
-		this.registerModel({
-			modelId: 'deepseek-reasoner',
-			displayName: 'DeepSeek Reasoner',
-			provider: 'deepseek',
-			family: 'DeepSeek',
-			contextWindow: 128000,
-			maxOutputTokens: 16384,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.000002,
+		for (const model of deepseekModels) {
+			this.registerModel('deepseek', {
+				...model,
+				defaults: {
+					temperature: 0.7,
+					maxTokens: model.maxOutputTokens,
+					extendedThinking: false,
 				},
-				outputTokens: {
-					basePrice: 0.000008,
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
 				},
-				currency: 'USD',
-				effectiveDate: '2024-05-01',
-			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.5,
-				maxTokens: 8192,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-05-01',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: 'Advanced reasoning model from DeepSeek',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
+				systemPromptBehavior: 'optional' as const,
+			});
+		}
+
+		console.log(`✅ Registered ${deepseekModels.length} DeepSeek models`);
 	}
 
 	/**
-	 * Register model capabilities for Groq
+	 * Fetch Groq model capabilities
 	 */
-	// deno-lint-ignore require-await
 	private async fetchGroqCapabilities(): Promise<void> {
-		// Groq models based on documentation
-		this.registerModel({
-			modelId: 'llama3-8b-8192',
-			displayName: 'LLaMA 3 8B',
-			provider: 'groq',
-			family: 'LLaMA',
-			contextWindow: 8192,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.0000001,
+		const groqModels = [
+			{
+				modelId: 'llama3-8b-8192',
+				displayName: 'LLaMA 3 8B',
+				family: 'LLaMA',
+				contextWindow: 8192,
+				maxOutputTokens: 4096,
+				pricing: {
+					inputTokens: { basePrice: 0.0000001 },
+					outputTokens: { basePrice: 0.0000002 },
+					currency: 'USD',
+					effectiveDate: '2024-04-18',
 				},
-				outputTokens: {
-					basePrice: 0.0000002,
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: false,
+					promptCaching: false,
 				},
-				currency: 'USD',
-				effectiveDate: '2024-04-18',
+				responseSpeed: 'fast' as const,
+				modality: 'text' as const,
+				description: 'Fast LLaMA 3 8B model on Groq infrastructure',
 			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
+			{
+				modelId: 'llama3-70b-8192',
+				displayName: 'LLaMA 3 70B',
+				family: 'LLaMA',
+				contextWindow: 8192,
+				maxOutputTokens: 4096,
+				pricing: {
+					inputTokens: { basePrice: 0.0000003 },
+					outputTokens: { basePrice: 0.0000009 },
+					currency: 'USD',
+					effectiveDate: '2024-04-18',
+				},
+				supportedFeatures: {
+					functionCalling: true,
+					json: true,
+					streaming: true,
+					vision: false,
+					promptCaching: false,
+				},
+				responseSpeed: 'medium' as const,
+				modality: 'text' as const,
+				description: "LLaMA 3 70B model on Groq's hardware",
 			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 4096,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-04-18',
-			responseSpeed: 'fast',
-			modality: 'text',
-			description: 'Fast LLaMA 3 8B model on Groq infrastructure',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
+		];
 
-		this.registerModel({
-			modelId: 'llama3-70b-8192',
-			displayName: 'LLaMA 3 70B',
-			provider: 'groq',
-			family: 'LLaMA',
-			contextWindow: 8192,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.0000003,
+		for (const model of groqModels) {
+			this.registerModel('groq', {
+				...model,
+				defaults: {
+					temperature: 0.7,
+					maxTokens: model.maxOutputTokens,
+					extendedThinking: false,
 				},
-				outputTokens: {
-					basePrice: 0.0000009,
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
 				},
-				currency: 'USD',
-				effectiveDate: '2024-04-18',
-			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 4096,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-04-18',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: "LLaMA 3 70B model on Groq's hardware",
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
+				systemPromptBehavior: 'optional' as const,
+			});
+		}
 
-		this.registerModel({
-			modelId: 'mixtral-8x7b-32768',
-			displayName: 'Mixtral 8x7B',
-			provider: 'groq',
-			family: 'Mixtral',
-			contextWindow: 32768,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: {
-					basePrice: 0.0000002,
-				},
-				outputTokens: {
-					basePrice: 0.0000006,
-				},
-				currency: 'USD',
-				effectiveDate: '2024-01-10',
-			},
-			supportedFeatures: {
-				functionCalling: true,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 4096,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-01-10',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: "Mixtral model on Groq's hardware",
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
-	}
-
-	/**
-	 * Compile capabilities for Ollama models
-	 */
-	// deno-lint-ignore require-await
-	private async compileOllamaCapabilities(): Promise<void> {
-		// Ollama models - note these run locally so prices are effectively zero
-		// but we maintain the structure for consistency
-		this.registerModel({
-			modelId: 'mistral',
-			displayName: 'Mistral 7B',
-			provider: 'ollama',
-			family: 'Mistral',
-			contextWindow: 8192,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: { basePrice: 0 },
-				outputTokens: { basePrice: 0 },
-				currency: 'USD',
-				effectiveDate: '2023-10-01',
-			},
-			supportedFeatures: {
-				functionCalling: false,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 4096,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2023-10-01',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: 'Mistral 7B model running locally via Ollama',
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
-
-		// Add more Ollama models
-		this.registerModel({
-			modelId: 'llama3-3',
-			displayName: 'LLaMA 3 (8B)',
-			provider: 'ollama',
-			family: 'LLaMA',
-			contextWindow: 8192,
-			maxOutputTokens: 4096,
-			pricing: {
-				inputTokens: { basePrice: 0 },
-				outputTokens: { basePrice: 0 },
-				currency: 'USD',
-				effectiveDate: '2024-04-18',
-			},
-			supportedFeatures: {
-				functionCalling: false,
-				json: true,
-				streaming: true,
-				vision: false,
-				promptCaching: false,
-			},
-			defaults: {
-				temperature: 0.7,
-				maxTokens: 4096,
-			},
-			constraints: {
-				temperature: { min: 0.0, max: 1.0 },
-			},
-			systemPromptBehavior: 'optional',
-			releaseDate: '2024-04-18',
-			responseSpeed: 'medium',
-			modality: 'text',
-			description: "Meta's LLaMA 3 8B model running locally via Ollama",
-			source: 'documentation',
-			lastUpdated: new Date().toISOString(),
-		});
+		console.log(`✅ Registered ${groqModels.length} Groq models`);
 	}
 
 	/**
 	 * Register a model with its capabilities
 	 */
-	private registerModel(modelCapabilities: ModelCapabilities): void {
-		const { provider, modelId } = modelCapabilities;
-
+	private registerModel(provider: string, modelCapabilities: Partial<EnhancedModelCapabilities>): void {
 		// Initialize provider object if it doesn't exist
 		if (!this.allCapabilities[provider]) {
 			this.allCapabilities[provider] = {};
 		}
 
+		// Fill in default values and ensure all required fields are present
+		const capabilities: ModelCapabilities = {
+			displayName: modelCapabilities.displayName || 'Unknown Model',
+			contextWindow: modelCapabilities.contextWindow || 4096,
+			maxOutputTokens: modelCapabilities.maxOutputTokens || 2048,
+			pricing: modelCapabilities.pricing || {
+				inputTokens: { basePrice: 0 },
+				outputTokens: { basePrice: 0 },
+				currency: 'USD',
+				effectiveDate: new Date().toISOString().split('T')[0],
+			},
+			supportedFeatures: modelCapabilities.supportedFeatures || {
+				functionCalling: false,
+				json: false,
+				streaming: true,
+				vision: false,
+				extendedThinking: false,
+				promptCaching: false,
+			},
+			defaults: modelCapabilities.defaults || {
+				temperature: 0.7,
+				maxTokens: modelCapabilities.maxOutputTokens || 2048,
+				extendedThinking: false,
+			},
+			constraints: modelCapabilities.constraints || {
+				temperature: { min: 0.0, max: 1.0 },
+			},
+			systemPromptBehavior: modelCapabilities.systemPromptBehavior || 'optional',
+			responseSpeed: modelCapabilities.responseSpeed || 'medium',
+			...( modelCapabilities.trainingCutoff && { trainingCutoff: modelCapabilities.trainingCutoff }),
+			...( modelCapabilities.releaseDate && { releaseDate: modelCapabilities.releaseDate }),
+		};
+
 		// Add the model capabilities
-		this.allCapabilities[provider][modelId] = modelCapabilities;
-		console.log(`Registered ${provider}/${modelId}`);
+		const modelId = modelCapabilities.modelId!;
+		this.allCapabilities[provider][modelId] = capabilities;
+		console.log(`  ✓ Registered ${provider}/${modelId}`);
 	}
 }
 
@@ -1117,10 +908,13 @@ class ModelCapabilitiesFetcher {
 async function main() {
 	// Parse command line arguments
 	const args = parseArgs(Deno.args, {
-		string: ['output', 'providers', 'anthropic-key', 'openai-key', 'google-key'],
+		string: ['output', 'providers', 'anthropic-key', 'openai-key', 'google-key', 'deepseek-key', 'groq-key'],
+		boolean: ['use-cached', 'validate-only'],
 		default: {
 			output: './api/src/data/modelCapabilities.json',
-			providers: 'anthropic,openai,google,deepseek,groq,ollama',
+			providers: 'anthropic,openai,google,deepseek,groq',
+			'use-cached': false,
+			'validate-only': false,
 		},
 	});
 
@@ -1128,10 +922,14 @@ async function main() {
 	const config: FetcherConfig = {
 		outputPath: args.output,
 		providersToFetch: args.providers.split(',').map((p) => p.trim()),
+		useCached: args['use-cached'],
+		validateOnly: args['validate-only'],
 		apiKeys: {
 			anthropic: args['anthropic-key'] || Deno.env.get('ANTHROPIC_API_KEY') || '',
 			openai: args['openai-key'] || Deno.env.get('OPENAI_API_KEY') || '',
 			google: args['google-key'] || Deno.env.get('GOOGLE_API_KEY') || '',
+			deepseek: args['deepseek-key'] || Deno.env.get('DEEPSEEK_API_KEY') || '',
+			groq: args['groq-key'] || Deno.env.get('GROQ_API_KEY') || '',
 		},
 	};
 

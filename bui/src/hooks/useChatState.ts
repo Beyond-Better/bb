@@ -8,6 +8,7 @@ import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
@@ -109,6 +110,7 @@ export function useChatState(
 				// Using new data source structure
 				primaryDataSourceRoot: project.data.primaryDsConnection?.config.dataSourceRoot,
 				dsConnections: project.data.dsConnections || [],
+				//defaultModels: project.data.defaultModels || DefaultModelsConfigDefaults,
 				repoInfo: {
 					tokenLimit: 1024,
 				},

@@ -215,7 +215,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			//extendedThinking = resolved.extendedThinking;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,

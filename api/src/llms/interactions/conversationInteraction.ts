@@ -2,6 +2,7 @@ import { encodeBase64 } from '@std/encoding';
 
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { ConversationId, ConversationStatementMetadata, TokenUsage } from 'shared/types.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import { LLMCallbackType } from 'api/types.ts';
 import type {
@@ -756,7 +757,7 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
 		if (speakOptions.model) this.model = speakOptions.model;
-		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent || DefaultModelsConfigDefaults.agent;
 		logger.debug(`BaseInteraction: relayToolResult - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
@@ -893,7 +894,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		//logger.info(`ConversationInteraction: converse - using model`, {thisModel: this.model, defaultModelsAgent: this.projectConfig.defaultModels!.agent});
 		//speakOptions = { model: this.projectConfig.defaultModels!.agent, ...speakOptions };
 		if (speakOptions.model) this.model = speakOptions.model;
-		if (!this.model) this.model = this.projectConfig.defaultModels!.agent;
+		if (!this.model) this.model = this.projectConfig.defaultModels!.agent || DefaultModelsConfigDefaults.agent;
 		logger.debug(`ConversationInteraction: converse - calling llm.speakWithRetry`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 

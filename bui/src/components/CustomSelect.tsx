@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import type { JSX } from 'preact';
 
 export interface SelectOption {
 	value: string;
-	label: string;
+	label: string | JSX.Element;
 	isHeader?: boolean;
 }
 

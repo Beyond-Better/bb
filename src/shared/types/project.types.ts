@@ -1,5 +1,6 @@
 import {
 	DefaultModels,
+	DefaultModelsPartial,
 	//MCPServerConfig,
 	ProjectConfig,
 	ProjectType,
@@ -36,6 +37,7 @@ export interface ProjectData {
 	dataSourceProviders?: DataSourceProviderInfo[];
 	dsConnections: DataSourceConnection[];
 	primaryDsConnection?: DataSourceConnection; // The primary data source, if any (computed value)
+	//defaultModels: DefaultModelsPartial;
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers: string[];
 	stats?: ProjectStats;
@@ -51,7 +53,7 @@ export interface CreateProjectData {
 	myPersonsName?: string;
 	myAssistantsName?: string;
 	llmGuidelinesFile?: string;
-	defaultModels?: DefaultModels;
+	defaultModels?: DefaultModelsPartial;
 	useTls?: boolean;
 }
 
@@ -68,6 +70,7 @@ export interface SerializedProjectData {
 	name: string;
 	status: ProjectStatus;
 	dsConnections: DataSourceConnectionValues[];
+	//defaultModels: DefaultModelsPartial;
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers: string[];
 	stats?: ProjectStats;
@@ -104,6 +107,7 @@ export interface ClientProjectData {
 	dataSourceProviders?: DataSourceProviderInfo[];
 	dsConnections: ClientDataSourceConnection[]; // | DataSourceValues[];
 	primaryDsConnection?: ClientDataSourceConnection; // | DataSourceValues;
+	//defaultModels: DefaultModelsPartial;
 	repoInfo: RepoInfoConfigSchema;
 	mcpServers?: string[];
 	stats?: ProjectStats;
@@ -119,10 +123,15 @@ export interface ConfigValue<T> {
 }
 
 export interface ProjectWithSources
-	extends Omit<ProjectConfig, 'version' | 'myPersonsName' | 'myAssistantsName' | 'llmGuidelinesFile' | 'api'> {
+	extends Omit<ProjectConfig, 'version' | 'myPersonsName' | 'myAssistantsName' | 'llmGuidelinesFile' | 'defaultModels' | 'api'> {
 	myPersonsName: ConfigValue<string | undefined>;
 	myAssistantsName: ConfigValue<string | undefined>;
 	llmGuidelinesFile: ConfigValue<string | undefined>;
+	defaultModels: {
+		orchestrator: ConfigValue<string | undefined>;
+		agent: ConfigValue<string | undefined>;
+		chat: ConfigValue<string | undefined>;
+	};
 	api: {
 		maxTurns: ConfigValue<number | undefined>;
 		toolConfigs: ConfigValue<Record<string, unknown> | undefined>;

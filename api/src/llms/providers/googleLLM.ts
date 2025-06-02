@@ -389,7 +389,7 @@ class GoogleLLM extends LLM {
 		interaction?: LLMInteraction,
 	): Promise<GenerateContentRequest> {
 		const contents = this.asProviderMessageType(messageRequest.messages);
-		const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_0_FLASH;
+		const model = messageRequest.model || 'gemini-2.0-flash';
 
 		// System instruction needs to be wrapped in a Content object
 		const systemContent: Content | undefined = messageRequest.system
@@ -420,7 +420,7 @@ class GoogleLLM extends LLM {
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,
@@ -480,7 +480,7 @@ class GoogleLLM extends LLM {
 			logger.debug('llms-google-speakWith-messageRequest', JSON.stringify(messageRequest, null, 2));
 
 			const providerMessageRequest = await this.asProviderMessageRequest(messageRequest, interaction);
-			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_0_FLASH;
+			const model = messageRequest.model || 'gemini-2.0-flash';
 			logger.info('Complete request with model:', { model });
 
 			const result = await this.google.getGenerativeModel({ model }).generateContent(providerMessageRequest);

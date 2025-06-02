@@ -45,7 +45,7 @@ export const logEntryFormatter = async (
 			projectEditor,
 		).init();
 
-		if (!logEntry || !logEntry.entryType || !logEntry.content) {
+		if (!logEntry || !logEntry.entryType || (!logEntry.content && !logEntry.thinking)) {
 			response.status = 400;
 			response.body = { error: 'Missing entryType or content in request body' };
 			return;

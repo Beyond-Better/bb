@@ -174,7 +174,7 @@ class OllamaLLM extends LLM {
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
-		const model: string = messageRequest.model || OllamaModel.SMOLLM2_1_7B;
+		const model: string = messageRequest.model || 'smollm2:1.7b';
 
 		// Resolve parameters using model capabilities
 		let temperature: number;
@@ -192,7 +192,7 @@ class OllamaLLM extends LLM {
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
 			temperature = capabilitiesManager.resolveTemperature(
 				model,

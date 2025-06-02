@@ -8,6 +8,9 @@
 
 import { LLMProvider } from 'api/types/llms.ts';
 import type { CreateProjectData } from 'shared/types/project.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import type { DefaultModels, DefaultModelsPartial } from 'shared/types/models.ts';
+export type { DefaultModels, DefaultModelsPartial };
 
 // Version Management
 const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0', '2.2.0'] as const;
@@ -23,12 +26,6 @@ export type ProjectType = 'local' | 'git' | 'gdrive' | 'notion';
  */
 
 export type LogLevel = 'debug' | 'debug0' | 'debug1' | 'debug2' | 'info' | 'warn' | 'error';
-
-export interface DefaultModels {
-	orchestrator: string;
-	agent: string;
-	chat: string;
-}
 
 // Core Configuration Types
 /**
@@ -238,7 +235,7 @@ export interface ProjectConfigV2 {
 	myPersonsName?: string;
 	myAssistantsName?: string;
 	noBrowser?: boolean;
-	defaultModels?: DefaultModels;
+	defaultModels?: DefaultModelsPartial;
 	llmGuidelinesFile?: string;
 	repoInfo?: RepoInfoConfigSchema;
 	api?: Partial<Omit<ApiConfig, 'mcpServers'>>;
@@ -405,11 +402,7 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	bbApiExeName: 'bb-api',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Claude',
-	defaultModels: {
-		orchestrator: 'claude-sonnet-4-20250514',
-		agent: 'claude-sonnet-4-20250514',
-		chat: 'claude-3-5-haiku-20241022',
-	},
+	defaultModels: DefaultModelsConfigDefaults,
 	noBrowser: false,
 	api: ApiConfigDefaults,
 	bui: BuiConfigDefaults,

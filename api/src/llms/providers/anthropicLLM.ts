@@ -323,7 +323,7 @@ class AnthropicLLM extends LLM {
 		// Log detailed message information
 		if (this.projectConfig.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
-		const model: string = messageRequest.model || AnthropicModel.CLAUDE_3_5_SONNET;
+		const model: string = messageRequest.model || 'claude-3-5-sonnet-20241022';
 
 		// Resolve parameters using model capabilities
 		let temperature: number;
@@ -331,7 +331,7 @@ class AnthropicLLM extends LLM {
 		let extendedThinking: boolean;
 		if (interaction) {
 			const resolved = await interaction.resolveModelParameters(
-				messageRequest.model || AnthropicModel.CLAUDE_3_7_SONNET,
+				messageRequest.model || 'claude-3-7-sonnet-20250219',
 				{
 					maxTokens: messageRequest.maxTokens,
 					temperature: messageRequest.temperature,
@@ -346,7 +346,7 @@ class AnthropicLLM extends LLM {
 			temperature = extendedThinking ? 1 : resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,

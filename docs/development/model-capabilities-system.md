@@ -71,7 +71,7 @@ const temperature = resolved.temperature;
 ### Checking Model Capabilities
 
 ```typescript
-const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
 // Check if a model supports specific features
 const supportsFunctions = capabilitiesManager.supportsFeature(

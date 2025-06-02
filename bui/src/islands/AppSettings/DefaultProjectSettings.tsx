@@ -4,7 +4,8 @@ import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
 import { ModelSelector, ModelCombinations, ModelIconLegend, ModelRoleExplanations, type ModelSelectionValue } from '../../components/ModelSelector.tsx';
-import type { DefaultModels } from 'shared/config/types.ts';
+//import type { DefaultModels } from 'shared/config/types.ts';
+import { Toast } from '../../components/Toast.tsx';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -28,7 +29,7 @@ interface FormState {
 	defaultModels: {
 		orchestrator: string;
 		agent: string;
-		admin: string;
+		chat: string;
 	};
 }
 
@@ -43,7 +44,7 @@ interface FormErrors {
 	defaultModels?: {
 		orchestrator?: string;
 		agent?: string;
-		admin?: string;
+		chat?: string;
 	};
 }
 
@@ -160,9 +161,11 @@ export default function DefaultProjectSettings() {
 		defaultModels: {
 			orchestrator: 'claude-sonnet-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
-			admin: 'claude-3-5-haiku-20241022',
+			chat: 'claude-3-5-haiku-20241022',
 		},
 	});
+	const [showToast, setShowToast] = useState(false);
+	const [toastMessage, setToastMessage] = useState('');
 
 	// Load initial config
 	useEffect(() => {
@@ -183,7 +186,7 @@ export default function DefaultProjectSettings() {
 						defaultModels: {
 							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-20250514',
 							agent: config.defaultModels?.agent || 'claude-sonnet-4-20250514',
-							admin: config.defaultModels?.admin || 'claude-3-5-haiku-20241022',
+							chat: config.defaultModels?.chat || 'claude-3-5-haiku-20241022',
 						},
 					});
 				}
@@ -208,6 +211,7 @@ export default function DefaultProjectSettings() {
 		
 		if (name === 'defaultModels') {
 			const models = value as { orchestrator: string; agent: string; chat: string };
+		console.log(`DefaultProjectSettings: validateField: defaultModels: `, models);
 			if (!models.orchestrator || !models.agent || !models.chat) {
 				return 'All model roles must be selected';
 			}
@@ -274,7 +278,7 @@ export default function DefaultProjectSettings() {
 	};
 
 	// Helper function for model updates
-	const handleModelChange = (role: 'orchestrator' | 'agent' | 'admin', modelId: string) => {
+	const handleModelChange = (role: 'orchestrator' | 'agent' | 'chat', modelId: string) => {
 		const newModels = {
 			...formState.defaultModels,
 			[role]: modelId,
@@ -290,12 +294,13 @@ export default function DefaultProjectSettings() {
 	};
 
 	// Handle model combo application
-	const handleApplyCombo = (combo: { orchestrator: string; agent: string; admin: string }) => {
+	const handleApplyCombo = (combo: { orchestrator: string; agent: string; chat: string }) => {
 		setFormState((prev) => ({ ...prev, defaultModels: combo }));
 		markTabDirty('models');
 	};
 
 	const handleSubmit = async (e: Event) => {
+		console.log(`DefaultProjectSettings: Handle submit`);
 		e.preventDefault();
 
 		// Validate all fields
@@ -304,6 +309,7 @@ export default function DefaultProjectSettings() {
 			const error = validateField(field, formState[field]);
 			if (error) errors[field] = error;
 		});
+		console.log(`DefaultProjectSettings: Form errors: `, errors);
 
 		if (Object.keys(errors).length > 0) {
 			formErrors.value = errors;
@@ -334,8 +340,11 @@ export default function DefaultProjectSettings() {
 			dirtyTabs.value = new Set();
 
 			// Show success message
-			// TODO: Add toast notification system
 			console.log('Settings updated successfully');
+
+			setToastMessage('Settings Saved!');
+			setShowToast(true);
+
 		} catch (error) {
 			console.error('Failed to update settings:', error);
 			// TODO: Add error toast notification
@@ -345,7 +354,7 @@ export default function DefaultProjectSettings() {
 	const handleTabChange = (tabId: string) => {
 		// If switching from a tab with unsaved changes, show a brief toast message
 		if (dirtyTabs.value.has(formState.activeTab)) {
-			console.log(`Changes in ${formState.activeTab} preserved`);
+			console.log(`DefaultProjectSettings: Changes in ${formState.activeTab} preserved`);
 			// Here you could add a toast notification
 		}
 
@@ -685,6 +694,7 @@ export default function DefaultProjectSettings() {
 						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
 							{/* Orchestrator Model */}
 							<ModelSelector
+								key={`orchestrator-${formState.defaultModels.orchestrator}`}
 								apiClient={appState.value.apiClient!}
 								context='global'
 								role='orchestrator'
@@ -699,6 +709,7 @@ export default function DefaultProjectSettings() {
 
 							{/* Agent Model */}
 							<ModelSelector
+								key={`agent-${formState.defaultModels.agent}`}
 								apiClient={appState.value.apiClient!}
 								context='global'
 								role='agent'
@@ -713,12 +724,13 @@ export default function DefaultProjectSettings() {
 
 							{/* Admin Model */}
 							<ModelSelector
+								key={`chat-${formState.defaultModels.chat}`}
 								apiClient={appState.value.apiClient!}
 								context='global'
-								role='admin'
-								value={formState.defaultModels.admin}
+								role='chat'
+								value={formState.defaultModels.chat}
 								onChange={(value) => {
-									handleModelChange('admin', value as string);
+									handleModelChange('chat', value as string);
 									markTabDirty('models');
 								}}
 								label='Admin Model'
@@ -730,7 +742,7 @@ export default function DefaultProjectSettings() {
 						<div class='mt-8'>
 							<ModelCombinations
 								onApplyCombo={handleApplyCombo}
-								className='max-w-2xl'
+								className='max-w'
 							/>
 						</div>
 
@@ -742,7 +754,7 @@ export default function DefaultProjectSettings() {
 							<div class='text-sm text-blue-800 dark:text-blue-200'>
 								<div><strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}</div>
 								<div><strong>Agent:</strong> {formState.defaultModels.agent}</div>
-								<div><strong>Admin:</strong> {formState.defaultModels.admin}</div>
+								<div><strong>Admin:</strong> {formState.defaultModels.chat}</div>
 							</div>
 						</div>
 					</div>
@@ -758,6 +770,17 @@ export default function DefaultProjectSettings() {
 					</button>
 				</div>
 			</form>
+
+			{/* Toast notifications */}
+			{showToast && (
+				<Toast
+					message={toastMessage}
+					type='success'
+					duration={2000}
+					onClose={() => setShowToast(false)}
+				/>
+			)}
+
 		</div>
 	);
 }

@@ -24,7 +24,7 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import { LLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
+import { getLLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -143,8 +143,8 @@ class LLMInteraction {
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
 				this._localMode
-					//? LLMModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
-					? LLMModelToProvider[this._model]
+					//? (await getLLMModelToProvider())[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
+					? (await getLLMModelToProvider())[this._model]
 					: LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
@@ -795,7 +795,7 @@ class LLMInteraction {
 		if (updateProvider) {
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
-				this._localMode ? LLMModelToProvider[this._model] : LLMProviderEnum.BB,
+				this._localMode ? (await getLLMModelToProvider())[this._model] : LLMProviderEnum.BB,
 			);
 		}
 	}
@@ -856,9 +856,10 @@ class LLMInteraction {
 		},
 		provider?: LLMProvider,
 	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
 
-		const effectiveProvider = provider || LLMModelToProvider[model];
+		const modelToProvider = await getLLMModelToProvider();
+		const effectiveProvider = provider || modelToProvider[model];
 		// Get user preferences from project config
 		const userPreferences = this.projectConfig?.api?.llmProviders?.[effectiveProvider]?.userPreferences;
 

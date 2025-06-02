@@ -52,6 +52,20 @@ export function enhanceProjectWithSources(
 			projectConfig.llmGuidelinesFile,
 			globalConfig.llmGuidelinesFile,
 		),
+		defaultModels: {
+			orchestrator: createConfigValue(
+				projectConfig.defaultModels?.orchestrator,
+				globalConfig.defaultModels?.orchestrator,
+			),
+			agent: createConfigValue(
+				projectConfig.defaultModels?.agent,
+				globalConfig.defaultModels?.agent,
+			),
+			chat: createConfigValue(
+				projectConfig.defaultModels?.chat,
+				globalConfig.defaultModels?.chat,
+			),
+		},
 		api: {
 			maxTurns: createConfigValue(
 				projectConfig.api?.maxTurns,
