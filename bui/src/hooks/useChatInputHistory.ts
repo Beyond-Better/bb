@@ -236,12 +236,22 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		}
 	}, [storageKey.value]);
 
-	// Cleanup on unmount or conversation change
+	// Cleanup only on conversation change, not on page reload/unmount
 	useEffect(() => {
+		const currentId = conversationId.value;
 		return () => {
-			if (currentInputKey.value) {
-				console.info('ChatHistory: Cleaning up saved input on unmount/change');
-				clearCurrentInput();
+			// Only clear if conversation ID actually changed (not just unmounting)
+			if (currentId && conversationId.value !== currentId) {
+				console.info('ChatHistory: Clearing saved input for conversation change', {
+					from: currentId,
+					to: conversationId.value,
+				});
+				const keyToClear = `bb-chat-current-${currentId}`;
+				try {
+					localStorage.removeItem(keyToClear);
+				} catch (e) {
+					console.error('ChatHistory: Failed to clear old conversation input:', e);
+				}
 			}
 		};
 	}, [conversationId.value]);

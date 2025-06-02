@@ -184,11 +184,11 @@ export function useChatState(
 	// Initialize chat
 	useEffect(() => {
 		const effectId = randomStringForEffect(8);
-		console.log(`useChatState: url/projectId effect[${effectId}]: got useEffect for config initialize`, {
-			apiUrl: chatConfig.value.apiUrl,
-			wsUrl: chatConfig.value.wsUrl,
-			projectId: appState.value.projectId,
-		});
+		//console.log(`useChatState: url/projectId effect[${effectId}]: got useEffect for config initialize`, {
+		//	apiUrl: chatConfig.value.apiUrl,
+		//	wsUrl: chatConfig.value.wsUrl,
+		//	projectId: appState.value.projectId,
+		//});
 
 		let mounted = true;
 		//mounted = true;
@@ -196,12 +196,12 @@ export function useChatState(
 
 		async function initialize() {
 			//const initStart = performance.now();
-			console.debug(`useChatState: url/projectId effect[${effectId}]: Starting initialization`);
-			console.log(`useChatState: url/projectId effect[${effectId}]: initialize called`, {
-				mounted,
-				existingWsManager: chatState.value.wsManager?.constructor.name,
-				existingApiClient: chatState.value.apiClient?.constructor.name,
-			});
+			// console.debug(`useChatState: url/projectId effect[${effectId}]: Starting initialization`);
+			// console.log(`useChatState: url/projectId effect[${effectId}]: initialize called`, {
+			// 	mounted,
+			// 	existingWsManager: chatState.value.wsManager?.constructor.name,
+			// 	existingApiClient: chatState.value.apiClient?.constructor.name,
+			// });
 			try {
 				if (!chatConfig.value.apiUrl || !chatConfig.value.wsUrl) {
 					// Auto-detect the working protocol
@@ -216,13 +216,13 @@ export function useChatState(
 						wsUrl,
 					};
 
-					console.log(`useChatState: url/projectId effect[${effectId}]: set URLs for chatConfig, bailing`, {
-						apiUrl,
-						wsUrl,
-						fallbackUsed,
-						originalApiUrl,
-						originalWsUrl,
-					});
+					// console.log(`useChatState: url/projectId effect[${effectId}]: set URLs for chatConfig, bailing`, {
+					// 	apiUrl,
+					// 	wsUrl,
+					// 	fallbackUsed,
+					// 	originalApiUrl,
+					// 	originalWsUrl,
+					// });
 
 					return;
 				}
@@ -310,7 +310,7 @@ export function useChatState(
 				}
 
 				if (!mounted) {
-					console.log(`useChatState: url/projectId effect[${effectId}]: not mounted, bailing`);
+					// console.log(`useChatState: url/projectId effect[${effectId}]: not mounted, bailing`);
 					wsManager?.disconnect();
 					return;
 				}
@@ -358,11 +358,11 @@ export function useChatState(
 					);
 				}
 
-				console.debug(`useChatState: url/projectId effect[${effectId}]: Initialization complete`, {
-					// duration: initDuration.toFixed(2) + 'ms',
-					logDataEntriesCount: chatState.value.logDataEntries.length,
-					conversationsCount: chatState.value.conversations.length,
-				});
+				// console.debug(`useChatState: url/projectId effect[${effectId}]: Initialization complete`, {
+				// 	// duration: initDuration.toFixed(2) + 'ms',
+				// 	logDataEntriesCount: chatState.value.logDataEntries.length,
+				// 	conversationsCount: chatState.value.conversations.length,
+				// });
 
 				// Update final status
 				chatState.value = {
@@ -397,11 +397,11 @@ export function useChatState(
 		initialize();
 
 		return () => {
-			console.log(`useChatState: url/projectId effect[${effectId}]: cleanup`, {
-				currentWsManager: currentWsManager?.constructor.name,
-				existingWsManager: chatState.value.wsManager?.constructor.name,
-				mounted,
-			});
+			// console.log(`useChatState: url/projectId effect[${effectId}]: cleanup`, {
+			// 	currentWsManager: currentWsManager?.constructor.name,
+			// 	existingWsManager: chatState.value.wsManager?.constructor.name,
+			// 	mounted,
+			// });
 			mounted = false;
 			if (currentWsManager) {
 				currentWsManager.disconnect();
@@ -427,10 +427,10 @@ export function useChatState(
 
 	// WebSocket event handlers
 	useEffect(() => {
-		console.log('useChatState: wsManager effect: useEffect', {
-			hasWsManager: !!chatState.value.wsManager,
-			wsManagerType: chatState.value.wsManager?.constructor.name,
-		});
+		// console.log('useChatState: wsManager effect: useEffect', {
+		// 	hasWsManager: !!chatState.value.wsManager,
+		// 	wsManagerType: chatState.value.wsManager?.constructor.name,
+		// });
 		if (!chatState.value.wsManager) return;
 
 		let mounted = true;
@@ -452,12 +452,12 @@ export function useChatState(
 		});
 
 		const handleStatusChange = (connected: boolean) => {
-			console.log('useChatState: wsManager effect: Handling statusChange', {
-				mounted,
-				connected,
-				isReady: chatState.value.status.isReady,
-				isLoading: chatState.value.status.isLoading,
-			});
+			// console.log('useChatState: wsManager effect: Handling statusChange', {
+			// 	mounted,
+			// 	connected,
+			// 	isReady: chatState.value.status.isReady,
+			// 	isLoading: chatState.value.status.isLoading,
+			// });
 			if (!mounted) return;
 			chatState.value = {
 				...chatState.value,
@@ -470,11 +470,11 @@ export function useChatState(
 		};
 
 		const handleReadyChange = (ready: boolean) => {
-			console.log('useChatState: wsManager effect: Handling readyChange', {
-				mounted,
-				ready,
-				isLoading: chatState.value.status.isLoading,
-			});
+			// console.log('useChatState: wsManager effect: Handling readyChange', {
+			// 	mounted,
+			// 	ready,
+			// 	isLoading: chatState.value.status.isLoading,
+			// });
 			if (!mounted) return;
 			chatState.value = {
 				...chatState.value,
@@ -488,11 +488,11 @@ export function useChatState(
 
 		const handleMessage = (data: { msgType: string; logDataEntry: ConversationLogDataEntry }) => {
 			const startTime = performance.now();
-			console.debug('useChatState: wsManager effect: Processing message:', {
-				type: data.msgType,
-				currentLogEntries: chatState.value.logDataEntries.length,
-				timestamp: new Date().toISOString(),
-			});
+			// console.debug('useChatState: wsManager effect: Processing message:', {
+			// 	type: data.msgType,
+			// 	currentLogEntries: chatState.value.logDataEntries.length,
+			// 	timestamp: new Date().toISOString(),
+			// });
 			console.debug('useChatState: wsManager effect: Processing message:', data.msgType);
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) =>
@@ -600,7 +600,7 @@ export function useChatState(
 					return newEntries;
 				})(),
 			};
-			console.log('useChatState: wsManager effect: handleMessage-logDataEntries', chatState.value.logDataEntries);
+			// console.log('useChatState: wsManager effect: handleMessage-logDataEntries', chatState.value.logDataEntries);
 
 			if (scrollIndicatorState.value.isVisible) {
 				scrollIndicatorState.value = {

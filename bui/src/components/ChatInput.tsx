@@ -36,7 +36,7 @@ interface ChatInputProps {
 	chatInputOptions: Signal<LLMRequestParams>;
 	attachedFiles: Signal<LLMAttachedFiles>;
 	modelData?: Signal<ModelDetails | null>;
-	onChange: (value: string) => void;
+	onChange: (value: string, source?: 'user' | 'restore' | 'clear' | 'programmatic') => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
 	statusState: Signal<ChatStatus>;
@@ -119,6 +119,7 @@ export function ChatInput({
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
 	const errorTimeoutRef = useRef<number | null>(null);
+	const isMessageSentRef = useRef<boolean>(false);
 	const isInitialMount = useRef(true);
 	const disabled = useComputed(() => !statusState.value.isReady);
 	// const disabled = useComputed(() => {
@@ -515,27 +516,41 @@ export function ChatInput({
 		// Update signal immediately
 		conversationIdSignal.value = conversationId;
 
-		// Check for saved input
-		const saved = getSavedInput();
-		if (saved && !chatInputText.value) {
-			console.info('ChatInput: Found saved input to restore', {
-				savedLength: saved.length,
-			});
-			onChange(saved);
+		// Handle conversation change
+		const isConversationChange = conversationIdSignal.value !== conversationId;
+		
+		// Reset initial mount flag for conversation changes
+		if (isConversationChange) {
+			isInitialMount.current = true;
 		}
-	}, [conversationId, chatInputText.value, onChange]);
 
-	// Handle initial mount
-	useEffect(() => {
-		if (!isInitialMount.current) return;
-
-		console.info('ChatInput: Initial mount', {
-			conversationId,
-			hasValue: !!chatInputText.value,
-		});
-
-		isInitialMount.current = false;
+		// Check for saved input
+		// console.info('ChatInput: Checking for saved input', {
+		// 	conversationId,
+		// 	hasInputText: !!chatInputText.value,
+		// 	inputTextLength: chatInputText.value.length,
+		// });
+		const saved = getSavedInput();
+		// console.info('ChatInput: getSavedInput result', {
+		// 	hasSaved: !!saved,
+		// 	savedLength: saved?.length || 0,
+		// 	savedContent: saved ? saved.substring(0, 50) + '...' : 'none',
+		// });
+		// Only restore on initial mount or conversation change, not when user clears input
+		if (saved && !chatInputText.value && isInitialMount.current) {
+			//console.info('ChatInput: Found saved input to restore', {
+			//	savedLength: saved.length,
+			//});
+			onChange(saved, 'restore');
+		}
+		
+		// Always mark initial mount as complete after processing restore logic
+		if (isInitialMount.current) {
+			isInitialMount.current = false;
+		}
 	}, [conversationId, chatInputText.value]);
+
+	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
 
 	// Safe operation wrapper with rate limit handling
 	const safeOperation = async (operation: () => Promise<void> | void, errorMessage: string) => {
@@ -617,12 +632,31 @@ export function ChatInput({
 		safeOperation(
 			async () => {
 				try {
+					// Cancel any pending auto-save and input operations before clearing
+					if (saveDebounceRef.current) {
+						clearTimeout(saveDebounceRef.current);
+						saveDebounceRef.current = null;
+						console.info('ChatInput: Cancelled pending auto-save before message send');
+					}
+					if (inputDebounceRef.current) {
+						clearTimeout(inputDebounceRef.current);
+						inputDebounceRef.current = null;
+						console.info('ChatInput: Cancelled pending input operations before message send');
+					}
+
+					// Set flag to prevent auto-save after send
+					isMessageSentRef.current = true;
+
 					// Add to history and clear auto-save
 					console.info('ChatInput: Message sent successfully, clearing auto-save');
 					addToHistory(currentValue);
 					clearCurrentInput();
 
 					await onSend();
+
+					// Immediately clear the input UI after successful send
+					console.info('ChatInput: Clearing input UI after successful send');
+					onChange('', 'clear');
 
 					// Clear attached files and their previews
 					attachedFiles.value
@@ -657,6 +691,8 @@ export function ChatInput({
 		if (!conversationId) {
 			console.info('ChatInput: No conversation ID, input will not be saved');
 		}
+		// Reset the message sent flag when user starts typing again
+		isMessageSentRef.current = false;
 		const startTime = performance.now();
 
 		// Handle space key to close suggestions
@@ -670,7 +706,6 @@ export function ChatInput({
 		const newPosition = target.selectionStart;
 		// console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
 		cursorPosition.value = newPosition;
-		onChange(newValue);
 
 		// Update input value immediately without debounce to prevent jumping
 		onChange(newValue);
@@ -720,21 +755,30 @@ export function ChatInput({
 				return;
 			}
 
+			// Don't save if message was just sent
+			if (isMessageSentRef.current) {
+				console.info('ChatInput: Skipping auto-save, message was just sent');
+				return;
+			}
+
 			// Don't save empty input
-			if (!newValue.trim()) {
-				console.info('ChatInput: Empty input, skipping auto-save');
+			// Always check current input state, not closure value
+			const currentValue = chatInputText.value;
+			if (!currentValue.trim()) {
+				console.info('ChatInput: Current input empty, clearing auto-save');
 				clearCurrentInput();
 				return;
 			}
 
-			console.info('ChatInput: Auto-save triggered', {
-				hasValue: !!newValue.trim(),
-				length: newValue.length,
-				conversationId,
-			});
+			// console.info('ChatInput: Auto-save triggered', {
+			// 	hasValue: !!newValue.trim(),
+			// 	length: newValue.length,
+			// 	conversationId,
+			// 	valuePreview: newValue.substring(0, 50) + '...',
+			// });
 
 			safeOperation(
-				() => saveCurrentInput(newValue),
+				() => saveCurrentInput(currentValue),
 				'Failed to save input',
 			);
 		};

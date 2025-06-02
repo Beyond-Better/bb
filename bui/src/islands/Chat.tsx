@@ -214,13 +214,13 @@ export default function Chat({
 	// Update cache status every 30 seconds
 	useEffect(() => {
 		if (!IS_BROWSER) return;
-		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
+		// console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
-			console.log(
-				'Chat: status.lastApiCallTime effect - updateCacheStatus',
-				chatState.value.status.lastApiCallTime,
-			);
+			// console.log(
+			// 	'Chat: status.lastApiCallTime effect - updateCacheStatus',
+			// 	chatState.value.status.lastApiCallTime,
+			// );
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -421,7 +421,7 @@ export default function Chat({
 	}, [handlers]);
 
 	useEffect(() => {
-		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
+		//console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
@@ -479,7 +479,7 @@ export default function Chat({
 
 	// Handle scroll behavior with stable positioning
 	useEffect(() => {
-		console.log('Chat: Scroll useEffect');
+		//console.log('Chat: Scroll useEffect');
 		if (!messagesEndRef.current) return;
 
 		const messagesContainer = messagesEndRef.current;
@@ -499,7 +499,7 @@ export default function Chat({
 
 			// Update auto-scroll behavior only when it changes
 			if (shouldAutoScroll !== isAtBottom) {
-				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
+				//console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
 				setShouldAutoScroll(isAtBottom);
 			}
 			// Log current state for debugging
@@ -560,7 +560,7 @@ export default function Chat({
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
-		console.log('Chat: Visibility useEffect');
+		// console.log('Chat: Visibility useEffect');
 		if (!IS_BROWSER) return;
 
 		// Don't force scroll during processing - respect user's scroll position
@@ -584,14 +584,14 @@ export default function Chat({
 		globalThis.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
-			console.log('Chat: Cleanup for useEffect');
+			//console.log('Chat: Cleanup for useEffect');
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	}, [chatState.value.status.apiStatus]);
 
 	useEffect(() => {
-		console.log('Chat: Connection status useEffect');
+		//console.log('Chat: Connection status useEffect');
 		let disconnectTimeoutId: number;
 		let reconnectTimeoutId: number;
 
@@ -835,8 +835,11 @@ export default function Chat({
 											ds.id === chatState.value.projectData?.primaryDsConnection?.id
 										)?.name}
 										textareaRef={chatInputRef}
-										onChange={(value) => {
-											if (!chatState.value.status.isReady) return;
+										onChange={(value, source = 'user') => {
+											// Only block user input when not ready, allow programmatic updates
+											if (source === 'user' && !chatState.value.status.isReady) {
+												return;
+											}
 											setInputWithTracking(value.slice(0, INPUT_MAX_CHAR_LENGTH));
 										}}
 										onSend={sendConverse}
