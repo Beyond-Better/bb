@@ -502,16 +502,15 @@ export default function Chat({
 				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
 				setShouldAutoScroll(isAtBottom);
 			}
-
 			// Log current state for debugging
-			console.debug('ChatIsland: Scroll state debug', {
-				isAtBottom,
-				distanceFromBottom,
-				currentVisibility: scrollIndicatorState.value.isVisible,
-				scrollHeight: messagesContainer.scrollHeight,
-				clientHeight: messagesContainer.clientHeight,
-				scrollTop,
-			});
+			// console.debug('ChatIsland: Scroll state debug', {
+			// 	isAtBottom,
+			// 	distanceFromBottom,
+			// 	currentVisibility: scrollIndicatorState.value.isVisible,
+			// 	scrollHeight: messagesContainer.scrollHeight,
+			// 	clientHeight: messagesContainer.clientHeight,
+			// 	scrollTop,
+			// });
 		};
 
 		// Add scroll event listener

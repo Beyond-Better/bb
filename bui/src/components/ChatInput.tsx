@@ -133,9 +133,9 @@ export function ChatInput({
 		isDropdownOpen,
 		addToHistory,
 		togglePin,
-		//saveCurrentInput,
-		//getSavedInput,
-		//clearCurrentInput,
+		saveCurrentInput,
+		getSavedInput,
+		clearCurrentInput,
 	} = useChatInputHistory(conversationIdSignal);
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
@@ -515,14 +515,14 @@ export function ChatInput({
 		// Update signal immediately
 		conversationIdSignal.value = conversationId;
 
-		//// Check for saved input
-		//const saved = getSavedInput();
-		//if (saved && !chatInputText.value) {
-		//	console.info('ChatInput: Found saved input to restore', {
-		//		savedLength: saved.length,
-		//	});
-		//	onChange(saved);
-		//}
+		// Check for saved input
+		const saved = getSavedInput();
+		if (saved && !chatInputText.value) {
+			console.info('ChatInput: Found saved input to restore', {
+				savedLength: saved.length,
+			});
+			onChange(saved);
+		}
 	}, [conversationId, chatInputText.value, onChange]);
 
 	// Handle initial mount
@@ -620,7 +620,7 @@ export function ChatInput({
 					// Add to history and clear auto-save
 					console.info('ChatInput: Message sent successfully, clearing auto-save');
 					addToHistory(currentValue);
-					//clearCurrentInput();
+					clearCurrentInput();
 
 					await onSend();
 
@@ -639,7 +639,7 @@ export function ChatInput({
 					};
 					// On error, ensure input is saved
 					console.info('ChatInput: Send failed, ensuring input is saved');
-					//saveCurrentInput(currentValue);
+					saveCurrentInput(currentValue);
 					throw e;
 				}
 			},
@@ -706,10 +706,10 @@ export function ChatInput({
 					},
 				};
 				// Preserve input in case of error
-				//safeOperation(
-				//	() => saveCurrentInput(newValue),
-				//	'Failed to save input',
-				//);
+				safeOperation(
+					() => saveCurrentInput(newValue),
+					'Failed to save input',
+				);
 			}
 		}, INPUT_DEBOUNCE);
 
@@ -723,7 +723,7 @@ export function ChatInput({
 			// Don't save empty input
 			if (!newValue.trim()) {
 				console.info('ChatInput: Empty input, skipping auto-save');
-				//clearCurrentInput();
+				clearCurrentInput();
 				return;
 			}
 
@@ -733,10 +733,10 @@ export function ChatInput({
 				conversationId,
 			});
 
-			//safeOperation(
-			//	() => saveCurrentInput(newValue),
-			//	'Failed to save input',
-			//);
+			safeOperation(
+				() => saveCurrentInput(newValue),
+				'Failed to save input',
+			);
 		};
 
 		// Debounce auto-save
@@ -985,6 +985,26 @@ export function ChatInput({
 			handleSend();
 		}
 	};
+
+	// Handle page reload confirmation for unsaved content
+	useEffect(() => {
+		const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+			// Check if there's unsaved content
+			if (chatInputText.value.trim()) {
+				console.info('ChatInput: Preventing page reload with unsaved content');
+				e.preventDefault();
+				// Modern browsers require returnValue to be set
+				e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+				return e.returnValue;
+			}
+		};
+
+		globalThis.addEventListener('beforeunload', handleBeforeUnload);
+
+		return () => {
+			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
+		};
+	}, [chatInputText.value]);
 
 	// Cleanup
 	useEffect(() => {
