@@ -6,7 +6,7 @@ import { parseArgs } from '@std/cli';
 import { oakCors } from 'cors';
 
 import { getConfigManager } from 'shared/config/configManager.ts';
-import type { ApiConfig } from 'shared/config/types.ts';
+import type { ApiConfig, ProjectConfig } from 'shared/config/types.ts';
 import router from './routes/routes.ts';
 import { logger } from 'shared/logger.ts';
 import type { BbState } from 'api/types.ts';
@@ -16,6 +16,7 @@ import { getVersionInfo } from 'shared/version.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
 import { setApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 
@@ -36,11 +37,12 @@ await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
 
+let projectConfig: ProjectConfig | undefined;
 let apiConfig: ApiConfig;
 
 if (projectId) {
 	await configManager.ensureLatestProjectConfig(projectId);
-	const projectConfig = await configManager.getProjectConfig(projectId);
+	projectConfig = await configManager.getProjectConfig(projectId);
 	apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 } else {
 	apiConfig = globalConfig.api;
@@ -94,6 +96,11 @@ const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 const sessionManager = new SessionManager();
 await sessionManager.initialize();
 logger.info('APIStartup: Auth system initialized');
+
+const registryService = await ModelRegistryService.getInstance(projectConfig);
+//logger.info('APIStartup: Model Registry initialized', registryService.getAllModels());
+logger.info(`APIStartup: Model Registry initialized with ${registryService.getAllModels().length} models`);
+//logger.info('APIStartup: Model Registry Ollama models', registryService.getModelsByProvider('ollama'));
 
 const app = new Application<BbState>();
 

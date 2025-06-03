@@ -92,6 +92,7 @@ export interface MCPServerConfig {
 export interface LLMProviderConfig {
 	apiKey?: string;
 	defaultModel?: string;
+	enabled?: boolean;
 	baseURL?: string;
 	/**
 	 * User-configured model preferences

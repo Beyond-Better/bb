@@ -1,0 +1,397 @@
+{
+  "lastUpdated": "2025-06-04T04:30:00.000Z",
+  "source": "Official Groq documentation research",
+  "pricingUnit": "per_1M_tokens",
+  "notes": "Groq's main advantage is ultra-fast inference speeds. Production models are stable, preview models are evaluation-only. Batch API offers 50% discount through April 2025. Audio models priced separately.",
+  "models": [
+    {
+      "modelId": "llama-3.3-70b-versatile",
+      "displayName": "LLaMA 3.3 70B Versatile",
+      "family": "Meta LLaMA",
+      "contextWindow": 128000,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.59
+        },
+        "outputTokens": { 
+          "basePrice": 0.79 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-12-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false,
+        "parallelToolCalling": true
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 8192,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 1.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-12-01",
+      "releaseDate": "2024-12-01",
+      "responseSpeed": "fast",
+      "cost": "medium",
+      "intelligence": "high",
+      "modality": "text",
+      "description": "Large model with excellent tool use and 275 tokens/second",
+      "speedMetrics": {
+        "tokensPerSecond": 275,
+        "speedRank": "fast"
+      },
+      "status": "production"
+    },
+    {
+      "modelId": "llama-3.1-8b-instant",
+      "displayName": "LLaMA 3.1 8B Instant",
+      "family": "Meta LLaMA",
+      "contextWindow": 128000,
+      "maxOutputTokens": 8192,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.05
+        },
+        "outputTokens": { 
+          "basePrice": 0.08 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-07-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false,
+        "parallelToolCalling": true
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 8192,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 1.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-12-01",
+      "releaseDate": "2024-07-01",
+      "responseSpeed": "very-fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text",
+      "description": "Fastest tool-capable model at 750 tokens/second",
+      "speedMetrics": {
+        "tokensPerSecond": 750,
+        "speedRank": "very-fast"
+      },
+      "status": "production"
+    },
+    {
+      "modelId": "llama3-70b-8192",
+      "displayName": "LLaMA 3 70B",
+      "family": "Meta LLaMA",
+      "contextWindow": 8192,
+      "maxOutputTokens": 4096,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.59
+        },
+        "outputTokens": { 
+          "basePrice": 0.79 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-04-18"
+      },
+      "supportedFeatures": {
+        "functionCalling": false,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 1.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-12-01",
+      "releaseDate": "2024-04-18",
+      "responseSpeed": "fast",
+      "cost": "medium",
+      "intelligence": "high",
+      "modality": "text",
+      "description": "Legacy LLaMA 3 70B without tool support at 330 tokens/second",
+      "speedMetrics": {
+        "tokensPerSecond": 330,
+        "speedRank": "fast"
+      },
+      "status": "production"
+    },
+    {
+      "modelId": "llama3-8b-8192",
+      "displayName": "LLaMA 3 8B",
+      "family": "Meta LLaMA",
+      "contextWindow": 8192,
+      "maxOutputTokens": 4096,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.05
+        },
+        "outputTokens": { 
+          "basePrice": 0.08 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-04-18"
+      },
+      "supportedFeatures": {
+        "functionCalling": false,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 1.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-12-01",
+      "releaseDate": "2024-04-18",
+      "responseSpeed": "very-fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text",
+      "description": "Fastest Groq model at 1,250 tokens/second",
+      "speedMetrics": {
+        "tokensPerSecond": 1250,
+        "speedRank": "ultra-fast"
+      },
+      "status": "production"
+    },
+    {
+      "modelId": "gemma2-9b-it",
+      "displayName": "Gemma 2 9B IT",
+      "family": "Google Gemma",
+      "contextWindow": 8192,
+      "maxOutputTokens": 4096,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.20
+        },
+        "outputTokens": { 
+          "basePrice": 0.20 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-06-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false,
+        "parallelToolCalling": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 1.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-03-01",
+      "releaseDate": "2024-06-01",
+      "responseSpeed": "fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text",
+      "description": "Google's instruction-tuned model at 500 tokens/second",
+      "speedMetrics": {
+        "tokensPerSecond": 500,
+        "speedRank": "fast"
+      },
+      "status": "production"
+    }
+  ],
+  "previewModels": [
+    {
+      "modelId": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "displayName": "LLaMA 4 Scout",
+      "family": "Meta LLaMA",
+      "contextWindow": 131072,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.11
+        },
+        "outputTokens": { 
+          "basePrice": 0.34 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-01-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false,
+        "parallelToolCalling": true
+      },
+      "speedMetrics": {
+        "tokensPerSecond": 460,
+        "speedRank": "fast"
+      },
+      "status": "preview",
+      "description": "Latest Meta model (17Bx16E MoE) with excellent tool use"
+    },
+    {
+      "modelId": "deepseek-r1-distill-llama-70b",
+      "displayName": "DeepSeek R1 Distill LLaMA 70B",
+      "family": "DeepSeek",
+      "contextWindow": 128000,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.75
+        },
+        "outputTokens": { 
+          "basePrice": 0.99 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-05-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": true,
+        "parallelToolCalling": true
+      },
+      "speedMetrics": {
+        "tokensPerSecond": 275,
+        "speedRank": "fast"
+      },
+      "status": "preview",
+      "description": "DeepSeek reasoning model distilled for Groq's hardware"
+    },
+    {
+      "modelId": "qwen-qwq-32b",
+      "displayName": "Qwen QwQ 32B",
+      "family": "Alibaba Qwen",
+      "contextWindow": 128000,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.20
+        },
+        "outputTokens": { 
+          "basePrice": 0.60 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-01-01"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": true,
+        "parallelToolCalling": true
+      },
+      "speedMetrics": {
+        "tokensPerSecond": 400,
+        "speedRank": "fast"
+      },
+      "status": "preview",
+      "description": "Advanced reasoning model from Alibaba Cloud"
+    }
+  ],
+  "audioModels": [
+    {
+      "modelId": "whisper-large-v3",
+      "displayName": "Whisper Large v3",
+      "type": "speech-to-text",
+      "pricing": {
+        "perHour": 0.111,
+        "currency": "USD"
+      },
+      "speedMetrics": {
+        "speedFactor": "189x real-time"
+      },
+      "description": "Advanced speech recognition"
+    },
+    {
+      "modelId": "whisper-large-v3-turbo",
+      "displayName": "Whisper Large v3 Turbo",
+      "type": "speech-to-text",
+      "pricing": {
+        "perHour": 0.04,
+        "currency": "USD"
+      },
+      "speedMetrics": {
+        "speedFactor": "216x real-time"
+      },
+      "description": "Faster speech recognition"
+    },
+    {
+      "modelId": "playai-tts",
+      "displayName": "PlayAI Dialog v1.0",
+      "type": "text-to-speech",
+      "pricing": {
+        "per1MChars": 50.00,
+        "currency": "USD"
+      },
+      "speedMetrics": {
+        "charactersPerSecond": 140
+      },
+      "description": "High-quality text to speech"
+    }
+  ],
+  "batchApi": {
+    "discount": "50% through April 2025 (normally 25%)",
+    "turnaroundTime": "24 hours",
+    "availability": "Dev Tier customers and above"
+  },
+  "rateLimits": {
+    "tierBased": true,
+    "note": "Varies by subscription tier (Free, Dev, Pro)"
+  },
+  "keyAdvantages": [
+    "Industry-leading inference speeds (up to 1,250 tokens/s)",
+    "Competitive pricing, especially for smaller models", 
+    "Robust function calling with parallel execution",
+    "OpenAI-compatible API structure",
+    "Comprehensive audio processing capabilities",
+    "Cost-effective batch processing with significant discounts"
+  ]
+}

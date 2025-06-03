@@ -15,10 +15,10 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import {
 	ModelCombinations,
-	ModelIconLegend,
-	ModelRoleExplanations,
+	ModelSelectHelp,
 	type ModelSelectionValue,
 	ModelSelector,
+	ModelSystemCardsLink,
 } from '../ModelSelector.tsx';
 //import { FileBrowser } from '../FileBrowser.tsx';
 
@@ -1071,13 +1071,13 @@ export function ProjectEditor({
 									defaults.
 								</p>
 							</div>
-							<div className='flex-shrink-0 w-64'>
-								<ModelIconLegend collapsible={true} />
+							<div class='flex-shrink-0 '>
+								<ModelSystemCardsLink />
 							</div>
 						</div>
 
-						{/* Model Role Explanations */}
-						<ModelRoleExplanations />
+						{/* Model Role Explanations and Icon Legend side by side */}
+						<ModelSelectHelp />
 
 						{/* Model Selection */}
 						<div className='grid grid-cols-1 md:grid-cols-3 gap-6'>

@@ -3,12 +3,17 @@
  *
  * DEPRECATED: This class is being replaced by ModelRegistryService
  * Kept for backwards compatibility during transition
- * 
+ *
  * This is now a wrapper around ModelRegistryService to maintain API compatibility
  */
 
 import type { LLMProvider } from 'api/types.ts';
-import type { InteractionPreferences, ModelCapabilities, UserModelPreferences } from 'api/types/modelCapabilities.types.ts';
+import type {
+	InteractionPreferences,
+	ModelCapabilities,
+	ModelInfo,
+	UserModelPreferences,
+} from 'api/types/modelCapabilities.types.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
@@ -31,10 +36,10 @@ export class ModelCapabilitiesManager {
 	 * Get the singleton instance
 	 * @deprecated Use ModelRegistryService.getInstance() instead
 	 */
-	public static async getInstance(): Promise<ModelCapabilitiesManager> {
+	public static async getInstance(projectConfig?: ProjectConfig): Promise<ModelCapabilitiesManager> {
 		if (!ModelCapabilitiesManager.instance) {
 			ModelCapabilitiesManager.instance = new ModelCapabilitiesManager();
-			await ModelCapabilitiesManager.instance.init();
+			await ModelCapabilitiesManager.instance.init(projectConfig);
 		}
 		return ModelCapabilitiesManager.instance;
 	}
@@ -42,16 +47,18 @@ export class ModelCapabilitiesManager {
 	/**
 	 * Initialize the manager by delegating to ModelRegistryService
 	 */
-	public async init(): Promise<ModelCapabilitiesManager> {
+	public async init(projectConfig?: ProjectConfig): Promise<ModelCapabilitiesManager> {
 		if (this.initialized) return this;
 
 		try {
-			this.registryService = await ModelRegistryService.getInstance();
+			this.registryService = await ModelRegistryService.getInstance(projectConfig);
 			this.initialized = true;
 			logger.info('ModelCapabilitiesManager: Initialized (delegating to ModelRegistryService)');
 			return this;
 		} catch (error) {
-			logger.error(`ModelCapabilitiesManager: Failed to initialize: ${error instanceof Error ? error.message : error}`);
+			logger.error(
+				`ModelCapabilitiesManager: Failed to initialize: ${error instanceof Error ? error.message : error}`,
+			);
 			throw error;
 		}
 	}
@@ -75,7 +82,7 @@ export class ModelCapabilitiesManager {
 			return [];
 		}
 
-		return this.registryService.getAllModels().map(model => ({
+		return this.registryService.getAllModels().map((model: ModelInfo) => ({
 			modelId: model.id,
 			provider: model.provider,
 			capabilities: model.capabilities,

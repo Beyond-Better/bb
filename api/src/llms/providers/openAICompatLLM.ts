@@ -1,7 +1,7 @@
 import { OpenAI } from 'openai';
 //import ms from 'ms';
 
-import type { LLMProvderClientConfig } from 'api/types.ts';
+import { LLMCallbackType, type LLMProvderClientConfig } from 'api/types.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -215,7 +215,8 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			//extendedThinking = resolved.extendedThinking;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
+			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,

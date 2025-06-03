@@ -1,0 +1,365 @@
+{
+  "lastUpdated": "2025-06-04T04:30:00.000Z",
+  "source": "Official OpenAI documentation research",
+  "pricingUnit": "per_1M_tokens",
+  "notes": "All pricing verified from official OpenAI docs as of June 2025. Reasoning models charge for reasoning tokens. Batch API offers 50% savings. Cache pricing applies to prompt caching feature.",
+  "models": [
+    {
+      "modelId": "gpt-4.1",
+      "displayName": "GPT-4.1",
+      "family": "GPT-4",
+      "contextWindow": 1047576,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 2.00,
+          "cachedPrice": 0.50
+        },
+        "outputTokens": { 
+          "basePrice": 8.00 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-04-14"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 16384,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-06-01",
+      "releaseDate": "2025-04-14",
+      "responseSpeed": "medium",
+      "cost": "high",
+      "intelligence": "very-high",
+      "modality": "text-and-vision",
+      "description": "Latest flagship GPT model with enhanced capabilities"
+    },
+    {
+      "modelId": "gpt-4.1-mini",
+      "displayName": "GPT-4.1 Mini",
+      "family": "GPT-4",
+      "contextWindow": 1047576,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.40,
+          "cachedPrice": 0.10
+        },
+        "outputTokens": { 
+          "basePrice": 1.60 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-04-14"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 16384,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-06-01",
+      "releaseDate": "2025-04-14",
+      "responseSpeed": "fast",
+      "cost": "medium",
+      "intelligence": "high",
+      "modality": "text-and-vision",
+      "description": "Balanced performance and cost model"
+    },
+    {
+      "modelId": "gpt-4.1-nano",
+      "displayName": "GPT-4.1 Nano",
+      "family": "GPT-4",
+      "contextWindow": 1047576,
+      "maxOutputTokens": 32768,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.10,
+          "cachedPrice": 0.025
+        },
+        "outputTokens": { 
+          "basePrice": 0.40 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-04-14"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 16384,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-06-01",
+      "releaseDate": "2025-04-14",
+      "responseSpeed": "fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text-and-vision",
+      "description": "Most cost-effective GPT-4 variant"
+    },
+    {
+      "modelId": "gpt-4o",
+      "displayName": "GPT-4o",
+      "family": "GPT-4",
+      "contextWindow": 128000,
+      "maxOutputTokens": 16384,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 2.50,
+          "cachedPrice": 1.25
+        },
+        "outputTokens": { 
+          "basePrice": 10.00 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-05-13"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-10-01",
+      "releaseDate": "2024-05-13",
+      "responseSpeed": "medium",
+      "cost": "high",
+      "intelligence": "very-high",
+      "modality": "multimodal",
+      "description": "Omni model with multimodal capabilities"
+    },
+    {
+      "modelId": "gpt-4o-mini",
+      "displayName": "GPT-4o Mini",
+      "family": "GPT-4",
+      "contextWindow": 128000,
+      "maxOutputTokens": 16384,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.15,
+          "cachedPrice": 0.075
+        },
+        "outputTokens": { 
+          "basePrice": 0.60 
+        },
+        "currency": "USD",
+        "effectiveDate": "2024-07-18"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2023-10-01",
+      "releaseDate": "2024-07-18",
+      "responseSpeed": "fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text-and-vision",
+      "description": "Fast and affordable multimodal model"
+    },
+    {
+      "modelId": "o3",
+      "displayName": "o3",
+      "family": "o-series",
+      "contextWindow": 200000,
+      "maxOutputTokens": 100000,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 10.00,
+          "cachedPrice": 2.50
+        },
+        "outputTokens": { 
+          "basePrice": 40.00 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-04-16"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": true
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 32768,
+        "extendedThinking": true
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-06-01",
+      "releaseDate": "2025-04-16",
+      "responseSpeed": "slow",
+      "cost": "very-high",
+      "intelligence": "very-high",
+      "modality": "text-and-vision",
+      "description": "Most powerful reasoning model"
+    },
+    {
+      "modelId": "o4-mini",
+      "displayName": "o4-mini",
+      "family": "o-series",
+      "contextWindow": 200000,
+      "maxOutputTokens": 100000,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 1.10,
+          "cachedPrice": 0.275
+        },
+        "outputTokens": { 
+          "basePrice": 4.40 
+        },
+        "currency": "USD",
+        "effectiveDate": "2025-04-16"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": true,
+        "promptCaching": true,
+        "extendedThinking": true
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 16384,
+        "extendedThinking": true
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2024-06-01",
+      "releaseDate": "2025-04-16",
+      "responseSpeed": "medium",
+      "cost": "medium",
+      "intelligence": "high",
+      "modality": "text-and-vision",
+      "description": "Fast reasoning model with good performance"
+    },
+    {
+      "modelId": "gpt-3.5-turbo",
+      "displayName": "GPT-3.5 Turbo",
+      "family": "GPT-3.5",
+      "contextWindow": 16385,
+      "maxOutputTokens": 4096,
+      "pricing": {
+        "inputTokens": { 
+          "basePrice": 0.50
+        },
+        "outputTokens": { 
+          "basePrice": 1.50 
+        },
+        "currency": "USD",
+        "effectiveDate": "2023-11-06"
+      },
+      "supportedFeatures": {
+        "functionCalling": true,
+        "json": true,
+        "streaming": true,
+        "vision": false,
+        "promptCaching": false,
+        "extendedThinking": false
+      },
+      "defaults": {
+        "temperature": 0.7,
+        "maxTokens": 4096,
+        "extendedThinking": false
+      },
+      "constraints": {
+        "temperature": { "min": 0.0, "max": 2.0 }
+      },
+      "systemPromptBehavior": "optional",
+      "trainingCutoff": "2021-09-01",
+      "releaseDate": "2023-11-06",
+      "responseSpeed": "fast",
+      "cost": "low",
+      "intelligence": "medium",
+      "modality": "text",
+      "description": "Legacy model - OpenAI recommends GPT-4o mini instead",
+      "deprecated": true,
+      "replacement": "gpt-4o-mini"
+    }
+  ],
+  "deprecatedModels": [
+    {
+      "modelId": "o1-preview",
+      "deprecationDate": "2025-04-28",
+      "shutdownDate": "2025-07-28",
+      "replacement": "o3"
+    },
+    {
+      "modelId": "o1-mini",
+      "deprecationDate": "2025-04-28", 
+      "shutdownDate": "2025-10-27",
+      "replacement": "o4-mini"
+    },
+    {
+      "modelId": "gpt-4.5-preview",
+      "deprecationDate": "2025-04-14",
+      "shutdownDate": "2025-07-14",
+      "replacement": "gpt-4.1"
+    }
+  ]
+}

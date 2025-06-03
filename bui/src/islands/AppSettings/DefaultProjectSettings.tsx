@@ -3,7 +3,13 @@ import { useEffect, useState } from 'preact/hooks';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
-import { ModelSelector, ModelCombinations, ModelIconLegend, ModelRoleExplanations, type ModelSelectionValue } from '../../components/ModelSelector.tsx';
+import {
+	ModelCombinations,
+	ModelSelectHelp,
+	type ModelSelectionValue,
+	ModelSelector,
+	ModelSystemCardsLink,
+} from '../../components/ModelSelector.tsx';
 //import type { DefaultModels } from 'shared/config/types.ts';
 import { Toast } from '../../components/Toast.tsx';
 
@@ -208,10 +214,10 @@ export default function DefaultProjectSettings() {
 		if (name === 'activeTab') {
 			return undefined;
 		}
-		
+
 		if (name === 'defaultModels') {
 			const models = value as { orchestrator: string; agent: string; chat: string };
-		console.log(`DefaultProjectSettings: validateField: defaultModels: `, models);
+			//console.log(`DefaultProjectSettings: validateField: defaultModels: `, models);
 			if (!models.orchestrator || !models.agent || !models.chat) {
 				return 'All model roles must be selected';
 			}
@@ -284,7 +290,7 @@ export default function DefaultProjectSettings() {
 			[role]: modelId,
 		};
 		setFormState((prev) => ({ ...prev, defaultModels: newModels }));
-		
+
 		// Validate and update errors
 		const error = validateField('defaultModels', newModels);
 		formErrors.value = {
@@ -334,7 +340,10 @@ export default function DefaultProjectSettings() {
 				formState.extendedThinkingBudget.toString(),
 			);
 			// Update default models
-			await appState.value.apiClient?.updateGlobalConfig('defaultModels', JSON.stringify(formState.defaultModels));
+			await appState.value.apiClient?.updateGlobalConfig(
+				'defaultModels',
+				JSON.stringify(formState.defaultModels),
+			);
 
 			// Reset dirty tabs state
 			dirtyTabs.value = new Set();
@@ -344,7 +353,6 @@ export default function DefaultProjectSettings() {
 
 			setToastMessage('Settings Saved!');
 			setShowToast(true);
-
 		} catch (error) {
 			console.error('Failed to update settings:', error);
 			// TODO: Add error toast notification
@@ -679,16 +687,17 @@ export default function DefaultProjectSettings() {
 									Default Models
 								</h3>
 								<p class='text-sm text-gray-500 dark:text-gray-400'>
-									Set the default AI models for different roles. These will be used across all projects unless overridden.
+									Set the default AI models for different roles. These will be used across all
+									projects unless overridden.
 								</p>
 							</div>
-							<div class='flex-shrink-0 w-64'>
-								<ModelIconLegend collapsible={true} />
+							<div class='flex-shrink-0 '>
+								<ModelSystemCardsLink />
 							</div>
 						</div>
 
-						{/* Model Role Explanations */}
-						<ModelRoleExplanations />
+						{/* Model Role Explanations and Icon Legend side by side */}
+						<ModelSelectHelp />
 
 						{/* Model Selection */}
 						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
@@ -752,9 +761,15 @@ export default function DefaultProjectSettings() {
 								Current Selection
 							</h4>
 							<div class='text-sm text-blue-800 dark:text-blue-200'>
-								<div><strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}</div>
-								<div><strong>Agent:</strong> {formState.defaultModels.agent}</div>
-								<div><strong>Admin:</strong> {formState.defaultModels.chat}</div>
+								<div>
+									<strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}
+								</div>
+								<div>
+									<strong>Agent:</strong> {formState.defaultModels.agent}
+								</div>
+								<div>
+									<strong>Admin:</strong> {formState.defaultModels.chat}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -780,7 +795,6 @@ export default function DefaultProjectSettings() {
 					onClose={() => setShowToast(false)}
 				/>
 			)}
-
 		</div>
 	);
 }

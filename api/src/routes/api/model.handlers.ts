@@ -3,7 +3,6 @@ import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { LLMProviderLabel, type LLMProvider } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
-import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
 
 /**
  * @openapi
@@ -91,17 +90,19 @@ export const listModels = async (
 		logger.info('ModelHandler: listModels called');
 
 		// Initialize the model registry service
+		// [TODO] Ideally we pass projectConfig to getInstance since project may have different llmProviders
 		const registryService = await ModelRegistryService.getInstance();
 
 		// Parse pagination and filter parameters
 		const url = new URL(request.url);
 		const page = parseInt(url.searchParams.get('page') || '1');
-		const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+		const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
 		const providerFilter = url.searchParams.get('provider');
 		const sourceFilter = url.searchParams.get('source') as 'static' | 'dynamic' | null;
 
 		// Get all available models from the registry service
 		let allModels = registryService.getAllModels();
+		//logger.info('ModelHandler: listModels', allModels);
 
 		// Apply filters
 		if (providerFilter) {
@@ -119,7 +120,13 @@ export const listModels = async (
 			provider: model.provider,
 			providerLabel: LLMProviderLabel[model.provider as LLMProvider] || 'Unknown',
 			contextWindow: model.capabilities.contextWindow,
+			maxOutputTokens: model.capabilities.maxOutputTokens,
 			responseSpeed: model.capabilities.responseSpeed || 'medium',
+			cost: model.capabilities.cost || 'medium',
+			intelligence: model.capabilities.intelligence || 'medium',
+			supportedFeatures: model.capabilities.supportedFeatures,
+			releaseDate: model.capabilities.releaseDate,
+			trainingCutoff: model.capabilities.trainingCutoff,
 			source: model.source,
 		}));
 
@@ -128,6 +135,7 @@ export const listModels = async (
 		const startIndex = (page - 1) * pageSize;
 		const endIndex = startIndex + pageSize;
 		const paginatedModels = transformedModels.slice(startIndex, endIndex);
+		//logger.info('ModelHandler: paginatedModels', paginatedModels);
 
 		// Calculate pagination metadata
 		const pageCount = Math.ceil(total / pageSize);

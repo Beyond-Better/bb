@@ -1,6 +1,6 @@
 import { Ollama } from 'ollama';
 import type { ChatRequest, ChatResponse, Message, Tool, ToolCall } from 'ollama';
-import { LLMProvider, OllamaModel } from 'api/types.ts';
+import { LLMProvider, LLMCallbackType, OllamaModel } from 'api/types.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -174,7 +174,7 @@ class OllamaLLM extends LLM {
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
-		const model: string = messageRequest.model || 'smollm2:1.7b';
+		const model: string = messageRequest.model || OllamaModel.SMOLLM2_1_7B ;
 
 		// Resolve parameters using model capabilities
 		let temperature: number;
@@ -192,7 +192,8 @@ class OllamaLLM extends LLM {
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
+			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
 
 			temperature = capabilitiesManager.resolveTemperature(
 				model,

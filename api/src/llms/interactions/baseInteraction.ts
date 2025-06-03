@@ -100,6 +100,7 @@ class LLMInteraction {
 	protected projectConfig!: ProjectConfig;
 
 	private _llmProvider!: LLM;
+	private _llmModelToProvider!: Record<string, LLMProvider>;
 	private _interactionCallbacks!: LLMCallbacks;
 	private _model: string = '';
 	private _localMode: boolean = false;
@@ -140,11 +141,12 @@ class LLMInteraction {
 			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			this._localMode = globalConfig.api.localMode ?? false;
+			this._llmModelToProvider = await getLLMModelToProvider();
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
 				this._localMode
-					//? (await getLLMModelToProvider())[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
-					? (await getLLMModelToProvider())[this._model]
+					//? this._llmModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
+					? this._llmModelToProvider[this._model]
 					: LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
@@ -795,7 +797,7 @@ class LLMInteraction {
 		if (updateProvider) {
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
-				this._localMode ? (await getLLMModelToProvider())[this._model] : LLMProviderEnum.BB,
+				this._localMode ? this._llmModelToProvider[this._model] : LLMProviderEnum.BB,
 			);
 		}
 	}
@@ -838,7 +840,7 @@ class LLMInteraction {
 	}
 
 	/**
-	 * Resolve model parameters using the ModelCapabilitiesManager
+	 * Resolve model parameters using the ModelRegistryService
 	 * This applies the proper parameter resolution hierarchy
 	 *
 	 * @param provider The LLM provider
@@ -856,7 +858,7 @@ class LLMInteraction {
 		},
 		provider?: LLMProvider,
 	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
 
 		const modelToProvider = await getLLMModelToProvider();
 		const effectiveProvider = provider || modelToProvider[model];

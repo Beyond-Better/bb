@@ -47,6 +47,7 @@ export function CustomSelect({ options, value, onChange, className = '' }: Custo
 	};
 
 	const selectedOption = options.find((option) => option.value === value);
+	console.log('CustomSelect: value =', value, 'selectedOption =', selectedOption, 'options count =', options.length);
 
 	return (
 		<div ref={ref} className={`relative ${className}`} tabIndex={0} onKeyDown={handleKeyDown}>

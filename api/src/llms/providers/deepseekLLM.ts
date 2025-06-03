@@ -12,7 +12,7 @@ import OpenAICompatLLM from './openAICompatLLM.ts';
 // import { createError } from 'api/utils/error.ts';
 // import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-//import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+// import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 
 // Define DeepSeek-specific types
 interface DeepSeekTokenUsage {
@@ -27,7 +27,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 		super(callbacks);
 		this.llmProviderName = LLMProvider.DEEPSEEK;
 
-		this.defaultModel = 'deepseek-chat';
+		this.defaultModel = DeepSeekModel.DEEPSEEK_CHAT;
 		this.baseURL = this.projectConfig.api?.llmProviders?.deepseek?.baseURL ||
 			'https://api.deepseek.com/v1';
 		this.apiKey = this.projectConfig.api?.llmProviders?.deepseek?.apiKey;

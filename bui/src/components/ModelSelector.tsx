@@ -12,6 +12,10 @@ export interface ModelInfo {
 	providerLabel: string;
 	contextWindow: number;
 	responseSpeed: 'fast' | 'medium' | 'slow';
+	cost?: 'low' | 'medium' | 'high' | 'very-high';
+	intelligence?: 'medium' | 'high' | 'very-high';
+	releaseDate?: string;
+	trainingCutoff?: string;
 	// We'll extend this with capabilities later
 }
 
@@ -70,23 +74,12 @@ const getProviderIcon = (provider: string) => {
 };
 
 // Model speed/cost/intelligence mapping
-const getModelCharacteristics = (responseSpeed: string, provider: string) => {
-	const characteristics = {
-		speed: responseSpeed,
-		cost: 'medium', // Default, could be enhanced with actual pricing data
-		intelligence: 'high', // Default, could be enhanced with capability scoring
+const getModelCharacteristics = (model: ModelInfo) => {
+	return {
+		speed: model.responseSpeed,
+		cost: (model as any).cost || 'medium', // Use actual cost from model data
+		intelligence: (model as any).intelligence || 'high', // Use actual intelligence from model data
 	};
-
-	// Override based on known patterns
-	if (responseSpeed === 'fast') {
-		characteristics.cost = 'low';
-		characteristics.intelligence = 'medium';
-	} else if (responseSpeed === 'slow') {
-		characteristics.cost = 'high';
-		characteristics.intelligence = 'very-high';
-	}
-
-	return characteristics;
 };
 
 // Get display text for characteristics
@@ -228,13 +221,49 @@ export function ModelSelector({
 				modelsState.value = { ...modelsState.value, loading: true, error: null };
 				try {
 					const response = await apiClient.listModels();
-					console.log('ModelSelector: ', { models: response.models });
+					//console.log('ModelSelector: ', { models: response?.models });
 					if (response) {
-						modelsState.value = {
-							models: response.models.map((model) => ({
+						// Define sort order for providers (matching getProviderIcon order)
+						const providerOrder = ['anthropic', 'openai', 'google', 'deepseek', 'ollama', 'groq'];
+						// Define sort order for cost and intelligence enums
+						const costOrder = ['low', 'medium', 'high', 'very-high'];
+						const intelligenceOrder = ['medium', 'high', 'very-high'];
+
+						const sortedModels = response.models
+							.map((model) => ({
 								...model,
 								responseSpeed: model.responseSpeed as 'fast' | 'medium' | 'slow',
-							})),
+							}))
+							.sort((a, b) => {
+								// 1. Sort by provider (using defined order)
+								const providerA = providerOrder.indexOf(a.provider.toLowerCase());
+								const providerB = providerOrder.indexOf(b.provider.toLowerCase());
+								const providerComparison = (providerA === -1 ? 999 : providerA) -
+									(providerB === -1 ? 999 : providerB);
+								if (providerComparison !== 0) return providerComparison;
+
+								// 2. Sort by release date (newest first)
+								const dateA = (a as any).releaseDate ? new Date((a as any).releaseDate).getTime() : 0;
+								const dateB = (b as any).releaseDate ? new Date((b as any).releaseDate).getTime() : 0;
+								const dateComparison = dateB - dateA;
+								if (dateComparison !== 0) return dateComparison;
+
+								// 3. Sort by cost (low to high)
+								const costA = costOrder.indexOf((a as any).cost || 'medium');
+								const costB = costOrder.indexOf((b as any).cost || 'medium');
+								const costComparison = (costA === -1 ? 1 : costA) - (costB === -1 ? 1 : costB);
+								if (costComparison !== 0) return costComparison;
+
+								// 4. Sort by intelligence (high to low)
+								const intelligenceA = intelligenceOrder.indexOf((a as any).intelligence || 'high');
+								const intelligenceB = intelligenceOrder.indexOf((b as any).intelligence || 'high');
+								const intelligenceComparison = (intelligenceB === -1 ? 1 : intelligenceB) -
+									(intelligenceA === -1 ? 1 : intelligenceA);
+								return intelligenceComparison;
+							});
+
+						modelsState.value = {
+							models: sortedModels,
 							loading: false,
 							error: null,
 							lastFetch: now,
@@ -254,7 +283,7 @@ export function ModelSelector({
 			}
 		};
 		// [TODO]  All instances of this component load at the same time, so this check doesn't stop multiple requests
-		// A hook for useState is probably needed to optimize this call. 
+		// A hook for useState is probably needed to optimize this call.
 		//if (modelsState.value.models.length > 0) return;
 		loadModels();
 	}, [apiClient]);
@@ -262,6 +291,7 @@ export function ModelSelector({
 	// Generate select options from models
 	const selectOptions = useComputed(() => {
 		const options: SelectOption[] = [];
+		//console.log('ModelSelector: Generating options from models:', modelsState.value.models.map(m => ({id: m.id, displayName: m.displayName})));
 
 		// Group models by provider
 		const modelsByProvider = modelsState.value.models.reduce((acc, model) => {
@@ -284,7 +314,7 @@ export function ModelSelector({
 			}
 
 			models.forEach((model) => {
-				const characteristics = getModelCharacteristics(model.responseSpeed, model.provider);
+				const characteristics = getModelCharacteristics(model);
 				const speedIcon = getCharacteristicDisplay('speed', characteristics.speed);
 				const costIcon = getCharacteristicDisplay('cost', characteristics.cost);
 				const intelligenceIcon = getCharacteristicDisplay('intelligence', characteristics.intelligence);
@@ -293,7 +323,7 @@ export function ModelSelector({
 				const label = compact ? model.displayName : (
 					<span>
 						<span className='mr-2'>{providerIcon}</span> {model.displayName}
-						<span className='ml-4'>{`${speedIcon} ${costIcon} ${intelligenceIcon}`}</span>
+						<span className='ml-4 whitespace-nowrap'>{`${speedIcon} ${costIcon} ${intelligenceIcon}`}</span>
 					</span>
 				);
 
@@ -310,10 +340,14 @@ export function ModelSelector({
 	// Get current value for display
 	const currentValue = useComputed(() => {
 		if (typeof value === 'string') {
+			//console.log('ModelSelector: currentValue (conversation context):', value);
 			return value; // Conversation context
 		}
 		// Global/project context
 		return (value as ModelSelectionValue).project ?? (value as ModelSelectionValue).global ?? '';
+		//const result = (value as ModelSelectionValue).project ?? (value as ModelSelectionValue).global ?? '';
+		//console.log('ModelSelector: currentValue (global/project context):', result);
+		//return result;
 	});
 
 	// Handle selection change
@@ -478,7 +512,7 @@ export function ModelIconLegend({
 						</button>
 						{isExpanded && (
 							<div className='px-3 pb-3 pt-1 border-t border-gray-200 dark:border-gray-700'>
-								<IconLegendContent />
+								<IconLegendConten className='text-gray-700 dark:text-gray-300' />
 							</div>
 						)}
 					</div>
@@ -486,16 +520,16 @@ export function ModelIconLegend({
 				: (
 					<div className='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-3'>
 						<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>Model Icons</h4>
-						<IconLegendContent />
+						<IconLegendContent className='text-gray-700 dark:text-gray-300' />
 					</div>
 				)}
 		</div>
 	);
 }
 
-function IconLegendContent() {
+export function IconLegendContent({ className = '' }: { className?: string }) {
 	return (
-		<div className='space-y-2 text-xs text-gray-700 dark:text-gray-300'>
+		<div className={`space-y-2 text-xs ${className}`}>
 			<div>
 				<div className='font-medium text-gray-600 dark:text-gray-400 mb-1'>Speed:</div>
 				<div className='flex gap-3'>
@@ -505,7 +539,7 @@ function IconLegendContent() {
 				</div>
 			</div>
 			<div>
-				<div className='font-medium text-gray-600 dark:text-gray-400 mb-1'>Cost:</div>
+				<div className='font-medium text-gray-600 dark:text-gray-400 mt-4 mb-1'>Cost:</div>
 				<div className='flex gap-3'>
 					<span>💚 Low</span>
 					<span>💛 Medium</span>
@@ -514,7 +548,7 @@ function IconLegendContent() {
 				</div>
 			</div>
 			<div>
-				<div className='font-medium text-gray-600 dark:text-gray-400 mb-1'>Intelligence:</div>
+				<div className='font-medium text-gray-600 dark:text-gray-400 mt-4 mb-1'>Intelligence:</div>
 				<div className='flex gap-3'>
 					<span>🧠 Medium</span>
 					<span>🎯 High</span>
@@ -525,6 +559,34 @@ function IconLegendContent() {
 	);
 }
 
+// Model Role Explanations Content
+export function ModelRoleExplanationsContent({ className = '' }: { className?: string }) {
+	return (
+		<div className={`space-y-3 text-sm ${className}`}>
+			<div>
+				<div className='font-medium'>🎯 Orchestrator Model</div>
+				<div className='text-xs mt-1'>
+					Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent
+					scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.
+				</div>
+			</div>
+			<div>
+				<div className='font-medium'>📥 Agent Model</div>
+				<div className='text-xs mt-1'>
+					Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates
+					work. Should be capable of focused task execution and tool usage.
+				</div>
+			</div>
+			<div>
+				<div className='font-medium'>🔧 Admin Model</div>
+				<div className='text-xs mt-1'>
+					Handles administrative tasks like generating conversation titles, summarizing objectives, creating
+					audit trail messages, and other meta-operations. Can be more cost-effective.
+				</div>
+			</div>
+		</div>
+	);
+}
 // Model Role Explanations Component
 export function ModelRoleExplanations({ className = '' }: { className?: string }) {
 	return (
@@ -534,29 +596,28 @@ export function ModelRoleExplanations({ className = '' }: { className?: string }
 			<h4 className='text-sm font-medium text-blue-900 dark:text-blue-100 mb-3'>
 				Model Roles Explained
 			</h4>
-			<div className='space-y-3 text-sm text-blue-800 dark:text-blue-200'>
-				<div>
-					<div className='font-medium'>🎯 Orchestrator Model</div>
-					<div className='text-xs mt-1'>
-						Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent
-						scenarios when the orchestrator performs all tasks directly. Requires strong reasoning
-						capabilities.
-					</div>
-				</div>
-				<div>
-					<div className='font-medium'>⚡ Agent Model</div>
-					<div className='text-xs mt-1'>
-						Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates
-						work. Should be capable of focused task execution and tool usage.
-					</div>
-				</div>
-				<div>
-					<div className='font-medium'>🔧 Admin Model</div>
-					<div className='text-xs mt-1'>
-						Handles administrative tasks like generating conversation titles, summarizing objectives,
-						creating audit trail messages, and other meta-operations. Can be more cost-effective.
-					</div>
-				</div>
+			<ModelRoleExplanationsContent className='text-blue-800 dark:text-blue-200' />
+		</div>
+	);
+}
+export function ModelSelectHelp({ className = '' }: { className?: string }) {
+	/* Model Role Explanations and Icon Legend side by side */
+	return (
+		<div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 ${className}`}>
+			{/* Model Role Explanations - spans 2 columns for more space */}
+			<div class='lg:col-span-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-4 h-fit'>
+				<h4 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+					Model Roles Explained
+				</h4>
+				<ModelRoleExplanationsContent className='text-gray-800 dark:text-gray-200' />
+			</div>
+
+			{/* Icon Legend */}
+			<div class='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-4 h-fit'>
+				<h4 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+					Model Icons Guide
+				</h4>
+				<IconLegendContent className='text-gray-700 dark:text-gray-300' />
 			</div>
 		</div>
 	);
@@ -611,10 +672,7 @@ export function SystemCardsModal({
 							</h4>
 							<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
 								{providerModels.map((model) => {
-									const characteristics = getModelCharacteristics(
-										model.responseSpeed,
-										model.provider,
-									);
+									const characteristics = getModelCharacteristics(model);
 									const speedIcon = getCharacteristicDisplay('speed', characteristics.speed);
 									const costIcon = getCharacteristicDisplay('cost', characteristics.cost);
 									const intelligenceIcon = getCharacteristicDisplay(
@@ -637,6 +695,12 @@ export function SystemCardsModal({
 												<div>
 													Intelligence: {intelligenceIcon} {characteristics.intelligence}
 												</div>
+												{(model as any).releaseDate && (
+													<div>Release: {(model as any).releaseDate}</div>
+												)}
+												{(model as any).trainingCutoff && (
+													<div>Training Cutoff: {(model as any).trainingCutoff}</div>
+												)}
 												<div className='text-xs text-gray-500 dark:text-gray-500 mt-2'>
 													ID: {model.id}
 												</div>
@@ -669,13 +733,7 @@ export function ModelCombinations({
 				<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
 					Suggested Combinations
 				</h4>
-				<button
-					type='button'
-					onClick={() => setShowSystemCards(true)}
-					className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium'
-				>
-					View All Models
-				</button>
+				<ModelSystemCardsLink />
 			</div>
 
 			{/* Responsive grid layout */}
@@ -710,7 +768,28 @@ export function ModelCombinations({
 					</div>
 				))}
 			</div>
+		</div>
+	);
+}
 
+export function ModelSystemCardsLink({
+	onApplyCombo,
+	className = '',
+}: {
+	onApplyCombo: (combo: { orchestrator: string; agent: string; chat: string }) => void;
+	className?: string;
+}) {
+	const [showSystemCards, setShowSystemCards] = useState(false);
+
+	return (
+		<div>
+			<button
+				type='button'
+				onClick={() => setShowSystemCards(true)}
+				className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium'
+			>
+				View All Models
+			</button>
 			{/* System Cards Modal */}
 			<SystemCardsModal
 				isOpen={showSystemCards}

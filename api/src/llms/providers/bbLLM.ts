@@ -219,7 +219,7 @@ class BbLLM extends LLM {
 		// Log detailed message information
 		if (this.projectConfig.api?.logFileHydration ?? false) this.logMessageDetails(messages);
 
-		const model: string = messageRequest.model || 'claude-3-7-sonnet-20250219';
+		const model: string = messageRequest.model || AnthropicModel.CLAUDE_4_0_SONNET;
 		const usePromptCaching = this.projectConfig.api?.usePromptCaching ?? true;
 
 		// Resolve parameters using model capabilities
@@ -242,7 +242,8 @@ class BbLLM extends LLM {
 			temperature = extendedThinking ? 1 : resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance();
+			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
 
 			maxTokens = capabilitiesManager.resolveMaxTokens(
 				model,
