@@ -1,7 +1,9 @@
 import { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { LLMProviderLabel } from 'api/types/llms.ts';
+import { LLMProviderLabel, type LLMProvider } from 'api/types/llms.ts';
+import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
+import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
 
 /**
  * @openapi
@@ -103,19 +105,19 @@ export const listModels = async (
 
 		// Apply filters
 		if (providerFilter) {
-			allModels = allModels.filter(model => model.provider === providerFilter);
+			allModels = allModels.filter((model: ModelInfo) => model.provider === providerFilter);
 		}
-		
+
 		if (sourceFilter) {
-			allModels = allModels.filter(model => model.source === sourceFilter);
+			allModels = allModels.filter((model: ModelInfo) => model.source === sourceFilter);
 		}
 
 		// Transform models for API response
-		const transformedModels = allModels.map(model => ({
+		const transformedModels = allModels.map((model: ModelInfo) => ({
 			id: model.id,
 			displayName: model.displayName,
 			provider: model.provider,
-			providerLabel: LLMProviderLabel[model.provider] || 'Unknown',
+			providerLabel: LLMProviderLabel[model.provider as LLMProvider] || 'Unknown',
 			contextWindow: model.capabilities.contextWindow,
 			responseSpeed: model.capabilities.responseSpeed || 'medium',
 			source: model.source,
@@ -213,7 +215,7 @@ export const getModelCapabilities = async (
 				id: modelInfo.id,
 				displayName: modelInfo.displayName,
 				provider: modelInfo.provider,
-				providerLabel: LLMProviderLabel[modelInfo.provider] || 'Unknown',
+				providerLabel: LLMProviderLabel[modelInfo.provider as LLMProvider] || 'Unknown',
 				source: modelInfo.source,
 				capabilities: modelInfo.capabilities,
 			},
@@ -256,13 +258,13 @@ export const refreshDynamicModels = async (
 		const registryService = await ModelRegistryService.getInstance();
 
 		// Get count before refresh
-		const beforeCount = registryService.getAllModels().filter(m => m.source === 'dynamic').length;
+		const beforeCount = registryService.getAllModels().filter((m: ModelInfo) => m.source === 'dynamic').length;
 
 		// Refresh dynamic models
 		await registryService.refreshDynamicModels();
 
 		// Get count after refresh
-		const afterCount = registryService.getAllModels().filter(m => m.source === 'dynamic').length;
+		const afterCount = registryService.getAllModels().filter((m: ModelInfo) => m.source === 'dynamic').length;
 
 		response.status = 200;
 		response.body = {

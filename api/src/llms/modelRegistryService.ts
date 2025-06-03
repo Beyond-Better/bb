@@ -9,22 +9,12 @@
 import { logger } from 'shared/logger.ts';
 import { isError } from 'api/errors/error.ts';
 import type { LLMProvider } from 'api/types.ts';
-import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
-import type { ProjectConfig } from 'shared/config/types.ts';
+import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.types.ts';
+import type { LLMProviderConfig, ProjectConfig } from 'shared/config/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 // Import the built-in capabilities data
 import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'json' };
-
-/**
- * Model information interface for registry entries
- */
-export interface ModelInfo {
-	id: string;
-	displayName: string;
-	provider: LLMProvider;
-	capabilities: ModelCapabilities;
-	source: 'static' | 'dynamic'; // Whether from JSON or discovered at runtime
-}
 
 /**
  * Configuration for Ollama model discovery
@@ -80,7 +70,7 @@ export class ModelRegistryService {
 	private modelRegistry: Map<string, ModelInfo> = new Map();
 	private providerModels: Map<LLMProvider, string[]> = new Map();
 	private initialized = false;
-	private projectConfig?: ProjectConfig;
+	private llmProviders!: Partial<Record<LLMProvider, LLMProviderConfig>>;
 
 	/**
 	 * Private constructor for singleton pattern
@@ -104,7 +94,13 @@ export class ModelRegistryService {
 	public async init(projectConfig?: ProjectConfig): Promise<void> {
 		if (this.initialized) return;
 
-		this.projectConfig = projectConfig;
+		if (projectConfig) {
+			this.llmProviders = projectConfig.api?.llmProviders || {};
+		} else {
+			const configManager = await getConfigManager();
+			const globalConfig = await configManager.getGlobalConfig();
+			this.llmProviders = globalConfig.api?.llmProviders || {};
+		}
 
 		try {
 			// Load static models from built-in capabilities
@@ -126,7 +122,7 @@ export class ModelRegistryService {
 	 */
 	private async loadStaticModels(): Promise<void> {
 		try {
-			const capabilities = builtinCapabilities as Record<string, Record<string, ModelCapabilities>>;
+			const capabilities = builtinCapabilities as Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
 
 			for (const [provider, models] of Object.entries(capabilities)) {
 				const providerEnum = provider as LLMProvider;
@@ -139,6 +135,7 @@ export class ModelRegistryService {
 						provider: providerEnum,
 						capabilities: modelCapabilities,
 						source: 'static',
+						hidden: modelCapabilities.hidden || false,
 					};
 
 					this.modelRegistry.set(modelId, modelInfo);
@@ -150,7 +147,9 @@ export class ModelRegistryService {
 
 			logger.info(`ModelRegistryService: Loaded ${this.modelRegistry.size} static models`);
 		} catch (error) {
-			logger.error(`ModelRegistryService: Error loading static models: ${isError(error) ? error.message : error}`);
+			logger.error(
+				`ModelRegistryService: Error loading static models: ${isError(error) ? error.message : error}`,
+			);
 			throw error;
 		}
 	}
@@ -160,17 +159,21 @@ export class ModelRegistryService {
 	 */
 	private async discoverDynamicModels(): Promise<void> {
 		// Only check Ollama if enabled in config
-		const ollamaConfig = this.projectConfig?.api?.llmProviders?.ollama;
+		const ollamaConfig = this.llmProviders?.ollama;
+		//logger.info('ModelRegistryService: llmProviders', this.llmProviders );
 		if (!ollamaConfig?.enabled) {
-			logger.debug('ModelRegistryService: Ollama discovery disabled in configuration');
+			logger.info('ModelRegistryService: Ollama discovery disabled in configuration');
 			return;
 		}
 
 		try {
-			const ollamaModels = await this.discoverOllamaModels(ollamaConfig);
+			if (ollamaConfig.enabled === undefined) ollamaConfig.enabled = false;
+			const ollamaModels = await this.discoverOllamaModels(ollamaConfig as OllamaConfig);
 			logger.info(`ModelRegistryService: Discovered ${ollamaModels.length} Ollama models`);
 		} catch (error) {
-			logger.warn(`ModelRegistryService: Error discovering Ollama models: ${isError(error) ? error.message : error}`);
+			logger.warn(
+				`ModelRegistryService: Error discovering Ollama models: ${isError(error) ? error.message : error}`,
+			);
 			// Don't throw - Ollama discovery failure shouldn't prevent startup
 		}
 	}
@@ -206,7 +209,8 @@ export class ModelRegistryService {
 			const ollamaModelIds: string[] = [];
 			for (const model of models) {
 				const modelId = model.name;
-				const displayName = model.details?.family || model.name;
+				//const displayName = model.details?.family || model.name;
+				const displayName = model.details?.family ? `${model.name} (${model.details.family})` : model.name;
 
 				// Create capabilities for Ollama models
 				const capabilities: ModelCapabilities = {
@@ -270,9 +274,7 @@ export class ModelRegistryService {
 			'llama3-groq',
 		];
 
-		return toolSupportingPatterns.some(pattern => 
-			modelId.toLowerCase().includes(pattern.toLowerCase())
-		);
+		return toolSupportingPatterns.some((pattern) => modelId.toLowerCase().includes(pattern.toLowerCase()));
 	}
 
 	/**
@@ -285,15 +287,25 @@ export class ModelRegistryService {
 			'multimodal',
 		];
 
-		return visionPatterns.some(pattern => 
-			modelId.toLowerCase().includes(pattern.toLowerCase())
-		);
+		return visionPatterns.some((pattern) => modelId.toLowerCase().includes(pattern.toLowerCase()));
 	}
 
 	/**
-	 * Get all available models
+	 * Get all available models (excluding hidden ones)
 	 */
 	public getAllModels(): ModelInfo[] {
+		if (!this.initialized) {
+			logger.warn('ModelRegistryService: Service not initialized, returning empty list');
+			return [];
+		}
+
+		return Array.from(this.modelRegistry.values()).filter(model => !model.hidden);
+	}
+
+	/**
+	 * Get all models including hidden ones (for admin/diagnostic purposes)
+	 */
+	public getAllModelsIncludingHidden(): ModelInfo[] {
 		if (!this.initialized) {
 			logger.warn('ModelRegistryService: Service not initialized, returning empty list');
 			return [];
@@ -303,7 +315,7 @@ export class ModelRegistryService {
 	}
 
 	/**
-	 * Get models for a specific provider
+	 * Get models for a specific provider (excluding hidden ones)
 	 */
 	public getModelsByProvider(provider: LLMProvider): ModelInfo[] {
 		if (!this.initialized) {
@@ -312,7 +324,20 @@ export class ModelRegistryService {
 		}
 
 		const modelIds = this.providerModels.get(provider) || [];
-		return modelIds.map(id => this.modelRegistry.get(id)!).filter(Boolean);
+		return modelIds.map((id) => this.modelRegistry.get(id)!).filter(Boolean).filter(model => !model.hidden);
+	}
+
+	/**
+	 * Get all models for a specific provider (including hidden ones)
+	 */
+	public getModelsByProviderIncludingHidden(provider: LLMProvider): ModelInfo[] {
+		if (!this.initialized) {
+			logger.warn('ModelRegistryService: Service not initialized, returning empty list');
+			return [];
+		}
+
+		const modelIds = this.providerModels.get(provider) || [];
+		return modelIds.map((id) => this.modelRegistry.get(id)!).filter(Boolean);
 	}
 
 	/**
@@ -364,11 +389,11 @@ export class ModelRegistryService {
 	 */
 	public getModelToProviderMapping(): Record<string, LLMProvider> {
 		const mapping: Record<string, LLMProvider> = {};
-		
+
 		for (const [modelId, modelInfo] of this.modelRegistry) {
 			mapping[modelId] = modelInfo.provider;
 		}
-		
+
 		return mapping;
 	}
 
@@ -388,7 +413,7 @@ export class ModelRegistryService {
 	 */
 	public getDefaultModelForProvider(provider: LLMProvider): string | undefined {
 		const models = this.getModelsByProvider(provider);
-		
+
 		// Return the first model for the provider
 		// Could be enhanced with more sophisticated logic
 		return models.length > 0 ? models[0].id : undefined;

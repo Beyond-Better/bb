@@ -24,9 +24,12 @@
 
 import { parseArgs } from '@std/cli';
 import { ensureDir, exists } from '@std/fs';
-import { dirname } from '@std/path';
+import { dirname, fromFileUrl, join } from '@std/path';
 import { isError } from 'shared/error.ts';
 import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { createClient } from '@supabase/supabase-js';
+import { fetchSupabaseConfig } from 'api/auth/config.ts';
 
 /**
  * Enhanced model capabilities interface that includes all metadata
@@ -42,6 +45,25 @@ export interface EnhancedModelCapabilities extends ModelCapabilities {
 	deprecated?: boolean;
 	modality: 'text' | 'text-and-vision' | 'multimodal';
 	description?: string;
+	hidden?: boolean; // Whether the model should be hidden from users (e.g., not available in llm-proxy)
+}
+
+/**
+ * BB-Sass model interface (from edge function response)
+ */
+export interface LLMProxyModel {
+	model_id: string;
+	provider_name: string;
+	model_name: string;
+	model_type: string;
+	cost_input: number;
+	cost_output: number;
+	cost_cache_read?: number;
+	cost_cache_create?: number;
+	is_available: boolean;
+	settings: Record<string, unknown>;
+	created_at: string;
+	updated_at: string;
 }
 
 /**
@@ -60,7 +82,8 @@ interface FetcherConfig {
  */
 class ModelCapabilitiesFetcher {
 	private config: FetcherConfig;
-	private allCapabilities: Record<string, Record<string, ModelCapabilities>> = {};
+	private allCapabilities: Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>> = {};
+	private llmProxyModels: LLMProxyModel[] = [];
 
 	constructor(config: FetcherConfig) {
 		this.config = config;
@@ -78,6 +101,9 @@ class ModelCapabilitiesFetcher {
 			return;
 		}
 
+		// Fetch llm-proxy models first
+		await this.fetchLLMProxyModels();
+
 		// Try to load existing capabilities first
 		await this.loadExistingCapabilities();
 
@@ -87,8 +113,10 @@ class ModelCapabilitiesFetcher {
 				console.log(`Fetching capabilities for ${provider}...`);
 				await this.fetchProviderCapabilities(provider);
 			} catch (error) {
-				const errorMsg = `Error fetching capabilities for ${provider}: ${isError(error) ? error.message : error}`;
-				
+				const errorMsg = `Error fetching capabilities for ${provider}: ${
+					isError(error) ? error.message : error
+				}`;
+
 				if (this.config.useCached) {
 					console.warn(`${errorMsg} (continuing with cached data)`);
 				} else {
@@ -97,6 +125,9 @@ class ModelCapabilitiesFetcher {
 				}
 			}
 		}
+
+		// Check for models not in llm-proxy and report them
+		await this.reportModelsNotInLLMProxy();
 
 		// Validate the final capabilities
 		await this.validateCapabilities();
@@ -128,7 +159,7 @@ class ModelCapabilitiesFetcher {
 	 */
 	private async validateExistingCapabilities(): Promise<void> {
 		console.log('Validating existing capabilities file...');
-		
+
 		if (!await exists(this.config.outputPath)) {
 			throw new Error(`Capabilities file not found: ${this.config.outputPath}`);
 		}
@@ -137,7 +168,7 @@ class ModelCapabilitiesFetcher {
 			const content = await Deno.readTextFile(this.config.outputPath);
 			const capabilities = JSON.parse(content);
 			this.allCapabilities = capabilities;
-			
+
 			await this.validateCapabilities();
 			console.log('✅ Capabilities file is valid');
 		} catch (error) {
@@ -167,7 +198,7 @@ class ModelCapabilitiesFetcher {
 			// Validate model entries
 			for (const [model, capabilities] of Object.entries(models)) {
 				totalModels++;
-				
+
 				if (!capabilities || typeof capabilities !== 'object') {
 					issues.push(`Invalid capabilities for model ${provider}/${model}: must be an object`);
 					continue;
@@ -183,7 +214,7 @@ class ModelCapabilitiesFetcher {
 					'defaults',
 					'constraints',
 				];
-				
+
 				for (const prop of requiredProps) {
 					if (!(prop in capabilities)) {
 						issues.push(`Model ${provider}/${model}: missing required property ${prop}`);
@@ -192,10 +223,16 @@ class ModelCapabilitiesFetcher {
 
 				// Validate pricing structure
 				if (capabilities.pricing) {
-					if (!capabilities.pricing.inputTokens?.basePrice && capabilities.pricing.inputTokens?.basePrice !== 0) {
+					if (
+						!capabilities.pricing.inputTokens?.basePrice &&
+						capabilities.pricing.inputTokens?.basePrice !== 0
+					) {
 						issues.push(`Model ${provider}/${model}: missing pricing.inputTokens.basePrice`);
 					}
-					if (!capabilities.pricing.outputTokens?.basePrice && capabilities.pricing.outputTokens?.basePrice !== 0) {
+					if (
+						!capabilities.pricing.outputTokens?.basePrice &&
+						capabilities.pricing.outputTokens?.basePrice !== 0
+					) {
 						issues.push(`Model ${provider}/${model}: missing pricing.outputTokens.basePrice`);
 					}
 				}
@@ -222,11 +259,15 @@ class ModelCapabilitiesFetcher {
 
 		if (issues.length > 0) {
 			console.error('Validation issues found:');
-			issues.forEach(issue => console.error(`  - ${issue}`));
+			issues.forEach((issue) => console.error(`  - ${issue}`));
 			throw new Error(`Validation failed with ${issues.length} issues`);
 		}
 
-		console.log(`✅ Validation passed for ${totalModels} models across ${Object.keys(this.allCapabilities).length} providers`);
+		console.log(
+			`✅ Validation passed for ${totalModels} models across ${
+				Object.keys(this.allCapabilities).length
+			} providers`,
+		);
 	}
 
 	/**
@@ -239,7 +280,7 @@ class ModelCapabilitiesFetcher {
 
 			// Save as JSON with consistent formatting
 			const sortedCapabilities: Record<string, Record<string, ModelCapabilities>> = {};
-			
+
 			// Sort providers and models for consistent output
 			const sortedProviders = Object.keys(this.allCapabilities).sort();
 			for (const provider of sortedProviders) {
@@ -288,7 +329,7 @@ class ModelCapabilitiesFetcher {
 	}
 
 	/**
-	 * Fetch Anthropic model capabilities
+	 * Fetch Anthropic model capabilities using their models API
 	 */
 	private async fetchAnthropicCapabilities(): Promise<void> {
 		const apiKey = this.config.apiKeys.anthropic;
@@ -297,13 +338,25 @@ class ModelCapabilitiesFetcher {
 		}
 
 		try {
-			// Anthropic doesn't have a models endpoint, so use documented model info
-			// with validation via sample API call
+			// Fetch available models from Anthropic's models API
+			const modelsResponse = await fetch('https://api.anthropic.com/v1/models', {
+				headers: {
+					'x-api-key': apiKey,
+					'anthropic-version': '2023-06-01',
+				},
+			});
 
-			// Register known Anthropic models with latest information
-			const anthropicModels = [
-				{
-					modelId: 'claude-sonnet-4-20250514',
+			if (!modelsResponse.ok) {
+				throw new Error(`Anthropic models API error: ${modelsResponse.status} ${modelsResponse.statusText}`);
+			}
+
+			const modelsData = await modelsResponse.json();
+			const availableModels = modelsData.data || [];
+			console.log(`✅ Fetched ${availableModels.length} models from Anthropic API`);
+
+			// Map of known model capabilities (API provides basic info, we enhance with detailed capabilities)
+			const knownModelCapabilities: Record<string, Partial<EnhancedModelCapabilities>> = {
+				'claude-sonnet-4-20250514': {
 					displayName: 'Claude Sonnet 4.0',
 					family: 'Claude-4',
 					contextWindow: 200000,
@@ -322,22 +375,18 @@ class ModelCapabilitiesFetcher {
 						promptCaching: true,
 						extendedThinking: true,
 					},
-					defaults: {
-						temperature: 0.7,
-						maxTokens: 16384,
-						extendedThinking: false,
-					},
-					constraints: {
-						temperature: { min: 0.0, max: 1.0 },
-					},
+					defaults: { temperature: 0.7, maxTokens: 16384, extendedThinking: false },
+					constraints: { temperature: { min: 0.0, max: 1.0 } },
 					systemPromptBehavior: 'optional' as const,
 					trainingCutoff: '2025-03-01',
 					releaseDate: '2025-05-23',
 					responseSpeed: 'medium' as const,
+					cost: 'medium' as const,
+					intelligence: 'very-high' as const,
 					modality: 'text-and-vision' as const,
 					description: "Anthropic's newest flagship model with advanced reasoning",
 				},
-				{
+				'claude-opus-4-20250514': {
 					modelId: 'claude-opus-4-20250514',
 					displayName: 'Claude Opus 4.0',
 					family: 'Claude-4',
@@ -369,10 +418,12 @@ class ModelCapabilitiesFetcher {
 					trainingCutoff: '2025-03-01',
 					releaseDate: '2025-05-23',
 					responseSpeed: 'slow' as const,
+					cost: 'very-high' as const,
+					intelligence: 'very-high' as const,
 					modality: 'text-and-vision' as const,
 					description: "Anthropic's most capable model for complex reasoning tasks",
 				},
-				{
+				'claude-3-7-sonnet-20250219': {
 					modelId: 'claude-3-7-sonnet-20250219',
 					displayName: 'Claude Sonnet 3.7',
 					family: 'Claude-3',
@@ -404,10 +455,12 @@ class ModelCapabilitiesFetcher {
 					trainingCutoff: '2024-10-01',
 					releaseDate: '2025-02-19',
 					responseSpeed: 'medium' as const,
+					cost: 'medium' as const,
+					intelligence: 'very-high' as const,
 					modality: 'text-and-vision' as const,
-					description: "Enhanced model with extended thinking capabilities",
+					description: 'Enhanced model with extended thinking capabilities',
 				},
-				{
+				'claude-3-5-sonnet-20241022': {
 					modelId: 'claude-3-5-sonnet-20241022',
 					displayName: 'Claude Sonnet 3.5',
 					family: 'Claude-3',
@@ -439,10 +492,12 @@ class ModelCapabilitiesFetcher {
 					trainingCutoff: '2023-08-01',
 					releaseDate: '2024-10-22',
 					responseSpeed: 'medium' as const,
+					cost: 'medium' as const,
+					intelligence: 'high' as const,
 					modality: 'text-and-vision' as const,
-					description: "Balanced model for most use cases",
+					description: 'Balanced model for most use cases',
 				},
-				{
+				'claude-3-5-haiku-20241022': {
 					modelId: 'claude-3-5-haiku-20241022',
 					displayName: 'Claude Haiku 3.5',
 					family: 'Claude-3',
@@ -474,37 +529,84 @@ class ModelCapabilitiesFetcher {
 					trainingCutoff: '2023-08-01',
 					releaseDate: '2024-10-22',
 					responseSpeed: 'fast' as const,
+					cost: 'low' as const,
+					intelligence: 'high' as const,
 					modality: 'text-and-vision' as const,
-					description: "Fast and cost-effective model for routine tasks",
+					description: 'Fast and cost-effective model for routine tasks',
 				},
-			];
+			};
 
-			// Register all models
-			for (const model of anthropicModels) {
-				this.registerModel('anthropic', model);
+			// Register models that are available in the API response
+			for (const apiModel of availableModels) {
+				const modelId = apiModel.id;
+				const knownCapabilities = knownModelCapabilities[modelId];
+
+				if (knownCapabilities) {
+					// Use our enhanced capabilities for known models
+					this.registerModel('anthropic', {
+						modelId,
+						...knownCapabilities,
+						source: 'api' as const,
+						lastUpdated: new Date().toISOString(),
+					});
+				} else {
+					// For unknown models, register with basic capabilities
+					console.warn(`Unknown Anthropic model from API: ${modelId}, registering with basic capabilities`);
+					this.registerModel('anthropic', {
+						modelId,
+						displayName: apiModel.display_name || modelId,
+						contextWindow: 200000, // Default for Anthropic models
+						maxOutputTokens: 4096,
+						pricing: {
+							inputTokens: { basePrice: 0.000003 },
+							outputTokens: { basePrice: 0.000015 },
+							currency: 'USD',
+							effectiveDate: new Date().toISOString().split('T')[0],
+						},
+						supportedFeatures: {
+							functionCalling: true,
+							json: true,
+							streaming: true,
+							vision: false,
+							extendedThinking: false,
+							promptCaching: false,
+						},
+						defaults: { temperature: 0.7, maxTokens: 4096, extendedThinking: false },
+						constraints: { temperature: { min: 0.0, max: 1.0 } },
+						systemPromptBehavior: 'optional' as const,
+						responseSpeed: 'medium' as const,
+						modality: 'text' as const,
+						source: 'api' as const,
+						lastUpdated: new Date().toISOString(),
+					});
+				}
 			}
 
-			// Validate API access with a test call
-			const response = await fetch('https://api.anthropic.com/v1/messages', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': apiKey,
-					'anthropic-version': '2023-06-01',
-				},
-				body: JSON.stringify({
-					model: 'claude-3-5-sonnet-20241022',
-					max_tokens: 10,
-					messages: [{ role: 'user', content: 'Hi' }],
-				}),
-			});
+			console.log(`✅ Registered ${availableModels.length} Anthropic models from API`);
 
-			if (!response.ok) {
-				console.warn(`Could not validate Anthropic API: ${response.status} ${response.statusText}`);
-			} else {
-				console.log('✅ Successfully validated Anthropic API access');
+			// Validate API access with a test call using the first available model
+			if (availableModels.length > 0) {
+				const testModel = availableModels[0].id;
+				const response = await fetch('https://api.anthropic.com/v1/messages', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'x-api-key': apiKey,
+						'anthropic-version': '2023-06-01',
+					},
+					body: JSON.stringify({
+						model: testModel,
+						max_tokens: 10,
+						messages: [{ role: 'user', content: 'Hi' }],
+					}),
+				});
+
+				if (!response.ok) {
+					console.warn(`Could not validate Anthropic API: ${response.status} ${response.statusText}`);
+				} else {
+					console.log('✅ Successfully validated Anthropic API access');
+				}
 			}
-
 		} catch (error) {
 			console.error('Error fetching Anthropic capabilities:', error);
 			throw error;
@@ -558,6 +660,8 @@ class ModelCapabilitiesFetcher {
 					},
 					trainingCutoff: '2023-10-01',
 					responseSpeed: 'medium' as const,
+					cost: 'high' as const,
+					intelligence: 'very-high' as const,
 					modality: 'multimodal' as const,
 				},
 				'gpt-4-turbo': {
@@ -580,6 +684,8 @@ class ModelCapabilitiesFetcher {
 					},
 					trainingCutoff: '2023-04-01',
 					responseSpeed: 'medium' as const,
+					cost: 'high' as const,
+					intelligence: 'very-high' as const,
 					modality: 'text' as const,
 				},
 				'gpt-3.5-turbo': {
@@ -602,6 +708,8 @@ class ModelCapabilitiesFetcher {
 					},
 					trainingCutoff: '2021-09-01',
 					responseSpeed: 'fast' as const,
+					cost: 'low' as const,
+					intelligence: 'medium' as const,
 					modality: 'text' as const,
 				},
 			};
@@ -610,7 +718,7 @@ class ModelCapabilitiesFetcher {
 			for (const model of models) {
 				const modelId = model.id;
 				const knownModel = knownModels[modelId as keyof typeof knownModels];
-				
+
 				if (knownModel) {
 					this.registerModel('openai', {
 						modelId,
@@ -663,6 +771,8 @@ class ModelCapabilitiesFetcher {
 				},
 				trainingCutoff: '2023-08-01',
 				responseSpeed: 'fast' as const,
+				cost: 'low' as const,
+				intelligence: 'high' as const,
 				modality: 'multimodal' as const,
 				description: 'Fast and cost-effective multimodal model',
 			},
@@ -688,6 +798,8 @@ class ModelCapabilitiesFetcher {
 				},
 				trainingCutoff: '2024-03-01',
 				responseSpeed: 'fast' as const,
+				cost: 'low' as const,
+				intelligence: 'high' as const,
 				modality: 'multimodal' as const,
 				description: 'Latest multimodal model with improved reasoning',
 			},
@@ -736,6 +848,8 @@ class ModelCapabilitiesFetcher {
 					promptCaching: false,
 				},
 				responseSpeed: 'medium' as const,
+				cost: 'low' as const,
+				intelligence: 'high' as const,
 				modality: 'text' as const,
 				description: 'General purpose text model',
 			},
@@ -759,6 +873,8 @@ class ModelCapabilitiesFetcher {
 					promptCaching: false,
 				},
 				responseSpeed: 'medium' as const,
+				cost: 'low' as const,
+				intelligence: 'very-high' as const,
 				modality: 'text' as const,
 				description: 'Advanced reasoning model',
 			},
@@ -807,6 +923,8 @@ class ModelCapabilitiesFetcher {
 					promptCaching: false,
 				},
 				responseSpeed: 'fast' as const,
+				cost: 'low' as const,
+				intelligence: 'medium' as const,
 				modality: 'text' as const,
 				description: 'Fast LLaMA 3 8B model on Groq infrastructure',
 			},
@@ -830,6 +948,8 @@ class ModelCapabilitiesFetcher {
 					promptCaching: false,
 				},
 				responseSpeed: 'medium' as const,
+				cost: 'low' as const,
+				intelligence: 'high' as const,
 				modality: 'text' as const,
 				description: "LLaMA 3 70B model on Groq's hardware",
 			},
@@ -854,6 +974,77 @@ class ModelCapabilitiesFetcher {
 	}
 
 	/**
+	 * Fetch available models from llm-proxy
+	 */
+	private async fetchLLMProxyModels(): Promise<void> {
+		try {
+			console.log('Fetching available models from llm-proxy...');
+			const config = await fetchSupabaseConfig();
+			//console.log('Fetching available models from llm-proxy using config', config);
+			const supabaseClient = createClient(config.url, config.anonKey);
+
+			const { data, error } = await supabaseClient.functions.invoke('provider-models', { method: 'GET' });
+
+			if (error) {
+				console.warn(`Failed to fetch llm-proxy models: ${error.message}`, error);
+				this.llmProxyModels = [];
+				return;
+			}
+
+			if (!data?.provider_models) {
+				console.warn('No provider_models in llm-proxy response');
+				this.llmProxyModels = [];
+				return;
+			}
+
+			this.llmProxyModels = data.provider_models.filter((model: any) => model.is_available);
+			console.log(`✅ Fetched ${this.llmProxyModels.length} available models from llm-proxy`);
+			//console.log(`✅ Fetched ${this.llmProxyModels.length} available models from llm-proxy`, this.llmProxyModels);
+		} catch (error) {
+			console.warn(`Error fetching llm-proxy models: ${isError(error) ? error.message : error}`);
+			this.llmProxyModels = [];
+		}
+	}
+
+	/**
+	 * Check if a model is available in llm-proxy
+	 */
+	private isModelAvailableInLLMProxy(provider: string, modelId: string): boolean {
+		return this.llmProxyModels.some(
+			(bbModel) => bbModel.model_name === modelId && bbModel.provider_name === provider,
+		);
+	}
+
+	/**
+	 * Report models that are not available in llm-proxy
+	 */
+	private async reportModelsNotInLLMProxy(): Promise<void> {
+		console.log('\n📋 Models not available in llm-proxy (will be hidden):');
+
+		const hiddenModels: Array<{ provider: string; model: string }> = [];
+
+		for (const [provider, models] of Object.entries(this.allCapabilities)) {
+			for (const [modelId, capabilities] of Object.entries(models)) {
+				if (!this.isModelAvailableInLLMProxy(provider, modelId)) {
+					hiddenModels.push({ provider, model: modelId });
+					capabilities.hidden = true;
+					console.log(`  ❌ ${provider}/${modelId} - ${capabilities.displayName}`);
+				} else {
+					// Ensure the model is not hidden if it exists in llm-proxy
+					capabilities.hidden = false;
+				}
+			}
+		}
+
+		if (hiddenModels.length === 0) {
+			console.log('  ✅ All models are available in llm-proxy!');
+		} else {
+			console.log(`\n💡 Found ${hiddenModels.length} models that need to be added to llm-proxy.`);
+			console.log('   Consider adding these models to the llm-proxy provider-models if needed.');
+		}
+	}
+
+	/**
 	 * Register a model with its capabilities
 	 */
 	private registerModel(provider: string, modelCapabilities: Partial<EnhancedModelCapabilities>): void {
@@ -862,8 +1053,12 @@ class ModelCapabilitiesFetcher {
 			this.allCapabilities[provider] = {};
 		}
 
+		// Check if model is available in llm-proxy
+		const modelId = modelCapabilities.modelId!;
+		const isAvailable = this.isModelAvailableInLLMProxy(provider, modelId);
+
 		// Fill in default values and ensure all required fields are present
-		const capabilities: ModelCapabilities = {
+		const capabilities: ModelCapabilities & { hidden?: boolean } = {
 			displayName: modelCapabilities.displayName || 'Unknown Model',
 			contextWindow: modelCapabilities.contextWindow || 4096,
 			maxOutputTokens: modelCapabilities.maxOutputTokens || 2048,
@@ -891,14 +1086,17 @@ class ModelCapabilitiesFetcher {
 			},
 			systemPromptBehavior: modelCapabilities.systemPromptBehavior || 'optional',
 			responseSpeed: modelCapabilities.responseSpeed || 'medium',
-			...( modelCapabilities.trainingCutoff && { trainingCutoff: modelCapabilities.trainingCutoff }),
-			...( modelCapabilities.releaseDate && { releaseDate: modelCapabilities.releaseDate }),
+			cost: modelCapabilities.cost || 'medium',
+			intelligence: modelCapabilities.intelligence || 'medium',
+			hidden: !isAvailable, // Hide models not available in bb-sass
+			...(modelCapabilities.trainingCutoff && { trainingCutoff: modelCapabilities.trainingCutoff }),
+			...(modelCapabilities.releaseDate && { releaseDate: modelCapabilities.releaseDate }),
 		};
 
 		// Add the model capabilities
-		const modelId = modelCapabilities.modelId!;
 		this.allCapabilities[provider][modelId] = capabilities;
-		console.log(`  ✓ Registered ${provider}/${modelId}`);
+		const statusIcon = isAvailable ? '✅' : '❌';
+		console.log(`  ${statusIcon} Registered ${provider}/${modelId} ${isAvailable ? '' : '(hidden)'}`);
 	}
 }
 
@@ -906,32 +1104,63 @@ class ModelCapabilitiesFetcher {
  * Main function to run the script
  */
 async function main() {
+	// Get script directory for relative paths
+	const scriptDir = dirname(fromFileUrl(import.meta.url));
+	const defaultOutputPath = join(scriptDir, '../src/data/modelCapabilities.json');
+
 	// Parse command line arguments
 	const args = parseArgs(Deno.args, {
 		string: ['output', 'providers', 'anthropic-key', 'openai-key', 'google-key', 'deepseek-key', 'groq-key'],
 		boolean: ['use-cached', 'validate-only'],
 		default: {
-			output: './api/src/data/modelCapabilities.json',
+			output: defaultOutputPath,
 			providers: 'anthropic,openai,google,deepseek,groq',
 			'use-cached': false,
 			'validate-only': false,
 		},
 	});
 
-	// Setup configuration
+	// Load global config for API keys
+	let globalConfig;
+	try {
+		const configManager = await getConfigManager();
+		globalConfig = await configManager.getGlobalConfig();
+		console.log('✅ Loaded global configuration for API keys');
+	} catch (error) {
+		console.warn('Could not load global config:', isError(error) ? error.message : error);
+		globalConfig = null;
+	}
+
+	// Setup configuration with priority: args > env > global config
 	const config: FetcherConfig = {
 		outputPath: args.output,
 		providersToFetch: args.providers.split(',').map((p) => p.trim()),
 		useCached: args['use-cached'],
 		validateOnly: args['validate-only'],
 		apiKeys: {
-			anthropic: args['anthropic-key'] || Deno.env.get('ANTHROPIC_API_KEY') || '',
-			openai: args['openai-key'] || Deno.env.get('OPENAI_API_KEY') || '',
-			google: args['google-key'] || Deno.env.get('GOOGLE_API_KEY') || '',
-			deepseek: args['deepseek-key'] || Deno.env.get('DEEPSEEK_API_KEY') || '',
-			groq: args['groq-key'] || Deno.env.get('GROQ_API_KEY') || '',
+			anthropic: args['anthropic-key'] ||
+				Deno.env.get('ANTHROPIC_API_KEY') ||
+				globalConfig?.api?.llmProviders?.anthropic?.apiKey || '',
+			openai: args['openai-key'] ||
+				Deno.env.get('OPENAI_API_KEY') ||
+				globalConfig?.api?.llmProviders?.openai?.apiKey || '',
+			google: args['google-key'] ||
+				Deno.env.get('GOOGLE_API_KEY') ||
+				globalConfig?.api?.llmProviders?.google?.apiKey || '',
+			deepseek: args['deepseek-key'] ||
+				Deno.env.get('DEEPSEEK_API_KEY') ||
+				globalConfig?.api?.llmProviders?.deepseek?.apiKey || '',
+			groq: args['groq-key'] ||
+				Deno.env.get('GROQ_API_KEY') ||
+				globalConfig?.api?.llmProviders?.groq?.apiKey || '',
 		},
 	};
+
+	// Log which API keys were found (without exposing the keys)
+	const keyStatus = Object.entries(config.apiKeys).map(([provider, key]) => `${provider}: ${key ? '✅' : '❌'}`).join(
+		', ',
+	);
+	console.log(`API key status: ${keyStatus}`);
 
 	// Create and run the fetcher
 	const fetcher = new ModelCapabilitiesFetcher(config);
