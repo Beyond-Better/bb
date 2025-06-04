@@ -512,7 +512,7 @@ export function ModelIconLegend({
 						</button>
 						{isExpanded && (
 							<div className='px-3 pb-3 pt-1 border-t border-gray-200 dark:border-gray-700'>
-								<IconLegendConten className='text-gray-700 dark:text-gray-300' />
+								<IconLegendContent className='text-gray-700 dark:text-gray-300' />
 							</div>
 						)}
 					</div>
@@ -773,10 +773,8 @@ export function ModelCombinations({
 }
 
 export function ModelSystemCardsLink({
-	onApplyCombo,
 	className = '',
 }: {
-	onApplyCombo: (combo: { orchestrator: string; agent: string; chat: string }) => void;
 	className?: string;
 }) {
 	const [showSystemCards, setShowSystemCards] = useState(false);

@@ -23,40 +23,44 @@ import { parseArgs } from '@std/cli';
 import { exists } from '@std/fs';
 import { dirname, fromFileUrl, join } from '@std/path';
 import { isError } from 'shared/error.ts';
-import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
+// Remove old import since we define UpdatedModelCapabilities locally
+// import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
+import type {
+	PartialTokenPricing,
+	//TokenTypeEnum
+} from 'shared/types/models.ts';
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from 'api/auth/config.ts';
 
 /**
- * LLM-Proxy model interface (matches database schema)
+ * LLM-Proxy model interface (matches new database schema)
  */
 interface LLMProxyModel {
 	model_id: string;
 	provider_name: string;
 	model_name: string;
 	model_type: string;
-	cost_input: number;
-	cost_output: number;
-	cost_cache_read?: number;
-	cost_cache_create?: number;
+	token_pricing: PartialTokenPricing; // Dynamic token pricing structure
 	is_available: boolean;
 	settings: Record<string, unknown>;
 	created_at?: string;
 	updated_at?: string;
+	// Legacy fields for backward compatibility
+	cost_input?: number;
+	cost_output?: number;
+	cost_anthropic_cache_read?: number;
+	cost_anthropic_cache_write_5min?: number;
 }
 
 /**
- * Model update payload for the edge function
+ * Model update payload for the edge function (new dynamic structure)
  */
 interface ModelUpdatePayload {
 	model_id: string;
 	provider_name: string;
 	model_name: string;
 	model_type: string;
-	cost_input: number;
-	cost_output: number;
-	cost_cache_read?: number;
-	cost_cache_create?: number;
+	token_pricing: PartialTokenPricing; // Dynamic token pricing structure
 	is_available: boolean;
 	settings: Record<string, unknown>;
 }
@@ -83,12 +87,61 @@ interface SyncResult {
 	error?: string;
 }
 
+// Update ModelCapabilities interface to match new structure
+interface UpdatedModelCapabilities {
+	displayName: string;
+	contextWindow: number;
+	maxOutputTokens: number;
+	token_pricing?: PartialTokenPricing; // New dynamic pricing structure
+	pricing_metadata?: {
+		currency: string;
+		effectiveDate: string;
+	};
+	// Legacy pricing structure for backward compatibility
+	pricing?: {
+		inputTokens: {
+			basePriceCentsUsd: number;
+			cachedPriceCentsUsd?: number;
+		};
+		outputTokens: {
+			basePriceCentsUsd: number;
+		};
+		currency: string;
+		effectiveDate: string;
+	};
+	supportedFeatures: {
+		functionCalling: boolean;
+		json: boolean;
+		streaming: boolean;
+		vision: boolean;
+		promptCaching?: boolean;
+		extendedThinking?: boolean;
+	};
+	defaults: {
+		temperature: number;
+		maxTokens: number;
+		extendedThinking: boolean;
+	};
+	constraints: {
+		temperature: { min: number; max: number };
+	};
+	systemPromptBehavior: string;
+	responseSpeed: string;
+	cost: string;
+	intelligence: string;
+	trainingCutoff?: string;
+	releaseDate?: string;
+	hidden?: boolean;
+}
+
+type ExtendedModelCapabilities = Record<string, UpdatedModelCapabilities>;
+type SyncerModelCapabilities = Record<string, ExtendedModelCapabilities>;
 /**
  * Main model synchronization class
  */
 class ModelSyncer {
 	private config: SyncConfig;
-	private capabilities: Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>> = {};
+	private capabilities: SyncerModelCapabilities = {};
 	private currentLLMProxyModels: LLMProxyModel[] = [];
 	private syncResults: SyncResult[] = [];
 
@@ -133,13 +186,16 @@ class ModelSyncer {
 			}
 
 			const content = await Deno.readTextFile(this.config.inputPath);
-			const data = JSON.parse(content);
-			
+			const data = JSON.parse(content) as SyncerModelCapabilities;
+
 			// Extract model capabilities, excluding metadata
 			const { _metadata, ...capabilities } = data;
 			this.capabilities = capabilities;
 
-			const totalModels = Object.values(capabilities).reduce((sum, models) => sum + Object.keys(models).length, 0);
+			const totalModels = Object.values(capabilities).reduce(
+				(sum, models) => sum + Object.keys(models).length,
+				0,
+			);
 			console.log(`📊 Loaded ${totalModels} models from ${Object.keys(capabilities).length} providers`);
 		} catch (error) {
 			console.error(`❌ Failed to load model capabilities: ${isError(error) ? error.message : error}`);
@@ -153,18 +209,20 @@ class ModelSyncer {
 	private async fetchCurrentLLMProxyModels(): Promise<void> {
 		try {
 			console.log('🔍 Fetching current models from llm-proxy...');
-			
+
 			const supabaseConfig = await fetchSupabaseConfig({
-				supabaseConfigUrl: this.config.supabaseUrl
+				supabaseConfigUrl: this.config.supabaseUrl,
 			});
-			
+
 			const supabaseClient = createClient(supabaseConfig.url, supabaseConfig.anonKey);
 
-			const { data, error } = await supabaseClient.functions.invoke('provider-models', { 
+			const { data, error } = await supabaseClient.functions.invoke('provider-models', {
 				method: 'GET',
-				headers: this.config.authToken ? {
-					'Authorization': `Bearer ${this.config.authToken}`
-				} : undefined
+				headers: this.config.authToken
+					? {
+						'Authorization': `Bearer ${this.config.authToken}`,
+					}
+					: undefined,
 			});
 
 			if (error) {
@@ -209,7 +267,7 @@ class ModelSyncer {
 
 				// Convert to LLM-Proxy format
 				const payload = this.convertToLLMProxyFormat(provider, modelId, capabilities);
-				
+
 				// Check if model needs updating
 				if (this.config.force || this.shouldUpdateModel(payload)) {
 					modelsToSync.push(payload);
@@ -217,7 +275,7 @@ class ModelSyncer {
 					this.syncResults.push({
 						modelId,
 						provider,
-						action: 'skipped'
+						action: 'skipped',
 					});
 				}
 			}
@@ -228,23 +286,37 @@ class ModelSyncer {
 	}
 
 	/**
-	 * Convert model capabilities to LLM-Proxy format
+	 * Convert model capabilities to LLM-Proxy format (new dynamic structure)
 	 */
 	private convertToLLMProxyFormat(
-		provider: string, 
-		modelId: string, 
-		capabilities: ModelCapabilities
+		provider: string,
+		modelId: string,
+		capabilities: UpdatedModelCapabilities,
 	): ModelUpdatePayload {
+		// Convert from new token_pricing structure or fallback to legacy pricing structure
+		let token_pricing: PartialTokenPricing = {};
+		
+		if (capabilities.token_pricing) {
+			// New format: use token_pricing directly
+			token_pricing = { ...capabilities.token_pricing };
+		} else if (capabilities.pricing) {
+			// Legacy format: convert from old pricing structure
+			token_pricing.input = capabilities.pricing.inputTokens.basePriceCentsUsd;
+			token_pricing.output = capabilities.pricing.outputTokens.basePriceCentsUsd;
+			
+			if (capabilities.pricing.inputTokens.cachedPriceCentsUsd !== undefined) {
+				token_pricing.anthropic_cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
+				// Estimate cache write cost as 1.25x base cost
+				token_pricing.anthropic_cache_write_5min = capabilities.pricing.inputTokens.basePriceCentsUsd * 1.25;
+			}
+		}
+
 		return {
 			model_id: modelId,
 			provider_name: provider,
 			model_name: modelId, // Using modelId as model_name
 			model_type: 'text', // Default to text, could be enhanced based on capabilities
-			cost_input: capabilities.pricing.inputTokens.basePrice,
-			cost_output: capabilities.pricing.outputTokens.basePrice,
-			cost_cache_read: capabilities.pricing.inputTokens.cachedPrice,
-			cost_cache_create: capabilities.pricing.inputTokens.cachedPrice ? 
-				capabilities.pricing.inputTokens.cachedPrice * 1.25 : undefined, // Assume 1.25x for cache creation
+			token_pricing: token_pricing, // Dynamic pricing structure
 			is_available: true,
 			settings: {
 				displayName: capabilities.displayName,
@@ -258,8 +330,9 @@ class ModelSyncer {
 				defaults: capabilities.defaults,
 				constraints: capabilities.constraints,
 				...(capabilities.trainingCutoff && { trainingCutoff: capabilities.trainingCutoff }),
-				...(capabilities.releaseDate && { releaseDate: capabilities.releaseDate })
-			}
+				...(capabilities.releaseDate && { releaseDate: capabilities.releaseDate }),
+				...(capabilities.pricing_metadata && { pricing_metadata: capabilities.pricing_metadata }),
+			},
 		};
 	}
 
@@ -268,7 +341,7 @@ class ModelSyncer {
 	 */
 	private shouldUpdateModel(payload: ModelUpdatePayload): boolean {
 		const existing = this.currentLLMProxyModels.find(
-			m => m.model_id === payload.model_id && m.provider_name === payload.provider_name
+			(m) => m.model_id === payload.model_id && m.provider_name === payload.provider_name,
 		);
 
 		if (!existing) {
@@ -277,10 +350,7 @@ class ModelSyncer {
 
 		// Check for changes in key fields
 		return (
-			existing.cost_input !== payload.cost_input ||
-			existing.cost_output !== payload.cost_output ||
-			existing.cost_cache_read !== payload.cost_cache_read ||
-			existing.cost_cache_create !== payload.cost_cache_create ||
+			JSON.stringify(existing.token_pricing) !== JSON.stringify(payload.token_pricing) ||
 			existing.is_available !== payload.is_available ||
 			JSON.stringify(existing.settings) !== JSON.stringify(payload.settings)
 		);
@@ -299,10 +369,11 @@ class ModelSyncer {
 			console.log('🧪 DRY RUN - Would sync the following models:');
 			for (const model of modelsToSync) {
 				const existing = this.currentLLMProxyModels.find(
-					m => m.model_id === model.model_id && m.provider_name === model.provider_name
+					(m) => m.model_id === model.model_id && m.provider_name === model.provider_name,
 				);
 				const action = existing ? 'UPDATE' : 'CREATE';
-				console.log(`  ${action}: ${model.provider_name}/${model.model_id} - ${model.settings.displayName}`);
+				const tokenTypes = Object.keys(model.token_pricing).join(', ');
+				console.log(`  ${action}: ${model.provider_name}/${model.model_id} - ${model.settings.displayName} (${tokenTypes})`);
 			}
 			return;
 		}
@@ -310,24 +381,26 @@ class ModelSyncer {
 		console.log(`🔄 Syncing ${modelsToSync.length} models...`);
 
 		const supabaseConfig = await fetchSupabaseConfig({
-			supabaseConfigUrl: this.config.supabaseUrl
+			supabaseConfigUrl: this.config.supabaseUrl,
 		});
-		
+
 		const supabaseClient = createClient(supabaseConfig.url, supabaseConfig.anonKey);
 
 		for (let i = 0; i < modelsToSync.length; i++) {
 			const model = modelsToSync[i];
 			const progress = `[${i + 1}/${modelsToSync.length}]`;
-			
+
 			try {
 				console.log(`${progress} Syncing ${model.provider_name}/${model.model_id}...`);
 
-				const { data, error } = await supabaseClient.functions.invoke('sync-model', {
+				const { data: _data, error } = await supabaseClient.functions.invoke('sync-model', {
 					method: 'POST',
-					headers: this.config.authToken ? {
-						'Authorization': `Bearer ${this.config.authToken}`
-					} : undefined,
-					body: model
+					headers: this.config.authToken
+						? {
+							'Authorization': `Bearer ${this.config.authToken}`,
+						}
+						: undefined,
+					body: model,
 				});
 
 				if (error) {
@@ -335,32 +408,35 @@ class ModelSyncer {
 				}
 
 				const existing = this.currentLLMProxyModels.find(
-					m => m.model_id === model.model_id && m.provider_name === model.provider_name
+					(m) => m.model_id === model.model_id && m.provider_name === model.provider_name,
 				);
-				
+
 				this.syncResults.push({
 					modelId: model.model_id,
 					provider: model.provider_name,
-					action: existing ? 'updated' : 'created'
+					action: existing ? 'updated' : 'created',
 				});
 
-				console.log(`  ✅ ${progress} Successfully synced ${model.provider_name}/${model.model_id}`);
+				const tokenCount = Object.keys(model.token_pricing).length;
+				console.log(`  ✅ ${progress} Successfully synced ${model.provider_name}/${model.model_id} (${tokenCount} token types)`);
 			} catch (error) {
 				const errorMessage = isError(error) ? error.message : String(error);
-				
+
 				this.syncResults.push({
 					modelId: model.model_id,
 					provider: model.provider_name,
 					action: 'failed',
-					error: errorMessage
+					error: errorMessage,
 				});
 
-				console.log(`  ❌ ${progress} Failed to sync ${model.provider_name}/${model.model_id}: ${errorMessage}`);
+				console.log(
+					`  ❌ ${progress} Failed to sync ${model.provider_name}/${model.model_id}: ${errorMessage}`,
+				);
 			}
 
 			// Small delay between requests to be respectful
 			if (i < modelsToSync.length - 1) {
-				await new Promise(resolve => setTimeout(resolve, 100));
+				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
 		}
 	}
@@ -370,11 +446,11 @@ class ModelSyncer {
 	 */
 	private reportResults(): void {
 		console.log('\n📊 Synchronization Results:');
-		
-		const created = this.syncResults.filter(r => r.action === 'created');
-		const updated = this.syncResults.filter(r => r.action === 'updated');
-		const skipped = this.syncResults.filter(r => r.action === 'skipped');
-		const failed = this.syncResults.filter(r => r.action === 'failed');
+
+		const created = this.syncResults.filter((r) => r.action === 'created');
+		const updated = this.syncResults.filter((r) => r.action === 'updated');
+		const skipped = this.syncResults.filter((r) => r.action === 'skipped');
+		const failed = this.syncResults.filter((r) => r.action === 'failed');
 
 		console.log(`  ✅ Created: ${created.length} models`);
 		console.log(`  🔄 Updated: ${updated.length} models`);
@@ -408,13 +484,14 @@ class ModelSyncer {
  * Load environment-specific configuration
  */
 async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseUrl?: string }> {
-	const envFile = `.env.${environment}`;
-	
+	const scriptDir = dirname(fromFileUrl(import.meta.url));
+	const envFile = join(scriptDir, `.env.${environment}`);
+
 	try {
 		if (await exists(envFile)) {
 			const content = await Deno.readTextFile(envFile);
 			const config: Record<string, string> = {};
-			
+
 			for (const line of content.split('\n')) {
 				const trimmed = line.trim();
 				if (trimmed && !trimmed.startsWith('#')) {
@@ -424,17 +501,17 @@ async function loadEnvironmentConfig(environment: string): Promise<{ authToken?:
 					}
 				}
 			}
-			
+
 			console.log(`📁 Loaded environment config from ${envFile}`);
 			return {
 				authToken: config.LLM_PROXY_AUTH_TOKEN,
-				supabaseUrl: config.SUPABASE_CONFIG_URL
+				supabaseUrl: config.SUPABASE_CONFIG_URL,
 			};
 		}
 	} catch (error) {
 		console.warn(`⚠️ Could not load ${envFile}: ${isError(error) ? error.message : error}`);
 	}
-	
+
 	return {};
 }
 
@@ -479,7 +556,9 @@ async function main() {
 
 	// Validate auth token
 	if (!config.authToken && !config.dryRun) {
-		console.error('❌ Authentication token required. Provide via --auth-token, .env file, or LLM_PROXY_AUTH_TOKEN env var');
+		console.error(
+			'❌ Authentication token required. Provide via --auth-token, .env file, or LLM_PROXY_AUTH_TOKEN env var',
+		);
 		console.error('💡 Use --dry-run to test without authentication');
 		Deno.exit(1);
 	}

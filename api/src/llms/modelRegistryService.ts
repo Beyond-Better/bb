@@ -12,6 +12,7 @@ import type { LLMProvider } from 'api/types.ts';
 import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.types.ts';
 import type { LLMProviderConfig, ProjectConfig } from 'shared/config/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
+//import type { PartialTokenPricing } from 'shared/types/models.ts';
 
 // Import the built-in capabilities data
 import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'json' };
@@ -32,16 +33,25 @@ const DEFAULT_MODEL_CAPABILITIES: ModelCapabilities = {
 	displayName: 'Unknown Model',
 	contextWindow: 4096,
 	maxOutputTokens: 2048,
-	pricing: {
-		inputTokens: {
-			basePrice: 0.0,
-		},
-		outputTokens: {
-			basePrice: 0.0,
-		},
+	token_pricing: {
+		input: 0,
+		output: 0,
+	},
+	pricing_metadata: {
 		currency: 'USD',
 		effectiveDate: new Date().toISOString().split('T')[0],
 	},
+	// // Legacy pricing structure for backward compatibility
+	// pricing: {
+	// 	inputTokens: {
+	// 		basePrice: 0.0,
+	// 	},
+	// 	outputTokens: {
+	// 		basePrice: 0.0,
+	// 	},
+	// 	currency: 'USD',
+	// 	effectiveDate: new Date().toISOString().split('T')[0],
+	// },
 	supportedFeatures: {
 		functionCalling: false,
 		json: false,
@@ -122,7 +132,10 @@ export class ModelRegistryService {
 	 */
 	private async loadStaticModels(): Promise<void> {
 		try {
-			const capabilities = builtinCapabilities as Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
+			const capabilities = builtinCapabilities as Record<
+				string,
+				Record<string, ModelCapabilities & { hidden?: boolean }>
+			>;
 
 			for (const [provider, models] of Object.entries(capabilities)) {
 				const providerEnum = provider as LLMProvider;
@@ -217,9 +230,11 @@ export class ModelRegistryService {
 					...DEFAULT_MODEL_CAPABILITIES,
 					displayName,
 					// Ollama models are local, so no cost
-					pricing: {
-						inputTokens: { basePrice: 0 },
-						outputTokens: { basePrice: 0 },
+					token_pricing: {
+						input: 0,
+						output: 0,
+					},
+					pricing_metadata: {
 						currency: 'USD',
 						effectiveDate: new Date().toISOString().split('T')[0],
 					},
@@ -299,7 +314,7 @@ export class ModelRegistryService {
 			return [];
 		}
 
-		return Array.from(this.modelRegistry.values()).filter(model => !model.hidden);
+		return Array.from(this.modelRegistry.values()).filter((model) => !model.hidden);
 	}
 
 	/**
@@ -324,7 +339,7 @@ export class ModelRegistryService {
 		}
 
 		const modelIds = this.providerModels.get(provider) || [];
-		return modelIds.map((id) => this.modelRegistry.get(id)!).filter(Boolean).filter(model => !model.hidden);
+		return modelIds.map((id) => this.modelRegistry.get(id)!).filter(Boolean).filter((model) => !model.hidden);
 	}
 
 	/**

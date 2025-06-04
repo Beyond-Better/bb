@@ -6,7 +6,7 @@ import { getProjectPersistenceManager } from 'api/storage/projectPersistenceMana
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ClientProjectData } from 'shared/types/project.ts';
-import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 //import type { DataSourceValues } from 'api/resources/dataSource.ts';
 import { enhanceProjectWithSources, isProjectValid } from 'shared/projectData.ts';
 //import { getDataSourceRegistry } from 'api/resources/dataSourceRegistry.ts';

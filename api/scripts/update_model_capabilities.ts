@@ -23,8 +23,12 @@ import { parseArgs } from '@std/cli';
 import { ensureDir, exists } from '@std/fs';
 import { dirname, fromFileUrl, join } from '@std/path';
 import { isError } from 'shared/error.ts';
+import { CurrencyConverter } from 'shared/currencyConverter.ts';
+import type {
+	PartialTokenPricing,
+	//TokenTypeEnum
+} from 'shared/types/models.ts';
 import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from 'api/auth/config.ts';
 
@@ -37,6 +41,7 @@ interface SourceModelData {
 	pricingUnit: string;
 	notes: string;
 	models: SourceModel[];
+	toolCapableModels?: SourceModel[];
 	deprecatedModels?: DeprecatedModel[];
 	technicalDetails?: Record<string, unknown>;
 	[key: string]: unknown;
@@ -49,13 +54,13 @@ interface SourceModel {
 	contextWindow: number;
 	maxOutputTokens: number;
 	pricing: {
-		inputTokens: { 
+		inputTokens: {
 			basePrice: number;
 			cachedPrice?: number;
 			tieredPricing?: Record<string, number>;
 			multimodal?: Record<string, number>;
 		};
-		outputTokens: { 
+		outputTokens: {
 			basePrice: number;
 			tieredPricing?: Record<string, number>;
 		};
@@ -110,10 +115,11 @@ interface LLMProxyModel {
 	provider_name: string;
 	model_name: string;
 	model_type: string;
-	cost_input: number;
-	cost_output: number;
-	cost_cache_read?: number;
-	cost_cache_create?: number;
+	token_pricing: PartialTokenPricing; // Dynamic token type to cost per million cents USD mapping
+	// cost_input: number;
+	// cost_output: number;
+	// cost_anthropic_cache_read?: number;
+	// cost_anthropic_anthropic_cache_write_5min?: number;
 	is_available: boolean;
 	settings: Record<string, unknown>;
 	created_at: string;
@@ -124,6 +130,8 @@ interface LLMProxyModel {
  * Script configuration
  */
 interface FetcherConfig {
+	environment: 'staging' | 'production';
+	supabaseUrl?: string;
 	outputPath: string;
 	sourceDir: string;
 	providersToProcess: string[];
@@ -201,12 +209,12 @@ class ModelCapabilitiesFetcher {
 
 		for (const provider of this.config.providersToProcess) {
 			const sourceFile = join(this.config.sourceDir, `${provider}_models.json`);
-			
+
 			try {
 				if (await exists(sourceFile)) {
 					const content = await Deno.readTextFile(sourceFile);
 					this.sourceData[provider] = JSON.parse(content);
-					
+
 					// Handle different model array names for different providers
 					let modelCount = 0;
 					if (provider === 'ollama') {
@@ -215,7 +223,7 @@ class ModelCapabilitiesFetcher {
 					} else {
 						modelCount = this.sourceData[provider].models?.length || 0;
 					}
-					
+
 					console.log(`  ✅ Loaded ${provider} source data (${modelCount} models)`);
 				} else {
 					console.warn(`  ⚠️ Source file not found: ${sourceFile}`);
@@ -234,7 +242,13 @@ class ModelCapabilitiesFetcher {
 		try {
 			if (await exists(this.config.outputPath)) {
 				const content = await Deno.readTextFile(this.config.outputPath);
-				this.allCapabilities = JSON.parse(content);
+				const parsed = JSON.parse(content);
+
+				// Exclude metadata from existing capabilities to prevent corruption
+				// This ensures clean metadata generation on each run
+				const { _metadata, ...capabilities } = parsed;
+				this.allCapabilities = capabilities;
+
 				console.log(`📄 Loaded existing capabilities from ${this.config.outputPath}`);
 			}
 		} catch (error) {
@@ -267,9 +281,10 @@ class ModelCapabilitiesFetcher {
 			try {
 				// Convert source model to BB model capabilities format
 				const capabilities = this.convertSourceModelToCapabilities(sourceModel, provider, sourceData);
-				
+
 				// Check if model should be hidden (not in llm-proxy)
-				const isAvailable = this.config.skipLLMProxyCheck || this.isModelAvailableInLLMProxy(provider, sourceModel.modelId);
+				const isAvailable = this.config.skipLLMProxyCheck ||
+					this.isModelAvailableInLLMProxy(provider, sourceModel.modelId);
 				capabilities.hidden = !isAvailable;
 
 				// Register the model
@@ -280,7 +295,11 @@ class ModelCapabilitiesFetcher {
 					console.log(`  ⚠️ ${provider}/${sourceModel.modelId} - Not in llm-proxy (will be hidden)`);
 				}
 			} catch (error) {
-				console.error(`  ❌ Error processing ${provider}/${sourceModel.modelId}: ${isError(error) ? error.message : error}`);
+				console.error(
+					`  ❌ Error processing ${provider}/${sourceModel.modelId}: ${
+						isError(error) ? error.message : error
+					}`,
+				);
 				skippedCount++;
 			}
 		}
@@ -292,37 +311,51 @@ class ModelCapabilitiesFetcher {
 	 * Convert source model data to BB ModelCapabilities format
 	 */
 	private convertSourceModelToCapabilities(
-		sourceModel: SourceModel, 
-		provider: string, 
-		sourceData: SourceModelData
+		sourceModel: SourceModel,
+		_provider: string,
+		sourceData: SourceModelData,
 	): ModelCapabilities & { hidden?: boolean } {
 		// Handle pricing - Ollama models are local/free
-		let inputPrice = 0;
-		let outputPrice = 0;
+		const token_pricing: Record<string, number> = {input:0, output:0};
 		let currency = 'USD';
 		let effectiveDate = new Date().toISOString().split('T')[0];
-		
+
 		if (sourceModel.pricing && sourceModel.pricing.inputTokens && sourceModel.pricing.outputTokens) {
-			// Convert pricing to per-token (BB internal format)
-			inputPrice = this.convertPricingToPerToken(sourceModel.pricing.inputTokens.basePrice, sourceData.pricingUnit);
-			outputPrice = this.convertPricingToPerToken(sourceModel.pricing.outputTokens.basePrice, sourceData.pricingUnit);
+			// Convert pricing to dynamic token_pricing structure
+			token_pricing.input = this.convertPricingToCentsPerMillionTokens(
+				sourceModel.pricing.inputTokens.basePrice,
+				sourceData.pricingUnit,
+			);
+			token_pricing.output = this.convertPricingToCentsPerMillionTokens(
+				sourceModel.pricing.outputTokens.basePrice,
+				sourceData.pricingUnit,
+			);
+
+			// Add cached pricing if available (Anthropic-specific)
+			if (sourceModel.pricing.inputTokens.cachedPrice !== undefined) {
+				token_pricing.anthropic_cache_read = this.convertPricingToCentsPerMillionTokens(
+					sourceModel.pricing.inputTokens.cachedPrice,
+					sourceData.pricingUnit,
+				);
+				// Estimate cache write cost as 1.25x base cost if not explicitly provided
+				token_pricing.anthropic_cache_write_5min = this.convertPricingToCentsPerMillionTokens(
+					sourceModel.pricing.inputTokens.basePrice * 1.25,
+					sourceData.pricingUnit,
+				);
+			}
+
 			currency = sourceModel.pricing.currency;
 			effectiveDate = sourceModel.pricing.effectiveDate;
 		}
-		
+
 		const capabilities: ModelCapabilities & { hidden?: boolean } = {
 			displayName: sourceModel.displayName,
 			contextWindow: sourceModel.contextWindow,
 			maxOutputTokens: sourceModel.maxOutputTokens,
-			pricing: {
-				inputTokens: { 
-					basePrice: inputPrice
-				},
-				outputTokens: { 
-					basePrice: outputPrice 
-				},
+			token_pricing: token_pricing, // New dynamic pricing structure
+			pricing_metadata: {
 				currency: currency,
-				effectiveDate: effectiveDate
+				effectiveDate: effectiveDate,
 			},
 			supportedFeatures: {
 				functionCalling: sourceModel.supportedFeatures.functionCalling,
@@ -330,30 +363,22 @@ class ModelCapabilitiesFetcher {
 				streaming: sourceModel.supportedFeatures.streaming,
 				vision: sourceModel.supportedFeatures.vision,
 				promptCaching: sourceModel.supportedFeatures.promptCaching || false,
-				extendedThinking: sourceModel.supportedFeatures.extendedThinking || false
+				extendedThinking: sourceModel.supportedFeatures.extendedThinking || false,
 			},
 			defaults: {
 				temperature: sourceModel.defaults.temperature,
 				maxTokens: sourceModel.defaults.maxTokens,
-				extendedThinking: sourceModel.defaults.extendedThinking
+				extendedThinking: sourceModel.defaults.extendedThinking,
 			},
 			constraints: {
-				temperature: sourceModel.constraints.temperature
+				temperature: sourceModel.constraints.temperature,
 			},
 			systemPromptBehavior: sourceModel.systemPromptBehavior,
 			responseSpeed: sourceModel.responseSpeed,
 			cost: sourceModel.cost === 'free' ? 'low' : sourceModel.cost,
 			intelligence: sourceModel.intelligence,
-			hidden: false
+			hidden: false,
 		};
-
-		// Add cached pricing if available
-		if (sourceModel.pricing && sourceModel.pricing.inputTokens && sourceModel.pricing.inputTokens.cachedPrice !== undefined) {
-			capabilities.pricing.inputTokens.cachedPrice = this.convertPricingToPerToken(
-				sourceModel.pricing.inputTokens.cachedPrice, 
-				sourceData.pricingUnit
-			);
-		}
 
 		// Add optional fields if present
 		if (sourceModel.trainingCutoff) {
@@ -369,20 +394,50 @@ class ModelCapabilitiesFetcher {
 	/**
 	 * Convert pricing from source unit to per-token
 	 */
-	private convertPricingToPerToken(price: number, sourceUnit: string): number {
-		switch (sourceUnit) {
-			case 'per_1M_tokens':
-				return price / 1_000_000;
-			case 'per_1K_tokens':
-				return price / 1_000;
-			case 'per_token':
-				return price;
-			case 'local_deployment':
-				return 0; // Local models have no per-token cost
-			default:
-				console.warn(`⚠️ Unknown pricing unit: ${sourceUnit}, assuming per_1M_tokens`);
-				return price / 1_000_000;
-		}
+	// private convertPricingToPerToken(price: number, sourceUnit: string): number {
+	// 	let result: number;
+	//
+	// 	switch (sourceUnit) {
+	// 		case 'per_1M_tokens':
+	// 			result = price / 1_000_000;
+	// 			break;
+	// 		case 'per_1K_tokens':
+	// 			result = price / 1_000;
+	// 			break;
+	// 		case 'per_token':
+	// 			result = price;
+	// 			break;
+	// 		case 'local_deployment':
+	// 			result = 0; // Local models have no per-token cost
+	// 			break;
+	// 		default:
+	// 			console.warn(`⚠️ Unknown pricing unit: ${sourceUnit}, assuming per_1M_tokens`);
+	// 			result = price / 1_000_000;
+	// 			break;
+	// 	}
+	// 	return result;
+	//
+	// 	// Round to 12 decimal places to avoid floating-point precision artifacts
+	// 	// This maintains accuracy for billing while keeping JSON clean
+	// 	//return Math.round(result * 1e12) / 1e12;
+	// }
+
+	/**
+	 * Convert pricing from source unit to per-million-tokens
+	 */
+	private convertPricingToCentsPerMillionTokens(price: number, sourceUnit: string): number {
+		const unitMultipliers: Record<string, number> = {
+			'per_1M_tokens': 1,
+			'per_1K_tokens': 1_000,
+			'per_token': 1_000_000,
+			'local_deployment': 0,
+		};
+
+		return CurrencyConverter.dollarsToCents(
+			unitMultipliers[sourceUnit] !== undefined
+				? price * unitMultipliers[sourceUnit]
+				: (console.warn(`⚠️ Unknown pricing unit: ${sourceUnit}, assuming per_1M_tokens`), price),
+		);
 	}
 
 	/**
@@ -425,7 +480,7 @@ class ModelCapabilitiesFetcher {
 			if (provider === '_metadata') {
 				continue;
 			}
-			
+
 			if (!models || typeof models !== 'object') {
 				issues.push(`Invalid capabilities for provider ${provider}: must be an object`);
 				continue;
@@ -445,7 +500,7 @@ class ModelCapabilitiesFetcher {
 					'displayName',
 					'contextWindow',
 					'maxOutputTokens',
-					'pricing',
+					'token_pricing',
 					'supportedFeatures',
 					'defaults',
 					'constraints',
@@ -457,19 +512,26 @@ class ModelCapabilitiesFetcher {
 					}
 				}
 
-				// Validate pricing structure
-				if (capabilities.pricing) {
-					if (
-						capabilities.pricing.inputTokens?.basePrice === undefined ||
-						capabilities.pricing.inputTokens?.basePrice < 0
-					) {
-						issues.push(`Model ${provider}/${model}: invalid pricing.inputTokens.basePrice`);
-					}
-					if (
-						capabilities.pricing.outputTokens?.basePrice === undefined ||
-						capabilities.pricing.outputTokens?.basePrice < 0
-					) {
-						issues.push(`Model ${provider}/${model}: invalid pricing.outputTokens.basePrice`);
+				// Validate token_pricing structure
+				if (capabilities.token_pricing) {
+					if (typeof capabilities.token_pricing !== 'object' || Array.isArray(capabilities.token_pricing)) {
+						issues.push(`Model ${provider}/${model}: token_pricing must be an object`);
+					} else {
+						// Validate individual pricing entries
+						for (const [tokenType, price] of Object.entries(capabilities.token_pricing)) {
+							if (typeof price !== 'number' || price < 0) {
+								issues.push(
+									`Model ${provider}/${model}: invalid token_pricing.${tokenType} (${price})`,
+								);
+							}
+						}
+						// Require basic input/output pricing
+						if (!capabilities.token_pricing.input && capabilities.token_pricing.input !== 0) {
+							issues.push(`Model ${provider}/${model}: missing required token_pricing.input`);
+						}
+						if (!capabilities.token_pricing.output && capabilities.token_pricing.output !== 0) {
+							issues.push(`Model ${provider}/${model}: missing required token_pricing.output`);
+						}
 					}
 				}
 
@@ -491,12 +553,18 @@ class ModelCapabilitiesFetcher {
 					}
 				}
 
-				// Validate pricing is in reasonable range (per-token pricing should be very small)
-				if (capabilities.pricing?.inputTokens?.basePrice > 0.01) {
-					issues.push(`Model ${provider}/${model}: inputTokens.basePrice seems too high (${capabilities.pricing.inputTokens.basePrice}) - check pricing unit conversion`);
-				}
-				if (capabilities.pricing?.outputTokens?.basePrice > 0.1) {
-					issues.push(`Model ${provider}/${model}: outputTokens.basePrice seems too high (${capabilities.pricing.outputTokens.basePrice}) - check pricing unit conversion`);
+				// Validate pricing is in reasonable range (per-million-token pricing)
+				if (capabilities.token_pricing) {
+					if (capabilities.token_pricing.input && capabilities.token_pricing.input > 10000) {
+						issues.push(
+							`Model ${provider}/${model}: token_pricing.input seems too high (${capabilities.token_pricing.input} cents per million) - check pricing unit conversion`,
+						);
+					}
+					if (capabilities.token_pricing.output && capabilities.token_pricing.output > 10000) {
+						issues.push(
+							`Model ${provider}/${model}: token_pricing.output seems too high (${capabilities.token_pricing.output} cents per million) - check pricing unit conversion`,
+						);
+					}
 				}
 			}
 		}
@@ -525,26 +593,34 @@ class ModelCapabilitiesFetcher {
 			// Sort providers and models for consistent output
 			const sortedCapabilities: Record<string, Record<string, ModelCapabilities>> = {};
 			const sortedProviders = Object.keys(this.allCapabilities).sort();
-			
+
 			for (const provider of sortedProviders) {
 				sortedCapabilities[provider] = {};
 				const sortedModels = Object.keys(this.allCapabilities[provider]).sort();
 				for (const model of sortedModels) {
 					// Remove the hidden flag before saving (it's for internal use only)
-					const { hidden, ...capabilities } = this.allCapabilities[provider][model];
+					const { hidden: _hidden, ...capabilities } = this.allCapabilities[provider][model];
 					sortedCapabilities[provider][model] = capabilities;
 				}
 			}
 
 			// Add generation metadata
+			const metadata = {
+				generatedAt: new Date().toISOString(),
+				generatedBy: 'update_model_capabilities.ts',
+				sourceFiles: 'api/src/data/model_sources/*.json',
+				totalProviders: Object.keys(sortedCapabilities).length,
+				totalModels: Object.values(sortedCapabilities).reduce(
+					(sum, models) => sum + Object.keys(models).length,
+					0,
+				),
+				notes:
+					'Pricing converted to per-token format. All data based on comprehensive research of official provider documentation as of June 2025.',
+			};
+
 			const output = {
-				_metadata: {
-					generatedAt: new Date().toISOString(),
-					generatedBy: 'update_model_capabilities.ts',
-					totalProviders: Object.keys(sortedCapabilities).length,
-					totalModels: Object.values(sortedCapabilities).reduce((sum, models) => sum + Object.keys(models).length, 0)
-				},
-				...sortedCapabilities
+				_metadata: metadata,
+				...sortedCapabilities,
 			};
 
 			await Deno.writeTextFile(
@@ -565,7 +641,9 @@ class ModelCapabilitiesFetcher {
 	private async fetchLLMProxyModels(): Promise<void> {
 		try {
 			console.log('🔍 Fetching available models from llm-proxy...');
-			const config = await fetchSupabaseConfig();
+			const config = await fetchSupabaseConfig({
+				supabaseConfigUrl: this.config.supabaseUrl,
+			});
 			const supabaseClient = createClient(config.url, config.anonKey);
 
 			const { data, error } = await supabaseClient.functions.invoke('provider-models', { method: 'GET' });
@@ -582,7 +660,7 @@ class ModelCapabilitiesFetcher {
 				return;
 			}
 
-			this.llmProxyModels = data.provider_models.filter((model: any) => model.is_available);
+			this.llmProxyModels = data.provider_models.filter((model: { is_available: boolean }) => model.is_available);
 			console.log(`✅ Fetched ${this.llmProxyModels.length} available models from llm-proxy`);
 		} catch (error) {
 			console.warn(`⚠️ Error fetching llm-proxy models: ${isError(error) ? error.message : error}`);
@@ -612,13 +690,13 @@ class ModelCapabilitiesFetcher {
 			if (provider === '_metadata') {
 				continue;
 			}
-			
+
 			for (const [modelId, capabilities] of Object.entries(models)) {
 				// Ensure capabilities is an object with displayName
 				if (typeof capabilities !== 'object' || !capabilities.displayName) {
 					continue;
 				}
-				
+
 				if (!this.isModelAvailableInLLMProxy(provider, modelId)) {
 					hiddenModels.push({ provider, model: modelId });
 					capabilities.hidden = true;
@@ -641,7 +719,11 @@ class ModelCapabilitiesFetcher {
 	/**
 	 * Register a model with its capabilities
 	 */
-	private registerModel(provider: string, modelId: string, capabilities: ModelCapabilities & { hidden?: boolean }): void {
+	private registerModel(
+		provider: string,
+		modelId: string,
+		capabilities: ModelCapabilities & { hidden?: boolean },
+	): void {
 		// Initialize provider object if it doesn't exist
 		if (!this.allCapabilities[provider]) {
 			this.allCapabilities[provider] = {};
@@ -650,6 +732,41 @@ class ModelCapabilitiesFetcher {
 		// Add the model capabilities
 		this.allCapabilities[provider][modelId] = capabilities;
 	}
+}
+
+/**
+ * Load environment-specific configuration
+ */
+async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseUrl?: string }> {
+	const scriptDir = dirname(fromFileUrl(import.meta.url));
+	const envFile = join(scriptDir, `.env.${environment}`);
+
+	try {
+		if (await exists(envFile)) {
+			const content = await Deno.readTextFile(envFile);
+			const config: Record<string, string> = {};
+
+			for (const line of content.split('\n')) {
+				const trimmed = line.trim();
+				if (trimmed && !trimmed.startsWith('#')) {
+					const [key, ...valueParts] = trimmed.split('=');
+					if (key && valueParts.length > 0) {
+						config[key.trim()] = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
+					}
+				}
+			}
+
+			console.log(`📁 Loaded environment config from ${envFile}`);
+			return {
+				authToken: config.LLM_PROXY_AUTH_TOKEN,
+				supabaseUrl: config.SUPABASE_CONFIG_URL,
+			};
+		}
+	} catch (error) {
+		console.warn(`⚠️ Could not load ${envFile}: ${isError(error) ? error.message : error}`);
+	}
+
+	return {};
 }
 
 /**
@@ -663,9 +780,10 @@ async function main() {
 
 	// Parse command line arguments
 	const args = parseArgs(Deno.args, {
-		string: ['output', 'providers', 'source-dir'],
+		string: ['output', 'providers', 'source-dir', 'environment', 'supabase-url'],
 		boolean: ['validate-only', 'use-api-validation', 'skip-llm-proxy-check'],
 		default: {
+			environment: 'staging',
 			output: defaultOutputPath,
 			providers: 'anthropic,openai,google,deepseek,groq,ollama',
 			'source-dir': defaultSourceDir,
@@ -675,8 +793,19 @@ async function main() {
 		},
 	});
 
+	// Validate environment
+	if (!['staging', 'production'].includes(args.environment)) {
+		console.error('❌ Environment must be either "staging" or "production"');
+		Deno.exit(1);
+	}
+
+	// Load environment-specific config
+	const envConfig = await loadEnvironmentConfig(args.environment);
+
 	// Setup configuration
 	const config: FetcherConfig = {
+		environment: args.environment as 'staging' | 'production',
+		supabaseUrl: args['supabase-url'] || envConfig.supabaseUrl,
 		outputPath: args.output,
 		sourceDir: args['source-dir'],
 		providersToProcess: args.providers.split(',').map((p) => p.trim()),

@@ -93,7 +93,7 @@ export class ModelCapabilitiesManager {
 	 * Gets capabilities for a specific model
 	 * @deprecated Use ModelRegistryService.getModelCapabilities() instead
 	 */
-	public getModelCapabilities(model: string, provider?: string): ModelCapabilities {
+	public getModelCapabilities(model: string, _provider?: string): ModelCapabilities {
 		if (!this.registryService) {
 			logger.warn('ModelCapabilitiesManager: Not initialized, using defaults');
 			// Return a basic default
@@ -101,9 +101,11 @@ export class ModelCapabilitiesManager {
 				displayName: 'Unknown Model',
 				contextWindow: 4096,
 				maxOutputTokens: 2048,
-				pricing: {
-					inputTokens: { basePrice: 0.0 },
-					outputTokens: { basePrice: 0.0 },
+				token_pricing: {
+					input: 0,
+					output: 0,
+				},
+				pricing_metadata: {
 					currency: 'USD',
 					effectiveDate: new Date().toISOString().split('T')[0],
 				},

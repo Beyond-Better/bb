@@ -14,7 +14,7 @@ import { formatPathForInsertion, getTextPositions, processSuggestions } from '..
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
-import { ModelSelector } from './ModelSelector.tsx';
+import { ModelSelector, type ModelSelectionValue } from './ModelSelector.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -1623,15 +1623,15 @@ export function ChatInput({
 							context='conversation'
 							role='chat'
 							value={chatInputOptions.value.model}
-							onChange={(modelId: string) => {
+							onChange={(modelId: string | ModelSelectionValue) => {
 								console.log('ChatInput: Model changed from', chatInputOptions.value.model, 'to', modelId);
 								const newOptions = { ...chatInputOptions.value };
-								newOptions.model = modelId;
+								newOptions.model = modelId as string;
 								chatInputOptions.value = newOptions;
 								console.log('ChatInput: Updated chatInputOptions.model to', chatInputOptions.value.model);
 							}}
 							label='Model'
-							compact={true}
+							compact
 						/>
 
 						{/* Max Tokens slider */}

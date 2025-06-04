@@ -167,6 +167,7 @@
 		"shared/projectPath.ts": "./src/shared/utils/projectPath.utils.ts",
 		"shared/projectRegistry.ts": "./src/shared/projectRegistry.ts",
 		"shared/externalLinkHelper.ts": "./src/shared/utils/externalLinkHelper.utils.ts",
+		"shared/currencyConverter.ts": "./src/shared/utils/currencyConverter.utils.ts",
 		"shared/error.ts": "./src/shared/utils/error.utils.ts",
 		"shared/tlsCerts.ts": "./src/shared/utils/tlsCerts.utils.ts",
 		"shared/git.ts": "./src/shared/utils/git.utils.ts",

@@ -299,7 +299,7 @@ export function useChatState(
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),
 						llmProviderName: conversation.llmProviderName || 'anthropic',
-						model: conversation.model || 'claude-3',
+						model: conversation.model || 'claude-sonnet-4-20250514',
 					};
 
 					if (existingIndex >= 0) {
@@ -520,9 +520,12 @@ export function useChatState(
 				//	totalTokens: currentProject.stats?.totalTokens || 0,
 				//	lastAccessed: new Date().toISOString(),
 				//});
-				chatState.value = {
-					...chatState.value,
-					conversations: [...chatState.value.conversations, {
+
+				// Update conversations array with the loaded conversation
+				const updatedConversations = [...chatState.value.conversations];
+				if (data.logDataEntry.conversationId) {
+					const existingIndex = updatedConversations.findIndex((c) => c.id === data.logDataEntry.conversationId);
+					const conversationData = {
 						id: data.logDataEntry.conversationId,
 						title: data.logDataEntry.conversationTitle,
 						tokenUsageStats: data.logDataEntry.tokenUsageStats,
@@ -531,8 +534,21 @@ export function useChatState(
 						createdAt: data.logDataEntry.timestamp,
 						updatedAt: data.logDataEntry.timestamp,
 						llmProviderName: 'anthropic', // Default provider
-						model: 'claude-3', // Default model
-					}],
+						model: 'claude-sonnet-4-20250514', // Default model
+					};
+
+					if (existingIndex >= 0) {
+						// Update existing conversation
+						updatedConversations[existingIndex] = conversationData;
+					} else {
+						// Add new conversation
+						updatedConversations.push(conversationData);
+					}
+				}
+
+				chatState.value = {
+					...chatState.value,
+					conversations: updatedConversations,
 				};
 				return;
 			}
@@ -894,7 +910,7 @@ export function useChatState(
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),
 						llmProviderName: conversation.llmProviderName || 'anthropic',
-						model: conversation.model || 'claude-3',
+						model: conversation.model || 'claude-sonnet-4-20250514',
 					};
 
 					if (existingIndex >= 0) {
