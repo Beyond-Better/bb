@@ -1,7 +1,7 @@
 import { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { LLMProviderLabel, type LLMProvider } from 'api/types/llms.ts';
+import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
 
 /**

@@ -1,6 +1,6 @@
 import { Ollama } from 'ollama';
 import type { ChatRequest, ChatResponse, Message, Tool, ToolCall } from 'ollama';
-import { LLMProvider, LLMCallbackType, OllamaModel } from 'api/types.ts';
+import { LLMCallbackType, LLMProvider, OllamaModel } from 'api/types.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -174,7 +174,7 @@ class OllamaLLM extends LLM {
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		const tools = this.asProviderToolType(messageRequest.tools);
 		const system = messageRequest.system;
-		const model: string = messageRequest.model || OllamaModel.SMOLLM2_1_7B ;
+		const model: string = messageRequest.model || OllamaModel.SMOLLM2_1_7B;
 
 		// Resolve parameters using model capabilities
 		let temperature: number;

@@ -46,14 +46,14 @@ export function validateSupabaseConfig(config: unknown): config is SupabaseConfi
  * Fetches Supabase configuration from the BUI with retries
  */
 export async function fetchSupabaseConfig(
-	options: { maxRetries?: number; retryDelay?: number; supabaseConfigUrl?: string } = {}
+	options: { maxRetries?: number; retryDelay?: number; supabaseConfigUrl?: string } = {},
 ): Promise<SupabaseConfig> {
 	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
-	
+
 	// Allow override of config URL via options parameter
-	const configUrl = options.supabaseConfigUrl || 
-		globalConfig.api.supabaseConfigUrl || 
+	const configUrl = options.supabaseConfigUrl ||
+		globalConfig.api.supabaseConfigUrl ||
 		'https://www.beyondbetter.dev/api/v1/config/supabase';
 
 	// 	return {

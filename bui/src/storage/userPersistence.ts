@@ -1,6 +1,6 @@
 /**
  * User Persistence Module
- * 
+ *
  * Manages user preferences and settings across cloud and local storage strategies.
  * Cloud-first approach with local storage fallback for local-only mode.
  */
@@ -8,7 +8,7 @@
 import { signal } from '@preact/signals';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 
-export interface NotificationPreferences {
+export interface StatementCompletionNotifications {
 	/** Enable audio notifications when statement processing completes */
 	audioEnabled: boolean;
 	/** Enable browser push notifications */
@@ -18,7 +18,12 @@ export interface NotificationPreferences {
 	/** Custom audio file URL (optional) */
 	customAudioUrl?: string;
 	/** Notification volume (0.0 to 1.0) */
-	volume: number;
+	audioVolume: number;
+}
+
+export interface NotificationPreferences {
+	/** Notifications for when statement processing completes */
+	statement_completion: StatementCompletionNotifications;
 }
 
 export interface UserPreferences {
@@ -47,10 +52,12 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 	language: 'en',
 	timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 	notifications: {
-		audioEnabled: true,
-		browserNotifications: true,
-		visualIndicators: true,
-		volume: 0.5,
+		statement_completion: {
+			audioEnabled: true,
+			browserNotifications: true,
+			visualIndicators: true,
+			audioVolume: 0.5,
+		},
 	},
 	recentProjects: [],
 	projectViewMode: 'list',
@@ -178,13 +185,15 @@ class UserPersistenceManager {
 	 * Update specific notification preferences
 	 */
 	public async updateNotificationPreferences(
-		notifications: Partial<NotificationPreferences>,
+		notifications: Partial<StatementCompletionNotifications>,
 	): Promise<void> {
 		const currentPreferences = this.state.value.preferences || DEFAULT_PREFERENCES;
 		await this.savePreferences({
 			notifications: {
-				...currentPreferences.notifications,
-				...notifications,
+				statement_completion: {
+					...currentPreferences.notifications.statement_completion,
+					...notifications,
+				},
 			},
 		});
 	}
@@ -192,8 +201,9 @@ class UserPersistenceManager {
 	/**
 	 * Get current notification preferences
 	 */
-	public getNotificationPreferences(): NotificationPreferences {
-		return this.state.value.preferences?.notifications || DEFAULT_PREFERENCES.notifications;
+	public getNotificationPreferences(): StatementCompletionNotifications {
+		return this.state.value.preferences?.notifications?.statement_completion ||
+			DEFAULT_PREFERENCES.notifications.statement_completion;
 	}
 
 	/**
@@ -209,8 +219,10 @@ class UserPersistenceManager {
 					...DEFAULT_PREFERENCES,
 					...parsed,
 					notifications: {
-						...DEFAULT_PREFERENCES.notifications,
-						...parsed.notifications,
+						statement_completion: {
+							...DEFAULT_PREFERENCES.notifications.statement_completion,
+							...(parsed.notifications?.statement_completion || {}),
+						},
 					},
 				};
 			}
@@ -253,8 +265,10 @@ class UserPersistenceManager {
 					...DEFAULT_PREFERENCES,
 					...response.preferences,
 					notifications: {
-						...DEFAULT_PREFERENCES.notifications,
-						...response.preferences.notifications,
+						statement_completion: {
+							...DEFAULT_PREFERENCES.notifications.statement_completion,
+							...(response.preferences.notifications?.statement_completion || {}),
+						},
 					},
 				};
 			}
@@ -361,15 +375,41 @@ export const userPersistenceManager = new UserPersistenceManager();
  * Hook for components to use user persistence
  */
 export function useUserPersistence() {
+	// Auto-initialize if not already done
+	// 	if (typeof window !== 'undefined' && !userPersistenceManager.getState().value.preferences) {
+	// 		// Try to determine if we're in local mode by checking for API client
+	// 		// This is a best-effort check - components can call initialize() explicitly if needed
+	// 		const isLocalMode = !window.location.pathname.includes('/app/') ||
+	// 			localStorage.getItem('bb_local_mode') === 'true';
+	//
+	// 		userPersistenceManager.initialize(null, isLocalMode);
+	// 		userPersistenceManager.loadPreferences().catch(console.warn);
+	// 	}
+
 	return {
 		state: userPersistenceManager.getState(),
 		loadPreferences: () => userPersistenceManager.loadPreferences(),
-		savePreferences: (prefs: Partial<UserPreferences>) =>
-			userPersistenceManager.savePreferences(prefs),
-		updateNotificationPreferences: (notifications: Partial<NotificationPreferences>) =>
+		savePreferences: (prefs: Partial<UserPreferences>) => userPersistenceManager.savePreferences(prefs),
+		updateNotificationPreferences: (notifications: Partial<StatementCompletionNotifications>) =>
 			userPersistenceManager.updateNotificationPreferences(notifications),
 		getNotificationPreferences: () => userPersistenceManager.getNotificationPreferences(),
 		syncPreferences: () => userPersistenceManager.syncPreferences(),
 		clearPreferences: () => userPersistenceManager.clearPreferences(),
+		initialize: (apiClient: ApiClient | null, isLocalMode: boolean) =>
+			userPersistenceManager.initialize(apiClient, isLocalMode),
+
+		// Theme-specific methods that integrate with theme manager
+		saveThemePreference: async (theme: 'light' | 'dark' | 'system') => {
+			await userPersistenceManager.savePreferences({ theme });
+			// Apply theme immediately after saving
+			if (typeof window !== 'undefined') {
+				const { themeManager } = await import('../utils/themeManager.ts');
+				themeManager.applyTheme(theme);
+			}
+		},
+
+		getCurrentTheme: (): 'light' | 'dark' | 'system' => {
+			return userPersistenceManager.getState().value.preferences?.theme || 'system';
+		},
 	};
 }

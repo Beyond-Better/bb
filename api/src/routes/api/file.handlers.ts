@@ -380,8 +380,8 @@ export const serveFile = async (
 		if (thumbnail && isImage) {
 			// Generate thumbnail for images
 			const imageData = await Deno.readFile(filePath);
-		logger.info(`FileHandler: Creating thumbnail for: ${filePath}`);
-			
+			logger.info(`FileHandler: Creating thumbnail for: ${filePath}`);
+
 			// Use ImageMagick to create thumbnail (max 200px)
 			try {
 				// Import ImageMagick dynamically to avoid loading if not needed
@@ -431,7 +431,7 @@ export const serveFile = async (
 		response.headers.set('Content-Type', mimeType);
 		response.headers.set('Content-Length', fileData.length.toString());
 		response.headers.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-		
+
 		// Set content disposition for download (except for images)
 		if (!isImage || !thumbnail) {
 			response.headers.set('Content-Disposition', `attachment; filename="${metadata.name}"`);

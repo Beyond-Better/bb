@@ -1,6 +1,8 @@
 import { useEffect } from 'preact/hooks';
 import { Signal, signal, useComputed } from '@preact/signals';
 import { StatusQueue } from '../utils/statusQueue.utils.ts';
+import { notificationManager } from '../utils/notificationManager.ts';
+//import { userPersistenceManager } from '../storage/userPersistence.ts';
 import { ApiStatus } from 'shared/types.ts';
 import type { ConversationLogDataEntry } from 'shared/types.ts';
 //import { useVersion } from './useVersion.ts';
@@ -8,7 +10,7 @@ import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
 import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
-import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
@@ -524,7 +526,9 @@ export function useChatState(
 				// Update conversations array with the loaded conversation
 				const updatedConversations = [...chatState.value.conversations];
 				if (data.logDataEntry.conversationId) {
-					const existingIndex = updatedConversations.findIndex((c) => c.id === data.logDataEntry.conversationId);
+					const existingIndex = updatedConversations.findIndex((c) =>
+						c.id === data.logDataEntry.conversationId
+					);
 					const conversationData = {
 						id: data.logDataEntry.conversationId,
 						title: data.logDataEntry.conversationTitle,
@@ -663,6 +667,17 @@ export function useChatState(
 						isAnswerMessage: true,
 					};
 				}
+
+				// **TRIGGER NOTIFICATION** - Statement processing complete!
+				console.info('useChatState: Sending Completion to notification manager');
+				notificationManager.notifyStatementComplete(
+					'Your statement has been processed and is ready for review',
+				).then(() => {
+					console.info('useChatState: Completion notification sent successfully');
+				}).catch((error) => {
+					console.warn('useChatState: Failed to send completion notification:', error);
+				});
+
 				// Clear queue and force immediate IDLE status
 				statusQueue.reset({
 					status: ApiStatus.IDLE,

@@ -1,363 +1,363 @@
 {
-  "lastUpdated": "2025-06-04T04:30:00.000Z",
-  "source": "Ollama model ecosystem research",
-  "pricingUnit": "local_deployment",
-  "notes": "Local models via Ollama have no API costs but require local hardware. Focus on tool-capable models. Memory requirements vary by quantization. Performance depends on hardware.",
-  "toolCapableModels": [
-    {
-      "modelId": "llama3.1:8b",
-      "displayName": "LLaMA 3.1 8B",
-      "family": "Meta LLaMA",
-      "contextWindow": 128000,
-      "maxOutputTokens": 8192,
-      "sizing": {
-        "parameters": "8B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0", "FP16"],
-        "memoryRequired": {
-          "Q4_K_M": "4.8GB",
-          "Q8_0": "8.5GB",
-          "FP16": "16GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-12-01",
-      "releaseDate": "2024-07-01",
-      "responseSpeed": "medium",
-      "cost": "free",
-      "intelligence": "high",
-      "modality": "text",
-      "description": "Best balance of size/performance for BB's tool use",
-      "hardwareRequirement": "8GB+ RAM recommended",
-      "bbUseCaseFit": 5
-    },
-    {
-      "modelId": "qwen2.5-coder:7b",
-      "displayName": "Qwen 2.5 Coder 7B",
-      "family": "Alibaba Qwen",
-      "contextWindow": 128000,
-      "maxOutputTokens": 32768,
-      "sizing": {
-        "parameters": "7B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
-        "memoryRequired": {
-          "Q4_K_M": "4.2GB",
-          "Q8_0": "7.5GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 16384,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-06-01",
-      "releaseDate": "2024-09-01",
-      "responseSpeed": "fast",
-      "cost": "free",
-      "intelligence": "high",
-      "modality": "text",
-      "description": "Code-specific model excellent for BB's code manipulation tasks",
-      "hardwareRequirement": "6GB+ RAM recommended",
-      "bbUseCaseFit": 5,
-      "specialization": "code"
-    },
-    {
-      "modelId": "granite3.3:8b",
-      "displayName": "Granite 3.3 8B",
-      "family": "IBM Granite",
-      "contextWindow": 128000,
-      "maxOutputTokens": 8192,
-      "sizing": {
-        "parameters": "8B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
-        "memoryRequired": {
-          "Q4_K_M": "4.8GB",
-          "Q8_0": "8.5GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-08-01",
-      "releaseDate": "2024-12-01",
-      "responseSpeed": "medium",
-      "cost": "free",
-      "intelligence": "high",
-      "modality": "text",
-      "description": "IBM's enterprise-focused model with reliable performance",
-      "hardwareRequirement": "8GB+ RAM recommended",
-      "bbUseCaseFit": 4
-    },
-    {
-      "modelId": "llama3.1:70b",
-      "displayName": "LLaMA 3.1 70B",
-      "family": "Meta LLaMA",
-      "contextWindow": 128000,
-      "maxOutputTokens": 8192,
-      "sizing": {
-        "parameters": "70B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
-        "memoryRequired": {
-          "Q4_K_M": "42GB",
-          "Q8_0": "75GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-12-01",
-      "releaseDate": "2024-07-01",
-      "responseSpeed": "slow",
-      "cost": "free",
-      "intelligence": "very-high",
-      "modality": "text",
-      "description": "Maximum capability local model for complex tasks",
-      "hardwareRequirement": "64GB+ RAM or high-end GPU",
-      "bbUseCaseFit": 5
-    },
-    {
-      "modelId": "qwen3:32b",
-      "displayName": "Qwen 3 32B",
-      "family": "Alibaba Qwen",
-      "contextWindow": 128000,
-      "maxOutputTokens": 32768,
-      "sizing": {
-        "parameters": "32B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
-        "memoryRequired": {
-          "Q4_K_M": "19GB",
-          "Q8_0": "34GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 16384,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-09-01",
-      "releaseDate": "2024-12-01",
-      "responseSpeed": "slow",
-      "cost": "free",
-      "intelligence": "very-high",
-      "modality": "text",
-      "description": "Latest generation with advanced reasoning",
-      "hardwareRequirement": "32GB+ RAM recommended",
-      "bbUseCaseFit": 4
-    },
-    {
-      "modelId": "llama3.2:3b",
-      "displayName": "LLaMA 3.2 3B",
-      "family": "Meta LLaMA",
-      "contextWindow": 128000,
-      "maxOutputTokens": 8192,
-      "sizing": {
-        "parameters": "3B",
-        "quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
-        "memoryRequired": {
-          "Q4_K_M": "1.8GB",
-          "Q8_0": "3.2GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-12-01",
-      "releaseDate": "2024-09-01",
-      "responseSpeed": "fast",
-      "cost": "free",
-      "intelligence": "medium",
-      "modality": "text",
-      "description": "Lightweight but capable for fast iteration",
-      "hardwareRequirement": "4GB+ RAM",
-      "bbUseCaseFit": 4
-    },
-    {
-      "modelId": "smollm2:1.7b",
-      "displayName": "SmolLM2 1.7B",
-      "family": "Hugging Face",
-      "contextWindow": 8192,
-      "maxOutputTokens": 4096,
-      "sizing": {
-        "parameters": "1.7B",
-        "quantizations": ["Q4_K_M", "Q4_K_S"],
-        "memoryRequired": {
-          "Q4_K_M": "1.0GB",
-          "Q4_K_S": "0.8GB"
-        }
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 4096,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-06-01",
-      "releaseDate": "2024-10-01",
-      "responseSpeed": "very-fast",
-      "cost": "free",
-      "intelligence": "low",
-      "modality": "text",
-      "description": "Ultra-lightweight for edge devices and rapid prototyping",
-      "hardwareRequirement": "2GB+ RAM",
-      "bbUseCaseFit": 2
-    }
-  ],
-  "performanceTiers": {
-    "tier1_excellent": [
-      "llama3.1:70b",
-      "qwen3:32b"
-    ],
-    "tier2_very_good": [
-      "llama3.1:8b",
-      "qwen2.5-coder:7b",
-      "granite3.3:8b"
-    ],
-    "tier3_good": [
-      "llama3.2:3b",
-      "smollm2:1.7b"
-    ]
-  },
-  "hardwareRecommendations": {
-    "development": {
-      "recommended": ["llama3.2:3b", "qwen2.5-coder:7b"],
-      "minRAM": "4GB",
-      "description": "Fast iteration and testing"
-    },
-    "production": {
-      "recommended": ["llama3.1:8b", "granite3.3:8b"],
-      "minRAM": "8GB", 
-      "description": "Production deployment balance"
-    },
-    "highPerformance": {
-      "recommended": ["llama3.1:70b", "qwen3:32b"],
-      "minRAM": "32GB",
-      "description": "Maximum capability scenarios"
-    },
-    "resourceConstrained": {
-      "recommended": ["smollm2:1.7b", "llama3.2:3b"],
-      "minRAM": "2GB",
-      "description": "Edge devices, limited resources"
-    }
-  },
-  "installationNotes": {
-    "basicInstall": "curl -fsSL https://ollama.com/install.sh | sh",
-    "modelPull": "ollama pull {model_name}",
-    "examples": [
-      "ollama pull llama3.1:8b",
-      "ollama pull qwen2.5-coder:7b",
-      "ollama pull granite3.3:8b"
-    ]
-  },
-  "apiCompatibility": {
-    "openaiCompatible": true,
-    "baseUrl": "http://localhost:11434/v1",
-    "authRequired": false,
-    "toolUseSupport": "Native function calling support"
-  },
-  "advantagesForBB": [
-    "No API costs or rate limits",
-    "Complete privacy - all processing stays local", 
-    "Can fine-tune models for specific BB workflows",
-    "Multiple model sizes for different deployment scenarios",
-    "Native function calling support",
-    "One-time setup, no ongoing API fees"
-  ],
-  "considerations": [
-    "Requires local hardware investment",
-    "Performance depends on available hardware",
-    "Model updates require manual management",
-    "No built-in scaling like cloud APIs"
-  ]
+	"lastUpdated": "2025-06-04T04:30:00.000Z",
+	"source": "Ollama model ecosystem research",
+	"pricingUnit": "local_deployment",
+	"notes": "Local models via Ollama have no API costs but require local hardware. Focus on tool-capable models. Memory requirements vary by quantization. Performance depends on hardware.",
+	"toolCapableModels": [
+		{
+			"modelId": "llama3.1:8b",
+			"displayName": "LLaMA 3.1 8B",
+			"family": "Meta LLaMA",
+			"contextWindow": 128000,
+			"maxOutputTokens": 8192,
+			"sizing": {
+				"parameters": "8B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0", "FP16"],
+				"memoryRequired": {
+					"Q4_K_M": "4.8GB",
+					"Q8_0": "8.5GB",
+					"FP16": "16GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-12-01",
+			"releaseDate": "2024-07-01",
+			"responseSpeed": "medium",
+			"cost": "free",
+			"intelligence": "high",
+			"modality": "text",
+			"description": "Best balance of size/performance for BB's tool use",
+			"hardwareRequirement": "8GB+ RAM recommended",
+			"bbUseCaseFit": 5
+		},
+		{
+			"modelId": "qwen2.5-coder:7b",
+			"displayName": "Qwen 2.5 Coder 7B",
+			"family": "Alibaba Qwen",
+			"contextWindow": 128000,
+			"maxOutputTokens": 32768,
+			"sizing": {
+				"parameters": "7B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
+				"memoryRequired": {
+					"Q4_K_M": "4.2GB",
+					"Q8_0": "7.5GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-06-01",
+			"releaseDate": "2024-09-01",
+			"responseSpeed": "fast",
+			"cost": "free",
+			"intelligence": "high",
+			"modality": "text",
+			"description": "Code-specific model excellent for BB's code manipulation tasks",
+			"hardwareRequirement": "6GB+ RAM recommended",
+			"bbUseCaseFit": 5,
+			"specialization": "code"
+		},
+		{
+			"modelId": "granite3.3:8b",
+			"displayName": "Granite 3.3 8B",
+			"family": "IBM Granite",
+			"contextWindow": 128000,
+			"maxOutputTokens": 8192,
+			"sizing": {
+				"parameters": "8B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
+				"memoryRequired": {
+					"Q4_K_M": "4.8GB",
+					"Q8_0": "8.5GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-08-01",
+			"releaseDate": "2024-12-01",
+			"responseSpeed": "medium",
+			"cost": "free",
+			"intelligence": "high",
+			"modality": "text",
+			"description": "IBM's enterprise-focused model with reliable performance",
+			"hardwareRequirement": "8GB+ RAM recommended",
+			"bbUseCaseFit": 4
+		},
+		{
+			"modelId": "llama3.1:70b",
+			"displayName": "LLaMA 3.1 70B",
+			"family": "Meta LLaMA",
+			"contextWindow": 128000,
+			"maxOutputTokens": 8192,
+			"sizing": {
+				"parameters": "70B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
+				"memoryRequired": {
+					"Q4_K_M": "42GB",
+					"Q8_0": "75GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-12-01",
+			"releaseDate": "2024-07-01",
+			"responseSpeed": "slow",
+			"cost": "free",
+			"intelligence": "very-high",
+			"modality": "text",
+			"description": "Maximum capability local model for complex tasks",
+			"hardwareRequirement": "64GB+ RAM or high-end GPU",
+			"bbUseCaseFit": 5
+		},
+		{
+			"modelId": "qwen3:32b",
+			"displayName": "Qwen 3 32B",
+			"family": "Alibaba Qwen",
+			"contextWindow": 128000,
+			"maxOutputTokens": 32768,
+			"sizing": {
+				"parameters": "32B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
+				"memoryRequired": {
+					"Q4_K_M": "19GB",
+					"Q8_0": "34GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-09-01",
+			"releaseDate": "2024-12-01",
+			"responseSpeed": "slow",
+			"cost": "free",
+			"intelligence": "very-high",
+			"modality": "text",
+			"description": "Latest generation with advanced reasoning",
+			"hardwareRequirement": "32GB+ RAM recommended",
+			"bbUseCaseFit": 4
+		},
+		{
+			"modelId": "llama3.2:3b",
+			"displayName": "LLaMA 3.2 3B",
+			"family": "Meta LLaMA",
+			"contextWindow": 128000,
+			"maxOutputTokens": 8192,
+			"sizing": {
+				"parameters": "3B",
+				"quantizations": ["Q4_K_M", "Q4_K_S", "Q8_0"],
+				"memoryRequired": {
+					"Q4_K_M": "1.8GB",
+					"Q8_0": "3.2GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-12-01",
+			"releaseDate": "2024-09-01",
+			"responseSpeed": "fast",
+			"cost": "free",
+			"intelligence": "medium",
+			"modality": "text",
+			"description": "Lightweight but capable for fast iteration",
+			"hardwareRequirement": "4GB+ RAM",
+			"bbUseCaseFit": 4
+		},
+		{
+			"modelId": "smollm2:1.7b",
+			"displayName": "SmolLM2 1.7B",
+			"family": "Hugging Face",
+			"contextWindow": 8192,
+			"maxOutputTokens": 4096,
+			"sizing": {
+				"parameters": "1.7B",
+				"quantizations": ["Q4_K_M", "Q4_K_S"],
+				"memoryRequired": {
+					"Q4_K_M": "1.0GB",
+					"Q4_K_S": "0.8GB"
+				}
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-06-01",
+			"releaseDate": "2024-10-01",
+			"responseSpeed": "very-fast",
+			"cost": "free",
+			"intelligence": "low",
+			"modality": "text",
+			"description": "Ultra-lightweight for edge devices and rapid prototyping",
+			"hardwareRequirement": "2GB+ RAM",
+			"bbUseCaseFit": 2
+		}
+	],
+	"performanceTiers": {
+		"tier1_excellent": [
+			"llama3.1:70b",
+			"qwen3:32b"
+		],
+		"tier2_very_good": [
+			"llama3.1:8b",
+			"qwen2.5-coder:7b",
+			"granite3.3:8b"
+		],
+		"tier3_good": [
+			"llama3.2:3b",
+			"smollm2:1.7b"
+		]
+	},
+	"hardwareRecommendations": {
+		"development": {
+			"recommended": ["llama3.2:3b", "qwen2.5-coder:7b"],
+			"minRAM": "4GB",
+			"description": "Fast iteration and testing"
+		},
+		"production": {
+			"recommended": ["llama3.1:8b", "granite3.3:8b"],
+			"minRAM": "8GB",
+			"description": "Production deployment balance"
+		},
+		"highPerformance": {
+			"recommended": ["llama3.1:70b", "qwen3:32b"],
+			"minRAM": "32GB",
+			"description": "Maximum capability scenarios"
+		},
+		"resourceConstrained": {
+			"recommended": ["smollm2:1.7b", "llama3.2:3b"],
+			"minRAM": "2GB",
+			"description": "Edge devices, limited resources"
+		}
+	},
+	"installationNotes": {
+		"basicInstall": "curl -fsSL https://ollama.com/install.sh | sh",
+		"modelPull": "ollama pull {model_name}",
+		"examples": [
+			"ollama pull llama3.1:8b",
+			"ollama pull qwen2.5-coder:7b",
+			"ollama pull granite3.3:8b"
+		]
+	},
+	"apiCompatibility": {
+		"openaiCompatible": true,
+		"baseUrl": "http://localhost:11434/v1",
+		"authRequired": false,
+		"toolUseSupport": "Native function calling support"
+	},
+	"advantagesForBB": [
+		"No API costs or rate limits",
+		"Complete privacy - all processing stays local",
+		"Can fine-tune models for specific BB workflows",
+		"Multiple model sizes for different deployment scenarios",
+		"Native function calling support",
+		"One-time setup, no ongoing API fees"
+	],
+	"considerations": [
+		"Requires local hardware investment",
+		"Performance depends on available hardware",
+		"Model updates require manual management",
+		"No built-in scaling like cloud APIs"
+	]
 }

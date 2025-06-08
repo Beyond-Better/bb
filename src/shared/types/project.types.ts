@@ -122,8 +122,11 @@ export interface ConfigValue<T> {
 	project: T | null; // undefined means use global value
 }
 
-export interface ProjectWithSources
-	extends Omit<ProjectConfig, 'version' | 'myPersonsName' | 'myAssistantsName' | 'llmGuidelinesFile' | 'defaultModels' | 'api'> {
+export interface ProjectWithSources extends
+	Omit<
+		ProjectConfig,
+		'version' | 'myPersonsName' | 'myAssistantsName' | 'llmGuidelinesFile' | 'defaultModels' | 'api'
+	> {
 	myPersonsName: ConfigValue<string | undefined>;
 	myAssistantsName: ConfigValue<string | undefined>;
 	llmGuidelinesFile: ConfigValue<string | undefined>;

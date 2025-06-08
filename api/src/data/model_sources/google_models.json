@@ -1,386 +1,386 @@
 {
-  "lastUpdated": "2025-06-04T04:30:00.000Z",
-  "source": "Official Google Gemini API documentation research",
-  "pricingUnit": "per_1M_tokens",
-  "notes": "Pricing varies by context length (≤200k vs >200k tokens). 2.5 series models are in Preview with restricted rate limits. Free tier available for most models. Thinking models charge separately for reasoning tokens.",
-  "models": [
-    {
-      "modelId": "gemini-2.5-pro-preview-05-06",
-      "displayName": "Gemini Pro 2.5",
-      "family": "Gemini-2.5",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 65536,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 2.50,
-          "tieredPricing": {
-            "under200k": 1.25,
-            "over200k": 2.50
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 15.00,
-          "tieredPricing": {
-            "under200k": 10.00,
-            "over200k": 15.00
-          }
-        },
-        "currency": "USD",
-        "effectiveDate": "2025-05-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": false,
-        "extendedThinking": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 16384,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2025-01-01",
-      "releaseDate": "2025-05-06",
-      "responseSpeed": "medium",
-      "cost": "high",
-      "intelligence": "very-high",
-      "modality": "multimodal",
-      "description": "State-of-the-art thinking model with enhanced reasoning",
-      "status": "preview"
-    },
-    {
-      "modelId": "gemini-2.5-flash-preview-05-20",
-      "displayName": "Gemini Flash 2.5",
-      "family": "Gemini-2.5",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 65536,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.15,
-          "multimodal": {
-            "text": 0.15,
-            "audio": 1.00
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 3.50,
-          "tieredPricing": {
-            "nonThinking": 0.60,
-            "thinking": 3.50
-          }
-        },
-        "currency": "USD",
-        "effectiveDate": "2025-05-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": false,
-        "extendedThinking": true
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 16384,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2025-01-01",
-      "releaseDate": "2025-05-20",
-      "responseSpeed": "fast",
-      "cost": "medium",
-      "intelligence": "high",
-      "modality": "multimodal",
-      "description": "Best price-performance ratio with adaptive thinking",
-      "status": "preview"
-    },
-    {
-      "modelId": "gemini-2.0-flash",
-      "displayName": "Gemini 2.0 Flash",
-      "family": "Gemini-2.0",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.70,
-          "multimodal": {
-            "text": 0.10,
-            "audio": 0.70
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 0.40 
-        },
-        "currency": "USD",
-        "effectiveDate": "2025-02-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": true,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-08-01",
-      "releaseDate": "2025-02-01",
-      "responseSpeed": "fast",
-      "cost": "low",
-      "intelligence": "high",
-      "modality": "multimodal",
-      "description": "Next-gen features with speed and native tool use"
-    },
-    {
-      "modelId": "gemini-2.0-flash-lite",
-      "displayName": "Gemini 2.0 Flash-Lite",
-      "family": "Gemini-2.0",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.075
-        },
-        "outputTokens": { 
-          "basePrice": 0.30 
-        },
-        "currency": "USD",
-        "effectiveDate": "2025-02-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-08-01",
-      "releaseDate": "2025-02-01",
-      "responseSpeed": "fast",
-      "cost": "low",
-      "intelligence": "medium",
-      "modality": "multimodal",
-      "description": "Most cost-efficient for high-frequency tasks"
-    },
-    {
-      "modelId": "gemini-1.5-pro",
-      "displayName": "Gemini 1.5 Pro",
-      "family": "Gemini-1.5",
-      "contextWindow": 2097152,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 2.50,
-          "tieredPricing": {
-            "under128k": 1.25,
-            "over128k": 2.50
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 10.00,
-          "tieredPricing": {
-            "under128k": 5.00,
-            "over128k": 10.00
-          }
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-09-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": true,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "releaseDate": "2024-09-01",
-      "responseSpeed": "medium",
-      "cost": "high",
-      "intelligence": "very-high",
-      "modality": "multimodal",
-      "description": "Largest context window (2M tokens), complex reasoning"
-    },
-    {
-      "modelId": "gemini-1.5-flash",
-      "displayName": "Gemini 1.5 Flash",
-      "family": "Gemini-1.5",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.15,
-          "tieredPricing": {
-            "under128k": 0.075,
-            "over128k": 0.15
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 0.60,
-          "tieredPricing": {
-            "under128k": 0.30,
-            "over128k": 0.60
-          }
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-09-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": true,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "releaseDate": "2024-09-01",
-      "responseSpeed": "fast",
-      "cost": "low",
-      "intelligence": "high",
-      "modality": "multimodal",
-      "description": "Fast and versatile with good performance"
-    },
-    {
-      "modelId": "gemini-1.5-flash-8b",
-      "displayName": "Gemini 1.5 Flash-8B",
-      "family": "Gemini-1.5",
-      "contextWindow": 1048576,
-      "maxOutputTokens": 8192,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.0375,
-          "tieredPricing": {
-            "under128k": 0.0375,
-            "over128k": 0.075
-          }
-        },
-        "outputTokens": { 
-          "basePrice": 0.15,
-          "tieredPricing": {
-            "under128k": 0.15,
-            "over128k": 0.30
-          }
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-10-01"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": true,
-        "multimodal": true,
-        "promptCaching": true,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2023-08-01",
-      "releaseDate": "2024-10-01",
-      "responseSpeed": "fast",
-      "cost": "low",
-      "intelligence": "medium",
-      "modality": "multimodal",
-      "description": "Smallest model for simple tasks"
-    }
-  ],
-  "specializedModels": [
-    {
-      "modelId": "imagen-3.0-generate-002",
-      "displayName": "Imagen 3",
-      "type": "image-generation",
-      "pricing": {
-        "perImage": 0.03,
-        "currency": "USD"
-      },
-      "description": "Text to image generation"
-    },
-    {
-      "modelId": "veo-2.0-generate-001",
-      "displayName": "Veo 2",
-      "type": "video-generation",
-      "pricing": {
-        "perSecond": 0.35,
-        "currency": "USD"
-      },
-      "description": "Text/image to video generation"
-    }
-  ],
-  "rateLimits": {
-    "freeTier": {
-      "gemini-2.0-flash": "15 RPM, 1M TPM, 1,500 RPD",
-      "gemini-1.5-flash": "15 RPM, 250k TPM, 500 RPD"
-    },
-    "tier1": {
-      "gemini-2.0-flash": "2,000 RPM, 4M TPM",
-      "gemini-1.5-pro": "1,000 RPM, 4M TPM"
-    },
-    "tier2": {
-      "gemini-2.0-flash": "10,000 RPM, 10M TPM"
-    },
-    "tier3": {
-      "gemini-2.0-flash": "30,000 RPM, 30M TPM"
-    }
-  }
+	"lastUpdated": "2025-06-04T04:30:00.000Z",
+	"source": "Official Google Gemini API documentation research",
+	"pricingUnit": "per_1M_tokens",
+	"notes": "Pricing varies by context length (≤200k vs >200k tokens). 2.5 series models are in Preview with restricted rate limits. Free tier available for most models. Thinking models charge separately for reasoning tokens.",
+	"models": [
+		{
+			"modelId": "gemini-2.5-pro-preview-05-06",
+			"displayName": "Gemini Pro 2.5",
+			"family": "Gemini-2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 2.50,
+					"tieredPricing": {
+						"under200k": 1.25,
+						"over200k": 2.50
+					}
+				},
+				"outputTokens": {
+					"basePrice": 15.00,
+					"tieredPricing": {
+						"under200k": 10.00,
+						"over200k": 15.00
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
+			"releaseDate": "2025-05-06",
+			"responseSpeed": "medium",
+			"cost": "high",
+			"intelligence": "very-high",
+			"modality": "multimodal",
+			"description": "State-of-the-art thinking model with enhanced reasoning",
+			"status": "preview"
+		},
+		{
+			"modelId": "gemini-2.5-flash-preview-05-20",
+			"displayName": "Gemini Flash 2.5",
+			"family": "Gemini-2.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 65536,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.15,
+					"multimodal": {
+						"text": 0.15,
+						"audio": 1.00
+					}
+				},
+				"outputTokens": {
+					"basePrice": 3.50,
+					"tieredPricing": {
+						"nonThinking": 0.60,
+						"thinking": 3.50
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-01-01",
+			"releaseDate": "2025-05-20",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "multimodal",
+			"description": "Best price-performance ratio with adaptive thinking",
+			"status": "preview"
+		},
+		{
+			"modelId": "gemini-2.0-flash",
+			"displayName": "Gemini 2.0 Flash",
+			"family": "Gemini-2.0",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.70,
+					"multimodal": {
+						"text": 0.10,
+						"audio": 0.70
+					}
+				},
+				"outputTokens": {
+					"basePrice": 0.40
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-02-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-08-01",
+			"releaseDate": "2025-02-01",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "high",
+			"modality": "multimodal",
+			"description": "Next-gen features with speed and native tool use"
+		},
+		{
+			"modelId": "gemini-2.0-flash-lite",
+			"displayName": "Gemini 2.0 Flash-Lite",
+			"family": "Gemini-2.0",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.075
+				},
+				"outputTokens": {
+					"basePrice": 0.30
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-02-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-08-01",
+			"releaseDate": "2025-02-01",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"modality": "multimodal",
+			"description": "Most cost-efficient for high-frequency tasks"
+		},
+		{
+			"modelId": "gemini-1.5-pro",
+			"displayName": "Gemini 1.5 Pro",
+			"family": "Gemini-1.5",
+			"contextWindow": 2097152,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 2.50,
+					"tieredPricing": {
+						"under128k": 1.25,
+						"over128k": 2.50
+					}
+				},
+				"outputTokens": {
+					"basePrice": 10.00,
+					"tieredPricing": {
+						"under128k": 5.00,
+						"over128k": 10.00
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-09-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-09-01",
+			"responseSpeed": "medium",
+			"cost": "high",
+			"intelligence": "very-high",
+			"modality": "multimodal",
+			"description": "Largest context window (2M tokens), complex reasoning"
+		},
+		{
+			"modelId": "gemini-1.5-flash",
+			"displayName": "Gemini 1.5 Flash",
+			"family": "Gemini-1.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.15,
+					"tieredPricing": {
+						"under128k": 0.075,
+						"over128k": 0.15
+					}
+				},
+				"outputTokens": {
+					"basePrice": 0.60,
+					"tieredPricing": {
+						"under128k": 0.30,
+						"over128k": 0.60
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-09-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-09-01",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "high",
+			"modality": "multimodal",
+			"description": "Fast and versatile with good performance"
+		},
+		{
+			"modelId": "gemini-1.5-flash-8b",
+			"displayName": "Gemini 1.5 Flash-8B",
+			"family": "Gemini-1.5",
+			"contextWindow": 1048576,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.0375,
+					"tieredPricing": {
+						"under128k": 0.0375,
+						"over128k": 0.075
+					}
+				},
+				"outputTokens": {
+					"basePrice": 0.15,
+					"tieredPricing": {
+						"under128k": 0.15,
+						"over128k": 0.30
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-10-01"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"multimodal": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-10-01",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"modality": "multimodal",
+			"description": "Smallest model for simple tasks"
+		}
+	],
+	"specializedModels": [
+		{
+			"modelId": "imagen-3.0-generate-002",
+			"displayName": "Imagen 3",
+			"type": "image-generation",
+			"pricing": {
+				"perImage": 0.03,
+				"currency": "USD"
+			},
+			"description": "Text to image generation"
+		},
+		{
+			"modelId": "veo-2.0-generate-001",
+			"displayName": "Veo 2",
+			"type": "video-generation",
+			"pricing": {
+				"perSecond": 0.35,
+				"currency": "USD"
+			},
+			"description": "Text/image to video generation"
+		}
+	],
+	"rateLimits": {
+		"freeTier": {
+			"gemini-2.0-flash": "15 RPM, 1M TPM, 1,500 RPD",
+			"gemini-1.5-flash": "15 RPM, 250k TPM, 500 RPD"
+		},
+		"tier1": {
+			"gemini-2.0-flash": "2,000 RPM, 4M TPM",
+			"gemini-1.5-pro": "1,000 RPM, 4M TPM"
+		},
+		"tier2": {
+			"gemini-2.0-flash": "10,000 RPM, 10M TPM"
+		},
+		"tier3": {
+			"gemini-2.0-flash": "30,000 RPM, 30M TPM"
+		}
+	}
 }

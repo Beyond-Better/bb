@@ -14,7 +14,7 @@ import { formatPathForInsertion, getTextPositions, processSuggestions } from '..
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
-import { ModelSelector, type ModelSelectionValue } from './ModelSelector.tsx';
+import { type ModelSelectionValue, ModelSelector } from './ModelSelector.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -520,7 +520,7 @@ export function ChatInput({
 
 		// Handle conversation change
 		const isConversationChange = conversationIdSignal.value !== conversationId;
-		
+
 		// Reset initial mount flag for conversation changes
 		if (isConversationChange) {
 			isInitialMount.current = true;
@@ -545,7 +545,7 @@ export function ChatInput({
 			//});
 			onChange(saved, 'restore');
 		}
-		
+
 		// Always mark initial mount as complete after processing restore logic
 		if (isInitialMount.current) {
 			isInitialMount.current = false;
@@ -1596,7 +1596,10 @@ export function ChatInput({
 
 			{/* LLM Options Panel */}
 			{isOptionsOpen.value && (
-				<div ref={optionsModalRef} className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'>
+				<div
+					ref={optionsModalRef}
+					className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
+				>
 					<div className='flex justify-between items-center mb-3'>
 						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
 						<button
@@ -1624,11 +1627,19 @@ export function ChatInput({
 							role='chat'
 							value={chatInputOptions.value.model}
 							onChange={(modelId: string | ModelSelectionValue) => {
-								console.log('ChatInput: Model changed from', chatInputOptions.value.model, 'to', modelId);
+								console.log(
+									'ChatInput: Model changed from',
+									chatInputOptions.value.model,
+									'to',
+									modelId,
+								);
 								const newOptions = { ...chatInputOptions.value };
 								newOptions.model = modelId as string;
 								chatInputOptions.value = newOptions;
-								console.log('ChatInput: Updated chatInputOptions.model to', chatInputOptions.value.model);
+								console.log(
+									'ChatInput: Updated chatInputOptions.model to',
+									chatInputOptions.value.model,
+								);
 							}}
 							label='Model'
 							compact

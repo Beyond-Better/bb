@@ -88,6 +88,7 @@ export default function SubscriptionSettings() {
 		}
 	};
 
+	//console.log('SubscriptionSettings: billingState', billingState.value);
 	if (
 		!billingState.value.subscription || !billingState.value.availablePlans ||
 		billingState.value.loading.subscription || billingState.value.loading.plans

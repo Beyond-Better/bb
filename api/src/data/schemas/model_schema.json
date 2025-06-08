@@ -1,220 +1,220 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Model Capabilities Schema",
-  "description": "Schema for validating BB model capabilities JSON structure",
-  "type": "object",
-  "properties": {
-    "_metadata": {
-      "type": "object",
-      "properties": {
-        "generatedAt": { "type": "string", "format": "date-time" },
-        "generatedBy": { "type": "string" },
-        "sourceFiles": { "type": "string" },
-        "totalProviders": { "type": "integer", "minimum": 0 },
-        "totalModels": { "type": "integer", "minimum": 0 },
-        "notes": { "type": "string" }
-      },
-      "required": ["generatedAt", "generatedBy", "totalProviders", "totalModels"]
-    }
-  },
-  "patternProperties": {
-    "^(?!_metadata$)[a-z][a-z0-9]*$": {
-      "type": "object",
-      "description": "Provider-specific models",
-      "patternProperties": {
-        "^[a-zA-Z0-9][a-zA-Z0-9._-]*$": {
-          "type": "object",
-          "description": "Individual model capabilities",
-          "properties": {
-            "displayName": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Human-readable model name"
-            },
-            "contextWindow": {
-              "type": "integer",
-              "minimum": 1024,
-              "maximum": 10000000,
-              "description": "Maximum context window in tokens"
-            },
-            "maxOutputTokens": {
-              "type": "integer",
-              "minimum": 128,
-              "maximum": 500000,
-              "description": "Maximum output tokens"
-            },
-            "pricing": {
-              "type": "object",
-              "properties": {
-                "inputTokens": {
-                  "type": "object",
-                  "properties": {
-                    "basePrice": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 0.01,
-                      "description": "Price per input token in USD"
-                    },
-                    "cachedPrice": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 0.01,
-                      "description": "Price per cached input token in USD"
-                    }
-                  },
-                  "required": ["basePrice"]
-                },
-                "outputTokens": {
-                  "type": "object",
-                  "properties": {
-                    "basePrice": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 0.1,
-                      "description": "Price per output token in USD"
-                    }
-                  },
-                  "required": ["basePrice"]
-                },
-                "currency": {
-                  "type": "string",
-                  "enum": ["USD"],
-                  "description": "Currency for pricing"
-                },
-                "effectiveDate": {
-                  "type": "string",
-                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                  "description": "Date when pricing became effective (YYYY-MM-DD)"
-                }
-              },
-              "required": ["inputTokens", "outputTokens", "currency", "effectiveDate"]
-            },
-            "supportedFeatures": {
-              "type": "object",
-              "properties": {
-                "functionCalling": {
-                  "type": "boolean",
-                  "description": "Supports function/tool calling"
-                },
-                "json": {
-                  "type": "boolean",
-                  "description": "Supports JSON mode/structured output"
-                },
-                "streaming": {
-                  "type": "boolean",
-                  "description": "Supports streaming responses"
-                },
-                "vision": {
-                  "type": "boolean",
-                  "description": "Supports image input"
-                },
-                "multimodal": {
-                  "type": "boolean",
-                  "description": "Supports multiple input modalities"
-                },
-                "promptCaching": {
-                  "type": "boolean",
-                  "description": "Supports prompt caching"
-                },
-                "extendedThinking": {
-                  "type": "boolean",
-                  "description": "Supports extended thinking/reasoning"
-                }
-              },
-              "required": ["functionCalling", "json", "streaming", "vision"]
-            },
-            "defaults": {
-              "type": "object",
-              "properties": {
-                "temperature": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 2,
-                  "description": "Default temperature setting"
-                },
-                "maxTokens": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "description": "Default max tokens for responses"
-                },
-                "extendedThinking": {
-                  "type": "boolean",
-                  "description": "Default extended thinking setting"
-                }
-              },
-              "required": ["temperature", "maxTokens", "extendedThinking"]
-            },
-            "constraints": {
-              "type": "object",
-              "properties": {
-                "temperature": {
-                  "type": "object",
-                  "properties": {
-                    "min": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    "max": {
-                      "type": "number",
-                      "minimum": 1,
-                      "maximum": 3
-                    }
-                  },
-                  "required": ["min", "max"]
-                }
-              },
-              "required": ["temperature"]
-            },
-            "systemPromptBehavior": {
-              "type": "string",
-              "enum": ["required", "optional"],
-              "description": "Whether system prompts are required or optional"
-            },
-            "responseSpeed": {
-              "type": "string",
-              "enum": ["very-fast", "fast", "medium", "slow"],
-              "description": "Relative response speed"
-            },
-            "cost": {
-              "type": "string",
-              "enum": ["low", "medium", "high", "very-high"],
-              "description": "Relative cost tier"
-            },
-            "intelligence": {
-              "type": "string",
-              "enum": ["low", "medium", "high", "very-high"],
-              "description": "Relative intelligence/capability tier"
-            },
-            "trainingCutoff": {
-              "type": "string",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "description": "Training data cutoff date (YYYY-MM-DD)"
-            },
-            "releaseDate": {
-              "type": "string",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "description": "Model release date (YYYY-MM-DD)"
-            }
-          },
-          "required": [
-            "displayName",
-            "contextWindow", 
-            "maxOutputTokens",
-            "pricing",
-            "supportedFeatures",
-            "defaults",
-            "constraints",
-            "systemPromptBehavior",
-            "responseSpeed",
-            "cost",
-            "intelligence"
-          ]
-        }
-      },
-      "additionalProperties": false
-    }
-  },
-  "additionalProperties": false,
-  "required": ["_metadata"]
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Model Capabilities Schema",
+	"description": "Schema for validating BB model capabilities JSON structure",
+	"type": "object",
+	"properties": {
+		"_metadata": {
+			"type": "object",
+			"properties": {
+				"generatedAt": { "type": "string", "format": "date-time" },
+				"generatedBy": { "type": "string" },
+				"sourceFiles": { "type": "string" },
+				"totalProviders": { "type": "integer", "minimum": 0 },
+				"totalModels": { "type": "integer", "minimum": 0 },
+				"notes": { "type": "string" }
+			},
+			"required": ["generatedAt", "generatedBy", "totalProviders", "totalModels"]
+		}
+	},
+	"patternProperties": {
+		"^(?!_metadata$)[a-z][a-z0-9]*$": {
+			"type": "object",
+			"description": "Provider-specific models",
+			"patternProperties": {
+				"^[a-zA-Z0-9][a-zA-Z0-9._-]*$": {
+					"type": "object",
+					"description": "Individual model capabilities",
+					"properties": {
+						"displayName": {
+							"type": "string",
+							"minLength": 1,
+							"description": "Human-readable model name"
+						},
+						"contextWindow": {
+							"type": "integer",
+							"minimum": 1024,
+							"maximum": 10000000,
+							"description": "Maximum context window in tokens"
+						},
+						"maxOutputTokens": {
+							"type": "integer",
+							"minimum": 128,
+							"maximum": 500000,
+							"description": "Maximum output tokens"
+						},
+						"pricing": {
+							"type": "object",
+							"properties": {
+								"inputTokens": {
+									"type": "object",
+									"properties": {
+										"basePrice": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 0.01,
+											"description": "Price per input token in USD"
+										},
+										"cachedPrice": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 0.01,
+											"description": "Price per cached input token in USD"
+										}
+									},
+									"required": ["basePrice"]
+								},
+								"outputTokens": {
+									"type": "object",
+									"properties": {
+										"basePrice": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 0.1,
+											"description": "Price per output token in USD"
+										}
+									},
+									"required": ["basePrice"]
+								},
+								"currency": {
+									"type": "string",
+									"enum": ["USD"],
+									"description": "Currency for pricing"
+								},
+								"effectiveDate": {
+									"type": "string",
+									"pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+									"description": "Date when pricing became effective (YYYY-MM-DD)"
+								}
+							},
+							"required": ["inputTokens", "outputTokens", "currency", "effectiveDate"]
+						},
+						"supportedFeatures": {
+							"type": "object",
+							"properties": {
+								"functionCalling": {
+									"type": "boolean",
+									"description": "Supports function/tool calling"
+								},
+								"json": {
+									"type": "boolean",
+									"description": "Supports JSON mode/structured output"
+								},
+								"streaming": {
+									"type": "boolean",
+									"description": "Supports streaming responses"
+								},
+								"vision": {
+									"type": "boolean",
+									"description": "Supports image input"
+								},
+								"multimodal": {
+									"type": "boolean",
+									"description": "Supports multiple input modalities"
+								},
+								"promptCaching": {
+									"type": "boolean",
+									"description": "Supports prompt caching"
+								},
+								"extendedThinking": {
+									"type": "boolean",
+									"description": "Supports extended thinking/reasoning"
+								}
+							},
+							"required": ["functionCalling", "json", "streaming", "vision"]
+						},
+						"defaults": {
+							"type": "object",
+							"properties": {
+								"temperature": {
+									"type": "number",
+									"minimum": 0,
+									"maximum": 2,
+									"description": "Default temperature setting"
+								},
+								"maxTokens": {
+									"type": "integer",
+									"minimum": 1,
+									"description": "Default max tokens for responses"
+								},
+								"extendedThinking": {
+									"type": "boolean",
+									"description": "Default extended thinking setting"
+								}
+							},
+							"required": ["temperature", "maxTokens", "extendedThinking"]
+						},
+						"constraints": {
+							"type": "object",
+							"properties": {
+								"temperature": {
+									"type": "object",
+									"properties": {
+										"min": {
+											"type": "number",
+											"minimum": 0,
+											"maximum": 1
+										},
+										"max": {
+											"type": "number",
+											"minimum": 1,
+											"maximum": 3
+										}
+									},
+									"required": ["min", "max"]
+								}
+							},
+							"required": ["temperature"]
+						},
+						"systemPromptBehavior": {
+							"type": "string",
+							"enum": ["required", "optional"],
+							"description": "Whether system prompts are required or optional"
+						},
+						"responseSpeed": {
+							"type": "string",
+							"enum": ["very-fast", "fast", "medium", "slow"],
+							"description": "Relative response speed"
+						},
+						"cost": {
+							"type": "string",
+							"enum": ["low", "medium", "high", "very-high"],
+							"description": "Relative cost tier"
+						},
+						"intelligence": {
+							"type": "string",
+							"enum": ["low", "medium", "high", "very-high"],
+							"description": "Relative intelligence/capability tier"
+						},
+						"trainingCutoff": {
+							"type": "string",
+							"pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+							"description": "Training data cutoff date (YYYY-MM-DD)"
+						},
+						"releaseDate": {
+							"type": "string",
+							"pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+							"description": "Model release date (YYYY-MM-DD)"
+						}
+					},
+					"required": [
+						"displayName",
+						"contextWindow",
+						"maxOutputTokens",
+						"pricing",
+						"supportedFeatures",
+						"defaults",
+						"constraints",
+						"systemPromptBehavior",
+						"responseSpeed",
+						"cost",
+						"intelligence"
+					]
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"additionalProperties": false,
+	"required": ["_metadata"]
 }

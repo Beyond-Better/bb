@@ -1,6 +1,7 @@
 import { Router } from '@oak/oak';
 import billingRouter from './billingRouter.ts';
 import { cancelSubscription, changePlan, getCurrentSubscription, getPreview } from './subscription.handlers.ts';
+import { getUserPreferences, updateUserPreferences } from './userPreferences.handlers.ts';
 
 const userRouter = new Router();
 
@@ -45,9 +46,60 @@ const userRouter = new Router();
  *               type: number
  *             expYear:
  *               type: number
+ *     UserPreferences:
+ *       type: object
+ *       properties:
+ *         theme:
+ *           type: string
+ *           enum: [light, dark, system]
+ *           description: UI theme preference
+ *         fontSize:
+ *           type: string
+ *           enum: [small, medium, large]
+ *           description: Font size preference
+ *         language:
+ *           type: string
+ *           description: Language preference
+ *         timezone:
+ *           type: string
+ *           description: User timezone
+ *         notifications:
+ *           type: object
+ *           properties:
+ *             audioEnabled:
+ *               type: boolean
+ *               description: Enable audio notifications
+ *             browserNotifications:
+ *               type: boolean
+ *               description: Enable browser push notifications
+ *             visualIndicators:
+ *               type: boolean
+ *               description: Enable visual indicators (tab title, favicon)
+ *             customAudioUrl:
+ *               type: string
+ *               description: Custom audio file URL
+ *             volume:
+ *               type: number
+ *               minimum: 0
+ *               maximum: 1
+ *               description: Notification volume (0.0 to 1.0)
+ *         defaultProjectId:
+ *           type: string
+ *           description: Default project ID
+ *         recentProjects:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: Recently accessed project IDs
+ *         projectViewMode:
+ *           type: string
+ *           enum: [list, grid]
+ *           description: Project view mode preference
  */
 
 userRouter
+	.get('/preferences', getUserPreferences)
+	.put('/preferences', updateUserPreferences)
 	.get('/subscription/current', getCurrentSubscription)
 	.post('/subscription/change', changePlan)
 	.post('/subscription/preview', getPreview)

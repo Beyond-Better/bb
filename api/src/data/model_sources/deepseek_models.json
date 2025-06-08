@@ -1,160 +1,160 @@
 {
-  "lastUpdated": "2025-06-04T04:30:00.000Z",
-  "source": "Official DeepSeek documentation research",
-  "pricingUnit": "per_1M_tokens",
-  "notes": "Pricing requires platform authentication at platform.deepseek.com. DeepSeek-Reasoner charges for full reasoning process including thinking tokens. R1-0528 upgrade improved performance significantly. All models use MIT license for commercial use.",
-  "models": [
-    {
-      "modelId": "deepseek-chat",
-      "displayName": "DeepSeek Chat",
-      "family": "DeepSeek-V3",
-      "contextWindow": 64000,
-      "maxOutputTokens": 32000,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.14
-        },
-        "outputTokens": { 
-          "basePrice": 0.28 
-        },
-        "currency": "USD",
-        "effectiveDate": "2024-12-27",
-        "note": "Estimated competitive pricing - requires platform verification"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": false
-      },
-      "defaults": {
-        "temperature": 0.7,
-        "maxTokens": 8192,
-        "extendedThinking": false
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-08-01",
-      "releaseDate": "2024-12-27",
-      "responseSpeed": "medium",
-      "cost": "low",
-      "intelligence": "high",
-      "modality": "text",
-      "description": "General purpose model based on DeepSeek-V3 (671B parameters, 37B activated)",
-      "architecture": "MoE (671B total, 37B activated per token)"
-    },
-    {
-      "modelId": "deepseek-reasoner",
-      "displayName": "DeepSeek Reasoner (R1-0528)",
-      "family": "DeepSeek-R1",
-      "contextWindow": 64000,
-      "maxOutputTokens": 32000,
-      "pricing": {
-        "inputTokens": { 
-          "basePrice": 0.55
-        },
-        "outputTokens": { 
-          "basePrice": 2.19 
-        },
-        "currency": "USD",
-        "effectiveDate": "2025-05-28",
-        "note": "Includes reasoning tokens - estimated pricing requires platform verification"
-      },
-      "supportedFeatures": {
-        "functionCalling": true,
-        "json": true,
-        "streaming": true,
-        "vision": false,
-        "promptCaching": false,
-        "extendedThinking": true
-      },
-      "defaults": {
-        "temperature": 0.6,
-        "maxTokens": 16384,
-        "extendedThinking": true
-      },
-      "constraints": {
-        "temperature": { "min": 0.0, "max": 1.0 }
-      },
-      "systemPromptBehavior": "optional",
-      "trainingCutoff": "2024-08-01",
-      "releaseDate": "2025-05-28",
-      "responseSpeed": "slow",
-      "cost": "medium",
-      "intelligence": "very-high",
-      "modality": "text",
-      "description": "Advanced reasoning model with Chain-of-Thought visible thinking process",
-      "architecture": "MoE with reasoning capabilities (671B total, 37B activated per token)",
-      "specialFeatures": {
-        "reasoningContent": "Access to thinking process via reasoning_content field",
-        "thinkingTokens": "Averages 23K tokens per complex problem",
-        "hallucinationReduction": "45-50% reduction vs previous version"
-      }
-    }
-  ],
-  "technicalDetails": {
-    "architecture": "Multi-head Latent Attention (MLA) + DeepSeekMoE",
-    "trainingData": "14.8 trillion tokens for DeepSeek-V3",
-    "trainingEfficiency": "2.788M H800 GPU hours",
-    "precision": "FP8 mixed precision (industry first at this scale)",
-    "benchmarks": {
-      "deepseek-v3": {
-        "MMLU": "88.5% (vs GPT-4o: 87.2%)",
-        "HumanEval": "65.2% (vs GPT-4o: 54.9%)",
-        "MATH": "61.6% (vs GPT-4o: 49.0%)",
-        "BBH": "87.5% (vs GPT-4o: 82.9%)"
-      },
-      "deepseek-r1-0528": {
-        "AIME 2024": "91.4% (vs o1-mini: 63.6%)",
-        "AIME 2025": "87.5% (improved from 70%)",
-        "MATH-500": "97.3% (vs o1: 96.4%)",
-        "Codeforces": "1930 rating (vs o1-mini: 1820)"
-      }
-    }
-  },
-  "apiDetails": {
-    "baseUrl": "https://api.deepseek.com",
-    "alternativeUrl": "https://api.deepseek.com/v1",
-    "compatibility": "OpenAI compatible API",
-    "authRequired": "API key from platform.deepseek.com",
-    "specialEndpoints": {
-      "chatCompletion": "/chat/completions",
-      "reasoningAccess": "reasoning_content field in response"
-    }
-  },
-  "distilledModels": [
-    {
-      "series": "DeepSeek-R1-Distill-Qwen",
-      "sizes": ["1.5B", "7B", "14B", "32B"],
-      "description": "Distilled versions for efficient deployment"
-    },
-    {
-      "series": "DeepSeek-R1-Distill-Llama", 
-      "sizes": ["8B", "70B"],
-      "description": "LLaMA-based distilled versions"
-    }
-  ],
-  "recentUpdates": {
-    "r1-0528": {
-      "date": "2025-05-28",
-      "improvements": [
-        "Enhanced reasoning: 87.5% vs 70% on AIME 2025",
-        "Deeper thinking: 23K vs 12K tokens per problem",
-        "Reduced hallucinations: 45-50% reduction",
-        "Better tool calling: Tau-Bench performance comparable to o1-high",
-        "System prompt support: Now available",
-        "Improved creative writing: Better structure and human-like style"
-      ]
-    }
-  },
-  "licensing": {
-    "license": "MIT License",
-    "commercialUse": true,
-    "distillationAllowed": true,
-    "openSource": "Available on HuggingFace and ModelScope"
-  }
+	"lastUpdated": "2025-06-04T04:30:00.000Z",
+	"source": "Official DeepSeek documentation research",
+	"pricingUnit": "per_1M_tokens",
+	"notes": "Pricing requires platform authentication at platform.deepseek.com. DeepSeek-Reasoner charges for full reasoning process including thinking tokens. R1-0528 upgrade improved performance significantly. All models use MIT license for commercial use.",
+	"models": [
+		{
+			"modelId": "deepseek-chat",
+			"displayName": "DeepSeek Chat",
+			"family": "DeepSeek-V3",
+			"contextWindow": 64000,
+			"maxOutputTokens": 32000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.14
+				},
+				"outputTokens": {
+					"basePrice": 0.28
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-12-27",
+				"note": "Estimated competitive pricing - requires platform verification"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-08-01",
+			"releaseDate": "2024-12-27",
+			"responseSpeed": "medium",
+			"cost": "low",
+			"intelligence": "high",
+			"modality": "text",
+			"description": "General purpose model based on DeepSeek-V3 (671B parameters, 37B activated)",
+			"architecture": "MoE (671B total, 37B activated per token)"
+		},
+		{
+			"modelId": "deepseek-reasoner",
+			"displayName": "DeepSeek Reasoner (R1-0528)",
+			"family": "DeepSeek-R1",
+			"contextWindow": 64000,
+			"maxOutputTokens": 32000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.55
+				},
+				"outputTokens": {
+					"basePrice": 2.19
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-28",
+				"note": "Includes reasoning tokens - estimated pricing requires platform verification"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": false,
+				"promptCaching": false,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.6,
+				"maxTokens": 16384,
+				"extendedThinking": true
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-08-01",
+			"releaseDate": "2025-05-28",
+			"responseSpeed": "slow",
+			"cost": "medium",
+			"intelligence": "very-high",
+			"modality": "text",
+			"description": "Advanced reasoning model with Chain-of-Thought visible thinking process",
+			"architecture": "MoE with reasoning capabilities (671B total, 37B activated per token)",
+			"specialFeatures": {
+				"reasoningContent": "Access to thinking process via reasoning_content field",
+				"thinkingTokens": "Averages 23K tokens per complex problem",
+				"hallucinationReduction": "45-50% reduction vs previous version"
+			}
+		}
+	],
+	"technicalDetails": {
+		"architecture": "Multi-head Latent Attention (MLA) + DeepSeekMoE",
+		"trainingData": "14.8 trillion tokens for DeepSeek-V3",
+		"trainingEfficiency": "2.788M H800 GPU hours",
+		"precision": "FP8 mixed precision (industry first at this scale)",
+		"benchmarks": {
+			"deepseek-v3": {
+				"MMLU": "88.5% (vs GPT-4o: 87.2%)",
+				"HumanEval": "65.2% (vs GPT-4o: 54.9%)",
+				"MATH": "61.6% (vs GPT-4o: 49.0%)",
+				"BBH": "87.5% (vs GPT-4o: 82.9%)"
+			},
+			"deepseek-r1-0528": {
+				"AIME 2024": "91.4% (vs o1-mini: 63.6%)",
+				"AIME 2025": "87.5% (improved from 70%)",
+				"MATH-500": "97.3% (vs o1: 96.4%)",
+				"Codeforces": "1930 rating (vs o1-mini: 1820)"
+			}
+		}
+	},
+	"apiDetails": {
+		"baseUrl": "https://api.deepseek.com",
+		"alternativeUrl": "https://api.deepseek.com/v1",
+		"compatibility": "OpenAI compatible API",
+		"authRequired": "API key from platform.deepseek.com",
+		"specialEndpoints": {
+			"chatCompletion": "/chat/completions",
+			"reasoningAccess": "reasoning_content field in response"
+		}
+	},
+	"distilledModels": [
+		{
+			"series": "DeepSeek-R1-Distill-Qwen",
+			"sizes": ["1.5B", "7B", "14B", "32B"],
+			"description": "Distilled versions for efficient deployment"
+		},
+		{
+			"series": "DeepSeek-R1-Distill-Llama",
+			"sizes": ["8B", "70B"],
+			"description": "LLaMA-based distilled versions"
+		}
+	],
+	"recentUpdates": {
+		"r1-0528": {
+			"date": "2025-05-28",
+			"improvements": [
+				"Enhanced reasoning: 87.5% vs 70% on AIME 2025",
+				"Deeper thinking: 23K vs 12K tokens per problem",
+				"Reduced hallucinations: 45-50% reduction",
+				"Better tool calling: Tau-Bench performance comparable to o1-high",
+				"System prompt support: Now available",
+				"Improved creative writing: Better structure and human-like style"
+			]
+		}
+	},
+	"licensing": {
+		"license": "MIT License",
+		"commercialUse": true,
+		"distillationAllowed": true,
+		"openSource": "Available on HuggingFace and ModelScope"
+	}
 }

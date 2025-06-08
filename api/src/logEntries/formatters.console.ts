@@ -14,25 +14,56 @@ function getFileIconConsole(fileName: string): string {
 	const fileExt = fileName.split('.').pop()?.toLowerCase() || 'file';
 	const iconMap: Record<string, string> = {
 		// Documents
-		pdf: '📄', doc: '📝', docx: '📝', txt: '📝', rtf: '📝',
+		pdf: '📄',
+		doc: '📝',
+		docx: '📝',
+		txt: '📝',
+		rtf: '📝',
 		// Spreadsheets
-		xls: '📊', xlsx: '📊', csv: '📊',
+		xls: '📊',
+		xlsx: '📊',
+		csv: '📊',
 		// Presentations
-		ppt: '📽️', pptx: '📽️',
+		ppt: '📽️',
+		pptx: '📽️',
 		// Images
-		jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🖼️', bmp: '🖼️',
+		jpg: '🖼️',
+		jpeg: '🖼️',
+		png: '🖼️',
+		gif: '🖼️',
+		webp: '🖼️',
+		svg: '🖼️',
+		bmp: '🖼️',
 		// Video
-		mp4: '🎥', avi: '🎥', mkv: '🎥', mov: '🎥', wmv: '🎥',
+		mp4: '🎥',
+		avi: '🎥',
+		mkv: '🎥',
+		mov: '🎥',
+		wmv: '🎥',
 		// Audio
-		mp3: '🎵', wav: '🎵', flac: '🎵', aac: '🎵',
+		mp3: '🎵',
+		wav: '🎵',
+		flac: '🎵',
+		aac: '🎵',
 		// Archives
-		zip: '📦', rar: '📦', '7z': '📦', tar: '📦', gz: '📦',
+		zip: '📦',
+		rar: '📦',
+		'7z': '📦',
+		tar: '📦',
+		gz: '📦',
 		// Code
-		js: '💻', ts: '💻', py: '💻', java: '💻', cpp: '💻', c: '💻', html: '💻', css: '💻',
+		js: '💻',
+		ts: '💻',
+		py: '💻',
+		java: '💻',
+		cpp: '💻',
+		c: '💻',
+		html: '💻',
+		css: '💻',
 		// Default
 		default: '📄',
 	};
-	
+
 	return iconMap[fileExt] || iconMap.default;
 }
 
@@ -59,17 +90,21 @@ export const formatLogEntryContent = (logEntry: ConversationLogEntry): string =>
 					/!\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
 					(match, altText, resourceId) => {
 						const icon = getFileIconConsole(altText || resourceId);
-						return `\n┌── ${icon} IMAGE ATTACHMENT\n│ ${altText || 'Attached Image'}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
-					}
+						return `\n┌── ${icon} IMAGE ATTACHMENT\n│ ${
+							altText || 'Attached Image'
+						}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
+					},
 				);
-				
+
 				// Other files
 				processedContent = processedContent.replace(
 					/\[([^\]]*)\]\(bb\+filesystem\+uploads\+file:\.\/(.*?)\)/g,
 					(match, linkText, resourceId) => {
 						const icon = getFileIconConsole(linkText || resourceId);
-						return `\n┌── ${icon} FILE ATTACHMENT\n│ ${linkText || 'Attached File'}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
-					}
+						return `\n┌── ${icon} FILE ATTACHMENT\n│ ${
+							linkText || 'Attached File'
+						}\n│ Resource ID: ${resourceId}\n└──────────────────\n`;
+					},
 				);
 
 				// Remove any remaining HTML tags

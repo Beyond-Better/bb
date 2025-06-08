@@ -143,7 +143,10 @@ export default class LogEntryFormatterManager {
 			const auxContent = content as AuxiliaryChatContent;
 			return {
 				title: this.formatLogEntryTitleBrowser({ title: auxContent.purpose }),
-				content: this.formatLogEntryContentBrowser({ content: auxContent.message } as ConversationLogEntry, this.projectEditor.projectId),
+				content: this.formatLogEntryContentBrowser(
+					{ content: auxContent.message } as ConversationLogEntry,
+					this.projectEditor.projectId,
+				),
 				preview: this.formatLogEntryPreviewBrowser({ content: auxContent.message } as ConversationLogEntry),
 			};
 		}

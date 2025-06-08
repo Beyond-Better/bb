@@ -9,7 +9,11 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 // Re-export model capabilities types
-export type { ModelCapabilities, InteractionPreferences, UserModelPreferences } from 'api/types/modelCapabilities.types.ts';
+export type {
+	InteractionPreferences,
+	ModelCapabilities,
+	UserModelPreferences,
+} from 'api/types/modelCapabilities.types.ts';
 
 // Model registry service will be used instead of enums
 // Import the service for runtime access
@@ -187,22 +191,22 @@ export const LLMModelsByProvider = {
 const staticModelToProvider: Record<string, LLMProvider> = {};
 
 // Populate static mappings
-Object.values(AnthropicModel).forEach(model => {
+Object.values(AnthropicModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.ANTHROPIC;
 });
-Object.values(OpenAIModel).forEach(model => {
+Object.values(OpenAIModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.OPENAI;
 });
-Object.values(DeepSeekModel).forEach(model => {
+Object.values(DeepSeekModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.DEEPSEEK;
 });
-Object.values(GoogleModel).forEach(model => {
+Object.values(GoogleModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.GOOGLE;
 });
-Object.values(GroqModel).forEach(model => {
+Object.values(GroqModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.GROQ;
 });
-Object.values(OllamaModel).forEach(model => {
+Object.values(OllamaModel).forEach((model) => {
 	staticModelToProvider[model] = LLMProvider.OLLAMA;
 });
 

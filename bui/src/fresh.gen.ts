@@ -26,9 +26,11 @@ import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
 import * as $AppSettings from './islands/AppSettings.tsx';
+import * as $AppSettings_AppearanceSettings from './islands/AppSettings/AppearanceSettings.tsx';
 import * as $AppSettings_DefaultProjectSettings from './islands/AppSettings/DefaultProjectSettings.tsx';
 import * as $AppSettings_MCPServerItem from './islands/AppSettings/MCPServerItem.tsx';
 import * as $AppSettings_MCPServersSection from './islands/AppSettings/MCPServersSection.tsx';
+import * as $AppSettings_NotificationSettings from './islands/AppSettings/NotificationSettings.tsx';
 import * as $AppSettings_SubscriptionSettings from './islands/AppSettings/SubscriptionSettings.tsx';
 import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
@@ -38,6 +40,7 @@ import * as $LandingHero from './islands/LandingHero.tsx';
 import * as $NewPaymentMethodForm from './islands/NewPaymentMethodForm.tsx';
 import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
+import * as $ThemeManager from './islands/ThemeManager.tsx';
 import * as $auth_AuthError from './islands/auth/AuthError.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
@@ -79,9 +82,11 @@ const manifest = {
 	},
 	islands: {
 		'./islands/AppSettings.tsx': $AppSettings,
+		'./islands/AppSettings/AppearanceSettings.tsx': $AppSettings_AppearanceSettings,
 		'./islands/AppSettings/DefaultProjectSettings.tsx': $AppSettings_DefaultProjectSettings,
 		'./islands/AppSettings/MCPServerItem.tsx': $AppSettings_MCPServerItem,
 		'./islands/AppSettings/MCPServersSection.tsx': $AppSettings_MCPServersSection,
+		'./islands/AppSettings/NotificationSettings.tsx': $AppSettings_NotificationSettings,
 		'./islands/AppSettings/SubscriptionSettings.tsx': $AppSettings_SubscriptionSettings,
 		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
@@ -91,6 +96,7 @@ const manifest = {
 		'./islands/NewPaymentMethodForm.tsx': $NewPaymentMethodForm,
 		'./islands/ProjectManager.tsx': $ProjectManager,
 		'./islands/SideNav.tsx': $SideNav,
+		'./islands/ThemeManager.tsx': $ThemeManager,
 		'./islands/auth/AuthError.tsx': $auth_AuthError,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,

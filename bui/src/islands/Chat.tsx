@@ -4,6 +4,8 @@ import { computed, Signal, signal, useComputed } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
+import { notificationManager } from '../utils/notificationManager.ts';
+import { userPersistenceManager } from '../storage/userPersistence.ts';
 import type {
 	ModelDetails,
 	//ModelResponse,
@@ -206,6 +208,36 @@ export default function Chat({
 			isMounted = false;
 		};
 	}, []);
+
+	// Initialize notification system
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+
+		async function initializeNotifications() {
+			try {
+				// Initialize user persistence with API client and local mode status
+				const isLocalMode = !chatState.value.apiClient; // Simple check for local mode
+				userPersistenceManager.initialize(chatState.value.apiClient, isLocalMode);
+
+				// Load user preferences
+				await userPersistenceManager.loadPreferences();
+
+				// Initialize notification manager
+				await notificationManager.initialize();
+
+				console.log('Chat: Notification system initialized successfully');
+			} catch (error) {
+				console.warn('Chat: Failed to initialize notification system:', error);
+			}
+		}
+
+		initializeNotifications();
+
+		// Cleanup on unmount
+		return () => {
+			notificationManager.dispose();
+		};
+	}, [chatState.value.apiClient]);
 
 	const [handlers, scrollIndicatorState] = useChatState(chatConfig, chatState, chatInputOptions);
 
@@ -570,7 +602,15 @@ export default function Chat({
 				console.log('ChatIsland: Page hidden while processing');
 				setToastMessage('Statement in progress in background');
 				setShowToast(true);
+			} else if (document.visibilityState === 'visible') {
+				// User returned to page - clear any notifications
+				notificationManager.clearNotifications();
 			}
+		};
+
+		const handleFocus = () => {
+			// User focused window - clear any notifications
+			notificationManager.clearNotifications();
 		};
 
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -581,11 +621,13 @@ export default function Chat({
 		};
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
+		globalThis.addEventListener('focus', handleFocus);
 		globalThis.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
 			//console.log('Chat: Cleanup for useEffect');
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			globalThis.removeEventListener('focus', handleFocus);
 			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	}, [chatState.value.status.apiStatus]);

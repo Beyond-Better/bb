@@ -14,11 +14,11 @@ export async function initApiBaseUrl(): Promise<void> {
 		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 		const apiConfig: ApiConfig = globalConfig.api;
-		
+
 		const apiHostname = apiConfig.hostname || 'localhost';
 		const apiPort = apiConfig.port || 3162;
 		const apiUseTls = apiConfig.tls?.useTls || false;
-		
+
 		apiBaseUrl = `${apiUseTls ? 'https' : 'http'}://${apiHostname}:${apiPort}`;
 		logger.info(`ApiBaseUrl: Initialized with ${apiBaseUrl}`);
 	} catch (error) {
