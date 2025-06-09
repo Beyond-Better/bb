@@ -100,7 +100,7 @@ export class TerminalHandler {
 	private getStatusMessage(status: ApiStatus, metadata?: { toolName?: string; error?: string }): string {
 		switch (status) {
 			case ApiStatus.LLM_PROCESSING:
-				return 'Claude is thinking...';
+				return 'Assistant is thinking...';
 			case ApiStatus.TOOL_HANDLING:
 				return `Running tool: ${metadata?.toolName || 'unknown'}`;
 			case ApiStatus.API_BUSY:
@@ -272,7 +272,7 @@ export class TerminalHandler {
 	public async getMultilineInput(): Promise<string> {
 		const history = await this.loadHistory();
 		const input = await Input.prompt({
-			message: 'Ask Claude',
+			message: 'Ask Assistant',
 			prefix: '👤  ',
 			//files: true,
 			info: true,
@@ -379,7 +379,7 @@ export class TerminalHandler {
 		console.log('');
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 
@@ -448,7 +448,7 @@ export class TerminalHandler {
 		}
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 
@@ -533,7 +533,7 @@ export class TerminalHandler {
 		console.log(summaryLine);
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 

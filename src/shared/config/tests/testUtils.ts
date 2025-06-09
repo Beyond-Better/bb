@@ -32,7 +32,7 @@ export async function createTestEnv() {
 export const sampleV1GlobalConfig = {
 	version: '1.0.0',
 	myPersonsName: 'Test User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	noBrowser: false,
 	api: {
 		apiHostname: 'localhost',
@@ -90,7 +90,7 @@ export const sampleV1ProjectConfig = {
 export const sampleV21GlobalConfig: GlobalConfig = {
 	version: '2.1.0',
 	myPersonsName: 'Test User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	noBrowser: false,
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
@@ -135,7 +135,7 @@ export const sampleV21GlobalConfig: GlobalConfig = {
 export const sampleV22GlobalConfig: GlobalConfig = {
 	version: '2.2.0',
 	myPersonsName: 'Test User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	noBrowser: false,
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',

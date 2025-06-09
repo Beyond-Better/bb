@@ -1202,7 +1202,7 @@ export function ChatInput({
 		switch (status.apiStatus) {
 			case ApiStatus.LLM_PROCESSING:
 				return {
-					message: 'Claude is thinking...',
+					message: 'Assistant is thinking...',
 					type: 'info' as const,
 					status: status.apiStatus,
 					visible: true,

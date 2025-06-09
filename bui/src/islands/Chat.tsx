@@ -616,7 +616,7 @@ export default function Chat({
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (isProcessing(chatState.value.status)) {
 				event.preventDefault();
-				//return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
+				//return (event.returnValue = 'Assistant is still working. Are you sure you want to leave?');
 			}
 		};
 

@@ -589,7 +589,7 @@ export default function DefaultProjectSettings() {
 								</div>
 							</div>
 							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-								Enables Claude to show its step-by-step reasoning process for complex tasks
+								Enables Assistant to show its step-by-step reasoning process for complex tasks
 							</p>
 
 							{formState.extendedThinkingEnabled && (
@@ -601,7 +601,7 @@ export default function DefaultProjectSettings() {
 										Thinking Budget (tokens)
 									</label>
 									<p class='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-										Maximum tokens Claude can use for reasoning (minimum 1,024)
+										Maximum tokens Assistant can use for reasoning (minimum 1,024)
 									</p>
 									<div class='max-w-[200px]'>
 										<input

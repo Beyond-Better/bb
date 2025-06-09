@@ -138,7 +138,7 @@ describe('Configuration Types', () => {
 			const config: GlobalConfig = {
 				version: '2.2.0',
 				myPersonsName: 'Test User',
-				myAssistantsName: 'Claude',
+				myAssistantsName: 'Assistant',
 				defaultModels: {
 					orchestrator: 'claude-3-7-sonnet-20250219',
 					agent: 'claude-3-7-sonnet-20250219',
@@ -179,7 +179,7 @@ describe('Configuration Types', () => {
 		it('should provide correct defaults', () => {
 			const defaults = GlobalConfigDefaults;
 			assertEquals(defaults.myPersonsName, Deno.env.get('USER') || 'User');
-			assertEquals(defaults.myAssistantsName, 'Claude');
+			assertEquals(defaults.myAssistantsName, 'Assistant');
 			assertEquals(defaults.noBrowser, false);
 			assertExists(defaults.api);
 			assertExists(defaults.bui);

@@ -402,7 +402,7 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
 	myPersonsName: Deno.env.get('USER') || 'User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	defaultModels: DefaultModelsConfigDefaults,
 	noBrowser: false,
 	api: ApiConfigDefaults,

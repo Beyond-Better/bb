@@ -280,7 +280,7 @@ impl Default for GlobalConfig {
         GlobalConfig {
             version: "2.2.0".to_string(),
             my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
-            my_assistants_name: "Claude".to_string(),
+            my_assistants_name: "Assistant".to_string(),
             default_models: DefaultModels::default(),
             no_browser: false,
             api: ApiConfig::default(),

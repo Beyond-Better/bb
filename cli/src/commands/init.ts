@@ -45,7 +45,7 @@ async function runWizard(
 		: {
 			name: basename(workingRoot),
 			myPersonsName: globalConfig.myPersonsName || Deno.env.get('USER') || Deno.env.get('USERNAME') || 'User',
-			myAssistantsName: globalConfig.myAssistantsName || 'Claude',
+			myAssistantsName: globalConfig.myAssistantsName || 'Assistant',
 			anthropicApiKey: '',
 			dsConnections: [],
 			defaultModels: DefaultModelsConfigDefaults,
