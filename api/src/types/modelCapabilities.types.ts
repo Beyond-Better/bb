@@ -15,6 +15,7 @@ export interface ModelInfo {
 	capabilities: ModelCapabilities;
 	source: 'static' | 'dynamic'; // Whether from JSON or discovered at runtime
 	hidden?: boolean; // Whether the model should be hidden from users (e.g., not available in bb-sass)
+	localOnly?: boolean; // Whether the model should only be available when localMode is enabled
 }
 
 /**

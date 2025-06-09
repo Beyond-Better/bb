@@ -145,7 +145,9 @@ Notes:
 
 		try {
 			for (const patchPart of parsedPatch) {
-				const currentFilePath = patchPart.newFileName || filePath;
+				// remove the a/ or b/ patch prefix
+				const currentFilePath = (patchPart.newFileName || filePath)?.replace(/^[ab]\//, '') || '';
+				//const currentFilePath = patchPart.newFileName || filePath;
 				if (!currentFilePath) {
 					throw new Error('File path is undefined');
 				}

@@ -61,6 +61,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// token usage for most recent statement
@@ -70,6 +71,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// token usage for for all statements
@@ -79,6 +81,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// Task-oriented metrics
@@ -356,7 +359,8 @@ class LLMInteraction {
 		const rawAllUsage = {
 			...tokenUsage,
 			totalAllTokens: tokenUsage.totalTokens + (tokenUsage.cacheCreationInputTokens ?? 0) +
-				(tokenUsage.cacheReadInputTokens ?? 0),
+				(tokenUsage.cacheReadInputTokens ?? 0)+
+				(tokenUsage.thoughtTokens ?? 0),
 		};
 		return {
 			messageId: this.getLastMessageId(),
@@ -399,6 +403,7 @@ class LLMInteraction {
 			this.tokenUsageInteraction.outputTokens = 0;
 			this.tokenUsageInteraction.cacheCreationInputTokens = 0;
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+			this.tokenUsageInteraction.thoughtTokens = 0;
 			this.tokenUsageInteraction.totalAllTokens = 0;
 		}
 		if (this.statementTurnCount === 0) {
@@ -407,6 +412,7 @@ class LLMInteraction {
 			this.tokenUsageStatement.outputTokens = 0;
 			this.tokenUsageStatement.cacheCreationInputTokens = 0;
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
+			this.tokenUsageStatement.thoughtTokens = 0;
 			this.tokenUsageStatement.totalAllTokens = 0;
 		}
 
@@ -415,6 +421,9 @@ class LLMInteraction {
 		}
 		if (this.tokenUsageInteraction.cacheReadInputTokens === undefined) {
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+		}
+		if (this.tokenUsageInteraction.thoughtTokens === undefined) {
+			this.tokenUsageInteraction.thoughtTokens = 0;
 		}
 		if (this.tokenUsageInteraction.totalAllTokens === undefined) {
 			this.tokenUsageInteraction.totalAllTokens = 0;
@@ -425,6 +434,9 @@ class LLMInteraction {
 		if (this.tokenUsageStatement.cacheReadInputTokens === undefined) {
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
 		}
+		if (this.tokenUsageStatement.thoughtTokens === undefined) {
+			this.tokenUsageStatement.thoughtTokens = 0;
+		}
 		if (this.tokenUsageStatement.totalAllTokens === undefined) {
 			this.tokenUsageStatement.totalAllTokens = 0;
 		}
@@ -434,16 +446,18 @@ class LLMInteraction {
 		this.tokenUsageInteraction.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageInteraction.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageInteraction.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageInteraction.thoughtTokens += tokenUsage.thoughtTokens;
 		this.tokenUsageInteraction.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens;
+			tokenUsage.cacheReadInputTokens + tokenUsage.thoughtTokens;
 
 		this.tokenUsageStatement.totalTokens += tokenUsage.totalTokens;
 		this.tokenUsageStatement.inputTokens += tokenUsage.inputTokens;
 		this.tokenUsageStatement.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageStatement.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageStatement.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageStatement.thoughtTokens += tokenUsage.thoughtTokens;
 		this.tokenUsageStatement.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens;
+			tokenUsage.cacheReadInputTokens + tokenUsage.thoughtTokens;
 
 		this.tokenUsageTurn = tokenUsage;
 

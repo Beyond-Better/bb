@@ -175,6 +175,16 @@ const SUGGESTED_COMBOS = [
 		},
 	},
 	{
+		name: 'Gemini Balanced',
+		description: 'Google Gemini for reliability and consistency',
+		provider: 'Gemini',
+		models: {
+			orchestrator: 'gemini-2.5-pro-preview-06-05',
+			agent: 'gemini-2.5-flash-preview-05-20',
+			chat: 'gemini-2.5-flash-preview-05-20',
+		},
+	},
+	{
 		name: 'Gemini Performance',
 		description: 'Google Gemini for multimodal capabilities',
 		provider: 'Gemini',
@@ -261,6 +271,7 @@ export function ModelSelector({
 									(intelligenceA === -1 ? 1 : intelligenceA);
 								return intelligenceComparison;
 							});
+						//console.log('ModelSelector: ', {sortedModels});
 
 						modelsState.value = {
 							models: sortedModels,

@@ -3,6 +3,7 @@ import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 /**
  * @openapi
@@ -93,6 +94,11 @@ export const listModels = async (
 		// [TODO] Ideally we pass projectConfig to getInstance since project may have different llmProviders
 		const registryService = await ModelRegistryService.getInstance();
 
+		// Get configuration to check localMode
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const isLocalMode = globalConfig.api.localMode ?? false;
+
 		// Parse pagination and filter parameters
 		const url = new URL(request.url);
 		const page = parseInt(url.searchParams.get('page') || '1');
@@ -102,6 +108,11 @@ export const listModels = async (
 
 		// Get all available models from the registry service
 		let allModels = registryService.getAllModels();
+
+		// Filter out local-only models when not in local mode
+		if (!isLocalMode) {
+			allModels = allModels.filter((model: ModelInfo) => !model.localOnly);
+		}
 		//logger.info('ModelHandler: listModels', allModels);
 
 		// Apply filters
@@ -208,12 +219,24 @@ export const getModelCapabilities = async (
 		// Initialize the model registry service
 		const registryService = await ModelRegistryService.getInstance();
 
+		// Get configuration to check localMode
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const isLocalMode = globalConfig.api.localMode ?? false;
+
 		// Get the model information
 		const modelInfo = registryService.getModel(modelId);
 
 		if (!modelInfo) {
 			response.status = 404;
 			response.body = { error: `Model not found: ${modelId}` };
+			return;
+		}
+
+		// Check if model is local-only and we're not in local mode
+		if (modelInfo.localOnly && !isLocalMode) {
+			response.status = 403;
+			response.body = { error: `Model ${modelId} is only available in local mode` };
 			return;
 		}
 

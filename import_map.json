@@ -16,7 +16,7 @@
 		"openai": "jsr:@openai/openai@4.81.0",
 		"@google/generative-ai": "https://esm.sh/@google/generative-ai@0.24.1",
 		"@google/genai": "https://esm.sh/@google/genai@1.4.0",
-		"groq": "npm:groq-sdk@0.5.0",
+		"groq-sdk": "npm:groq-sdk@0.23.0",
 		"ajv": "https://esm.sh/ajv@8.14.0",
 		"diff": "https://esm.sh/diff@5.2.0",
 		"highlight": "npm:highlight.js@11.10.0",

@@ -35,6 +35,7 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 			cacheCreationInputTokens: 0,
 			// Tokens we got from cache
 			cacheReadInputTokens: cachedTokens,
+			thoughtTokens: 0,
 			totalAllTokens:
 				((Math.max(0, totalPromptTokens - cachedTokens)) + (usage?.completion_tokens ?? 0) + cachedTokens),
 		};

@@ -461,7 +461,7 @@ class OrchestratorController extends BaseController {
 						// Extract text and thinking content from the response
 						const textContent = extractTextFromContent(currentResponse.messageResponse.answerContent);
 						const thinkingContent = this.extractThinkingContent(currentResponse.messageResponse);
-						logger.info(
+						logger.debug(
 							`OrchestratorController: Text and Thinking content for tool use for turn ${interaction.statementTurnCount}:`,
 							{ textContent, thinkingContent },
 						);

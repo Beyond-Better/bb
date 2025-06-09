@@ -144,7 +144,8 @@ class NotificationManager {
 			promises.push(this.playAudioNotification(preferences));
 		}
 
-		if (preferences.browserNotifications && this.state.value.hasPermission) {
+		//if (preferences.browserNotifications && this.state.value.hasPermission) {
+		if (preferences.browserNotifications) {
 			promises.push(this.showBrowserNotification(message));
 		}
 
@@ -183,7 +184,7 @@ class NotificationManager {
 	 * Request notification permission from browser
 	 */
 	public async requestNotificationPermission(): Promise<boolean> {
-		if (!IS_BROWSER) return;
+		if (!IS_BROWSER) return false;
 		if (!('Notification' in globalThis)) {
 			console.warn('NotificationManager: Browser notifications not supported');
 			return false;
@@ -315,9 +316,9 @@ class NotificationManager {
 	 * Show browser notification
 	 */
 	private async showBrowserNotification(message: string): Promise<void> {
-		if (!this.state.value.hasPermission) {
-			throw new Error('Notification permission not granted');
-		}
+		//if (!this.state.value.hasPermission) {
+		//	throw new Error('Notification permission not granted');
+		//}
 
 		try {
 			console.log('NotificationManager: Showing browser notification');

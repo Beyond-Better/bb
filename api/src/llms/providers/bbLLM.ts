@@ -58,7 +58,7 @@ class BbLLM extends LLM {
 	}
 
 	private logMessageDetails(messages: LLMMessage[]): void {
-		logger.info('BbLLM: Message Details for LLM Request:');
+		logger.info(`BbLLM:provider[${this.llmProviderName}]: Message Details for LLM Request:`);
 
 		const messagesWithCache: number[] = [];
 		const messagesWithFiles: number[] = [];
@@ -209,11 +209,11 @@ class BbLLM extends LLM {
 		messageRequest: LLMProviderMessageRequest,
 		interaction?: LLMInteraction,
 	): Promise<LLMProviderMessageRequest> {
-		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-messageRequest.system', messageRequest.system);
+		//logger.debug(`BbLLM:provider[${this.llmProviderName}]: asProviderMessageRequest-messageRequest.system`, messageRequest.system);
 
-		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-interaction.allTools', messageRequest.tools);
+		//logger.debug(`BbLLM:provider[${this.llmProviderName}]: asProviderMessageRequest-interaction.allTools`, messageRequest.tools);
 		const tools = this.asProviderToolType(messageRequest.tools);
-		logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest-tools', tools);
+		//logger.debug(`BbLLM:provider[${this.llmProviderName}]: asProviderMessageRequest-tools`, tools);
 
 		const messages = this.asProviderMessageType(messageRequest.messages);
 		// Log detailed message information
@@ -271,7 +271,7 @@ class BbLLM extends LLM {
 			usePromptCaching,
 			extendedThinking: { enabled: extendedThinking, budgetTokens: 4000 },
 		};
-		//logger.debug('BbLLM: llms-anthropic-asProviderMessageRequest', providerMessageRequest);
+		//logger.debug(`BbLLM:provider[${this.llmProviderName}]: asProviderMessageRequest`, providerMessageRequest);
 		//logger.dir(providerMessageRequest);
 
 		return providerMessageRequest;
@@ -288,7 +288,7 @@ class BbLLM extends LLM {
 		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			//logger.info('BbLLM: messageRequest', messageRequest);
+			//logger.info(`BbLLM:provider[${this.llmProviderName}]: messageRequest`, messageRequest);
 
 			const providerMessageRequest = await this.asProviderMessageRequest(
 				messageRequest,
@@ -299,8 +299,8 @@ class BbLLM extends LLM {
 			const { data, error } = await this.supabaseClient.functions.invoke('llm-proxy', {
 				body: providerMessageRequest,
 			});
-			//logger.info('BbLLM: llms-bb-data', data);
-			//logger.info('BbLLM: llms-bb-error', error);
+			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-data`, data);
+			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-error`, error);
 
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.api?.logLevel === 'debug1') {
@@ -313,18 +313,18 @@ class BbLLM extends LLM {
 			//}
 
 			if (error) {
-				//logger.error('BbLLM: Error calling BB API: ', {data, error});
+				//logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: `, {data, error});
 				let errorBody = {};
 				try {
 					if (error?.context) {
 						errorBody = await error.context.json();
-						//logger.error('BbLLM: Error calling BB API: ', { error, errorBody });
+						//logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: `, { error, errorBody });
 					} else {
-						logger.error('BbLLM: Error calling BB API: No error body available: ', { error });
+						logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: No error body available: `, { error });
 					}
 				} catch (e) {
-					logger.error('BbLLM: Error calling BB API: Failed to parse error response: ', e);
-					logger.error('BbLLM: Error calling BB API: Original error: ', { error });
+					logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Failed to parse error response: `, e);
+					logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Original error: `, { error });
 				}
 
 				throw createError(
@@ -338,7 +338,7 @@ class BbLLM extends LLM {
 				);
 			}
 			if (bbResponseMessage.status.statusCode !== 200) {
-				logger.error('BbLLM: Received a non-200 from BB API: ', bbResponseMessage);
+				logger.error(`BbLLM:provider[${this.llmProviderName}]: Received a non-200 from BB API: `, bbResponseMessage);
 				throw createError(
 					ErrorType.LLM,
 					`Received a non-200 from BB API: `,
@@ -375,19 +375,20 @@ class BbLLM extends LLM {
 					totalTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens),
 					cacheCreationInputTokens: bbResponseMessage.usage.cacheCreationInputTokens || 0,
 					cacheReadInputTokens: bbResponseMessage.usage.cacheReadInputTokens || 0,
+					thoughtTokens: bbResponseMessage.usage.thoughtTokens || 0,
 					totalAllTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens +
 						(bbResponseMessage.usage.cacheCreationInputTokens || 0) +
-						(bbResponseMessage.usage.cacheReadInputTokens || 0)),
+						(bbResponseMessage.usage.cacheReadInputTokens || 0) + (bbResponseMessage.usage.cacheReadInputTokens || 0)),
 				},
 				rateLimit: bbResponseMessage.rateLimit,
 				providerMessageResponseMeta: bbResponseMessage.status,
 			};
-			logger.debug(`BbLLM: provider[${this.llmProviderName}] Created message response:`, {
-				id: messageResponse.id,
-				type: messageResponse.type,
-				contentLength: messageResponse.answerContent.length,
-			});
-			//logger.debug("BbLLM: llms-anthropic-messageResponse", messageResponse);
+			// logger.debug(`BbLLM:provider[${this.llmProviderName}]: Created message response:`, {
+			// 	id: messageResponse.id,
+			// 	type: messageResponse.type,
+			// 	contentLength: messageResponse.answerContent.length,
+			// });
+			//logger.debug(`BbLLM:provider[${this.llmProviderName}]: llms-anthropic-messageResponse`, messageResponse);
 
 			// Include request parameters in messageMeta
 			const requestParams: LLMRequestParams = bbResponseMessage.metadata.requestParams || {
@@ -406,7 +407,7 @@ class BbLLM extends LLM {
 				},
 			};
 		} catch (err) {
-			logger.error('BbLLM: Error calling BB API', err);
+			logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API`, err);
 			if (isLLMError(err)) throw err;
 			throw createError(
 				ErrorType.LLM,
@@ -440,7 +441,7 @@ class BbLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`BbLLM: provider[${this.llmProviderName}] modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`BbLLM:provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Tool exceeded max tokens') {
@@ -463,27 +464,27 @@ class BbLLM extends LLM {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'max_tokens':
 					logger.warn(
-						`BbLLM: provider[${this.llmProviderName}] Response reached the maximum token limit`,
+						`BbLLM:provider[${this.llmProviderName}]: Response reached the maximum token limit`,
 					);
 
 					break;
 				case 'end_turn':
-					logger.warn(`BbLLM: provider[${this.llmProviderName}] Response reached the end turn`);
+					logger.warn(`BbLLM:provider[${this.llmProviderName}]: pResponse reached the end turn`);
 					break;
 				case 'stop_sequence':
-					logger.warn(`BbLLM: provider[${this.llmProviderName}] Response reached its natural end`);
+					logger.warn(`BbLLM:provider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				case 'tool_use':
-					logger.warn(`BbLLM: provider[${this.llmProviderName}] Response is using a tool`);
+					logger.warn(`BbLLM:provider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				case 'refusal':
 					logger.warn(
-						`AnthropicLLM: provider[${this.llmProviderName}] Response has refused to continue for safety reasons`,
+						`BbLLM:provider[${this.llmProviderName}]: Response has refused to continue for safety reasons`,
 					);
 					break;
 				default:
 					logger.info(
-						`BbLLM: provider[${this.llmProviderName}] Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`BbLLM:provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

@@ -402,6 +402,7 @@ export class TerminalHandler {
 					inputTokens: 0,
 					outputTokens: 0,
 					totalTokens: 0,
+					thoughtTokens: 0,
 					totalAllTokens: 0,
 				},
 			},
@@ -474,6 +475,7 @@ export class TerminalHandler {
 					inputTokens: data.tokenUsageStats.tokenUsageStatement.inputTokens,
 					outputTokens: data.tokenUsageStats.tokenUsageStatement.outputTokens,
 					totalTokens: data.tokenUsageStats.tokenUsageStatement.totalTokens,
+					thoughtTokens: data.tokenUsageStats.tokenUsageStatement.thoughtTokens,
 					totalAllTokens: data.tokenUsageStats.tokenUsageStatement.totalAllTokens,
 				},
 			},
@@ -550,6 +552,7 @@ export class TerminalHandler {
 			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
 			outputTokens: response.tokenUsageStats.tokenUsageStatement.outputTokens,
 			totalTokens: response.tokenUsageStats.tokenUsageStatement.totalTokens,
+			thoughtTokens: response.tokenUsageStats.tokenUsageStatement.thoughtTokens,
 			totalAllTokens: response.tokenUsageStats.tokenUsageStatement.totalAllTokens,
 		};
 

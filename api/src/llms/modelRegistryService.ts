@@ -138,7 +138,19 @@ export class ModelRegistryService {
 			>;
 
 			for (const [provider, models] of Object.entries(capabilities)) {
+				// Skip metadata section - it's not a provider
+				if (provider === '_metadata') {
+					continue;
+				}
+				
 				const providerEnum = provider as LLMProvider;
+				
+				// Skip Ollama models from static data - they are handled by dynamic discovery
+				if (providerEnum === 'ollama') {
+					logger.info('ModelRegistryService: Skipping static Ollama models - using dynamic discovery instead');
+					continue;
+				}
+				
 				const modelIds: string[] = [];
 
 				for (const [modelId, modelCapabilities] of Object.entries(models)) {
@@ -257,6 +269,7 @@ export class ModelRegistryService {
 					provider: 'ollama' as LLMProvider,
 					capabilities,
 					source: 'dynamic',
+					localOnly: true, // Ollama models are only available in local mode
 				};
 
 				this.modelRegistry.set(modelId, modelInfo);

@@ -71,7 +71,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 	}
 
 	protected asProviderMessageType(messages: LLMMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] {
-		logger.info(`llms-${this.llmProviderName}-asProviderMessageType-messages`, messages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: asProviderMessageType-messages`, messages);
 		const providerMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
 		messages.forEach((message, _index, _array) => {
@@ -151,7 +151,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			}
 		});
 
-		logger.info(`llms-${this.llmProviderName}-asProviderMessageType-providerMessages`, providerMessages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: -asProviderMessageType-providerMessages`, providerMessages);
 		return providerMessages;
 	}
 
@@ -261,10 +261,10 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			logger.debug(
-				`llms-${this.llmProviderName}-speakWith-messageRequest`,
-				JSON.stringify(messageRequest, null, 2),
-			);
+			// logger.debug(
+			// 	`LlmProvider[${this.llmProviderName}]: speakWith-messageRequest`,
+			// 	JSON.stringify(messageRequest, null, 2),
+			// );
 
 			const providerMessageRequest: OpenAI.Chat.ChatCompletionCreateParams = await this.asProviderMessageRequest(
 				messageRequest,
@@ -276,7 +276,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			).withResponse();
 
 			const openaiMessage = openaiMessageStream as OpenAI.Chat.ChatCompletion;
-			logger.debug(`llms-${this.llmProviderName}-openaiMessage`, openaiMessage);
+			//logger.debug(`LlmProvider[${this.llmProviderName}]: openaiMessage`, openaiMessage);
 
 			const messageResponse: LLMProviderMessageResponse = {
 				id: openaiMessage.id,
@@ -310,7 +310,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 			// Process provider-specific response metadata (like rate limits)
 			this.processResponseMetadata(openaiResponse, messageResponse);
 
-			logger.debug(`llms-${this.llmProviderName}-messageResponse`, messageResponse);
+			//logger.debug(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
 
 			// Include request parameters in messageMeta
 			const requestParams: LLMRequestParams = {
@@ -328,7 +328,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 				},
 			};
 		} catch (err) {
-			logger.error(`Error calling ${this.llmProviderName} API`, err);
+			logger.error(`LlmProvider[${this.llmProviderName}]: Error calling ${this.llmProviderName} API`, err);
 			throw createError(
 				ErrorType.LLM,
 				`Could not get response from ${this.llmProviderName} API: ${(err as Error).message}`,
@@ -355,7 +355,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`LlmProvider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -367,22 +367,22 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'length':
-					logger.warn(`provider[${this.llmProviderName}]: Response reached the maximum token limit`);
+					logger.warn(`LlmProvider[${this.llmProviderName}]: Response reached the maximum token limit`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
+					logger.warn(`LlmProvider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				case 'content_filter':
 					logger.warn(
-						`provider[${this.llmProviderName}]: Response content was omitted due to a flag from provider content filters`,
+						`LlmProvider[${this.llmProviderName}]: Response content was omitted due to a flag from provider content filters`,
 					);
 					break;
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
+					logger.warn(`LlmProvider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`LlmProvider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

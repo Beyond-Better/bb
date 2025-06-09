@@ -223,7 +223,7 @@ export default class ConversationLogFormatter {
 				statementTurnCount: 0,
 				conversationTurnCount: 0,
 			};
-			const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, totalAllTokens: 0 };
+			const tokenUsage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalTokens: 0, thoughtTokens: 0, totalAllTokens: 0 };
 			if (typeof typeString !== 'undefined' && typeof timestamp !== 'undefined') {
 				const type = typeString as ConversationLogEntryType;
 				const content = messageLines.join('\n').trim();

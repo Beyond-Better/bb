@@ -425,6 +425,7 @@ export interface BBLLMResponseMetadata {
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
 	requestParams?: LLMRequestParams;
+	rawUsage: Record<string, number>;
 }
 
 export interface BBLLMResponseRateLimit {

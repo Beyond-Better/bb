@@ -274,6 +274,7 @@ private transformUsage(usageMetadata?: UsageMetadata): LLMTokenUsage {
         totalTokens: usageMetadata?.totalTokenCount || 0,
         cacheCreationInputTokens: 0,  // Not supported by Google
         cacheReadInputTokens: usageMetadata?.cachedContentTokenCount || 0,
+		thoughtTokens: usageMetadata?.thoughtsTokenCount || 0,
         totalAllTokens: usageMetadata?.totalTokenCount || 0
     };
 }

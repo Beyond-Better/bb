@@ -28,7 +28,7 @@ import { KVManager } from 'api/utils/kvManager.ts';
 import { rateLimitManager } from '../../utils/rateLimit.utils.ts';
 
 const ajv = new Ajv();
-//logger.debug(`LLM: Creating storage for llmCache`);
+//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: Creating storage for llmCache`);
 const storage = await new KVManager<LLMSpeakWithResponse | CompressedCacheItem>({ prefix: 'llmCache' }).init();
 
 // Size threshold for compression (in bytes)
@@ -112,7 +112,7 @@ class LLM {
 		interaction: LLMInteraction,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMProviderMessageRequest> {
-		//logger.debug('BaseLLM: llms-prepareMessageRequest-systemPrompt', interaction.baseSystem);
+		//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: prepareMessageRequest-systemPrompt`, interaction.baseSystem);
 
 		const systemPrompt = await this.invoke(
 			LLMCallbackType.PREPARE_SYSTEM_PROMPT,
@@ -121,7 +121,7 @@ class LLM {
 		);
 		const system = systemPrompt;
 
-		//logger.debug('BaseLLM: llms-prepareMessageRequest-tools', interaction.allTools());
+		//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: prepareMessageRequest-tools`, interaction.allTools());
 		const tools = await this.invoke(
 			LLMCallbackType.PREPARE_TOOLS,
 			speakOptions?.tools || interaction.allTools(),
@@ -137,10 +137,10 @@ class LLM {
 		const model: string = speakOptions?.model || interaction.model;
 
 		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
-			logger.error('BaseLLM: maxTokens missing from both speakOptions and interaction');
+			logger.error(`BaseLLM:provider[${this.llmProviderName}]: maxTokens missing from both speakOptions and interaction`);
 		}
 		if (!speakOptions?.temperature && !interaction.temperature) {
-			logger.error('BaseLLM: temperature missing from both speakOptions and interaction');
+			logger.error(`BaseLLM:provider[${this.llmProviderName}]: temperature missing from both speakOptions and interaction`);
 		}
 
 		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 16384;
@@ -157,7 +157,7 @@ class LLM {
 			temperature,
 			extendedThinking,
 		};
-		//logger.debug('BaseLLM: llms-prepareMessageRequest', messageRequest);
+		//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: llms-prepareMessageRequest`, messageRequest);
 		//logger.dir(messageRequest);
 
 		return messageRequest;
@@ -167,7 +167,7 @@ class LLM {
 		messageRequest: LLMProviderMessageRequest,
 	): string[] {
 		const cacheKey = ['messageRequest', this.llmProviderName, md5(JSON.stringify(messageRequest))];
-		logger.info(`provider[${this.llmProviderName}]: using cache key: ${cacheKey}`);
+		logger.info(`BaseLLM:provider[${this.llmProviderName}]: using cache key: ${cacheKey}`);
 		return cacheKey;
 	}
 
@@ -188,7 +188,7 @@ class LLM {
 			? this.createRequestCacheKey(messageRequest)
 			: [];
 		if (!(this.projectConfig.api?.ignoreLLMRequestCache ?? false)) {
-			//logger.info(`provider[${this.llmProviderName}]: speakWithPlus: Checking for cached response`);
+			//logger.info(`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Checking for cached response`);
 			const cachedItem = await storage.getItem(cacheKey);
 
 			if (cachedItem) {
@@ -210,15 +210,15 @@ class LLM {
 						const decompressedData = await new Response(readableStream.pipeThrough(stream)).text();
 						llmSpeakWithResponse = JSON.parse(decompressedData) as LLMSpeakWithResponse;
 						logger.info(
-							`provider[${this.llmProviderName}]: speakWithPlus: Using decompressed cached response`,
+							`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Using decompressed cached response`,
 						);
 					} catch (error) {
-						logger.error(`provider[${this.llmProviderName}]: Failed to decompress cached response:`, error);
+						logger.error(`BaseLLM:provider[${this.llmProviderName}]: Failed to decompress cached response:`, error);
 						// Continue to generate a new response
 					}
 				} else {
 					// Regular uncompressed response
-					logger.info(`provider[${this.llmProviderName}]: speakWithPlus: Using cached response`);
+					logger.info(`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Using cached response`);
 					llmSpeakWithResponse = cachedItem as LLMSpeakWithResponse;
 				}
 				if (llmSpeakWithResponse) {
@@ -244,7 +244,7 @@ class LLM {
 					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
 					} else if (statusCode === 400) {
-						logger.warn(`Request is invalid.`);
+						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Request is invalid.`);
 						throw createError(
 							ErrorType.LLM,
 							`Error calling LLM service: ${
@@ -259,7 +259,7 @@ class LLM {
 							} as LLMErrorOptions,
 						);
 					} else if (statusCode === 413) {
-						logger.warn(`Request is too large.`);
+						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Request is too large.`);
 						throw createError(
 							ErrorType.LLM,
 							`Error calling LLM service: ${
@@ -278,11 +278,11 @@ class LLM {
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
 							Date.now();
 						const waitTime = Math.max(rateLimit, delay);
-						logger.warn(`Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`);
+						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`);
 						await new Promise((resolve) => setTimeout(resolve, waitTime));
 					} else if (statusCode >= 500) {
 						// Server error, use exponential backoff
-						logger.warn(`Server error (${statusCode}). Retrying in ${delay}ms.`);
+						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Server error (${statusCode}). Retrying in ${delay}ms.`);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						delay *= 2; // Double the delay for next time
 					} else {
@@ -303,7 +303,7 @@ class LLM {
 				} catch (error) {
 					// Handle any unexpected errors
 					const args = isLLMError(error) ? (error.options || {}) : {};
-					logger.error('BaseLLM: Error calling LLM: ', { args, error });
+					logger.error(`BaseLLM:provider[${this.llmProviderName}]: Error calling LLM: `, { args, error });
 					throw createError(
 						ErrorType.LLM,
 						`Unexpected error calling LLM service: ${(error as Error).message}`,
@@ -353,10 +353,10 @@ class LLM {
 				).join('\n');
 			} else {
 				// Add logging and robust error handling for response processing
-				logger.info(`provider[${this.llmProviderName}]: Processing non-tool response`);
+				logger.info(`BaseLLM:provider[${this.llmProviderName}]: Processing non-tool response`);
 
 				if (!llmSpeakWithResponse.messageResponse.answerContent) {
-					logger.error(`provider[${this.llmProviderName}]: answerContent is missing in response`);
+					logger.error(`BaseLLM:provider[${this.llmProviderName}]: answerContent is missing in response`);
 					throw createError(
 						ErrorType.LLM,
 						'Invalid response format: answerContent is missing',
@@ -371,18 +371,18 @@ class LLM {
 					if (combinedAnswer) {
 						llmSpeakWithResponse.messageResponse.answer = combinedAnswer;
 						logger.info(
-							`provider[${this.llmProviderName}]: Extracted combined text answer:`,
+							`BaseLLM:provider[${this.llmProviderName}]: Extracted combined text answer:`,
 							combinedAnswer.substring(0, 100) + '...',
 						);
 					} else if (toolUseAnswer) {
 						llmSpeakWithResponse.messageResponse.answer = 'Extracted tool use';
 						logger.info(
-							`provider[${this.llmProviderName}]: Extracted tool use answer:`,
+							`BaseLLM:provider[${this.llmProviderName}]: Extracted tool use answer:`,
 							toolUseAnswer.substring(0, 100) + '...',
 						);
 					} else {
 						logger.info(
-							`provider[${this.llmProviderName}]: No valid text content found: `,
+							`BaseLLM:provider[${this.llmProviderName}]: No valid text content found: `,
 							llmSpeakWithResponse.messageResponse.answerContent,
 						);
 						llmSpeakWithResponse.messageResponse.answer =
@@ -392,12 +392,12 @@ class LLM {
 							text: llmSpeakWithResponse.messageResponse.answer,
 						}];
 						logger.warn(
-							`provider[${this.llmProviderName}]: No valid text content found in any answer parts`,
+							`BaseLLM:provider[${this.llmProviderName}]: No valid text content found in any answer parts`,
 						);
 					}
 				} catch (error) {
 					logger.error(
-						`provider[${this.llmProviderName}]: Error processing answer content: ${
+						`BaseLLM:provider[${this.llmProviderName}]: Error processing answer content: ${
 							(error as Error).message
 						}`,
 						error as Error,
@@ -428,7 +428,7 @@ class LLM {
 					// Check if we need to compress based on size
 					if (serializedSize > COMPRESSION_THRESHOLD) {
 						logger.info(
-							`provider[${this.llmProviderName}]: Large response detected (${serializedSize} bytes), applying compression`,
+							`BaseLLM:provider[${this.llmProviderName}]: Large response detected (${serializedSize} bytes), applying compression`,
 						);
 
 						// Compress the data using CompressionStream
@@ -455,13 +455,13 @@ class LLM {
 						// Check if compressed data is still too large
 						if (compressedSize > KV_MAX_SIZE) {
 							logger.warn(
-								`provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Response too large even after compression (${compressedSize} bytes)`,
+								`BaseLLM:provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Response too large even after compression (${compressedSize} bytes)`,
 							);
 							logger.warn(
-								`provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Original size: ${serializedSize} bytes, compressed size: ${compressedSize} bytes`,
+								`BaseLLM:provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Original size: ${serializedSize} bytes, compressed size: ${compressedSize} bytes`,
 							);
 							logger.warn(
-								`provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
+								`BaseLLM:provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
 							);
 						} else {
 							// Store the compressed data with a marker
@@ -471,7 +471,7 @@ class LLM {
 							};
 							await storage.setItem(cacheKey, compressedItem, { expireIn: this.requestCacheExpiry });
 							logger.info(
-								`provider[${this.llmProviderName}]: Cached compressed response (${serializedSize} → ${compressedSize} bytes, ${
+								`BaseLLM:provider[${this.llmProviderName}]: Cached compressed response (${serializedSize} → ${compressedSize} bytes, ${
 									Math.round((compressedSize / serializedSize) * 100)
 								}%)`,
 							);
@@ -480,20 +480,20 @@ class LLM {
 						// Store uncompressed for small responses
 						await storage.setItem(cacheKey, llmSpeakWithResponse, { expireIn: this.requestCacheExpiry });
 						logger.info(
-							`provider[${this.llmProviderName}]: Cached uncompressed response (${serializedSize} bytes)`,
+							`BaseLLM:provider[${this.llmProviderName}]: Cached uncompressed response (${serializedSize} bytes)`,
 						);
 					}
 				} catch (error) {
 					if (error instanceof TypeError && error.message.includes('Value too large')) {
 						logger.error(
-							`provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Maximum KV size exceeded when caching response`,
+							`BaseLLM:provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: Maximum KV size exceeded when caching response`,
 						);
 						logger.error(
-							`provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
+							`BaseLLM:provider[${this.llmProviderName}]: ⚠️ CACHING FAILURE: This response will not be cached and must be regenerated next time`,
 						);
 					} else {
 						// Log but don't throw to prevent disrupting the main flow
-						logger.error(`provider[${this.llmProviderName}]: Error caching response:`, error);
+						logger.error(`BaseLLM:provider[${this.llmProviderName}]: Error caching response:`, error);
 					}
 				}
 				//await metricsService.recordCacheMetrics({ operation: 'set' });
@@ -524,7 +524,7 @@ class LLM {
 			totalProviderRequests++;
 			try {
 				llmSpeakWithResponse = await this.speakWithPlus(interaction, retrySpeakOptions);
-				//logger.debug(`provider[${this.llmProviderName}]: speakWithRetry-llmSpeakWithResponse`, llmSpeakWithResponse );
+				//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: speakWithRetry-llmSpeakWithResponse`, llmSpeakWithResponse );
 
 				interaction.updateTotals(llmSpeakWithResponse.messageResponse);
 
@@ -533,7 +533,7 @@ class LLM {
 					interaction,
 					retrySpeakOptions.validateResponseCallback,
 				);
-				//logger.debug(`speakWithRetry - validation response: ${validationFailedReason}`);
+				//logger.debug(`BaseLLM:provider[${this.llmProviderName}]: speakWithRetry - validation response: ${validationFailedReason}`);
 
 				if (validationFailedReason === null) {
 					break; // Success, break out of the loop
@@ -546,7 +546,7 @@ class LLM {
 				failReason = `validation: ${validationFailedReason}`;
 			} catch (error) {
 				logger.error(
-					`provider[${this.llmProviderName}]: speakWithRetry: Error calling speakWithPlus`,
+					`BaseLLM:provider[${this.llmProviderName}]: speakWithRetry: Error calling speakWithPlus`,
 					error as Error,
 				);
 				if (isLLMError(error)) {
@@ -566,7 +566,7 @@ class LLM {
 				}
 			}
 			logger.warn(
-				`provider[${this.llmProviderName}]: Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,
+				`BaseLLM:provider[${this.llmProviderName}]: Request to ${this.llmProviderName} failed. Retrying (${retries}/${maxRetries}) - ${failReason}`,
 			);
 
 			await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -579,7 +579,7 @@ class LLM {
 		}
 
 		logger.error(
-			`provider[${this.llmProviderName}]: Max retries reached. Request to ${this.llmProviderName} failed.`,
+			`BaseLLM:provider[${this.llmProviderName}]: Max retries reached. Request to ${this.llmProviderName} failed.`,
 		);
 		const errorMessage = retries > 1 ? `Request failed after multiple retries. ${failReason}` : `${failReason}`;
 		throw createError(
@@ -606,28 +606,28 @@ class LLM {
 		) {
 			for (const toolUse of llmProviderMessageResponse.toolsUsed) {
 				const tool = interaction.getTool(toolUse.toolName ?? '');
-				//logger.error(`validateResponse - Validating Tool: ${toolUse.toolName}`);
+				//logger.error(`BaseLLM:provider[${this.llmProviderName}]: validateResponse - Validating Tool: ${toolUse.toolName}`);
 				if (tool) {
 					if (llmProviderMessageResponse.messageStop.stopReason === 'max_tokens') {
-						logger.error(`Tool input exceeded max tokens`);
+						logger.error(`BaseLLM:provider[${this.llmProviderName}]: Tool input exceeded max tokens`);
 						return `Tool exceeded max tokens`;
 					}
 
 					const inputSchema: LLMToolInputSchema = tool.inputSchema;
 					const validate = ajv.compile(inputSchema);
 					const valid = validate(toolUse.toolInput);
-					//logger.error(`validateResponse - Tool is valid: ${toolUse.toolName}`);
+					//logger.error(`BaseLLM:provider[${this.llmProviderName}]: validateResponse - Tool is valid: ${toolUse.toolName}`);
 					toolUse.toolValidation.validated = true;
 					if (!valid) {
 						const validationErrors = ajv.errorsText(validate.errors);
 						toolUse.toolValidation.results = `validation failed: ${validationErrors}`;
 						logger.error(
-							`provider[${this.llmProviderName}]: Tool input validation failed: ${validationErrors}`,
+							`BaseLLM:provider[${this.llmProviderName}]: Tool input validation failed: ${validationErrors}`,
 						);
 						return `Tool input validation failed: ${validationErrors}`;
 					}
 				} else {
-					logger.error(`provider[${this.llmProviderName}]: Tool not found: ${toolUse.toolName}`);
+					logger.error(`BaseLLM:provider[${this.llmProviderName}]: Tool not found: ${toolUse.toolName}`);
 					return `Tool not found: ${toolUse.toolName}`;
 				}
 			}
@@ -636,7 +636,7 @@ class LLM {
 		if (validateCallback) {
 			const validationFailed = validateCallback(llmProviderMessageResponse, interaction);
 			if (validationFailed) {
-				logger.error(`provider[${this.llmProviderName}]: Callback validation failed: ${validationFailed}`);
+				logger.error(`BaseLLM:provider[${this.llmProviderName}]: Callback validation failed: ${validationFailed}`);
 				return validationFailed;
 			}
 		}
@@ -651,20 +651,33 @@ class LLM {
 			if (answerPart.type === 'text') {
 				currentToolThinking += answerPart.text;
 			} else if (answerPart.type === 'tool_use') {
+				// Ensure toolsUsed array exists
+				if (!llmProviderMessageResponse.toolsUsed) {
+					llmProviderMessageResponse.toolsUsed = [];
+				}
 				llmProviderMessageResponse.toolsUsed!.push({
 					toolInput: answerPart.input,
 					toolUseId: answerPart.id,
 					toolName: answerPart.name,
-					toolThinking: currentToolThinking,
+					toolThinking: currentToolThinking || '', // Ensure it's never undefined
 					toolValidation: { validated: false, results: '' },
 				});
 				currentToolThinking = '';
 			}
 
 			// if the last/final content part is type text, then add to toolThinking of last tool in toolsUsed
-			if (index === llmProviderMessageResponse.answerContent.length - 1 && answerPart.type === 'text') {
-				llmProviderMessageResponse.toolsUsed![llmProviderMessageResponse.toolsUsed!.length - 1].toolThinking +=
-					answerPart.text;
+			if (index === llmProviderMessageResponse.answerContent.length - 1 && 
+				answerPart.type === 'text' && 
+				llmProviderMessageResponse.toolsUsed &&
+				llmProviderMessageResponse.toolsUsed.length > 0) {
+					
+				const lastTool = llmProviderMessageResponse.toolsUsed![llmProviderMessageResponse.toolsUsed!.length - 1];
+				if (lastTool && typeof lastTool.toolThinking === 'string') {
+					lastTool.toolThinking += answerPart.text;
+				} else if (lastTool) {
+					// Initialize toolThinking if it's somehow undefined
+					lastTool.toolThinking = answerPart.text;
+				}
 			}
 		});
 	}
@@ -680,7 +693,7 @@ class LLM {
 	private async updateRateLimit(limits: LLMRateLimit): Promise<void> {
 		const currentUsage = await rateLimitManager.getRateLimit(this.llmProviderName);
 		logger.info(
-			`provider[${this.llmProviderName}]: speakWithPlus: Checking rate limits for: ${this.llmProviderName}`,
+			`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Checking rate limits for: ${this.llmProviderName}`,
 			//currentUsage,
 		);
 		if (currentUsage) {
@@ -690,13 +703,13 @@ class LLM {
 				tokensRemaining: limits.tokensRemaining,
 			};
 			//logger.info(
-			//	`provider[${this.llmProviderName}]: speakWithPlus: Updating rate limits for: ${this.llmProviderName}`,
+			//	`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Updating rate limits for: ${this.llmProviderName}`,
 			//	updatedUsage,
 			//);
 			await rateLimitManager.updateRateLimit(this.llmProviderName, updatedUsage);
 		} else {
 			//logger.info(
-			//	`provider[${this.llmProviderName}]: speakWithPlus: Setting rate limits for: ${this.llmProviderName}`,
+			//	`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Setting rate limits for: ${this.llmProviderName}`,
 			//	limits,
 			//);
 			await rateLimitManager.updateRateLimit(this.llmProviderName, limits);

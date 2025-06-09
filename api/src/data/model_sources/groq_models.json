@@ -311,10 +311,10 @@
 			"maxOutputTokens": 32768,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.20
+					"basePrice": 0.29
 				},
 				"outputTokens": {
-					"basePrice": 0.60
+					"basePrice": 0.39
 				},
 				"currency": "USD",
 				"effectiveDate": "2025-01-01"
