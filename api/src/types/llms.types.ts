@@ -421,6 +421,7 @@ export interface BBLLMResponseMetadata {
 	requestId: string;
 	type: 'message' | 'error';
 	role: 'assistant' | 'user';
+	isTool: boolean;
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
 	requestParams?: LLMRequestParams;

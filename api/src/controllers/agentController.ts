@@ -24,9 +24,6 @@ import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import { logger } from 'shared/logger.ts';
 import { errorMessage } from 'shared/error.ts';
 
-// Hard-coded conversation token limit (192k to leave room for 8k response)
-const CONVERSATION_TOKEN_LIMIT = 192000;
-//const CONVERSATION_TOKEN_LIMIT = 64000;
 
 function formatToolObjectivesAndStats(
 	interaction: LLMConversationInteraction,
@@ -371,6 +368,9 @@ class AgentController extends BaseController {
 			);
 			await this.saveInitialConversationWithResponse(interaction, currentResponse);
 
+			const modelCapabilities = await interaction.getModelCapabilities();
+			const contextWindowTokens = modelCapabilities.contextWindow;
+			const contextWindowTokensCutoff = contextWindowTokens * 0.95;
 			let loopTurnCount = 0;
 
 			//while (loopTurnCount < 1 && !this.isCancelled) {
@@ -444,9 +444,9 @@ class AgentController extends BaseController {
 					const totalTurnTokens = interaction.tokenUsageTurn.totalTokens +
 						(interaction.tokenUsageTurn.cacheCreationInputTokens ?? 0) +
 						(interaction.tokenUsageTurn.cacheReadInputTokens ?? 0);
-					if (totalTurnTokens > CONVERSATION_TOKEN_LIMIT) {
+					if (totalTurnTokens > contextWindowTokensCutoff) {
 						logger.warn(
-							`AgentController: Turn token limit (${CONVERSATION_TOKEN_LIMIT}) exceeded. ` +
+							`AgentController: Turn token limit (${contextWindowTokensCutoff}) exceeded. ` +
 								`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
 								`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
 								`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
@@ -460,7 +460,7 @@ class AgentController extends BaseController {
 							interaction.id,
 							{
 								message:
-									`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${CONVERSATION_TOKEN_LIMIT})`,
+									`BB automatically summarized the conversation due to turn token limit (${totalTurnTokens} tokens including cache operations > ${contextWindowTokensCutoff})`,
 								purpose: 'Token Limit Enforcement',
 							},
 						);
@@ -475,10 +475,10 @@ class AgentController extends BaseController {
 								// - Ensure minimum of 1000 tokens (tool requirement)
 								// - If limit is very low, warn but maintain minimum
 								maxTokensToKeep: (() => {
-									const targetTokens = Math.floor(CONVERSATION_TOKEN_LIMIT * 0.75);
+									const targetTokens = Math.floor(contextWindowTokens * 0.75);
 									if (targetTokens < 1000) {
 										logger.warn(
-											`AgentController: Conversation token limit (${CONVERSATION_TOKEN_LIMIT}) is very low. ` +
+											`AgentController: Conversation token limit (${contextWindowTokens}) is very low. ` +
 												`Using minimum of 1000 tokens for conversation summary.`,
 										);
 									}

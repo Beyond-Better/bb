@@ -35,7 +35,7 @@ import { generateConversationId, shortenConversationId } from 'shared/conversati
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
+import type { InteractionPreferences, ModelCapabilities } from 'api/types/modelCapabilities.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import LLMFactory from '../llmProvider.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
@@ -900,6 +900,18 @@ class LLMInteraction {
 		);
 
 		return { maxTokens, temperature, extendedThinking };
+	}
+
+	/**
+	 * Return model capabilities using the ModelRegistryService
+	 *
+	 * @returns model capabilities for current model for the interaction
+	 */
+	public async getModelCapabilities(): Promise<ModelCapabilities> {
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
+		const modelCapabilities = capabilitiesManager.getModelCapabilities(this.model);
+		//logger.info('BaseInteraction: modelCapabilities:', modelCapabilities);
+		return modelCapabilities;
 	}
 
 	get temperature(): number {
