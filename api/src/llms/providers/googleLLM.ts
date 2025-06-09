@@ -1,29 +1,19 @@
 import {
 	FinishReason,
-	FunctionCallingMode,
-	GoogleGenerativeAI,
+	GoogleGenAI,
 	//SchemaType
-} from '@google/generative-ai';
+} from '@google/genai';
 import type {
 	Content,
 	FunctionCall,
-	FunctionCallPart,
-	//FunctionDeclaration,
-	FunctionDeclarationSchema,
-	FunctionDeclarationsTool,
-	GenerateContentCandidate,
-	GenerateContentRequest,
-	//GenerateContentResponse,
-	//GenerateContentResult,
-	//GenerativeContentBlob,
-	//HarmCategory,
-	//HarmProbability,
-	InlineDataPart,
+	FunctionDeclaration,
+	Candidate,
+	GenerateContentParameters,
+	Part,
 	SafetyRating,
-	//Part,
 	Tool,
 	UsageMetadata,
-} from '@google/generative-ai';
+} from '@google/genai';
 import { GoogleModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
@@ -54,7 +44,7 @@ import { extractTextFromContent } from 'api/utils/llms.ts';
 import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
 
 class GoogleLLM extends LLM {
-	private google!: GoogleGenerativeAI;
+	private google!: GoogleGenAI;
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
@@ -71,7 +61,7 @@ class GoogleLLM extends LLM {
 				{ provider: this.llmProviderName } as LLMErrorOptions,
 			);
 		}
-		this.google = new GoogleGenerativeAI(apiKey);
+		this.google = new GoogleGenAI({ apiKey });
 	}
 
 	private transformUsage(usageMetadata?: UsageMetadata): LLMTokenUsage {
@@ -85,13 +75,18 @@ class GoogleLLM extends LLM {
 				totalAllTokens: 0,
 			};
 		}
+		// The new SDK uses outputTokenCount and inputTokenCount
+		const outputTokens = (usageMetadata as any).outputTokenCount || 0;
+		const inputTokens = (usageMetadata as any).inputTokenCount || usageMetadata.promptTokenCount || 0;
+		const totalTokens = (usageMetadata as any).totalTokenCount || (inputTokens + outputTokens);
+
 		return {
-			inputTokens: usageMetadata.promptTokenCount,
-			outputTokens: usageMetadata.candidatesTokenCount,
-			totalTokens: usageMetadata.totalTokenCount,
+			inputTokens: inputTokens,
+			outputTokens: outputTokens,
+			totalTokens: totalTokens,
 			cacheCreationInputTokens: 0, // Google doesn't use this
 			cacheReadInputTokens: usageMetadata.cachedContentTokenCount || 0,
-			totalAllTokens: usageMetadata.totalTokenCount,
+			totalAllTokens: totalTokens,
 		};
 	}
 
@@ -121,7 +116,7 @@ class GoogleLLM extends LLM {
 								data: part.source.data,
 								mimeType: part.source.media_type,
 							},
-						} as InlineDataPart;
+						};
 					} else if (part.type === 'tool_use') {
 						logger.debug('Processing tool_use content');
 						return {
@@ -129,7 +124,7 @@ class GoogleLLM extends LLM {
 								name: part.name, //contentPart.id,
 								args: part.input,
 							} as FunctionCall,
-						} as FunctionCallPart;
+						};
 					} else if (part.type === 'tool_result') {
 						logger.debug(`Processing tool result content, tool_use_id=${part.tool_use_id}`);
 						// For tool results, we need to process each content part
@@ -148,7 +143,7 @@ class GoogleLLM extends LLM {
 										data: p.source.data,
 										mimeType: p.source.media_type,
 									},
-								} as InlineDataPart;
+								};
 							}
 							logger.warn(`Unsupported content type in tool result: ${(p as { type: string }).type}`);
 							return { text: '' };
@@ -227,7 +222,7 @@ class GoogleLLM extends LLM {
 		}
 
 		const providerMessages = messages.map(mapMessageToContent);
-		logger.info('llms-google-asProviderMessageType-providerMessages', JSON.stringify(providerMessages, null, 2));
+		//logger.info('llms-google-asProviderMessageType-providerMessages', JSON.stringify(providerMessages, null, 2));
 		return providerMessages;
 	}
 
@@ -237,7 +232,7 @@ class GoogleLLM extends LLM {
 	 * @param schema The schema object to clean
 	 * @returns Cleaned schema object conforming to Google's Schema format
 	 */
-	private cleanSchema(schema: LLMToolInputSchema): FunctionDeclarationSchema {
+	private cleanSchema(schema: LLMToolInputSchema): FunctionDeclaration {
 		// deno-lint-ignore no-explicit-any
 		const clean = (obj: Record<string, any>): Record<string, any> => {
 			if (!obj || typeof obj !== 'object') return obj;
@@ -260,7 +255,7 @@ class GoogleLLM extends LLM {
 			}), {});
 		};
 
-		return clean(schema) as FunctionDeclarationSchema;
+		return clean(schema) as FunctionDeclaration;
 	}
 
 	/*
@@ -324,31 +319,21 @@ class GoogleLLM extends LLM {
 		return [{
 			functionDeclarations: tools.map((tool) => {
 				logger.debug(`Converting tool to Google format: ${tool.name}`);
-
-				// Convert the input schema
 				const cleanedSchema = this.cleanSchema(tool.inputSchema);
 				logger.debug('Cleaned schema:', cleanedSchema);
-
-				// Create function declaration
-				const functionDeclaration = {
+				return {
 					name: tool.name,
 					description: tool.description,
 					parameters: cleanedSchema,
 				};
-
-				logger.debug('Created function declaration:', functionDeclaration);
-				return functionDeclaration;
-				// return {
-				// 	functionDeclarations: [functionDeclaration],
-				// };
 			}),
-		} as FunctionDeclarationsTool];
+		}];
 	}
 
-	private asApiMessageContentPartsType(candidate: GenerateContentCandidate): LLMMessageContentPart[] {
+	private asApiMessageContentPartsType(candidate: Candidate): LLMMessageContentPart[] {
 		const contentParts: LLMMessageContentParts = [];
 
-		candidate.content.parts?.forEach((part) => {
+		candidate.content?.parts?.forEach((part: Part) => {
 			if ('text' in part) {
 				logger.debug('Processing text content from response');
 				contentParts.push({
@@ -380,29 +365,20 @@ class GoogleLLM extends LLM {
 		return contentParts;
 	}
 
-	private hasFunctionCall(candidate: GenerateContentCandidate): boolean {
-		return candidate.content.parts?.some((part) => 'functionCall' in part) || false;
+	private hasFunctionCall(candidate: Candidate): boolean {
+		return candidate.content?.parts?.some((part: Part) => 'functionCall' in part) || false;
 	}
 
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
 		interaction?: LLMInteraction,
-	): Promise<GenerateContentRequest> {
+	): Promise<GenerateContentParameters> {
 		const contents = this.asProviderMessageType(messageRequest.messages);
 		const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_5_FLASH;
-
-		// System instruction needs to be wrapped in a Content object
-		const systemContent: Content | undefined = messageRequest.system
-			? {
-				role: 'user',
-				parts: [{ text: messageRequest.system }],
-			}
-			: undefined;
 
 		// Resolve parameters using model capabilities
 		let maxTokens: number;
 		let temperature: number;
-		//let extendedThinking: boolean;
 
 		if (interaction) {
 			// Use interaction to resolve parameters with proper priority
@@ -411,12 +387,10 @@ class GoogleLLM extends LLM {
 				{
 					maxTokens: messageRequest.maxTokens,
 					temperature: messageRequest.temperature,
-					//extendedThinking: messageRequest.extendedThinking?.enabled,
 				},
 				LLMProvider.GOOGLE,
 			);
 			maxTokens = resolved.maxTokens;
-			//extendedThinking = resolved.extendedThinking;
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
@@ -431,44 +405,31 @@ class GoogleLLM extends LLM {
 				model,
 				messageRequest.temperature,
 			);
-			//extendedThinking = capabilitiesManager.resolveExtendedThinking(
-			//	model,
-			//	messageRequest.extendedThinking?.enabled,
-			//);
 		}
 
-		// Prepare the request with appropriate configuration
-		const request: GenerateContentRequest = {
-			//contents: systemContent ? [systemContent, ...contents] : contents,
-			contents,
-			systemInstruction: systemContent,
-			generationConfig: {
-				temperature: temperature,
-				maxOutputTokens: maxTokens,
-			},
-			//stream: false
+		// Build the config object incrementally for safety
+		const config: GenerateContentConfig = {
+			temperature: temperature,
+			maxOutputTokens: maxTokens,
 		};
 
-		// Add tools and tool configuration if tools are present
+		if (messageRequest.system) {
+			config.systemInstruction = {
+				role: 'user',
+				parts: [{ text: messageRequest.system }],
+			};
+		}
+
 		if (messageRequest.tools.length > 0) {
 			logger.debug(`Adding tool configuration for ${messageRequest.tools.length} tools`);
-
-			// Convert tools and log the result
-			const convertedTools = this.asProviderToolType(messageRequest.tools);
-			logger.debug('Converted tools:', JSON.stringify(convertedTools, null, 2));
-			//logger.info('Complete request with tools:', JSON.stringify(request.tools[15], null, 2));
-
-			// Add tools to request
-			request.tools = convertedTools;
-			request.toolConfig = {
-				functionCallingConfig: {
-					mode: FunctionCallingMode.AUTO, // Default to AUTO mode
-				},
-			};
-
-			// Log the complete request for debugging
-			//logger.info('Complete request with tools:', JSON.stringify(request, null, 2));
+			config.tools = this.asProviderToolType(messageRequest.tools);
 		}
+
+		const request: GenerateContentParameters = {
+			model: model,
+			contents: contents,
+			config: config,
+		};
 
 		return request;
 	}
@@ -484,25 +445,35 @@ class GoogleLLM extends LLM {
 			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_5_FLASH;
 			logger.info('Complete request with model:', { model });
 
-			const result = await this.google.getGenerativeModel({ model }).generateContent(providerMessageRequest);
+			const result = await this.google.models.generateContent(providerMessageRequest);
 			logger.info('llms-google-result', result);
-			const response = result.response;
-			logger.debug('llms-google-response', response);
 
-			const candidate = response.candidates?.[0];
-			if (!candidate) {
-				throw new Error('No response candidate received');
-			}
-
-			// Check if response was blocked
-			if (response.promptFeedback?.blockReason) {
+			// Check if response was blocked first
+			if (result.promptFeedback?.blockReason) {
 				throw createError(
 					ErrorType.LLM,
-					`Response blocked: ${response.promptFeedback.blockReason}`,
+					`Response blocked: ${result.promptFeedback.blockReason}`,
 					{
 						model: model,
 						provider: this.llmProviderName,
-						args: { reason: response.promptFeedback.blockReason },
+						conversationId: interaction.id,
+						name: 'GoogleLLMError',
+						args: { reason: result.promptFeedback.blockReason, safetyRatings: result.promptFeedback.safetyRatings },
+					} as LLMErrorOptions,
+				);
+			}
+
+			const candidate = result.candidates?.[0];
+			if (!candidate) {
+				throw createError(
+					ErrorType.LLM,
+					'No response candidate received from Google API and prompt was not blocked.',
+					{
+						model: model,
+						provider: this.llmProviderName,
+						conversationId: interaction.id,
+						name: 'GoogleLLMError',
+						args: { promptFeedback: result.promptFeedback, usageMetadata: result.usageMetadata },
 					} as LLMErrorOptions,
 				);
 			}
@@ -527,12 +498,9 @@ class GoogleLLM extends LLM {
 							case FinishReason.STOP:
 								return 'stop';
 							case FinishReason.SAFETY:
-							case FinishReason.PROHIBITED_CONTENT:
-							case FinishReason.BLOCKLIST:
 								return 'content_filter';
-							case FinishReason.MALFORMED_FUNCTION_CALL:
-								logger.warn(`Function call was malformed: ${candidate.finishReason}`);
-								return 'tool_use';
+							case FinishReason.RECITATION:
+								return 'content_filter';
 							default:
 								logger.info(`Unmapped finish reason: ${candidate.finishReason}`);
 								return null;
@@ -540,7 +508,7 @@ class GoogleLLM extends LLM {
 					})(),
 					stopSequence: null,
 				},
-				usage: this.transformUsage(response.usageMetadata),
+				usage: this.transformUsage(result.usageMetadata),
 				rateLimit: {
 					requestsRemaining: 1000, // Placeholder values
 					requestsLimit: 1000,
@@ -570,7 +538,7 @@ class GoogleLLM extends LLM {
 				};
 			}
 
-			logger.info('llms-google-messageResponse', messageResponse);
+			//logger.info('llms-google-messageResponse', messageResponse);
 			return { messageResponse, messageMeta: { system: messageRequest.system } };
 		} catch (err) {
 			logger.error('Error calling Google API', err);
