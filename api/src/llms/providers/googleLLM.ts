@@ -532,7 +532,7 @@ class GoogleLLM extends LLM {
 								return 'content_filter';
 							case FinishReason.MALFORMED_FUNCTION_CALL:
 								logger.warn(`Function call was malformed: ${candidate.finishReason}`);
-								return 'tool_calls';
+								return 'tool_use';
 							default:
 								logger.info(`Unmapped finish reason: ${candidate.finishReason}`);
 								return null;

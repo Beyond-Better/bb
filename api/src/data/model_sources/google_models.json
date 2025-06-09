@@ -5,7 +5,7 @@
 	"notes": "Pricing varies by context length (≤200k vs >200k tokens). 2.5 series models are in Preview with restricted rate limits. Free tier available for most models. Thinking models charge separately for reasoning tokens.",
 	"models": [
 		{
-			"modelId": "gemini-2.5-pro-preview-05-06",
+			"modelId": "gemini-2.5-pro-preview-06-05",
 			"displayName": "Gemini Pro 2.5",
 			"family": "Gemini-2.5",
 			"contextWindow": 1048576,

@@ -361,7 +361,10 @@ class BbLLM extends LLM {
 				timestamp: new Date().toISOString(),
 				answerContent: bbResponseMessage.content as LLMMessageContentParts,
 				answer: extractTextFromContent(bbResponseMessage.content as LLMMessageContentParts), // answer will get overridden in baseLLM - but this keeps type checking happy
-				isTool: bbResponseMessage.metadata.stopReason === 'tool_use',
+				isTool: bbResponseMessage.metadata.isTool,
+				// isTool: bbResponseMessage.metadata.isToolCall !== undefined
+				// 	? bbResponseMessage.metadata.isToolCall
+				// 	: bbResponseMessage.metadata.stopReason === 'tool_use',
 				messageStop: {
 					stopReason: bbResponseMessage.metadata.stopReason,
 					stopSequence: bbResponseMessage.metadata.stopSequence,

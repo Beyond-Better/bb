@@ -58,7 +58,7 @@ export interface LLMMessageContentPartAudioBlock { // openai
 
 export interface LLMMessageContentPartToolUseBlock {
 	messageId?: string;
-	//type: 'tool_use' | 'tool_calls'; // tool_use is anthropic - tool_calls is openai
+	//type: 'tool_use' | 'tool_calls'; // tool_use is anthropic - tool_calls is openai, google
 	type: 'tool_use'; // see comments in LLMMessageContentPartType
 	id: string;
 	input: object;
