@@ -1,259 +1,156 @@
 /**
  * ModelCapabilitiesManager
  *
- * Manages model capabilities and parameter resolution for LLMs
- * Handles loading, caching, and resolving model-specific capabilities and parameters
+ * DEPRECATED: This class is being replaced by ModelRegistryService
+ * Kept for backwards compatibility during transition
+ *
+ * This is now a wrapper around ModelRegistryService to maintain API compatibility
  */
 
-//import { join } from '@std/path';
 import type { LLMProvider } from 'api/types.ts';
-import { LLMModelToProvider } from 'api/types/llms.ts';
-import type { InteractionPreferences, ModelCapabilities, UserModelPreferences } from 'api/types/modelCapabilities.ts';
+import type {
+	InteractionPreferences,
+	ModelCapabilities,
+	ModelInfo,
+	UserModelPreferences,
+} from 'api/types/modelCapabilities.ts';
 import { logger } from 'shared/logger.ts';
-import { isError } from 'api/errors/error.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 
-// Import the built-in capabilities data
-import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'json' };
-
-// URL to fetch updates from BB server (future implementation)
-// const CAPABILITIES_URL = 'https://api.beyondbetter.dev/modelCapabilities';
-// const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-// Default capabilities for fallback
-const DEFAULT_MODEL_CAPABILITIES: ModelCapabilities = {
-	displayName: 'Claude',
-	contextWindow: 100000,
-	maxOutputTokens: 4096,
-	pricing: {
-		inputTokens: {
-			basePrice: 0.0,
-		},
-		outputTokens: {
-			basePrice: 0.0,
-		},
-		currency: 'USD',
-		effectiveDate: new Date().toISOString().split('T')[0],
-	},
-	supportedFeatures: {
-		functionCalling: false,
-		json: false,
-		streaming: true,
-		vision: false,
-		extendedThinking: false,
-		promptCaching: false,
-	},
-	defaults: {
-		temperature: 0.7,
-		maxTokens: 4096,
-		extendedThinking: false,
-	},
-	constraints: {
-		temperature: { min: 0.0, max: 1.0 },
-	},
-	systemPromptBehavior: 'optional',
-	responseSpeed: 'medium',
-};
-
 /**
+ * @deprecated Use ModelRegistryService instead
  * Manages access to model capabilities and parameter resolution
  */
 export class ModelCapabilitiesManager {
 	private static instance: ModelCapabilitiesManager;
-	private capabilities: Record<string, Record<string, ModelCapabilities>>;
-	private cache: Map<string, ModelCapabilities> = new Map();
-	//private lastFetchTime = 0;
+	private registryService?: ModelRegistryService;
 	private initialized = false;
 
 	/**
 	 * Private constructor for singleton pattern
 	 */
-	private constructor() {
-		this.capabilities = builtinCapabilities as Record<string, Record<string, ModelCapabilities>>;
-	}
+	private constructor() {}
 
 	/**
 	 * Get the singleton instance
+	 * @deprecated Use ModelRegistryService.getInstance() instead
 	 */
-	public static getInstance(): ModelCapabilitiesManager {
+	public static async getInstance(projectConfig?: ProjectConfig): Promise<ModelCapabilitiesManager> {
 		if (!ModelCapabilitiesManager.instance) {
 			ModelCapabilitiesManager.instance = new ModelCapabilitiesManager();
+			await ModelCapabilitiesManager.instance.init(projectConfig);
 		}
 		return ModelCapabilitiesManager.instance;
 	}
 
 	/**
-	 * Initialize the manager by loading and validating built-in capabilities
+	 * Initialize the manager by delegating to ModelRegistryService
 	 */
-	// deno-lint-ignore require-await
-	public async initialize(): Promise<ModelCapabilitiesManager> {
+	public async init(projectConfig?: ProjectConfig): Promise<ModelCapabilitiesManager> {
 		if (this.initialized) return this;
 
 		try {
-			// Validate built-in capabilities
-			this.validateCapabilities(this.capabilities);
+			this.registryService = await ModelRegistryService.getInstance(projectConfig);
 			this.initialized = true;
-			logger.info('ModelCapabilitiesManager: Initialized with built-in capabilities');
-
-			// Schedule a refresh of capabilities in the background
-			this.refreshCapabilities().catch((error) => {
-				logger.warn(`ModelCapabilitiesManager: Failed to refresh capabilities: ${error.message}`);
-			});
+			logger.info('ModelCapabilitiesManager: Initialized (delegating to ModelRegistryService)');
 			return this;
 		} catch (error) {
-			logger.error(`ModelCapabilitiesManager: Failed to initialize: ${isError(error) ? error.message : error}`);
+			logger.error(
+				`ModelCapabilitiesManager: Failed to initialize: ${error instanceof Error ? error.message : error}`,
+			);
 			throw error;
 		}
 	}
 
 	/**
-	 * Validates the structure of loaded capabilities
-	 */
-	private validateCapabilities(capabilities: Record<string, Record<string, ModelCapabilities>>): void {
-		if (!capabilities || typeof capabilities !== 'object') {
-			throw new Error('Invalid capabilities data: must be an object');
-		}
-
-		// Validate provider entries
-		for (const [provider, models] of Object.entries(capabilities)) {
-			if (!models || typeof models !== 'object') {
-				throw new Error(`Invalid capabilities for provider ${provider}: must be an object`);
-			}
-
-			// Validate model entries
-			for (const [model, capabilities] of Object.entries(models)) {
-				if (!capabilities || typeof capabilities !== 'object') {
-					throw new Error(`Invalid capabilities for model ${provider}/${model}: must be an object`);
-				}
-
-				// Check required properties
-				const requiredProps = [
-					'displayName',
-					'contextWindow',
-					'maxOutputTokens',
-					'pricing',
-					'supportedFeatures',
-					'defaults',
-					'constraints',
-				];
-				for (const prop of requiredProps) {
-					if (!(prop in capabilities)) {
-						throw new Error(
-							`Invalid capabilities for model ${provider}/${model}: missing required property ${prop}`,
-						);
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Refreshes capabilities from server if needed (future implementation)
+	 * @deprecated Use ModelRegistryService.refreshDynamicModels() instead
 	 */
 	public async refreshCapabilities(): Promise<void> {
-		// TODO: In the future, implement fetching updated capabilities from BB server
-		// For now, we'll just use the built-in capabilities
+		if (this.registryService) {
+			await this.registryService.refreshDynamicModels();
+		}
 	}
 
 	/**
 	 * Gets all available models and their capabilities
-	 *
-	 * @returns Array of models with their capabilities
+	 * @deprecated Use ModelRegistryService.getAllModels() instead
 	 */
 	public getAllModels(): Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> {
-		if (!this.initialized) {
-			logger.warn('ModelCapabilitiesManager: Accessing before initialization, using defaults');
+		if (!this.registryService) {
+			logger.warn('ModelCapabilitiesManager: Not initialized, returning empty array');
 			return [];
 		}
 
-		// Loop through all providers and models
-		const allModels: Array<{ modelId: string; provider: string; capabilities: ModelCapabilities }> = [];
-
-		// Get all models from LLMModelToProvider mapping
-		for (const [modelId, provider] of Object.entries(LLMModelToProvider)) {
-			const capabilities = this.getModelCapabilities(provider, modelId);
-			allModels.push({ modelId, provider, capabilities });
-		}
-
-		return allModels;
+		return this.registryService.getAllModels().map((model: ModelInfo) => ({
+			modelId: model.id,
+			provider: model.provider,
+			capabilities: model.capabilities,
+		}));
 	}
 
 	/**
-	 * Gets capabilities for a specific model, with optional provider override
-	 *
-	 * @param model The model identifier
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns Model capabilities object, or default capabilities if not found
+	 * Gets capabilities for a specific model
+	 * @deprecated Use ModelRegistryService.getModelCapabilities() instead
 	 */
-	public getModelCapabilities(model: string, provider?: string): ModelCapabilities {
-		if (!this.initialized) {
-			logger.warn('ModelCapabilitiesManager: Accessing before initialization, using defaults');
-			return { ...DEFAULT_MODEL_CAPABILITIES };
+	public getModelCapabilities(model: string, _provider?: string): ModelCapabilities {
+		if (!this.registryService) {
+			logger.warn('ModelCapabilitiesManager: Not initialized, using defaults');
+			// Return a basic default
+			return {
+				displayName: 'Unknown Model',
+				contextWindow: 4096,
+				maxOutputTokens: 2048,
+				token_pricing: {
+					input: 0,
+					output: 0,
+				},
+				pricing_metadata: {
+					currency: 'USD',
+					effectiveDate: new Date().toISOString().split('T')[0],
+				},
+				supportedFeatures: {
+					functionCalling: false,
+					json: false,
+					streaming: true,
+					vision: false,
+					extendedThinking: false,
+					promptCaching: false,
+				},
+				defaults: {
+					temperature: 0.7,
+					maxTokens: 2048,
+					extendedThinking: false,
+				},
+				constraints: {
+					temperature: { min: 0.0, max: 1.0 },
+				},
+				systemPromptBehavior: 'optional',
+				responseSpeed: 'medium',
+			};
 		}
 
-		// Determine provider from model if not provided
-		const effectiveProvider = provider || LLMModelToProvider[model];
-		if (!effectiveProvider) {
-			logger.warn(`ModelCapabilitiesManager: No provider found for model ${model}, using defaults`);
-			return { ...DEFAULT_MODEL_CAPABILITIES };
-		}
-
-		// Check cache first
-		const cacheKey = `${effectiveProvider}:${model}`;
-		if (this.cache.has(cacheKey)) {
-			return this.cache.get(cacheKey)!;
-		}
-
-		// Try to get from loaded capabilities
-		const providerCaps = this.capabilities[effectiveProvider];
-		if (!providerCaps) {
-			logger.warn(`ModelCapabilitiesManager: No capabilities found for provider ${effectiveProvider}`);
-			return { ...DEFAULT_MODEL_CAPABILITIES };
-		}
-
-		const modelCaps = providerCaps[model];
-		if (!modelCaps) {
-			logger.warn(`ModelCapabilitiesManager: No capabilities found for model ${effectiveProvider}/${model}`);
-			return { ...DEFAULT_MODEL_CAPABILITIES };
-		}
-
-		// Cache and return
-		this.cache.set(cacheKey, modelCaps);
-		return modelCaps;
+		return this.registryService.getModelCapabilities(model);
 	}
 
 	/**
 	 * Checks if a model supports a specific feature
-	 *
-	 * @param model The model identifier
-	 * @param feature The feature to check
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns True if the feature is supported, false otherwise
+	 * @deprecated Use ModelRegistryService.supportsFeature() instead
 	 */
 	public supportsFeature(
 		model: string,
 		feature: keyof ModelCapabilities['supportedFeatures'],
 		provider?: string,
 	): boolean {
-		const capabilities = this.getModelCapabilities(model, provider);
-		return !!(capabilities.supportedFeatures && capabilities.supportedFeatures[feature]);
+		if (!this.registryService) {
+			return false;
+		}
+
+		return this.registryService.supportsFeature(model, feature);
 	}
 
 	/**
-	 * Resolves a parameter value based on priority:
-	 * 1. Explicit value in the request
-	 * 2. User configured preference
-	 * 3. Interaction-specific preference
-	 * 4. Model default capability
-	 * 5. Global fallback default
-	 *
-	 * @param paramName The parameter name to resolve
-	 * @param model The model identifier
-	 * @param explicitValue The explicit value from the request
-	 * @param userPreference The user-configured preference
-	 * @param interactionPreference The interaction-specific preference
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns The resolved parameter value
+	 * Resolves a parameter value based on priority
 	 */
 	public resolveParameter<T>(
 		paramName: keyof ModelCapabilities['defaults'],
@@ -287,13 +184,6 @@ export class ModelCapabilitiesManager {
 
 	/**
 	 * Resolves the temperature parameter with validation
-	 *
-	 * @param model The model identifier
-	 * @param explicitValue The explicit temperature from the request
-	 * @param userPreference The user-configured temperature preference
-	 * @param interactionPreference The interaction-specific temperature preference
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns The resolved temperature value
 	 */
 	public resolveTemperature(
 		model: string,
@@ -319,13 +209,6 @@ export class ModelCapabilitiesManager {
 
 	/**
 	 * Resolves the maxTokens parameter with validation
-	 *
-	 * @param model The model identifier
-	 * @param explicitValue The explicit maxTokens from the request
-	 * @param userPreference The user-configured maxTokens preference
-	 * @param interactionPreference The interaction-specific maxTokens preference
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns The resolved maxTokens value
 	 */
 	public resolveMaxTokens(
 		model: string,
@@ -350,13 +233,6 @@ export class ModelCapabilitiesManager {
 
 	/**
 	 * Resolves the extendedThinking parameter with validation
-	 *
-	 * @param model The model identifier
-	 * @param explicitValue The explicit extendedThinking from the request
-	 * @param userPreference The user-configured extendedThinking preference
-	 * @param interactionPreference The interaction-specific extendedThinking preference
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns The resolved extendedThinking value
 	 */
 	public resolveExtendedThinking(
 		model: string,
@@ -381,12 +257,6 @@ export class ModelCapabilitiesManager {
 
 	/**
 	 * Validates and normalizes parameter values based on model constraints
-	 *
-	 * @param parameter The parameter name
-	 * @param model The model identifier
-	 * @param value The parameter value to validate
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns The validated parameter value
 	 */
 	private validateParameterValue<T>(
 		parameter: keyof ModelCapabilities['defaults'],
@@ -421,11 +291,6 @@ export class ModelCapabilitiesManager {
 
 	/**
 	 * Gets appropriate interaction preferences for a model
-	 *
-	 * @param interactionType The type of interaction
-	 * @param model The model identifier
-	 * @param provider Optional LLM provider (if not provided, determined from LLMModelToProvider)
-	 * @returns Appropriate interaction preferences for the model
 	 */
 	public getInteractionPreferences(
 		interactionType: string,
@@ -473,19 +338,15 @@ export class ModelCapabilitiesManager {
 
 /**
  * Helper function to get user model preferences from config
- *
- * @param provider The LLM provider
- * @param projectConfig The project configuration
- * @returns User model preferences or undefined if not found
  */
 export function getUserModelPreferences(
 	provider: LLMProvider,
-	projectConfig: ProjectConfig, // Using any because the exact config structure may vary
+	projectConfig: ProjectConfig,
 ): UserModelPreferences | undefined {
 	try {
 		return projectConfig?.api?.llmProviders?.[provider]?.userPreferences;
 	} catch (error) {
-		logger.warn(`Error getting user model preferences: ${isError(error) ? error.message : error}`);
+		logger.warn(`Error getting user model preferences: ${error instanceof Error ? error.message : error}`);
 		return undefined;
 	}
 }

@@ -13,6 +13,13 @@ import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 import { DataSourcesTab } from './DataSourcesTab.tsx';
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
+import {
+	ModelCombinations,
+	ModelSelectHelp,
+	type ModelSelectionValue,
+	ModelSelector,
+	ModelSystemCardsLink,
+} from '../ModelSelector.tsx';
 //import { FileBrowser } from '../FileBrowser.tsx';
 
 // Helper function to format YAML with proper array syntax
@@ -206,10 +213,42 @@ export function ProjectEditor({
 			}
 			: { global: '', project: null },
 	);
+
+	// Default models signals
+	const defaultModelsOrchestrator = useSignal<ModelSelectionValue>(
+		editingProject?.value?.config?.defaultModels.orchestrator
+			? {
+				global: editingProject?.value?.config?.defaultModels.orchestrator?.global || 'claude-sonnet-4-20250514',
+				project: editingProject?.value?.config?.defaultModels.orchestrator?.project || null,
+			}
+			: { global: 'claude-sonnet-4-20250514', project: null },
+	);
+	const defaultModelsAgent = useSignal<ModelSelectionValue>(
+		editingProject?.value?.config?.defaultModels.agent
+			? {
+				global: editingProject?.value?.config?.defaultModels.agent?.global || 'claude-sonnet-4-20250514',
+				project: editingProject?.value?.config?.defaultModels.agent?.project || null,
+			}
+			: { global: 'claude-sonnet-4-20250514', project: null },
+	);
+	const defaultModelsChat = useSignal<ModelSelectionValue>(
+		editingProject?.value?.config?.defaultModels.chat
+			? {
+				global: editingProject?.value?.config?.defaultModels.chat?.global || 'claude-3-5-haiku-20241022',
+				project: editingProject?.value?.config?.defaultModels.chat?.project || null,
+			}
+			: { global: 'claude-3-5-haiku-20241022', project: null },
+	);
 	// Log the received project data - more detailed logging
 	console.log('ProjectEditor: editingProject:', editingProject?.value);
 	console.log('ProjectEditor: config structure:', editingProject?.value?.config);
 	console.log('ProjectEditor: mcpServers:', editingProject?.value?.data?.mcpServers);
+	console.log('ProjectEditor: defaultModels:', editingProject?.value?.config?.defaultModels);
+	console.log('ProjectEditor: defaultModelByRole:', {
+		defaultModelsOrchestrator: defaultModelsOrchestrator.value,
+		defaultModelsAgent: defaultModelsAgent.value,
+		defaultModelsChat: defaultModelsChat.value,
+	});
 
 	// Check for raw config in the project sources - might be stored differently
 	if (editingProject?.value) {
@@ -251,6 +290,11 @@ export function ProjectEditor({
 
 		saving.value = true;
 		error.value = null;
+		console.log('ProjectEditor: handleSubmit:', {
+			defaultModelsOrchestrator: defaultModelsOrchestrator.value,
+			defaultModelsAgent: defaultModelsAgent.value,
+			defaultModelsChat: defaultModelsChat.value,
+		});
 
 		try {
 			// Create the project data with correct typing
@@ -271,6 +315,17 @@ export function ProjectEditor({
 					myPersonsName: myPersonsName.value.project ?? undefined,
 					myAssistantsName: myAssistantsName.value.project ?? undefined,
 					llmGuidelinesFile: llmGuidelinesFile.value.project ?? undefined,
+					defaultModels: (
+							defaultModelsOrchestrator.value.project ||
+							defaultModelsAgent.value.project ||
+							defaultModelsChat.value.project
+						)
+						? {
+							orchestrator: defaultModelsOrchestrator.value.project ?? undefined,
+							agent: defaultModelsAgent.value.project ?? undefined,
+							chat: defaultModelsChat.value.project ?? undefined,
+						}
+						: undefined,
 					api: {
 						maxTurns: maxTurns.value.project ?? undefined,
 						toolConfigs: toolConfigs.value.project?.trim()
@@ -279,6 +334,7 @@ export function ProjectEditor({
 					},
 				},
 			};
+			console.log('ProjectEditor: handleSubmit:', { projectData });
 
 			if (editingProject?.value && editingProject?.value.data?.projectId) {
 				await onUpdateProject(editingProject?.value.data.projectId, projectData);
@@ -1003,18 +1059,110 @@ export function ProjectEditor({
 				)}
 
 				{activeTab.value === 'models' && (
-					<div className='models-tab'>
-						<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
-							<h3 className='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>
-								Model Configuration
-							</h3>
-							<p className='text-sm text-gray-500 dark:text-gray-400'>
-								This section will contain model-specific settings in the future.
-							</p>
-							<div className='flex items-center justify-center h-32'>
-								<span className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-									Coming Soon
-								</span>
+					<div className='models-tab space-y-6'>
+						{/* Header with Icon Legend */}
+						<div className='flex justify-between items-start mb-6'>
+							<div>
+								<h3 className='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+									Project Model Configuration
+								</h3>
+								<p className='text-sm text-gray-500 dark:text-gray-400'>
+									Override the global default models for this project. Leave blank to use global
+									defaults.
+								</p>
+							</div>
+							<div class='flex-shrink-0 '>
+								<ModelSystemCardsLink />
+							</div>
+						</div>
+
+						{/* Model Role Explanations and Icon Legend side by side */}
+						<ModelSelectHelp />
+
+						{/* Model Selection */}
+						<div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+							{/* Orchestrator Model */}
+							<ModelSelector
+								key={`orchestrator-${
+									defaultModelsOrchestrator.value.project || defaultModelsOrchestrator.value.global
+								}`}
+								apiClient={appState.value.apiClient!}
+								context='project'
+								role='orchestrator'
+								value={defaultModelsOrchestrator.value}
+								onChange={(value) => {
+									defaultModelsOrchestrator.value = value as ModelSelectionValue;
+								}}
+								label='Orchestrator Model'
+								description='Handles complex reasoning and coordination'
+							/>
+
+							{/* Agent Model */}
+							<ModelSelector
+								key={`agent-${defaultModelsAgent.value.project || defaultModelsAgent.value.global}`}
+								apiClient={appState.value.apiClient!}
+								context='project'
+								role='agent'
+								value={defaultModelsAgent.value}
+								onChange={(value) => {
+									defaultModelsAgent.value = value as ModelSelectionValue;
+								}}
+								label='Agent Model'
+								description='Executes tasks and uses tools'
+							/>
+
+							{/* Admin Model */}
+							<ModelSelector
+								key={`chat-${defaultModelsChat.value.project || defaultModelsChat.value.global}`}
+								apiClient={appState.value.apiClient!}
+								context='project'
+								role='chat'
+								value={defaultModelsChat.value}
+								onChange={(value) => {
+									defaultModelsChat.value = value as ModelSelectionValue;
+								}}
+								label='Admin Model'
+								description='Handles administrative tasks and meta-operations'
+							/>
+						</div>
+
+						{/* Suggested Combinations */}
+						<div className='mt-8'>
+							<ModelCombinations
+								onApplyCombo={(combo) => {
+									defaultModelsOrchestrator.value = {
+										...defaultModelsOrchestrator.value,
+										project: combo.orchestrator,
+									};
+									defaultModelsAgent.value = { ...defaultModelsAgent.value, project: combo.agent };
+									defaultModelsChat.value = { ...defaultModelsChat.value, project: combo.chat };
+								}}
+								className='max-w'
+							/>
+						</div>
+
+						{/* Display current selection summary */}
+						<div className='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+							<h4 className='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
+								Current Selection
+							</h4>
+							<div className='text-sm text-blue-800 dark:text-blue-200 space-y-1'>
+								<div>
+									<strong>Orchestrator:</strong>{' '}
+									{defaultModelsOrchestrator.value.project || defaultModelsOrchestrator.value.global}
+									{' '}
+									{defaultModelsOrchestrator.value.project ? '(Project)' : '(Global)'}
+								</div>
+								<div>
+									<strong>Agent:</strong>{' '}
+									{defaultModelsAgent.value.project || defaultModelsAgent.value.global}{' '}
+									{defaultModelsAgent.value.project ? '(Project)' : '(Global)'}
+								</div>
+								<div>
+									<strong>Admin:</strong>{' '}
+									{defaultModelsChat.value.project || defaultModelsChat.value.global}{' '}
+									{defaultModelsChat.value.project ? '(Project)' : '(Global)'}
+								</div>
 							</div>
 						</div>
 					</div>

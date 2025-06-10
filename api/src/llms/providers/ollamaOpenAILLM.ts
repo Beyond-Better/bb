@@ -3,7 +3,7 @@ import { LLMProvider, OllamaModel } from 'api/types.ts';
 import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage } from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
 import { logger } from 'shared/logger.ts';
-//import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+// import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 
@@ -51,10 +51,13 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 		// Ollama doesn't provide rate limit headers, but we'll log if we find any
 		const headers = response.headers;
 		if (headers.has('x-ratelimit-limit') || headers.has('x-ratelimit-remaining')) {
-			logger.info('Unexpected rate limit headers found in Ollama response', {
-				limit: headers.get('x-ratelimit-limit'),
-				remaining: headers.get('x-ratelimit-remaining'),
-			});
+			logger.info(
+				`LlmProvider[${this.llmProviderName}]: Unexpected rate limit headers found in Ollama response`,
+				{
+					limit: headers.get('x-ratelimit-limit'),
+					remaining: headers.get('x-ratelimit-remaining'),
+				},
+			);
 		}
 
 		return {

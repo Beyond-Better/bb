@@ -3,6 +3,15 @@ import { useEffect, useState } from 'preact/hooks';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 
 import { useAppState } from '../../hooks/useAppState.ts';
+import {
+	ModelCombinations,
+	ModelSelectHelp,
+	type ModelSelectionValue,
+	ModelSelector,
+	ModelSystemCardsLink,
+} from '../../components/ModelSelector.tsx';
+//import type { DefaultModels } from 'shared/config/types.ts';
+import { Toast } from '../../components/Toast.tsx';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -23,6 +32,11 @@ interface FormState {
 	extendedThinkingEnabled: boolean;
 	extendedThinkingBudget: number;
 	activeTab: string;
+	defaultModels: {
+		orchestrator: string;
+		agent: string;
+		chat: string;
+	};
 }
 
 interface FormErrors {
@@ -33,6 +47,11 @@ interface FormErrors {
 	extendedThinkingEnabled?: string;
 	extendedThinkingBudget?: string;
 	activeTab?: string;
+	defaultModels?: {
+		orchestrator?: string;
+		agent?: string;
+		chat?: string;
+	};
 }
 
 const loading = signal(true);
@@ -145,7 +164,14 @@ export default function DefaultProjectSettings() {
 		extendedThinkingEnabled: true,
 		extendedThinkingBudget: 4000,
 		activeTab: 'general',
+		defaultModels: {
+			orchestrator: 'claude-sonnet-4-20250514',
+			agent: 'claude-sonnet-4-20250514',
+			chat: 'claude-3-5-haiku-20241022',
+		},
 	});
+	const [showToast, setShowToast] = useState(false);
+	const [toastMessage, setToastMessage] = useState('');
 
 	// Load initial config
 	useEffect(() => {
@@ -163,6 +189,11 @@ export default function DefaultProjectSettings() {
 						extendedThinkingEnabled: config.api.extendedThinking?.enabled ?? true,
 						extendedThinkingBudget: config.api.extendedThinking?.budgetTokens ?? 4000,
 						activeTab: 'general',
+						defaultModels: {
+							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-20250514',
+							agent: config.defaultModels?.agent || 'claude-sonnet-4-20250514',
+							chat: config.defaultModels?.chat || 'claude-3-5-haiku-20241022',
+						},
 					});
 				}
 			} catch (error) {
@@ -177,10 +208,19 @@ export default function DefaultProjectSettings() {
 
 	const validateField = (
 		name: keyof FormState,
-		value: string | number | boolean | string,
+		value: string | number | boolean | string | { orchestrator: string; agent: string; chat: string },
 	): string | undefined => {
 		// Skip validation for these types
 		if (name === 'activeTab') {
+			return undefined;
+		}
+
+		if (name === 'defaultModels') {
+			const models = value as { orchestrator: string; agent: string; chat: string };
+			//console.log(`DefaultProjectSettings: validateField: defaultModels: `, models);
+			if (!models.orchestrator || !models.agent || !models.chat) {
+				return 'All model roles must be selected';
+			}
 			return undefined;
 		}
 
@@ -243,7 +283,30 @@ export default function DefaultProjectSettings() {
 		};
 	};
 
+	// Helper function for model updates
+	const handleModelChange = (role: 'orchestrator' | 'agent' | 'chat', modelId: string) => {
+		const newModels = {
+			...formState.defaultModels,
+			[role]: modelId,
+		};
+		setFormState((prev) => ({ ...prev, defaultModels: newModels }));
+
+		// Validate and update errors
+		const error = validateField('defaultModels', newModels);
+		formErrors.value = {
+			...formErrors.value,
+			defaultModels: error ? { [role]: error } : undefined,
+		};
+	};
+
+	// Handle model combo application
+	const handleApplyCombo = (combo: { orchestrator: string; agent: string; chat: string }) => {
+		setFormState((prev) => ({ ...prev, defaultModels: combo }));
+		markTabDirty('models');
+	};
+
 	const handleSubmit = async (e: Event) => {
+		console.log(`DefaultProjectSettings: Handle submit`);
 		e.preventDefault();
 
 		// Validate all fields
@@ -252,6 +315,7 @@ export default function DefaultProjectSettings() {
 			const error = validateField(field, formState[field]);
 			if (error) errors[field] = error;
 		});
+		console.log(`DefaultProjectSettings: Form errors: `, errors);
 
 		if (Object.keys(errors).length > 0) {
 			formErrors.value = errors;
@@ -275,13 +339,20 @@ export default function DefaultProjectSettings() {
 				'api.extendedThinking.budgetTokens',
 				formState.extendedThinkingBudget.toString(),
 			);
+			// Update default models
+			await appState.value.apiClient?.updateGlobalConfig(
+				'defaultModels',
+				JSON.stringify(formState.defaultModels),
+			);
 
 			// Reset dirty tabs state
 			dirtyTabs.value = new Set();
 
 			// Show success message
-			// TODO: Add toast notification system
 			console.log('Settings updated successfully');
+
+			setToastMessage('Settings Saved!');
+			setShowToast(true);
 		} catch (error) {
 			console.error('Failed to update settings:', error);
 			// TODO: Add error toast notification
@@ -291,7 +362,7 @@ export default function DefaultProjectSettings() {
 	const handleTabChange = (tabId: string) => {
 		// If switching from a tab with unsaved changes, show a brief toast message
 		if (dirtyTabs.value.has(formState.activeTab)) {
-			console.log(`Changes in ${formState.activeTab} preserved`);
+			console.log(`DefaultProjectSettings: Changes in ${formState.activeTab} preserved`);
 			// Here you could add a toast notification
 		}
 
@@ -518,7 +589,7 @@ export default function DefaultProjectSettings() {
 								</div>
 							</div>
 							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-								Enables Claude to show its step-by-step reasoning process for complex tasks
+								Enables Assistant to show its step-by-step reasoning process for complex tasks
 							</p>
 
 							{formState.extendedThinkingEnabled && (
@@ -530,7 +601,7 @@ export default function DefaultProjectSettings() {
 										Thinking Budget (tokens)
 									</label>
 									<p class='mt-1 text-xs text-gray-500 dark:text-gray-400'>
-										Maximum tokens Claude can use for reasoning (minimum 1,024)
+										Maximum tokens Assistant can use for reasoning (minimum 1,024)
 									</p>
 									<div class='max-w-[200px]'>
 										<input
@@ -608,18 +679,97 @@ export default function DefaultProjectSettings() {
 				)}
 
 				{formState.activeTab === 'models' && (
-					<div className='models-tab'>
-						<div className='bg-gray-50 dark:bg-gray-800 rounded-md p-4'>
-							<h3 className='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>
-								Model Configuration
-							</h3>
-							<p className='text-sm text-gray-500 dark:text-gray-400'>
-								This section will contain model-specific settings in the future.
-							</p>
-							<div className='flex items-center justify-center h-32'>
-								<span className='inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-									Coming Soon
-								</span>
+					<div className='models-tab space-y-6'>
+						{/* Header with Icon Legend */}
+						<div class='flex justify-between items-start mb-6'>
+							<div>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+									Default Models
+								</h3>
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									Set the default AI models for different roles. These will be used across all
+									projects unless overridden.
+								</p>
+							</div>
+							<div class='flex-shrink-0 '>
+								<ModelSystemCardsLink />
+							</div>
+						</div>
+
+						{/* Model Role Explanations and Icon Legend side by side */}
+						<ModelSelectHelp />
+
+						{/* Model Selection */}
+						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
+							{/* Orchestrator Model */}
+							<ModelSelector
+								key={`orchestrator-${formState.defaultModels.orchestrator}`}
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='orchestrator'
+								value={formState.defaultModels.orchestrator}
+								onChange={(value) => {
+									handleModelChange('orchestrator', value as string);
+									markTabDirty('models');
+								}}
+								label='Orchestrator Model'
+								description='Handles complex reasoning and coordination'
+							/>
+
+							{/* Agent Model */}
+							<ModelSelector
+								key={`agent-${formState.defaultModels.agent}`}
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='agent'
+								value={formState.defaultModels.agent}
+								onChange={(value) => {
+									handleModelChange('agent', value as string);
+									markTabDirty('models');
+								}}
+								label='Agent Model'
+								description='Executes tasks and uses tools'
+							/>
+
+							{/* Admin Model */}
+							<ModelSelector
+								key={`chat-${formState.defaultModels.chat}`}
+								apiClient={appState.value.apiClient!}
+								context='global'
+								role='chat'
+								value={formState.defaultModels.chat}
+								onChange={(value) => {
+									handleModelChange('chat', value as string);
+									markTabDirty('models');
+								}}
+								label='Admin Model'
+								description='Handles administrative tasks and meta-operations'
+							/>
+						</div>
+
+						{/* Suggested Combinations */}
+						<div class='mt-8'>
+							<ModelCombinations
+								onApplyCombo={handleApplyCombo}
+								className='max-w'
+							/>
+						</div>
+
+						{/* Display current selection summary */}
+						<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+							<h4 class='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
+								Current Selection
+							</h4>
+							<div class='text-sm text-blue-800 dark:text-blue-200'>
+								<div>
+									<strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}
+								</div>
+								<div>
+									<strong>Agent:</strong> {formState.defaultModels.agent}
+								</div>
+								<div>
+									<strong>Admin:</strong> {formState.defaultModels.chat}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -635,6 +785,16 @@ export default function DefaultProjectSettings() {
 					</button>
 				</div>
 			</form>
+
+			{/* Toast notifications */}
+			{showToast && (
+				<Toast
+					message={toastMessage}
+					type='success'
+					duration={2000}
+					onClose={() => setShowToast(false)}
+				/>
+			)}
 		</div>
 	);
 }

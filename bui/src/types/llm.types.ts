@@ -8,7 +8,7 @@ export interface LLMExtendedThinkingOptions {
 	enabled: boolean;
 
 	/**
-	 * The maximum number of tokens Claude is allowed to use for its internal reasoning process
+	 * The maximum number of tokens Assistant is allowed to use for its internal reasoning process
 	 * Minimum is 1,024 tokens
 	 */
 	budgetTokens: number;

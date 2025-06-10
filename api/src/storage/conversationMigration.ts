@@ -243,7 +243,8 @@ export class ConversationMigration {
 				// Calculate totalAllTokens
 				const totalAllTokens = (record.rawUsage.totalTokens ?? 0) +
 					(record.rawUsage.cacheCreationInputTokens ?? 0) +
-					(record.rawUsage.cacheReadInputTokens ?? 0);
+					(record.rawUsage.cacheReadInputTokens ?? 0) +
+					(record.rawUsage.thoughtTokens ?? 0);
 
 				// Update the record
 				record.rawUsage.totalAllTokens = totalAllTokens;
@@ -265,6 +266,7 @@ export class ConversationMigration {
 					inputTokens: 0,
 					outputTokens: 0,
 					totalTokens: 0,
+					thoughtTokens: 0,
 					totalAllTokens: 0,
 				};
 				metadata.tokenUsageStats = {
@@ -279,6 +281,7 @@ export class ConversationMigration {
 				totalTokens: tokenAnalysis.totalUsage.total,
 				cacheCreationInputTokens: tokenAnalysis.totalUsage.cacheCreationInput,
 				cacheReadInputTokens: tokenAnalysis.totalUsage.cacheReadInput,
+				thoughtTokens: tokenAnalysis.totalUsage.thoughtTokens,
 				totalAllTokens: tokenAnalysis.totalUsage.totalAll,
 			};
 			metadata.version = 3;

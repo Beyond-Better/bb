@@ -54,9 +54,9 @@ export default class LLMToolConversationSummary extends LLMTool {
 				maxTokensToKeep: {
 					type: 'number',
 					description:
-						"Maximum number of tokens to keep in the truncated conversation. Must be at least 1000 tokens to ensure meaningful context, and no more than the model's context window (e.g., 128K for Claude-3). When truncating, the most recent messages are preserved up to this token limit to maintain immediate context while reducing overall token usage.",
+						"Maximum number of tokens to keep in the truncated conversation. Must be at least 1000 tokens to ensure meaningful context, and no more than the model's context window (e.g., 128K for Claude-4). When truncating, the most recent messages are preserved up to this token limit to maintain immediate context while reducing overall token usage.",
 					minimum: 1000,
-					maximum: 128000,
+					maximum: 2000000,
 					default: 64000,
 				},
 				summaryLength: {

@@ -12,6 +12,8 @@ tags.ignore
 .trash/
 .uploads/
 
+api/scripts/.env*
+
 bui-orig*
 bui-rewrite*
 

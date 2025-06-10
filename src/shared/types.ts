@@ -149,7 +149,8 @@ export interface TokenUsage {
 	totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
-	totalAllTokens?: number; // totalTokens + cacheCreationInputTokens + cacheReadInputTokens
+	thoughtTokens?: number;
+	totalAllTokens?: number; // totalTokens + cacheCreationInputTokens + cacheReadInputTokens + thoughtTokens
 }
 
 export interface TokenUsageDifferential {
@@ -200,6 +201,7 @@ export interface TokenUsageAnalysis {
 		total: number;
 		cacheCreationInput: number;
 		cacheReadInput: number;
+		thoughtTokens: number;
 		totalAll: number;
 	};
 	// where totalUsage.input is count of all input tokens for all turns (messages) in history

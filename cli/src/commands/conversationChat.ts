@@ -74,7 +74,7 @@ export const conversationChat = new Command()
 				} else {
 					console.log("\nCan't cancel without conversation ID...");
 				}
-				terminalHandler?.cancelStatement('Waiting for Claude to finish speaking...');
+				terminalHandler?.cancelStatement('Waiting for Assistant to finish speaking...');
 			} else {
 				console.log('\nCleaning up...');
 				await exit();
@@ -431,13 +431,13 @@ const processStatement = async (
 ): Promise<void> => {
 	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
-	terminalHandler.startStatement('Claude is thinking...');
+	terminalHandler.startStatement('Assistant is thinking...');
 	try {
 		websocketManager.ws?.send(
 			JSON.stringify({ conversationId, projectId, task, statement, options: { maxTurns: options?.maxTurns } }),
 		);
 		await websocketManager.waitForAnswer(conversationId);
 	} finally {
-		terminalHandler.stopStatement('Claude is finished');
+		terminalHandler.stopStatement('Assistant is finished');
 	}
 };

@@ -12,7 +12,7 @@ import OpenAICompatLLM from './openAICompatLLM.ts';
 // import { createError } from 'api/utils/error.ts';
 // import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-//import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+// import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 
 // Define DeepSeek-specific types
 interface DeepSeekTokenUsage {
@@ -36,7 +36,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 	}
 
 	protected override asProviderMessageType(messages: LLMMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] {
-		logger.info(`llms-${this.llmProviderName}-asProviderMessageType-messages`, messages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: asProviderMessageType-messages`, messages);
 		const providerMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
 		messages.forEach((message) => {
@@ -103,7 +103,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 			}
 		});
 
-		logger.info(`llms-${this.llmProviderName}-asProviderMessageType-providerMessages`, providerMessages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: asProviderMessageType-providerMessages`, providerMessages);
 		return providerMessages;
 	}
 
@@ -117,6 +117,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 			cacheCreationInputTokens: 0,
 			// Tokens we got from cache
 			cacheReadInputTokens: usage?.prompt_cache_hit_tokens ?? 0,
+			thoughtTokens: 0,
 			totalAllTokens: ((usage?.prompt_cache_miss_tokens ?? 0) + (usage?.completion_tokens ?? 0) +
 				(usage?.prompt_cache_hit_tokens ?? 0)),
 		};
@@ -127,7 +128,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 
 	protected override transformRateLimit(_response: Response): LLMRateLimit {
 		// DeepSeek doesn't provide rate limit headers
-		logger.debug('No rate limit headers available in DeepSeek response');
+		logger.debug(`LlmProvider[${this.llmProviderName}]: No rate limit headers available in DeepSeek response`);
 		return {
 			requestsRemaining: 0,
 			requestsLimit: 0,

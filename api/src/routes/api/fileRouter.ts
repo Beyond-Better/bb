@@ -5,6 +5,7 @@ import {
 	listFiles,
 	removeFile,
 	resolvePath,
+	serveFile,
 	suggestFiles,
 	suggestFilesForPath,
 } from './file.handlers.ts';
@@ -15,6 +16,7 @@ fileRouter
 	.post('/', addFile)
 	.delete('/:id', removeFile)
 	.get('/', listFiles)
+	.get('/serve/:resourceUrl', serveFile)
 	.post('/suggest', suggestFiles)
 	.post('/suggest-for-path', suggestFilesForPath)
 	.post('/resolve-path', resolvePath)

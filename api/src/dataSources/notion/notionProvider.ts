@@ -7,7 +7,7 @@ import { NotionAccessor } from './notionAccessor.ts';
 import { NotionClient } from './notionClient.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
-import type { AuthConfig } from '../interfaces/authentication.ts';
+import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 //import type { DataSourceCapability } from 'shared/types/dataSource.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 

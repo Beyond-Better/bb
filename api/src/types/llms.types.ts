@@ -8,119 +8,125 @@ import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
-export enum AnthropicModel {
-	CLAUDE_4_0_OPUS = 'claude-opus-4-20250514',
-	CLAUDE_4_0_SONNET = 'claude-sonnet-4-20250514',
-	CLAUDE_3_5_HAIKU = 'claude-3-5-haiku-20241022',
-	CLAUDE_3_7_SONNET = 'claude-3-7-sonnet-20250219',
-	CLAUDE_3_5_SONNET = 'claude-3-5-sonnet-20241022', //'claude-3-5-sonnet-20240620',
-	CLAUDE_3_HAIKU = 'claude-3-haiku-20240307',
-	CLAUDE_3_SONNET = 'claude-3-sonnet-20240229',
-	CLAUDE_3_OPUS = 'claude-3-opus-20240229',
-}
-export const AnthropicModels = [
-	AnthropicModel.CLAUDE_4_0_OPUS,
-	AnthropicModel.CLAUDE_4_0_SONNET,
-	AnthropicModel.CLAUDE_3_5_HAIKU,
-	AnthropicModel.CLAUDE_3_5_SONNET,
-	AnthropicModel.CLAUDE_3_7_SONNET,
-	AnthropicModel.CLAUDE_3_HAIKU,
-	//AnthropicModel.CLAUDE_3_SONNET,
-	AnthropicModel.CLAUDE_3_OPUS,
-];
+// Re-export model capabilities types
+export type {
+	InteractionPreferences,
+	ModelCapabilities,
+	UserModelPreferences,
+} from 'api/types/modelCapabilities.ts';
 
-export enum OpenAIModel {
-	GPT_4o = 'gpt-4o',
-	GPT_4_TURBO = 'gpt-4-turbo',
-	GPT_4 = 'gpt-4',
-	GPT_35_TURBO = 'gpt-3.5-turbo',
-}
-export const OpenAIModels = [
-	OpenAIModel.GPT_4o,
-	OpenAIModel.GPT_4_TURBO,
-	OpenAIModel.GPT_4,
-	OpenAIModel.GPT_35_TURBO,
-];
+// Model registry service will be used instead of enums
+// Import the service for runtime access
+import type { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
-export enum DeepSeekModel {
-	DEEPSEEK_CHAT = 'deepseek-chat',
-	DEEPSEEK_REASONER = 'deepseek-reasoner',
-}
-export const DeepSeekModels = [
-	DeepSeekModel.DEEPSEEK_CHAT,
-	DeepSeekModel.DEEPSEEK_REASONER,
-];
+/**
+ * Well-known model IDs as constants for easy reference
+ * These replace the old enum values and are used as string literals
+ */
+export const MODELS = {
+	// Anthropic models
+	CLAUDE_4_0_OPUS: 'claude-opus-4-20250514',
+	CLAUDE_4_0_SONNET: 'claude-sonnet-4-20250514',
+	CLAUDE_3_7_SONNET: 'claude-3-7-sonnet-20250219',
+	CLAUDE_3_5_SONNET: 'claude-3-5-sonnet-20241022',
+	CLAUDE_3_5_HAIKU: 'claude-3-5-haiku-20241022',
+	CLAUDE_3_HAIKU: 'claude-3-haiku-20240307',
+	CLAUDE_3_SONNET: 'claude-3-sonnet-20240229',
+	CLAUDE_3_OPUS: 'claude-3-opus-20240229',
 
-export enum GoogleModel {
-	GOOGLE_GEMINI_1_5_FLASH = 'gemini-1.5-flash',
-	GOOGLE_GEMINI_2_0_FLASH = 'gemini-2.0-flash',
-	GOOGLE_GEMINI_2_5_FLASH = 'gemini-2.5-flash-preview-05-20',
-	GOOGLE_GEMINI_2_5_PRO = 'gemini-2.5-pro-preview-05-06',
-	//GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP = 'gemini-2.0-flash-thinking-exp',
-}
-export const GoogleModels = [
-	GoogleModel.GOOGLE_GEMINI_1_5_FLASH,
-	GoogleModel.GOOGLE_GEMINI_2_0_FLASH,
-	GoogleModel.GOOGLE_GEMINI_2_5_FLASH,
-	GoogleModel.GOOGLE_GEMINI_2_5_PRO,
-	//GoogleModel.GOOGLE_GEMINI_2_0_FLASH_THINKING_EXP,
-];
+	// OpenAI models
+	GPT_4O: 'gpt-4o',
+	GPT_4_TURBO: 'gpt-4-turbo',
+	GPT_4: 'gpt-4',
+	GPT_35_TURBO: 'gpt-3.5-turbo',
 
-export enum GroqModel {
-	GROQ_LLAMA3_8B = 'llama3-8b-8192',
-	GROQ_LLAMA3_70B = 'llama3-70b-8192',
-	GROQ_MIXTRAL_8X7B = 'mixtral-8x7b-32768',
-	GROQ_GEMMA_7B = 'gemma-7b-it',
-}
-export const GroqModels = [
-	GroqModel.GROQ_LLAMA3_8B,
-	GroqModel.GROQ_LLAMA3_70B,
-	GroqModel.GROQ_MIXTRAL_8X7B,
-	GroqModel.GROQ_GEMMA_7B,
-];
+	// DeepSeek models
+	DEEPSEEK_CHAT: 'deepseek-chat',
+	DEEPSEEK_REASONER: 'deepseek-reasoner',
 
-export enum OllamaModel {
-	MISTRAL_NEMO = 'mistral-nemo',
-	MISTRAL = 'mistral',
-	DEEPSEEK_R1_14B = 'deepseek-r1:14b',
-	LLAMA3_3 = 'llama3.3',
-	LLAMA3_GROQ_TOOL_USE_70B = 'llama3-groq-tool-use:70b',
-	QWEN2_5_CODER_14B = 'qwen2.5-coder:14b',
-	QWEN2_5_CODER_32B = 'qwen2.5-coder:32b',
-	COMMAND_R = 'command-r',
-	COMMAND_R_PLUS = 'command-r-plus',
-	FIREFUNCTION_V2 = 'firefunction-v2',
-	SMOLLM2_1_7B = 'smollm2:1.7b',
-}
+	// Google models
+	GOOGLE_GEMINI_1_5_FLASH: 'gemini-1.5-flash',
+	GOOGLE_GEMINI_2_0_FLASH: 'gemini-2.0-flash',
+	GOOGLE_GEMINI_2_5_FLASH: 'gemini-2.5-flash-preview-05-20',
+	GOOGLE_GEMINI_2_5_PRO: 'gemini-2.5-pro-preview-05-06',
 
-export const OllamaModels = [
-	OllamaModel.MISTRAL_NEMO,
-	OllamaModel.MISTRAL,
-	OllamaModel.DEEPSEEK_R1_14B,
-	OllamaModel.LLAMA3_3,
-	OllamaModel.LLAMA3_GROQ_TOOL_USE_70B,
-	OllamaModel.QWEN2_5_CODER_14B,
-	OllamaModel.QWEN2_5_CODER_32B,
-	OllamaModel.COMMAND_R,
-	OllamaModel.COMMAND_R_PLUS,
-	OllamaModel.FIREFUNCTION_V2,
-	OllamaModel.SMOLLM2_1_7B,
-];
+	// Groq models
+	GROQ_LLAMA3_8B: 'llama3-8b-8192',
+	GROQ_LLAMA3_70B: 'llama3-70b-8192',
+	GROQ_MIXTRAL_8X7B: 'mixtral-8x7b-32768',
+	GROQ_GEMMA_7B: 'gemma-7b-it',
 
-export const BbModels = [
-	// 	AnthropicModel.CLAUDE_3_HAIKU,
-	// 	AnthropicModel.CLAUDE_3_SONNET,
-	// 	AnthropicModel.CLAUDE_3_5_SONNET,
-	// 	AnthropicModel.CLAUDE_3_OPUS,
-	// 	OpenAIModel.GPT_4o,
-	// 	OpenAIModel.GPT_4_TURBO,
-	// 	OpenAIModel.GPT_4,
-	// 	OpenAIModel.GPT_35_TURBO,
-	// 	GroqModel.GROQ_LLAMA3_8B,
-	// 	GroqModel.GROQ_LLAMA3_70B,
-	// 	GroqModel.GROQ_MIXTRAL_8X7B,
-	// 	GroqModel.GROQ_GEMMA_7B,
-];
+	// Common Ollama models (these may be overridden by dynamic discovery)
+	OLLAMA_MISTRAL_NEMO: 'mistral-nemo',
+	OLLAMA_MISTRAL: 'mistral',
+	OLLAMA_DEEPSEEK_R1_14B: 'deepseek-r1:14b',
+	OLLAMA_LLAMA3_3: 'llama3.3',
+	OLLAMA_LLAMA3_GROQ_TOOL_USE_70B: 'llama3-groq-tool-use:70b',
+	OLLAMA_QWEN2_5_CODER_14B: 'qwen2.5-coder:14b',
+	OLLAMA_QWEN2_5_CODER_32B: 'qwen2.5-coder:32b',
+	OLLAMA_COMMAND_R: 'command-r',
+	OLLAMA_COMMAND_R_PLUS: 'command-r-plus',
+	OLLAMA_FIREFUNCTION_V2: 'firefunction-v2',
+	OLLAMA_SMOLLM2_1_7B: 'smollm2:1.7b',
+} as const;
+
+/**
+ * Backwards compatibility: Create "enum-like" objects from MODELS
+ * These provide the same interface as the old enums but use the new constant values
+ */
+export const AnthropicModel = {
+	CLAUDE_4_0_OPUS: MODELS.CLAUDE_4_0_OPUS,
+	CLAUDE_4_0_SONNET: MODELS.CLAUDE_4_0_SONNET,
+	CLAUDE_3_7_SONNET: MODELS.CLAUDE_3_7_SONNET,
+	CLAUDE_3_5_SONNET: MODELS.CLAUDE_3_5_SONNET,
+	CLAUDE_3_5_HAIKU: MODELS.CLAUDE_3_5_HAIKU,
+	CLAUDE_3_HAIKU: MODELS.CLAUDE_3_HAIKU,
+	CLAUDE_3_SONNET: MODELS.CLAUDE_3_SONNET,
+	CLAUDE_3_OPUS: MODELS.CLAUDE_3_OPUS,
+} as const;
+
+export const OpenAIModel = {
+	GPT_4o: MODELS.GPT_4O,
+	GPT_4_TURBO: MODELS.GPT_4_TURBO,
+	GPT_4: MODELS.GPT_4,
+	GPT_35_TURBO: MODELS.GPT_35_TURBO,
+} as const;
+
+export const DeepSeekModel = {
+	DEEPSEEK_CHAT: MODELS.DEEPSEEK_CHAT,
+	DEEPSEEK_REASONER: MODELS.DEEPSEEK_REASONER,
+} as const;
+
+export const GoogleModel = {
+	GOOGLE_GEMINI_1_5_FLASH: MODELS.GOOGLE_GEMINI_1_5_FLASH,
+	GOOGLE_GEMINI_2_0_FLASH: MODELS.GOOGLE_GEMINI_2_0_FLASH,
+	GOOGLE_GEMINI_2_5_FLASH: MODELS.GOOGLE_GEMINI_2_5_FLASH,
+	GOOGLE_GEMINI_2_5_PRO: MODELS.GOOGLE_GEMINI_2_5_PRO,
+} as const;
+
+export const GroqModel = {
+	GROQ_LLAMA3_8B: MODELS.GROQ_LLAMA3_8B,
+	GROQ_LLAMA3_70B: MODELS.GROQ_LLAMA3_70B,
+	GROQ_MIXTRAL_8X7B: MODELS.GROQ_MIXTRAL_8X7B,
+	GROQ_GEMMA_7B: MODELS.GROQ_GEMMA_7B,
+} as const;
+
+export const OllamaModel = {
+	MISTRAL_NEMO: MODELS.OLLAMA_MISTRAL_NEMO,
+	MISTRAL: MODELS.OLLAMA_MISTRAL,
+	DEEPSEEK_R1_14B: MODELS.OLLAMA_DEEPSEEK_R1_14B,
+	LLAMA3_3: MODELS.OLLAMA_LLAMA3_3,
+	LLAMA3_GROQ_TOOL_USE_70B: MODELS.OLLAMA_LLAMA3_GROQ_TOOL_USE_70B,
+	QWEN2_5_CODER_14B: MODELS.OLLAMA_QWEN2_5_CODER_14B,
+	QWEN2_5_CODER_32B: MODELS.OLLAMA_QWEN2_5_CODER_32B,
+	COMMAND_R: MODELS.OLLAMA_COMMAND_R,
+	COMMAND_R_PLUS: MODELS.OLLAMA_COMMAND_R_PLUS,
+	FIREFUNCTION_V2: MODELS.OLLAMA_FIREFUNCTION_V2,
+	SMOLLM2_1_7B: MODELS.OLLAMA_SMOLLM2_1_7B,
+} as const;
+
+// Currently empty - BB models are handled differently
+export const BbModels: string[] = [];
 
 export enum LLMProvider {
 	BB = 'beyondbetter',
@@ -155,6 +161,17 @@ export const LLMProviderLabel = {
 	[LLMProvider.UNKNOWN]: 'Unknown',
 };
 
+/**
+ * Legacy model arrays for backwards compatibility
+ * These will be populated dynamically from the model registry service
+ */
+export const AnthropicModels = Object.values(AnthropicModel);
+export const OpenAIModels = Object.values(OpenAIModel);
+export const DeepSeekModels = Object.values(DeepSeekModel);
+export const GoogleModels = Object.values(GoogleModel);
+export const GroqModels = Object.values(GroqModel);
+export const OllamaModels = Object.values(OllamaModel);
+
 export const LLMModelsByProvider = {
 	[LLMProvider.BB]: BbModels,
 	[LLMProvider.ANTHROPIC]: AnthropicModels,
@@ -166,26 +183,53 @@ export const LLMModelsByProvider = {
 	[LLMProvider.UNKNOWN]: [],
 };
 
-export const LLMModelToProvider = Object.fromEntries(
-	LLMProviders
-		.filter((provider) => provider !== LLMProvider.UNKNOWN && provider !== LLMProvider.BB)
-		.flatMap((provider) => {
-			const modelsArray = LLMModelsByProvider[provider];
-			return modelsArray ? modelsArray.map((model) => [model, provider]) : [];
-		}),
-);
-
-/*
-export const LLMProviderModels = Object.fromEntries(
-	LLMProviders
-		.filter((provider) => provider !== LLMProvider.UNKNOWN)
-		.flatMap((provider) => {
-			const providerLabel = LLMProviderLabel[provider];
-            const modelsArray = (globalThis as any)[`${providerLabel}Models`];
-			return modelsArray ? modelsArray.map((model:string) => [model, provider]) : [];
-		}),
-);
+/**
+ * Legacy model-to-provider mapping for backwards compatibility
+ * This will be populated dynamically by the ModelRegistryService
+ * For now, provide static mapping for known models
  */
+const staticModelToProvider: Record<string, LLMProvider> = {};
+
+// Populate static mappings
+Object.values(AnthropicModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.ANTHROPIC;
+});
+Object.values(OpenAIModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.OPENAI;
+});
+Object.values(DeepSeekModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.DEEPSEEK;
+});
+Object.values(GoogleModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.GOOGLE;
+});
+Object.values(GroqModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.GROQ;
+});
+Object.values(OllamaModel).forEach((model) => {
+	staticModelToProvider[model] = LLMProvider.OLLAMA;
+});
+
+// Export the static mapping (will be enhanced by ModelRegistryService)
+export const LLMModelToProvider: Record<string, LLMProvider> = staticModelToProvider;
+
+/**
+ * Function to get updated model-to-provider mapping from ModelRegistryService
+ * This should be used instead of the static LLMModelToProvider when possible
+ */
+export async function getLLMModelToProvider(): Promise<Record<string, LLMProvider>> {
+	try {
+		// Dynamic import to avoid circular dependencies
+		const { ModelRegistryService } = await import('api/llms/modelRegistryService.ts');
+		const registryService = await ModelRegistryService.getInstance();
+		return registryService.getModelToProviderMapping();
+	} catch (error) {
+		// Fallback to static mapping if service isn't available
+		return staticModelToProvider;
+	}
+}
+
+// Rest of the interfaces remain the same...
 
 export interface LLMProvderClientConfig {
 	apiKey?: string;
@@ -194,23 +238,16 @@ export interface LLMProvderClientConfig {
 }
 
 export type LLMTokenUsage = TokenUsage;
-/*
-export interface LLMTokenUsage {
-	inputTokens: number;
-	outputTokens: number;
-	totalTokens: number;
-}
- */
+
 export interface LLMRateLimit {
 	requestsRemaining: number;
 	requestsLimit: number;
-	//requestsResetMs: number;
 	requestsResetDate: Date;
 	tokensRemaining: number;
 	tokensLimit: number;
-	//tokensResetMs: number;
 	tokensResetDate: Date;
 }
+
 export interface LLMMessageStop {
 	stopReason:
 		// anthropic stop reasons
@@ -236,40 +273,21 @@ export interface LLMProviderMessageResponseMeta {
 
 /**
  * Options for extended thinking capability in Claude 3.7 Sonnet
- *
- * Note on design choice: While the Anthropic API uses `type: "enabled"` in the `thinking` parameter,
- * we use `enabled: boolean` in our interface to make it clearer whether the feature is turned on or off.
- * When converting to the API format, we set `type: "enabled"` when `enabled` is true.
- * This separation makes the API more intuitive for our users by distinguishing the concept of
- * "is this feature on?" from the specific API implementation detail.
  */
 export interface LLMExtendedThinkingOptions {
-	/**
-	 * Whether extended thinking is enabled
-	 */
 	enabled: boolean;
-
-	/**
-	 * The maximum number of tokens Claude is allowed to use for its internal reasoning process
-	 * Minimum is 1,024 tokens
-	 */
 	budgetTokens: number;
 }
 
 export interface LLMProviderMessageRequest {
 	id?: string;
 	messages: LLMMessage[];
-	tools: LLMTool[]; // Map<string, LLMTool>; // CNG - I think this type was wrong, from reading code, so changed it from map to array (PREPARE_TOOLS callback converts to array), but watch for breakage
-	system: string; // | LLMMessageContentPartTextBlock;
-	//prompt: string; // CNG - I think this is a deprecated attribute
+	tools: LLMTool[];
+	system: string;
 	model: string;
 	maxTokens: number;
-	//max_tokens?: number; // artefact of formatting request for LLM provider - gets removed in conversation
 	temperature: number;
 	usePromptCaching?: boolean;
-	/**
-	 * Extended thinking options for Claude 3.7 Sonnet
-	 */
 	extendedThinking?: LLMExtendedThinkingOptions;
 }
 
@@ -280,7 +298,7 @@ export interface LLMProviderMessageResponse {
 	id: string;
 	type: LLMProviderMessageResponseType;
 	role: LLMProviderMessageResponseRole;
-	model: string; //LLMModel; (AnthropicModel)
+	model: string;
 	messageStop: LLMMessageStop;
 	timestamp: string;
 	usage: LLMTokenUsage;
@@ -305,7 +323,6 @@ export interface LLMRequestParams {
 	maxTokens: number;
 	extendedThinking?: LLMExtendedThinkingOptions;
 	usePromptCaching?: boolean;
-	// Add any other relevant request parameters
 }
 
 export interface LLMProviderMessageMeta {
@@ -326,9 +343,6 @@ export interface LLMSpeakWithOptions {
 	maxTokens?: number;
 	temperature?: number;
 	validateResponseCallback?: LLMValidateResponseCallback;
-	/**
-	 * Extended thinking options for Claude 3.7 Sonnet
-	 */
 	extendedThinking?: LLMExtendedThinkingOptions;
 }
 
@@ -343,9 +357,8 @@ export interface Task {
 }
 
 export interface CompletedTask {
-	//type: string;
 	title: string;
-	status: 'completed' | 'failed'; // | 'error';
+	status: 'completed' | 'failed';
 	result?: string;
 	error?: string;
 }
@@ -369,6 +382,7 @@ export type ResourceType =
 	| 'mcp'
 	| 'workspace'
 	| 'page';
+
 export interface Resource {
 	type: ResourceType;
 	uri: string;
@@ -386,7 +400,6 @@ export enum LLMCallbackType {
 	PROJECT_ID = 'PROJECT_ID',
 	PROJECT_DATA_SOURCES = 'PROJECT_DATA_SOURCES',
 	PROJECT_MCP_TOOLS = 'PROJECT_MCP_TOOLS',
-	//SYSTEM_PROMPT_DATA_SOURCES = 'SYSTEM_PROMPT_DATA_SOURCES',
 	PROJECT_INFO = 'PROJECT_INFO',
 	PROJECT_CONFIG = 'PROJECT_CONFIG',
 	PROJECT_RESOURCE_CONTENT = 'PROJECT_RESOURCE_CONTENT',
@@ -394,9 +407,8 @@ export enum LLMCallbackType {
 	PREPARE_SYSTEM_PROMPT = 'PREPARE_SYSTEM_PROMPT',
 	PREPARE_MESSAGES = 'PREPARE_MESSAGES',
 	PREPARE_TOOLS = 'PREPARE_TOOLS',
-	// [TODO] PREPARE_DATA_SOURCES
-	// [TODO] PREPARE_RESOURCES
 }
+
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {
 	// @ts-ignore any
@@ -405,16 +417,17 @@ export type LLMCallbacks = {
 
 export interface BBLLMResponseMetadata {
 	model: string;
-	provider: string; //'anthropic',
+	provider: string;
 	requestId: string;
 	type: 'message' | 'error';
 	role: 'assistant' | 'user';
+	isTool: boolean;
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
 	requestParams?: LLMRequestParams;
+	rawUsage: Record<string, number>;
 }
 
-// also in api/types/llms.ts
 export interface BBLLMResponseRateLimit {
 	requestsRemaining: number;
 	requestsLimit: number;
@@ -424,7 +437,6 @@ export interface BBLLMResponseRateLimit {
 	tokensResetDate: Date;
 }
 
-// also in api/types/llms.ts (as LLMProviderMessageResponseMeta)
 export interface BBLLMResponseStatus {
 	statusCode: number;
 	statusText: string;

@@ -4,6 +4,8 @@ import { computed, Signal, signal, useComputed } from '@preact/signals';
 import { JSX } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
+import { notificationManager } from '../utils/notificationManager.ts';
+import { userPersistenceManager } from '../storage/userPersistence.ts';
 import type {
 	ModelDetails,
 	//ModelResponse,
@@ -207,6 +209,36 @@ export default function Chat({
 		};
 	}, []);
 
+	// Initialize notification system
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+
+		async function initializeNotifications() {
+			try {
+				// Initialize user persistence with API client and local mode status
+				const isLocalMode = !chatState.value.apiClient; // Simple check for local mode
+				userPersistenceManager.initialize(chatState.value.apiClient, isLocalMode);
+
+				// Load user preferences
+				await userPersistenceManager.loadPreferences();
+
+				// Initialize notification manager
+				await notificationManager.initialize();
+
+				console.log('Chat: Notification system initialized successfully');
+			} catch (error) {
+				console.warn('Chat: Failed to initialize notification system:', error);
+			}
+		}
+
+		initializeNotifications();
+
+		// Cleanup on unmount
+		return () => {
+			notificationManager.dispose();
+		};
+	}, [chatState.value.apiClient]);
+
 	const [handlers, scrollIndicatorState] = useChatState(chatConfig, chatState, chatInputOptions);
 
 	// Remove initial useEffect as projectData is now handled by computed signal in useChatState
@@ -214,13 +246,13 @@ export default function Chat({
 	// Update cache status every 30 seconds
 	useEffect(() => {
 		if (!IS_BROWSER) return;
-		console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
+		// console.log('Chat: status.lastApiCallTime effect running', chatState.value.status.lastApiCallTime);
 
 		const updateCacheStatus = () => {
-			console.log(
-				'Chat: status.lastApiCallTime effect - updateCacheStatus',
-				chatState.value.status.lastApiCallTime,
-			);
+			// console.log(
+			// 	'Chat: status.lastApiCallTime effect - updateCacheStatus',
+			// 	chatState.value.status.lastApiCallTime,
+			// );
 			if (!chatState.value.status.lastApiCallTime) {
 				chatState.value.status.cacheStatus = 'inactive';
 				return;
@@ -421,7 +453,7 @@ export default function Chat({
 	}, [handlers]);
 
 	useEffect(() => {
-		console.log('Chat: Navigation useEffect', { chatState: chatState.value });
+		//console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
@@ -479,7 +511,7 @@ export default function Chat({
 
 	// Handle scroll behavior with stable positioning
 	useEffect(() => {
-		console.log('Chat: Scroll useEffect');
+		//console.log('Chat: Scroll useEffect');
 		if (!messagesEndRef.current) return;
 
 		const messagesContainer = messagesEndRef.current;
@@ -499,19 +531,18 @@ export default function Chat({
 
 			// Update auto-scroll behavior only when it changes
 			if (shouldAutoScroll !== isAtBottom) {
-				console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
+				//console.log('ChatIsland: Auto-scroll behavior changing to:', isAtBottom);
 				setShouldAutoScroll(isAtBottom);
 			}
-
 			// Log current state for debugging
-			console.debug('ChatIsland: Scroll state debug', {
-				isAtBottom,
-				distanceFromBottom,
-				currentVisibility: scrollIndicatorState.value.isVisible,
-				scrollHeight: messagesContainer.scrollHeight,
-				clientHeight: messagesContainer.clientHeight,
-				scrollTop,
-			});
+			// console.debug('ChatIsland: Scroll state debug', {
+			// 	isAtBottom,
+			// 	distanceFromBottom,
+			// 	currentVisibility: scrollIndicatorState.value.isVisible,
+			// 	scrollHeight: messagesContainer.scrollHeight,
+			// 	clientHeight: messagesContainer.clientHeight,
+			// 	scrollTop,
+			// });
 		};
 
 		// Add scroll event listener
@@ -561,7 +592,7 @@ export default function Chat({
 
 	// Handle page visibility and focus events at the component level
 	useEffect(() => {
-		console.log('Chat: Visibility useEffect');
+		// console.log('Chat: Visibility useEffect');
 		if (!IS_BROWSER) return;
 
 		// Don't force scroll during processing - respect user's scroll position
@@ -571,28 +602,38 @@ export default function Chat({
 				console.log('ChatIsland: Page hidden while processing');
 				setToastMessage('Statement in progress in background');
 				setShowToast(true);
+			} else if (document.visibilityState === 'visible') {
+				// User returned to page - clear any notifications
+				notificationManager.clearNotifications();
 			}
+		};
+
+		const handleFocus = () => {
+			// User focused window - clear any notifications
+			notificationManager.clearNotifications();
 		};
 
 		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
 			if (isProcessing(chatState.value.status)) {
 				event.preventDefault();
-				//return (event.returnValue = 'Claude is still working. Are you sure you want to leave?');
+				//return (event.returnValue = 'Assistant is still working. Are you sure you want to leave?');
 			}
 		};
 
 		document.addEventListener('visibilitychange', handleVisibilityChange);
+		globalThis.addEventListener('focus', handleFocus);
 		globalThis.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
-			console.log('Chat: Cleanup for useEffect');
+			//console.log('Chat: Cleanup for useEffect');
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			globalThis.removeEventListener('focus', handleFocus);
 			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	}, [chatState.value.status.apiStatus]);
 
 	useEffect(() => {
-		console.log('Chat: Connection status useEffect');
+		//console.log('Chat: Connection status useEffect');
 		let disconnectTimeoutId: number;
 		let reconnectTimeoutId: number;
 
@@ -836,8 +877,11 @@ export default function Chat({
 											ds.id === chatState.value.projectData?.primaryDsConnection?.id
 										)?.name}
 										textareaRef={chatInputRef}
-										onChange={(value) => {
-											if (!chatState.value.status.isReady) return;
+										onChange={(value, source = 'user') => {
+											// Only block user input when not ready, allow programmatic updates
+											if (source === 'user' && !chatState.value.status.isReady) {
+												return;
+											}
 											setInputWithTracking(value.slice(0, INPUT_MAX_CHAR_LENGTH));
 										}}
 										onSend={sendConverse}

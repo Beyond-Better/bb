@@ -4,9 +4,11 @@ import { signal } from '@preact/signals';
 
 import { PageContainer } from '../components/PageContainer.tsx';
 import { TabPanel, Tabs } from '../components/Tabs.tsx';
+import { NotificationSettings } from './AppSettings/NotificationSettings.tsx';
 import SubscriptionSettings from './AppSettings/SubscriptionSettings.tsx';
 import DefaultProjectSettings from './AppSettings/DefaultProjectSettings.tsx';
 import MCPServersSection from './AppSettings/MCPServersSection.tsx';
+import { AppearanceSettings } from './AppSettings/AppearanceSettings.tsx';
 
 interface AppSettingsTab {
 	id: string;
@@ -27,7 +29,7 @@ const SETTINGS_TABS: AppSettingsTab[] = [
 	},
 	{
 		id: 'projects',
-		label: 'Projects',
+		label: 'Project Defaults',
 		description: 'Configure project defaults',
 		icon:
 			'M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z',
@@ -49,42 +51,22 @@ const SETTINGS_TABS: AppSettingsTab[] = [
 			'M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z',
 		component: () => (
 			<div class='p-6'>
-				<div class='flex items-center space-x-3 mb-6'>
-					<div>
-						<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Appearance Settings</h3>
-						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-							Customize the look and feel of BB
-						</p>
-					</div>
-				</div>
-				<span class='mt-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-					Coming Soon
-				</span>
+				<AppearanceSettings />
 			</div>
 		),
 	},
-	// 	{
-	// 		id: 'notifications',
-	// 		label: 'Notifications',
-	// 		description: 'Configure notification preferences',
-	// 		icon:
-	// 			'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
-	// 		component: () => (
-	// 			<div class='p-6'>
-	// 				<div class='flex items-center space-x-3 mb-6'>
-	// 					<div>
-	// 						<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Notification Settings</h3>
-	// 						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-	// 							Configure notification preferences
-	// 						</p>
-	// 					</div>
-	// 				</div>
-	// 				<span class='mt-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-	// 					Coming Soon
-	// 				</span>
-	// 			</div>
-	// 		),
-	// 	},
+	{
+		id: 'notifications',
+		label: 'Notifications',
+		description: 'Configure notification preferences',
+		icon:
+			'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+		component: () => (
+			<div class='p-6'>
+				<NotificationSettings />
+			</div>
+		),
+	},
 	// 	{
 	// 		id: 'shortcuts',
 	// 		label: 'Shortcuts',

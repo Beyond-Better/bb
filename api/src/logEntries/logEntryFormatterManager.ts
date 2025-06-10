@@ -114,7 +114,7 @@ export default class LogEntryFormatterManager {
 	private formatLogEntryBasicBrowser(logEntry: ConversationLogEntry, title: string): LogEntryFormattedResult {
 		return {
 			title: this.formatLogEntryTitleBrowser({ title }),
-			content: this.formatLogEntryContentBrowser(logEntry),
+			content: this.formatLogEntryContentBrowser(logEntry, this.projectEditor.projectId),
 			preview: this.formatLogEntryPreviewBrowser(logEntry),
 		};
 	}
@@ -143,14 +143,17 @@ export default class LogEntryFormatterManager {
 			const auxContent = content as AuxiliaryChatContent;
 			return {
 				title: this.formatLogEntryTitleBrowser({ title: auxContent.purpose }),
-				content: this.formatLogEntryContentBrowser({ content: auxContent.message } as ConversationLogEntry),
+				content: this.formatLogEntryContentBrowser(
+					{ content: auxContent.message } as ConversationLogEntry,
+					this.projectEditor.projectId,
+				),
 				preview: this.formatLogEntryPreviewBrowser({ content: auxContent.message } as ConversationLogEntry),
 			};
 		}
 		// Fallback for string content
 		return {
 			title: 'Auxiliary',
-			content: this.formatLogEntryContentBrowser(logEntry),
+			content: this.formatLogEntryContentBrowser(logEntry, this.projectEditor.projectId),
 			preview: this.getContentPreview(logEntry.content),
 		};
 	}
@@ -210,8 +213,8 @@ export default class LogEntryFormatterManager {
 		return formatLogEntryTitleForBrowser(titleData);
 	}
 
-	private formatLogEntryContentBrowser(logEntry: ConversationLogEntry): string | JSX.Element {
-		return formatLogEntryContentForBrowser(logEntry);
+	private formatLogEntryContentBrowser(logEntry: ConversationLogEntry, projectId?: string): string | JSX.Element {
+		return formatLogEntryContentForBrowser(logEntry, projectId);
 	}
 
 	private formatLogEntryPreviewBrowser(logEntry: ConversationLogEntry): string | JSX.Element {

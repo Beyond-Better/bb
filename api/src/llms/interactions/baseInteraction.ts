@@ -24,7 +24,7 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import { LLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
+import { getLLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -35,7 +35,7 @@ import { generateConversationId, shortenConversationId } from 'shared/conversati
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import type { InteractionPreferences } from 'api/types/modelCapabilities.ts';
+import type { InteractionPreferences, ModelCapabilities } from 'api/types/modelCapabilities.ts';
 import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
 import LLMFactory from '../llmProvider.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
@@ -61,6 +61,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// token usage for most recent statement
@@ -70,6 +71,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// token usage for for all statements
@@ -79,6 +81,7 @@ class LLMInteraction {
 		outputTokens: 0,
 		cacheCreationInputTokens: 0,
 		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	};
 	// Task-oriented metrics
@@ -100,6 +103,7 @@ class LLMInteraction {
 	protected projectConfig!: ProjectConfig;
 
 	private _llmProvider!: LLM;
+	private _llmModelToProvider!: Record<string, LLMProvider>;
 	private _interactionCallbacks!: LLMCallbacks;
 	private _model: string = '';
 	private _localMode: boolean = false;
@@ -140,11 +144,12 @@ class LLMInteraction {
 			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			this._localMode = globalConfig.api.localMode ?? false;
+			this._llmModelToProvider = await getLLMModelToProvider();
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
 				this._localMode
-					//? LLMModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
-					? LLMModelToProvider[this._model]
+					//? this._llmModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
+					? this._llmModelToProvider[this._model]
 					: LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.ANTHROPIC : LLMProviderEnum.BB,
@@ -354,7 +359,8 @@ class LLMInteraction {
 		const rawAllUsage = {
 			...tokenUsage,
 			totalAllTokens: tokenUsage.totalTokens + (tokenUsage.cacheCreationInputTokens ?? 0) +
-				(tokenUsage.cacheReadInputTokens ?? 0),
+				(tokenUsage.cacheReadInputTokens ?? 0) +
+				(tokenUsage.thoughtTokens ?? 0),
 		};
 		return {
 			messageId: this.getLastMessageId(),
@@ -397,6 +403,7 @@ class LLMInteraction {
 			this.tokenUsageInteraction.outputTokens = 0;
 			this.tokenUsageInteraction.cacheCreationInputTokens = 0;
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+			this.tokenUsageInteraction.thoughtTokens = 0;
 			this.tokenUsageInteraction.totalAllTokens = 0;
 		}
 		if (this.statementTurnCount === 0) {
@@ -405,6 +412,7 @@ class LLMInteraction {
 			this.tokenUsageStatement.outputTokens = 0;
 			this.tokenUsageStatement.cacheCreationInputTokens = 0;
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
+			this.tokenUsageStatement.thoughtTokens = 0;
 			this.tokenUsageStatement.totalAllTokens = 0;
 		}
 
@@ -413,6 +421,9 @@ class LLMInteraction {
 		}
 		if (this.tokenUsageInteraction.cacheReadInputTokens === undefined) {
 			this.tokenUsageInteraction.cacheReadInputTokens = 0;
+		}
+		if (this.tokenUsageInteraction.thoughtTokens === undefined) {
+			this.tokenUsageInteraction.thoughtTokens = 0;
 		}
 		if (this.tokenUsageInteraction.totalAllTokens === undefined) {
 			this.tokenUsageInteraction.totalAllTokens = 0;
@@ -423,6 +434,9 @@ class LLMInteraction {
 		if (this.tokenUsageStatement.cacheReadInputTokens === undefined) {
 			this.tokenUsageStatement.cacheReadInputTokens = 0;
 		}
+		if (this.tokenUsageStatement.thoughtTokens === undefined) {
+			this.tokenUsageStatement.thoughtTokens = 0;
+		}
 		if (this.tokenUsageStatement.totalAllTokens === undefined) {
 			this.tokenUsageStatement.totalAllTokens = 0;
 		}
@@ -432,16 +446,18 @@ class LLMInteraction {
 		this.tokenUsageInteraction.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageInteraction.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageInteraction.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageInteraction.thoughtTokens += tokenUsage.thoughtTokens || 0;
 		this.tokenUsageInteraction.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens;
+			tokenUsage.cacheReadInputTokens + (tokenUsage.thoughtTokens || 0);
 
 		this.tokenUsageStatement.totalTokens += tokenUsage.totalTokens;
 		this.tokenUsageStatement.inputTokens += tokenUsage.inputTokens;
 		this.tokenUsageStatement.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageStatement.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageStatement.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
+		this.tokenUsageStatement.thoughtTokens += tokenUsage.thoughtTokens || 0;
 		this.tokenUsageStatement.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens;
+			tokenUsage.cacheReadInputTokens + (tokenUsage.thoughtTokens || 0);
 
 		this.tokenUsageTurn = tokenUsage;
 
@@ -795,7 +811,7 @@ class LLMInteraction {
 		if (updateProvider) {
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
-				this._localMode ? LLMModelToProvider[this._model] : LLMProviderEnum.BB,
+				this._localMode ? this._llmModelToProvider[this._model] : LLMProviderEnum.BB,
 			);
 		}
 	}
@@ -838,7 +854,7 @@ class LLMInteraction {
 	}
 
 	/**
-	 * Resolve model parameters using the ModelCapabilitiesManager
+	 * Resolve model parameters using the ModelRegistryService
 	 * This applies the proper parameter resolution hierarchy
 	 *
 	 * @param provider The LLM provider
@@ -856,9 +872,10 @@ class LLMInteraction {
 		},
 		provider?: LLMProvider,
 	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
 
-		const effectiveProvider = provider || LLMModelToProvider[model];
+		const modelToProvider = await getLLMModelToProvider();
+		const effectiveProvider = provider || modelToProvider[model];
 		// Get user preferences from project config
 		const userPreferences = this.projectConfig?.api?.llmProviders?.[effectiveProvider]?.userPreferences;
 
@@ -897,6 +914,18 @@ class LLMInteraction {
 		);
 
 		return { maxTokens, temperature, extendedThinking };
+	}
+
+	/**
+	 * Return model capabilities using the ModelRegistryService
+	 *
+	 * @returns model capabilities for current model for the interaction
+	 */
+	public async getModelCapabilities(): Promise<ModelCapabilities> {
+		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
+		const modelCapabilities = capabilitiesManager.getModelCapabilities(this.model);
+		//logger.info('BaseInteraction: modelCapabilities:', modelCapabilities);
+		return modelCapabilities;
 	}
 
 	get temperature(): number {

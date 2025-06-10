@@ -9,6 +9,7 @@ import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 //import type { RepoInfoConfigSchema } from 'shared/config/types.ts';
 import type { CreateProjectData, ProjectData } from 'shared/types/project.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { createDataSourceBbDir, createDataSourceBbIgnore } from 'shared/dataDir.ts';
@@ -197,6 +198,7 @@ class ProjectPersistenceManager {
 				status: projectData.status || 'draft',
 				dsConnections: projectData.dsConnections as DataSourceConnection[],
 				repoInfo: projectData.repoInfo || { tokenLimit: 1024 },
+				//defaultModels: projectData.defaultModels || DefaultModelsConfigDefaults,
 				mcpServers: projectData.mcpServers || [],
 			};
 
@@ -223,6 +225,7 @@ class ProjectPersistenceManager {
 				name: projectData.name,
 				myPersonsName: projectData.myPersonsName,
 				myAssistantsName: projectData.myAssistantsName,
+				defaultModels: projectData.defaultModels || DefaultModelsConfigDefaults,
 			};
 			const configManager = await getConfigManager();
 			await configManager.createProjectConfig(

@@ -77,7 +77,7 @@ export interface FullConfigSchema extends GlobalConfigSchema, ProjectConfigSchem
 
 export const defaultGlobalConfig: GlobalConfigSchema = {
 	myPersonsName: Deno.env.get('USER') || 'User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	noBrowser: false,
 	api: {
 		environment: 'local',
@@ -115,7 +115,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 
 export const defaultProjectConfig: ProjectConfigSchema = {
 	myPersonsName: Deno.env.get('USER') || 'User',
-	myAssistantsName: 'Claude',
+	myAssistantsName: 'Assistant',
 	noBrowser: false,
 	api: {
 		environment: 'local',

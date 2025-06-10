@@ -1,6 +1,6 @@
 import { Ollama } from 'ollama';
 import type { ChatRequest, ChatResponse, Message, Tool, ToolCall } from 'ollama';
-import { LLMProvider, OllamaModel } from 'api/types.ts';
+import { LLMCallbackType, LLMProvider, OllamaModel } from 'api/types.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -81,7 +81,7 @@ class OllamaLLM extends LLM {
 	}
 
 	private asProviderMessageType(messages: LLMMessage[]): Message[] {
-		logger.info('llms-ollama-asProviderMessageType-messages', messages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: asProviderMessageType-messages`, messages);
 		const providerMessages: { role: string; content: string }[] = [];
 
 		messages.forEach((message) => {
@@ -117,7 +117,7 @@ class OllamaLLM extends LLM {
 			}
 		});
 
-		logger.info('llms-ollama-asProviderMessageType-providerMessages', providerMessages);
+		//logger.info(`LlmProvider[${this.llmProviderName}]: asProviderMessageType-providerMessages`, providerMessages);
 		return providerMessages;
 	}
 
@@ -192,7 +192,8 @@ class OllamaLLM extends LLM {
 			temperature = resolved.temperature;
 		} else {
 			// Fallback if interaction is not provided
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
+			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
 
 			temperature = capabilitiesManager.resolveTemperature(
 				model,
@@ -216,7 +217,7 @@ class OllamaLLM extends LLM {
 		interaction: LLMInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		try {
-			logger.debug('llms-ollama-speakWith-messageRequest', JSON.stringify(messageRequest, null, 2));
+			//logger.debug(`LlmProvider[${this.llmProviderName}]: speakWith-messageRequest`, JSON.stringify(messageRequest, null, 2));
 
 			const providerMessageRequest: OllamaChatRequest = await this.asProviderMessageRequest(
 				messageRequest,
@@ -224,7 +225,7 @@ class OllamaLLM extends LLM {
 			);
 
 			const response: ChatResponse = await this.ollama.chat(providerMessageRequest);
-			logger.debug('llms-ollama-response', response);
+			//logger.debug(`LlmProvider[${this.llmProviderName}]: response`, response);
 
 			const messageResponse: LLMProviderMessageResponse = {
 				id: crypto.randomUUID(), // Ollama doesn't provide message IDs
@@ -246,6 +247,7 @@ class OllamaLLM extends LLM {
 					totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
 					cacheCreationInputTokens: 0, // Ollama doesn't support caching
 					cacheReadInputTokens: 0,
+					thoughtTokens: 0,
 					totalAllTokens: 0,
 				},
 				rateLimit: {
@@ -262,7 +264,7 @@ class OllamaLLM extends LLM {
 				},
 			};
 
-			logger.debug('llms-ollama-messageResponse', messageResponse);
+			//logger.debug(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
 			return { messageResponse, messageMeta: { system: messageRequest.system } };
 		} catch (err) {
 			logger.error('Error calling Ollama API', err);
@@ -292,7 +294,7 @@ class OllamaLLM extends LLM {
 				);
 			} else {
 				logger.warn(
-					`provider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
+					`LlmProvider[${this.llmProviderName}]: modifySpeakWithInteractionOptions - Tool input validation failed, but no tool response found`,
 				);
 			}
 		} else if (validationFailedReason === 'Empty answer') {
@@ -304,14 +306,14 @@ class OllamaLLM extends LLM {
 		if (llmProviderMessageResponse.messageStop.stopReason) {
 			switch (llmProviderMessageResponse.messageStop.stopReason) {
 				case 'tool_calls':
-					logger.warn(`provider[${this.llmProviderName}]: Response is using a tool`);
+					logger.warn(`LlmProvider[${this.llmProviderName}]: Response is using a tool`);
 					break;
 				case 'stop':
-					logger.warn(`provider[${this.llmProviderName}]: Response reached its natural end`);
+					logger.warn(`LlmProvider[${this.llmProviderName}]: Response reached its natural end`);
 					break;
 				default:
 					logger.info(
-						`provider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
+						`LlmProvider[${this.llmProviderName}]: Response stopped due to: ${llmProviderMessageResponse.messageStop.stopReason}`,
 					);
 			}
 		}

@@ -41,6 +41,7 @@ declare global {
 		bbToggleThinking: (header: HTMLElement) => void;
 		bbHandleThinkingKeyDown: (event: KeyboardEvent, header: HTMLElement) => void;
 		bbToggleMetadata: (button: HTMLElement) => void;
+		bbShowImageModal: (imageUrl: string, altText: string) => void;
 	}
 }
 
@@ -231,6 +232,71 @@ export function MessageEntry({
 				metadata.classList.toggle('hidden');
 				button.setAttribute('aria-expanded', metadata.classList.contains('hidden') ? 'false' : 'true');
 			}
+		};
+	}
+
+	// Define the global function for image modal (will be called from onclick)
+	if (typeof globalThis !== 'undefined') {
+		(globalThis as any).bbShowImageModal = (imageUrl: string, altText: string) => {
+			// Create modal backdrop
+			const backdrop = document.createElement('div');
+			backdrop.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+			backdrop.style.cursor = 'pointer';
+
+			// Create image container
+			const container = document.createElement('div');
+			container.className = 'relative max-w-full max-h-full';
+
+			// Create image element
+			const img = document.createElement('img');
+			img.src = imageUrl;
+			img.alt = altText;
+			img.className = 'max-w-full max-h-full object-contain';
+			img.style.cursor = 'zoom-out';
+
+			// Create close button
+			const closeBtn = document.createElement('button');
+			closeBtn.innerHTML = '✕';
+			closeBtn.className =
+				'absolute top-4 right-4 text-white text-2xl bg-black bg-opacity-50 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-75';
+			closeBtn.style.cursor = 'pointer';
+
+			// Close modal function
+			const closeModal = () => {
+				document.body.removeChild(backdrop);
+				document.body.style.overflow = 'auto';
+			};
+
+			// Event listeners
+			backdrop.addEventListener('click', closeModal);
+			closeBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				closeModal();
+			});
+			img.addEventListener('click', (e) => {
+				e.stopPropagation();
+				closeModal();
+			});
+
+			// Escape key to close
+			const handleKeydown = (e: KeyboardEvent) => {
+				if (e.key === 'Escape') {
+					closeModal();
+					document.removeEventListener('keydown', handleKeydown);
+				}
+			};
+			document.addEventListener('keydown', handleKeydown);
+
+			// Assemble modal
+			container.appendChild(img);
+			container.appendChild(closeBtn);
+			backdrop.appendChild(container);
+
+			// Prevent body scroll
+			document.body.style.overflow = 'hidden';
+
+			// Add to DOM
+			document.body.appendChild(backdrop);
 		};
 	}
 

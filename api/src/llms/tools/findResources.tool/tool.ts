@@ -86,7 +86,7 @@ Leave empty to search only by resource name, date, or size.`,
 						'Number of lines to include before and after each match for context. Only applies when contentPattern is provided. Default is 2.',
 					default: 2,
 					minimum: 0,
-					maximum: 10,
+					maximum: 25,
 				},
 				maxMatchesPerFile: {
 					type: 'number',

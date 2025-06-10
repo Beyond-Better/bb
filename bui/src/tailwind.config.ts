@@ -2,7 +2,7 @@ import { type Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 
 export default {
-	//darkMode: 'class',
+	darkMode: 'class', // Use 'media' for system-based dark mode
 	content: [
 		// BUI components and routes
 		'{routes,islands,components,utils}/**/*.{ts,tsx}',

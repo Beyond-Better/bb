@@ -446,6 +446,7 @@ class ConversationPersistence {
 						totalTokens: tokenAnalysis.combined.totalUsage.total,
 						cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
 						cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+						thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
 						totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 					},
 
@@ -546,6 +547,7 @@ class ConversationPersistence {
 				totalTokens: tokenAnalysis.combined.totalUsage.total,
 				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
 				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+				thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
 				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 			};
 
@@ -825,6 +827,7 @@ class ConversationPersistence {
 				analyzeUsageChat.totalUsage.cacheCreationInput,
 			cacheReadInput: analyzeUsageConversation.totalUsage.cacheReadInput +
 				analyzeUsageChat.totalUsage.cacheReadInput,
+			thoughtTokens: analyzeUsageConversation.totalUsage.thoughtTokens,
 			totalAll: analyzeUsageConversation.totalUsage.totalAll + analyzeUsageChat.totalUsage.totalAll,
 		};
 		const differentialUsageCombined = {
@@ -908,6 +911,7 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			thoughtTokens: 0,
 			totalAllTokens: 0,
 		};
 	}
@@ -916,6 +920,7 @@ class ConversationPersistence {
 			inputTokens: 0,
 			outputTokens: 0,
 			totalTokens: 0,
+			thoughtTokens: 0,
 			totalAllTokens: 0,
 		};
 	}

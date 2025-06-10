@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.2] - 2025-06-10
+
+### Added
+
+- model selection for projects and conversations
+- model combinations easy select
+- list of model system cards
+- support for Gemini, OpenAI, Groq
+- notifications when conversation statement completes
+- support for dark/light/system theme
+- auto-save prompt content between page reloads
+- show thumbnails in chat history for uploaded files
+- sync model data to llm-proxy
+
+### Changed
+
+- flexible token-type for model pricing (various caching types, extensible for new token types)
+
+### Fixed
+
+- duplicate conversation ID when creating new conversation in BUI
+
+
 ## [0.8.1] - 2025-05-29
 
 ### Added

@@ -45,12 +45,16 @@ export function validateSupabaseConfig(config: unknown): config is SupabaseConfi
 /**
  * Fetches Supabase configuration from the BUI with retries
  */
-export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay: 5000 }): Promise<SupabaseConfig> {
+export async function fetchSupabaseConfig(
+	options: { maxRetries?: number; retryDelay?: number; supabaseConfigUrl?: string } = {},
+): Promise<SupabaseConfig> {
 	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
-	//logger.info(`AuthConfig: Fetching Supabase config from:`, globalConfig.api.supabaseConfigUrl);
-	//const configUrl = globalConfig.api.supabaseConfigUrl || 'https://localhost:8080/api/v1/config/supabase';
-	const configUrl = globalConfig.api.supabaseConfigUrl || 'https://www.beyondbetter.dev/api/v1/config/supabase';
+
+	// Allow override of config URL via options parameter
+	const configUrl = options.supabaseConfigUrl ||
+		globalConfig.api.supabaseConfigUrl ||
+		'https://www.beyondbetter.dev/api/v1/config/supabase';
 
 	// 	return {
 	// 		url: globalConfig.bui.supabaseUrl!,
@@ -58,7 +62,7 @@ export async function fetchSupabaseConfig(options = { maxRetries: 3, retryDelay:
 	// 		verifyUrl: new URL('/auth/verify', 'https://localhost:8080').toString(),
 	// 	};
 
-	const { maxRetries, retryDelay } = options;
+	const { maxRetries = 3, retryDelay = 5000 } = options;
 
 	for (let attempt = 1; attempt <= maxRetries; attempt++) {
 		try {

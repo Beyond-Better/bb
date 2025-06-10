@@ -1,0 +1,322 @@
+{
+	"lastUpdated": "2025-06-04T04:30:00.000Z",
+	"source": "Official Anthropic documentation research",
+	"pricingUnit": "per_1M_tokens",
+	"notes": "All pricing verified from official docs as of June 2025. Extended thinking tokens charge for full thinking, not summarized output. Image tokens calculated as (width × height)/750.",
+	"models": [
+		{
+			"modelId": "claude-sonnet-4-20250514",
+			"displayName": "Claude Sonnet 4.0",
+			"family": "Claude-4",
+			"contextWindow": 200000,
+			"maxOutputTokens": 64000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 3.00,
+					"cachedPrice": 3.75
+				},
+				"outputTokens": {
+					"basePrice": 15.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-23"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-23",
+			"responseSpeed": "medium",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "Anthropic's newest flagship model with advanced reasoning"
+		},
+		{
+			"modelId": "claude-opus-4-20250514",
+			"displayName": "Claude Opus 4.0",
+			"family": "Claude-4",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 15.00,
+					"cachedPrice": 18.75
+				},
+				"outputTokens": {
+					"basePrice": 75.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-23"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-23",
+			"responseSpeed": "slow",
+			"cost": "very-high",
+			"intelligence": "very-high",
+			"modality": "text-and-vision",
+			"description": "Anthropic's most capable model for complex reasoning tasks"
+		},
+		{
+			"modelId": "claude-3-7-sonnet-20250219",
+			"displayName": "Claude Sonnet 3.7",
+			"family": "Claude-3",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 3.00,
+					"cachedPrice": 3.75
+				},
+				"outputTokens": {
+					"basePrice": 15.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-02-19"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-10-01",
+			"releaseDate": "2025-02-19",
+			"responseSpeed": "medium",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "Enhanced model with extended thinking capabilities"
+		},
+		{
+			"modelId": "claude-3-5-sonnet-20241022",
+			"displayName": "Claude Sonnet 3.5",
+			"family": "Claude-3",
+			"contextWindow": 200000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 3.00,
+					"cachedPrice": 0.15
+				},
+				"outputTokens": {
+					"basePrice": 15.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-10-22"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 8192,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-10-22",
+			"responseSpeed": "medium",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "Balanced model for most use cases"
+		},
+		{
+			"modelId": "claude-3-5-haiku-20241022",
+			"displayName": "Claude Haiku 3.5",
+			"family": "Claude-3",
+			"contextWindow": 200000,
+			"maxOutputTokens": 8192,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.80,
+					"cachedPrice": 0.08
+				},
+				"outputTokens": {
+					"basePrice": 4.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-10-22"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-10-22",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"modality": "text-and-vision",
+			"description": "Fast and cost-effective model for routine tasks"
+		},
+		{
+			"modelId": "claude-3-opus-20240229",
+			"displayName": "Claude Opus 3",
+			"family": "Claude-3",
+			"contextWindow": 200000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 15.00,
+					"cachedPrice": 1.50
+				},
+				"outputTokens": {
+					"basePrice": 75.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-02-29"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-02-29",
+			"responseSpeed": "slow",
+			"cost": "very-high",
+			"intelligence": "very-high",
+			"modality": "text-and-vision",
+			"description": "Highest capability Claude 3 model"
+		},
+		{
+			"modelId": "claude-3-haiku-20240307",
+			"displayName": "Claude Haiku 3",
+			"family": "Claude-3",
+			"contextWindow": 200000,
+			"maxOutputTokens": 4096,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.25,
+					"cachedPrice": 0.03
+				},
+				"outputTokens": {
+					"basePrice": 1.25
+				},
+				"currency": "USD",
+				"effectiveDate": "2024-03-07"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": false
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 4096,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2023-08-01",
+			"releaseDate": "2024-03-07",
+			"responseSpeed": "fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"modality": "text-and-vision",
+			"description": "Fast and efficient model for simple tasks"
+		}
+	],
+	"deprecatedModels": [
+		{
+			"modelId": "claude-2.0",
+			"deprecationDate": "2025-01-21",
+			"shutdownDate": "2025-07-21",
+			"replacement": "claude-3-5-sonnet-20241022"
+		},
+		{
+			"modelId": "claude-2.1",
+			"deprecationDate": "2025-01-21",
+			"shutdownDate": "2025-07-21",
+			"replacement": "claude-3-5-sonnet-20241022"
+		},
+		{
+			"modelId": "claude-3-sonnet-20240229",
+			"deprecationDate": "2025-01-21",
+			"shutdownDate": "2025-07-21",
+			"replacement": "claude-3-5-sonnet-20241022"
+		}
+	]
+}

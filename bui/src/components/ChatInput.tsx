@@ -14,6 +14,7 @@ import { formatPathForInsertion, getTextPositions, processSuggestions } from '..
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
+import { type ModelSelectionValue, ModelSelector } from './ModelSelector.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -36,7 +37,7 @@ interface ChatInputProps {
 	chatInputOptions: Signal<LLMRequestParams>;
 	attachedFiles: Signal<LLMAttachedFiles>;
 	modelData?: Signal<ModelDetails | null>;
-	onChange: (value: string) => void;
+	onChange: (value: string, source?: 'user' | 'restore' | 'clear' | 'programmatic') => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
 	statusState: Signal<ChatStatus>;
@@ -115,10 +116,12 @@ export function ChatInput({
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const optionsModalRef = useRef<HTMLDivElement>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
 	const errorTimeoutRef = useRef<number | null>(null);
+	const isMessageSentRef = useRef<boolean>(false);
 	const isInitialMount = useRef(true);
 	const disabled = useComputed(() => !statusState.value.isReady);
 	// const disabled = useComputed(() => {
@@ -133,9 +136,9 @@ export function ChatInput({
 		isDropdownOpen,
 		addToHistory,
 		togglePin,
-		//saveCurrentInput,
-		//getSavedInput,
-		//clearCurrentInput,
+		saveCurrentInput,
+		getSavedInput,
+		clearCurrentInput,
 	} = useChatInputHistory(conversationIdSignal);
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
@@ -515,27 +518,41 @@ export function ChatInput({
 		// Update signal immediately
 		conversationIdSignal.value = conversationId;
 
-		//// Check for saved input
-		//const saved = getSavedInput();
-		//if (saved && !chatInputText.value) {
-		//	console.info('ChatInput: Found saved input to restore', {
-		//		savedLength: saved.length,
-		//	});
-		//	onChange(saved);
-		//}
-	}, [conversationId, chatInputText.value, onChange]);
+		// Handle conversation change
+		const isConversationChange = conversationIdSignal.value !== conversationId;
 
-	// Handle initial mount
-	useEffect(() => {
-		if (!isInitialMount.current) return;
+		// Reset initial mount flag for conversation changes
+		if (isConversationChange) {
+			isInitialMount.current = true;
+		}
 
-		console.info('ChatInput: Initial mount', {
-			conversationId,
-			hasValue: !!chatInputText.value,
-		});
+		// Check for saved input
+		// console.info('ChatInput: Checking for saved input', {
+		// 	conversationId,
+		// 	hasInputText: !!chatInputText.value,
+		// 	inputTextLength: chatInputText.value.length,
+		// });
+		const saved = getSavedInput();
+		// console.info('ChatInput: getSavedInput result', {
+		// 	hasSaved: !!saved,
+		// 	savedLength: saved?.length || 0,
+		// 	savedContent: saved ? saved.substring(0, 50) + '...' : 'none',
+		// });
+		// Only restore on initial mount or conversation change, not when user clears input
+		if (saved && !chatInputText.value && isInitialMount.current) {
+			//console.info('ChatInput: Found saved input to restore', {
+			//	savedLength: saved.length,
+			//});
+			onChange(saved, 'restore');
+		}
 
-		isInitialMount.current = false;
+		// Always mark initial mount as complete after processing restore logic
+		if (isInitialMount.current) {
+			isInitialMount.current = false;
+		}
 	}, [conversationId, chatInputText.value]);
+
+	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
 
 	// Safe operation wrapper with rate limit handling
 	const safeOperation = async (operation: () => Promise<void> | void, errorMessage: string) => {
@@ -617,12 +634,31 @@ export function ChatInput({
 		safeOperation(
 			async () => {
 				try {
+					// Cancel any pending auto-save and input operations before clearing
+					if (saveDebounceRef.current) {
+						clearTimeout(saveDebounceRef.current);
+						saveDebounceRef.current = null;
+						console.info('ChatInput: Cancelled pending auto-save before message send');
+					}
+					if (inputDebounceRef.current) {
+						clearTimeout(inputDebounceRef.current);
+						inputDebounceRef.current = null;
+						console.info('ChatInput: Cancelled pending input operations before message send');
+					}
+
+					// Set flag to prevent auto-save after send
+					isMessageSentRef.current = true;
+
 					// Add to history and clear auto-save
 					console.info('ChatInput: Message sent successfully, clearing auto-save');
 					addToHistory(currentValue);
-					//clearCurrentInput();
+					clearCurrentInput();
 
 					await onSend();
+
+					// Immediately clear the input UI after successful send
+					console.info('ChatInput: Clearing input UI after successful send');
+					onChange('', 'clear');
 
 					// Clear attached files and their previews
 					attachedFiles.value
@@ -639,7 +675,7 @@ export function ChatInput({
 					};
 					// On error, ensure input is saved
 					console.info('ChatInput: Send failed, ensuring input is saved');
-					//saveCurrentInput(currentValue);
+					saveCurrentInput(currentValue);
 					throw e;
 				}
 			},
@@ -657,6 +693,8 @@ export function ChatInput({
 		if (!conversationId) {
 			console.info('ChatInput: No conversation ID, input will not be saved');
 		}
+		// Reset the message sent flag when user starts typing again
+		isMessageSentRef.current = false;
 		const startTime = performance.now();
 
 		// Handle space key to close suggestions
@@ -670,7 +708,6 @@ export function ChatInput({
 		const newPosition = target.selectionStart;
 		// console.debug('ChatInput: handleInput', { newValue, cursorPosition: newPosition });
 		cursorPosition.value = newPosition;
-		onChange(newValue);
 
 		// Update input value immediately without debounce to prevent jumping
 		onChange(newValue);
@@ -706,10 +743,10 @@ export function ChatInput({
 					},
 				};
 				// Preserve input in case of error
-				//safeOperation(
-				//	() => saveCurrentInput(newValue),
-				//	'Failed to save input',
-				//);
+				safeOperation(
+					() => saveCurrentInput(newValue),
+					'Failed to save input',
+				);
 			}
 		}, INPUT_DEBOUNCE);
 
@@ -720,23 +757,32 @@ export function ChatInput({
 				return;
 			}
 
-			// Don't save empty input
-			if (!newValue.trim()) {
-				console.info('ChatInput: Empty input, skipping auto-save');
-				//clearCurrentInput();
+			// Don't save if message was just sent
+			if (isMessageSentRef.current) {
+				console.info('ChatInput: Skipping auto-save, message was just sent');
 				return;
 			}
 
-			console.info('ChatInput: Auto-save triggered', {
-				hasValue: !!newValue.trim(),
-				length: newValue.length,
-				conversationId,
-			});
+			// Don't save empty input
+			// Always check current input state, not closure value
+			const currentValue = chatInputText.value;
+			if (!currentValue.trim()) {
+				console.info('ChatInput: Current input empty, clearing auto-save');
+				clearCurrentInput();
+				return;
+			}
 
-			//safeOperation(
-			//	() => saveCurrentInput(newValue),
-			//	'Failed to save input',
-			//);
+			// console.info('ChatInput: Auto-save triggered', {
+			// 	hasValue: !!newValue.trim(),
+			// 	length: newValue.length,
+			// 	conversationId,
+			// 	valuePreview: newValue.substring(0, 50) + '...',
+			// });
+
+			safeOperation(
+				() => saveCurrentInput(currentValue),
+				'Failed to save input',
+			);
 		};
 
 		// Debounce auto-save
@@ -986,6 +1032,57 @@ export function ChatInput({
 		}
 	};
 
+	// Handle page reload confirmation for unsaved content
+	useEffect(() => {
+		const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+			// Check if there's unsaved content
+			if (chatInputText.value.trim()) {
+				console.info('ChatInput: Preventing page reload with unsaved content');
+				e.preventDefault();
+				// Modern browsers require returnValue to be set
+				e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+				return e.returnValue;
+			}
+		};
+
+		globalThis.addEventListener('beforeunload', handleBeforeUnload);
+
+		return () => {
+			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
+		};
+	}, [chatInputText.value]);
+
+	// Handle clicking outside the options modal to close it
+	useEffect(() => {
+		if (!isOptionsOpen.value) return;
+
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				optionsModalRef.current &&
+				!optionsModalRef.current.contains(event.target as Node)
+			) {
+				isOptionsOpen.value = false;
+			}
+		};
+
+		// Use setTimeout to avoid immediate trigger from the same click that opened the modal
+		const timeoutId = setTimeout(() => {
+			document.addEventListener('mousedown', handleClickOutside);
+		}, 0);
+
+		return () => {
+			clearTimeout(timeoutId);
+			document.removeEventListener('mousedown', handleClickOutside);
+		};
+	}, [isOptionsOpen.value]);
+
+	// Close options modal when user starts editing the prompt input
+	useEffect(() => {
+		if (isOptionsOpen.value) {
+			isOptionsOpen.value = false;
+		}
+	}, [chatInputText.value]);
+
 	// Cleanup
 	useEffect(() => {
 		return () => {
@@ -1105,7 +1202,7 @@ export function ChatInput({
 		switch (status.apiStatus) {
 			case ApiStatus.LLM_PROCESSING:
 				return {
-					message: 'Claude is thinking...',
+					message: 'Assistant is thinking...',
 					type: 'info' as const,
 					status: status.apiStatus,
 					visible: true,
@@ -1289,6 +1386,9 @@ export function ChatInput({
 						onClick={() => {
 							if (isDropdownOpen.value) {
 								isDropdownOpen.value = false;
+							}
+							if (isOptionsOpen.value) {
+								isOptionsOpen.value = false;
 							}
 						}}
 						className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
@@ -1496,7 +1596,10 @@ export function ChatInput({
 
 			{/* LLM Options Panel */}
 			{isOptionsOpen.value && (
-				<div className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'>
+				<div
+					ref={optionsModalRef}
+					className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
+				>
 					<div className='flex justify-between items-center mb-3'>
 						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
 						<button
@@ -1516,13 +1619,31 @@ export function ChatInput({
 					</div>
 
 					<div className='space-y-3'>
-						{/* Model */}
-						<div className='space-y-1'>
-							<label className='text-sm text-gray-700 dark:text-gray-300'>
-								Model: {modelData?.value?.displayName} ({modelData?.value?.providerLabel}){' '}
-								{/*({chatInputOptions.value.model})*/}
-							</label>
-						</div>
+						{/* Model Selector */}
+						<ModelSelector
+							key={`model-selector-${chatInputOptions.value.model}`}
+							apiClient={apiClient}
+							context='conversation'
+							role='chat'
+							value={chatInputOptions.value.model}
+							onChange={(modelId: string | ModelSelectionValue) => {
+								console.log(
+									'ChatInput: Model changed from',
+									chatInputOptions.value.model,
+									'to',
+									modelId,
+								);
+								const newOptions = { ...chatInputOptions.value };
+								newOptions.model = modelId as string;
+								chatInputOptions.value = newOptions;
+								console.log(
+									'ChatInput: Updated chatInputOptions.model to',
+									chatInputOptions.value.model,
+								);
+							}}
+							label='Model'
+							compact
+						/>
 
 						{/* Max Tokens slider */}
 						<div className='space-y-1'>

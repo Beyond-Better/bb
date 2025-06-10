@@ -2,12 +2,13 @@ import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type { ConversationId, ConversationLogDataEntry, ConversationResponse } from 'shared/types.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import ConversationLogger from 'api/storage/conversationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import { LLMModelToProvider } from 'api/types/llms.ts';
+import { getLLMModelToProvider } from 'api/types/llms.ts';
 
 /**
  * @openapi
@@ -211,11 +212,12 @@ export const getConversation = async (
 			// Return a default conversation template with configuration defaults
 			// Use project defaults first, then global defaults
 			const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+			const defaultModelOrchestrator = defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator;
 
 			response.status = 200;
 			response.body = {
 				id: conversationId,
-				llmProviderName: LLMModelToProvider[defaultModels.orchestrator] || 'anthropic', // Default provider
+				llmProviderName: (await getLLMModelToProvider())[defaultModelOrchestrator] || 'anthropic', // Default provider
 				title: '', // Empty for new conversation
 				system: '', // Will be populated when conversation starts
 				model: defaultModels.orchestrator,

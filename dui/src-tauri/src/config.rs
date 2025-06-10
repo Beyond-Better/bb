@@ -268,9 +268,9 @@ impl Default for CliConfig {
 impl Default for DefaultModels {
     fn default() -> Self {
         DefaultModels {
-            orchestrator: "claude-3-7-sonnet-20250219".to_string(),
-            agent: "claude-3-7-sonnet-20250219".to_string(),
-            chat: "claude-3-haiku-20240307".to_string(),
+            orchestrator: "claude-sonnet-4-20250514".to_string(),
+            agent: "claude-sonnet-4-20250514".to_string(),
+            chat: "claude-3-5-haiku-20241022".to_string(),
         }
     }
 }
@@ -280,7 +280,7 @@ impl Default for GlobalConfig {
         GlobalConfig {
             version: "2.2.0".to_string(),
             my_persons_name: std::env::var("USER").unwrap_or_else(|_| "User".to_string()),
-            my_assistants_name: "Claude".to_string(),
+            my_assistants_name: "Assistant".to_string(),
             default_models: DefaultModels::default(),
             no_browser: false,
             api: ApiConfig::default(),

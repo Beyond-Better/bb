@@ -100,7 +100,7 @@ export class TerminalHandler {
 	private getStatusMessage(status: ApiStatus, metadata?: { toolName?: string; error?: string }): string {
 		switch (status) {
 			case ApiStatus.LLM_PROCESSING:
-				return 'Claude is thinking...';
+				return 'Assistant is thinking...';
 			case ApiStatus.TOOL_HANDLING:
 				return `Running tool: ${metadata?.toolName || 'unknown'}`;
 			case ApiStatus.API_BUSY:
@@ -272,7 +272,7 @@ export class TerminalHandler {
 	public async getMultilineInput(): Promise<string> {
 		const history = await this.loadHistory();
 		const input = await Input.prompt({
-			message: 'Ask Claude',
+			message: 'Ask Assistant',
 			prefix: '👤  ',
 			//files: true,
 			info: true,
@@ -379,7 +379,7 @@ export class TerminalHandler {
 		console.log('');
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 
@@ -402,6 +402,7 @@ export class TerminalHandler {
 					inputTokens: 0,
 					outputTokens: 0,
 					totalTokens: 0,
+					thoughtTokens: 0,
 					totalAllTokens: 0,
 				},
 			},
@@ -448,7 +449,7 @@ export class TerminalHandler {
 		}
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 
@@ -474,6 +475,7 @@ export class TerminalHandler {
 					inputTokens: data.tokenUsageStats.tokenUsageStatement.inputTokens,
 					outputTokens: data.tokenUsageStats.tokenUsageStatement.outputTokens,
 					totalTokens: data.tokenUsageStats.tokenUsageStatement.totalTokens,
+					thoughtTokens: data.tokenUsageStats.tokenUsageStatement.thoughtTokens,
 					totalAllTokens: data.tokenUsageStats.tokenUsageStatement.totalAllTokens,
 				},
 			},
@@ -533,7 +535,7 @@ export class TerminalHandler {
 		console.log(summaryLine);
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Claude is thinking...');
+			this.startSpinner('Assistant is thinking...');
 		}
 	}
 
@@ -550,6 +552,7 @@ export class TerminalHandler {
 			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
 			outputTokens: response.tokenUsageStats.tokenUsageStatement.outputTokens,
 			totalTokens: response.tokenUsageStats.tokenUsageStatement.totalTokens,
+			thoughtTokens: response.tokenUsageStats.tokenUsageStatement.thoughtTokens,
 			totalAllTokens: response.tokenUsageStats.tokenUsageStatement.totalAllTokens,
 		};
 

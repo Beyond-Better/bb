@@ -167,6 +167,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 					total: 0,
 					cacheCreationInput: 0,
 					cacheReadInput: 0,
+					thoughtTokens: 0,
 					totalAll: 0,
 				},
 				differentialUsage: {

@@ -1,7 +1,9 @@
 import { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
-import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
+import type { ModelInfo } from 'api/types/modelCapabilities.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 
 /**
  * @openapi
@@ -22,6 +24,18 @@ import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
  *         schema:
  *           type: integer
  *           default: 20
+ *       - name: provider
+ *         in: query
+ *         description: Filter by specific provider
+ *         schema:
+ *           type: string
+ *           enum: [anthropic, openai, google, groq, deepseek, ollama]
+ *       - name: source
+ *         in: query
+ *         description: Filter by model source (static or dynamic)
+ *         schema:
+ *           type: string
+ *           enum: [static, dynamic]
  *     responses:
  *       200:
  *         description: List of models
@@ -38,6 +52,9 @@ import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
  *                       id:
  *                         type: string
  *                         example: claude-3-7-sonnet-20250219
+ *                       displayName:
+ *                         type: string
+ *                         example: Claude Sonnet 3.7
  *                       provider:
  *                         type: string
  *                         example: anthropic
@@ -50,6 +67,9 @@ import { LLMModelToProvider, LLMProviderLabel } from 'api/types/llms.ts';
  *                       responseSpeed:
  *                         type: string
  *                         enum: [fast, medium, slow]
+ *                       source:
+ *                         type: string
+ *                         enum: [static, dynamic]
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -70,36 +90,63 @@ export const listModels = async (
 	try {
 		logger.info('ModelHandler: listModels called');
 
-		// Initialize the model capabilities manager
-		const capabilitiesManager = ModelCapabilitiesManager.getInstance();
-		await capabilitiesManager.initialize();
+		// Initialize the model registry service
+		// [TODO] Ideally we pass projectConfig to getInstance since project may have different llmProviders
+		const registryService = await ModelRegistryService.getInstance();
 
-		// Parse pagination parameters
+		// Get configuration to check localMode
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const isLocalMode = globalConfig.api.localMode ?? false;
+
+		// Parse pagination and filter parameters
 		const url = new URL(request.url);
 		const page = parseInt(url.searchParams.get('page') || '1');
-		const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+		const pageSize = parseInt(url.searchParams.get('pageSize') || '50');
+		const providerFilter = url.searchParams.get('provider');
+		const sourceFilter = url.searchParams.get('source') as 'static' | 'dynamic' | null;
 
-		// Get all available models from LLMModelToProvider mapping
-		const allModels = Object.entries(LLMModelToProvider).map(([modelId, provider]) => {
-			// Get model capabilities
-			const capabilities = capabilitiesManager.getModelCapabilities(modelId, provider);
+		// Get all available models from the registry service
+		let allModels = registryService.getAllModels();
 
-			return {
-				id: modelId,
-				displayName: capabilities.displayName,
-				provider,
-				providerLabel: LLMProviderLabel[provider] || 'Unknown',
-				contextWindow: capabilities.contextWindow,
-				responseSpeed: capabilities.responseSpeed || 'medium',
-			};
-		});
-		//logger.info('ModelHandler: listModels called', { allModels });
+		// Filter out local-only models when not in local mode
+		if (!isLocalMode) {
+			allModels = allModels.filter((model: ModelInfo) => !model.localOnly);
+		}
+		//logger.info('ModelHandler: listModels', allModels);
+
+		// Apply filters
+		if (providerFilter) {
+			allModels = allModels.filter((model: ModelInfo) => model.provider === providerFilter);
+		}
+
+		if (sourceFilter) {
+			allModels = allModels.filter((model: ModelInfo) => model.source === sourceFilter);
+		}
+
+		// Transform models for API response
+		const transformedModels = allModels.map((model: ModelInfo) => ({
+			id: model.id,
+			displayName: model.displayName,
+			provider: model.provider,
+			providerLabel: LLMProviderLabel[model.provider as LLMProvider] || 'Unknown',
+			contextWindow: model.capabilities.contextWindow,
+			maxOutputTokens: model.capabilities.maxOutputTokens,
+			responseSpeed: model.capabilities.responseSpeed || 'medium',
+			cost: model.capabilities.cost || 'medium',
+			intelligence: model.capabilities.intelligence || 'medium',
+			supportedFeatures: model.capabilities.supportedFeatures,
+			releaseDate: model.capabilities.releaseDate,
+			trainingCutoff: model.capabilities.trainingCutoff,
+			source: model.source,
+		}));
 
 		// Apply pagination
-		const total = allModels.length;
+		const total = transformedModels.length;
 		const startIndex = (page - 1) * pageSize;
 		const endIndex = startIndex + pageSize;
-		const paginatedModels = allModels.slice(startIndex, endIndex);
+		const paginatedModels = transformedModels.slice(startIndex, endIndex);
+		//logger.info('ModelHandler: paginatedModels', paginatedModels);
 
 		// Calculate pagination metadata
 		const pageCount = Math.ceil(total / pageSize);
@@ -147,9 +194,13 @@ export const listModels = async (
  *                   properties:
  *                     id:
  *                       type: string
+ *                     displayName:
+ *                       type: string
  *                     provider:
  *                       type: string
  *                     providerLabel:
+ *                       type: string
+ *                     source:
  *                       type: string
  *                     capabilities:
  *                       type: object
@@ -162,40 +213,99 @@ export const getModelCapabilities = async (
 	{ params, response }: { params: { modelId: string }; response: Context['response'] },
 ) => {
 	try {
-		//logger.info(`ModelHandler: getModelCapabilities called for model ${params.modelId}`);
-
 		// Get the model ID from params
 		const modelId = params.modelId;
 
-		// Initialize the model capabilities manager
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance().initialize();
+		// Initialize the model registry service
+		const registryService = await ModelRegistryService.getInstance();
 
-		// Get the model's capabilities
-		const capabilities = capabilitiesManager.getModelCapabilities(modelId);
-		//logger.info(`ModelHandler: getModelCapabilities called for model ${params.modelId}`, { capabilities });
+		// Get configuration to check localMode
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const isLocalMode = globalConfig.api.localMode ?? false;
 
-		if (!capabilities) {
+		// Get the model information
+		const modelInfo = registryService.getModel(modelId);
+
+		if (!modelInfo) {
 			response.status = 404;
 			response.body = { error: `Model not found: ${modelId}` };
 			return;
 		}
 
-		// Look up the provider for this model
-		const provider = LLMModelToProvider[modelId];
+		// Check if model is local-only and we're not in local mode
+		if (modelInfo.localOnly && !isLocalMode) {
+			response.status = 403;
+			response.body = { error: `Model ${modelId} is only available in local mode` };
+			return;
+		}
 
 		response.status = 200;
 		response.body = {
 			model: {
-				id: modelId,
-				displayName: capabilities.displayName,
-				provider,
-				providerLabel: LLMProviderLabel[provider] || 'Unknown',
-				capabilities,
+				id: modelInfo.id,
+				displayName: modelInfo.displayName,
+				provider: modelInfo.provider,
+				providerLabel: LLMProviderLabel[modelInfo.provider as LLMProvider] || 'Unknown',
+				source: modelInfo.source,
+				capabilities: modelInfo.capabilities,
 			},
 		};
 	} catch (error) {
 		logger.error(`ModelHandler: Error in getModelCapabilities: ${(error as Error).message}`);
 		response.status = 500;
 		response.body = { error: 'Failed to get model capabilities', details: (error as Error).message };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/model/refresh:
+ *   post:
+ *     summary: Refresh dynamic models
+ *     description: Refreshes dynamically discovered models (e.g., Ollama models)
+ *     responses:
+ *       200:
+ *         description: Models refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 modelsRefreshed:
+ *                   type: integer
+ *       500:
+ *         description: Internal server error
+ */
+export const refreshDynamicModels = async (
+	{ response }: { response: Context['response'] },
+) => {
+	try {
+		logger.info('ModelHandler: refreshDynamicModels called');
+
+		// Initialize the model registry service
+		const registryService = await ModelRegistryService.getInstance();
+
+		// Get count before refresh
+		const beforeCount = registryService.getAllModels().filter((m: ModelInfo) => m.source === 'dynamic').length;
+
+		// Refresh dynamic models
+		await registryService.refreshDynamicModels();
+
+		// Get count after refresh
+		const afterCount = registryService.getAllModels().filter((m: ModelInfo) => m.source === 'dynamic').length;
+
+		response.status = 200;
+		response.body = {
+			message: 'Dynamic models refreshed successfully',
+			modelsRefreshed: afterCount,
+			modelsChanged: afterCount - beforeCount,
+		};
+	} catch (error) {
+		logger.error(`ModelHandler: Error in refreshDynamicModels: ${(error as Error).message}`);
+		response.status = 500;
+		response.body = { error: 'Failed to refresh dynamic models', details: (error as Error).message };
 	}
 };

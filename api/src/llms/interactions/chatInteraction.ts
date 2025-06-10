@@ -3,6 +3,7 @@ import LLMInteraction from 'api/llms/baseInteraction.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { ConversationId } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
@@ -32,7 +33,7 @@ class LLMChatInteraction extends LLMInteraction {
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
 			speakOptions = {
-				model: this.projectConfig.defaultModels!.chat, // AnthropicModel.CLAUDE_3_HAIKU,
+				model: this.projectConfig.defaultModels!.chat, // 'claude-3-haiku-20240307',
 				system: '',
 				maxTokens: 4096,
 			} as LLMSpeakWithOptions;
@@ -47,7 +48,7 @@ class LLMChatInteraction extends LLMInteraction {
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.chat, ...speakOptions };
 		if (speakOptions.model) this.model = speakOptions.model;
-		if (!this.model) this.model = this.projectConfig.defaultModels!.chat;
+		if (!this.model) this.model = this.projectConfig.defaultModels!.chat || DefaultModelsConfigDefaults.chat;
 		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 

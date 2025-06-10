@@ -2,6 +2,21 @@
  * Types for model capabilities management
  * Defines interfaces for storing and accessing model-specific capabilities and settings
  */
+import type { LLMProvider } from 'api/types.ts';
+import type { PartialTokenPricing } from 'shared/types/models.ts';
+
+/**
+ * Model information interface for registry entries
+ */
+export interface ModelInfo {
+	id: string;
+	displayName: string;
+	provider: LLMProvider;
+	capabilities: ModelCapabilities;
+	source: 'static' | 'dynamic'; // Whether from JSON or discovered at runtime
+	hidden?: boolean; // Whether the model should be hidden from users (e.g., not available in bb-sass)
+	localOnly?: boolean; // Whether the model should only be available when localMode is enabled
+}
 
 /**
  * Interface for model capabilities including context limits, pricing, and feature support
@@ -14,7 +29,19 @@ export interface ModelCapabilities {
 	maxOutputTokens: number; // Max tokens for generation/completion
 
 	// Pricing
-	pricing: {
+	token_pricing?: PartialTokenPricing; // New dynamic pricing structure
+	pricing_metadata?: {
+		currency: string; // Currency for prices (default USD)
+		effectiveDate: string; // Date these prices were effective from
+		finetuningAvailable?: boolean; // Whether finetuning is available
+		finetuningCost?: { // Finetuning costs if available
+			trainingPerToken: number;
+			inferencePerToken: number;
+		};
+		billingTier?: string; // Any special billing tier info
+	};
+	// Legacy pricing structure for backward compatibility
+	pricing?: {
 		inputTokens: {
 			basePrice: number; // Cost per input token
 			cachedPrice?: number; // Cost for cached tokens (if different)
@@ -78,6 +105,8 @@ export interface ModelCapabilities {
 	releaseDate?: string; // When the model was released
 	deprecated?: boolean; // Whether the model is deprecated
 	responseSpeed?: 'fast' | 'medium' | 'slow'; // Relative speed for planning
+	cost?: 'low' | 'medium' | 'high' | 'very-high'; // Relative cost based on pricing
+	intelligence?: 'medium' | 'high' | 'very-high'; // Relative intelligence/capability level
 }
 
 /**

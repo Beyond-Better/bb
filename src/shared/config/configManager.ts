@@ -780,6 +780,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	private async loadGlobalConfig(): Promise<GlobalConfig> {
 		const configDir = await getGlobalConfigDir();
 		const configPath = join(configDir, 'config.yaml');
+		// console.log('ConfigManager: configPath', configPath);
 
 		try {
 			const content = await Deno.readTextFile(configPath);
@@ -1322,7 +1323,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		} else {
 			// Validate llmProviders if present
 			if (config.api.llmProviders) {
-				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'grok'];
+				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
 				for (const [provider, providerConfig] of Object.entries(config.api.llmProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({
@@ -1506,7 +1507,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if (config.api) {
 			// Validate llmProviders if present
 			if (config.api.llmProviders) {
-				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'grok'];
+				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
 				for (const [provider, providerConfig] of Object.entries(config.api.llmProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({

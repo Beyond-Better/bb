@@ -217,6 +217,7 @@ interface LLMTokenUsage {
     totalTokens: number;
     cacheCreationInputTokens?: number;
     cacheReadInputTokens?: number;
+    thoughtTokens?: number;
     totalAllTokens?: number;
 }
 
@@ -228,6 +229,7 @@ private transformUsage(providerUsage: ProviderUsage): LLMTokenUsage {
         totalTokens: providerUsage.total_tokens || 0,
         cacheCreationInputTokens: 0,
         cacheReadInputTokens: 0,
+        thoughtTokens: 0,
         totalAllTokens: providerUsage.total_tokens || 0
     };
 }

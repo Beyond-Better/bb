@@ -199,8 +199,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 								<span className='text-blue-700 dark:text-blue-300'>Blue</span> - User messages
 							</li>
 							<li className='bg-green-50 dark:bg-green-950/50 p-2 rounded'>
-								<span className='text-green-700 dark:text-green-300'>Green</span>{' '}
-								- Assistant (Claude) responses
+								<span className='text-green-700 dark:text-green-300'>Green</span> - Assistant responses
 							</li>
 							<li className='bg-yellow-50 dark:bg-yellow-950/50 p-2 rounded'>
 								<span className='text-yellow-700 dark:text-yellow-300'>Yellow</span>{' '}
@@ -268,7 +267,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 					<div className='space-y-3'>
 						<p className='text-gray-600 dark:text-gray-300'>
 							The header shows API connection status, current project, and total token usage. The
-							connection indicator turns red if there are API issues. A banner appears when Claude is
+							connection indicator turns red if there are API issues. A banner appears when Assistant is
 							processing your request.
 						</p>
 
@@ -352,7 +351,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 									A complete interaction including:
 									<ul className='list-disc list-inside mt-2 ml-4'>
 										<li>Your initial query</li>
-										<li>Claude's response and any tool usage</li>
+										<li>Assistant's response and any tool usage</li>
 										<li>Final results or answers</li>
 									</ul>
 								</div>
@@ -386,7 +385,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 						<div>
 							<dt className='font-medium text-gray-700 dark:text-gray-200'>Objectives</dt>
 							<dd className='text-gray-600 dark:text-gray-300'>
-								The focus given to Claude. Each statement has a new objective, plus an overall
+								The focus given to Assistant. Each statement has a new objective, plus an overall
 								conversation objective. Helps maintain context and purpose throughout the conversation.
 							</dd>
 						</div>
@@ -409,7 +408,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 						<div>
 							<dt className='font-medium text-gray-700 dark:text-gray-200'>Tokens</dt>
 							<dd className='text-gray-600 dark:text-gray-300'>
-								The "cost unit" for working with Claude. Longer conversations use more tokens.
+								The "cost unit" for working with Assistant. Longer conversations use more tokens.
 							</dd>
 						</div>
 					</dl>

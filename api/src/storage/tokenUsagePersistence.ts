@@ -360,6 +360,7 @@ export class TokenUsagePersistence {
 				total: 0,
 				cacheCreationInput: 0,
 				cacheReadInput: 0,
+				thoughtTokens: 0,
 				totalAll: 0,
 			},
 			differentialUsage: { input: 0, output: 0, total: 0 },
@@ -391,6 +392,7 @@ export class TokenUsagePersistence {
 				analysis.totalUsage.total += record.rawUsage.totalTokens || 0;
 				analysis.totalUsage.cacheCreationInput += record.rawUsage.cacheCreationInputTokens || 0;
 				analysis.totalUsage.cacheReadInput += record.rawUsage.cacheReadInputTokens || 0;
+				analysis.totalUsage.thoughtTokens += record.rawUsage.thoughtTokens || 0;
 				// legacy calc
 				// const totalAllTokens =
 				// 	(((record.rawUsage.totalTokens ?? 0) > 0 || (record.rawUsage.cacheCreationInputTokens ?? 0) > 0 ||

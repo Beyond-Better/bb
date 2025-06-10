@@ -6,6 +6,7 @@ import { getProjectPersistenceManager } from 'api/storage/projectPersistenceMana
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ClientProjectData } from 'shared/types/project.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 //import type { DataSourceValues } from 'api/resources/dataSource.ts';
 import { enhanceProjectWithSources, isProjectValid } from 'shared/projectData.ts';
 //import { getDataSourceRegistry } from 'api/resources/dataSourceRegistry.ts';
@@ -117,6 +118,7 @@ export const blankProject = async (
 			status: 'draft',
 			dsConnections: [],
 			mcpServers: [],
+			//defaultModels: DefaultModelsConfigDefaults,
 			repoInfo: { tokenLimit: 1024 },
 		};
 
@@ -249,6 +251,7 @@ export const createProject = async (
 			status,
 			dsConnections: [],
 			mcpServers: [],
+			//defaultModels: DefaultModelsConfigDefaults,
 			repoInfo: { tokenLimit: 1024 },
 		};
 
@@ -276,6 +279,44 @@ export const createProject = async (
 		}
 		if (body.config.myAssistantsName !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.config.myAssistantsName);
+		}
+
+		// Handle defaultModels settings if provided
+		if (body.config.defaultModels) {
+			//logger.info('ProjectHandler: Processing api settings:', body.config.api);
+			if (body.config.defaultModels?.orchestrator !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.orchestrator:', {
+				//	value: body.config.defaultModels.orchestrator,
+				//	type: typeof body.config.defaultModels.orchestrator,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.orchestrator',
+					body.config.defaultModels.orchestrator,
+				);
+			}
+			if (body.config.defaultModels?.agent !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.agent:', {
+				//	value: body.config.defaultModels.agent,
+				//	type: typeof body.config.defaultModels.agent,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.agent',
+					body.config.defaultModels.agent,
+				);
+			}
+			if (body.config.defaultModels?.chat !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.chat:', {
+				//	value: body.config.defaultModels.chat,
+				//	type: typeof body.config.defaultModels.chat,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.chat',
+					body.config.defaultModels.chat,
+				);
+			}
 		}
 
 		// Handle api settings if provided
@@ -404,6 +445,43 @@ export const updateProject = async (
 		}
 		if (body.config.myAssistantsName !== undefined) {
 			await configManager.setProjectConfigValue(projectId, 'myAssistantsName', body.config.myAssistantsName);
+		}
+		// Handle defaultModels settings if provided
+		if (body.config.defaultModels) {
+			//logger.info('ProjectHandler: Processing api settings:', body.config.api);
+			if (body.config.defaultModels?.orchestrator !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.orchestrator:', {
+				//	value: body.config.defaultModels.orchestrator,
+				//	type: typeof body.config.defaultModels.orchestrator,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.orchestrator',
+					body.config.defaultModels.orchestrator,
+				);
+			}
+			if (body.config.defaultModels?.agent !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.agent:', {
+				//	value: body.config.defaultModels.agent,
+				//	type: typeof body.config.defaultModels.agent,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.agent',
+					body.config.defaultModels.agent,
+				);
+			}
+			if (body.config.defaultModels?.chat !== undefined) {
+				//logger.info('ProjectHandler: Setting defaultModels.chat:', {
+				//	value: body.config.defaultModels.chat,
+				//	type: typeof body.config.defaultModels.chat,
+				//});
+				await configManager.setProjectConfigValue(
+					projectId,
+					'defaultModels.chat',
+					body.config.defaultModels.chat,
+				);
+			}
 		}
 		// Handle api settings if provided
 		if (body.config.api) {

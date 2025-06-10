@@ -4,7 +4,8 @@ import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
-import type { RepoInfoConfigSchema } from 'shared/config/types.ts';
+import type { DefaultModels, DefaultModelsPartial, RepoInfoConfigSchema } from 'shared/config/types.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ClientProjectData, ProjectData, ProjectStatus, SerializedProjectData } from 'shared/types/project.ts';
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
 import { getProjectAdminDataDir, getProjectAdminDir } from 'shared/projectPath.ts';
@@ -36,6 +37,7 @@ class ProjectPersistence implements ProjectData {
 	private _name: string = 'New Project';
 	private _status: ProjectStatus = 'draft';
 	private _repoInfo: RepoInfoConfigSchema = { tokenLimit: 1024 };
+	//private _defaultModels: DefaultModelsPartial = DefaultModelsConfigDefaults;
 	private _mcpServers: string[] = [];
 
 	// Directory for storing project-level resources
@@ -155,6 +157,19 @@ class ProjectPersistence implements ProjectData {
 	async setRepoInfo(repoInfo: RepoInfoConfigSchema): Promise<void> {
 		await this.update({ repoInfo });
 	}
+
+	/**
+	 * Get the default models as a first-class property
+	 */
+	// public get defaultModels(): DefaultModelsPartial {
+	// 	return this._defaultModels;
+	// }
+	// getDefaultModels(): DefaultModelsPartial {
+	// 	return this._defaultModels;
+	// }
+	// async setDefaultModels(defaultModels: DefaultModelsPartial): Promise<void> {
+	// 	await this.update({ defaultModels });
+	// }
 
 	get mcpServers(): string[] {
 		return this._mcpServers;
@@ -363,6 +378,7 @@ class ProjectPersistence implements ProjectData {
 					this._name = serializedData.name || '';
 					this._status = serializedData.status || 'draft';
 					this._repoInfo = serializedData.repoInfo || { tokenLimit: 1024 };
+					//this._defaultModels = serializedData.defaultModels || DefaultModelsConfigDefaults;
 					this._mcpServers = serializedData.mcpServers || [];
 
 					// Initialize data source connections from the loaded data
@@ -409,6 +425,7 @@ class ProjectPersistence implements ProjectData {
 			dsConnections: this.getDsConnections(), // Returns actual DataSource connections
 			primaryDsConnection: this.getPrimaryDsConnection(), // Include the actual primary data source connection
 			repoInfo: this._repoInfo,
+			//defaultModels: this._defaultModels,
 			mcpServers: this._mcpServers,
 		};
 	}
@@ -425,6 +442,7 @@ class ProjectPersistence implements ProjectData {
 		project._name = serializedData.name;
 		project._status = serializedData.status;
 		project._repoInfo = serializedData.repoInfo;
+		//project._defaultModels = serializedData.defaultModels;
 		project._mcpServers = serializedData.mcpServers;
 
 		// Initialize data source connections
@@ -450,6 +468,10 @@ class ProjectPersistence implements ProjectData {
 		if (clientData.repoInfo !== this._repoInfo) {
 			this._repoInfo = clientData.repoInfo;
 		}
+
+		// if (clientData.defaultModels !== this._defaultModels) {
+		// 	this._defaultModels = clientData.defaultModels;
+		// }
 
 		if (
 			clientData.mcpServers &&
@@ -530,6 +552,10 @@ class ProjectPersistence implements ProjectData {
 			if (updates.repoInfo !== undefined) {
 				this._repoInfo = updates.repoInfo;
 			}
+
+			// if (updates.defaultModels !== undefined) {
+			// 	this._defaultModels = updates.defaultModels;
+			// }
 
 			if (updates.mcpServers !== undefined) {
 				this._mcpServers = updates.mcpServers;
@@ -621,6 +647,7 @@ class ProjectPersistence implements ProjectData {
 			this._name = '';
 			this._status = 'draft';
 			this._repoInfo = { tokenLimit: 1024 };
+			//this._defaultModels = DefaultModelsConfigDefaults;
 			this._mcpServers = [];
 			this._dsConnectionsMap.clear();
 
@@ -714,6 +741,7 @@ class ProjectPersistence implements ProjectData {
 			name: this._name,
 			status: this._status,
 			repoInfo: this._repoInfo,
+			//defaultModels: this._defaultModels,
 			mcpServers: this._mcpServers,
 			dsConnections: Array.from(this._dsConnectionsMap.values()).map((ds) => ds.toJSON()),
 		};
@@ -772,6 +800,7 @@ class ProjectPersistence implements ProjectData {
 			name: this._name,
 			status: this._status,
 			repoInfo: this._repoInfo,
+			//defaultModels: this._defaultModels,
 			mcpServers: this._mcpServers,
 			dsConnections: clientDsConnections,
 			primaryDsConnection: clientPrimaryDsConnection,
@@ -813,6 +842,7 @@ class ProjectPersistence implements ProjectData {
 		this._name = projectConfig.name || '';
 		this._status = 'active';
 		this._repoInfo = projectConfig.repoInfo || { tokenLimit: 1024 };
+		//this._defaultModels = projectConfig.defaultModels || DefaultModelsConfigDefaults;
 		this._mcpServers = [];
 
 		// Initialize data sources
