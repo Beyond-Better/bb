@@ -9,7 +9,7 @@
 import { logger } from 'shared/logger.ts';
 import { isError } from 'api/errors/error.ts';
 import type { LLMProvider } from 'api/types.ts';
-import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.types.ts';
+import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.ts';
 import type { LLMProviderConfig, ProjectConfig } from 'shared/config/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 //import type { PartialTokenPricing } from 'shared/types/models.ts';
@@ -135,22 +135,24 @@ export class ModelRegistryService {
 			const capabilities = builtinCapabilities as Record<
 				string,
 				Record<string, ModelCapabilities & { hidden?: boolean }>
-			>;
+			> & { _metadata?: any };
 
 			for (const [provider, models] of Object.entries(capabilities)) {
 				// Skip metadata section - it's not a provider
 				if (provider === '_metadata') {
 					continue;
 				}
-				
+
 				const providerEnum = provider as LLMProvider;
-				
+
 				// Skip Ollama models from static data - they are handled by dynamic discovery
 				if (providerEnum === 'ollama') {
-					logger.info('ModelRegistryService: Skipping static Ollama models - using dynamic discovery instead');
+					logger.info(
+						'ModelRegistryService: Skipping static Ollama models - using dynamic discovery instead',
+					);
 					continue;
 				}
-				
+
 				const modelIds: string[] = [];
 
 				for (const [modelId, modelCapabilities] of Object.entries(models)) {
