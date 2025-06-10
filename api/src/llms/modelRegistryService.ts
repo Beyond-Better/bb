@@ -132,16 +132,12 @@ export class ModelRegistryService {
 	 */
 	private async loadStaticModels(): Promise<void> {
 		try {
-			const capabilities = builtinCapabilities as Record<
-				string,
-				Record<string, ModelCapabilities & { hidden?: boolean }>
-			> & { _metadata?: any };
+			// Destructure to separate metadata from provider data
+			const { _metadata, ...providers } = builtinCapabilities as {
+				_metadata?: any;
+			} & Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
 
-			for (const [provider, models] of Object.entries(capabilities)) {
-				// Skip metadata section - it's not a provider
-				if (provider === '_metadata') {
-					continue;
-				}
+			for (const [provider, models] of Object.entries(providers)) {
 
 				const providerEnum = provider as LLMProvider;
 
