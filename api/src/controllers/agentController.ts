@@ -24,7 +24,6 @@ import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import { logger } from 'shared/logger.ts';
 import { errorMessage } from 'shared/error.ts';
 
-
 function formatToolObjectivesAndStats(
 	interaction: LLMConversationInteraction,
 	turnCount: number,

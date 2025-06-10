@@ -827,6 +827,7 @@ class ConversationPersistence {
 				analyzeUsageChat.totalUsage.cacheCreationInput,
 			cacheReadInput: analyzeUsageConversation.totalUsage.cacheReadInput +
 				analyzeUsageChat.totalUsage.cacheReadInput,
+			thoughtTokens: analyzeUsageConversation.totalUsage.thoughtTokens,
 			totalAll: analyzeUsageConversation.totalUsage.totalAll + analyzeUsageChat.totalUsage.totalAll,
 		};
 		const differentialUsageCombined = {

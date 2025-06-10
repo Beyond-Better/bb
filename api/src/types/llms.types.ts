@@ -13,7 +13,7 @@ export type {
 	InteractionPreferences,
 	ModelCapabilities,
 	UserModelPreferences,
-} from 'api/types/modelCapabilities.types.ts';
+} from 'api/types/modelCapabilities.ts';
 
 // Model registry service will be used instead of enums
 // Import the service for runtime access

@@ -360,6 +360,7 @@ export class TokenUsagePersistence {
 				total: 0,
 				cacheCreationInput: 0,
 				cacheReadInput: 0,
+				thoughtTokens: 0,
 				totalAll: 0,
 			},
 			differentialUsage: { input: 0, output: 0, total: 0 },

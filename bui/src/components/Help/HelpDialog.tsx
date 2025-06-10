@@ -199,8 +199,7 @@ export function HelpDialog({ visible, onClose, apiClient }: HelpDialogProps) {
 								<span className='text-blue-700 dark:text-blue-300'>Blue</span> - User messages
 							</li>
 							<li className='bg-green-50 dark:bg-green-950/50 p-2 rounded'>
-								<span className='text-green-700 dark:text-green-300'>Green</span>{' '}
-								- Assistant responses
+								<span className='text-green-700 dark:text-green-300'>Green</span> - Assistant responses
 							</li>
 							<li className='bg-yellow-50 dark:bg-yellow-950/50 p-2 rounded'>
 								<span className='text-yellow-700 dark:text-yellow-300'>Yellow</span>{' '}

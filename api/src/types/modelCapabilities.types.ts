@@ -41,7 +41,7 @@ export interface ModelCapabilities {
 		billingTier?: string; // Any special billing tier info
 	};
 	// Legacy pricing structure for backward compatibility
-	pricing: {
+	pricing?: {
 		inputTokens: {
 			basePrice: number; // Cost per input token
 			cachedPrice?: number; // Cost for cached tokens (if different)

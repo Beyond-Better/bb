@@ -137,10 +137,14 @@ class LLM {
 		const model: string = speakOptions?.model || interaction.model;
 
 		if (!speakOptions?.maxTokens && !interaction.maxTokens) {
-			logger.error(`BaseLLM:provider[${this.llmProviderName}]: maxTokens missing from both speakOptions and interaction`);
+			logger.error(
+				`BaseLLM:provider[${this.llmProviderName}]: maxTokens missing from both speakOptions and interaction`,
+			);
 		}
 		if (!speakOptions?.temperature && !interaction.temperature) {
-			logger.error(`BaseLLM:provider[${this.llmProviderName}]: temperature missing from both speakOptions and interaction`);
+			logger.error(
+				`BaseLLM:provider[${this.llmProviderName}]: temperature missing from both speakOptions and interaction`,
+			);
 		}
 
 		const maxTokens: number = speakOptions?.maxTokens || interaction.maxTokens || 16384;
@@ -213,7 +217,10 @@ class LLM {
 							`BaseLLM:provider[${this.llmProviderName}]: speakWithPlus: Using decompressed cached response`,
 						);
 					} catch (error) {
-						logger.error(`BaseLLM:provider[${this.llmProviderName}]: Failed to decompress cached response:`, error);
+						logger.error(
+							`BaseLLM:provider[${this.llmProviderName}]: Failed to decompress cached response:`,
+							error,
+						);
 						// Continue to generate a new response
 					}
 				} else {
@@ -278,11 +285,15 @@ class LLM {
 						const rateLimit = llmSpeakWithResponse.messageResponse.rateLimit.requestsResetDate.getTime() -
 							Date.now();
 						const waitTime = Math.max(rateLimit, delay);
-						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`);
+						logger.warn(
+							`BaseLLM:provider[${this.llmProviderName}]: Rate limit exceeded. Waiting for ${waitTime}ms before retrying.`,
+						);
 						await new Promise((resolve) => setTimeout(resolve, waitTime));
 					} else if (statusCode >= 500) {
 						// Server error, use exponential backoff
-						logger.warn(`BaseLLM:provider[${this.llmProviderName}]: Server error (${statusCode}). Retrying in ${delay}ms.`);
+						logger.warn(
+							`BaseLLM:provider[${this.llmProviderName}]: Server error (${statusCode}). Retrying in ${delay}ms.`,
+						);
 						await new Promise((resolve) => setTimeout(resolve, delay));
 						delay *= 2; // Double the delay for next time
 					} else {
@@ -636,7 +647,9 @@ class LLM {
 		if (validateCallback) {
 			const validationFailed = validateCallback(llmProviderMessageResponse, interaction);
 			if (validationFailed) {
-				logger.error(`BaseLLM:provider[${this.llmProviderName}]: Callback validation failed: ${validationFailed}`);
+				logger.error(
+					`BaseLLM:provider[${this.llmProviderName}]: Callback validation failed: ${validationFailed}`,
+				);
 				return validationFailed;
 			}
 		}
@@ -666,12 +679,14 @@ class LLM {
 			}
 
 			// if the last/final content part is type text, then add to toolThinking of last tool in toolsUsed
-			if (index === llmProviderMessageResponse.answerContent.length - 1 && 
-				answerPart.type === 'text' && 
+			if (
+				index === llmProviderMessageResponse.answerContent.length - 1 &&
+				answerPart.type === 'text' &&
 				llmProviderMessageResponse.toolsUsed &&
-				llmProviderMessageResponse.toolsUsed.length > 0) {
-					
-				const lastTool = llmProviderMessageResponse.toolsUsed![llmProviderMessageResponse.toolsUsed!.length - 1];
+				llmProviderMessageResponse.toolsUsed.length > 0
+			) {
+				const lastTool =
+					llmProviderMessageResponse.toolsUsed![llmProviderMessageResponse.toolsUsed!.length - 1];
 				if (lastTool && typeof lastTool.toolThinking === 'string') {
 					lastTool.toolThinking += answerPart.text;
 				} else if (lastTool) {

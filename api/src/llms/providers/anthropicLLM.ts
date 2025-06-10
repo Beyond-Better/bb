@@ -386,7 +386,11 @@ class AnthropicLLM extends LLM {
 				}
 				: {}),
 		};
-		logger.info(`LlmProvider[${this.llmProviderName}]: llms-anthropic-asProviderMessageRequest`, { maxTokens, model, usePromptCaching });
+		logger.info(`LlmProvider[${this.llmProviderName}]: llms-anthropic-asProviderMessageRequest`, {
+			maxTokens,
+			model,
+			usePromptCaching,
+		});
 		//logger.info(`LlmProvider[${this.llmProviderName}]: llms-anthropic-asProviderMessageRequest`, JSON.stringify(providerMessageRequest.messages));
 		//logger.info(`LlmProvider[${this.llmProviderName}]: llms-anthropic-asProviderMessageRequest`, providerMessageRequest);
 		//logger.dir(providerMessageRequest);
@@ -466,9 +470,12 @@ class AnthropicLLM extends LLM {
 
 			// Validate essential response properties
 			if (!anthropicMessage || !anthropicMessage.content) {
-				logger.error(`LlmProvider[${this.llmProviderName}]: Invalid Anthropic response - missing message or content:`, {
-					anthropicMessage,
-				});
+				logger.error(
+					`LlmProvider[${this.llmProviderName}]: Invalid Anthropic response - missing message or content:`,
+					{
+						anthropicMessage,
+					},
+				);
 				throw createError(
 					ErrorType.LLM,
 					'Invalid response from Anthropic API: missing required properties',
@@ -478,9 +485,12 @@ class AnthropicLLM extends LLM {
 
 			// Validate and normalize content to ensure it's a non-empty array
 			if (!Array.isArray(anthropicMessage.content)) {
-				logger.error(`LlmProvider[${this.llmProviderName}]: !!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:`, {
-					content: anthropicMessage.content,
-				});
+				logger.error(
+					`LlmProvider[${this.llmProviderName}]: !!!!! CRITICAL ERROR !!!!! Anthropic response content is not an array:`,
+					{
+						content: anthropicMessage.content,
+					},
+				);
 				// Convert to array if possible, or create error message
 				if (anthropicMessage.content && typeof anthropicMessage.content === 'object') {
 					anthropicMessage.content = [anthropicMessage.content];
@@ -499,7 +509,9 @@ class AnthropicLLM extends LLM {
 
 			// Ensure content array is not empty
 			if (anthropicMessage.content.length === 0) {
-				logger.error(`LlmProvider[${this.llmProviderName}]: !!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty`);
+				logger.error(
+					`LlmProvider[${this.llmProviderName}]: !!!!! CRITICAL ERROR !!!!! Anthropic response content array is empty`,
+				);
 				anthropicMessage.content = [{ type: 'text', text: 'Error: Empty response from LLM', citations: [] }];
 			}
 

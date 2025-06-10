@@ -98,7 +98,9 @@ class GoogleLLM extends LLM {
 
 		const mapMessageToContent = (message: LLMMessage) => {
 			// Log the message being processed
-			logger.debug(`LlmProvider[${this.llmProviderName}]: Processing message role=${message.role}, content parts=${message.content.length}`);
+			logger.debug(
+				`LlmProvider[${this.llmProviderName}]: Processing message role=${message.role}, content parts=${message.content.length}`,
+			);
 
 			return {
 				role: message.role === 'assistant' ? 'model' : message.role,
@@ -106,7 +108,9 @@ class GoogleLLM extends LLM {
 					if (part.type === 'text') {
 						// Check if this is a metadata block
 						if (part.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
-							logger.debug(`LlmProvider[${this.llmProviderName}]: Found file metadata block, preserving as-is`);
+							logger.debug(
+								`LlmProvider[${this.llmProviderName}]: Found file metadata block, preserving as-is`,
+							);
 							return { text: part.text };
 						}
 						// For regular text content
@@ -129,13 +133,17 @@ class GoogleLLM extends LLM {
 							} as FunctionCall,
 						};
 					} else if (part.type === 'tool_result') {
-						logger.debug(`LlmProvider[${this.llmProviderName}]: Processing tool result content, tool_use_id=${part.tool_use_id}`);
+						logger.debug(
+							`LlmProvider[${this.llmProviderName}]: Processing tool result content, tool_use_id=${part.tool_use_id}`,
+						);
 						// For tool results, we need to process each content part
 						const processedContent = part.content?.map((p) => {
 							if (p.type === 'text') {
 								// Check if this is a metadata block
 								if (p.text.includes(BB_RESOURCE_METADATA_DELIMITER)) {
-									logger.debug(`LlmProvider[${this.llmProviderName}]: Found file metadata in tool result, preserving as-is`);
+									logger.debug(
+										`LlmProvider[${this.llmProviderName}]: Found file metadata in tool result, preserving as-is`,
+									);
 									return { text: p.text };
 								}
 								return { text: p.text };
@@ -148,7 +156,11 @@ class GoogleLLM extends LLM {
 									},
 								};
 							}
-							logger.warn(`LlmProvider[${this.llmProviderName}]: Unsupported content type in tool result: ${(p as { type: string }).type}`);
+							logger.warn(
+								`LlmProvider[${this.llmProviderName}]: Unsupported content type in tool result: ${
+									(p as { type: string }).type
+								}`,
+							);
 							return { text: '' };
 						});
 
@@ -178,12 +190,16 @@ class GoogleLLM extends LLM {
 		);
 
 		if (userMessageWithMultipleToolUse) {
-			logger.warn(`LlmProvider[${this.llmProviderName}]: Found user message with multiple tool_use parts. Splitting messages.`);
+			logger.warn(
+				`LlmProvider[${this.llmProviderName}]: Found user message with multiple tool_use parts. Splitting messages.`,
+			);
 			const userMessageIndex = messages.indexOf(userMessageWithMultipleToolUse);
 			const assistantMessage = messages[userMessageIndex + 1];
 
 			if (!assistantMessage || assistantMessage.role !== 'assistant') {
-				logger.error(`LlmProvider[${this.llmProviderName}]: Could not find corresponding assistant message. Aborting split.`);
+				logger.error(
+					`LlmProvider[${this.llmProviderName}]: Could not find corresponding assistant message. Aborting split.`,
+				);
 				return messages.map(mapMessageToContent);
 			}
 
@@ -345,7 +361,9 @@ class GoogleLLM extends LLM {
 				} as LLMMessageContentPartTextBlock);
 			} else if ('functionCall' in part && part.functionCall !== undefined) {
 				// Google's FunctionCall provides args as an object, no need to parse
-				logger.debug(`LlmProvider[${this.llmProviderName}]: Processing function call: ${part.functionCall.name}`);
+				logger.debug(
+					`LlmProvider[${this.llmProviderName}]: Processing function call: ${part.functionCall.name}`,
+				);
 				contentParts.push({
 					type: 'tool_use',
 					id: part.functionCall.name,
@@ -425,9 +443,14 @@ class GoogleLLM extends LLM {
 
 		// Add tools if present
 		if (messageRequest.tools.length > 0) {
-			logger.debug(`LlmProvider[${this.llmProviderName}]: Adding tool configuration for ${messageRequest.tools.length} tools`);
+			logger.debug(
+				`LlmProvider[${this.llmProviderName}]: Adding tool configuration for ${messageRequest.tools.length} tools`,
+			);
 			config.tools = this.asProviderToolType(messageRequest.tools);
-			logger.debug(`LlmProvider[${this.llmProviderName}]: Converted tools:`, JSON.stringify(config.tools, null, 2));
+			logger.debug(
+				`LlmProvider[${this.llmProviderName}]: Converted tools:`,
+				JSON.stringify(config.tools, null, 2),
+			);
 		}
 
 		// Prepare the request with the new structure
@@ -453,7 +476,7 @@ class GoogleLLM extends LLM {
 
 			const result = await this.google.models.generateContent(providerMessageRequest);
 			//logger.info(`LlmProvider[${this.llmProviderName}]: `, result);
-			logger.info(`LlmProvider[${this.llmProviderName}]: `, JSON.stringify({result}, null, 2));
+			logger.info(`LlmProvider[${this.llmProviderName}]: `, JSON.stringify({ result }, null, 2));
 
 			// Check if response was blocked first
 			if (result.promptFeedback?.blockReason) {
@@ -501,7 +524,9 @@ class GoogleLLM extends LLM {
 				messageStop: {
 					// Map Google's finish reason to our stop reason format
 					stopReason: (() => {
-						logger.debug(`LlmProvider[${this.llmProviderName}]: Mapping finish reason: ${candidate.finishReason}`);
+						logger.debug(
+							`LlmProvider[${this.llmProviderName}]: Mapping finish reason: ${candidate.finishReason}`,
+						);
 						switch (candidate.finishReason) {
 							case FinishReason.MAX_TOKENS:
 								return 'max_tokens';
@@ -512,7 +537,9 @@ class GoogleLLM extends LLM {
 							case FinishReason.RECITATION:
 								return 'content_filter';
 							default:
-								logger.info(`LlmProvider[${this.llmProviderName}]: Unmapped finish reason: ${candidate.finishReason}`);
+								logger.info(
+									`LlmProvider[${this.llmProviderName}]: Unmapped finish reason: ${candidate.finishReason}`,
+								);
 								return null;
 						}
 					})(),
@@ -535,11 +562,15 @@ class GoogleLLM extends LLM {
 
 			// Process safety ratings if present
 			if (candidate.safetyRatings && candidate.safetyRatings.length > 0) {
-				logger.debug(`LlmProvider[${this.llmProviderName}]: Processing ${candidate.safetyRatings.length} safety ratings`);
+				logger.debug(
+					`LlmProvider[${this.llmProviderName}]: Processing ${candidate.safetyRatings.length} safety ratings`,
+				);
 
 				// Log each safety rating
 				candidate.safetyRatings.forEach((rating: SafetyRating) => {
-					logger.debug(`LlmProvider[${this.llmProviderName}]: Safety rating - Category: ${rating.category}, Probability: ${rating.probability}`);
+					logger.debug(
+						`LlmProvider[${this.llmProviderName}]: Safety rating - Category: ${rating.category}, Probability: ${rating.probability}`,
+					);
 				});
 
 				// Store safety ratings in extra field

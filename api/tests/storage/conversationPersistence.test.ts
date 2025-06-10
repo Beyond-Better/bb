@@ -64,6 +64,7 @@ Deno.test('ConversationPersistence.defaultMetadata returns correct structure', (
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	}, 'tokenUsageTurn should have correct structure and defaults');
 
@@ -71,6 +72,7 @@ Deno.test('ConversationPersistence.defaultMetadata returns correct structure', (
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	}, 'tokenUsageStatement should have correct structure and defaults');
 
@@ -78,6 +80,7 @@ Deno.test('ConversationPersistence.defaultMetadata returns correct structure', (
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
+		thoughtTokens: 0,
 		totalAllTokens: 0,
 	}, 'tokenUsageConversation should have correct structure and defaults');
 

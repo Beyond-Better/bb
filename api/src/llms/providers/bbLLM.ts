@@ -320,11 +320,19 @@ class BbLLM extends LLM {
 						errorBody = await error.context.json();
 						//logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: `, { error, errorBody });
 					} else {
-						logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: No error body available: `, { error });
+						logger.error(
+							`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: No error body available: `,
+							{ error },
+						);
 					}
 				} catch (e) {
-					logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Failed to parse error response: `, e);
-					logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Original error: `, { error });
+					logger.error(
+						`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Failed to parse error response: `,
+						e,
+					);
+					logger.error(`BbLLM:provider[${this.llmProviderName}]: Error calling BB API: Original error: `, {
+						error,
+					});
 				}
 
 				throw createError(
@@ -338,7 +346,10 @@ class BbLLM extends LLM {
 				);
 			}
 			if (bbResponseMessage.status.statusCode !== 200) {
-				logger.error(`BbLLM:provider[${this.llmProviderName}]: Received a non-200 from BB API: `, bbResponseMessage);
+				logger.error(
+					`BbLLM:provider[${this.llmProviderName}]: Received a non-200 from BB API: `,
+					bbResponseMessage,
+				);
 				throw createError(
 					ErrorType.LLM,
 					`Received a non-200 from BB API: `,
@@ -378,7 +389,8 @@ class BbLLM extends LLM {
 					thoughtTokens: bbResponseMessage.usage.thoughtTokens || 0,
 					totalAllTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens +
 						(bbResponseMessage.usage.cacheCreationInputTokens || 0) +
-						(bbResponseMessage.usage.cacheReadInputTokens || 0) + (bbResponseMessage.usage.cacheReadInputTokens || 0)),
+						(bbResponseMessage.usage.cacheReadInputTokens || 0) +
+						(bbResponseMessage.usage.cacheReadInputTokens || 0)),
 				},
 				rateLimit: bbResponseMessage.rateLimit,
 				providerMessageResponseMeta: bbResponseMessage.status,

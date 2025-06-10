@@ -134,7 +134,7 @@ export class ModelRegistryService {
 		try {
 			// Destructure to separate metadata from provider data
 			const { _metadata, ...providers } = (builtinCapabilities as unknown) as {
-				_metadata?: any;
+				_metadata?: Record<string, string|number>;
 			} & Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
 
 			for (const [provider, models] of Object.entries(providers)) {

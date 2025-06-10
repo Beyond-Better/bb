@@ -13,7 +13,7 @@ import type {
 	ModelCapabilities,
 	ModelInfo,
 	UserModelPreferences,
-} from 'api/types/modelCapabilities.types.ts';
+} from 'api/types/modelCapabilities.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';

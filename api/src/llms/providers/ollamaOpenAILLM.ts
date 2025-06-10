@@ -51,10 +51,13 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 		// Ollama doesn't provide rate limit headers, but we'll log if we find any
 		const headers = response.headers;
 		if (headers.has('x-ratelimit-limit') || headers.has('x-ratelimit-remaining')) {
-			logger.info(`LlmProvider[${this.llmProviderName}]: Unexpected rate limit headers found in Ollama response`, {
-				limit: headers.get('x-ratelimit-limit'),
-				remaining: headers.get('x-ratelimit-remaining'),
-			});
+			logger.info(
+				`LlmProvider[${this.llmProviderName}]: Unexpected rate limit headers found in Ollama response`,
+				{
+					limit: headers.get('x-ratelimit-limit'),
+					remaining: headers.get('x-ratelimit-remaining'),
+				},
+			);
 		}
 
 		return {

@@ -359,7 +359,7 @@ class LLMInteraction {
 		const rawAllUsage = {
 			...tokenUsage,
 			totalAllTokens: tokenUsage.totalTokens + (tokenUsage.cacheCreationInputTokens ?? 0) +
-				(tokenUsage.cacheReadInputTokens ?? 0)+
+				(tokenUsage.cacheReadInputTokens ?? 0) +
 				(tokenUsage.thoughtTokens ?? 0),
 		};
 		return {
@@ -446,18 +446,18 @@ class LLMInteraction {
 		this.tokenUsageInteraction.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageInteraction.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageInteraction.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
-		this.tokenUsageInteraction.thoughtTokens += tokenUsage.thoughtTokens;
+		this.tokenUsageInteraction.thoughtTokens += tokenUsage.thoughtTokens || 0;
 		this.tokenUsageInteraction.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens + tokenUsage.thoughtTokens;
+			tokenUsage.cacheReadInputTokens + (tokenUsage.thoughtTokens || 0);
 
 		this.tokenUsageStatement.totalTokens += tokenUsage.totalTokens;
 		this.tokenUsageStatement.inputTokens += tokenUsage.inputTokens;
 		this.tokenUsageStatement.outputTokens += tokenUsage.outputTokens;
 		this.tokenUsageStatement.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens;
 		this.tokenUsageStatement.cacheReadInputTokens += tokenUsage.cacheReadInputTokens;
-		this.tokenUsageStatement.thoughtTokens += tokenUsage.thoughtTokens;
+		this.tokenUsageStatement.thoughtTokens += tokenUsage.thoughtTokens || 0;
 		this.tokenUsageStatement.totalAllTokens += tokenUsage.totalTokens + tokenUsage.cacheCreationInputTokens +
-			tokenUsage.cacheReadInputTokens + tokenUsage.thoughtTokens;
+			tokenUsage.cacheReadInputTokens + (tokenUsage.thoughtTokens || 0);
 
 		this.tokenUsageTurn = tokenUsage;
 
