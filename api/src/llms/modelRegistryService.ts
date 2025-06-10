@@ -133,7 +133,7 @@ export class ModelRegistryService {
 	private async loadStaticModels(): Promise<void> {
 		try {
 			// Destructure to separate metadata from provider data
-			const { _metadata, ...providers } = builtinCapabilities as {
+			const { _metadata, ...providers } = (builtinCapabilities as unknown) as {
 				_metadata?: any;
 			} & Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
 
