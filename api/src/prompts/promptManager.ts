@@ -2,7 +2,7 @@ import { join } from '@std/path';
 import { exists } from '@std/fs';
 import { parse as parseYaml } from '@std/yaml';
 import { stripIndents } from 'common-tags';
-import { getBbDir, readFileContent, resolveFilePath } from 'shared/dataDir.ts';
+import { getBbDir } from 'shared/dataDir.ts';
 import * as defaultPrompts from './defaultPrompts.ts';
 import type { PromptVariableMap } from './defaultPrompts.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -38,16 +38,6 @@ class PromptManager {
 		const configManager = await getConfigManager();
 		this.projectConfig = await configManager.getProjectConfig(projectId);
 		return this;
-	}
-
-	public async loadGuidelines(): Promise<string | null> {
-		const guidelinesPath = this.projectConfig.llmGuidelinesFile;
-		if (!guidelinesPath) {
-			return null;
-		}
-
-		const resolvedPath = await resolveFilePath(guidelinesPath);
-		return await readFileContent(resolvedPath);
 	}
 
 	async getPrompt<K extends keyof PromptVariableMap>(

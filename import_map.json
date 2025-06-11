@@ -65,6 +65,8 @@
 		"child_process": "node:child_process",
 		"node_crypto": "node:crypto",
 		"mkcert": "npm:mkcert",
+		"@tauri-apps/plugin-notification": "https://esm.sh/@tauri-apps/plugin-notification@2.2.2",
+		"@tauri-apps/api/event": "https://esm.sh/@tauri-apps/api@2.5.0/event",
 
 		"@std/assert": "jsr:@std/assert@^1.0.12",
 		"@std/async": "jsr:@std/async@^1.0.12",

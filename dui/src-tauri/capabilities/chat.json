@@ -3,6 +3,7 @@
 	"identifier": "chat-capability",
 	"description": "Capability for the BB Chat window",
 	"windows": ["bb_chat"],
+	"webviews": ["bb_chat"],
 	"permissions": [
 		"core:window:default",
 		"core:window:default",
@@ -30,14 +31,17 @@
 		"core:event:allow-emit",
 		"core:event:allow-emit-to"
 	],
+	"remote": {
+		"urls": ["https://chat.beyondbetter.dev/**", "https://localhost:8080/**", "http://localhost:8080/**"]
+	},
 	"webviewConfig": {
-		"allowedNavigateOrigins": ["ipc://localhost","https://chat.beyondbetter.dev", "https://localhost:8080"],
-		"allowedProtocols": ["ws", "wss", "http", "https"],
+		"allowedNavigateOrigins": ["ipc://localhost", "https://chat.beyondbetter.dev", "https://localhost:8080", "http://localhost:8080"],
+		"allowedProtocols": ["ipc","ws", "wss", "http", "https"],
 		"csp": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:",
 		"dangerousDisableAspectRatioCSP": true,
 		"dangerousRemoteDomainIpcAccess": [
-			{"domain": "localhost", "enableTauriAPI": true},
-			{"domain": "chat.beyondbetter.dev", "enableTauriAPI": true}
+			{ "domain": "localhost", "enableTauriAPI": true },
+			{ "domain": "chat.beyondbetter.dev", "enableTauriAPI": true }
 		]
 	}
 }

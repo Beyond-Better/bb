@@ -1,6 +1,5 @@
 import { stripIndents } from 'common-tags';
 
-// No longer using legacy resolveFilePath and readFileContent
 import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';

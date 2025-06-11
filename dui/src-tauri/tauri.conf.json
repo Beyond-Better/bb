@@ -34,11 +34,7 @@
         ],
         "img-src": "'self' asset: blob: data:",
         "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
-      },
-      "dangerousRemoteDomainIpcAccess": [
-        {"domain": "localhost", "enableTauriAPI": true},
-        {"domain": "chat.beyondbetter.dev", "enableTauriAPI": true}
-      ]
+      }
     }
   },
   "bundle": {

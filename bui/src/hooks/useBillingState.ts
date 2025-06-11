@@ -371,26 +371,8 @@ export function useBillingState() {
 			const newSubscription = await apiClient.changePlan(planId, paymentMethodId);
 			console.log('useBillingState: changed plan to subscription: ', newSubscription);
 
-			// If there's a prorated amount, create payment intent first
-			if (
-				billingState.value.billingPreview?.prorationFactor &&
-				billingState.value.billingPreview?.prorationFactor > 0
-			) {
-				const proratedAmount = Math.round(
-					billingState.value.billingPreview.prorationFactor *
-						(billingState.value.selectedPlan?.plan_price_monthly || 0) * 100,
-				);
-
-				console.log('useBillingState: creating payment intent for amount: ', proratedAmount);
-				await apiClient.createPaymentIntent({
-					amount: proratedAmount,
-					subscription_id: newSubscription?.subscription_id || '',
-					purchase_id: null,
-					payment_type: 'subscription',
-					stripe_payment_method_id: paymentMethodId,
-					source: 'useBillingState:changePlan',
-				});
-			}
+			// Payment intent is automatically created by Stripe when the subscription is created
+			// with proration_behavior: 'create_prorations' in the backend
 
 			billingState.value = {
 				...billingState.value,

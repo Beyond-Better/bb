@@ -303,6 +303,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		if (onConnectionChange) onConnectionChange(status.all_services_ready);
 	}, [status, onStatusChange, onConnectionChange]);
 
+/* 
 	// Test notifications in the main window (local content)
 	const testNotifications = async () => {
 		try {
@@ -340,7 +341,9 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			alert(`Notification test failed: ${error}`);
 		}
 	};
+ */
 
+/* 
 	// Set up IPC bridge for notifications from bb_chat window
 	useEffect(() => {
 		const setupNotificationBridge = async () => {
@@ -397,6 +400,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		
 		setupNotificationBridge();
 	}, []);
+ */
 
 	const updateStatus = async () => {
 		try {
@@ -887,7 +891,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 			</div>
 
 			{/* Notification Test Button */}
-			<div className='flex justify-center'>
+			{/*<div className='flex justify-center'>
 				<button
 					type='button'
 					onClick={testNotifications}
@@ -908,7 +912,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					</svg>
 					Test Notifications (Main Window)
 				</button>
-			</div>
+			</div>*/}
 
 			{/* Error Message */}
 			{error && (

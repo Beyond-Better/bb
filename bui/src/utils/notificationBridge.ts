@@ -1,6 +1,6 @@
 /**
  * Cross-Platform Notification Bridge
- * 
+ *
  * Provides a unified notification API that works across different environments:
  * - Browser environments: Uses Web Notification API
  * - DUI environments: Uses Tauri's native notification system
@@ -9,7 +9,6 @@
 
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { isDuiEnvironment } from 'shared/externalLinkHelper.ts';
-
 
 export interface NotificationOptions {
 	title: string;
@@ -31,7 +30,8 @@ export interface NotificationBridge {
 	getEnvironmentType(): 'dui' | 'browser' | 'unsupported';
 }
 
-class TauriNotificationBridge implements NotificationBridge {
+/*
+class TauriEventBridge implements NotificationBridge {
 	private _tauriEvents: any = null;
 	private _initPromise: Promise<boolean> | null = null;
 
@@ -89,7 +89,7 @@ class TauriNotificationBridge implements NotificationBridge {
 
 		try {
 			console.log('TauriNotificationBridge: Sending notification request via IPC bridge');
-			
+
 			// Convert our NotificationOptions to format expected by main window
 			const tauriOptions = {
 				title: options.title,
@@ -100,10 +100,10 @@ class TauriNotificationBridge implements NotificationBridge {
 			// Send notification request to main window via IPC
 			await this._tauriEvents.emit('bb-notification-request', tauriOptions);
 			console.log('TauriNotificationBridge: Notification request sent to main window');
-			
+
 			// Wait for response from main window (with timeout)
 			const response = await this.waitForNotificationResponse();
-			
+
 			if (response.success) {
 				console.log('TauriNotificationBridge: Notification sent successfully via IPC bridge');
 			} else {
@@ -150,12 +150,105 @@ class TauriNotificationBridge implements NotificationBridge {
 		return 'dui';
 	}
 }
+ */
+
+class TauriNotificationBridge implements NotificationBridge {
+	private _tauriNotification: any = null;
+	private _initPromise: Promise<boolean> | null = null;
+
+	isSupported(): boolean {
+		if (!IS_BROWSER) return false;
+		return isDuiEnvironment();
+	}
+
+	private async initTauriNotification(): Promise<boolean> {
+		if (this._tauriNotification) {
+			return true;
+		}
+
+		if (this._initPromise) {
+			return this._initPromise;
+		}
+
+		this._initPromise = (async () => {
+			try {
+				if (!this.isSupported()) {
+					console.log('TauriNotificationBridge: Not in DUI environment');
+					return false;
+				}
+
+				// Dynamic import of Tauri notification plugin
+				this._tauriNotification = await import('@tauri-apps/plugin-notification');
+				console.log('TauriNotificationBridge: Successfully loaded Tauri notification plugin');
+				return true;
+			} catch (error) {
+				console.warn('TauriNotificationBridge: Failed to load notification plugin:', error);
+				return false;
+			}
+		})();
+
+		return this._initPromise;
+	}
+
+	async isPermissionGranted(): Promise<boolean> {
+		const initialized = await this.initTauriNotification();
+		if (!initialized) return false;
+
+		try {
+			return await this._tauriNotification.isPermissionGranted();
+		} catch (error) {
+			console.warn('TauriNotificationBridge: Failed to check permission:', error);
+			return false;
+		}
+	}
+
+	async requestPermission(): Promise<Permission> {
+		const initialized = await this.initTauriNotification();
+		if (!initialized) return 'denied';
+
+		try {
+			const permission = await this._tauriNotification.requestPermission();
+			console.log('TauriNotificationBridge: Permission result:', permission);
+			return permission;
+		} catch (error) {
+			console.error('TauriNotificationBridge: Failed to request permission:', error);
+			return 'denied';
+		}
+	}
+
+	async sendNotification(options: NotificationOptions): Promise<void> {
+		const initialized = await this.initTauriNotification();
+		if (!initialized) {
+			throw new Error('Tauri notifications not supported');
+		}
+
+		try {
+			// Convert our NotificationOptions to Tauri format
+			const tauriOptions = {
+				title: options.title,
+				body: options.body,
+				icon: options.icon,
+				// Tauri plugin may not support all options, so we'll include what we can
+			};
+
+			await this._tauriNotification.sendNotification(tauriOptions);
+			console.log('TauriNotificationBridge: Notification sent successfully');
+		} catch (error) {
+			console.error('TauriNotificationBridge: Failed to send notification:', error);
+			throw error;
+		}
+	}
+
+	getEnvironmentType(): 'dui' | 'browser' | 'unsupported' {
+		return 'dui';
+	}
+}
 
 class BrowserNotificationBridge implements NotificationBridge {
 	isSupported(): boolean {
 		if (!IS_BROWSER) return false;
-		return 'Notification' in globalThis && 
-			   typeof Notification !== 'undefined';
+		return 'Notification' in globalThis &&
+			typeof Notification !== 'undefined';
 	}
 
 	async isPermissionGranted(): Promise<boolean> {
@@ -278,12 +371,11 @@ function createNotificationBridge(): NotificationBridge {
 // Export singleton instance
 export const notificationBridge = createNotificationBridge();
 
-
 /**
  * Utility function to check if we're running in a regular browser
  */
 export function isBrowserEnvironment(): boolean {
-	if(!IS_BROWSER) return false;
+	if (!IS_BROWSER) return false;
 	return !isDuiEnvironment() && 'Notification' in globalThis;
 }
 
