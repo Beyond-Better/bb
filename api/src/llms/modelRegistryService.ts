@@ -134,11 +134,10 @@ export class ModelRegistryService {
 		try {
 			// Destructure to separate metadata from provider data
 			const { _metadata, ...providers } = (builtinCapabilities as unknown) as {
-				_metadata?: Record<string, string|number>;
+				_metadata?: Record<string, string | number>;
 			} & Record<string, Record<string, ModelCapabilities & { hidden?: boolean }>>;
 
 			for (const [provider, models] of Object.entries(providers)) {
-
 				const providerEnum = provider as LLMProvider;
 
 				// Skip Ollama models from static data - they are handled by dynamic discovery

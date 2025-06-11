@@ -12,6 +12,7 @@ import { signal } from '@preact/signals';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import type { StatementCompletionNotifications } from '../storage/userPersistence.ts';
 import { userPersistenceManager } from '../storage/userPersistence.ts';
+import { notificationBridge, type NotificationOptions } from './notificationBridge.ts';
 
 export interface NotificationState {
 	/** Whether notifications are currently enabled */
@@ -76,9 +77,19 @@ class NotificationManager {
 		if (this.isInitialized) return;
 		console.log('NotificationManager: Initializing');
 
-		// Store original page state
+		// Check and request notification permission - update this section
+		const hasPermission = await notificationBridge.isPermissionGranted();
+		console.log(
+			'NotificationManager: Environment:',
+			notificationBridge.getEnvironmentType(),
+			'Permission granted:',
+			hasPermission,
+		);
+
+		// Store original page state and set hasPermission
 		this.state.value = {
 			...this.state.value,
+			hasPermission,
 			originalTitle: document.title,
 			originalFavicon: this.getCurrentFavicon(),
 		};
@@ -181,18 +192,14 @@ class NotificationManager {
 	}
 
 	/**
-	 * Request notification permission from browser
+	 * Request notification permission from browser or DUI
 	 */
 	public async requestNotificationPermission(): Promise<boolean> {
 		if (!IS_BROWSER) return false;
-		if (!('Notification' in globalThis)) {
-			console.warn('NotificationManager: Browser notifications not supported');
-			return false;
-		}
 
 		try {
-			//console.warn('NotificationManager: Checking Browser notifications permission');
-			const permission = await Notification.requestPermission();
+			console.log('NotificationManager: Requesting permission via bridge');
+			const permission = await notificationBridge.requestPermission();
 			const hasPermission = permission === 'granted';
 
 			this.state.value = {
@@ -200,7 +207,12 @@ class NotificationManager {
 				hasPermission,
 			};
 
-			console.log('NotificationManager: Permission status:', permission);
+			console.log(
+				'NotificationManager: Permission status:',
+				permission,
+				'Environment:',
+				notificationBridge.getEnvironmentType(),
+			);
 			return hasPermission;
 		} catch (error) {
 			console.error('NotificationManager: Failed to request permission:', error);
@@ -313,42 +325,29 @@ class NotificationManager {
 	}
 
 	/**
-	 * Show browser notification
+	 * Show browser notification using the bridge
 	 */
 	private async showBrowserNotification(message: string): Promise<void> {
-		//if (!this.state.value.hasPermission) {
-		//	throw new Error('Notification permission not granted');
-		//}
-
 		try {
-			console.log('NotificationManager: Showing browser notification');
+			console.log('NotificationManager: Showing notification via bridge');
 
-			const notification = new Notification('Beyond Better', {
+			const notificationOptions: NotificationOptions = {
+				title: 'Beyond Better',
 				body: message,
 				icon: '/logo-light.png',
 				badge: '/logo-light.png',
 				tag: 'bb-statement-complete',
-				requireInteraction: true, // Keep notification until user interacts
+				requireInteraction: true,
 				data: {
 					timestamp: Date.now(),
 					type: 'statement-complete',
 				},
-			});
-
-			// // Auto-close after 10 seconds if user doesn't interact
-			// setTimeout(() => {
-			// 	notification.close();
-			// }, 10000);
-
-			// Optional: Handle notification click
-			notification.onclick = () => {
-				globalThis.focus();
-				notification.close();
 			};
 
-			console.log('NotificationManager: Browser notification sent');
+			await notificationBridge.sendNotification(notificationOptions);
+			console.log('NotificationManager: Notification sent via bridge');
 		} catch (error) {
-			console.error('NotificationManager: Failed to show browser notification:', error);
+			console.error('NotificationManager: Failed to show notification:', error);
 			throw error;
 		}
 	}

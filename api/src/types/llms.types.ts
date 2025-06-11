@@ -9,11 +9,7 @@ import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } 
 export type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 
 // Re-export model capabilities types
-export type {
-	InteractionPreferences,
-	ModelCapabilities,
-	UserModelPreferences,
-} from 'api/types/modelCapabilities.ts';
+export type { InteractionPreferences, ModelCapabilities, UserModelPreferences } from 'api/types/modelCapabilities.ts';
 
 // Model registry service will be used instead of enums
 // Import the service for runtime access

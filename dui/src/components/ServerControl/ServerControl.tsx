@@ -303,6 +303,105 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		if (onConnectionChange) onConnectionChange(status.all_services_ready);
 	}, [status, onStatusChange, onConnectionChange]);
 
+/* 
+	// Test notifications in the main window (local content)
+	const testNotifications = async () => {
+		try {
+			console.log('Testing notifications from main window (local content)...');
+			
+			// Dynamic import of Tauri notification plugin
+			const { isPermissionGranted, requestPermission, sendNotification } = await import('@tauri-apps/plugin-notification');
+			
+			// Check permission
+			let permissionGranted = await isPermissionGranted();
+			console.log('Current permission status:', permissionGranted);
+			
+			// Request permission if not granted
+			if (!permissionGranted) {
+				console.log('Requesting notification permission...');
+				const permission = await requestPermission();
+				permissionGranted = permission === 'granted';
+				console.log('Permission request result:', permission);
+			}
+			
+			// Send notification if permission granted
+			if (permissionGranted) {
+				console.log('Sending notification from main window...');
+				await sendNotification({
+					title: 'BB Notification Test (Main Window)',
+					body: 'This notification was sent from the main DUI window using local content.'
+				});
+				console.log('Notification sent successfully!');
+			} else {
+				console.error('Notification permission not granted');
+				alert('Notification permission not granted. Please enable notifications in your system settings.');
+			}
+		} catch (error) {
+			console.error('Failed to test notifications:', error);
+			alert(`Notification test failed: ${error}`);
+		}
+	};
+ */
+
+/* 
+	// Set up IPC bridge for notifications from bb_chat window
+	useEffect(() => {
+		const setupNotificationBridge = async () => {
+			try {
+				const { listen } = await import('@tauri-apps/api/event');
+				
+				// Listen for notification requests from other windows
+				const unlisten = await listen('bb-notification-request', async (event) => {
+					console.log('Main window received notification request:', event.payload);
+					
+					try {
+						// Dynamic import of Tauri notification plugin
+						const { isPermissionGranted, requestPermission, sendNotification } = await import('@tauri-apps/plugin-notification');
+						
+						// Check/request permission
+						let permissionGranted = await isPermissionGranted();
+						if (!permissionGranted) {
+							const permission = await requestPermission();
+							permissionGranted = permission === 'granted';
+						}
+						
+						// Send notification if permission granted
+						if (permissionGranted) {
+							await sendNotification(event.payload as any);
+							console.log('Main window sent notification successfully via bridge');
+							
+							// Emit success event back to requesting window
+							const { emit } = await import('@tauri-apps/api/event');
+							await emit('bb-notification-success', { success: true });
+						} else {
+							console.error('Main window: Notification permission not granted');
+							
+							// Emit error event back to requesting window
+							const { emit } = await import('@tauri-apps/api/event');
+							await emit('bb-notification-error', { error: 'Permission not granted' });
+						}
+					} catch (error) {
+						console.error('Main window: Failed to send notification via bridge:', error);
+						
+						// Emit error event back to requesting window
+						const { emit } = await import('@tauri-apps/api/event');
+						await emit('bb-notification-error', { error: error.toString() });
+					}
+				});
+				
+				console.log('Main window: Notification bridge set up successfully');
+				
+				// Cleanup on unmount
+				return unlisten;
+			} catch (error) {
+				console.error('Failed to set up notification bridge:', error);
+			}
+		};
+		
+		setupNotificationBridge();
+	}, []);
+ */
+
 	const updateStatus = async () => {
 		try {
 			const serverStatus = await checkServerStatus();
@@ -790,6 +889,30 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 					)}
 				</div>
 			</div>
+
+			{/* Notification Test Button */}
+			{/*<div className='flex justify-center'>
+				<button
+					type='button'
+					onClick={testNotifications}
+					className='inline-flex items-center px-4 py-2 border border-orange-300 rounded-md shadow-sm text-sm font-medium text-orange-700 bg-orange-50 hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 dark:border-orange-600 dark:text-orange-300 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 dark:focus:ring-offset-gray-800'
+				>
+					<svg
+						className='w-4 h-4 mr-2'
+						fill='none'
+						stroke='currentColor'
+						viewBox='0 0 24 24'
+					>
+						<path
+							strokeLinecap='round'
+							strokeLinejoin='round'
+							strokeWidth={2}
+							d='M15 17h5l-5 5v-5zM12 17h.01M7 6v6a3 3 0 003 3h4a3 3 0 003-3V6a3 3 0 00-3-3H10a3 3 0 00-3 3z'
+						/>
+					</svg>
+					Test Notifications (Main Window)
+				</button>
+			</div>*/}
 
 			{/* Error Message */}
 			{error && (
