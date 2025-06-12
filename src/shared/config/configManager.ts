@@ -1323,7 +1323,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		} else {
 			// Validate llmProviders if present
 			if (config.api.llmProviders) {
-				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
+				const validProviders = ['beyondbetter', 'anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
 				for (const [provider, providerConfig] of Object.entries(config.api.llmProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({
@@ -1507,7 +1507,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if (config.api) {
 			// Validate llmProviders if present
 			if (config.api.llmProviders) {
-				const validProviders = ['anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
+				const validProviders = ['beyondbetter', 'anthropic', 'openai', 'deepseek', 'ollama', 'google', 'groq'];
 				for (const [provider, providerConfig] of Object.entries(config.api.llmProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({

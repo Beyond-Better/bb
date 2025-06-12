@@ -69,7 +69,7 @@ Options:
   -V, --version             Show version information
   -H, --hostname <string>   Specify the hostname to run the API server (default: ${hostname})
   -p, --port <number>       Specify the port to run the API server (default: ${port})
-  -t, --use-tls <boolean>    Specify whether the API server should use TLS (default: ${useTls})
+  -t, --use-tls <boolean>   Specify whether the API server should use TLS (default: ${useTls})
   -l, --log-file <file>     Specify a log file to write output
   `);
 	Deno.exit(0);

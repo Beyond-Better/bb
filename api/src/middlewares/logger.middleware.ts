@@ -6,9 +6,17 @@ import type { BbState } from '../types/app.types.ts';
 const X_RESPONSE_TIME: string = 'X-Response-Time';
 const User_Agent: string = 'User-Agent';
 
+const IGNORE_STATUS_REQUESTS = true;
+
 /** The standard logging function that processes and logs requests. */
 export async function logger(ctx: Context<BbState>, next: Next) {
 	await next();
+	if (
+		IGNORE_STATUS_REQUESTS && ctx.request.url.pathname === '/api/v1/status' && ctx.response.status === 200 &&
+		ctx.request.method === 'GET'
+	) {
+		return;
+	}
 	const responseTime = ctx.response.headers.get(X_RESPONSE_TIME) || '';
 	const userAgent = ctx.request.headers.get(User_Agent);
 	const status: number = ctx.response.status;

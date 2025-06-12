@@ -1,7 +1,7 @@
 use dirs;
 #[cfg(not(target_os = "windows"))]
 use flate2::read::GzDecoder;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
@@ -13,6 +13,10 @@ use tauri::{command, AppHandle, Emitter};
 use tempfile::TempDir;
 #[cfg(target_os = "windows")]
 use zip::ZipArchive;
+
+// Import stop functions for robust termination
+use crate::api::stop_api;
+use crate::bui::stop_bui;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
 
@@ -253,6 +257,25 @@ pub async fn perform_upgrade(app: AppHandle) -> Result<(), String> {
     emit_progress(&app, "backup", 10.0, Some("Creating backup...".to_string()))
         .map_err(|e| format!("Failed to emit progress: {}", e))?;
     backup_current_installation(&install_location)?;
+
+    // Stop all existing processes robustly before upgrade
+    emit_progress(&app, "stopping", 15.0, Some("Stopping existing processes...".to_string()))
+        .map_err(|e| format!("Failed to emit progress: {}", e))?;
+    
+    info!("Stopping existing API and BUI processes for upgrade");
+    let api_stopped = stop_api().await.map_err(|e| format!("Failed to stop API: {}", e))?;
+    let bui_stopped = stop_bui().await.map_err(|e| format!("Failed to stop BUI: {}", e))?;
+
+    if !api_stopped {
+        warn!("Some API processes may still be running after stop attempt");
+    }
+    if !bui_stopped {
+        warn!("Some BUI processes may still be running after stop attempt");
+    }
+
+    // Small delay to ensure ports are freed
+    std::thread::sleep(std::time::Duration::from_millis(2000));
+    info!("Process termination complete, proceeding with upgrade");
 
     // Download latest release
     emit_progress(

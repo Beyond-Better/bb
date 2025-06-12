@@ -386,9 +386,23 @@ impl HttpProxy {
         // Create proxied request builder with extracted headers
         let mut proxy_req_builder = Request::builder().method(req.method()).uri(&url);
 
-        // Copy headers (host was already removed)
+        // Copy headers except Host (which we'll set to the target)
         for (key, value) in headers.iter() {
-            proxy_req_builder = proxy_req_builder.header(key, value);
+            if key != hyper::header::HOST {
+                proxy_req_builder = proxy_req_builder.header(key, value);
+            }
+        }
+        
+        // Set Host header to match the target domain
+        if let Ok(parsed_url) = reqwest::Url::parse(&url) {
+            if let Some(host) = parsed_url.host_str() {
+                let host_value = if let Some(port) = parsed_url.port() {
+                    format!("{}:{}", host, port)
+                } else {
+                    host.to_string()
+                };
+                proxy_req_builder = proxy_req_builder.header(hyper::header::HOST, host_value);
+            }
         }
 
         // Add forwarding headers

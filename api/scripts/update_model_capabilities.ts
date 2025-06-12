@@ -312,11 +312,11 @@ class ModelCapabilitiesFetcher {
 	 */
 	private convertSourceModelToCapabilities(
 		sourceModel: SourceModel,
-		_provider: string,
+		provider: string,
 		sourceData: SourceModelData,
 	): ModelCapabilities & { hidden?: boolean } {
 		// Handle pricing - Ollama models are local/free
-		const token_pricing: Record<string, number> = {input:0, output:0};
+		const token_pricing: Record<string, number> = { input: 0, output: 0 };
 		let currency = 'USD';
 		let effectiveDate = new Date().toISOString().split('T')[0];
 
@@ -333,15 +333,24 @@ class ModelCapabilitiesFetcher {
 
 			// Add cached pricing if available (Anthropic-specific)
 			if (sourceModel.pricing.inputTokens.cachedPrice !== undefined) {
-				token_pricing.anthropic_cache_read = this.convertPricingToCentsPerMillionTokens(
-					sourceModel.pricing.inputTokens.cachedPrice,
-					sourceData.pricingUnit,
-				);
-				// Estimate cache write cost as 1.25x base cost if not explicitly provided
-				token_pricing.anthropic_cache_write_5min = this.convertPricingToCentsPerMillionTokens(
-					sourceModel.pricing.inputTokens.basePrice * 1.25,
-					sourceData.pricingUnit,
-				);
+				if (provider === 'anthropic') {
+					token_pricing.anthropic_cache_read = this.convertPricingToCentsPerMillionTokens(
+						sourceModel.pricing.inputTokens.cachedPrice,
+						sourceData.pricingUnit,
+					);
+					// Estimate cache write cost as 1.25x base cost if not explicitly provided
+					token_pricing.anthropic_cache_write_5min = this.convertPricingToCentsPerMillionTokens(
+						sourceModel.pricing.inputTokens.basePrice * 1.25,
+						sourceData.pricingUnit,
+					);
+				//} else if (provider === 'google') {
+				//    // [TODO] add support for google tiered pricing
+				} else {
+					token_pricing.cache_read = this.convertPricingToCentsPerMillionTokens(
+						sourceModel.pricing.inputTokens.cachedPrice,
+						sourceData.pricingUnit,
+					);
+				}
 			}
 
 			currency = sourceModel.pricing.currency;
@@ -433,7 +442,7 @@ class ModelCapabilitiesFetcher {
 			'local_deployment': 0,
 		};
 
-		return CurrencyConverter.dollarsToCents(
+		return CurrencyConverter.dollarsToDecimalCents(
 			unitMultipliers[sourceUnit] !== undefined
 				? price * unitMultipliers[sourceUnit]
 				: (console.warn(`⚠️ Unknown pricing unit: ${sourceUnit}, assuming per_1M_tokens`), price),

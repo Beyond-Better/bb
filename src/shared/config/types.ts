@@ -93,13 +93,14 @@ export interface LLMProviderConfig {
 	apiKey?: string;
 	defaultModel?: string;
 	enabled?: boolean;
-	baseURL?: string;
+	baseUrl?: string;
 	/**
 	 * User-configured model preferences
 	 * These override model defaults but can be overridden by explicit request values
 	 */
 	userPreferences?: UserModelPreferences;
 	// Future extensibility for provider-specific settings
+	config?: Record<string, string | number | boolean>;
 }
 
 /**

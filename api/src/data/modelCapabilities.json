@@ -1,6 +1,6 @@
 {
 	"_metadata": {
-		"generatedAt": "2025-06-07T11:43:52.857Z",
+		"generatedAt": "2025-06-12T06:13:54.480Z",
 		"generatedBy": "update_model_capabilities.ts",
 		"sourceFiles": "api/src/data/model_sources/*.json",
 		"totalProviders": 6,
@@ -55,7 +55,7 @@
 			"token_pricing": {
 				"input": 300,
 				"output": 1500,
-				"anthropic_cache_read": 15,
+				"anthropic_cache_read": 30,
 				"anthropic_cache_write_5min": 375
 			},
 			"pricing_metadata": {
@@ -95,7 +95,7 @@
 			"token_pricing": {
 				"input": 300,
 				"output": 1500,
-				"anthropic_cache_read": 375,
+				"anthropic_cache_read": 30,
 				"anthropic_cache_write_5min": 375
 			},
 			"pricing_metadata": {
@@ -136,7 +136,7 @@
 				"input": 25,
 				"output": 125,
 				"anthropic_cache_read": 3,
-				"anthropic_cache_write_5min": 31
+				"anthropic_cache_write_5min": 31.25
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -215,7 +215,7 @@
 			"token_pricing": {
 				"input": 1500,
 				"output": 7500,
-				"anthropic_cache_read": 1875,
+				"anthropic_cache_read": 150,
 				"anthropic_cache_write_5min": 1875
 			},
 			"pricing_metadata": {
@@ -255,7 +255,7 @@
 			"token_pricing": {
 				"input": 300,
 				"output": 1500,
-				"anthropic_cache_read": 375,
+				"anthropic_cache_read": 30,
 				"anthropic_cache_write_5min": 375
 			},
 			"pricing_metadata": {
@@ -374,7 +374,8 @@
 			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 15,
-				"output": 60
+				"output": 60,
+				"cache_read": 3.75
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -411,8 +412,9 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 4,
-				"output": 15
+				"input": 3.75,
+				"output": 15,
+				"cache_read": 2
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -450,7 +452,8 @@
 			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 250,
-				"output": 1000
+				"output": 1000,
+				"cache_read": 62.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -487,8 +490,9 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 70,
-				"output": 40
+				"input": 10,
+				"output": 40,
+				"cache_read": 2.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -525,7 +529,7 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 8,
+				"input": 7.5,
 				"output": 30
 			},
 			"pricing_metadata": {
@@ -564,7 +568,8 @@
 			"maxOutputTokens": 65536,
 			"token_pricing": {
 				"input": 15,
-				"output": 350
+				"output": 350,
+				"cache_read": 3.75
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -602,7 +607,8 @@
 			"maxOutputTokens": 65536,
 			"token_pricing": {
 				"input": 250,
-				"output": 1500
+				"output": 1500,
+				"cache_read": 62.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -838,7 +844,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -876,7 +882,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -914,7 +920,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -952,7 +958,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -990,7 +996,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -1028,7 +1034,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -1066,7 +1072,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-07"
+				"effectiveDate": "2025-06-12"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -1141,8 +1147,7 @@
 			"token_pricing": {
 				"input": 200,
 				"output": 800,
-				"anthropic_cache_read": 50,
-				"anthropic_cache_write_5min": 250
+				"cache_read": 50
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1181,8 +1186,7 @@
 			"token_pricing": {
 				"input": 40,
 				"output": 160,
-				"anthropic_cache_read": 10,
-				"anthropic_cache_write_5min": 50
+				"cache_read": 10
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1221,8 +1225,7 @@
 			"token_pricing": {
 				"input": 10,
 				"output": 40,
-				"anthropic_cache_read": 3,
-				"anthropic_cache_write_5min": 13
+				"cache_read": 2.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1261,8 +1264,7 @@
 			"token_pricing": {
 				"input": 250,
 				"output": 1000,
-				"anthropic_cache_read": 125,
-				"anthropic_cache_write_5min": 313
+				"cache_read": 125
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1301,8 +1303,7 @@
 			"token_pricing": {
 				"input": 15,
 				"output": 60,
-				"anthropic_cache_read": 8,
-				"anthropic_cache_write_5min": 19
+				"cache_read": 7.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1341,8 +1342,7 @@
 			"token_pricing": {
 				"input": 1000,
 				"output": 4000,
-				"anthropic_cache_read": 250,
-				"anthropic_cache_write_5min": 1250
+				"cache_read": 250
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -1381,8 +1381,7 @@
 			"token_pricing": {
 				"input": 110,
 				"output": 440,
-				"anthropic_cache_read": 28,
-				"anthropic_cache_write_5min": 138
+				"cache_read": 27.5
 			},
 			"pricing_metadata": {
 				"currency": "USD",

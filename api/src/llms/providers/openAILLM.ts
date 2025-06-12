@@ -16,7 +16,7 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 		this.llmProviderName = LLMProvider.OPENAI;
 
 		this.defaultModel = OpenAIModel.GPT_4o; // Use GPT-4o as default model
-		this.baseURL = undefined; // OpenAI provider uses the default OpenAI API URL
+		this.baseUrl = undefined; // OpenAI provider uses the default OpenAI API URL
 		this.apiKey = this.projectConfig.api?.llmProviders?.openai?.apiKey;
 
 		super.initializeOpenAIClient();

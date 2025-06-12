@@ -13,7 +13,7 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 3.75
+					"cachedPrice": 0.3
 				},
 				"outputTokens": {
 					"basePrice": 15.00
@@ -55,7 +55,7 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 15.00,
-					"cachedPrice": 18.75
+					"cachedPrice": 1.50
 				},
 				"outputTokens": {
 					"basePrice": 75.00
@@ -97,7 +97,7 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 3.75
+					"cachedPrice": 0.3
 				},
 				"outputTokens": {
 					"basePrice": 15.00
@@ -139,7 +139,7 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 0.15
+					"cachedPrice": 0.30
 				},
 				"outputTokens": {
 					"basePrice": 15.00

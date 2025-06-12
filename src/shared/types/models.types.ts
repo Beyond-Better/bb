@@ -36,6 +36,7 @@ export type TokenTypeEnum =
 	// Universal types (all providers)
 	| 'input'
 	| 'output'
+	| 'cache_read'
 	// Anthropic-specific
 	| 'anthropic_cache_read'
 	| 'anthropic_cache_write_5min'

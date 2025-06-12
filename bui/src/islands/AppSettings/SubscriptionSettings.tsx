@@ -160,6 +160,7 @@ export default function SubscriptionSettings() {
 							</div>
 
 							<button
+								type='button'
 								onClick={handleCancelSubscription}
 								class='mt-auto w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-40 dark:hover:bg-red-800/20 rounded-md'
 							>
@@ -174,6 +175,7 @@ export default function SubscriptionSettings() {
 								<div class='flex items-center justify-between mb-4'>
 									<h3 class='text-sm font-medium text-gray-500 dark:text-gray-400'>Usage</h3>
 									<button
+										type='button'
 										onClick={async () => {
 											isRefreshingUsage.value = true;
 											try {

@@ -30,7 +30,7 @@ class OllamaLLM extends OpenAICompatLLM<OllamaTokenUsage> {
 		}
 
 		this.defaultModel = OllamaModel.SMOLLM2_1_7B;
-		this.baseURL = ollamaBaseURL;
+		this.baseUrl = ollamaBaseURL;
 		this.apiKey = 'ollama';
 
 		super.initializeOpenAIClient();

@@ -1457,6 +1457,7 @@
         "npm:@tauri-apps/api@^2.1.1",
         "npm:@tauri-apps/cli@^2.1.0",
         "npm:@tauri-apps/plugin-fs@^2.2.0",
+        "npm:@tauri-apps/plugin-notification@^2.2.0",
         "npm:@tauri-apps/plugin-opener@^2.2.7",
         "npm:@tauri-apps/plugin-store@^2.2.0",
         "npm:ansi_up@^6.0.2",

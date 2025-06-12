@@ -1,7 +1,6 @@
 use crate::commands::api_status::{check_api_status, reconcile_api_pid_state, save_api_pid};
 use crate::config::read_global_config;
 use dirs;
-use libc;
 use log::{debug, error, info, warn};
 use serde::Serialize;
 use std::fs;
@@ -378,85 +377,49 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
 
 #[tauri::command]
 pub async fn stop_api() -> Result<bool, String> {
-    let status = check_api_status().await?;
-    debug!("Current API status: {:?}", status);
-
-    if !status.pid_exists && !status.api_responds {
-        info!("API is not running");
+    use crate::commands::api_status::{find_all_api_processes, robust_terminate_process};
+    
+    info!("Stopping API - looking for all bb-api processes");
+    
+    // Find ALL bb-api processes (not just ones with PID files)
+    let all_pids = find_all_api_processes().await?;
+    
+    if all_pids.is_empty() {
+        info!("No API processes found");
         // Clean up any stale PID file
         if let Err(e) = crate::commands::api_status::remove_pid().await {
             warn!("Failed to remove stale PID file: {}", e);
         }
-        return Ok(false);
+        return Ok(true);
     }
 
-    if let Some(pid) = status.pid {
-        info!("Attempting to stop API process with PID: {}", pid);
-
-        let stop_result = {
-            #[cfg(target_family = "unix")]
-            {
-                unsafe { libc::kill(pid, libc::SIGTERM) == 0 }
-            }
-
-            #[cfg(target_family = "windows")]
-            {
-                const PROCESS_TERMINATE: u32 = 0x0001;
-                unsafe {
-                    let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
-                    if handle == 0 {
-                        false
-                    } else {
-                        let result = TerminateProcess(handle, 1);
-                        CloseHandle(handle);
-                        result != 0
-                    }
-                }
-            }
-        };
-
-        // Wait for the process to actually stop
-        let max_attempts = 10;
-        for attempt in 1..=max_attempts {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            match check_api_status().await {
-                Ok(status) if !status.api_responds && !status.pid_exists => {
-                    info!("API stopped successfully after {} attempts", attempt);
-                    // Clean up PID file
-                    if let Err(e) = crate::commands::api_status::remove_pid().await {
-                        warn!("Failed to remove PID file: {}", e);
-                    }
-                    return Ok(true);
-                }
-                Ok(_) if attempt == max_attempts => {
-                    error!(
-                        "API failed to stop completely after {} attempts",
-                        max_attempts
-                    );
-                    break;
-                }
-                Ok(_) => {
-                    debug!(
-                        "Waiting for API to stop, attempt {}/{}",
-                        attempt, max_attempts
-                    );
-                    continue;
-                }
-                Err(e) => {
-                    error!("Error checking API status during stop: {}", e);
-                }
-            }
+    info!("Found {} API process(es): {:?}", all_pids.len(), all_pids);
+    
+    let mut all_stopped = true;
+    
+    // Terminate each process
+    for pid in all_pids {
+        if !robust_terminate_process(pid, "bb-api").await {
+            error!("Failed to stop API process with PID: {}", pid);
+            all_stopped = false;
         }
-
-        if stop_result {
-            warn!("Stop command succeeded but API may still be running");
-        } else {
-            error!("Failed to stop API process");
-        }
-
-        Ok(stop_result)
+    }
+    
+    // Clean up PID file regardless
+    if let Err(e) = crate::commands::api_status::remove_pid().await {
+        warn!("Failed to remove PID file: {}", e);
+    }
+    
+    // Wait and verify all processes are gone
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+    let remaining_pids = find_all_api_processes().await?;
+    
+    if !remaining_pids.is_empty() {
+        warn!("Some API processes still running: {:?}", remaining_pids);
+        all_stopped = false;
     } else {
-        warn!("No PID found for running API");
-        Ok(false)
+        info!("All API processes stopped successfully");
     }
+    
+    Ok(all_stopped)
 }

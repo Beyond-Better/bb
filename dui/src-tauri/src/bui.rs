@@ -1,6 +1,5 @@
 use crate::config::read_global_config;
 use dirs;
-use libc;
 use log::{debug, error, info, warn};
 use serde::Serialize;
 use std::fs;
@@ -406,88 +405,49 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
 
 #[tauri::command]
 pub async fn stop_bui() -> Result<bool, String> {
-    let status = check_bui_status().await?;
-    debug!("Current BUI status: {:?}", status);
-
-    if !status.pid_exists && !status.bui_responds {
-        info!("BUI is not running");
+    use crate::commands::bui_status::{find_all_bui_processes, robust_terminate_process};
+    
+    info!("Stopping BUI - looking for all bb-bui processes");
+    
+    // Find ALL bb-bui processes (not just ones with PID files)
+    let all_pids = find_all_bui_processes().await?;
+    
+    if all_pids.is_empty() {
+        info!("No BUI processes found");
         // Clean up any stale PID file
         if let Err(e) = crate::commands::bui_status::remove_pid().await {
             warn!("Failed to remove stale PID file: {}", e);
         }
-        return Ok(false);
+        return Ok(true);
     }
 
-    if let Some(pid) = status.pid {
-        info!("Attempting to stop BUI process with PID: {}", pid);
-
-        let stop_result = {
-            #[cfg(target_family = "unix")]
-            {
-                unsafe { libc::kill(pid, libc::SIGTERM) == 0 }
-            }
-
-            #[cfg(target_family = "windows")]
-            {
-                const PROCESS_TERMINATE: u32 = 0x0001;
-                unsafe {
-                    let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
-                    if handle == 0 {
-                        false
-                    } else {
-                        let result = TerminateProcess(handle, 1);
-                        CloseHandle(handle);
-                        result != 0
-                    }
-                }
-            }
-        };
-
-        // Wait for the process to actually stop
-        let max_attempts = 10;
-        for attempt in 1..=max_attempts {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            match check_bui_status().await {
-                Ok(status) if !status.bui_responds && !status.pid_exists => {
-                    info!("BUI stopped successfully after {} attempts", attempt);
-                    // Clean up PID file
-                    if let Err(e) = crate::commands::bui_status::remove_pid().await {
-                        warn!("Failed to remove PID file: {}", e);
-                    }
-                    return Ok(true);
-                }
-                Ok(_) if attempt == max_attempts => {
-                    error!(
-                        "BUI failed to stop completely after {} attempts",
-                        max_attempts
-                    );
-                    break;
-                }
-                Ok(_) => {
-                    debug!(
-                        "Waiting for BUI to stop, attempt {}/{}",
-                        attempt, max_attempts
-                    );
-                    continue;
-                }
-                Err(e) => {
-                    error!("Error checking BUI status during stop: {}", e);
-                }
-            }
+    info!("Found {} BUI process(es): {:?}", all_pids.len(), all_pids);
+    
+    let mut all_stopped = true;
+    
+    // Terminate each process
+    for pid in all_pids {
+        if !robust_terminate_process(pid, "bb-bui").await {
+            error!("Failed to stop BUI process with PID: {}", pid);
+            all_stopped = false;
         }
-
-        if stop_result {
-            // Clean up PID file
-            if let Err(e) = crate::commands::bui_status::remove_pid().await {
-                warn!("Failed to remove PID file: {}", e);
-            }
-        } else {
-            error!("Failed to stop BUI process");
-        }
-
-        Ok(stop_result)
+    }
+    
+    // Clean up PID file regardless
+    if let Err(e) = crate::commands::bui_status::remove_pid().await {
+        warn!("Failed to remove PID file: {}", e);
+    }
+    
+    // Wait and verify all processes are gone
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+    let remaining_pids = find_all_bui_processes().await?;
+    
+    if !remaining_pids.is_empty() {
+        warn!("Some BUI processes still running: {:?}", remaining_pids);
+        all_stopped = false;
     } else {
-        warn!("No PID found for running BUI");
-        Ok(false)
+        info!("All BUI processes stopped successfully");
     }
+    
+    Ok(all_stopped)
 }

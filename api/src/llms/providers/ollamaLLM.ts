@@ -65,7 +65,7 @@ class OllamaLLM extends LLM {
 
 	// deno-lint-ignore require-await
 	private async initializeOllamaClient() {
-		const ollamaHost = this.projectConfig.api?.llmProviders?.ollama?.baseURL ||
+		const ollamaHost = this.projectConfig.api?.llmProviders?.ollama?.baseUrl ||
 			'http://127.0.0.1:11434';
 		if (!ollamaHost) {
 			throw createError(

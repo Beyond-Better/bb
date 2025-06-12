@@ -225,13 +225,6 @@ export async function getLLMModelToProvider(): Promise<Record<string, LLMProvide
 	}
 }
 
-// Rest of the interfaces remain the same...
-
-export interface LLMProvderClientConfig {
-	apiKey?: string;
-	defaultModel?: string;
-	baseURL?: string;
-}
 
 export type LLMTokenUsage = TokenUsage;
 

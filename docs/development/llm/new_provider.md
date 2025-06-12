@@ -157,7 +157,7 @@ private convertSchema(schema: LLMToolInputSchema): ProviderSchema {
 interface ProviderConfig {
     model: string;
     apiVersion?: string;
-    baseURL?: string;
+    baseUrl?: string;
     defaultParams?: {
         temperature?: number;
         maxTokens?: number;

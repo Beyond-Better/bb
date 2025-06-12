@@ -3,8 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::command;
+use log::{info, error};
 
 use crate::config::read_global_config;
+
+#[cfg(not(target_os = "windows"))]
+use std::process::Command as StdCommand;
+#[cfg(target_os = "windows")]
+use std::process::Command as StdCommand;
 
 const PID_FILE_NAME: &str = "api.pid";
 const APP_NAME: &str = "dev.beyondbetter.app";
@@ -111,20 +117,166 @@ fn check_process_exists(pid: i32) -> bool {
     }
 }
 
+// Add new function for process discovery
+pub async fn find_all_api_processes() -> Result<Vec<i32>, String> {
+    let process_name = if cfg!(target_os = "windows") {
+        "bb-api.exe"
+    } else {
+        "bb-api"
+    };
+
+    let output = if cfg!(target_os = "windows") {
+        StdCommand::new("tasklist")
+            .args(&["/fo", "csv", "/nh"])
+            .output()
+    } else if cfg!(target_os = "macos") {
+        StdCommand::new("pgrep")
+            .args(&["-f", process_name])
+            .output()
+    } else {
+        // Linux
+        StdCommand::new("pgrep")
+            .args(&[process_name])
+            .output()
+    };
+
+    match output {
+        Ok(output) => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let mut pids = Vec::new();
+
+            if cfg!(target_os = "windows") {
+                // Parse CSV format from tasklist
+                for line in stdout.lines() {
+                    if line.contains(process_name) {
+                        let parts: Vec<&str> = line.split(',').collect();
+                        if parts.len() >= 2 {
+                            if let Ok(pid) = parts[1].trim_matches('"').parse::<i32>() {
+                                pids.push(pid);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Parse pgrep output
+                for line in stdout.lines() {
+                    if let Ok(pid) = line.trim().parse::<i32>() {
+                        pids.push(pid);
+                    }
+                }
+            }
+
+            info!("Found {} API processes: {:?}", pids.len(), pids);
+            Ok(pids)
+        }
+        Err(e) => {
+            error!("Failed to list processes: {}", e);
+            Err(format!("Failed to list processes: {}", e))
+        }
+    }
+}
+
+// Add robust termination function
+pub async fn robust_terminate_process(pid: i32, process_name: &str) -> bool {
+    info!("Attempting to terminate {} process PID: {}", process_name, pid);
+    
+    // First try graceful termination
+    let graceful_result = {
+        #[cfg(target_family = "unix")]
+        {
+            unsafe { libc::kill(pid, libc::SIGTERM) == 0 }
+        }
+        #[cfg(target_family = "windows")]
+        {
+            // Try WM_CLOSE first for graceful shutdown
+            false // Skip for now, go straight to TerminateProcess
+        }
+    };
+
+    if graceful_result {
+        // Wait a bit for graceful shutdown
+        std::thread::sleep(std::time::Duration::from_millis(2000));
+        
+        // Check if process is gone
+        if !check_process_exists(pid) {
+            info!("Process {} terminated gracefully", pid);
+            return true;
+        }
+    }
+
+    // Force termination
+    info!("Force terminating process {}", pid);
+    let _force_result = {
+        #[cfg(target_family = "unix")]
+        {
+            unsafe { libc::kill(pid, libc::SIGKILL) == 0 }
+        }
+        #[cfg(target_family = "windows")]
+        {
+            use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
+            use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess};
+            
+            const PROCESS_TERMINATE: u32 = 0x0001;
+            unsafe {
+                let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
+                if handle == 0 {
+                    false
+                } else {
+                    let result = TerminateProcess(handle, 1);
+                    CloseHandle(handle);
+                    result != 0
+                }
+            }
+        }
+    };
+
+    // Wait a bit and verify
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+    let success = !check_process_exists(pid);
+    
+    if success {
+        info!("Process {} terminated successfully", pid);
+    } else {
+        error!("Failed to terminate process {}", pid);
+    }
+    
+    success
+}
+
 async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<bool, String> {
-    let scheme = if use_tls { "https" } else { "http" };
-    let url = format!("{}://{}:{}/api/v1/status", scheme, hostname, port);
+    // Try the configured protocol first
+    let primary_scheme = if use_tls { "https" } else { "http" };
+    let primary_url = format!("{}://{}:{}/api/v1/status", primary_scheme, hostname, port);
 
-    println!("Checking Server status at: {}", url);
+    info!("Checking API status at: {}", primary_url);
 
-    match reqwest::get(&url).await {
+    match reqwest::get(&primary_url).await {
         Ok(response) => {
             let status = response.status();
-            println!("Server responded with status: {}", status);
+            info!("API responded with status: {} on {}", status, primary_scheme);
+            if status.is_success() {
+                return Ok(true);
+            }
+        }
+        Err(e) => {
+            info!("Failed to connect to API on {}: {}", primary_scheme, e);
+        }
+    }
+
+    // Fallback to the other protocol
+    let fallback_scheme = if use_tls { "http" } else { "https" };
+    let fallback_url = format!("{}://{}:{}/api/v1/status", fallback_scheme, hostname, port);
+
+    info!("Trying fallback API status check at: {}", fallback_url);
+
+    match reqwest::get(&fallback_url).await {
+        Ok(response) => {
+            let status = response.status();
+            info!("API responded with status: {} on {} (fallback)", status, fallback_scheme);
             Ok(status.is_success())
         }
         Err(e) => {
-            println!("Failed to connect to Server: {}", e);
+            info!("Failed to connect to API on {} (fallback): {}", fallback_scheme, e);
             Ok(false)
         }
     }
