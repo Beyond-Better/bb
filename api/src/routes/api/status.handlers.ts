@@ -3,6 +3,7 @@ import { getConfigManager } from 'shared/config/configManager.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
+import { getVersionInfo } from 'shared/version.ts';
 //import { logger } from 'shared/logger.ts';
 
 type ExpiryStatus = 'valid' | 'expiring' | 'expired';
@@ -61,6 +62,7 @@ interface StatusData {
 	trustStoreLocation?: string;
 	status: string;
 	message: string;
+	version: string;
 	tls: {
 		enabled: boolean;
 		certType?: 'custom' | 'self-signed';
@@ -346,6 +348,7 @@ function getHtmlResponse(statusData: StatusData): string {
         <div class="platform-info">
           <h2>Environment</h2>
           <p>Platform: ${statusData.platformDisplay}</p>
+          <p>Version: <strong>${statusData.version}</strong></p>
           <p>Configuration: <span class="config-type"> ${statusData.configType} config${
 		statusData.projectName ? `: ${statusData.projectName}` : ''
 	}</span></p>
@@ -564,11 +567,13 @@ export const getStatus = async (ctx: Context) => {
 	const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
 	const globalConfig = await configManager.getGlobalConfig();
 
+	const versionInfo = await getVersionInfo();
 	const tlsInfo = await getTlsInfo(projectConfig, globalConfig, projectId);
 
 	const statusData: StatusData = {
 		status: 'OK',
 		message: 'API is running',
+		version: versionInfo.version,
 		platform: Deno.build.os,
 		platformDisplay: (({
 			'darwin': 'macOS',

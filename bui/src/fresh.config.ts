@@ -138,11 +138,15 @@ cleanupSetup(pidFile);
 const versionInfo = await getVersionInfo();
 
 // Fresh server configuration
-let serverConfig = {
+let serverConfig: {
+	hostname: string;
+	port: number;
+	cert?: string;
+	key?: string;
+	onListen({ hostname, port }: { hostname: string; port: number }): void;
+} = {
 	hostname: customHostname,
 	port: customPort,
-	cert: '',
-	key: '',
 	onListen({ hostname, port }: { hostname: string; port: number }) {
 		console.info(`BUIStartup: Starting BUI v${versionInfo.version} with config:`, globalRedactedConfig);
 		console.info(`BUIStartup: Version: ${versionInfo.version}`);
