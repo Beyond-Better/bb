@@ -22,7 +22,7 @@ import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'j
  */
 export interface OllamaConfig {
 	enabled: boolean;
-	baseURL?: string;
+	baseUrl?: string;
 	timeout?: number;
 }
 
@@ -204,14 +204,14 @@ export class ModelRegistryService {
 	 * Discover available Ollama models
 	 */
 	private async discoverOllamaModels(ollamaConfig: OllamaConfig): Promise<string[]> {
-		const baseURL = ollamaConfig.baseURL || 'http://localhost:11434';
+		const baseUrl = ollamaConfig.baseUrl || 'http://localhost:11434';
 		const timeout = ollamaConfig.timeout || 5000;
 
 		try {
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-			const response = await fetch(`${baseURL}/api/tags`, {
+			const response = await fetch(`${baseUrl}/api/tags`, {
 				signal: controller.signal,
 				headers: {
 					'Content-Type': 'application/json',

@@ -9,6 +9,7 @@ export const asDollars = (value: number): Dollars => value as Dollars;
 
 export const CurrencyConverter = {
 	dollarsToCents: (dollars: number): number => Math.round(dollars * 100),
+	dollarsToDecimalCents: (dollars: number): number => Math.round((dollars * 100) * 100) / 100,
 	dollarsToMicro: (dollars: number): number => Math.round(dollars * 1_000_000),
 
 	centsToDollars: (cents: number): number => cents / 100,
@@ -16,6 +17,7 @@ export const CurrencyConverter = {
 
 	microToDollars: (micro: number): number => micro / 1_000_000,
 	microToCents: (micro: number): number => Math.round(micro / 10_000),
+	microToDecimalCents: (micro: number): number => Math.round((micro / 10_000) * 100) / 100,
 
 	// Precision-safe operations
 	addMicro: (...amounts: number[]): number => amounts.reduce((sum, amt) => sum + amt, 0),

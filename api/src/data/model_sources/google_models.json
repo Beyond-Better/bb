@@ -12,17 +12,20 @@
 			"maxOutputTokens": 65536,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 2.50,
+					"basePrice": 2.5,
+					"cachedPrice": 0.625,
 					"tieredPricing": {
 						"under200k": 1.25,
-						"over200k": 2.50
+						"over200k": 2.5,
+						"cacheUnder200k": 0.31,
+						"cachedOver200k": 0.625
 					}
 				},
 				"outputTokens": {
-					"basePrice": 15.00,
+					"basePrice": 15.0,
 					"tieredPricing": {
-						"under200k": 10.00,
-						"over200k": 15.00
+						"under200k": 10.0,
+						"over200k": 15.0
 					}
 				},
 				"currency": "USD",
@@ -64,16 +67,17 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.15,
+					"cachedPrice": 0.0375,
 					"multimodal": {
 						"text": 0.15,
-						"audio": 1.00
+						"audio": 1.0
 					}
 				},
 				"outputTokens": {
-					"basePrice": 3.50,
+					"basePrice": 3.5,
 					"tieredPricing": {
-						"nonThinking": 0.60,
-						"thinking": 3.50
+						"nonThinking": 0.6,
+						"thinking": 3.5
 					}
 				},
 				"currency": "USD",
@@ -114,14 +118,17 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.70,
+					"basePrice": 0.1,
+					"cachedPrice": 0.025,
 					"multimodal": {
-						"text": 0.10,
-						"audio": 0.70
+						"text": 0.1,
+						"audio": 0.7,
+						"cachedTextPrice": 0.025,
+						"cachedAudioPrice": 0.175
 					}
 				},
 				"outputTokens": {
-					"basePrice": 0.40
+					"basePrice": 0.4
 				},
 				"currency": "USD",
 				"effectiveDate": "2025-02-01"
@@ -163,7 +170,7 @@
 					"basePrice": 0.075
 				},
 				"outputTokens": {
-					"basePrice": 0.30
+					"basePrice": 0.3
 				},
 				"currency": "USD",
 				"effectiveDate": "2025-02-01"
@@ -202,17 +209,20 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 2.50,
+					"basePrice": 2.5,
+					"cachedPrice": 0.625,
 					"tieredPricing": {
 						"under128k": 1.25,
-						"over128k": 2.50
+						"over128k": 2.5,
+						"cacheUnder128k": 0.3125,
+						"cachedOver128k": 0.625
 					}
 				},
 				"outputTokens": {
-					"basePrice": 10.00,
+					"basePrice": 10.0,
 					"tieredPricing": {
-						"under128k": 5.00,
-						"over128k": 10.00
+						"under128k": 5.0,
+						"over128k": 10.0
 					}
 				},
 				"currency": "USD",
@@ -253,16 +263,19 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.15,
+					"cachedPrice": 0.0375,
 					"tieredPricing": {
 						"under128k": 0.075,
-						"over128k": 0.15
+						"over128k": 0.15,
+						"cacheUnder128k": 0.01875,
+						"cachedOver128k": 0.0375
 					}
 				},
 				"outputTokens": {
-					"basePrice": 0.60,
+					"basePrice": 0.6,
 					"tieredPricing": {
-						"under128k": 0.30,
-						"over128k": 0.60
+						"under128k": 0.3,
+						"over128k": 0.6
 					}
 				},
 				"currency": "USD",
@@ -303,16 +316,19 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.0375,
+					"cachedPrice": 0.02,
 					"tieredPricing": {
 						"under128k": 0.0375,
-						"over128k": 0.075
+						"over128k": 0.075,
+						"cacheUnder128k": 0.01,
+						"cachedOver128k": 0.02
 					}
 				},
 				"outputTokens": {
 					"basePrice": 0.15,
 					"tieredPricing": {
 						"under128k": 0.15,
-						"over128k": 0.30
+						"over128k": 0.3
 					}
 				},
 				"currency": "USD",

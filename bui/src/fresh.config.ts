@@ -1,23 +1,90 @@
 import { defineConfig } from '$fresh/server.ts';
 import tailwind from '$fresh/plugins/tailwind.ts';
+import { join } from '@std/path';
+import { parseArgs } from '@std/cli';
 import { getProjectId, getWorkingRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { getAppRuntimeDir } from '../../cli/src/utils/apiStatus.utils.ts';
-import { join } from '@std/path';
 import { getConfigManager } from 'shared/config/configManager.ts';
+import type { BuiConfig, ProjectConfig } from 'shared/config/types.ts';
 import { getVersionInfo } from 'shared/version.ts';
+import { buiFileLogger } from 'bui/utils/fileLogger.ts';
 //import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
 //import { authPlugin } from './plugins/auth.plugin.ts';
 import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
 
-const versionInfo = await getVersionInfo();
-console.log(`Version: ${versionInfo.version}`);
+// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-bui directly
+
+let projectId;
+try {
+	const startDir = Deno.cwd();
+	const workingRoot = await getWorkingRootFromStartDir(startDir);
+	projectId = await getProjectId(workingRoot);
+} catch (_error) {
+	//console.error(`Could not set ProjectId: ${(error as Error).message}`);
+	projectId = undefined;
+}
 
 const configManager = await getConfigManager();
+
 // Ensure configs are at latest version
 await configManager.ensureLatestGlobalConfig();
 const globalConfig = await configManager.getGlobalConfig();
 const globalRedactedConfig = await configManager.getRedactedGlobalConfig();
-console.log('BUI Config: ', globalRedactedConfig);
+
+let projectConfig: ProjectConfig | undefined;
+let buiConfig: BuiConfig;
+
+if (projectId) {
+	await configManager.ensureLatestProjectConfig(projectId);
+	projectConfig = await configManager.getProjectConfig(projectId);
+	buiConfig = projectConfig.bui as BuiConfig || globalConfig.bui;
+} else {
+	buiConfig = globalConfig.bui;
+}
+
+const environment = buiConfig.environment || 'local';
+const hostname = buiConfig.hostname || 'localhost';
+const port = buiConfig.port || 8080;
+const useTls = buiConfig.tls?.useTls ?? true;
+
+// Parse command line arguments
+const args = parseArgs(Deno.args, {
+	string: ['log-file', 'port', 'hostname', 'use-tls'],
+	boolean: ['help', 'version'],
+	alias: { h: 'help', V: 'version', v: 'version', p: 'port', H: 'hostname', t: 'use-tls', l: 'log-file' },
+});
+
+if (args.help) {
+	console.log(`
+Usage: ${globalConfig.bbBuiExeName} [options]
+
+Options:
+  -h, --help                Show this help message
+  -V, --version             Show version information
+  -H, --hostname <string>   Specify the hostname to run the BUI server (default: ${hostname})
+  -p, --port <number>       Specify the port to run the BUI server (default: ${port})
+  -t, --use-tls <boolean>   Specify whether the BUI server should use TLS (default: ${useTls})
+  -l, --log-file <file>     Specify a log file to write output
+  `);
+	Deno.exit(0);
+}
+
+if (args.version) {
+	const versionInfo = await getVersionInfo();
+	console.log(`BB BUI version ${versionInfo.version}`);
+	Deno.exit(0);
+}
+
+// Redirect console.log and console.error to the log file
+const buiLogFile = args['log-file'];
+if (buiLogFile) await buiFileLogger(buiLogFile);
+
+const customHostname = args.hostname ? args.hostname : hostname;
+const customPort: number = args.port ? parseInt(args.port, 10) : port;
+const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
+	? (args['use-tls'] === 'true' ? true : false)
+	: useTls;
+//console.debug(`BB BUI starting at ${customHostname}:${customPort}`);
 
 const writePidFile = async (): Promise<string | null> => {
 	try {
@@ -68,16 +135,27 @@ const cleanupSetup = (pidFile: string | null) => {
 const pidFile = await writePidFile();
 cleanupSetup(pidFile);
 
-//const environment = globalConfig.bui.environment || 'local';
-const hostname = globalConfig.bui.hostname || 'localhost';
-const port = globalConfig.bui.port || 8080;
-const useTls = globalConfig.bui.tls?.useTls ?? true;
+const versionInfo = await getVersionInfo();
 
-// it appears that Deno Fresh doesn't honour the `hostname` option - it's always 'localhost'
-let listenOpts: Deno.ListenOptions = { hostname, port };
+// Fresh server configuration
+let serverConfig = {
+	hostname: customHostname,
+	port: customPort,
+	cert: '',
+	key: '',
+	onListen({ hostname, port }: { hostname: string; port: number }) {
+		console.info(`BUIStartup: Starting BUI v${versionInfo.version} with config:`, globalRedactedConfig);
+		console.info(`BUIStartup: Version: ${versionInfo.version}`);
+		console.info(`BUIStartup: Environment: ${environment}`);
+		console.info(`BUIStartup: Log level: ${buiConfig.logLevel}`);
+		console.info(
+			`BUIStartup: Listening on: ${customUseTls ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`,
+		);
+	},
+};
 
-if (useTls) {
-	// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
+if (customUseTls) {
+	// CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-bui directly
 	let projectId;
 	try {
 		const startDir = Deno.cwd();
@@ -94,7 +172,7 @@ if (useTls) {
 		(projectId ? await readFromBbDir(projectId, globalConfig.bui.tls.keyFile || 'localhost-key.pem') : false) ||
 		await readFromGlobalConfigDir(globalConfig.bui.tls.keyFile || 'localhost-key.pem') || '';
 
-	listenOpts = { ...listenOpts, secure: true, cert, key } as Deno.TcpListenOptions;
+	serverConfig = { ...serverConfig, cert, key };
 }
 
 // Highlight.js theme styles
@@ -173,5 +251,5 @@ export default defineConfig({
 	// 		},
 	// 	},
 	// },
-	...listenOpts,
+	server: serverConfig,
 });

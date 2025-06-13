@@ -93,13 +93,14 @@ export interface LLMProviderConfig {
 	apiKey?: string;
 	defaultModel?: string;
 	enabled?: boolean;
-	baseURL?: string;
+	baseUrl?: string;
 	/**
 	 * User-configured model preferences
 	 * These override model defaults but can be overridden by explicit request values
 	 */
 	userPreferences?: UserModelPreferences;
 	// Future extensibility for provider-specific settings
+	config?: Record<string, string | number | boolean>;
 }
 
 /**
@@ -158,6 +159,8 @@ export interface ApiConfig extends ServerConfig {
 export interface BuiConfig extends ServerConfig {
 	supabaseUrl?: string;
 	supabaseAnonKey?: string;
+	logLevel: LogLevel;
+	logFile?: string;
 	localMode?: boolean;
 	kvSessionPath?: string;
 }
@@ -209,6 +212,7 @@ export interface GlobalConfigV2 {
 	dui: DuiConfig;
 	bbExeName: string;
 	bbApiExeName: string;
+	bbBuiExeName: string;
 }
 
 export type GlobalConfig = GlobalConfigV2;
@@ -365,6 +369,7 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	tls: {
 		useTls: false,
 	},
+	logLevel: 'info',
 	localMode: false,
 	kvSessionPath: 'auth.kv',
 };
@@ -401,6 +406,7 @@ export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
 	version: '2.2.0',
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
+	bbBuiExeName: 'bb-bui',
 	myPersonsName: Deno.env.get('USER') || 'User',
 	myAssistantsName: 'Assistant',
 	defaultModels: DefaultModelsConfigDefaults,

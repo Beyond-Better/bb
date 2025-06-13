@@ -28,7 +28,7 @@ class DeepSeekLLM extends OpenAICompatLLM<DeepSeekTokenUsage> {
 		this.llmProviderName = LLMProvider.DEEPSEEK;
 
 		this.defaultModel = DeepSeekModel.DEEPSEEK_CHAT;
-		this.baseURL = this.projectConfig.api?.llmProviders?.deepseek?.baseURL ||
+		this.baseUrl = this.projectConfig.api?.llmProviders?.deepseek?.baseUrl ||
 			'https://api.deepseek.com/v1';
 		this.apiKey = this.projectConfig.api?.llmProviders?.deepseek?.apiKey;
 

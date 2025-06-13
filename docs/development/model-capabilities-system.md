@@ -119,7 +119,7 @@ api:
   llmProviders:
     ollama:
       enabled: true
-      baseURL: "http://localhost:11434"  # Optional, defaults to localhost
+      baseUrl: "http://localhost:11434"  # Optional, defaults to localhost
       timeout: 5000  # Optional, discovery timeout in ms
 ```
 
@@ -414,7 +414,7 @@ Dynamic models are automatically discovered. To add support for new features:
 // Check Ollama configuration
 const config = projectConfig?.api?.llmProviders?.ollama;
 console.log('Ollama enabled:', config?.enabled);
-console.log('Ollama URL:', config?.baseURL || 'http://localhost:11434');
+console.log('Ollama URL:', config?.baseUrl || 'http://localhost:11434');
 
 // Check discovery logs
 // Look for: "ModelRegistryService: Discovered X Ollama models"

@@ -278,6 +278,91 @@ class BbLLM extends LLM {
 	}
 
 	/**
+	 * Determines whether to use direct fetch or Supabase edge function
+	 */
+	private shouldUseDirectFetch(): boolean {
+		// Check if useFallback is configured for Supabase
+		return Boolean(!this.projectConfig.api?.llmProviders?.beyondbetter?.config?.useFallback);
+	}
+
+	/**
+	 * Get the base URL for direct fetch calls
+	 */
+	private getBaseUrl(): string {
+		return this.projectConfig.api?.llmProviders?.beyondbetter?.baseUrl ||
+			'https://api.beyondbetter.dev/v1/llm-proxy';
+	}
+
+	/**
+	 * Make a direct fetch call to the LLM proxy endpoint
+	 */
+	private async makeDirectFetchCall(
+		providerMessageRequest: LLMProviderMessageRequest,
+	): Promise<{ data: BBLLMResponse | null; error: any }> {
+		try {
+			const baseUrl = this.getBaseUrl();
+
+			// Get session manager to retrieve auth headers
+			const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
+			const sessionManager = projectEditor.sessionManager;
+
+			// Get current session for authentication
+			const session = await sessionManager.getSession();
+			//logger.info(`BbLLM:provider[${this.llmProviderName}]: session`, session);
+
+			// Prepare headers - same as what Supabase edge functions receive
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+			};
+
+			// Add Authorization header if we have a session
+			if (session?.access_token) {
+				headers['Authorization'] = `Bearer ${session.access_token}`;
+			}
+
+			const response = await fetch(baseUrl, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(providerMessageRequest),
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				let errorBody;
+				try {
+					errorBody = JSON.parse(errorText);
+				} catch {
+					errorBody = { message: errorText };
+				}
+
+				return {
+					data: null,
+					error: {
+						status: response.status,
+						statusText: response.statusText,
+						context: {
+							json: () => Promise.resolve(errorBody),
+						},
+					},
+				};
+			}
+
+			const data = await response.json() as BBLLMResponse;
+			return { data, error: null };
+		} catch (error) {
+			return {
+				data: null,
+				error: {
+					message: (error as Error).message,
+					context: {
+						json: () => Promise.resolve({ message: (error as Error).message }),
+					},
+				},
+			};
+		}
+	}
+
+	/**
 	 * Run BB service
 	 * @param interaction LLMInteraction
 	 * @param speakOptions LLMSpeakWithOptions
@@ -295,10 +380,24 @@ class BbLLM extends LLM {
 				interaction,
 			);
 
-			//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
-			const { data, error } = await this.supabaseClient.functions.invoke('llm-proxy', {
-				body: providerMessageRequest,
-			});
+			// Choose between direct fetch and Supabase edge function
+			let data: BBLLMResponse | null;
+			let error: any;
+
+			if (this.shouldUseDirectFetch()) {
+				logger.info(`BbLLM:provider[${this.llmProviderName}]: Using direct fetch to ${this.getBaseUrl()}`);
+				const result = await this.makeDirectFetchCall(providerMessageRequest);
+				data = result.data;
+				error = result.error;
+			} else {
+				logger.info(`BbLLM:provider[${this.llmProviderName}]: Using Supabase edge function`);
+				//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
+				const result = await this.supabaseClient.functions.invoke('llm-proxy', {
+					body: providerMessageRequest,
+				});
+				data = result.data;
+				error = result.error;
+			}
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-data`, data);
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-error`, error);
 

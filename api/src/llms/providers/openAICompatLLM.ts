@@ -1,7 +1,8 @@
 import { OpenAI } from 'openai';
 //import ms from 'ms';
 
-import { LLMCallbackType, type LLMProvderClientConfig } from 'api/types.ts';
+import { LLMCallbackType } from 'api/types.ts';
+import type { LLMProviderConfig } from 'shared/config/types.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -29,16 +30,16 @@ import type {
 import { extractTextFromContent } from 'api/utils/llms.ts';
 
 // Configuration interface for OpenAI-compatible providers
-export interface OpenAICompatConfig extends LLMProvderClientConfig {
+export interface OpenAICompatConfig extends LLMProviderConfig {
 	apiKey?: string;
-	baseURL?: string;
+	baseUrl?: string;
 	defaultModel: string;
 }
 
 abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 	protected openai!: OpenAI;
 	protected apiKey?: string;
-	protected baseURL?: string;
+	protected baseUrl?: string;
 	private _defaultModel?: string;
 
 	// Override the getter from the base class
@@ -66,7 +67,7 @@ abstract class OpenAICompatLLM<TUsage = OpenAI.CompletionUsage> extends LLM {
 		}
 		this.openai = new OpenAI({
 			apiKey: this.apiKey,
-			baseURL: this.baseURL,
+			baseURL: this.baseUrl,
 		});
 	}
 

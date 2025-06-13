@@ -305,9 +305,13 @@ class ModelSyncer {
 			token_pricing.output = capabilities.pricing.outputTokens.basePriceCentsUsd;
 			
 			if (capabilities.pricing.inputTokens.cachedPriceCentsUsd !== undefined) {
-				token_pricing.anthropic_cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
-				// Estimate cache write cost as 1.25x base cost
-				token_pricing.anthropic_cache_write_5min = capabilities.pricing.inputTokens.basePriceCentsUsd * 1.25;
+				if (provider === 'anthropic') {
+					token_pricing.anthropic_cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
+					// Estimate cache write cost as 1.25x base cost
+					token_pricing.anthropic_cache_write_5min = capabilities.pricing.inputTokens.basePriceCentsUsd * 1.25;
+				} else {
+					token_pricing.cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
+				}
 			}
 		}
 
