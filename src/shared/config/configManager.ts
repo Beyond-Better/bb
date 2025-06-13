@@ -340,6 +340,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			noBrowser: GlobalConfigDefaults.noBrowser,
 			bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
 			bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
+			bbBuiExeName: Deno.build.os === 'windows' ? 'bb-bui.exe' : 'bb-bui',
 			api: {
 				...ApiConfigDefaults,
 				llmProviders: {},
@@ -800,6 +801,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					noBrowser: GlobalConfigDefaults.noBrowser,
 					bbExeName: Deno.build.os === 'windows' ? 'bb.exe' : 'bb',
 					bbApiExeName: Deno.build.os === 'windows' ? 'bb-api.exe' : 'bb-api',
+					bbBuiExeName: Deno.build.os === 'windows' ? 'bb-bui.exe' : 'bb-bui',
 					api: {
 						...ApiConfigDefaults,
 						llmProviders: {},
@@ -1012,6 +1014,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			noBrowser: v1Config.noBrowser ?? GlobalConfigDefaults.noBrowser,
 			bbExeName: v1Config.bbExeName || 'bb',
 			bbApiExeName: v1Config.bbApiExeName || 'bb-api',
+			bbBuiExeName: 'bb-bui', // bbBuiExeName doesn't exist on v1Config
 
 			// Migrate API config
 			api: {

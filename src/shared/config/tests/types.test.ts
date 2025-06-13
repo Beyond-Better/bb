@@ -84,6 +84,7 @@ describe('Configuration Types', () => {
 				hostname: 'localhost',
 				port: 8080,
 				tls: { useTls: true },
+				logLevel: 'info',
 			};
 			assertExists(config);
 		});
@@ -93,6 +94,7 @@ describe('Configuration Types', () => {
 			assertEquals(defaults.hostname, 'localhost');
 			assertEquals(defaults.port, 8080);
 			assertEquals(defaults.tls.useTls, false);
+			assertEquals(defaults.logLevel, 'info');
 		});
 	});
 
@@ -147,6 +149,7 @@ describe('Configuration Types', () => {
 				noBrowser: false,
 				bbExeName: 'bb',
 				bbApiExeName: 'bb-api',
+				bbBuiExeName: 'bb-bui',
 				api: {
 					hostname: 'localhost',
 					port: 3162,
@@ -163,6 +166,7 @@ describe('Configuration Types', () => {
 					hostname: 'localhost',
 					port: 8080,
 					tls: { useTls: true },
+					logLevel: 'info',
 				},
 				cli: {
 					historySize: 1000,

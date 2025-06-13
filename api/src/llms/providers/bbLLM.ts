@@ -289,29 +289,32 @@ class BbLLM extends LLM {
 	 * Get the base URL for direct fetch calls
 	 */
 	private getBaseUrl(): string {
-		return this.projectConfig.api?.llmProviders?.beyondbetter?.baseUrl || 'https://api.beyondbetter.dev/v1/llm-proxy';
+		return this.projectConfig.api?.llmProviders?.beyondbetter?.baseUrl ||
+			'https://api.beyondbetter.dev/v1/llm-proxy';
 	}
 
 	/**
 	 * Make a direct fetch call to the LLM proxy endpoint
 	 */
-	private async makeDirectFetchCall(providerMessageRequest: LLMProviderMessageRequest): Promise<{ data: BBLLMResponse | null; error: any }> {
+	private async makeDirectFetchCall(
+		providerMessageRequest: LLMProviderMessageRequest,
+	): Promise<{ data: BBLLMResponse | null; error: any }> {
 		try {
 			const baseUrl = this.getBaseUrl();
-			
+
 			// Get session manager to retrieve auth headers
 			const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
 			const sessionManager = projectEditor.sessionManager;
-			
+
 			// Get current session for authentication
 			const session = await sessionManager.getSession();
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: session`, session);
-			
+
 			// Prepare headers - same as what Supabase edge functions receive
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
 			};
-			
+
 			// Add Authorization header if we have a session
 			if (session?.access_token) {
 				headers['Authorization'] = `Bearer ${session.access_token}`;
@@ -338,9 +341,9 @@ class BbLLM extends LLM {
 						status: response.status,
 						statusText: response.statusText,
 						context: {
-							json: () => Promise.resolve(errorBody)
-						}
-					}
+							json: () => Promise.resolve(errorBody),
+						},
+					},
 				};
 			}
 
@@ -352,9 +355,9 @@ class BbLLM extends LLM {
 				error: {
 					message: (error as Error).message,
 					context: {
-						json: () => Promise.resolve({ message: (error as Error).message })
-					}
-				}
+						json: () => Promise.resolve({ message: (error as Error).message }),
+					},
+				},
 			};
 		}
 	}
