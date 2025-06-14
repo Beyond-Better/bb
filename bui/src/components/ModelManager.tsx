@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useState, useRef } from 'preact/hooks';
 import { signal, useComputed } from '@preact/signals';
 import type { Signal } from '@preact/signals';
-import { CustomSelect, type SelectOption } from './CustomSelect.tsx';
+import { ModelSelect, type SelectOption } from './ModelSelect/index.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 
 // Model information interface
@@ -37,7 +37,7 @@ interface ModelSelectorProps {
 	role: ModelRole;
 	value: ModelSelectionValue | string; // string for conversation context, ModelSelectionValue for global/project
 	onChange: (value: ModelSelectionValue | string) => void;
-	label?: string;
+	label: string | JSX.Element;
 	description?: string;
 	className?: string;
 	compact?: boolean; // For conversation context
@@ -443,6 +443,24 @@ export function ModelSelector({
 							{isProjectOverride ? 'Project Setting' : 'Global Default'}
 						</span>
 					)}
+					{context === 'project' && isProjectOverride && (
+						<button
+							type='button'
+							onClick={handleReset}
+							className='text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'
+							title='Reset to global default'
+							disabled={disabled}
+						>
+							<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth='2'
+									d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
+								/>
+							</svg>
+						</button>
+					)}
 				</div>
 			)}
 
@@ -453,11 +471,14 @@ export function ModelSelector({
 			)}
 
 			<div className='relative'>
-				<CustomSelect
+				<ModelSelect
 					options={selectOptions.value}
+					models={modelsState.value.models}
 					value={currentValue.value}
 					onChange={handleChange}
 					className='w-full'
+					disabled={disabled}
+					placeholder='Select a model...'
 				/>
 
 				{context === 'project' && isProjectOverride && (
@@ -499,19 +520,40 @@ export function ModelIconLegend({
 	className?: string;
 	collapsible?: boolean;
 }) {
-	const [isExpanded, setIsExpanded] = useState(!collapsible);
+	const [isExpanded, setIsExpanded] = useState(false);
+	const buttonRef = useRef<HTMLButtonElement>(null);
+	const popoverRef = useRef<HTMLDivElement>(null);
+
+	// Handle click outside to close popover
+	useEffect(() => {
+		if (!isExpanded || !collapsible) return;
+
+		const handleClickOutside = (e: MouseEvent) => {
+			if (
+				popoverRef.current &&
+				!popoverRef.current.contains(e.target as Node) &&
+				!buttonRef.current?.contains(e.target as Node)
+			) {
+				setIsExpanded(false);
+			}
+		};
+
+		globalThis.addEventListener('mousedown', handleClickOutside);
+		return () => globalThis.removeEventListener('mousedown', handleClickOutside);
+	}, [isExpanded, collapsible]);
 
 	return (
-		<div className={`${className}`}>
+		<div className={`relative ${className}`}>
 			{collapsible
 				? (
-					<div className='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
+					<>
 						<button
+							ref={buttonRef}
 							type='button'
 							onClick={() => setIsExpanded(!isExpanded)}
-							className='w-full px-3 py-2 text-left flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+							className='px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-700 transition-colors flex items-center gap-2'
 						>
-							<span>Model Icons - Legend</span>
+							<span>Model Icons</span>
 							<svg
 								className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
 								fill='none'
@@ -521,12 +563,21 @@ export function ModelIconLegend({
 								<path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M19 9l-7 7-7-7' />
 							</svg>
 						</button>
+						
+						{/* Popover */}
 						{isExpanded && (
-							<div className='px-3 pb-3 pt-1 border-t border-gray-200 dark:border-gray-700'>
+							<div
+								ref={popoverRef}
+								className='absolute z-50 mt-2 right-0 w-80 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-lg p-4'
+								style={{
+									top: '100%',
+								}}
+							>
+								<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>Model Icons Guide</h4>
 								<IconLegendContent className='text-gray-700 dark:text-gray-300' />
 							</div>
 						)}
-					</div>
+					</>
 				)
 				: (
 					<div className='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-3'>
@@ -612,24 +663,11 @@ export function ModelRoleExplanations({ className = '' }: { className?: string }
 	);
 }
 export function ModelSelectHelp({ className = '' }: { className?: string }) {
-	/* Model Role Explanations and Icon Legend side by side */
+	/* Model Role Explanations and Icon Legend - updated for column layout */
 	return (
-		<div className={`grid grid-cols-1 lg:grid-cols-4 gap-6 ${className}`}>
-			{/* Model Role Explanations - spans 2 columns for more space */}
-			<div class='lg:col-span-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-4 h-fit'>
-				<h4 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-					Model Roles Explained
-				</h4>
-				<ModelRoleExplanationsContent className='text-gray-800 dark:text-gray-200' />
-			</div>
-
-			{/* Icon Legend */}
-			<div class='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 p-4 h-fit'>
-				<h4 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-					Model Icons Guide
-				</h4>
-				<IconLegendContent className='text-gray-700 dark:text-gray-300' />
-			</div>
+		<div className={`space-y-4 ${className}`}>
+			{/* Icon Legend - Now collapsible */}
+			<ModelIconLegend collapsible={true} />
 		</div>
 	);
 }
@@ -728,7 +766,7 @@ export function SystemCardsModal({
 	);
 }
 
-// Suggested model combinations component
+// Suggested model combinations component - now compact and expandable
 export function ModelCombinations({
 	onApplyCombo,
 	className = '',
@@ -736,48 +774,72 @@ export function ModelCombinations({
 	onApplyCombo: (combo: { orchestrator: string; agent: string; chat: string }) => void;
 	className?: string;
 }) {
-	const [showSystemCards, setShowSystemCards] = useState(false);
+	const [isExpanded, setIsExpanded] = useState(false);
 
 	return (
-		<div className={`space-y-4 ${className}`}>
-			<div className='flex items-center justify-between'>
-				<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-					Suggested Combinations
-				</h4>
-				<ModelSystemCardsLink />
-			</div>
-
-			{/* Responsive grid layout */}
-			<div className='grid grid-cols-2 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3'>
-				{SUGGESTED_COMBOS.map((combo, index) => (
-					<div
-						key={index}
-						className='border border-gray-200 dark:border-gray-700 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors'
+		<div className={`space-y-3 ${className}`}>
+			<div className='bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
+				<button
+					type='button'
+					onClick={() => setIsExpanded(!isExpanded)}
+					className='w-full px-4 py-3 text-left flex items-center justify-between text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors'
+				>
+					<div className='flex flex-col items-start gap-1'>
+						<div className='flex items-center gap-2'>
+							<span>Suggested Model Combinations</span>
+							<span className='px-2 py-0.5 text-xs bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300 rounded-full'>
+								{SUGGESTED_COMBOS.length}
+							</span>
+						</div>
+						<p className='text-xs text-gray-500 dark:text-gray-400 font-normal'>
+							Pre-configured model sets optimized for different use cases like cost efficiency, maximum intelligence, or specialized tasks
+						</p>
+					</div>
+					<svg
+						className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+						fill='none'
+						stroke='currentColor'
+						viewBox='0 0 24 24'
 					>
-						<div className='space-y-2'>
-							<div className='flex justify-between items-start'>
-								<div className='flex-1 min-w-0'>
-									<h5 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
-										{getProviderIcon(combo.models.orchestrator.split('-')[0])} {combo.name}
-									</h5>
-									<p className='text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2'>
-										{combo.description}
-									</p>
-									<p className='text-xs text-blue-600 dark:text-blue-400 mt-1'>
-										{combo.provider}
-									</p>
+						<path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M19 9l-7 7-7-7' />
+					</svg>
+				</button>
+				{isExpanded && (
+					<div className='px-4 pb-4 pt-1 border-t border-gray-200 dark:border-gray-700'>
+						<div className='flex justify-end mb-3 mt-2'>
+							<ModelSystemCardsLink />
+						</div>
+						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+							{SUGGESTED_COMBOS.map((combo, index) => (
+								<div
+									key={index}
+									className='border border-gray-200 dark:border-gray-600 rounded-md p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors'
+								>
+									<div className='space-y-2'>
+										<div className='flex-1 min-w-0'>
+											<h5 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
+												{getProviderIcon(combo.models.orchestrator.split('-')[0])} {combo.name}
+											</h5>
+											<p className='text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2'>
+												{combo.description}
+											</p>
+											<p className='text-xs text-blue-600 dark:text-blue-400 mt-1'>
+												{combo.provider}
+											</p>
+										</div>
+										<button
+											type='button'
+											onClick={() => onApplyCombo(combo.models)}
+											className='w-full text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium py-1 px-2 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors'
+										>
+											Apply
+										</button>
+									</div>
 								</div>
-							</div>
-							<button
-								type='button'
-								onClick={() => onApplyCombo(combo.models)}
-								className='w-full text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium py-1 px-2 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors'
-							>
-								Apply
-							</button>
+							))}
 						</div>
 					</div>
-				))}
+				)}
 			</div>
 		</div>
 	);
@@ -795,7 +857,7 @@ export function ModelSystemCardsLink({
 			<button
 				type='button'
 				onClick={() => setShowSystemCards(true)}
-				className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium'
+				className='px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-700 transition-colors'
 			>
 				View All Models
 			</button>

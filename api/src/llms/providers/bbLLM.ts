@@ -290,7 +290,7 @@ class BbLLM extends LLM {
 	 */
 	private getBaseUrl(): string {
 		return this.projectConfig.api?.llmProviders?.beyondbetter?.baseUrl ||
-			'https://api.beyondbetter.dev/v1/llm-proxy';
+			'https://api.beyondbetter.dev/api/v1/llm-proxy';
 	}
 
 	/**

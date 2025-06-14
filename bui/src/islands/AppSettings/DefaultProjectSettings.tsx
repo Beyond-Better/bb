@@ -9,7 +9,7 @@ import {
 	type ModelSelectionValue,
 	ModelSelector,
 	ModelSystemCardsLink,
-} from '../../components/ModelSelector.tsx';
+} from '../../components/ModelManager.tsx';
 //import type { DefaultModels } from 'shared/config/types.ts';
 import { Toast } from '../../components/Toast.tsx';
 
@@ -691,60 +691,94 @@ export default function DefaultProjectSettings() {
 									projects unless overridden.
 								</p>
 							</div>
-							<div class='flex-shrink-0 '>
+							<div class='flex items-start gap-3'>
 								<ModelSystemCardsLink />
+								<ModelSelectHelp />
 							</div>
 						</div>
 
-						{/* Model Role Explanations and Icon Legend side by side */}
-						<ModelSelectHelp />
-
-						{/* Model Selection */}
-						<div class='grid grid-cols-1 md:grid-cols-3 gap-6'>
+						{/* Model Selection - Column layout with help text on the right */}
+						<div class='space-y-8'>
 							{/* Orchestrator Model */}
-							<ModelSelector
-								key={`orchestrator-${formState.defaultModels.orchestrator}`}
-								apiClient={appState.value.apiClient!}
-								context='global'
-								role='orchestrator'
-								value={formState.defaultModels.orchestrator}
-								onChange={(value) => {
-									handleModelChange('orchestrator', value as string);
-									markTabDirty('models');
-								}}
-								label='Orchestrator Model'
-								description='Handles complex reasoning and coordination'
-							/>
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`orchestrator-${formState.defaultModels.orchestrator}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='orchestrator'
+										value={formState.defaultModels.orchestrator}
+										onChange={(value) => {
+											handleModelChange('orchestrator', value as string);
+											markTabDirty('models');
+										}}
+										label='🎯 Orchestrator Model'
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
+									<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+										<div class='text-sm text-blue-800 dark:text-blue-200'>
+											<div class='font-medium mb-1'>Orchestrator Model</div>
+											<p class='text-xs'>Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.</p>
+										</div>
+									</div>
+								</div>
+							</div>
 
 							{/* Agent Model */}
-							<ModelSelector
-								key={`agent-${formState.defaultModels.agent}`}
-								apiClient={appState.value.apiClient!}
-								context='global'
-								role='agent'
-								value={formState.defaultModels.agent}
-								onChange={(value) => {
-									handleModelChange('agent', value as string);
-									markTabDirty('models');
-								}}
-								label='Agent Model'
-								description='Executes tasks and uses tools'
-							/>
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`agent-${formState.defaultModels.agent}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='agent'
+										value={formState.defaultModels.agent}
+										onChange={(value) => {
+											handleModelChange('agent', value as string);
+											markTabDirty('models');
+										}}
+										label='📥 Agent Model'
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
+									<div class='bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md p-4'>
+										<div class='text-sm text-green-800 dark:text-green-200'>
+											<div class='font-medium mb-1'>Agent Model</div>
+											<p class='text-xs'>Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates work. Should be capable of focused task execution and tool usage.</p>
+										</div>
+									</div>
+								</div>
+							</div>
 
 							{/* Admin Model */}
-							<ModelSelector
-								key={`chat-${formState.defaultModels.chat}`}
-								apiClient={appState.value.apiClient!}
-								context='global'
-								role='chat'
-								value={formState.defaultModels.chat}
-								onChange={(value) => {
-									handleModelChange('chat', value as string);
-									markTabDirty('models');
-								}}
-								label='Admin Model'
-								description='Handles administrative tasks and meta-operations'
-							/>
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`chat-${formState.defaultModels.chat}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='chat'
+										value={formState.defaultModels.chat}
+										onChange={(value) => {
+											handleModelChange('chat', value as string);
+											markTabDirty('models');
+										}}
+										label='🔧 Admin Model'
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
+									<div class='bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-md p-4'>
+										<div class='text-sm text-purple-800 dark:text-purple-200'>
+											<div class='font-medium mb-1'>Admin Model</div>
+											<p class='text-xs'>Handles administrative tasks like generating conversation titles, summarizing objectives, creating audit trail messages, and other meta-operations. Can be more cost-effective.</p>
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
 
 						{/* Suggested Combinations */}

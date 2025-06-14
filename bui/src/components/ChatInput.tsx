@@ -14,7 +14,7 @@ import { formatPathForInsertion, getTextPositions, processSuggestions } from '..
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
-import { type ModelSelectionValue, ModelSelector } from './ModelSelector.tsx';
+import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -88,6 +88,7 @@ const shouldShowDataSourceInfo = signal<boolean>(false);
 
 // State for options panel visibility
 const isOptionsOpen = signal<boolean>(false);
+const selectedModelRole = signal<'orchestrator' | 'agent' | 'chat'>('orchestrator');
 
 const inputMetrics = signal({
 	lastUpdateTime: 0,
@@ -1619,16 +1620,42 @@ export function ChatInput({
 					</div>
 
 					<div className='space-y-3'>
-						{/* Model Selector */}
+						{/* Role Tabs */}
+						<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
+							{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
+								const isSelected = selectedModelRole.value === role;
+								const icons = { orchestrator: '🎯', agent: '📥', chat: '🔧' };
+								const labels = { orchestrator: 'Orchestrator', agent: 'Agent', chat: 'Admin' };
+								
+								return (
+									<button
+										key={role}
+										onClick={() => selectedModelRole.value = role}
+										className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
+											isSelected
+												? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 shadow-sm'
+												: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+										}`}
+									>
+										<span>{icons[role]}</span>
+										<span className='hidden sm:inline'>{labels[role]}</span>
+									</button>
+								);
+							})}
+						</div>
+						
+						{/* Model Selector for Selected Role */}
 						<ModelSelector
-							key={`model-selector-${chatInputOptions.value.model}`}
+							key={`model-selector-${selectedModelRole.value}-${chatInputOptions.value.model}`}
 							apiClient={apiClient}
 							context='conversation'
-							role='chat'
+							role={selectedModelRole.value}
 							value={chatInputOptions.value.model}
 							onChange={(modelId: string | ModelSelectionValue) => {
 								console.log(
-									'ChatInput: Model changed from',
+									'ChatInput: Model changed for role',
+									selectedModelRole.value,
+									'from',
 									chatInputOptions.value.model,
 									'to',
 									modelId,
@@ -1641,7 +1668,7 @@ export function ChatInput({
 									chatInputOptions.value.model,
 								);
 							}}
-							label='Model'
+							label={`${selectedModelRole.value.charAt(0).toUpperCase() + selectedModelRole.value.slice(1)} Model`}
 							compact
 						/>
 

@@ -22,12 +22,17 @@ jobs:
         run: |
           mkdir -p .bb
           cat << EOF > .bb/config.yaml
-          version: 2.1.0
+          version: 2.2.0
           myPersonsName: bb
           myAssistantsName: Claude
+          defaultModels:
+            orchestrator: claude-sonnet-4-20250514
+            agent: claude-sonnet-4-20250514
+            chat: claude-3-5-haiku-20241022
           noBrowser: false
           bbExeName: bb
           bbApiExeName: bb-api
+          bbBuiExeName: bb-bui
           api:
             environment: local
             hostname: localhost
@@ -47,6 +52,8 @@ jobs:
             port: 8000
             tls:
               useTls: false
+            logFile: bui.log
+            logLevel: info
           cli: {}
           EOF
 
