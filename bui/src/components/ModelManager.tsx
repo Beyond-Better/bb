@@ -1,8 +1,10 @@
-import { useEffect, useState, useRef } from 'preact/hooks';
+import { JSX } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal, useComputed } from '@preact/signals';
-import type { Signal } from '@preact/signals';
+//import type { Signal } from '@preact/signals';
 import { ModelSelect, type SelectOption } from './ModelSelect/index.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
+import { AgentIcon, ChatIcon, getCharacteristicIcon, getProviderIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
 
 // Model information interface
 export interface ModelInfo {
@@ -60,44 +62,26 @@ const modelsState = signal<{
 // Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
 
-// Provider logos/icons mapping
-const getProviderIcon = (provider: string) => {
-	const icons: Record<string, string> = {
-		'anthropic': '🧠', // Temporary emoji until we add SVG logos
-		'openai': '🤖',
-		'google': '🔍',
-		'deepseek': '🔬',
-		'ollama': '🦙',
-		'groq': '⚡',
-	};
-	return icons[provider.toLowerCase()] || '🎯';
-};
+// Provider logos/icons now handled by shared SVG utility
 
 // Model speed/cost/intelligence mapping
 const getModelCharacteristics = (model: ModelInfo) => {
 	return {
 		speed: model.responseSpeed,
-		cost: (model as any).cost || 'medium', // Use actual cost from model data
-		intelligence: (model as any).intelligence || 'high', // Use actual intelligence from model data
+		cost: model.cost || 'medium', // Use actual cost from model data
+		intelligence: model.intelligence || 'high', // Use actual intelligence from model data
 	};
 };
 
-// Get display text for characteristics
-const getCharacteristicDisplay = (type: string, value: string) => {
-	const icons: Record<string, Record<string, string>> = {
-		speed: { fast: '⚡', medium: '🚀', slow: '🐌' },
-		cost: { low: '💚', medium: '💛', high: '💸', 'very-high': '💰' },
-		intelligence: { medium: '🧠', high: '🎯', 'very-high': '🔮' },
-	};
-	return icons[type]?.[value] || value;
-};
+// Characteristic display now handled by shared SVG utility
 
 // Suggested model combinations
 const SUGGESTED_COMBOS = [
 	{
 		name: 'Balanced Performance',
 		description: 'Good balance of speed, cost, and capability',
-		provider: 'Claude',
+		provider: 'Anthropic',
+		icon: getProviderIcon('anthropic'),
 		models: {
 			orchestrator: 'claude-sonnet-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
@@ -107,7 +91,8 @@ const SUGGESTED_COMBOS = [
 	{
 		name: 'Maximum Intelligence',
 		description: 'Best reasoning and problem-solving capabilities',
-		provider: 'Claude',
+		provider: 'Anthropic',
+		icon: getProviderIcon('anthropic'),
 		models: {
 			orchestrator: 'claude-opus-4-20250514',
 			agent: 'claude-opus-4-20250514',
@@ -117,7 +102,8 @@ const SUGGESTED_COMBOS = [
 	{
 		name: 'Competent Orchestrator',
 		description: 'Best reasoning for orchestrator and good problem-solving for agent',
-		provider: 'Claude',
+		provider: 'Anthropic',
+		icon: getProviderIcon('anthropic'),
 		models: {
 			orchestrator: 'claude-opus-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
@@ -127,7 +113,8 @@ const SUGGESTED_COMBOS = [
 	{
 		name: 'Cost Optimized',
 		description: 'Minimize costs while maintaining good performance',
-		provider: 'Claude',
+		provider: 'Anthropic',
+		icon: getProviderIcon('anthropic'),
 		models: {
 			orchestrator: 'claude-3-5-haiku-20241022',
 			agent: 'claude-3-5-haiku-20241022',
@@ -138,6 +125,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Deep Research',
 		description: 'Optimal for complex analysis and research tasks',
 		provider: 'Cross-Provider',
+		icon: getProviderIcon('generic'),
 		models: {
 			orchestrator: 'claude-opus-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
@@ -148,6 +136,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Coding Specialist',
 		description: 'Optimized for software development and programming',
 		provider: 'Cross-Provider',
+		icon: getProviderIcon('generic'),
 		models: {
 			orchestrator: 'claude-sonnet-4-20250514',
 			agent: 'gpt-4o',
@@ -158,6 +147,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Content Creation',
 		description: 'Perfect for writing, editing, and creative tasks',
 		provider: 'Cross-Provider',
+		icon: getProviderIcon('generic'),
 		models: {
 			orchestrator: 'claude-opus-4-20250514',
 			agent: 'claude-sonnet-4-20250514',
@@ -168,6 +158,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Speed Optimized',
 		description: 'Fast responses for real-time interactions',
 		provider: 'Multi-Provider',
+		icon: getProviderIcon('generic'),
 		models: {
 			orchestrator: 'claude-3-5-haiku-20241022',
 			agent: 'gpt-3.5-turbo',
@@ -178,6 +169,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Gemini Balanced',
 		description: 'Google Gemini for reliability and consistency',
 		provider: 'Gemini',
+		icon: getProviderIcon('google'),
 		models: {
 			orchestrator: 'gemini-2.5-pro-preview-06-05',
 			agent: 'gemini-2.5-flash-preview-05-20',
@@ -188,6 +180,7 @@ const SUGGESTED_COMBOS = [
 		name: 'Gemini Performance',
 		description: 'Google Gemini for multimodal capabilities',
 		provider: 'Gemini',
+		icon: getProviderIcon('google'),
 		models: {
 			orchestrator: 'gemini-2.5-flash-preview-05-20',
 			agent: 'gemini-2.5-flash-preview-05-20',
@@ -198,6 +191,7 @@ const SUGGESTED_COMBOS = [
 		name: 'OpenAI Balanced',
 		description: 'OpenAI models for reliability and consistency',
 		provider: 'OpenAI',
+		icon: getProviderIcon('openai'),
 		models: {
 			orchestrator: 'gpt-4o',
 			agent: 'gpt-4',
@@ -209,7 +203,7 @@ const SUGGESTED_COMBOS = [
 export function ModelSelector({
 	apiClient,
 	context,
-	role,
+	role: _role,
 	value,
 	onChange,
 	label,
@@ -244,7 +238,7 @@ export function ModelSelector({
 								...model,
 								responseSpeed: model.responseSpeed as 'fast' | 'medium' | 'slow',
 							}))
-							.sort((a, b) => {
+							.sort((a: ModelInfo, b: ModelInfo) => {
 								// 1. Sort by provider (using defined order)
 								const providerA = providerOrder.indexOf(a.provider.toLowerCase());
 								const providerB = providerOrder.indexOf(b.provider.toLowerCase());
@@ -253,20 +247,20 @@ export function ModelSelector({
 								if (providerComparison !== 0) return providerComparison;
 
 								// 2. Sort by release date (newest first)
-								const dateA = (a as any).releaseDate ? new Date((a as any).releaseDate).getTime() : 0;
-								const dateB = (b as any).releaseDate ? new Date((b as any).releaseDate).getTime() : 0;
+								const dateA = a.releaseDate ? new Date(a.releaseDate).getTime() : 0;
+								const dateB = b.releaseDate ? new Date(b.releaseDate).getTime() : 0;
 								const dateComparison = dateB - dateA;
 								if (dateComparison !== 0) return dateComparison;
 
 								// 3. Sort by cost (low to high)
-								const costA = costOrder.indexOf((a as any).cost || 'medium');
-								const costB = costOrder.indexOf((b as any).cost || 'medium');
+								const costA = costOrder.indexOf(a.cost || 'medium');
+								const costB = costOrder.indexOf(b.cost || 'medium');
 								const costComparison = (costA === -1 ? 1 : costA) - (costB === -1 ? 1 : costB);
 								if (costComparison !== 0) return costComparison;
 
 								// 4. Sort by intelligence (high to low)
-								const intelligenceA = intelligenceOrder.indexOf((a as any).intelligence || 'high');
-								const intelligenceB = intelligenceOrder.indexOf((b as any).intelligence || 'high');
+								const intelligenceA = intelligenceOrder.indexOf(a.intelligence || 'high');
+								const intelligenceB = intelligenceOrder.indexOf(b.intelligence || 'high');
 								const intelligenceComparison = (intelligenceB === -1 ? 1 : intelligenceB) -
 									(intelligenceA === -1 ? 1 : intelligenceA);
 								return intelligenceComparison;
@@ -316,25 +310,49 @@ export function ModelSelector({
 		// Add provider headers and models
 		Object.entries(modelsByProvider).forEach(([providerLabel, models]) => {
 			if (Object.keys(modelsByProvider).length > 1) {
-				const providerIcon = getProviderIcon(models[0]?.provider || '');
 				options.push({
 					value: `header-${providerLabel}`,
-					label: `${providerIcon} ${providerLabel}`,
+					label: (
+						<span>
+							<span className='mr-2'>
+								{getProviderIcon(models[0]?.provider || '')}
+							</span>{' '}
+							{providerLabel}
+						</span>
+					),
 					isHeader: true,
 				});
 			}
 
 			models.forEach((model) => {
 				const characteristics = getModelCharacteristics(model);
-				const speedIcon = getCharacteristicDisplay('speed', characteristics.speed);
-				const costIcon = getCharacteristicDisplay('cost', characteristics.cost);
-				const intelligenceIcon = getCharacteristicDisplay('intelligence', characteristics.intelligence);
-				const providerIcon = getProviderIcon(model.provider);
 
 				const label = compact ? model.displayName : (
 					<span>
-						<span className='mr-2'>{providerIcon}</span> {model.displayName}
-						<span className='ml-4 whitespace-nowrap'>{`${speedIcon} ${costIcon} ${intelligenceIcon}`}</span>
+						<span className='mr-2'>
+							{getProviderIcon(model.provider)}
+						</span>{' '}
+						{model.displayName}
+						<span className='ml-4 whitespace-nowrap'>
+							<span className='mr-2'>
+								{getCharacteristicIcon(
+									'speed',
+									characteristics.speed,
+								)}
+							</span>{' '}
+							<span className='mr-2'>
+								{getCharacteristicIcon(
+									'cost',
+									characteristics.cost,
+								)}
+							</span>{' '}
+							<span className='mr-2'>
+								{getCharacteristicIcon(
+									'intelligence',
+									characteristics.intelligence,
+								)}
+							</span>
+						</span>
 					</span>
 				);
 
@@ -480,31 +498,15 @@ export function ModelSelector({
 					disabled={disabled}
 					placeholder='Select a model...'
 				/>
-
-				{context === 'project' && isProjectOverride && (
-					<button
-						type='button'
-						onClick={handleReset}
-						className='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-						title='Reset to global default'
-						disabled={disabled}
-					>
-						<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth='2'
-								d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
-							/>
-						</svg>
-					</button>
-				)}
 			</div>
 
 			{!compact && selectedModel.value && (
 				<div className='mt-2 text-xs text-gray-500 dark:text-gray-400'>
 					Context: {(selectedModel.value.contextWindow / 1000).toFixed(0)}K tokens • Provider:{' '}
-					{getProviderIcon(selectedModel.value.provider)} {selectedModel.value.providerLabel}
+					<span className='text-gray-600 dark:text-gray-400'>
+						{getProviderIcon(selectedModel.value.provider)}
+					</span>{' '}
+					{selectedModel.value.providerLabel}
 					{selectedModel.value.responseSpeed && <>• Speed: {selectedModel.value.responseSpeed}</>}
 				</div>
 			)}
@@ -563,7 +565,7 @@ export function ModelIconLegend({
 								<path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M19 9l-7 7-7-7' />
 							</svg>
 						</button>
-						
+
 						{/* Popover */}
 						{isExpanded && (
 							<div
@@ -573,7 +575,9 @@ export function ModelIconLegend({
 									top: '100%',
 								}}
 							>
-								<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>Model Icons Guide</h4>
+								<h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
+									Model Icons Guide
+								</h4>
 								<IconLegendContent className='text-gray-700 dark:text-gray-300' />
 							</div>
 						)}
@@ -594,27 +598,77 @@ export function IconLegendContent({ className = '' }: { className?: string }) {
 		<div className={`space-y-2 text-xs ${className}`}>
 			<div>
 				<div className='font-medium text-gray-600 dark:text-gray-400 mb-1'>Speed:</div>
-				<div className='flex gap-3'>
-					<span>⚡ Fast</span>
-					<span>🚀 Medium</span>
-					<span>🐌 Slow</span>
+				<div className='flex gap-4 items-center'>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('speed', 'fast')}
+						</span>{' '}
+						Fast
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('speed', 'medium')}
+						</span>{' '}
+						Medium
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('speed', 'slow')}
+						</span>{' '}
+						Slow
+					</span>
 				</div>
 			</div>
 			<div>
 				<div className='font-medium text-gray-600 dark:text-gray-400 mt-4 mb-1'>Cost:</div>
-				<div className='flex gap-3'>
-					<span>💚 Low</span>
-					<span>💛 Medium</span>
-					<span>💸 High</span>
-					<span>💰 Very High</span>
+				<div className='flex gap-4 items-center'>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('cost', 'low')}
+						</span>{' '}
+						Low
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('cost', 'medium')}
+						</span>{' '}
+						Medium
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('cost', 'high')}
+						</span>{' '}
+						High
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('cost', 'very-high')}
+						</span>{' '}
+						Very High
+					</span>
 				</div>
 			</div>
 			<div>
 				<div className='font-medium text-gray-600 dark:text-gray-400 mt-4 mb-1'>Intelligence:</div>
-				<div className='flex gap-3'>
-					<span>🧠 Medium</span>
-					<span>🎯 High</span>
-					<span>🔮 Very High</span>
+				<div className='flex gap-4 items-center'>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('intelligence', 'medium')}
+						</span>{' '}
+						Medium
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('intelligence', 'high')}
+						</span>{' '}
+						High
+					</span>
+					<span className='flex items-center gap-1'>
+						<span className='mr-1 text-lg'>
+							{getCharacteristicIcon('intelligence', 'very-high')}
+						</span>{' '}
+						Very High
+					</span>
 				</div>
 			</div>
 		</div>
@@ -622,30 +676,59 @@ export function IconLegendContent({ className = '' }: { className?: string }) {
 }
 
 // Model Role Explanations Content
+export function ModelRoleExplanationsContentOrchestrator({ className = '' }: { className?: string }) {
+	return (
+		<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+			<div class={`text-sm text-blue-800 dark:text-blue-200 ${className}`}>
+				<div class='font-medium mb-2'>
+					<OrchestratorIcon className='mr-3 w-5 h-5 text-lg text-blue-800 dark:text-blue-200' />Orchestrator
+					Model
+				</div>
+				<p class='text-xs'>
+					Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent
+					scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.
+				</p>
+			</div>
+		</div>
+	);
+}
+export function ModelRoleExplanationsContentAgent({ className = '' }: { className?: string }) {
+	return (
+		<div class='bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md p-4'>
+			<div class={`text-sm text-green-800 dark:text-green-200 ${className}`}>
+				<div class='font-medium mb-2'>
+					<AgentIcon className='mr-3 w-5 h-5 text-lg text-green-800 dark:text-green-200' />Agent Model
+				</div>
+				<p class='text-xs'>
+					Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates
+					work. Should be capable of focused task execution and tool usage.
+				</p>
+			</div>
+		</div>
+	);
+}
+export function ModelRoleExplanationsContentChat({ className = '' }: { className?: string }) {
+	return (
+		<div class='bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-md p-4'>
+			<div class={`text-sm text-purple-800 dark:text-purple-200 ${className}`}>
+				<div class='font-medium mb-2'>
+					<ChatIcon className='mr-3 w-5 h-5 text-lg text-purple-800 dark:text-purple-200' />Admin Model
+				</div>
+				<p class='text-xs'>
+					Handles administrative tasks like generating conversation titles, summarizing objectives, creating
+					audit trail messages, and other meta-operations. Can be more cost-effective.
+				</p>
+			</div>
+		</div>
+	);
+}
+
 export function ModelRoleExplanationsContent({ className = '' }: { className?: string }) {
 	return (
 		<div className={`space-y-3 text-sm ${className}`}>
-			<div>
-				<div className='font-medium'>🎯 Orchestrator Model</div>
-				<div className='text-xs mt-1'>
-					Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent
-					scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.
-				</div>
-			</div>
-			<div>
-				<div className='font-medium'>📥 Agent Model</div>
-				<div className='text-xs mt-1'>
-					Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates
-					work. Should be capable of focused task execution and tool usage.
-				</div>
-			</div>
-			<div>
-				<div className='font-medium'>🔧 Admin Model</div>
-				<div className='text-xs mt-1'>
-					Handles administrative tasks like generating conversation titles, summarizing objectives, creating
-					audit trail messages, and other meta-operations. Can be more cost-effective.
-				</div>
-			</div>
+			<ModelRoleExplanationsContentOrchestrator />
+			<ModelRoleExplanationsContentAgent />
+			<ModelRoleExplanationsContentChat />
 		</div>
 	);
 }
@@ -667,7 +750,7 @@ export function ModelSelectHelp({ className = '' }: { className?: string }) {
 	return (
 		<div className={`space-y-4 ${className}`}>
 			{/* Icon Legend - Now collapsible */}
-			<ModelIconLegend collapsible={true} />
+			<ModelIconLegend collapsible />
 		</div>
 	);
 }
@@ -717,18 +800,14 @@ export function SystemCardsModal({
 					{Object.entries(modelsByProvider).map(([providerLabel, providerModels]) => (
 						<div key={providerLabel}>
 							<h4 className='text-md font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2'>
-								{getProviderIcon(providerModels[0]?.provider || '')} {providerLabel}
+								<span className='mr-2 text-gray-700 dark:text-gray-300'>
+									{getProviderIcon(providerModels[0]?.provider || '')}
+								</span>{' '}
+								{providerLabel}
 							</h4>
-							<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+							<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
 								{providerModels.map((model) => {
 									const characteristics = getModelCharacteristics(model);
-									const speedIcon = getCharacteristicDisplay('speed', characteristics.speed);
-									const costIcon = getCharacteristicDisplay('cost', characteristics.cost);
-									const intelligenceIcon = getCharacteristicDisplay(
-										'intelligence',
-										characteristics.intelligence,
-									);
-
 									return (
 										<div
 											key={model.id}
@@ -739,16 +818,33 @@ export function SystemCardsModal({
 											</div>
 											<div className='text-sm text-gray-600 dark:text-gray-400 space-y-1'>
 												<div>Context: {(model.contextWindow / 1000).toFixed(0)}K tokens</div>
-												<div>Speed: {speedIcon} {model.responseSpeed}</div>
-												<div>Cost: {costIcon} {characteristics.cost}</div>
 												<div>
-													Intelligence: {intelligenceIcon} {characteristics.intelligence}
+													Speed:{' '}
+													<span className='ml-1 mr-1 text-lg'>
+														{getCharacteristicIcon('speed', characteristics.speed)}
+													</span>{' '}
+													{model.responseSpeed}
 												</div>
-												{(model as any).releaseDate && (
-													<div>Release: {(model as any).releaseDate}</div>
-												)}
-												{(model as any).trainingCutoff && (
-													<div>Training Cutoff: {(model as any).trainingCutoff}</div>
+												<div>
+													Cost:{' '}
+													<span className='ml-1 mr-1 text-lg'>
+														{getCharacteristicIcon('cost', characteristics.cost)}
+													</span>{' '}
+													{characteristics.cost}
+												</div>
+												<div>
+													Intelligence:{' '}
+													<span className='ml-1 mr-1 text-lg'>
+														{getCharacteristicIcon(
+															'intelligence',
+															characteristics.intelligence,
+														)}
+													</span>{' '}
+													{characteristics.intelligence}
+												</div>
+												{model.releaseDate && <div>Release: {model.releaseDate}</div>}
+												{model.trainingCutoff && (
+													<div>Training Cutoff: {model.trainingCutoff}</div>
 												)}
 												<div className='text-xs text-gray-500 dark:text-gray-500 mt-2'>
 													ID: {model.id}
@@ -792,7 +888,8 @@ export function ModelCombinations({
 							</span>
 						</div>
 						<p className='text-xs text-gray-500 dark:text-gray-400 font-normal'>
-							Pre-configured model sets optimized for different use cases like cost efficiency, maximum intelligence, or specialized tasks
+							Pre-configured model sets optimized for different use cases like cost efficiency, maximum
+							intelligence, or specialized tasks
 						</p>
 					</div>
 					<svg
@@ -809,7 +906,7 @@ export function ModelCombinations({
 						<div className='flex justify-end mb-3 mt-2'>
 							<ModelSystemCardsLink />
 						</div>
-						<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+						<div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3'>
 							{SUGGESTED_COMBOS.map((combo, index) => (
 								<div
 									key={index}
@@ -818,7 +915,10 @@ export function ModelCombinations({
 									<div className='space-y-2'>
 										<div className='flex-1 min-w-0'>
 											<h5 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
-												{getProviderIcon(combo.models.orchestrator.split('-')[0])} {combo.name}
+												<span className='mr-3 text-gray-700 dark:text-gray-300'>
+													{combo.icon}
+												</span>{' '}
+												{combo.name}
 											</h5>
 											<p className='text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2'>
 												{combo.description}
@@ -830,7 +930,7 @@ export function ModelCombinations({
 										<button
 											type='button'
 											onClick={() => onApplyCombo(combo.models)}
-											className='w-full text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium py-1 px-2 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors'
+											className='w-full text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium py-1 px-2 border border-blue-200 dark:border-blue-800 rounded hover:bg-blue-50 dark:hover:bg-blue-900/70 transition-colors'
 										>
 											Apply
 										</button>
@@ -866,6 +966,7 @@ export function ModelSystemCardsLink({
 				isOpen={showSystemCards}
 				onClose={() => setShowSystemCards(false)}
 				models={modelsState.value.models}
+				className={className}
 			/>
 		</div>
 	);

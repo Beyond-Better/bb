@@ -196,7 +196,7 @@ export function ProjectMetadata({
 					>
 						{chatState.value.status.apiStatus === ApiStatus.LLM_PROCESSING && 'Assistant is thinking...'}
 						{chatState.value.status.apiStatus === ApiStatus.TOOL_HANDLING && 'Using tool...'}
-						{chatState.value.status.apiStatus === ApiStatus.API_BUSY && 'API is processing...'}
+						{chatState.value.status.apiStatus === ApiStatus.API_BUSY && 'Beyond Better is processing...'}
 						{chatState.value.status.apiStatus === ApiStatus.ERROR && 'Error occurred'}
 					</span>
 				</div>*/

@@ -1,3 +1,4 @@
+import { JSX } from 'preact';
 import { useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import { ModelTrigger } from './ModelTrigger.tsx';
@@ -42,35 +43,31 @@ export function ModelSelect({
 
 		return options.filter((option) => {
 			if (option.isHeader) return false; // Hide headers when searching
-			
+
 			// Search in the option label if it's a string
 			if (typeof option.label === 'string') {
 				return option.label.toLowerCase().includes(query) ||
 					option.value.toLowerCase().includes(query);
 			}
-			
+
 			// For JSX elements, search in the value
 			return option.value.toLowerCase().includes(query);
 		});
 	});
 
 	// Find the current selected option
-	const selectedOption = useComputed(() => 
-		options.find((opt) => opt.value === value && !opt.isHeader)
-	);
+	const selectedOption = useComputed(() => options.find((opt) => opt.value === value && !opt.isHeader));
 
 	// Find the current selected model info
-	const selectedModel = useComputed(() => 
-		models.find((model) => model.id === value)
-	);
+	const selectedModel = useComputed(() => models.find((model) => model.id === value));
 
 	// Handle keyboard navigation
 	useEffect(() => {
 		if (!isOpen.value) return;
 
 		const handleKeyDown = (e: KeyboardEvent) => {
-			const validOptions = displayedOptions.value.filter(opt => !opt.isHeader);
-			
+			const validOptions = displayedOptions.value.filter((opt) => !opt.isHeader);
+
 			switch (e.key) {
 				case 'ArrowDown':
 					e.preventDefault();
@@ -171,7 +168,12 @@ export function ModelSelect({
 								title='Clear search'
 							>
 								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-									<path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M6 18L18 6M6 6l12 12' />
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth='2'
+										d='M6 18L18 6M6 6l12 12'
+									/>
 								</svg>
 							</button>
 						)}

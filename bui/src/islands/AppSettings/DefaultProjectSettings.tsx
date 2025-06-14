@@ -5,13 +5,17 @@ import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 import { useAppState } from '../../hooks/useAppState.ts';
 import {
 	ModelCombinations,
+	ModelRoleExplanationsContentAgent,
+	ModelRoleExplanationsContentChat,
+	ModelRoleExplanationsContentOrchestrator,
 	ModelSelectHelp,
-	type ModelSelectionValue,
+	//type ModelSelectionValue,
 	ModelSelector,
 	ModelSystemCardsLink,
 } from '../../components/ModelManager.tsx';
 //import type { DefaultModels } from 'shared/config/types.ts';
 import { Toast } from '../../components/Toast.tsx';
+import { AgentIcon, ChatIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
 
 // Helper function to format YAML with proper array syntax
 function formatYaml(obj: unknown): string {
@@ -68,16 +72,16 @@ const SUB_TABS = [
 			'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75',
 	},
 	{
-		id: 'tools',
-		label: 'Tools',
-		icon:
-			'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z',
-	},
-	{
 		id: 'models',
 		label: 'Models',
 		icon:
 			'M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5',
+	},
+	{
+		id: 'tools',
+		label: 'Tools',
+		icon:
+			'M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z',
 	},
 ];
 
@@ -628,6 +632,143 @@ export default function DefaultProjectSettings() {
 					</div>
 				)}
 
+				{formState.activeTab === 'models' && (
+					<div className='models-tab space-y-6'>
+						{/* Header with Icon Legend */}
+						<div class='flex justify-between items-start mb-6'>
+							<div>
+								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
+									Default Models
+								</h3>
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									Set the default AI models for different roles. These will be used across all
+									projects unless overridden.
+								</p>
+							</div>
+							<div class='flex items-start gap-3'>
+								<ModelSystemCardsLink />
+								<ModelSelectHelp />
+							</div>
+						</div>
+
+						{/* Model Selection - Column layout with help text on the right */}
+						<div class='space-y-8'>
+							{/* Orchestrator Model */}
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`orchestrator-${formState.defaultModels.orchestrator}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='orchestrator'
+										value={formState.defaultModels.orchestrator}
+										onChange={(value) => {
+											handleModelChange('orchestrator', value as string);
+											markTabDirty('models');
+										}}
+										label={
+											<span>
+												<OrchestratorIcon className='ml-2 mr-2 w-5 h-5 text-lg text-blue-800 dark:text-blue-200' />Orchestrator
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentOrchestrator />
+								</div>
+							</div>
+
+							{/* Agent Model */}
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`agent-${formState.defaultModels.agent}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='agent'
+										value={formState.defaultModels.agent}
+										onChange={(value) => {
+											handleModelChange('agent', value as string);
+											markTabDirty('models');
+										}}
+										label={
+											<span>
+												<AgentIcon className='ml-2 mr-2 w-5 h-5 text-lg text-green-800 dark:text-green-200' />Agent
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentAgent />
+								</div>
+							</div>
+
+							{/* Chat Model */}
+							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div class='lg:col-span-2'>
+									<ModelSelector
+										key={`chat-${formState.defaultModels.chat}`}
+										apiClient={appState.value.apiClient!}
+										context='global'
+										role='chat'
+										value={formState.defaultModels.chat}
+										onChange={(value) => {
+											handleModelChange('chat', value as string);
+											markTabDirty('models');
+										}}
+										label={
+											<span>
+												<ChatIcon className='ml-2 mr-2 w-5 h-5 text-lg text-purple-800 dark:text-purple-200' />Admin
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div class='lg:col-span-3'>
+									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentChat />
+								</div>
+							</div>
+						</div>
+
+						{/* Suggested Combinations */}
+						<div class='mt-8'>
+							<ModelCombinations
+								onApplyCombo={handleApplyCombo}
+								className='max-w'
+							/>
+						</div>
+
+						{/* Display current selection summary */}
+						<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
+							<h4 class='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
+								Current Selection
+							</h4>
+							<div class='text-sm text-blue-800 dark:text-blue-200'>
+								<div>
+									<strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}
+								</div>
+								<div>
+									<strong>Agent:</strong> {formState.defaultModels.agent}
+								</div>
+								<div>
+									<strong>Admin:</strong> {formState.defaultModels.chat}
+								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
 				{formState.activeTab === 'tools' && (
 					<div className='tools-tab'>
 						{/* Tool Configs */}
@@ -674,137 +815,6 @@ export default function DefaultProjectSettings() {
 									{formErrors.value.toolConfigs}
 								</p>
 							)}
-						</div>
-					</div>
-				)}
-
-				{formState.activeTab === 'models' && (
-					<div className='models-tab space-y-6'>
-						{/* Header with Icon Legend */}
-						<div class='flex justify-between items-start mb-6'>
-							<div>
-								<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
-									Default Models
-								</h3>
-								<p class='text-sm text-gray-500 dark:text-gray-400'>
-									Set the default AI models for different roles. These will be used across all
-									projects unless overridden.
-								</p>
-							</div>
-							<div class='flex items-start gap-3'>
-								<ModelSystemCardsLink />
-								<ModelSelectHelp />
-							</div>
-						</div>
-
-						{/* Model Selection - Column layout with help text on the right */}
-						<div class='space-y-8'>
-							{/* Orchestrator Model */}
-							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
-								<div class='lg:col-span-2'>
-									<ModelSelector
-										key={`orchestrator-${formState.defaultModels.orchestrator}`}
-										apiClient={appState.value.apiClient!}
-										context='global'
-										role='orchestrator'
-										value={formState.defaultModels.orchestrator}
-										onChange={(value) => {
-											handleModelChange('orchestrator', value as string);
-											markTabDirty('models');
-										}}
-										label='🎯 Orchestrator Model'
-									/>
-								</div>
-								<div class='lg:col-span-3'>
-									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
-										<div class='text-sm text-blue-800 dark:text-blue-200'>
-											<div class='font-medium mb-1'>Orchestrator Model</div>
-											<p class='text-xs'>Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							{/* Agent Model */}
-							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
-								<div class='lg:col-span-2'>
-									<ModelSelector
-										key={`agent-${formState.defaultModels.agent}`}
-										apiClient={appState.value.apiClient!}
-										context='global'
-										role='agent'
-										value={formState.defaultModels.agent}
-										onChange={(value) => {
-											handleModelChange('agent', value as string);
-											markTabDirty('models');
-										}}
-										label='📥 Agent Model'
-									/>
-								</div>
-								<div class='lg:col-span-3'>
-									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div class='bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md p-4'>
-										<div class='text-sm text-green-800 dark:text-green-200'>
-											<div class='font-medium mb-1'>Agent Model</div>
-											<p class='text-xs'>Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates work. Should be capable of focused task execution and tool usage.</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							{/* Admin Model */}
-							<div class='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
-								<div class='lg:col-span-2'>
-									<ModelSelector
-										key={`chat-${formState.defaultModels.chat}`}
-										apiClient={appState.value.apiClient!}
-										context='global'
-										role='chat'
-										value={formState.defaultModels.chat}
-										onChange={(value) => {
-											handleModelChange('chat', value as string);
-											markTabDirty('models');
-										}}
-										label='🔧 Admin Model'
-									/>
-								</div>
-								<div class='lg:col-span-3'>
-									<div class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div class='bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-md p-4'>
-										<div class='text-sm text-purple-800 dark:text-purple-200'>
-											<div class='font-medium mb-1'>Admin Model</div>
-											<p class='text-xs'>Handles administrative tasks like generating conversation titles, summarizing objectives, creating audit trail messages, and other meta-operations. Can be more cost-effective.</p>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						{/* Suggested Combinations */}
-						<div class='mt-8'>
-							<ModelCombinations
-								onApplyCombo={handleApplyCombo}
-								className='max-w'
-							/>
-						</div>
-
-						{/* Display current selection summary */}
-						<div class='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
-							<h4 class='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
-								Current Selection
-							</h4>
-							<div class='text-sm text-blue-800 dark:text-blue-200'>
-								<div>
-									<strong>Orchestrator:</strong> {formState.defaultModels.orchestrator}
-								</div>
-								<div>
-									<strong>Agent:</strong> {formState.defaultModels.agent}
-								</div>
-								<div>
-									<strong>Admin:</strong> {formState.defaultModels.chat}
-								</div>
-							</div>
 						</div>
 					</div>
 				)}

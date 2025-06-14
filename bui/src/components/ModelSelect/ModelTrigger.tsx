@@ -1,29 +1,7 @@
 import { forwardRef } from 'preact/compat';
 import type { ModelInfo } from '../ModelManager.tsx';
 import type { SelectOption } from './ModelSelect.tsx';
-
-// Provider logos/icons mapping (same as in ModelManager)
-const getProviderIcon = (provider: string) => {
-	const icons: Record<string, string> = {
-		'anthropic': '🧠',
-		'openai': '🤖',
-		'google': '🔍',
-		'deepseek': '🔬',
-		'ollama': '🦙',
-		'groq': '⚡',
-	};
-	return icons[provider.toLowerCase()] || '🎯';
-};
-
-// Model characteristics display (same as in ModelManager)
-const getCharacteristicDisplay = (type: string, value: string) => {
-	const icons: Record<string, Record<string, string>> = {
-		speed: { fast: '⚡', medium: '🚀', slow: '🐌' },
-		cost: { low: '💚', medium: '💛', high: '💸', 'very-high': '💰' },
-		intelligence: { medium: '🧠', high: '🎯', 'very-high': '🔮' },
-	};
-	return icons[type]?.[value] || value;
-};
+import { getCharacteristicIcon, getProviderIcon } from 'shared/svgImages.tsx';
 
 interface ModelTriggerProps {
 	isOpen: boolean;
@@ -45,25 +23,32 @@ export const ModelTrigger = forwardRef<HTMLButtonElement, ModelTriggerProps>(
 				);
 			}
 
-			const providerIcon = getProviderIcon(selectedModel.provider);
-			const speedIcon = getCharacteristicDisplay('speed', selectedModel.responseSpeed);
-			const costIcon = getCharacteristicDisplay('cost', (selectedModel as any).cost || 'medium');
-			const intelligenceIcon = getCharacteristicDisplay('intelligence', (selectedModel as any).intelligence || 'high');
-
 			return (
 				<div className='flex items-center justify-between w-full'>
 					<div className='flex items-center gap-2 flex-1 min-w-0'>
-						<span className='text-lg'>{providerIcon}</span>
+						<span className='mr-2 text-lg flex-shrink-0 text-gray-700 dark:text-gray-300'>
+							{getProviderIcon(selectedModel.provider)}
+						</span>
+
 						<div className='flex flex-col min-w-0'>
 							<span className='font-medium text-gray-900 dark:text-gray-100 truncate'>
 								{selectedModel.displayName}
 							</span>
 							<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
-								<span>{speedIcon}</span>
-								<span>{costIcon}</span>
-								<span>{intelligenceIcon}</span>
+								<span className='mr-1 text-lg'>
+									{getCharacteristicIcon('speed', selectedModel.responseSpeed)}
+								</span>
+								<span className='mr-1 text-lg'>
+									{getCharacteristicIcon('cost', selectedModel.cost || 'medium')}
+								</span>
+								<span className='mr-1 text-lg'>
+									{getCharacteristicIcon(
+										'intelligence',
+										selectedModel.intelligence || 'high',
+									)}
+								</span>
 								<span className='ml-1'>
-									{(selectedModel.contextWindow / 1000).toFixed(0)}K
+									{(selectedModel.contextWindow / 1000).toFixed(0)}K tokens
 								</span>
 							</div>
 						</div>
@@ -84,7 +69,7 @@ export const ModelTrigger = forwardRef<HTMLButtonElement, ModelTriggerProps>(
 				} ${className}`}
 			>
 				{renderSelectedContent()}
-				
+
 				{/* Chevron Icon */}
 				<svg
 					className={`ml-2 h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ${
@@ -103,5 +88,5 @@ export const ModelTrigger = forwardRef<HTMLButtonElement, ModelTriggerProps>(
 				</svg>
 			</button>
 		);
-	}
+	},
 );

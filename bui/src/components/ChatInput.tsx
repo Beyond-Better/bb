@@ -15,6 +15,7 @@ import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
+import { getModelRoleIcon } from 'shared/svgImages.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -1040,9 +1041,6 @@ export function ChatInput({
 			if (chatInputText.value.trim()) {
 				console.info('ChatInput: Preventing page reload with unsaved content');
 				e.preventDefault();
-				// Modern browsers require returnValue to be set
-				e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-				return e.returnValue;
 			}
 		};
 
@@ -1233,7 +1231,7 @@ export function ChatInput({
 
 			case ApiStatus.API_BUSY:
 				return {
-					message: 'API is processing...',
+					message: 'Beyond Better is processing...',
 					type: 'info' as const,
 					visible: true,
 					status: status.apiStatus,
@@ -1624,11 +1622,11 @@ export function ChatInput({
 						<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
 							{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
 								const isSelected = selectedModelRole.value === role;
-								const icons = { orchestrator: '🎯', agent: '📥', chat: '🔧' };
 								const labels = { orchestrator: 'Orchestrator', agent: 'Agent', chat: 'Admin' };
-								
+
 								return (
 									<button
+										type="button"
 										key={role}
 										onClick={() => selectedModelRole.value = role}
 										className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
@@ -1637,13 +1635,16 @@ export function ChatInput({
 												: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
 										}`}
 									>
-										<span>{icons[role]}</span>
+										{getModelRoleIcon(role, {
+											className: 'mr-1 w-4 h-4',
+											'aria-label': `${role} model`,
+										})}
 										<span className='hidden sm:inline'>{labels[role]}</span>
 									</button>
 								);
 							})}
 						</div>
-						
+
 						{/* Model Selector for Selected Role */}
 						<ModelSelector
 							key={`model-selector-${selectedModelRole.value}-${chatInputOptions.value.model}`}
@@ -1668,7 +1669,9 @@ export function ChatInput({
 									chatInputOptions.value.model,
 								);
 							}}
-							label={`${selectedModelRole.value.charAt(0).toUpperCase() + selectedModelRole.value.slice(1)} Model`}
+							label={`${
+								selectedModelRole.value.charAt(0).toUpperCase() + selectedModelRole.value.slice(1)
+							} Model`}
 							compact
 						/>
 

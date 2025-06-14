@@ -240,13 +240,7 @@ export default defineConfig({
 			name: 'highlight.js-theme',
 			...highlightStyles,
 		},
-		// Keep both auth plugins during transition
-		//supabaseAuthPlugin(globalConfig.bui),
-		//authPlugin(globalConfig.bui),
 		buiConfigPlugin(globalConfig.bui),
-		// 		{
-		// 			name: 'supabase_auth'
-		// 		},
 	],
 	// build: {
 	// 	esbuild: {

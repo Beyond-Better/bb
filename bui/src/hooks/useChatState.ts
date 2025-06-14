@@ -209,10 +209,10 @@ export function useChatState(
 			try {
 				if (!chatConfig.value.apiUrl || !chatConfig.value.wsUrl) {
 					// Auto-detect the working protocol
-					const originalApiUrl = chatConfig.value.apiUrl;
-					const originalWsUrl = chatConfig.value.wsUrl;
+					// const originalApiUrl = chatConfig.value.apiUrl;
+					// const originalWsUrl = chatConfig.value.wsUrl;
 
-					const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+					const { apiUrl, wsUrl, fallbackUsed: _fallbackUsed } = await getWorkingApiUrl();
 
 					chatConfig.value = {
 						...chatConfig.value,

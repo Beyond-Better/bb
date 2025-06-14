@@ -15,11 +15,15 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import {
 	ModelCombinations,
+	ModelRoleExplanationsContentChat,
+	ModelRoleExplanationsContentAgent,
+	ModelRoleExplanationsContentOrchestrator,
 	ModelSelectHelp,
 	type ModelSelectionValue,
 	ModelSelector,
 	ModelSystemCardsLink,
 } from '../ModelManager.tsx';
+import { ChatIcon, AgentIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
 //import { FileBrowser } from '../FileBrowser.tsx';
 
 // Helper function to format YAML with proper array syntax
@@ -1019,7 +1023,8 @@ export function ProjectEditor({
 								<div className='lg:col-span-2'>
 									<ModelSelector
 										key={`orchestrator-${
-											defaultModelsOrchestrator.value.project || defaultModelsOrchestrator.value.global
+											defaultModelsOrchestrator.value.project ||
+											defaultModelsOrchestrator.value.global
 										}`}
 										apiClient={appState.value.apiClient!}
 										context='project'
@@ -1028,17 +1033,19 @@ export function ProjectEditor({
 										onChange={(value) => {
 											defaultModelsOrchestrator.value = value as ModelSelectionValue;
 										}}
-										label={<span><span className="ml-2 mr-2">🎯</span> <span>Orchestrator Model</span></span>}
+										label={
+											<span>
+												<OrchestratorIcon className='ml-2 mr-2 w-5 h-5 text-lg text-blue-800 dark:text-blue-200' />Orchestrator
+												Model
+											</span>
+										}
 									/>
 								</div>
 								<div className='lg:col-span-3'>
-									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div className='bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md p-4'>
-										<div className='text-sm text-blue-800 dark:text-blue-200'>
-											<div className='font-medium mb-1'>Orchestrator Model</div>
-											<p className='text-xs'>Coordinates multi-agent workflows and delegates tasks to agents. Also used for single-agent scenarios when the orchestrator performs all tasks directly. Requires strong reasoning capabilities.</p>
-										</div>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
 									</div>
+									<ModelRoleExplanationsContentOrchestrator />
 								</div>
 							</div>
 
@@ -1046,7 +1053,9 @@ export function ProjectEditor({
 							<div className='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
 								<div className='lg:col-span-2'>
 									<ModelSelector
-										key={`agent-${defaultModelsAgent.value.project || defaultModelsAgent.value.global}`}
+										key={`agent-${
+											defaultModelsAgent.value.project || defaultModelsAgent.value.global
+										}`}
 										apiClient={appState.value.apiClient!}
 										context='project'
 										role='agent'
@@ -1054,25 +1063,29 @@ export function ProjectEditor({
 										onChange={(value) => {
 											defaultModelsAgent.value = value as ModelSelectionValue;
 										}}
-										label={<span><span className="ml-2 mr-2">📥</span> <span>Agent Model</span></span>}
+										label={
+											<span>
+												<AgentIcon className='ml-2 mr-2 w-5 h-5 text-lg text-green-800 dark:text-green-200' />Agent
+												Model
+											</span>
+										}
 									/>
 								</div>
 								<div className='lg:col-span-3'>
-									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div className='bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md p-4'>
-										<div className='text-sm text-green-800 dark:text-green-200'>
-											<div className='font-medium mb-1'>Agent Model</div>
-											<p className='text-xs'>Executes specific tasks delegated by the orchestrator. Only used when the orchestrator delegates work. Should be capable of focused task execution and tool usage.</p>
-										</div>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
 									</div>
+									<ModelRoleExplanationsContentAgent />
 								</div>
 							</div>
 
-							{/* Admin Model */}
+							{/* Chat Model */}
 							<div className='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
 								<div className='lg:col-span-2'>
 									<ModelSelector
-										key={`chat-${defaultModelsChat.value.project || defaultModelsChat.value.global}`}
+										key={`chat-${
+											defaultModelsChat.value.project || defaultModelsChat.value.global
+										}`}
 										apiClient={appState.value.apiClient!}
 										context='project'
 										role='chat'
@@ -1080,17 +1093,19 @@ export function ProjectEditor({
 										onChange={(value) => {
 											defaultModelsChat.value = value as ModelSelectionValue;
 										}}
-										label={<span><span className="ml-2 mr-2">🔧</span> <span>Admin Model</span></span>}
+										label={
+											<span>
+												<ChatIcon className='ml-2 mr-2 w-5 h-5 text-lg text-purple-800 dark:text-purple-200' />Admin
+												Model
+											</span>
+										}
 									/>
 								</div>
 								<div className='lg:col-span-3'>
-									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>&nbsp;</div>
-									<div className='bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-md p-4'>
-										<div className='text-sm text-purple-800 dark:text-purple-200'>
-											<div className='font-medium mb-1'>Admin Model</div>
-											<p className='text-xs'>Handles administrative tasks like generating conversation titles, summarizing objectives, creating audit trail messages, and other meta-operations. Can be more cost-effective.</p>
-										</div>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
 									</div>
+									<ModelRoleExplanationsContentChat />
 								</div>
 							</div>
 						</div>
@@ -1198,7 +1213,6 @@ export function ProjectEditor({
 											: 'border-gray-300 dark:border-gray-700'
 									}`}
 								/>
-
 							</div>
 						</div>
 					</div>

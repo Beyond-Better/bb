@@ -219,7 +219,7 @@ export async function getLLMModelToProvider(): Promise<Record<string, LLMProvide
 		const { ModelRegistryService } = await import('api/llms/modelRegistryService.ts');
 		const registryService = await ModelRegistryService.getInstance();
 		return registryService.getModelToProviderMapping();
-	} catch (error) {
+	} catch (_error) {
 		// Fallback to static mapping if service isn't available
 		return staticModelToProvider;
 	}
