@@ -27,7 +27,7 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMRequestParams, ModelRoleConfigs, RoleModelConfig } from 'api/types/llms.ts';
 import type { ConversationResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
@@ -863,8 +863,8 @@ class ConversationPersistence {
 	}
 
 	async saveMetadata(metadata: Partial<ConversationDetailedMetadata>): Promise<void> {
-		// Set version 2 for new token usage format
-		metadata.version = 2;
+		// Set version 4 for new modelRoles format
+		metadata.version = 4;
 		await this.ensureInitialized();
 		logger.debug(`ConversationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
 		await this.ensureDirectory(dirname(this.metadataPath));
@@ -881,7 +881,49 @@ class ConversationPersistence {
 		await this.ensureInitialized();
 		if (await exists(this.metadataPath)) {
 			const metadataContent = await Deno.readTextFile(this.metadataPath);
-			return JSON.parse(metadataContent);
+			const metadata = JSON.parse(metadataContent);
+			
+			// Migration logic for older versions
+			if (!metadata.version || metadata.version < 4) {
+				// Migrate from version 3 or lower to version 4
+				if (metadata.requestParams && !metadata.requestParams.modelRoles) {
+					// Move existing requestParams to modelRoles.orchestrator
+					const legacyParams = metadata.requestParams;
+					metadata.requestParams = {
+						modelRoles: {
+							orchestrator: {
+								model: legacyParams.model || '',
+								temperature: legacyParams.temperature || 0.7,
+								maxTokens: legacyParams.maxTokens || 4000,
+								extendedThinking: legacyParams.extendedThinking,
+								usePromptCaching: legacyParams.usePromptCaching,
+							},
+							agent: null,
+							chat: null,
+						},
+						// Keep legacy fields for backward compatibility
+						model: legacyParams.model,
+						temperature: legacyParams.temperature,
+						maxTokens: legacyParams.maxTokens,
+						extendedThinking: legacyParams.extendedThinking,
+						usePromptCaching: legacyParams.usePromptCaching,
+					};
+					
+					logger.info(`ConversationPersistence: Migrated requestParams from version ${metadata.version || 'unknown'} to version 4 for conversation: ${this.conversationId}`);
+				}
+				metadata.version = 4;
+				
+				// Save the migrated metadata back to disk to avoid re-migration on future reads
+				try {
+					await Deno.writeTextFile(this.metadataPath, JSON.stringify(metadata, null, 2));
+					logger.debug(`ConversationPersistence: Persisted migrated metadata for conversation: ${this.conversationId}`);
+				} catch (error) {
+					logger.warn(`ConversationPersistence: Failed to persist migrated metadata: ${errorMessage(error)}`);
+					// Continue even if save fails - the migration is still applied in memory
+				}
+			}
+			
+			return metadata;
 		}
 		return ConversationPersistence.defaultMetadata();
 	}
@@ -926,6 +968,12 @@ class ConversationPersistence {
 	}
 	static defaultRequestParams(): LLMRequestParams {
 		return {
+			modelRoles: {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+			// Legacy fields for backward compatibility
 			model: '',
 			temperature: 0,
 			maxTokens: 0,
@@ -935,7 +983,7 @@ class ConversationPersistence {
 	}
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
-			version: 3, // default version for existing conversations
+			version: 4, // default version for new conversations with modelRoles
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
 			parentInteractionId: undefined,
