@@ -16,7 +16,7 @@ import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse, LLMRequestParams, RoleModelConfig, ModelRoleConfigs } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	//ConversationLogDataEntry,
@@ -62,6 +62,8 @@ class BaseController {
 	protected interactionStats: Map<ConversationId, ConversationStats> = new Map();
 	//protected interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
 	protected interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
+	// Role-based model configurations
+	protected roleConfigs: ModelRoleConfigs | null = null;
 
 	// Accessor methods for instance inspection
 	public getInteractionStatsCount(): number {
@@ -70,6 +72,57 @@ class BaseController {
 
 	public getInteractionTokenUsageCount(): number {
 		return this.interactionTokenUsage.size;
+	}
+
+	// Role configuration management
+	protected setRoleConfigs(configs: ModelRoleConfigs | undefined): void {
+		this.roleConfigs = configs || null;
+	}
+
+	protected getRoleConfig(role: 'orchestrator' | 'agent' | 'chat'): RoleModelConfig {
+		if (this.roleConfigs?.[role]) {
+			return this.roleConfigs[role]!;
+		}
+		return this.getDefaultRoleConfig(role);
+	}
+
+	protected getDefaultRoleConfig(role: 'orchestrator' | 'agent' | 'chat'): RoleModelConfig {
+		const defaultModel = this.projectConfig?.defaultModels?.[role];
+		if (!defaultModel) {
+			throw new Error(`No default model configured for role: ${role}`);
+		}
+		
+		return {
+			model: defaultModel,
+			temperature: 0.7,
+			maxTokens: 4000,
+			extendedThinking: this.projectConfig.api?.extendedThinking,
+			usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+		};
+	}
+
+	protected extractRoleConfig(
+		requestParams: LLMRequestParams | undefined,
+		role: 'orchestrator' | 'agent' | 'chat'
+	): RoleModelConfig {
+		// Handle new modelRoles structure
+		if (requestParams?.modelRoles?.[role]) {
+			return requestParams.modelRoles[role]!;
+		}
+		
+		// Auto-migration: convert legacy single model to role config
+		if (requestParams?.model) {
+			return {
+				model: requestParams.model,
+				temperature: requestParams.temperature ?? 0.7,
+				maxTokens: requestParams.maxTokens ?? 4000,
+				extendedThinking: requestParams.extendedThinking,
+				usePromptCaching: requestParams.usePromptCaching,
+			};
+		}
+		
+		// Fallback to project defaults
+		return this.getDefaultRoleConfig(role);
 	}
 	protected isCancelled: boolean = false;
 	//protected currentStatus: ApiStatus = ApiStatus.IDLE;

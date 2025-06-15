@@ -1,4 +1,5 @@
 import type { LLMProviderMessageMeta, LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
+export type { ModelRoleConfigs, RoleModelConfig } from 'api/types/llms.ts';
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';

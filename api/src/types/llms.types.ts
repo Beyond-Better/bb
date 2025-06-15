@@ -305,10 +305,39 @@ export interface LLMProviderMessageResponse {
 
 export type LLMProviderSystem = string | LLMMessageContentPart;
 
-export interface LLMRequestParams {
+/**
+ * Configuration for a specific role's model and parameters
+ */
+export interface RoleModelConfig {
 	model: string;
 	temperature: number;
 	maxTokens: number;
+	extendedThinking?: LLMExtendedThinkingOptions;
+	usePromptCaching?: boolean;
+}
+
+/**
+ * Model configurations for all three BB roles
+ */
+export interface ModelRoleConfigs {
+	orchestrator: RoleModelConfig | null;
+	agent: RoleModelConfig | null;
+	chat: RoleModelConfig | null;
+}
+
+/**
+ * Request parameters used when calling the LLM provider
+ */
+export interface LLMRequestParams {
+	/**
+	 * Role-specific model configurations
+	 */
+	modelRoles: ModelRoleConfigs;
+
+	// Legacy fields for migration - will be removed
+	model?: string;
+	temperature?: number;
+	maxTokens?: number;
 	extendedThinking?: LLMExtendedThinkingOptions;
 	usePromptCaching?: boolean;
 }
