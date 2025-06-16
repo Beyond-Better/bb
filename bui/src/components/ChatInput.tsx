@@ -16,6 +16,7 @@ import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
 import { getControllerRoleIcon } from 'shared/svgImages.tsx';
+import { useModelState } from '../hooks/useModelState.ts';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -91,15 +92,14 @@ const shouldShowDataSourceInfo = signal<boolean>(false);
 const isOptionsOpen = signal<boolean>(false);
 const selectedModelRole = signal<'orchestrator' | 'agent' | 'chat'>('orchestrator');
 
-// State for role-specific model capabilities
-const roleModelCapabilities = signal<{
-	orchestrator: ModelDetails | null;
-	agent: ModelDetails | null;
-	chat: ModelDetails | null;
-}>({
-	orchestrator: null,
-	agent: null,
-	chat: null
+// Use centralized model state hook
+const { modelState, getModelCapabilities, hasModelCapabilities, isLoadingModel } = useModelState();
+
+// Computed signal for current role's model capabilities
+const currentRoleModelCapabilities = useComputed(() => {
+	const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
+	if (!currentModel) return null;
+	return modelState.value.modelCapabilities[currentModel] || null;
 });
 
 const inputMetrics = signal({
@@ -591,15 +591,11 @@ export function ChatInput({
 	// Load model capabilities when role or model changes
 	useEffect(() => {
 		const currentModelConfig = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value];
-		if (currentModelConfig?.model && apiClient) {
-			// Load capabilities for the current role's model
-			apiClient.getModelDetails(currentModelConfig.model)
+		if (currentModelConfig?.model) {
+			// Load capabilities using the centralized hook
+			getModelCapabilities(currentModelConfig.model)
 				.then(capabilities => {
 					if (capabilities) {
-						roleModelCapabilities.value = {
-							...roleModelCapabilities.value,
-							[selectedModelRole.value]: capabilities
-						};
 						console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentModelConfig.model}`);
 					}
 				})
@@ -607,7 +603,7 @@ export function ChatInput({
 					console.warn(`ChatInput: Failed to load capabilities for ${currentModelConfig.model}:`, error);
 				});
 		}
-	}, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig, apiClient]);
+	}, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig]);
 
 	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
 
@@ -1734,7 +1730,7 @@ export function ChatInput({
 								};
 								chatInputOptions.value = newOptions;
 								console.log(
-									'ChatInput: Updated role config for',
+									'ChatInput: Changed model config for role',
 									selectedModelRole.value,
 									newOptions.rolesModelConfig[selectedModelRole.value],
 								);
@@ -1755,7 +1751,7 @@ export function ChatInput({
 							<input
 								type='range'
 								min='1000'
-								max={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.maxOutputTokens || 100000}
+								max={currentRoleModelCapabilities.value?.capabilities?.maxOutputTokens || 100000}
 								step='1000'
 								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens || 4000}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
@@ -1794,8 +1790,8 @@ export function ChatInput({
 							</div>
 							<input
 								type='range'
-								min={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.constraints?.temperature?.min || 0}
-								max={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.constraints?.temperature?.max || 1}
+								min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.min || 0}
+								max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.max || 1}
 								step='0.1'
 								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature || 0.7}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
@@ -1827,7 +1823,7 @@ export function ChatInput({
 
 						{/* Extended Thinking Toggle */}
 						{(!modelData?.value ||
-							modelData.value.capabilities.supportedFeatures?.extendedThinking !== false) && (
+							modelData.value.capabilities?.supportedFeatures?.extendedThinking !== false) && (
 							<div className='flex items-center justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>Extended Thinking</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
@@ -1887,7 +1883,7 @@ export function ChatInput({
 
 						{/* Prompt Caching Toggle */}
 						{(!modelData?.value ||
-							modelData.value.capabilities.supportedFeatures?.promptCaching !== false) && (
+							modelData.value.capabilities?.supportedFeatures?.promptCaching !== false) && (
 							<div className='flex items-center justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>Use Prompt Caching</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
@@ -1945,7 +1941,7 @@ export function ChatInput({
 							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
 								<div className='text-xs text-gray-500 dark:text-gray-400'>
 									Context window:{' '}
-									{(modelData.value.capabilities.contextWindow / 1000).toFixed(0)}K tokens
+									{(modelData.value.capabilities?.contextWindow / 1000).toFixed(0)}K tokens
 								</div>
 							</div>
 						)}

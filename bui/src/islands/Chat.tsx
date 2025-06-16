@@ -13,6 +13,7 @@ import type {
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
+import { useModelState, initializeModelState } from '../hooks/useModelState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
@@ -26,10 +27,11 @@ import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
-import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
+import { LLMRolesModelConfig } from 'api/types.ts';
 
 // Helper functions for URL parameters
 const getConversationId = () => {
@@ -39,23 +41,8 @@ const getConversationId = () => {
 
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
-// Default LLM request options - will be populated from API response
-// This is a signal that gets updated with proper API defaults when available
-const defaultInputOptions = signal<LLMRequestParams>({
-	rolesModelConfig: {
-		orchestrator: null,
-		agent: null,
-		chat: null,
-	},
-	// model: 'claude-sonnet-4-20250514', // Fallback only, should be overridden by API
-	// temperature: 0.7,
-	// maxTokens: 16384,
-	// extendedThinking: {
-	// 	enabled: true,
-	// 	budgetTokens: 4096,
-	// },
-	// usePromptCaching: true,
-});
+// Model state hook for centralized model management
+const { modelState, getDefaultRolesModelConfig, getModelCapabilities } = useModelState();
 
 const defaultChatConfig: ChatConfig = {
 	apiUrl: '',
@@ -68,23 +55,37 @@ const defaultChatConfig: ChatConfig = {
 };
 
 // Helper to get options from conversation or defaults
-// For new conversations, this will use the requestParams provided by the API
-// which includes proper defaults from global/project configuration
+// For new conversations, this will use the default models from the model state hook
 const getInputOptionsFromConversation = (
 	conversationId: string | null,
 	conversations: ConversationMetadata[],
 ): LLMRequestParams => {
-	//console.log('ChatIsland: getInputOptionsFromConversation', {defaultInputOptions: defaultInputOptions.value});
-	if (!conversationId) return defaultInputOptions.value;
+	if (!conversationId) {
+		// Use defaults from model state hook
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		return {
+			rolesModelConfig: defaultRolesConfig || {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+		};
+	}
 
 	const conversation = conversations.find((conv) => conv.id === conversationId);
 	if (!conversation || !conversation.collaborationParams || !conversation.collaborationParams.rolesModelConfig) {
-		return defaultInputOptions.value;
+		// Fallback to defaults from model state hook
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		return {
+			rolesModelConfig: defaultRolesConfig || {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+		};
 	}
-	//console.log('ChatIsland: getInputOptionsFromConversation', {requestParams: conversation.requestParams});
 
-	// Return conversation params with fallbacks to local defaults
-	// The conversation.requestParams should now include proper API defaults
+	// Return conversation params
 	return {
 		rolesModelConfig: conversation.collaborationParams.rolesModelConfig,
 	};
@@ -97,7 +98,7 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<LLMRequestParams>({ ...defaultInputOptions.value });
+const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>({ ...defaultInputOptions.value });
 const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
@@ -282,27 +283,14 @@ export default function Chat({
 		return () => clearInterval(intervalId);
 	}, [chatState.value.status.lastApiCallTime]);
 
-	// Fetch API defaults when project and API client are available
+	// Initialize model state when project and API client are available
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 		if (!projectId || !chatState.value.apiClient) return;
 
-		// Fetch defaults from API to replace hardcoded fallbacks
-		chatState.value.apiClient.getConversationDefaults(projectId)
-			.then((apiDefaults) => {
-				if (apiDefaults) {
-					//console.log('ChatIsland: Updated defaultInputOptions from API', apiDefaults);
-					defaultInputOptions.value = apiDefaults;
-					// If current options are still using hardcoded defaults, update them too
-					// conversation inputOptions could have the same model value, so the following is dangerous
-					//if (chatInputOptions.value.model === 'claude-sonnet-4-20250514') {
-					//	chatInputOptions.value = { ...apiDefaults };
-					//}
-				}
-			})
-			.catch((error) => {
-				console.warn('Chat: Failed to fetch API defaults, using hardcoded fallbacks:', error);
-			});
+		// Initialize model state with API client and project ID
+		console.log('Chat: Initializing model state for project:', projectId);
+		initializeModelState(chatState.value.apiClient, projectId);
 	}, [projectId, chatState.value.apiClient]);
 
 	// Utility functions
@@ -353,8 +341,8 @@ export default function Chat({
 		}
 	};
 
-	const transformEntry = (logDataEntry: ConversationLogDataEntry): ConversationLogDataEntry => {
-		// Simply return the entry as it's already a valid ConversationLogDataEntry
+	const transformEntry = (logDataEntry: CollaborationLogDataEntry): CollaborationLogDataEntry => {
+		// Simply return the entry as it's already a valid CollaborationLogDataEntry
 		// The type guards are used in the UI components to safely access properties
 		return logDataEntry;
 	};
@@ -416,18 +404,40 @@ export default function Chat({
 			chatInputOptions.value = getInputOptionsFromConversation(id, chatState.value.conversations);
 			console.info('ChatIsland: Updated options for selected conversation', id, chatInputOptions.value);
 
-			// Fetch model capabilities for the selected model
-			const modelName = chatInputOptions.value.model;
-			if (modelName && chatState.value.apiClient) {
-				try {
-					const modelResponse = await chatState.value.apiClient.getModelCapabilities(modelName);
-					console.info('Chat: Updated model capabilities', { modelResponse });
-					if (modelResponse) {
-						modelData.value = modelResponse.model;
-						console.info('Chat: Updated model capabilities', modelData.value);
+			// Fetch model capabilities for all models in the conversation
+			const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			if (rolesConfig) {
+				const modelIds = [
+					rolesConfig.orchestrator?.model,
+					rolesConfig.agent?.model,
+					rolesConfig.chat?.model,
+				].filter((model): model is string => Boolean(model));
+
+				// Remove duplicates
+				const uniqueModelIds = [...new Set(modelIds)];
+
+				// Load capabilities for all models used in this conversation
+				if (uniqueModelIds.length > 0) {
+					try {
+						// Load capabilities for the primary model (orchestrator) for backward compatibility
+						if (rolesConfig.orchestrator?.model) {
+							const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
+							if (capabilities) {
+								modelData.value = capabilities;
+								console.info('Chat: Updated model capabilities for orchestrator:', capabilities.displayName);
+							}
+						}
+						// Preload other model capabilities in background
+						uniqueModelIds.forEach(modelId => {
+							if (modelId !== rolesConfig.orchestrator?.model) {
+								getModelCapabilities(modelId).catch(error => {
+									console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
+								});
+							}
+						});
+					} catch (error) {
+						console.error('Chat: Failed to fetch model capabilities', error);
 					}
-				} catch (error) {
-					console.error('Chat: Failed to fetch model capabilities', error);
 				}
 			}
 
@@ -472,14 +482,14 @@ export default function Chat({
 			);
 			//console.info(`ChatIsland: Initialized chatInputOptions from conversation: ${chatState.value.conversationId}`, chatInputOptions.value);
 
-			// Fetch model capabilities for the current model
-			const modelName = chatInputOptions.value.model;
-			if (modelName && chatState.value.apiClient) {
-				chatState.value.apiClient.getModelCapabilities(modelName)
-					.then((modelResponse) => {
-						if (modelResponse) {
-							modelData.value = modelResponse.model;
-							console.info('Chat: Loaded model capabilities', modelData.value);
+			// Fetch model capabilities for the current conversation models
+			const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			if (rolesConfig?.orchestrator?.model) {
+				getModelCapabilities(rolesConfig.orchestrator.model)
+					.then((capabilities) => {
+						if (capabilities) {
+							modelData.value = capabilities;
+							console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
 						}
 					})
 					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
