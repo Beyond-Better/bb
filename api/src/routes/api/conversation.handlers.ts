@@ -1,14 +1,16 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
-import type { ConversationId, ConversationLogDataEntry, ConversationResponse } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, ConversationId, ConversationResponse } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
-import ConversationLogger from 'api/storage/conversationLogger.ts';
+import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getLLMModelToProvider } from 'api/types/llms.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 /**
  * @openapi
@@ -235,43 +237,48 @@ export const getConversation = async (
 					tokenUsageConversation: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
 				},
 				// Include default request params for this conversation
-				rolesModelConfig: {
-					orchestrator: {
-						model: defaultModels.orchestrator,
-						temperature: 0.7,
-						maxTokens: 16384,
-						extendedThinking: {
-							enabled: projectConfig.api?.extendedThinking?.enabled ??
-								globalConfig.api.extendedThinking?.enabled ?? true,
-							budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
-								globalConfig.api.extendedThinking?.budgetTokens || 4096,
+				collaborationParams: {
+					rolesModelConfig: {
+						orchestrator: {
+							model: defaultModels.orchestrator,
+							temperature: 0.7,
+							maxTokens: 16384,
+							extendedThinking: {
+								enabled: projectConfig.api?.extendedThinking?.enabled ??
+									globalConfig.api.extendedThinking?.enabled ?? true,
+								budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+									globalConfig.api.extendedThinking?.budgetTokens || 4096,
+							},
+							usePromptCaching: projectConfig.api?.usePromptCaching ??
+								globalConfig.api.usePromptCaching ??
+								true,
 						},
-						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
-							true,
-					},
-					agent: {
-						model: defaultModels.agent,
-						temperature: 0.7,
-						maxTokens: 16384,
-						extendedThinking: {
-							enabled: projectConfig.api?.extendedThinking?.enabled ??
-								globalConfig.api.extendedThinking?.enabled ?? true,
-							budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
-								globalConfig.api.extendedThinking?.budgetTokens || 4096,
+						agent: {
+							model: defaultModels.agent,
+							temperature: 0.7,
+							maxTokens: 16384,
+							extendedThinking: {
+								enabled: projectConfig.api?.extendedThinking?.enabled ??
+									globalConfig.api.extendedThinking?.enabled ?? true,
+								budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+									globalConfig.api.extendedThinking?.budgetTokens || 4096,
+							},
+							usePromptCaching: projectConfig.api?.usePromptCaching ??
+								globalConfig.api.usePromptCaching ??
+								true,
 						},
-						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
-							true,
-					},
-					chat: {
-						model: defaultModels.chat,
-						temperature: 0.7,
-						maxTokens: 4096,
-						extendedThinking: {
-							enabled: false,
-							budgetTokens: 0,
+						chat: {
+							model: defaultModels.chat,
+							temperature: 0.7,
+							maxTokens: 4096,
+							extendedThinking: {
+								enabled: false,
+								budgetTokens: 0,
+							},
+							usePromptCaching: projectConfig.api?.usePromptCaching ??
+								globalConfig.api.usePromptCaching ??
+								true,
 						},
-						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
-							true,
 					},
 				},
 			};
@@ -279,9 +286,9 @@ export const getConversation = async (
 		}
 
 		//logger.info(`ConversationHandler: Loading log data entries for conversation ${conversationId}`);
-		let logDataEntries: Array<ConversationLogDataEntry>;
+		let logDataEntries: Array<CollaborationLogDataEntry>;
 		try {
-			logDataEntries = await ConversationLogger.getLogDataEntries(projectId, conversationId);
+			logDataEntries = await CollaborationLogger.getLogDataEntries(projectId, conversationId);
 			logger.debug(`ConversationHandler: Log data entries loaded successfully`);
 		} catch (_error) {
 			// New conversations don't have log files yet
@@ -316,7 +323,8 @@ export const getConversation = async (
 			tokenUsageStats: {
 				tokenUsageConversation: interaction.tokenUsageInteraction,
 			},
-			rolesModelConfig: interaction.rolesModelConfig,
+			collaborationParams: interaction.collaboration.collaborationParams,
+			//rolesModelConfig: interaction.collaboration.collaborationParams.rolesModelConfig,
 			// requestParams: {
 			// 	model: interaction.model,
 			// 	temperature: interaction.temperature,
@@ -480,7 +488,8 @@ export const listConversations = async (
 				model: conv.model,
 				conversationStats: conv.conversationStats,
 				tokenUsageStats: conv.tokenUsageStats,
-				rolesModelConfig: conv.rolesModelConfig,
+				collaborationParams: conv.collaborationParams,
+				//rolesModelConfig: conv.collaborationParams?.rolesModelConfig,
 			})),
 			pagination: {
 				page: page,
@@ -537,18 +546,59 @@ export const getConversationDefaults = async (
 		// Use project defaults first, then global defaults
 		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
 
-		response.status = 200;
-		response.body = {
+		const registryService = await ModelRegistryService.getInstance(projectConfig);
+		const orchestratorCapabilities = registryService.getModelCapabilities(defaultModels.orchestrator);
+		const agentCapabilities = registryService.getModelCapabilities(defaultModels.agent);
+		const chatCapabilities = registryService.getModelCapabilities(defaultModels.chat);
+
+		// Create model configs for each role using capabilities
+		const orchestratorConfig = {
 			model: defaultModels.orchestrator,
-			temperature: 0.7,
-			maxTokens: 16384,
+			temperature: orchestratorCapabilities?.defaults.temperature ?? 0.7,
+			maxTokens: orchestratorCapabilities?.defaults.maxTokens ?? 16384,
 			extendedThinking: {
-				enabled: projectConfig.api?.extendedThinking?.enabled ?? globalConfig.api.extendedThinking?.enabled ??
-					true,
+				enabled: orchestratorCapabilities?.supportedFeatures.extendedThinking ??
+					(projectConfig.api?.extendedThinking?.enabled ?? globalConfig.api.extendedThinking?.enabled ?? true),
 				budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
 					globalConfig.api.extendedThinking?.budgetTokens || 4096,
 			},
-			usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
+			usePromptCaching: orchestratorCapabilities?.supportedFeatures.promptCaching ??
+				(projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true),
+		};
+
+		const agentConfig = {
+			model: defaultModels.agent,
+			temperature: agentCapabilities?.defaults.temperature ?? 0.7,
+			maxTokens: agentCapabilities?.defaults.maxTokens ?? 16384,
+			extendedThinking: {
+				enabled: agentCapabilities?.supportedFeatures.extendedThinking ??
+					(projectConfig.api?.extendedThinking?.enabled ?? globalConfig.api.extendedThinking?.enabled ?? true),
+				budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+					globalConfig.api.extendedThinking?.budgetTokens || 4096,
+			},
+			usePromptCaching: agentCapabilities?.supportedFeatures.promptCaching ??
+				(projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true),
+		};
+
+		const chatConfig = {
+			model: defaultModels.chat,
+			temperature: chatCapabilities?.defaults.temperature ?? 0.7,
+			maxTokens: chatCapabilities?.defaults.maxTokens ?? 4096,
+			extendedThinking: {
+				enabled: false, // Chat role typically doesn't need extended thinking
+				budgetTokens: 0,
+			},
+			usePromptCaching: chatCapabilities?.supportedFeatures.promptCaching ??
+				(projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true),
+		};
+
+		response.status = 200;
+		response.body = {
+			rolesModelConfig: {
+				orchestrator: orchestratorConfig,
+				agent: agentConfig,
+				chat: chatConfig,
+			},
 		};
 	} catch (error) {
 		logger.error(`ConversationHandler: Error in getConversationDefaults: ${errorMessage(error)}`);
