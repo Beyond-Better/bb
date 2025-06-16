@@ -10,7 +10,7 @@ import type {
 } from 'api/types.ts';
 import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';
 import { makeConversationInteractionStub } from '../lib/stubs.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMModelConfig } from 'api/types/llms.ts';
 
 import type {
 	ConversationId,
@@ -52,7 +52,7 @@ const mockInteractionCallbacks: LLMCallbacks = {
 		_logEntry: ConversationLogEntry,
 		_conversationStats: ConversationStats,
 		_tokenUsageStats: TokenUsageStats,
-		_requestParams?: LLMRequestParams,
+		_modelConfig?: LLMModelConfig,
 	): Promise<void> => {
 	},
 	PREPARE_SYSTEM_PROMPT: async (_system: string, _interactionId: string): Promise<string> => {

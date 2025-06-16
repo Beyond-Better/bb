@@ -27,7 +27,8 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { LLMRequestParams, ModelRoleConfigs, RoleModelConfig } from 'api/types/llms.ts';
+import type { LLMModelConfig, LLMRequestParams, LLMRolesModelConfig } from 'api/types/llms.ts';
+import type { CollaborationParams } from 'shared/types/collaborationParams.ts';
 import type { ConversationResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
@@ -340,8 +341,12 @@ class ConversationPersistence {
 				...conv,
 				conversationStats: (conv as ConversationMetadata).conversationStats ||
 					ConversationPersistence.defaultConversationStats(),
-				requestParams: (conv as ConversationMetadata).requestParams ||
-					ConversationPersistence.defaultRequestParams(),
+				// for interaction storage
+				modelConfig: (conv as ConversationMetadata).modelConfig ||
+					ConversationPersistence.defaultModelConfig(),
+				// for collaboration storage
+				collaborationParams: (conv as ConversationMetadata).collaborationParams ||
+					ConversationPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
@@ -413,7 +418,10 @@ class ConversationPersistence {
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
 				tokenUsageStats: conversation.tokenUsageStats,
-				requestParams: conversation.requestParams,
+				// for interaction storage
+				modelConfig: conversation.modelConfig,
+				// for collaboration storage
+				collaborationParams: conversation.collaborationParams,
 				llmProviderName: conversation.llmProviderName,
 				model: conversation.model,
 				createdAt: new Date().toISOString(),
@@ -436,7 +444,10 @@ class ConversationPersistence {
 				conversationStats: conversation.conversationStats,
 				conversationMetrics: conversation.conversationMetrics,
 
-				requestParams: conversation.requestParams,
+				// for interaction storage
+				modelConfig: conversation.modelConfig,
+				// for collaboration storage
+				collaborationParams: conversation.collaborationParams,
 
 				// Store analyzed token usage in metadata
 				tokenUsageStats: {
@@ -533,7 +544,10 @@ class ConversationPersistence {
 			conversation.conversationStats = metadata.conversationStats;
 			//conversation.conversationMetrics = metadata.conversationMetrics;
 
-			conversation.requestParams = metadata.requestParams;
+				// for interaction storage
+			conversation.modelConfig = metadata.modelConfig;
+				// for collaboration storage
+			conversation.collaborationParams = metadata.collaborationParams;
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
@@ -687,8 +701,12 @@ class ConversationPersistence {
 					ConversationPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
 					ConversationPersistence.defaultConversationMetrics(),
-				requestParams: conversation.requestParams ||
-					ConversationPersistence.defaultRequestParams(),
+				// for interaction storage
+				modelConfig: conversation.modelConfig ||
+					ConversationPersistence.defaultModelConfig(),
+				// for collaboration storage
+				collaborationParams: conversation.collaborationParams ||
+					ConversationPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
@@ -705,8 +723,12 @@ class ConversationPersistence {
 					ConversationPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
 					ConversationPersistence.defaultConversationMetrics(),
-				requestParams: conversation.requestParams ||
-					ConversationPersistence.defaultRequestParams(),
+				// for interaction storage
+				modelConfig: conversation.modelConfig ||
+					ConversationPersistence.defaultModelConfig(),
+				// for collaboration storage
+				collaborationParams: conversation.collaborationParams ||
+					ConversationPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
 						ConversationPersistence.defaultConversationTokenUsage(),
@@ -863,7 +885,7 @@ class ConversationPersistence {
 	}
 
 	async saveMetadata(metadata: Partial<ConversationDetailedMetadata>): Promise<void> {
-		// Set version 4 for new modelRoles format
+		// Set version 4 for new collaborationParams and modelConfig format
 		metadata.version = 4;
 		await this.ensureInitialized();
 		logger.debug(`ConversationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
@@ -873,7 +895,7 @@ class ConversationPersistence {
 		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
 		logger.debug(`ConversationPersistence: Saved metadata for conversation: ${this.conversationId}`);
 
-		// Update the conversations metadata file
+		// Update the stats in project-level conversations metadata file
 		await this.updateConversationsMetadata(updatedMetadata);
 	}
 
@@ -882,15 +904,24 @@ class ConversationPersistence {
 		if (await exists(this.metadataPath)) {
 			const metadataContent = await Deno.readTextFile(this.metadataPath);
 			const metadata = JSON.parse(metadataContent);
-			
+
 			// Migration logic for older versions
 			if (!metadata.version || metadata.version < 4) {
 				// Migrate from version 3 or lower to version 4
-				if (metadata.requestParams && !metadata.requestParams.modelRoles) {
-					// Move existing requestParams to modelRoles.orchestrator
-					const legacyParams = metadata.requestParams;
-					metadata.requestParams = {
-						modelRoles: {
+				if (metadata.requestParams && !metadata.modelConfig) {
+					// Move existing requestParams to rolesModelConfig.orchestrator
+					const legacyParams: LLMModelConfig = metadata.requestParams;
+				// for interaction storage
+					metadata.modelConfig = {
+						model: legacyParams.model || '',
+						temperature: legacyParams.temperature || 0.7,
+						maxTokens: legacyParams.maxTokens || 4000,
+						extendedThinking: legacyParams.extendedThinking,
+						usePromptCaching: legacyParams.usePromptCaching,
+					};
+				// for collaboration storage
+					metadata.collaborationParams = {
+						rolesModelConfig: {
 							orchestrator: {
 								model: legacyParams.model || '',
 								temperature: legacyParams.temperature || 0.7,
@@ -901,28 +932,28 @@ class ConversationPersistence {
 							agent: null,
 							chat: null,
 						},
-						// Keep legacy fields for backward compatibility
-						model: legacyParams.model,
-						temperature: legacyParams.temperature,
-						maxTokens: legacyParams.maxTokens,
-						extendedThinking: legacyParams.extendedThinking,
-						usePromptCaching: legacyParams.usePromptCaching,
 					};
-					
-					logger.info(`ConversationPersistence: Migrated requestParams from version ${metadata.version || 'unknown'} to version 4 for conversation: ${this.conversationId}`);
+
+					logger.info(
+						`ConversationPersistence: Migrated requestParams from version ${
+							metadata.version || 'unknown'
+						} to version 4 for conversation: ${this.conversationId}`,
+					);
 				}
 				metadata.version = 4;
-				
+
 				// Save the migrated metadata back to disk to avoid re-migration on future reads
 				try {
 					await Deno.writeTextFile(this.metadataPath, JSON.stringify(metadata, null, 2));
-					logger.debug(`ConversationPersistence: Persisted migrated metadata for conversation: ${this.conversationId}`);
+					logger.debug(
+						`ConversationPersistence: Persisted migrated metadata for conversation: ${this.conversationId}`,
+					);
 				} catch (error) {
 					logger.warn(`ConversationPersistence: Failed to persist migrated metadata: ${errorMessage(error)}`);
 					// Continue even if save fails - the migration is still applied in memory
 				}
 			}
-			
+
 			return metadata;
 		}
 		return ConversationPersistence.defaultMetadata();
@@ -966,14 +997,9 @@ class ConversationPersistence {
 			totalAllTokens: 0,
 		};
 	}
-	static defaultRequestParams(): LLMRequestParams {
+				// for interaction storage
+	static defaultModelConfig(): LLMModelConfig {
 		return {
-			modelRoles: {
-				orchestrator: null,
-				agent: null,
-				chat: null,
-			},
-			// Legacy fields for backward compatibility
 			model: '',
 			temperature: 0,
 			maxTokens: 0,
@@ -981,9 +1007,19 @@ class ConversationPersistence {
 			usePromptCaching: false,
 		};
 	}
+				// for collaboration storage
+	static defaultCollaborationParams(): CollaborationParams {
+		return {
+			rolesModelConfig: {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+		};
+	}
 	static defaultMetadata(): ConversationDetailedMetadata {
 		const metadata = {
-			version: 4, // default version for new conversations with modelRoles
+			version: 4, // default version for new conversations with rolesModelConfig
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
 			parentInteractionId: undefined,
@@ -1005,7 +1041,10 @@ class ConversationPersistence {
 				tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
 			},
 
-			requestParams: ConversationPersistence.defaultRequestParams(),
+				// for interaction storage
+			modelConfig: ConversationPersistence.defaultModelConfig(),
+				// for collaboration storage
+			collaborationParams: ConversationPersistence.defaultCollaborationParams(),
 
 			conversationStats: ConversationPersistence.defaultConversationStats(),
 			conversationMetrics: ConversationPersistence.defaultConversationMetrics(),

@@ -6,6 +6,7 @@ import type {
 	ClientProjectData,
 	//ProjectStats,
 } from 'shared/types/project.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { WebSocketStatus } from './websocket.types.ts';
 //import type { DataSource } from 'api/resources/dataSource.ts';
 
@@ -58,7 +59,7 @@ export interface ChatHandlers {
 	clearError: () => void;
 	sendConverse: (
 		message: string,
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		attachedFiles?: LLMAttachedFiles,
 	) => Promise<void>;
 	selectConversation: (id: string) => Promise<void>;

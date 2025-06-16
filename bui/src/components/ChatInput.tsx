@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { batch, type Signal, signal, useComputed } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
-import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams, RoleModelConfig, ModelRoleConfigs } from '../types/llm.types.ts';
+import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from '../types/llm.types.ts';
 import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
@@ -15,7 +15,7 @@ import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
-import { getModelRoleIcon } from 'shared/svgImages.tsx';
+import { getControllerRoleIcon } from 'shared/svgImages.tsx';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -540,8 +540,8 @@ export function ChatInput({
 		}
 
 		// Auto-migrate from legacy single model to role structure
-		if (chatInputOptions.value.model && !chatInputOptions.value.modelRoles) {
-			const legacyConfig: RoleModelConfig = {
+		if (chatInputOptions.value.model && !chatInputOptions.value.rolesModelConfig) {
+			const legacyConfig: LLMModelConfig = {
 				model: chatInputOptions.value.model,
 				temperature: chatInputOptions.value.temperature || 0.7,
 				maxTokens: chatInputOptions.value.maxTokens || 4000,
@@ -551,11 +551,11 @@ export function ChatInput({
 			
 			const newOptions = {
 				...chatInputOptions.value,
-				modelRoles: {
+				rolesModelConfig: {
 					orchestrator: legacyConfig,
 					agent: legacyConfig,
 					chat: legacyConfig,
-				} as ModelRoleConfigs,
+				} as LLMRolesModelConfig,
 			};
 			
 			chatInputOptions.value = newOptions;
@@ -590,24 +590,24 @@ export function ChatInput({
 
 	// Load model capabilities when role or model changes
 	useEffect(() => {
-		const currentRoleConfig = chatInputOptions.value.modelRoles?.[selectedModelRole.value];
-		if (currentRoleConfig?.model && apiClient) {
+		const currentModelConfig = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value];
+		if (currentModelConfig?.model && apiClient) {
 			// Load capabilities for the current role's model
-			apiClient.getModelDetails(currentRoleConfig.model)
+			apiClient.getModelDetails(currentModelConfig.model)
 				.then(capabilities => {
 					if (capabilities) {
 						roleModelCapabilities.value = {
 							...roleModelCapabilities.value,
 							[selectedModelRole.value]: capabilities
 						};
-						console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentRoleConfig.model}`);
+						console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentModelConfig.model}`);
 					}
 				})
 				.catch(error => {
-					console.warn(`ChatInput: Failed to load capabilities for ${currentRoleConfig.model}:`, error);
+					console.warn(`ChatInput: Failed to load capabilities for ${currentModelConfig.model}:`, error);
 				});
 		}
-	}, [selectedModelRole.value, chatInputOptions.value.modelRoles, apiClient]);
+	}, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig, apiClient]);
 
 	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
 
@@ -1690,7 +1690,7 @@ export function ChatInput({
 												: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
 										}`}
 									>
-										{getModelRoleIcon(role, {
+										{getControllerRoleIcon(role, {
 											className: 'mr-1 w-4 h-4',
 											'aria-label': `${role} model`,
 										})}
@@ -1702,11 +1702,11 @@ export function ChatInput({
 
 						{/* Model Selector for Selected Role */}
 						<ModelSelector
-							key={`model-selector-${selectedModelRole.value}-${chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.model || ''}`}
+							key={`model-selector-${selectedModelRole.value}-${chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}`}
 							apiClient={apiClient}
 							context='conversation'
 							role={selectedModelRole.value}
-							value={chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.model || ''}
+							value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}
 							onChange={(modelId: string | ModelSelectionValue) => {
 								console.log(
 									'ChatInput: Model changed for role',
@@ -1715,28 +1715,28 @@ export function ChatInput({
 									modelId,
 								);
 								const newOptions = { ...chatInputOptions.value };
-								if (!newOptions.modelRoles) {
-									newOptions.modelRoles = {
+								if (!newOptions.rolesModelConfig) {
+									newOptions.rolesModelConfig = {
 										orchestrator: null,
 										agent: null,
 										chat: null,
 									};
 								}
-								const currentRoleConfig = newOptions.modelRoles[selectedModelRole.value] || {
+								const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
 									model: '',
 									temperature: 0.7,
 									maxTokens: 4000,
 									usePromptCaching: true,
 								};
-								newOptions.modelRoles[selectedModelRole.value] = {
-									...currentRoleConfig,
+								newOptions.rolesModelConfig[selectedModelRole.value] = {
+									...currentModelConfig,
 									model: modelId as string,
 								};
 								chatInputOptions.value = newOptions;
 								console.log(
 									'ChatInput: Updated role config for',
 									selectedModelRole.value,
-									newOptions.modelRoles[selectedModelRole.value],
+									newOptions.rolesModelConfig[selectedModelRole.value],
 								);
 							}}
 							label={`${
@@ -1749,7 +1749,7 @@ export function ChatInput({
 						<div className='space-y-1'>
 							<div className='flex justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Max Tokens: {chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.maxTokens || 4000}
+									Max Tokens: {chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens || 4000}
 								</label>
 							</div>
 							<input
@@ -1757,26 +1757,26 @@ export function ChatInput({
 								min='1000'
 								max={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.maxOutputTokens || 100000}
 								step='1000'
-								value={chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.maxTokens || 4000}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens || 4000}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
 									if (!e.target) return;
 									const input = e.target as HTMLInputElement;
 									const newOptions = { ...chatInputOptions.value };
-									if (!newOptions.modelRoles) {
-										newOptions.modelRoles = {
+									if (!newOptions.rolesModelConfig) {
+										newOptions.rolesModelConfig = {
 											orchestrator: null,
 											agent: null,
 											chat: null,
 										};
 									}
-									const currentRoleConfig = newOptions.modelRoles[selectedModelRole.value] || {
+									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
 										model: '',
 										temperature: 0.7,
 										maxTokens: 4000,
 										usePromptCaching: true,
 									};
-									newOptions.modelRoles[selectedModelRole.value] = {
-										...currentRoleConfig,
+									newOptions.rolesModelConfig[selectedModelRole.value] = {
+										...currentModelConfig,
 										maxTokens: parseInt(input.value, 10),
 									};
 									chatInputOptions.value = newOptions;
@@ -1789,7 +1789,7 @@ export function ChatInput({
 						<div className='space-y-1'>
 							<div className='flex justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Temperature: {(chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.temperature || 0.7).toFixed(1)}
+									Temperature: {(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature || 0.7).toFixed(1)}
 								</label>
 							</div>
 							<input
@@ -1797,26 +1797,26 @@ export function ChatInput({
 								min={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.constraints?.temperature?.min || 0}
 								max={roleModelCapabilities.value[selectedModelRole.value]?.capabilities.constraints?.temperature?.max || 1}
 								step='0.1'
-								value={chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.temperature || 0.7}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature || 0.7}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
 									if (!e.target) return;
 									const input = e.target as HTMLInputElement;
 									const newOptions = { ...chatInputOptions.value };
-									if (!newOptions.modelRoles) {
-										newOptions.modelRoles = {
+									if (!newOptions.rolesModelConfig) {
+										newOptions.rolesModelConfig = {
 											orchestrator: null,
 											agent: null,
 											chat: null,
 										};
 									}
-									const currentRoleConfig = newOptions.modelRoles[selectedModelRole.value] || {
+									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
 										model: '',
 										temperature: 0.7,
 										maxTokens: 4000,
 										usePromptCaching: true,
 									};
-									newOptions.modelRoles[selectedModelRole.value] = {
-										...currentRoleConfig,
+									newOptions.rolesModelConfig[selectedModelRole.value] = {
+										...currentModelConfig,
 										temperature: parseFloat(input.value),
 									};
 									chatInputOptions.value = newOptions;
@@ -1833,33 +1833,33 @@ export function ChatInput({
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
-										checked={chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.extendedThinking?.enabled || false}
+										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.extendedThinking?.enabled || false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
 											const newOptions = { ...chatInputOptions.value };
-											if (!newOptions.modelRoles) {
-												newOptions.modelRoles = {
+											if (!newOptions.rolesModelConfig) {
+												newOptions.rolesModelConfig = {
 													orchestrator: null,
 													agent: null,
 													chat: null,
 												};
 											}
-											const currentRoleConfig = newOptions.modelRoles[selectedModelRole.value] || {
+											const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
 												model: '',
 												temperature: 0.7,
 												maxTokens: 4000,
 												usePromptCaching: true,
 											};
-											if (!currentRoleConfig.extendedThinking) {
-												currentRoleConfig.extendedThinking = {
+											if (!currentModelConfig.extendedThinking) {
+												currentModelConfig.extendedThinking = {
 													enabled: input.checked,
 													budgetTokens: 4096,
 												};
 											} else {
-												currentRoleConfig.extendedThinking.enabled = input.checked;
+												currentModelConfig.extendedThinking.enabled = input.checked;
 											}
-											newOptions.modelRoles[selectedModelRole.value] = currentRoleConfig;
+											newOptions.rolesModelConfig[selectedModelRole.value] = currentModelConfig;
 											chatInputOptions.value = newOptions;
 										}}
 										className='sr-only'
@@ -1893,26 +1893,26 @@ export function ChatInput({
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
-										checked={chatInputOptions.value.modelRoles?.[selectedModelRole.value]?.usePromptCaching !== false}
+										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.usePromptCaching !== false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
 											const newOptions = { ...chatInputOptions.value };
-											if (!newOptions.modelRoles) {
-												newOptions.modelRoles = {
+											if (!newOptions.rolesModelConfig) {
+												newOptions.rolesModelConfig = {
 													orchestrator: null,
 													agent: null,
 													chat: null,
 												};
 											}
-											const currentRoleConfig = newOptions.modelRoles[selectedModelRole.value] || {
+											const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
 												model: '',
 												temperature: 0.7,
 												maxTokens: 4000,
 												usePromptCaching: true,
 											};
-											newOptions.modelRoles[selectedModelRole.value] = {
-												...currentRoleConfig,
+											newOptions.rolesModelConfig[selectedModelRole.value] = {
+												...currentModelConfig,
 												usePromptCaching: input.checked,
 											};
 											chatInputOptions.value = newOptions;

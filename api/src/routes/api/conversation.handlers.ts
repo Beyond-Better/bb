@@ -235,17 +235,44 @@ export const getConversation = async (
 					tokenUsageConversation: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
 				},
 				// Include default request params for this conversation
-				requestParams: {
-					model: defaultModels.orchestrator,
-					temperature: 0.7,
-					maxTokens: 16384,
-					extendedThinking: {
-						enabled: projectConfig.api?.extendedThinking?.enabled ??
-							globalConfig.api.extendedThinking?.enabled ?? true,
-						budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
-							globalConfig.api.extendedThinking?.budgetTokens || 4096,
+				rolesModelConfig: {
+					orchestrator: {
+						model: defaultModels.orchestrator,
+						temperature: 0.7,
+						maxTokens: 16384,
+						extendedThinking: {
+							enabled: projectConfig.api?.extendedThinking?.enabled ??
+								globalConfig.api.extendedThinking?.enabled ?? true,
+							budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+								globalConfig.api.extendedThinking?.budgetTokens || 4096,
+						},
+						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
+							true,
 					},
-					usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
+					agent: {
+						model: defaultModels.agent,
+						temperature: 0.7,
+						maxTokens: 16384,
+						extendedThinking: {
+							enabled: projectConfig.api?.extendedThinking?.enabled ??
+								globalConfig.api.extendedThinking?.enabled ?? true,
+							budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+								globalConfig.api.extendedThinking?.budgetTokens || 4096,
+						},
+						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
+							true,
+					},
+					chat: {
+						model: defaultModels.chat,
+						temperature: 0.7,
+						maxTokens: 4096,
+						extendedThinking: {
+							enabled: false,
+							budgetTokens: 0,
+						},
+						usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ??
+							true,
+					},
 				},
 			};
 			return;
@@ -289,18 +316,19 @@ export const getConversation = async (
 			tokenUsageStats: {
 				tokenUsageConversation: interaction.tokenUsageInteraction,
 			},
-			requestParams: {
-				model: interaction.model,
-				temperature: interaction.temperature,
-				maxTokens: interaction.maxTokens,
-				extendedThinking: {
-					enabled: projectConfig.api?.extendedThinking?.enabled ??
-						globalConfig.api.extendedThinking?.enabled ?? true,
-					budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
-						globalConfig.api.extendedThinking?.budgetTokens || 4096,
-				},
-				usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
-			},
+			rolesModelConfig: interaction.rolesModelConfig,
+			// requestParams: {
+			// 	model: interaction.model,
+			// 	temperature: interaction.temperature,
+			// 	maxTokens: interaction.maxTokens,
+			// 	extendedThinking: {
+			// 		enabled: projectConfig.api?.extendedThinking?.enabled ??
+			// 			globalConfig.api.extendedThinking?.enabled ?? true,
+			// 		budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+			// 			globalConfig.api.extendedThinking?.budgetTokens || 4096,
+			// 	},
+			// 	usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
+			// },
 		};
 	} catch (error) {
 		logger.error(`ConversationHandler: Error in getConversation: ${errorMessage(error)}`);
@@ -452,7 +480,7 @@ export const listConversations = async (
 				model: conv.model,
 				conversationStats: conv.conversationStats,
 				tokenUsageStats: conv.tokenUsageStats,
-				requestParams: conv.requestParams,
+				rolesModelConfig: conv.rolesModelConfig,
 			})),
 			pagination: {
 				page: page,

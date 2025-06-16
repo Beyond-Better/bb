@@ -13,7 +13,7 @@ import type { SvgRenderOptions } from 'shared/svgImages.ts';
 /**
  * Common SVG props for model role icons
  */
-export interface ModelRoleIconProps {
+export interface ControllerRoleIconProps {
 	className?: string;
 	'aria-label'?: string;
 	style?: JSX.CSSProperties;
@@ -26,7 +26,7 @@ export interface ModelRoleIconProps {
  * Represents coordination, delegation, and workflow orchestration.
  * Uses a conductor/hub metaphor with connecting lines.
  */
-export function OrchestratorIcon(props: ModelRoleIconProps = {}): JSX.Element {
+export function OrchestratorIcon(props: ControllerRoleIconProps = {}): JSX.Element {
 	const { className, 'aria-label': ariaLabel, style, useCurrentColor = true } = props;
 	const strokeColor = useCurrentColor ? 'currentColor' : '#8B5CF6';
 
@@ -72,7 +72,7 @@ export function OrchestratorIcon(props: ModelRoleIconProps = {}): JSX.Element {
  * Represents focused task execution and tool usage.
  * Uses a gear/cog metaphor to show mechanical precision.
  */
-export function AgentIcon(props: ModelRoleIconProps = {}): JSX.Element {
+export function AgentIcon(props: ControllerRoleIconProps = {}): JSX.Element {
 	const { className, 'aria-label': ariaLabel, style, useCurrentColor = true } = props;
 	const strokeColor = useCurrentColor ? 'currentColor' : '#10B981';
 
@@ -119,7 +119,7 @@ export function AgentIcon(props: ModelRoleIconProps = {}): JSX.Element {
  * Represents administrative tasks, documentation, and meta-operations.
  * Uses a clipboard/document metaphor with checkmarks.
  */
-export function ChatIcon(props: ModelRoleIconProps = {}): JSX.Element {
+export function ChatIcon(props: ControllerRoleIconProps = {}): JSX.Element {
 	const { className, 'aria-label': ariaLabel, style, useCurrentColor = true } = props;
 	const strokeColor = useCurrentColor ? 'currentColor' : '#F59E0B';
 
@@ -156,9 +156,9 @@ export function ChatIcon(props: ModelRoleIconProps = {}): JSX.Element {
  * @param props - Icon props
  * @returns JSX Element
  */
-export function getModelRoleIcon(
+export function getControllerRoleIcon(
 	role: string,
-	props: ModelRoleIconProps = {},
+	props: ControllerRoleIconProps = {},
 ): JSX.Element {
 	switch (role.toLowerCase()) {
 		case 'orchestrator':

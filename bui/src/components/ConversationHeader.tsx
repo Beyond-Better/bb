@@ -95,7 +95,7 @@ export function ConversationHeader({
 		return {
 			model: currentConversation.value.model || 'Unknown',
 			provider: currentConversation.value.llmProviderName || 'Unknown',
-			requestParams: currentConversation.value.requestParams,
+			modelConfig: currentConversation.value.modelConfig,
 			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
 			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
 		};

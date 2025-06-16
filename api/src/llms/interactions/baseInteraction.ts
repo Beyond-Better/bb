@@ -2,7 +2,7 @@
 //import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
-import { type LLMCallbacks, LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider } from 'api/types.ts';
+import { type LLMCallbacks, LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider, type LLMModelConfig } from 'api/types.ts';
 import type {
 	CacheImpact,
 	ConversationId,
@@ -112,8 +112,8 @@ class LLMInteraction {
 	protected _temperature: number = 0.2;
 	protected _currentPrompt: string = '';
 
-	protected _requestParams?: LLMRequestParams;
-	// 	protected _requestParams: LLMRequestParams = {
+	protected _modelConfig?: LLMModelConfig;
+	// 	protected _modelConfig: LLMModelConfig = {
 	// 		model: '',
 	// 		temperature: 0,
 	// 		maxTokens: 0,
@@ -165,7 +165,7 @@ class LLMInteraction {
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
-				requestParams?: LLMRequestParams,
+				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
@@ -177,7 +177,7 @@ class LLMInteraction {
 					logEntry,
 					conversationStats,
 					tokenUsageStats,
-					requestParams,
+					modelConfig,
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
@@ -237,11 +237,11 @@ class LLMInteraction {
 		this._tokenUsageInteraction = stats.tokenUsageConversation;
 	}
 
-	public get requestParams(): LLMRequestParams | undefined {
-		return this._requestParams;
+	public get modelConfig(): LLMModelConfig | undefined {
+		return this._modelConfig;
 	}
-	public set requestParams(requestParams: LLMRequestParams | undefined) {
-		this._requestParams = requestParams;
+	public set modelConfig(modelConfig: LLMModelConfig | undefined) {
+		this._modelConfig = modelConfig;
 	}
 
 	public get totalProviderRequests(): number {

@@ -3,7 +3,8 @@ import type { Context, RouterContext } from '@oak/oak';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
 import type { ConversationId } from 'shared/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+//import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
@@ -98,14 +99,14 @@ class WebSocketChatHandler {
 			statement: string;
 			projectId: string;
 			options?: { maxTurns?: number }; // statement options
-			requestParams: LLMRequestParams; // LLM request params
+			statementParams: StatementParams; // LLM request params
 			filesToAttach?: string[]; // Array of file IDs to include in message
 			dataSourceIdForAttach?: string; // Data source to load attached files from
 		},
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, options, requestParams, filesToAttach, dataSourceIdForAttach } =
+			const { task, statement, projectId, options, statementParams, filesToAttach, dataSourceIdForAttach } =
 				message;
 			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
@@ -174,7 +175,7 @@ class WebSocketChatHandler {
 						statement,
 						conversationId,
 						options,
-						requestParams,
+						statementParams,
 						filesToAttach,
 						dataSourceIdForAttach,
 					);

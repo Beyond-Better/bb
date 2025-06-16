@@ -648,7 +648,7 @@ class AgentController extends BaseController {
 					tokenUsageStatement: interaction.tokenUsageStatement,
 					tokenUsageConversation: interaction.tokenUsageInteraction,
 				},
-				currentResponse.messageMeta.requestParams,
+				currentResponse.messageMeta.llmRequestParams.modelConfig,
 			);
 
 			const completedTask: CompletedTask = {

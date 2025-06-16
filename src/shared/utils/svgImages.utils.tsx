@@ -45,15 +45,15 @@ import {
 } from './svg/characteristics.tsx';
 
 import { 
-	getModelRoleIcon as getModelRoleIconComponent,
+	getControllerRoleIcon as getControllerRoleIconComponent,
 	OrchestratorIcon,
 	AgentIcon,
 	ChatIcon,
-	type ModelRoleIconProps
-} from './svg/modelRoles.tsx';
+	type ControllerRoleIconProps
+} from './svg/controllerRoles.tsx';
 
 // Re-export types for convenience
-export type { ProviderIconProps, CharacteristicIconProps, ModelRoleIconProps };
+export type { ProviderIconProps, CharacteristicIconProps, ControllerRoleIconProps };
 
 export interface SvgRenderOptions {
 	useCurrentColor?: boolean;
@@ -143,25 +143,25 @@ export function getCharacteristicIcon(
  * @example
  * ```tsx
  * // Role icons with default styling (currentColor)
- * const orchestratorIcon = getModelRoleIcon('orchestrator');
- * const agentIcon = getModelRoleIcon('agent');
- * const chatIcon = getModelRoleIcon('chat');
+ * const orchestratorIcon = getControllerRoleIcon('orchestrator');
+ * const agentIcon = getControllerRoleIcon('agent');
+ * const chatIcon = getControllerRoleIcon('chat');
  * 
  * // With custom styling
- * const orchestratorStyled = getModelRoleIcon('orchestrator', { 
+ * const orchestratorStyled = getControllerRoleIcon('orchestrator', { 
  *   className: 'w-5 h-5 text-purple-600',
  *   'aria-label': 'Orchestrator model'
  * });
  * 
  * // With brand colors
- * const orchestratorBranded = getModelRoleIcon('orchestrator', { useCurrentColor: false });
+ * const orchestratorBranded = getControllerRoleIcon('orchestrator', { useCurrentColor: false });
  * ```
  */
-export function getModelRoleIcon(
+export function getControllerRoleIcon(
 	role: 'orchestrator' | 'agent' | 'chat',
-	props: ModelRoleIconProps = {}
+	props: ControllerRoleIconProps = {}
 ): JSX.Element {
-	return getModelRoleIconComponent(role, props);
+	return getControllerRoleIconComponent(role, props);
 }
 
 

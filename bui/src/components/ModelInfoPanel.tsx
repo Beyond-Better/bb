@@ -2,7 +2,7 @@ import { JSX } from 'preact';
 import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
 import type { ModelDetails } from '../utils/apiClient.utils.ts';
-import type { LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMModelConfig } from '../types/llm.types.ts';
 import type { TokenUsage } from 'shared/types.ts';
 
 interface ModelInfoPanelProps {
@@ -11,7 +11,7 @@ interface ModelInfoPanelProps {
 	modelInfo: {
 		model: string;
 		provider: string;
-		requestParams?: LLMRequestParams;
+		modelConfig?: LLMModelConfig;
 		tokenUsageConversation?: TokenUsage;
 		tokenUsageTurn?: TokenUsage;
 	};
@@ -24,13 +24,13 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 	//console.log(`ModelInfoPanel: ${isOpen ? 'Open' : 'Closed'}`);
 	//console.log(`ModelInfoPanel:`, {modelInfo});
 	console.log(`ModelInfoPanel:`, { modelData: modelData.value });
-	const { model, provider, requestParams, tokenUsageTurn, tokenUsageConversation } = modelInfo;
+	const { model, provider, modelConfig, tokenUsageTurn, tokenUsageConversation } = modelInfo;
 
 	// Extract request parameters or use defaults
-	const temperature = requestParams?.temperature ?? 0;
-	const maxTokens = requestParams?.maxTokens ?? 0;
-	const extendedThinking = requestParams?.extendedThinking;
-	const promptCaching = requestParams?.usePromptCaching ?? false;
+	const temperature = modelConfig?.temperature ?? 0;
+	const maxTokens = modelConfig?.maxTokens ?? 0;
+	const extendedThinking = modelConfig?.extendedThinking;
+	const promptCaching = modelConfig?.usePromptCaching ?? false;
 
 	// Extract token usage values
 	const contextWindow = modelData.value?.capabilities.contextWindow || 0;

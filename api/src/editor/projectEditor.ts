@@ -25,6 +25,7 @@ import type {
 	ResourcesForConversation,
 } from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { ConversationId, ConversationResponse } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
@@ -334,20 +335,20 @@ class ProjectEditor {
 		statement: string,
 		conversationId: ConversationId,
 		options?: { maxTurns?: number },
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		filesToAttach?: string[],
 		dsConnectionIdForAttach?: string,
 	): Promise<ConversationResponse> {
 		await this.initConversation(conversationId);
 		logger.info(
 			`ProjectEditor: Initialized conversation with ID: ${conversationId}, handling statement`,
-			//{options, requestParams}
+			//{options, statementParams}
 		);
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,
 			conversationId,
 			options,
-			requestParams,
+			statementParams,
 			filesToAttach,
 			dsConnectionIdForAttach,
 		);

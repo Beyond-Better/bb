@@ -9,11 +9,12 @@ import type {
 	ClientProjectWithConfigSources,
 } from 'shared/types/project.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
+import type { CollaborationParams } from 'shared/types/collaborationParams.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
-import type { LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMRequestParams, LLMModelConfig } from '../types/llm.types.ts';
 import type {
 	BillingPreviewResults,
 	BillingPreviewWithUsage,
@@ -106,16 +107,8 @@ interface ConversationResponse {
 		tokenUsageStatement: TokenUsage;
 		totalTokensTotal: TokenUsage;
 	};
-	requestParams: {
-		model: string;
-		temperature: number;
-		maxTokens: number;
-		extendedThinking: {
-			enabled: boolean;
-			budgetTokens: number;
-		};
-		usePromptCaching: boolean;
-	};
+	modelConfig:LLMModelConfig;
+	collaborationParams: CollaborationParams;
 }
 
 export interface ConversationListResponse {

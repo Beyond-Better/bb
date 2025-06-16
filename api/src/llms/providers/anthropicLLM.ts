@@ -582,19 +582,21 @@ class AnthropicLLM extends LLM {
 			//logger.debug(`LlmProvider[${this.llmProviderName}]: llms-anthropic-messageResponse`, messageResponse);
 
 			// Include request parameters in messageMeta
-			const requestParams: LLMRequestParams = {
-				model: messageRequest.model,
-				maxTokens: providerMessageRequest.max_tokens!,
-				temperature: providerMessageRequest.temperature!,
-				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.max_tokens!,
+					temperature: providerMessageRequest.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
 			};
 
 			return {
 				messageResponse,
 				messageMeta: {
 					system: messageRequest.system,
-					requestParams,
+					llmRequestParams,
 				},
 			};
 		} catch (err) {

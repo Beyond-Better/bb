@@ -20,7 +20,7 @@ export interface InteractionInstanceInfo {
 	llmProvider: {
 		name: string;
 	};
-	requestParams?: {
+	modelConfig?: {
 		model: string;
 		temperature?: number;
 		maxTokens?: number;
@@ -112,13 +112,13 @@ function inspectInteractionForEditor(interaction: LLMInteraction): InteractionIn
 		llmProvider: {
 			name: interaction.llmProviderName,
 		},
-		requestParams: interaction.requestParams
+		modelConfig: interaction.modelConfig
 			? {
-				model: interaction.requestParams.model,
-				temperature: interaction.requestParams.temperature,
-				maxTokens: interaction.requestParams.maxTokens,
-				extendedThinking: interaction.requestParams.extendedThinking?.enabled,
-				usePromptCaching: interaction.requestParams.usePromptCaching,
+				model: interaction.modelConfig.model,
+				temperature: interaction.modelConfig.temperature,
+				maxTokens: interaction.modelConfig.maxTokens,
+				extendedThinking: interaction.modelConfig.extendedThinking?.enabled,
+				usePromptCaching: interaction.modelConfig.usePromptCaching,
 			}
 			: undefined,
 	};
@@ -404,9 +404,9 @@ export async function formatInstanceOverview(options: { detailed?: boolean } = {
 						if (interaction.title) {
 							lines.push(`          Title: ${interaction.title}`);
 						}
-						if (interaction.requestParams) {
+						if (interaction.modelConfig) {
 							lines.push(
-								`          Params: temp=${interaction.requestParams.temperature}, maxTokens=${interaction.requestParams.maxTokens}, cache=${interaction.requestParams.usePromptCaching}`,
+								`          Params: temp=${interaction.modelConfig.temperature}, maxTokens=${interaction.modelConfig.maxTokens}, cache=${interaction.modelConfig.usePromptCaching}`,
 							);
 						}
 					}

@@ -8,7 +8,7 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
 import type { ConversationId, ConversationLogDataEntry, ConversationStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMModelConfig } from 'api/types/llms.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -85,7 +85,7 @@ export default class ConversationLogger {
 			logEntry: ConversationLogEntry,
 			conversationStats: ConversationStats,
 			tokenUsageStats: TokenUsageStats,
-			requestParams?: LLMRequestParams,
+			modelConfig?: LLMModelConfig,
 		) => Promise<void>,
 	) {
 		this.projectId = projectEditor.projectId;
@@ -176,7 +176,7 @@ export default class ConversationLogger {
 				totalAllTokens: 0,
 			},
 		},
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	) {
 		const timestamp = this.getTimestamp();
 
@@ -191,7 +191,7 @@ export default class ConversationLogger {
 				logEntry,
 				conversationStats,
 				tokenUsageStats,
-				requestParams,
+				modelConfig,
 			);
 		} catch (error) {
 			logger.error('Error in logEntryHandler:', error);
@@ -204,7 +204,7 @@ export default class ConversationLogger {
 			logEntry,
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		);
 		try {
 			await this.appendToRawLog(rawEntry);
@@ -220,7 +220,7 @@ export default class ConversationLogger {
 			logEntry,
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		});
 		try {
 			await this.appendToJsonLog(jsonEntry);
@@ -261,7 +261,7 @@ export default class ConversationLogger {
 		thinking: string,
 		conversationStats: ConversationStats,
 		tokenUsageStats: TokenUsageStats,
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
 			messageId,
@@ -274,7 +274,7 @@ export default class ConversationLogger {
 			},
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		);
 	}
 
@@ -286,7 +286,7 @@ export default class ConversationLogger {
 		assistantThinking: string,
 		conversationStats: ConversationStats,
 		tokenUsageStats: TokenUsageStats,
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
 			messageId,
@@ -299,7 +299,7 @@ export default class ConversationLogger {
 			},
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		);
 	}
 
@@ -310,7 +310,7 @@ export default class ConversationLogger {
 		message: string | AuxiliaryChatContent,
 		conversationStats?: ConversationStats,
 		tokenUsageStats?: TokenUsageStats,
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
 			messageId,
@@ -319,7 +319,7 @@ export default class ConversationLogger {
 			{ entryType: 'auxiliary', content: message },
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		);
 	}
 
@@ -331,7 +331,7 @@ export default class ConversationLogger {
 		toolInput: LLMToolInputSchema,
 		conversationStats: ConversationStats,
 		tokenUsageStats: TokenUsageStats,
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	) {
 		try {
 			await this.logEntry(
@@ -341,7 +341,7 @@ export default class ConversationLogger {
 				{ entryType: 'tool_use', content: toolInput, toolName },
 				conversationStats,
 				tokenUsageStats,
-				requestParams,
+				modelConfig,
 			);
 		} catch (error) {
 			logger.error('Error in logEntry for logToolUse:', error);
@@ -388,7 +388,7 @@ export default class ConversationLogger {
 		logEntry: ConversationLogEntry,
 		_conversationStats: ConversationStats,
 		_tokenUsageStats: TokenUsageStats,
-		_requestParams?: LLMRequestParams,
+		_modelConfig?: LLMModelConfig,
 	): Promise<string> {
 		// [TODO] add token usage to header line
 		const formattedContent = await this.logEntryFormatterManager.formatLogEntry(
@@ -415,7 +415,7 @@ export default class ConversationLogger {
 		logEntry: ConversationLogEntry,
 		conversationStats: ConversationStats,
 		tokenUsageStats: TokenUsageStats,
-		requestParams?: LLMRequestParams,
+		modelConfig?: LLMModelConfig,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
 			parentMessageId,
@@ -424,7 +424,7 @@ export default class ConversationLogger {
 			logEntry,
 			conversationStats,
 			tokenUsageStats,
-			requestParams,
+			modelConfig,
 		);
 		// Ensure entry ends with a single newline and the separator
 		rawEntry = rawEntry.trimEnd() + '\n' + ConversationLogger.getEntrySeparator() + '\n';

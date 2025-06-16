@@ -20,6 +20,7 @@ import type { EventPayloadMap } from 'shared/eventManager.ts';
 import type { CompletedTask, ErrorHandlingConfig, LLMRequestParams, Task } from 'api/types/llms.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	ConversationId,
@@ -179,7 +180,7 @@ class OrchestratorController extends BaseController {
 		statement: string,
 		conversationId: ConversationId,
 		options: { maxTurns?: number } = {},
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		resourcesToAttach?: string[], // Array of resource IDs
 		_dataSourceIdForAttach?: string, // Data source to load attached resources from
 	): Promise<ConversationResponse> {
@@ -362,7 +363,7 @@ class OrchestratorController extends BaseController {
 			);
 
 			const speakOptions: LLMSpeakWithOptions = {
-				...requestParams,
+				...statementParams.rolesModelConfig.orchestrator,
 				//model: this.projectConfig?.defaultModels?.orchestrator
 				// //temperature: 0.7,
 				// //maxTokens: 1000,
@@ -482,7 +483,7 @@ class OrchestratorController extends BaseController {
 									tokenUsageStatement: interaction.tokenUsageStatement,
 									tokenUsageConversation: interaction.tokenUsageInteraction,
 								},
-								currentResponse.messageMeta.requestParams,
+								currentResponse.messageMeta.llmRequestParams.modelConfig,
 							);
 						}
 
@@ -756,7 +757,7 @@ class OrchestratorController extends BaseController {
 				assistantThinking,
 				statementAnswer.conversationStats,
 				statementAnswer.tokenUsageStats,
-				currentResponse.messageMeta.requestParams,
+				currentResponse.messageMeta.llmRequestParams.modelConfig,
 			);
 
 			this.resetStatus(interaction.id);

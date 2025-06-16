@@ -502,19 +502,21 @@ class BbLLM extends LLM {
 			//logger.debug(`BbLLM:provider[${this.llmProviderName}]: llms-anthropic-messageResponse`, messageResponse);
 
 			// Include request parameters in messageMeta
-			const requestParams: LLMRequestParams = bbResponseMessage.metadata.requestParams || {
-				model: messageRequest.model,
-				maxTokens: providerMessageRequest.maxTokens,
-				temperature: providerMessageRequest.temperature,
-				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: providerMessageRequest.usePromptCaching,
+			const llmRequestParams: LLMRequestParams = bbResponseMessage.metadata.llmRequestParams || {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.maxTokens,
+					temperature: providerMessageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: providerMessageRequest.usePromptCaching,
+				},
 			};
 
 			return {
 				messageResponse,
 				messageMeta: {
 					system: messageRequest.system,
-					requestParams,
+					llmRequestParams,
 				},
 			};
 		} catch (err) {

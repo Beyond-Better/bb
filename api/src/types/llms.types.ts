@@ -308,7 +308,7 @@ export type LLMProviderSystem = string | LLMMessageContentPart;
 /**
  * Configuration for a specific role's model and parameters
  */
-export interface RoleModelConfig {
+export interface LLMModelConfig {
 	model: string;
 	temperature: number;
 	maxTokens: number;
@@ -319,32 +319,31 @@ export interface RoleModelConfig {
 /**
  * Model configurations for all three BB roles
  */
-export interface ModelRoleConfigs {
-	orchestrator: RoleModelConfig | null;
-	agent: RoleModelConfig | null;
-	chat: RoleModelConfig | null;
+export interface LLMRolesModelConfig {
+	orchestrator: LLMModelConfig | null;
+	agent: LLMModelConfig | null;
+	chat: LLMModelConfig | null;
 }
 
 /**
  * Request parameters used when calling the LLM provider
  */
 export interface LLMRequestParams {
-	/**
-	 * Role-specific model configurations
-	 */
-	modelRoles: ModelRoleConfigs;
+	modelConfig: LLMModelConfig;
 
-	// Legacy fields for migration - will be removed
-	model?: string;
-	temperature?: number;
-	maxTokens?: number;
-	extendedThinking?: LLMExtendedThinkingOptions;
-	usePromptCaching?: boolean;
+	// // Legacy fields for migration - will be removed
+	// model?: string;
+	// temperature?: number;
+	// maxTokens?: number;
+	// extendedThinking?: LLMExtendedThinkingOptions;
+	// usePromptCaching?: boolean;
 }
+
+
 
 export interface LLMProviderMessageMeta {
 	system: LLMProviderSystem;
-	requestParams?: LLMRequestParams;
+	llmRequestParams: LLMRequestParams;
 }
 
 export type LLMValidateResponseCallback = (
@@ -441,7 +440,7 @@ export interface BBLLMResponseMetadata {
 	isTool: boolean;
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
-	requestParams?: LLMRequestParams;
+	llmRequestParams?: LLMRequestParams;
 	rawUsage: Record<string, number>;
 }
 

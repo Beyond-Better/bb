@@ -19,6 +19,7 @@ import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
 import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
@@ -296,7 +297,8 @@ export function useChatState(
 						id: conversation.id,
 						title: conversation.title || 'Untitled Conversation',
 						tokenUsageStats: conversation.tokenUsageStats,
-						requestParams: conversation.requestParams,
+						modelConfig: conversation.modelConfig,
+						collaborationParams: conversation.collaborationParams,
 						conversationStats: conversation.conversationStats,
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),
@@ -533,7 +535,8 @@ export function useChatState(
 						id: data.logDataEntry.conversationId,
 						title: data.logDataEntry.conversationTitle,
 						tokenUsageStats: data.logDataEntry.tokenUsageStats,
-						requestParams: data.logDataEntry.requestParams,
+						modelConfig: data.logDataEntry.modelConfig,
+						collaborationParams: data.logDataEntry.collaborationParams,
 						conversationStats: data.logDataEntry.conversationStats,
 						createdAt: data.logDataEntry.timestamp,
 						updatedAt: data.logDataEntry.timestamp,
@@ -603,7 +606,8 @@ export function useChatState(
 							...conv,
 							tokenUsageStats: data.logDataEntry.tokenUsageStats,
 							conversationStats: data.logDataEntry.conversationStats,
-							requestParams: data.logDataEntry.requestParams,
+							modelConfig: data.logDataEntry.modelConfig,
+							collaborationParams: data.logDataEntry.collaborationParams,
 							updatedAt: data.logDataEntry.timestamp,
 						};
 					}
@@ -642,14 +646,17 @@ export function useChatState(
 				// });
 
 				// Update chatInputOptions with the request parameters from the response if available
-				if (chatInputOptions && data.logDataEntry.requestParams) {
+				if (chatInputOptions && data.logDataEntry.collaborationParams) {
 					console.info(
 						'useChatState: wsManager effect: Updating options from message response',
-						data.logDataEntry.requestParams,
+						data.logDataEntry.collaborationParams,
 					);
 					chatInputOptions.value = {
 						...chatInputOptions.value,
-						...data.logDataEntry.requestParams,
+						rolesModelConfig: {
+							...chatInputOptions.value.rolesModelConfig,
+							...data.logDataEntry.collaborationParams.rolesModelConfig,
+						},
 					};
 				}
 
@@ -848,7 +855,7 @@ export function useChatState(
 		},
 		 */
 
-		sendConverse: async (message: string, requestParams?: LLMRequestParams, attachedFiles?: LLMAttachedFiles) => {
+		sendConverse: async (message: string, statementParams?: StatementParams, attachedFiles?: LLMAttachedFiles) => {
 			if (!chatState.value.wsManager) {
 				console.error('useChatState: sendConverse: wsManager is null');
 				throw new Error('Chat system is not initialized');
@@ -867,7 +874,7 @@ export function useChatState(
 					console.error('useChatState: sendConverse: wsManager is null before sending message');
 					throw new Error('Chat WebSocket manager was lost during message send');
 				}
-				await chatState.value.wsManager.sendConverse(message, requestParams, attachedFiles);
+				await chatState.value.wsManager.sendConverse(message, statementParams, attachedFiles);
 			} catch (error) {
 				console.error('useChatState: sendConverse: Failed to send message:', error);
 				chatState.value = {
@@ -920,7 +927,8 @@ export function useChatState(
 						id: conversation.id,
 						title: conversation.title || 'Untitled Conversation',
 						tokenUsageStats: conversation.tokenUsageStats,
-						requestParams: conversation.requestParams,
+						modelConfig: conversation.modelConfig,
+						collaborationParams: conversation.collaborationParams,
 						conversationStats: conversation.conversationStats,
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),

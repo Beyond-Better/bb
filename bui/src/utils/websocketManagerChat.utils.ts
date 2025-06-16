@@ -9,6 +9,7 @@ import type {
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import type { StatementParams } from 'shared/types/collaborationParams.ts';
 
 interface WebSocketMessage {
 	conversationId: string;
@@ -16,7 +17,7 @@ interface WebSocketMessage {
 	task: 'greeting' | 'converse' | 'cancel';
 	statement: string;
 	options?: { maxTurns?: number };
-	requestParams?: LLMRequestParams;
+	statementParams?: StatementParams;
 	filesToAttach?: string[];
 }
 
@@ -50,7 +51,7 @@ interface WebSocketResponse {
 			tokenUsageConversation?: TokenUsage;
 		};
 		conversationStats?: ConversationStats;
-		requestParams: LLMRequestParams;
+		statementParams: StatementParams;
 		formattedContent?: string;
 		error?: string;
 	};
@@ -125,7 +126,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 	// deno-lint-ignore require-await
 	async sendConverse(
 		message: string,
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		attachedFiles?: LLMAttachedFiles,
 	): Promise<void> {
 		if (!this.socket || !this.conversationId || !this._status.isReady) {
@@ -148,7 +149,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			task: 'converse',
 			statement: message,
 			options: {}, // statement options
-			requestParams, // LLM request params
+			statementParams, // LLM request params
 			filesToAttach,
 		};
 
@@ -186,7 +187,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					//timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
-					requestParams: msgData.data.requestParams,
+					statementParams: msgData.data.statementParams,
 					tokenUsageStats: {
 						tokenUsageTurn: msgData.data.tokenUsageStats.tokenUsageTurn || {
 							totalTokens: 0,

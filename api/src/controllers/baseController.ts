@@ -16,7 +16,7 @@ import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse, LLMRequestParams, RoleModelConfig, ModelRoleConfigs } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
 	//ConversationLogDataEntry,
@@ -30,6 +30,7 @@ import type {
 	TokenUsage,
 	TokenUsageStats,
 } from 'shared/types.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
@@ -63,7 +64,7 @@ class BaseController {
 	//protected interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
 	protected interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
 	// Role-based model configurations
-	protected roleConfigs: ModelRoleConfigs | null = null;
+	protected rolesModelConfig: LLMRolesModelConfig | null = null;
 
 	// Accessor methods for instance inspection
 	public getInteractionStatsCount(): number {
@@ -75,18 +76,18 @@ class BaseController {
 	}
 
 	// Role configuration management
-	protected setRoleConfigs(configs: ModelRoleConfigs | undefined): void {
-		this.roleConfigs = configs || null;
+	protected setRolesModelConfig(configs: LLMRolesModelConfig | undefined): void {
+		this.rolesModelConfig = configs || null;
 	}
 
-	protected getRoleConfig(role: 'orchestrator' | 'agent' | 'chat'): RoleModelConfig {
-		if (this.roleConfigs?.[role]) {
-			return this.roleConfigs[role]!;
+	protected getModelConfigForRole(role: 'orchestrator' | 'agent' | 'chat'): LLMModelConfig {
+		if (this.rolesModelConfig?.[role]) {
+			return this.rolesModelConfig[role]!;
 		}
-		return this.getDefaultRoleConfig(role);
+		return this.getDefaultModelConfigForRole(role);
 	}
 
-	protected getDefaultRoleConfig(role: 'orchestrator' | 'agent' | 'chat'): RoleModelConfig {
+	protected getDefaultModelConfigForRole(role: 'orchestrator' | 'agent' | 'chat'): LLMModelConfig {
 		const defaultModel = this.projectConfig?.defaultModels?.[role];
 		if (!defaultModel) {
 			throw new Error(`No default model configured for role: ${role}`);
@@ -101,28 +102,17 @@ class BaseController {
 		};
 	}
 
-	protected extractRoleConfig(
-		requestParams: LLMRequestParams | undefined,
+	protected extractModelConfigForRole(
+		statementParams: StatementParams | undefined,
 		role: 'orchestrator' | 'agent' | 'chat'
-	): RoleModelConfig {
-		// Handle new modelRoles structure
-		if (requestParams?.modelRoles?.[role]) {
-			return requestParams.modelRoles[role]!;
-		}
-		
-		// Auto-migration: convert legacy single model to role config
-		if (requestParams?.model) {
-			return {
-				model: requestParams.model,
-				temperature: requestParams.temperature ?? 0.7,
-				maxTokens: requestParams.maxTokens ?? 4000,
-				extendedThinking: requestParams.extendedThinking,
-				usePromptCaching: requestParams.usePromptCaching,
-			};
+	): LLMModelConfig {
+		// Handle new rolesModelConfig structure
+		if (statementParams?.rolesModelConfig?.[role]) {
+			return statementParams.rolesModelConfig[role]!;
 		}
 		
 		// Fallback to project defaults
-		return this.getDefaultRoleConfig(role);
+		return this.getDefaultModelConfigForRole(role);
 	}
 	protected isCancelled: boolean = false;
 	//protected currentStatus: ApiStatus = ApiStatus.IDLE;
@@ -388,8 +378,8 @@ class BaseController {
 			//interaction.conversationStats = this.interactionStats.get(interaction.id),
 			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
 
-			// Include the latest requestParams in the saved conversation
-			interaction.requestParams = currentResponse.messageMeta.requestParams;
+			// Include the latest modelConfig in the saved conversation
+			interaction.modelConfig = currentResponse.messageMeta.llmRequestParams.modelConfig;
 
 			await persistence.saveConversation(interaction);
 
@@ -510,9 +500,9 @@ class BaseController {
 				logEntry: ConversationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
-				requestParams?: LLMRequestParams,
+				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
-				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER-modelConfig - ${logEntry.entryType}`, {tokenUsageStats, modelConfig});
 				const logEntryInteraction = this.logEntryInteraction(parentInteractionId || agentInteractionId || '');
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
 				//const useParent = logEntryInteraction.id !== agentInteractionId;
@@ -533,7 +523,7 @@ class BaseController {
 						logEntry,
 						conversationStats,
 						tokenUsageStats,
-						requestParams,
+						modelConfig,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationAnswer',
@@ -550,7 +540,7 @@ class BaseController {
 						logEntry,
 						conversationStats,
 						tokenUsageStats,
-						requestParams,
+						modelConfig,
 					};
 					this.eventManager.emit(
 						'projectEditor:conversationContinue',

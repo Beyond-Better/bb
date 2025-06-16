@@ -155,6 +155,7 @@
 		"shared/types/version.ts": "./src/shared/types/version.types.ts",
 		"shared/types/models.ts": "./src/shared/types/models.types.ts",
 		"shared/types/project.ts": "./src/shared/types/project.types.ts",
+		"shared/types/collaboration.ts": "./src/shared/types/collaboration.types.ts",
 		"shared/types/dataSource.ts": "./src/shared/types/dataSource.types.ts",
 		"shared/types/dataSourceResource.ts": "./src/shared/types/dataSourceResource.types.ts",
 		"shared/types/subscription.ts": "./src/shared/types/subscription.types.ts",

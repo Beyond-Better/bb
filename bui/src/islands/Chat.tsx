@@ -42,14 +42,19 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 // Default LLM request options - will be populated from API response
 // This is a signal that gets updated with proper API defaults when available
 const defaultInputOptions = signal<LLMRequestParams>({
-	model: 'claude-sonnet-4-20250514', // Fallback only, should be overridden by API
-	temperature: 0.7,
-	maxTokens: 16384,
-	extendedThinking: {
-		enabled: true,
-		budgetTokens: 4096,
+	rolesModelConfig: {
+		orchestrator: null,
+		agent: null,
+		chat: null,
 	},
-	usePromptCaching: true,
+	// model: 'claude-sonnet-4-20250514', // Fallback only, should be overridden by API
+	// temperature: 0.7,
+	// maxTokens: 16384,
+	// extendedThinking: {
+	// 	enabled: true,
+	// 	budgetTokens: 4096,
+	// },
+	// usePromptCaching: true,
 });
 
 const defaultChatConfig: ChatConfig = {
@@ -73,14 +78,15 @@ const getInputOptionsFromConversation = (
 	if (!conversationId) return defaultInputOptions.value;
 
 	const conversation = conversations.find((conv) => conv.id === conversationId);
-	if (!conversation || !conversation.requestParams) return defaultInputOptions.value;
+	if (!conversation || !conversation.collaborationParams || !conversation.collaborationParams.rolesModelConfig) {
+		return defaultInputOptions.value;
+	}
 	//console.log('ChatIsland: getInputOptionsFromConversation', {requestParams: conversation.requestParams});
 
 	// Return conversation params with fallbacks to local defaults
 	// The conversation.requestParams should now include proper API defaults
 	return {
-		...defaultInputOptions.value,
-		...conversation.requestParams,
+		rolesModelConfig: conversation.collaborationParams.rolesModelConfig,
 	};
 };
 

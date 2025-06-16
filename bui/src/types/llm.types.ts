@@ -15,7 +15,7 @@ export interface LLMExtendedThinkingOptions {
 }
 
 // Re-export types from shared for consistency
-export type { RoleModelConfig, ModelRoleConfigs } from 'shared/types.ts';
+export type { LLMModelConfig, LLMRolesModelConfig } from 'shared/types.ts';
 
 /**
  * Request parameters used when calling the LLM provider
@@ -24,7 +24,7 @@ export interface LLMRequestParams {
 	/**
 	 * Role-specific model configurations
 	 */
-	modelRoles: ModelRoleConfigs;
+	rolesModelConfig: LLMRolesModelConfig;
 
 	// Legacy fields for migration - will be removed eventually
 	model?: string;

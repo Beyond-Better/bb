@@ -1,5 +1,10 @@
-import type { LLMProviderMessageMeta, LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
-export type { ModelRoleConfigs, RoleModelConfig } from 'api/types/llms.ts';
+import type {
+	LLMModelConfig,
+	LLMProviderMessageMeta,
+	LLMProviderMessageResponse,
+	LLMRequestParams,
+	LLMRolesModelConfig,
+} from 'api/types/llms.ts';
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
@@ -27,7 +32,9 @@ export interface ConversationMetadata {
 	//tokenUsageConversation?: TokenUsage;
 	//tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'>;
 	tokenUsageStats: TokenUsageStats;
-	requestParams?: LLMRequestParams;
+
+	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
 
 	llmProviderName: string;
 
@@ -291,7 +298,8 @@ export interface ConversationStart {
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
 	// 	};
-	requestParams?: LLMRequestParams;
+	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
 	conversationHistory: ConversationLogDataEntry[];
@@ -314,7 +322,8 @@ export interface ConversationContinue {
 	children?: {
 		[agentInteractionId: string]: ConversationLogDataEntry[];
 	};
-	requestParams?: LLMRequestParams;
+	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
 	formattedContent?: string;
@@ -330,7 +339,8 @@ export interface ConversationNew {
 	//tokenUsageConversation: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
-	requestParams?: LLMRequestParams;
+	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
 }
 
 export interface ConversationDeleted {
@@ -349,7 +359,8 @@ export interface ConversationResponse {
 	children?: {
 		[agentInteractionId: string]: ConversationLogDataEntry[];
 	};
-	requestParams?: LLMRequestParams;
+	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
 	formattedContent?: string;

@@ -20,13 +20,13 @@ Deno.test('getConversation returns defaults for non-existent conversation', asyn
 	// 2. Mock the config manager to return known default values
 	// 3. Call the getConversation endpoint for a non-existent conversation ID
 	// 4. Verify that it returns 200 with default model configuration
-	// 5. Verify that the response includes requestParams with proper defaults
+	// 5. Verify that the response includes modelConfig with proper defaults
 
 	// Expected response structure:
 	// {
 	//   id: 'new-conversation-id',
 	//   model: 'claude-3-7-sonnet-20250219', // from global/project defaults
-	//   requestParams: {
+	//   modelConfig: {
 	//     model: 'claude-3-7-sonnet-20250219',
 	//     temperature: 0.7,
 	//     maxTokens: 16384,
