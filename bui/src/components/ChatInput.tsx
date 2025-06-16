@@ -2,8 +2,14 @@ import { useEffect, useRef } from 'preact/hooks';
 import { batch, type Signal, signal, useComputed } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
-import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from '../types/llm.types.ts';
-import type { ModelDetails } from '../utils/apiClient.utils.ts';
+import type {
+	LLMAttachedFile,
+	LLMAttachedFiles,
+	LLMModelConfig,
+	LLMRequestParams,
+	LLMRolesModelConfig,
+} from '../types/llm.types.ts';
+//import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
@@ -38,7 +44,6 @@ interface ChatInputProps {
 	chatInputText: Signal<string>;
 	chatInputOptions: Signal<LLMRequestParams>;
 	attachedFiles: Signal<LLMAttachedFiles>;
-	modelData?: Signal<ModelDetails | null>;
 	onChange: (value: string, source?: 'user' | 'restore' | 'clear' | 'programmatic') => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
@@ -93,14 +98,8 @@ const isOptionsOpen = signal<boolean>(false);
 const selectedModelRole = signal<'orchestrator' | 'agent' | 'chat'>('orchestrator');
 
 // Use centralized model state hook
-const { modelState, getModelCapabilities, hasModelCapabilities, isLoadingModel } = useModelState();
-
-// Computed signal for current role's model capabilities
-const currentRoleModelCapabilities = useComputed(() => {
-	const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
-	if (!currentModel) return null;
-	return modelState.value.modelCapabilities[currentModel] || null;
-});
+const { modelState //getModelCapabilities, hasModelCapabilities, isLoadingModel
+} = useModelState();
 
 const inputMetrics = signal({
 	lastUpdateTime: 0,
@@ -114,7 +113,6 @@ export function ChatInput({
 	chatInputText,
 	chatInputOptions,
 	attachedFiles,
-	modelData,
 	onChange,
 	onSend,
 	textareaRef: externalRef,
@@ -141,6 +139,15 @@ export function ChatInput({
 	//   return !statusState.value.isReady ||
 	// 		 isProcessing(statusState.value);
 	// });
+
+	// Computed signal for current role's model capabilities
+	const currentRoleModelCapabilities = useComputed(() => {
+		const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
+		if (!currentModel) return null;
+		const modelCapabilities = modelState.value.modelCapabilities[currentModel] || null;
+		console.info('ChatInput: CollaborationLog called', { modelCapabilities });
+		return modelCapabilities;
+	});
 
 	const {
 		history,
@@ -534,7 +541,7 @@ export function ChatInput({
 		// Handle conversation change
 		const isConversationChange = conversationIdSignal.value !== conversationId;
 
-			// Reset initial mount flag for conversation changes
+		// Reset initial mount flag for conversation changes
 		if (isConversationChange) {
 			isInitialMount.current = true;
 		}
@@ -548,7 +555,7 @@ export function ChatInput({
 				extendedThinking: chatInputOptions.value.extendedThinking,
 				usePromptCaching: chatInputOptions.value.usePromptCaching,
 			};
-			
+
 			const newOptions = {
 				...chatInputOptions.value,
 				rolesModelConfig: {
@@ -557,7 +564,7 @@ export function ChatInput({
 					chat: legacyConfig,
 				} as LLMRolesModelConfig,
 			};
-			
+
 			chatInputOptions.value = newOptions;
 			console.info('ChatInput: Migrated legacy model config to role-based structure');
 		}
@@ -589,21 +596,21 @@ export function ChatInput({
 	}, [conversationId, chatInputText.value]);
 
 	// Load model capabilities when role or model changes
-	useEffect(() => {
-		const currentModelConfig = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value];
-		if (currentModelConfig?.model) {
-			// Load capabilities using the centralized hook
-			getModelCapabilities(currentModelConfig.model)
-				.then(capabilities => {
-					if (capabilities) {
-						console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentModelConfig.model}`);
-					}
-				})
-				.catch(error => {
-					console.warn(`ChatInput: Failed to load capabilities for ${currentModelConfig.model}:`, error);
-				});
-		}
-	}, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig]);
+	// useEffect(() => {
+	// 	const currentModelConfig = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value];
+	// 	if (currentModelConfig?.model) {
+	// 		// Load capabilities using the centralized hook
+	// 		getModelCapabilities(currentModelConfig.model)
+	// 			.then(capabilities => {
+	// 				if (capabilities) {
+	// 					console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentModelConfig.model}`);
+	// 				}
+	// 			})
+	// 			.catch(error => {
+	// 				console.warn(`ChatInput: Failed to load capabilities for ${currentModelConfig.model}:`, error);
+	// 			});
+	// 	}
+	// }, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig]);
 
 	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
 
@@ -1677,7 +1684,7 @@ export function ChatInput({
 
 								return (
 									<button
-										type="button"
+										type='button'
 										key={role}
 										onClick={() => selectedModelRole.value = role}
 										className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
@@ -1698,7 +1705,9 @@ export function ChatInput({
 
 						{/* Model Selector for Selected Role */}
 						<ModelSelector
-							key={`model-selector-${selectedModelRole.value}-${chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}`}
+							key={`model-selector-${selectedModelRole.value}-${
+								chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
+							}`}
 							apiClient={apiClient}
 							context='conversation'
 							role={selectedModelRole.value}
@@ -1745,7 +1754,9 @@ export function ChatInput({
 						<div className='space-y-1'>
 							<div className='flex justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Max Tokens: {chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens || 4000}
+									Max Tokens:{' '}
+									{chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens ||
+										4000}
 								</label>
 							</div>
 							<input
@@ -1753,7 +1764,8 @@ export function ChatInput({
 								min='1000'
 								max={currentRoleModelCapabilities.value?.capabilities?.maxOutputTokens || 100000}
 								step='1000'
-								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens || 4000}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens ||
+									4000}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
 									if (!e.target) return;
 									const input = e.target as HTMLInputElement;
@@ -1785,15 +1797,20 @@ export function ChatInput({
 						<div className='space-y-1'>
 							<div className='flex justify-between'>
 								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Temperature: {(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature || 0.7).toFixed(1)}
+									Temperature:{' '}
+									{(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature ||
+										0.7).toFixed(1)}
 								</label>
 							</div>
 							<input
 								type='range'
-								min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.min || 0}
-								max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.max || 1}
+								min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.min ||
+									0}
+								max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.max ||
+									1}
 								step='0.1'
-								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature || 0.7}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+									?.temperature || 0.7}
 								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
 									if (!e.target) return;
 									const input = e.target as HTMLInputElement;
@@ -1822,18 +1839,27 @@ export function ChatInput({
 						</div>
 
 						{/* Extended Thinking Toggle */}
-						{(!modelData?.value ||
-							modelData.value.capabilities?.supportedFeatures?.extendedThinking !== false) && (
+						<div>
 							<div className='flex items-center justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>Extended Thinking</label>
+								<label className={`text-sm ${
+									!currentRoleModelCapabilities?.value ||
+									currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false
+										? 'text-gray-400 dark:text-gray-500'
+										: 'text-gray-700 dark:text-gray-300'
+								}`}>Extended Thinking</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
-										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.extendedThinking?.enabled || false}
+										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.extendedThinking?.enabled || false}
+										disabled={!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
 											const newOptions = { ...chatInputOptions.value };
+											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {chatInputOptions: chatInputOptions.value});
+											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {newOptions});
 											if (!newOptions.rolesModelConfig) {
 												newOptions.rolesModelConfig = {
 													orchestrator: null,
@@ -1841,12 +1867,14 @@ export function ChatInput({
 													chat: null,
 												};
 											}
-											const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
-												model: '',
-												temperature: 0.7,
-												maxTokens: 4000,
-												usePromptCaching: true,
-											};
+											const currentModelConfig =
+												newOptions.rolesModelConfig[selectedModelRole.value] || {
+													model: '',
+													temperature: 0.7,
+													maxTokens: 4000,
+													usePromptCaching: true,
+												};
+											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {currentModelConfig});
 											if (!currentModelConfig.extendedThinking) {
 												currentModelConfig.extendedThinking = {
 													enabled: input.checked,
@@ -1863,15 +1891,22 @@ export function ChatInput({
 									/>
 									<label
 										htmlFor='toggle-extended-thinking'
-										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-											chatInputOptions.value.extendedThinking?.enabled
+										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+											!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false
+												? 'cursor-not-allowed opacity-50'
+												: 'cursor-pointer'
+										} ${
+											chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+													?.extendedThinking?.enabled
 												? 'bg-blue-500'
 												: 'bg-gray-300 dark:bg-gray-600'
 										}`}
 									>
 										<span
 											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-												chatInputOptions.value.extendedThinking?.enabled
+												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+														?.extendedThinking?.enabled
 													? 'translate-x-6'
 													: 'translate-x-0'
 											}`}
@@ -1879,17 +1914,24 @@ export function ChatInput({
 									</label>
 								</div>
 							</div>
-						)}
+						</div>
 
 						{/* Prompt Caching Toggle */}
-						{(!modelData?.value ||
-							modelData.value.capabilities?.supportedFeatures?.promptCaching !== false) && (
+						<div>
 							<div className='flex items-center justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>Use Prompt Caching</label>
+								<label className={`text-sm ${
+									!currentRoleModelCapabilities?.value ||
+									currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false
+										? 'text-gray-400 dark:text-gray-500'
+										: 'text-gray-700 dark:text-gray-300'
+								}`}>Use Prompt Caching</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
-										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.usePromptCaching !== false}
+										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.usePromptCaching !== false}
+										disabled={!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
@@ -1901,12 +1943,13 @@ export function ChatInput({
 													chat: null,
 												};
 											}
-											const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
-												model: '',
-												temperature: 0.7,
-												maxTokens: 4000,
-												usePromptCaching: true,
-											};
+											const currentModelConfig =
+												newOptions.rolesModelConfig[selectedModelRole.value] || {
+													model: '',
+													temperature: 0.7,
+													maxTokens: 4000,
+													usePromptCaching: true,
+												};
 											newOptions.rolesModelConfig[selectedModelRole.value] = {
 												...currentModelConfig,
 												usePromptCaching: input.checked,
@@ -1918,15 +1961,22 @@ export function ChatInput({
 									/>
 									<label
 										htmlFor='toggle-prompt-caching'
-										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-											chatInputOptions.value.usePromptCaching !== false
+										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+											!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false
+												? 'cursor-not-allowed opacity-50'
+												: 'cursor-pointer'
+										} ${
+											chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+													?.usePromptCaching !== false
 												? 'bg-blue-500'
 												: 'bg-gray-300 dark:bg-gray-600'
 										}`}
 									>
 										<span
 											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-												chatInputOptions.value.usePromptCaching !== false
+												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+														?.usePromptCaching !== false
 													? 'translate-x-6'
 													: 'translate-x-0'
 											}`}
@@ -1934,14 +1984,16 @@ export function ChatInput({
 									</label>
 								</div>
 							</div>
-						)}
+						</div>
 
 						{/* Model information - display context window and provider info */}
-						{modelData?.value && (
+						{currentRoleModelCapabilities?.value && (
 							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
 								<div className='text-xs text-gray-500 dark:text-gray-400'>
 									Context window:{' '}
-									{(modelData.value.capabilities?.contextWindow / 1000).toFixed(0)}K tokens
+									{(currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000).toFixed(
+										0,
+									)}K tokens
 								</div>
 							</div>
 						)}
