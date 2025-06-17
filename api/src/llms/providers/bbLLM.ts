@@ -403,7 +403,7 @@ class BbLLM extends LLM {
 
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.api?.logLevel === 'debug1') {
-			//	interaction.conversationPersistence.writeLLMRequest({
+			//	interaction.interactionPersistence.writeLLMRequest({
 			//		messageId: bbResponseMessage.metadata.requestId,
 			//		requestBody: messageRequest,
 			//		requestHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },

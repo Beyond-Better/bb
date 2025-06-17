@@ -235,7 +235,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			// Token metrics
 			if (options.includeTokens) {
 				// Get token analysis from persistence
-				const tokenAnalysis = await interaction.conversationPersistence.getTokenUsageAnalysis();
+				const tokenAnalysis = await interaction.interactionPersistence.getTokenUsageAnalysis();
 
 				// Add chat metrics if available
 				if (tokenAnalysis.chat.totalUsage.total > 0) {

@@ -120,7 +120,7 @@ The persistence layer is currently ad-hoc. Before implementing new storage featu
 - tokenUsagePersistence.ts
 - projectPersistence.ts
 - collaborationLogger.ts
-- conversationPersistence.ts
+- interactionPersistence.ts
 
 ## Error Handling
 

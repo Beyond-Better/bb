@@ -28,7 +28,7 @@ import { getLLMModelToProvider, type LLMProviderMessageResponseRole, type LLMReq
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
 import type { Collaboration } from 'shared/types/collaboration.ts';
@@ -99,7 +99,7 @@ class LLMInteraction {
 	protected tools: Map<string, LLMTool> = new Map();
 	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
 	protected _baseSystem: string = '';
-	public conversationPersistence!: ConversationPersistence;
+	public interactionPersistence!: InteractionPersistence;
 	public collaboration!: Collaboration;
 	public collaborationLogger!: CollaborationLogger;
 	protected projectConfig!: ProjectConfig;
@@ -183,7 +183,7 @@ class LLMInteraction {
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(
+			this.interactionPersistence = await new InteractionPersistence(
 				this.id,
 				projectEditor,
 				parentInteractionId,
@@ -394,7 +394,7 @@ class LLMInteraction {
 		) {
 			// Record token usage with interactionType
 			const usageRecord = this.createTokenUsageRecord(tokenUsage, model);
-			this.conversationPersistence.writeTokenUsage(usageRecord, this.interactionType).then(() =>
+			this.interactionPersistence.writeTokenUsage(usageRecord, this.interactionType).then(() =>
 				logger.debug('BaseInteraction - token usage written to JSON log', tokenUsage)
 			);
 		}

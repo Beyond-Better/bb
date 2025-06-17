@@ -93,11 +93,11 @@ class TokenUsagePersistence {
   async getUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]>;
 }
 
-// Update ConversationPersistence to use TokenUsageWriter
-class ConversationPersistence {
+// Update InteractionPersistence to use TokenUsageWriter
+class InteractionPersistence {
   private tokenUsagePersistence: TokenUsagePersistence;
 
-  async init(): Promise<ConversationPersistence> {
+  async init(): Promise<InteractionPersistence> {
     this.tokenUsagePersistence = new TokenUsagePersistence(this.conversationDir);
     return this;
   }
@@ -116,7 +116,7 @@ Implementation tasks:
   - Add error handling
   - Implement file rotation if needed
 
-- Update ConversationPersistence
+- Update InteractionPersistence
   - Add TokenUsageWriter integration
   - Update initialization
   - Add token usage methods
@@ -143,7 +143,7 @@ class BaseInteraction {
   // Update token usage handling to use new system
   protected async recordTokenUsage(usage: TokenUsage, type: 'conversation' | 'chat'): Promise<void> {
     const record = this.createTokenUsageRecord(usage);
-    await this.conversationPersistence.writeTokenUsage(record, type);
+    await this.interactionPersistence.writeTokenUsage(record, type);
   }
 }
 ```

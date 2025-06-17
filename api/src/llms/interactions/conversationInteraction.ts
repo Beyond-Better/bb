@@ -138,11 +138,11 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	public override async prepareSytemPrompt(baseSystem: string): Promise<string> {
 		//logger.info('ConversationInteraction: Preparing system prompt', baseSystem);
-		if (!this.conversationPersistence) {
-			throw new Error('ConversationPersistence not initialized');
+		if (!this.interactionPersistence) {
+			throw new Error('InteractionPersistence not initialized');
 		}
 		// First, try to get the system prompt from storage
-		let preparedSystemPrompt = await this.conversationPersistence
+		let preparedSystemPrompt = await this.interactionPersistence
 			.getPreparedSystemPrompt();
 
 		if (!preparedSystemPrompt) {
@@ -157,7 +157,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			//preparedSystemPrompt = await this.appendResourcesToSystem(preparedSystemPrompt);
 
 			// Save the generated system prompt
-			await this.conversationPersistence.savePreparedSystemPrompt(
+			await this.interactionPersistence.savePreparedSystemPrompt(
 				preparedSystemPrompt,
 			);
 			//logger.info('ConversationInteraction: Created system prompt', preparedSystemPrompt);
@@ -168,14 +168,14 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
-		if (!this.conversationPersistence) {
+		if (!this.interactionPersistence) {
 			throw new Error(
-				'ConversationPersistence not initialized',
+				'InteractionPersistence not initialized',
 			);
 		}
 
 		// First, try to get the prepared tools from storage
-		let preparedTools = await this.conversationPersistence.getPreparedTools();
+		let preparedTools = await this.interactionPersistence.getPreparedTools();
 
 		if (!preparedTools) {
 			// If not found in storage, prepare the tools
@@ -187,7 +187,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			} as LLMTool));
 
 			// Save the prepared tools
-			await this.conversationPersistence.savePreparedTools(preparedTools || []);
+			await this.interactionPersistence.savePreparedTools(preparedTools || []);
 		}
 		//logger.info('ConversationInteraction: preparedTools', preparedTools);
 
@@ -333,13 +333,13 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	async storeResourceRevision(resourceUri: string, revisionId: string, content: string | Uint8Array): Promise<void> {
 		logger.info(`ConversationInteraction: Storing resource revision: ${resourceUri} Revision: (${revisionId})`);
-		await this.conversationPersistence.storeResourceRevision(resourceUri, revisionId, content);
+		await this.interactionPersistence.storeResourceRevision(resourceUri, revisionId, content);
 	}
 
 	async getResourceRevision(resourceUri: string, revisionId: string): Promise<string | Uint8Array | null> {
 		logger.info(`ConversationInteraction: Getting resource revision: ${resourceUri} Revision: (${revisionId})`);
 		try {
-			const content = await this.conversationPersistence.getResourceRevision(resourceUri, revisionId);
+			const content = await this.interactionPersistence.getResourceRevision(resourceUri, revisionId);
 			return content;
 		} catch (error) {
 			logger.info(

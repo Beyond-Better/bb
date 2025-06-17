@@ -25,7 +25,7 @@ import {
 import LLMMessage from 'api/llms/llmMessage.ts';
 
 Deno.test({
-	name: 'ConversationPersistence - Token usage integration initialization',
+	name: 'InteractionPersistence - Token usage integration initialization',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
@@ -34,12 +34,12 @@ Deno.test({
 
 			// Verify TokenUsagePersistence is initialized
 			assert(
-				interaction.conversationPersistence['tokenUsagePersistence'],
+				interaction.interactionPersistence['tokenUsagePersistence'],
 				'TokenUsagePersistence should be initialized',
 			);
 
 			// Verify initial state
-			const records = await interaction.conversationPersistence.getTokenUsage('conversation');
+			const records = await interaction.interactionPersistence.getTokenUsage('conversation');
 			assertEquals(records.length, 0, 'Should start with no records');
 		});
 	},
@@ -48,7 +48,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'ConversationPersistence - Token usage persistence across sessions',
+	name: 'InteractionPersistence - Token usage persistence across sessions',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -65,7 +65,7 @@ Deno.test({
 
 			// Save records in first session
 			for (const record of records) {
-				await interaction.conversationPersistence.writeTokenUsage(record, 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(record, 'conversation');
 			}
 
 			// Create a message and save the conversation
@@ -75,13 +75,13 @@ Deno.test({
 				conversationTurnCount: 1,
 			});
 			interaction.addMessage(message);
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			// Second session with same conversation ID
 			interaction = await createTestInteraction(conversationId, projectEditor);
 
 			// Verify records persisted
-			const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
+			const savedRecords = await interaction.interactionPersistence.getTokenUsage('conversation');
 			assertEquals(
 				savedRecords.length,
 				records.length,
@@ -100,7 +100,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'ConversationPersistence - Handle concurrent token usage writes',
+	name: 'InteractionPersistence - Handle concurrent token usage writes',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -125,11 +125,11 @@ Deno.test({
 
 			// Write records concurrently
 			await Promise.all(
-				records.map((record) => interaction.conversationPersistence.writeTokenUsage(record, 'conversation')),
+				records.map((record) => interaction.interactionPersistence.writeTokenUsage(record, 'conversation')),
 			);
 
 			// Verify records
-			const savedRecords = await interaction.conversationPersistence.getTokenUsage('conversation');
+			const savedRecords = await interaction.interactionPersistence.getTokenUsage('conversation');
 
 			// Should have saved all records despite same messageId
 			assertEquals(savedRecords.length, records.length, 'Should save all concurrent records');
@@ -151,7 +151,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'ConversationPersistence - Save conversation with token usage',
+	name: 'InteractionPersistence - Save conversation with token usage',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
@@ -190,13 +190,13 @@ Deno.test({
 			interaction.totalProviderRequests = 1;
 
 			// Track token usage
-			await interaction.conversationPersistence.writeTokenUsage(record, 'conversation');
+			await interaction.interactionPersistence.writeTokenUsage(record, 'conversation');
 
 			// Save the interaction
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			// Verify token usage was saved
-			const records = await interaction.conversationPersistence.getTokenUsage('conversation');
+			const records = await interaction.interactionPersistence.getTokenUsage('conversation');
 			assertEquals(records.length, 1);
 			assertEquals(records[0], record);
 		});
@@ -206,7 +206,7 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'ConversationPersistence - Token usage analysis with history',
+	name: 'InteractionPersistence - Token usage analysis with history',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
@@ -222,11 +222,11 @@ Deno.test({
 
 			// Save records
 			for (const record of records) {
-				await interaction.conversationPersistence.writeTokenUsage(record, 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(record, 'conversation');
 			}
 
 			// Analyze token usage
-			const analysis = await interaction.conversationPersistence.getTokenUsageAnalysis();
+			const analysis = await interaction.interactionPersistence.getTokenUsageAnalysis();
 
 			// Verify analysis structure
 			assert(analysis.conversation, 'Should have conversation analysis');
@@ -265,7 +265,7 @@ Deno.test({
 // [TODO] Test is unreliable (or intermittent) - fails when running in github actions
 // re-enable when eiher test or persistence class is fixed
 Deno.test({
-	name: 'ConversationPersistence - Handle concurrent conversation saves',
+	name: 'InteractionPersistence - Handle concurrent conversation saves',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
@@ -308,18 +308,18 @@ Deno.test({
 					interaction.totalProviderRequests = 1;
 
 					// Track token usage
-					await interaction.conversationPersistence.writeTokenUsage(
+					await interaction.interactionPersistence.writeTokenUsage(
 						record,
 						'conversation',
 					);
 
 					// Save the interaction
-					return interaction.conversationPersistence.saveConversation(interaction);
+					return interaction.interactionPersistence.saveConversation(interaction);
 				}),
 			);
 
 			// Verify all records were saved
-			const savedRecords = await interaction.conversationPersistence.getTokenUsage(
+			const savedRecords = await interaction.interactionPersistence.getTokenUsage(
 				'conversation',
 			);
 			assertEquals(savedRecords.length, records.length);
@@ -335,7 +335,7 @@ Deno.test({
  */
 
 Deno.test({
-	name: 'ConversationPersistence - Token usage with chat interactions',
+	name: 'InteractionPersistence - Token usage with chat interactions',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
@@ -354,27 +354,27 @@ Deno.test({
 
 			// Save all records
 			for (const record of [...conversationRecords, ...chatRecords]) {
-				await interaction.conversationPersistence.writeTokenUsage(
+				await interaction.interactionPersistence.writeTokenUsage(
 					record,
 					record.type,
 				);
 			}
 
 			// Analyze token usage
-			const analysis = await interaction.conversationPersistence.getTokenUsageAnalysis();
+			const analysis = await interaction.interactionPersistence.getTokenUsageAnalysis();
 
 			// Verify separate tracking
 			assert(analysis.conversation, 'Should have conversation analysis');
 			assert(analysis.chat, 'Should have chat analysis');
 
 			// Verify conversation records
-			const savedConvRecords = await interaction.conversationPersistence.getTokenUsage(
+			const savedConvRecords = await interaction.interactionPersistence.getTokenUsage(
 				'conversation',
 			);
 			assertEquals(savedConvRecords.length, conversationRecords.length);
 
 			// Verify chat records
-			const savedChatRecords = await interaction.conversationPersistence.getTokenUsage(
+			const savedChatRecords = await interaction.interactionPersistence.getTokenUsage(
 				'chat',
 			);
 			assertEquals(savedChatRecords.length, chatRecords.length);

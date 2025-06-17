@@ -3,7 +3,7 @@
 import { parse } from '@std/flags';
 import { join } from '@std/path';
 import { getGlobalConfigDir } from 'shared/dataDir.ts';
-import ConversationPersistence from '../src/storage/conversationPersistence.ts';
+import InteractionPersistence from '../src/storage/interactionPersistence.ts';
 import { logger } from 'shared/logger.ts';
 
 interface ProjectRegistry {
@@ -72,7 +72,7 @@ Description:
       logger.info(`Processing project: ${project.name} (${projectId})`);
 
       try {
-        const migrationResult = await ConversationPersistence.migrateAllConversations(projectId, {
+        const migrationResult = await InteractionPersistence.migrateAllConversations(projectId, {
           dryRun: flags['dry-run'],
           force: flags.force,
         });

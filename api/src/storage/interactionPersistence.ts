@@ -55,7 +55,7 @@ import { stripIndents } from 'common-tags';
 // Ensure ProjectInfo includes projectId
 type ExtendedProjectInfo = ProjectInfo & { projectId: string };
 
-class ConversationPersistence {
+class InteractionPersistence {
 	private conversationDir!: string;
 	private conversationParentDir: string | undefined;
 	private metadataPath!: string;
@@ -83,14 +83,14 @@ class ConversationPersistence {
 	}
 
 	private async ensureInitialized(): Promise<void> {
-		//logger.info(`ConversationPersistence: Ensuring Initialized`);
+		//logger.info(`InteractionPersistence: Ensuring Initialized`);
 		if (!this.initialized) {
 			await this.init();
 			this.initialized = true;
 		}
 	}
 
-	async init(): Promise<ConversationPersistence> {
+	async init(): Promise<InteractionPersistence> {
 		// Get BB data directory using project ID
 		// Check if project has been migrated to new structure
 		const projectId = this.projectEditor.projectId;
@@ -100,10 +100,10 @@ class ConversationPersistence {
 			// Attempt migration for future calls
 			try {
 				await migrateProjectFiles(projectId);
-				logger.info(`ConversationPersistence: Successfully migrated project ${projectId} files`);
+				logger.info(`InteractionPersistence: Successfully migrated project ${projectId} files`);
 			} catch (migrationError) {
 				logger.warn(
-					`ConversationPersistence: Migration attempted but failed: ${(migrationError as Error).message}`,
+					`InteractionPersistence: Migration attempted but failed: ${(migrationError as Error).message}`,
 				);
 				throw createError(
 					ErrorType.ProjectHandling,
@@ -121,7 +121,7 @@ class ConversationPersistence {
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
 		if (!projectAdminDataDir) {
 			logger.error(
-				`ConversationPersistence: Failed to get data directory for projectId ${projectId}`,
+				`InteractionPersistence: Failed to get data directory for projectId ${projectId}`,
 			);
 			throw createError(
 				ErrorType.ProjectHandling,
@@ -131,7 +131,7 @@ class ConversationPersistence {
 				} as ProjectHandlingErrorOptions,
 			);
 		}
-		logger.debug(`ConversationPersistence: Using data dir for ${projectId}: ${projectAdminDataDir}`);
+		logger.debug(`InteractionPersistence: Using data dir for ${projectId}: ${projectAdminDataDir}`);
 		const conversationsDir = join(projectAdminDataDir, 'conversations');
 		this.conversationsMetadataPath = join(projectAdminDataDir, 'conversations.json');
 
@@ -159,7 +159,7 @@ class ConversationPersistence {
 		// [TODO] using conversationParentDir is good for chat interactions, but agent (child conversation) interations need to keep
 		// tokenUsage with the child conversation persistence, not the parent
 		// Do we need two types of parentID, one for chats and one for sub-agents??
-		// Or maybe we need to record whether conversationPersistence is for orchestrator or agent?
+		// Or maybe we need to record whether interactionPersistence is for orchestrator or agent?
 		// Do we keep agent details in same conversation directory but separate messages, metadata, and tokenUsage files for each agent?
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.conversationParentDir ?? this.conversationDir)
 			.init();
@@ -183,7 +183,7 @@ class ConversationPersistence {
 		llmProviderName?: string;
 		projectId: string;
 	}): Promise<{ conversations: ConversationMetadata[]; totalCount: number }> {
-		//logger.info(`ConversationPersistence: listConversations called with projectId: ${options.projectId}`);
+		//logger.info(`InteractionPersistence: listConversations called with projectId: ${options.projectId}`);
 		// Check if project has been migrated to new structure
 		const migrated = await isProjectMigrated(options.projectId);
 		if (!migrated) {
@@ -191,11 +191,11 @@ class ConversationPersistence {
 			try {
 				await migrateProjectFiles(options.projectId);
 				logger.info(
-					`ConversationPersistence: listConversations - Successfully migrated project ${options.projectId} files`,
+					`InteractionPersistence: listConversations - Successfully migrated project ${options.projectId} files`,
 				);
 			} catch (migrationError) {
 				logger.warn(
-					`ConversationPersistence: Migration attempted but failed: ${(migrationError as Error).message}`,
+					`InteractionPersistence: Migration attempted but failed: ${(migrationError as Error).message}`,
 				);
 				throw createError(
 					ErrorType.ProjectHandling,
@@ -212,7 +212,7 @@ class ConversationPersistence {
 		const projectAdminDataDir = await getProjectAdminDataDir(options.projectId);
 		if (!projectAdminDataDir) {
 			logger.error(
-				`ConversationPersistence: Failed to get data directory for projectId ${options.projectId}`,
+				`InteractionPersistence: Failed to get data directory for projectId ${options.projectId}`,
 			);
 			throw createError(
 				ErrorType.ProjectHandling,
@@ -226,11 +226,11 @@ class ConversationPersistence {
 		const conversationsMetadataPath = join(projectAdminDataDir, 'conversations.json');
 
 		try {
-			//logger.info(`ConversationPersistence: Ensuring directories exist: ${dirname(projectAdminDataDir)} and ${projectAdminDataDir}`);
+			//logger.info(`InteractionPersistence: Ensuring directories exist: ${dirname(projectAdminDataDir)} and ${projectAdminDataDir}`);
 			await ensureDir(dirname(projectAdminDataDir)); // Ensure parent directory exists
 			await ensureDir(projectAdminDataDir);
 		} catch (error) {
-			logger.error(`ConversationPersistence: Failed to create required directories: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Failed to create required directories: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to create required directories: ${errorMessage(error)}`,
@@ -247,7 +247,7 @@ class ConversationPersistence {
 
 			if (!await exists(conversationsMetadataPath)) {
 				// logger.info(
-				// 	`ConversationPersistence: Creating new conversations.json file at ${conversationsMetadataPath}`,
+				// 	`InteractionPersistence: Creating new conversations.json file at ${conversationsMetadataPath}`,
 				// );
 				await Deno.writeTextFile(
 					conversationsMetadataPath,
@@ -259,7 +259,7 @@ class ConversationPersistence {
 				return { conversations: [], totalCount: 0 };
 			}
 		} catch (error) {
-			logger.error(`ConversationPersistence: Failed to create conversations.json: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Failed to create conversations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to create conversations.json: ${errorMessage(error)}`,
@@ -272,10 +272,10 @@ class ConversationPersistence {
 
 		let content: string;
 		try {
-			//logger.info(`ConversationPersistence: Reading conversations from ${conversationsMetadataPath}`);
+			//logger.info(`InteractionPersistence: Reading conversations from ${conversationsMetadataPath}`);
 			content = await Deno.readTextFile(conversationsMetadataPath);
 		} catch (error) {
-			logger.error(`ConversationPersistence: Failed to read conversations.json: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Failed to read conversations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to read conversations.json: ${errorMessage(error)}`,
@@ -307,7 +307,7 @@ class ConversationPersistence {
 			}
 		} catch (error) {
 			logger.error(
-				`ConversationPersistence: Failed to parse conversations.json content: ${errorMessage(error)}`,
+				`InteractionPersistence: Failed to parse conversations.json content: ${errorMessage(error)}`,
 			);
 			throw createError(
 				ErrorType.FileHandling,
@@ -344,20 +344,20 @@ class ConversationPersistence {
 			conversations: conversations.map((conv) => ({
 				...conv,
 				conversationStats: (conv as ConversationMetadata).conversationStats ||
-					ConversationPersistence.defaultConversationStats(),
+					InteractionPersistence.defaultConversationStats(),
 				// for interaction storage
 				modelConfig: (conv as ConversationMetadata).modelConfig ||
-					ConversationPersistence.defaultModelConfig(),
+					InteractionPersistence.defaultModelConfig(),
 				// for collaboration storage
 				collaborationParams: (conv as ConversationMetadata).collaborationParams ||
-					ConversationPersistence.defaultCollaborationParams(),
+					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageConversation ||
-						ConversationPersistence.defaultConversationTokenUsage(),
+						InteractionPersistence.defaultConversationTokenUsage(),
 					tokenUsageStatement: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageStatement ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 					tokenUsageTurn: (conv as ConversationMetadata).tokenUsageStats?.tokenUsageTurn ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 				},
 			})),
 			totalCount,
@@ -382,11 +382,11 @@ class ConversationPersistence {
 		} catch (error) {
 			if (isTokenUsageValidationError(error)) {
 				logger.error(
-					`ConversationPersistence: TokenUsage validation failed: ${error.options.field} - ${error.options.constraint}`,
+					`InteractionPersistence: TokenUsage validation failed: ${error.options.field} - ${error.options.constraint}`,
 				);
 			} else {
 				logger.error(
-					`ConversationPersistence: TokenUsage validation failed - Unknown error type: ${
+					`InteractionPersistence: TokenUsage validation failed - Unknown error type: ${
 						(error instanceof Error) ? error.message : error
 					}`,
 				);
@@ -413,7 +413,7 @@ class ConversationPersistence {
 	async saveConversation(conversation: LLMConversationInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
-			logger.debug(`ConversationPersistence: Ensure directory for saveConversation: ${this.conversationDir}`);
+			logger.debug(`InteractionPersistence: Ensure directory for saveConversation: ${this.conversationDir}`);
 			await this.ensureDirectory(this.conversationDir);
 
 			const metadata: ConversationMetadata = {
@@ -426,7 +426,7 @@ class ConversationPersistence {
 				modelConfig: conversation.modelConfig,
 				// for collaboration storage
 				collaborationParams: conversation.collaboration?.collaborationParams ||
-					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
+					await this.getCollaborationParams(conversation), //InteractionPersistence.defaultCollaborationParams(),
 				llmProviderName: conversation.llmProviderName,
 				model: conversation.model,
 				createdAt: new Date().toISOString(),
@@ -453,7 +453,7 @@ class ConversationPersistence {
 				modelConfig: conversation.modelConfig,
 				// for collaboration storage
 				collaborationParams: conversation.collaboration?.collaborationParams ||
-					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
+					await this.getCollaborationParams(conversation), //InteractionPersistence.defaultCollaborationParams(),
 
 				// Store analyzed token usage in metadata
 				tokenUsageStats: {
@@ -496,12 +496,12 @@ class ConversationPersistence {
 						timestamp: m.timestamp, // Assuming this property exists
 					});
 				} else {
-					logger.warn(`ConversationPersistence: Invalid message encountered: ${JSON.stringify(m)}`);
+					logger.warn(`InteractionPersistence: Invalid message encountered: ${JSON.stringify(m)}`);
 					return null;
 				}
 			}).filter(Boolean).join('\n') + '\n';
 			await Deno.writeTextFile(this.messagesPath, messagesContent);
-			logger.debug(`ConversationPersistence: Saved messages for conversation: ${conversation.id}`);
+			logger.debug(`InteractionPersistence: Saved messages for conversation: ${conversation.id}`);
 
 			// Save resources metadata
 			const resourcesMetadata: ConversationResourcesMetadata = {};
@@ -509,20 +509,20 @@ class ConversationPersistence {
 				resourcesMetadata[key] = value;
 			}
 			await this.saveResourcesMetadata(resourcesMetadata);
-			logger.debug(`ConversationPersistence: Saved resourcesMetadata for conversation: ${conversation.id}`);
+			logger.debug(`InteractionPersistence: Saved resourcesMetadata for conversation: ${conversation.id}`);
 
 			// Save objectives and resources
 			const metrics = conversation.conversationMetrics;
 			if (metrics.objectives) {
 				await this.saveObjectives(metrics.objectives);
-				logger.debug(`ConversationPersistence: Saved objectives for conversation: ${conversation.id}`);
+				logger.debug(`InteractionPersistence: Saved objectives for conversation: ${conversation.id}`);
 			}
 			if (metrics.resources) {
 				await this.saveResources(metrics.resources);
-				logger.debug(`ConversationPersistence: Saved resources for conversation: ${conversation.id}`);
+				logger.debug(`InteractionPersistence: Saved resources for conversation: ${conversation.id}`);
 			}
 		} catch (error) {
-			logger.error(`ConversationPersistence: Error saving conversation: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Error saving conversation: ${errorMessage(error)}`);
 			this.handleSaveError(error, this.metadataPath);
 		}
 	}
@@ -532,7 +532,7 @@ class ConversationPersistence {
 			await this.ensureInitialized();
 
 			if (!await exists(this.metadataPath)) {
-				//logger.warn(`ConversationPersistence: Conversation metadata file not found: ${this.metadataPath}`);
+				//logger.warn(`InteractionPersistence: Conversation metadata file not found: ${this.metadataPath}`);
 				return null;
 			}
 
@@ -560,7 +560,7 @@ class ConversationPersistence {
 				id: '',
 				type: 'project',
 				collaborationParams: metadata.collaborationParams ||
-					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
+					await this.getCollaborationParams(conversation), //InteractionPersistence.defaultCollaborationParams(),
 			};
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
@@ -581,9 +581,9 @@ class ConversationPersistence {
 
 			// Keep turn and statement usage from metadata for backward compatibility
 			conversation.tokenUsageStats.tokenUsageTurn = metadata.tokenUsageStats?.tokenUsageTurn ||
-				ConversationPersistence.defaultTokenUsage();
+				InteractionPersistence.defaultTokenUsage();
 			conversation.tokenUsageStats.tokenUsageStatement = metadata.tokenUsageStats?.tokenUsageStatement ||
-				ConversationPersistence.defaultTokenUsage();
+				InteractionPersistence.defaultTokenUsage();
 
 			conversation.statementTurnCount = metadata.conversationMetrics?.statementTurnCount || 0;
 			conversation.conversationTurnCount = metadata.conversationMetrics?.conversationTurnCount || 0;
@@ -599,7 +599,7 @@ class ConversationPersistence {
 					}
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading objectives: ${errorMessage(error)}`);
+				logger.warn(`InteractionPersistence: Error loading objectives: ${errorMessage(error)}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -611,7 +611,7 @@ class ConversationPersistence {
 					resourceMetrics.modified.forEach((r) => conversation.updateResourceAccess(r, true));
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading resourceMetrics: ${errorMessage(error)}`);
+				logger.warn(`InteractionPersistence: Error loading resourceMetrics: ${errorMessage(error)}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -621,10 +621,10 @@ class ConversationPersistence {
 				if (projectInfo) {
 					// Store in conversation if needed
 					// Currently just logging as project info is handled by projectEditor
-					logger.debug('ConversationPersistence: Loaded project info from JSON');
+					logger.debug('InteractionPersistence: Loaded project info from JSON');
 				}
 			} catch (error) {
-				logger.warn(`ConversationPersistence: Error loading project info: ${errorMessage(error)}`);
+				logger.warn(`InteractionPersistence: Error loading project info: ${errorMessage(error)}`);
 				// Continue loading - don't fail the whole conversation load
 			}
 
@@ -637,7 +637,7 @@ class ConversationPersistence {
 						const messageData = JSON.parse(line);
 						conversation.addMessage(messageData);
 					} catch (error) {
-						logger.error(`ConversationPersistence: Error parsing message: ${errorMessage(error)}`);
+						logger.error(`InteractionPersistence: Error parsing message: ${errorMessage(error)}`);
 						// Continue to the next message if there's an error
 					}
 				}
@@ -657,7 +657,7 @@ class ConversationPersistence {
 
 			return conversation;
 		} catch (error) {
-			logger.error(`ConversationPersistence: Error loading conversation: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Error loading conversation: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`File or directory not found when loading conversation: ${this.metadataPath}`,
@@ -678,7 +678,7 @@ class ConversationPersistence {
 	): Promise<void> {
 		await this.ensureInitialized();
 		logger.debug(
-			`ConversationPersistence: Ensure directory for updateConversationsMetadata: ${this.conversationsMetadataPath}`,
+			`InteractionPersistence: Ensure directory for updateConversationsMetadata: ${this.conversationsMetadataPath}`,
 		);
 		await this.ensureDirectory(dirname(this.conversationsMetadataPath));
 		let conversationsData: ConversationsFileV1 = {
@@ -712,44 +712,44 @@ class ConversationPersistence {
 				...conversationsData.conversations[index],
 				...conversation,
 				conversationStats: conversation.conversationStats ||
-					ConversationPersistence.defaultConversationStats(),
+					InteractionPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
-					ConversationPersistence.defaultConversationMetrics(),
+					InteractionPersistence.defaultConversationMetrics(),
 				// for interaction storage
 				modelConfig: conversation.modelConfig ||
-					ConversationPersistence.defaultModelConfig(),
+					InteractionPersistence.defaultModelConfig(),
 				// for collaboration storage
 				collaborationParams: conversation.collaborationParams ||
-					ConversationPersistence.defaultCollaborationParams(),
+					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
-						ConversationPersistence.defaultConversationTokenUsage(),
+						InteractionPersistence.defaultConversationTokenUsage(),
 					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 				},
 			};
 		} else {
 			conversationsData.conversations.push({
 				...conversation,
 				conversationStats: conversation.conversationStats ||
-					ConversationPersistence.defaultConversationStats(),
+					InteractionPersistence.defaultConversationStats(),
 				conversationMetrics: conversation.conversationMetrics ||
-					ConversationPersistence.defaultConversationMetrics(),
+					InteractionPersistence.defaultConversationMetrics(),
 				// for interaction storage
 				modelConfig: conversation.modelConfig ||
-					ConversationPersistence.defaultModelConfig(),
+					InteractionPersistence.defaultModelConfig(),
 				// for collaboration storage
 				collaborationParams: conversation.collaborationParams ||
-					ConversationPersistence.defaultCollaborationParams(),
+					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageConversation: conversation.tokenUsageStats.tokenUsageConversation ||
-						ConversationPersistence.defaultConversationTokenUsage(),
+						InteractionPersistence.defaultConversationTokenUsage(),
 					tokenUsageStatement: conversation.tokenUsageStats.tokenUsageStatement ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 					tokenUsageTurn: conversation.tokenUsageStats.tokenUsageTurn ||
-						ConversationPersistence.defaultTokenUsage(),
+						InteractionPersistence.defaultTokenUsage(),
 				},
 			});
 		}
@@ -759,7 +759,7 @@ class ConversationPersistence {
 			JSON.stringify(conversationsData, null, 2),
 		);
 
-		logger.debug(`ConversationPersistence: Saved metadata to project level for conversation: ${conversation.id}`);
+		logger.debug(`InteractionPersistence: Saved metadata to project level for conversation: ${conversation.id}`);
 	}
 
 	async getConversationIdByTitle(title: string): Promise<string | null> {
@@ -827,17 +827,17 @@ class ConversationPersistence {
 	async saveResourcesMetadata(resourcesMetadata: ConversationResourcesMetadata): Promise<void> {
 		await this.ensureInitialized();
 		logger.debug(
-			`ConversationPersistence: Ensure directory for saveResourcesMetadata: ${this.resourcesMetadataPath}`,
+			`InteractionPersistence: Ensure directory for saveResourcesMetadata: ${this.resourcesMetadataPath}`,
 		);
 		await this.ensureDirectory(dirname(this.resourcesMetadataPath));
 		const existingResourcesMetadata = await this.getResourcesMetadata();
 		const updatedResourcesMetadata = { ...existingResourcesMetadata, ...resourcesMetadata };
 		await Deno.writeTextFile(this.resourcesMetadataPath, JSON.stringify(updatedResourcesMetadata, null, 2));
-		logger.debug(`ConversationPersistence: Saved resourcesMetadata for conversation: ${this.conversationId}`);
+		logger.debug(`InteractionPersistence: Saved resourcesMetadata for conversation: ${this.conversationId}`);
 	}
 	async getResourcesMetadata(): Promise<ConversationResourcesMetadata> {
 		await this.ensureInitialized();
-		//logger.info(`ConversationPersistence: Reading resourcesMetadata for conversation: ${this.conversationId} from ${this.resourcesMetadataPath}`);
+		//logger.info(`InteractionPersistence: Reading resourcesMetadata for conversation: ${this.conversationId} from ${this.resourcesMetadataPath}`);
 		if (await exists(this.resourcesMetadataPath)) {
 			const resourcesMetadataContent = await Deno.readTextFile(this.resourcesMetadataPath);
 			return JSON.parse(resourcesMetadataContent);
@@ -935,12 +935,12 @@ class ConversationPersistence {
 		// Set version 4 for new collaborationParams and modelConfig format
 		metadata.version = 4;
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
 		await this.ensureDirectory(dirname(this.metadataPath));
 		const existingMetadata = await this.getMetadata();
 		const updatedMetadata = { ...existingMetadata, ...metadata };
 		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
-		logger.debug(`ConversationPersistence: Saved metadata for conversation: ${this.conversationId}`);
+		logger.debug(`InteractionPersistence: Saved metadata for conversation: ${this.conversationId}`);
 
 		// Update the stats in project-level conversations metadata file
 		await this.updateConversationsMetadata(updatedMetadata);
@@ -982,7 +982,7 @@ class ConversationPersistence {
 					};
 
 					logger.info(
-						`ConversationPersistence: Migrated requestParams from version ${
+						`InteractionPersistence: Migrated requestParams from version ${
 							metadata.version || 'unknown'
 						} to version 4 for conversation: ${this.conversationId}`,
 					);
@@ -993,17 +993,17 @@ class ConversationPersistence {
 				try {
 					await Deno.writeTextFile(this.metadataPath, JSON.stringify(metadata, null, 2));
 					logger.debug(
-						`ConversationPersistence: Persisted migrated metadata for conversation: ${this.conversationId}`,
+						`InteractionPersistence: Persisted migrated metadata for conversation: ${this.conversationId}`,
 					);
 				} catch (error) {
-					logger.warn(`ConversationPersistence: Failed to persist migrated metadata: ${errorMessage(error)}`);
+					logger.warn(`InteractionPersistence: Failed to persist migrated metadata: ${errorMessage(error)}`);
 					// Continue even if save fails - the migration is still applied in memory
 				}
 			}
 
 			return metadata;
 		}
-		return ConversationPersistence.defaultMetadata();
+		return InteractionPersistence.defaultMetadata();
 	}
 
 	static defaultConversationStats(): ConversationStats {
@@ -1058,9 +1058,9 @@ class ConversationPersistence {
 	static defaultCollaborationParams(): CollaborationParams {
 		return {
 			rolesModelConfig: {
-				orchestrator: null, //ConversationPersistence.defaultModelConfig(),
-				agent: null, //ConversationPersistence.defaultModelConfig(),
-				chat: null, //ConversationPersistence.defaultModelConfig(),
+				orchestrator: null, //InteractionPersistence.defaultModelConfig(),
+				agent: null, //InteractionPersistence.defaultModelConfig(),
+				chat: null, //InteractionPersistence.defaultModelConfig(),
 			},
 		};
 	}
@@ -1083,18 +1083,18 @@ class ConversationPersistence {
 			totalProviderRequests: 0,
 
 			tokenUsageStats: {
-				tokenUsageTurn: ConversationPersistence.defaultTokenUsage(),
-				tokenUsageStatement: ConversationPersistence.defaultTokenUsage(),
-				tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
+				tokenUsageTurn: InteractionPersistence.defaultTokenUsage(),
+				tokenUsageStatement: InteractionPersistence.defaultTokenUsage(),
+				tokenUsageConversation: InteractionPersistence.defaultConversationTokenUsage(),
 			},
 
 			// for interaction storage
-			modelConfig: ConversationPersistence.defaultModelConfig(),
+			modelConfig: InteractionPersistence.defaultModelConfig(),
 			// for collaboration storage
-			collaborationParams: ConversationPersistence.defaultCollaborationParams(),
+			collaborationParams: InteractionPersistence.defaultCollaborationParams(),
 
-			conversationStats: ConversationPersistence.defaultConversationStats(),
-			conversationMetrics: ConversationPersistence.defaultConversationMetrics(),
+			conversationStats: InteractionPersistence.defaultConversationStats(),
+			conversationMetrics: InteractionPersistence.defaultConversationMetrics(),
 			//tools: [],
 		};
 		return metadata;
@@ -1103,12 +1103,12 @@ class ConversationPersistence {
 	async savePreparedSystemPrompt(systemPrompt: string): Promise<void> {
 		await this.ensureInitialized();
 		logger.debug(
-			`ConversationPersistence: Ensure directory for savePreparedSystemPrompt: ${this.preparedSystemPath}`,
+			`InteractionPersistence: Ensure directory for savePreparedSystemPrompt: ${this.preparedSystemPath}`,
 		);
 		await this.ensureDirectory(dirname(this.preparedSystemPath));
 		const promptData = { systemPrompt };
 		await Deno.writeTextFile(this.preparedSystemPath, JSON.stringify(promptData, null, 2));
-		logger.info(`ConversationPersistence: Prepared prompt saved for conversation: ${this.conversationId}`);
+		logger.info(`InteractionPersistence: Prepared prompt saved for conversation: ${this.conversationId}`);
 	}
 
 	async getPreparedSystemPrompt(): Promise<string | null> {
@@ -1123,7 +1123,7 @@ class ConversationPersistence {
 
 	async savePreparedTools(tools: LLMTool[]): Promise<void> {
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for savePreparedTools: ${this.preparedToolsPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for savePreparedTools: ${this.preparedToolsPath}`);
 		await this.ensureDirectory(dirname(this.preparedToolsPath));
 		//const toolsData = Array.from(tools.values()).map((tool) => ({
 		const toolsData = tools.map((tool) => ({
@@ -1132,7 +1132,7 @@ class ConversationPersistence {
 			inputSchema: tool.inputSchema,
 		}));
 		await Deno.writeTextFile(this.preparedToolsPath, JSON.stringify(toolsData, null, 2));
-		logger.info(`ConversationPersistence: Prepared tools saved for conversation: ${this.conversationId}`);
+		logger.info(`InteractionPersistence: Prepared tools saved for conversation: ${this.conversationId}`);
 	}
 
 	async getPreparedTools(): Promise<LLMTool[] | null> {
@@ -1154,10 +1154,10 @@ class ConversationPersistence {
 		}
 
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for saveObjectives: ${this.objectivesPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for saveObjectives: ${this.objectivesPath}`);
 		await this.ensureDirectory(dirname(this.objectivesPath));
 		await Deno.writeTextFile(this.objectivesPath, JSON.stringify(objectives, null, 2));
-		logger.debug(`ConversationPersistence: Saved objectives for conversation: ${this.conversationId}`);
+		logger.debug(`InteractionPersistence: Saved objectives for conversation: ${this.conversationId}`);
 	}
 
 	async getObjectives(): Promise<ObjectivesData | null> {
@@ -1178,7 +1178,7 @@ class ConversationPersistence {
 		}
 
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for saveResources: ${this.resourcesPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for saveResources: ${this.resourcesPath}`);
 		await this.ensureDirectory(dirname(this.resourcesPath));
 		// Convert Sets to arrays for storage
 		const storageFormat = {
@@ -1188,7 +1188,7 @@ class ConversationPersistence {
 			timestamp: new Date().toISOString(),
 		};
 		await Deno.writeTextFile(this.resourcesPath, JSON.stringify(storageFormat, null, 2));
-		logger.debug(`ConversationPersistence: Saved resourceMetrics for conversation: ${this.conversationId}`);
+		logger.debug(`InteractionPersistence: Saved resourceMetrics for conversation: ${this.conversationId}`);
 	}
 
 	async getResources(): Promise<ResourceMetrics | null> {
@@ -1208,11 +1208,11 @@ class ConversationPersistence {
 
 	async saveProjectInfo(projectInfo: ExtendedProjectInfo): Promise<void> {
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for saveProjectInfo: ${this.projectInfoPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for saveProjectInfo: ${this.projectInfoPath}`);
 		await this.ensureDirectory(dirname(this.projectInfoPath));
 		try {
 			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
-			logger.debug(`ConversationPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
+			logger.debug(`InteractionPersistence: Saved project info JSON for conversation: ${this.conversationId}`);
 		} catch (error) {
 			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${errorMessage(error)}`, {
 				filePath: this.projectInfoPath,
@@ -1240,7 +1240,7 @@ class ConversationPersistence {
 	// This method saves project info as markdown for debugging in localdev environment
 	async dumpProjectInfo(projectInfo: ProjectInfo): Promise<void> {
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for dumpProjectInfo: ${this.conversationDir}`);
+		logger.debug(`InteractionPersistence: Ensure directory for dumpProjectInfo: ${this.conversationDir}`);
 		await this.ensureDirectory(this.conversationDir);
 		const projectInfoPath = join(this.conversationDir, 'dump_project_info.md');
 		const content = stripIndents`---
@@ -1249,17 +1249,17 @@ class ConversationPersistence {
 			${projectInfo.content}
 		`;
 		await Deno.writeTextFile(projectInfoPath, content);
-		logger.info(`ConversationPersistence: Project info dumped for conversation: ${this.conversationId}`);
+		logger.info(`InteractionPersistence: Project info dumped for conversation: ${this.conversationId}`);
 	}
 
 	// this is a system prompt dump primarily used for debugging
 	async dumpSystemPrompt(systemPrompt: string): Promise<void> {
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for dumpSystemPrompt: ${this.conversationDir}`);
+		logger.debug(`InteractionPersistence: Ensure directory for dumpSystemPrompt: ${this.conversationDir}`);
 		await this.ensureDirectory(this.conversationDir);
 		const systemPromptPath = join(this.conversationDir, 'dump_system_prompt.md');
 		await Deno.writeTextFile(systemPromptPath, systemPrompt);
-		logger.info(`ConversationPersistence: System prompt dumped for conversation: ${this.conversationId}`);
+		logger.info(`InteractionPersistence: System prompt dumped for conversation: ${this.conversationId}`);
 	}
 
 	private handleSaveError(error: unknown, filePath: string): never {
@@ -1282,7 +1282,7 @@ class ConversationPersistence {
 				} as FileHandlingErrorOptions,
 			);
 		} else {
-			logger.error(`ConversationPersistence: Error saving conversation: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Error saving conversation: ${errorMessage(error)}`);
 			throw createError(ErrorType.FileHandling, `Failed to save conversation: ${filePath}`, {
 				filePath,
 				operation: 'write',
@@ -1292,7 +1292,7 @@ class ConversationPersistence {
 
 	async logChange(filePath: string, change: string): Promise<void> {
 		await this.ensureInitialized();
-		logger.debug(`ConversationPersistence: Ensure directory for logChange: ${this.changeLogPath}`);
+		logger.debug(`InteractionPersistence: Ensure directory for logChange: ${this.changeLogPath}`);
 		await this.ensureDirectory(dirname(this.changeLogPath));
 
 		const changeEntry = JSON.stringify({
@@ -1300,7 +1300,7 @@ class ConversationPersistence {
 			filePath,
 			change,
 		}) + '\n';
-		logger.info(`ConversationPersistence: Writing change file: ${this.changeLogPath}`);
+		logger.info(`InteractionPersistence: Writing change file: ${this.changeLogPath}`);
 
 		await Deno.writeTextFile(this.changeLogPath, changeEntry, { append: true });
 	}
@@ -1351,9 +1351,9 @@ class ConversationPersistence {
 				await Deno.remove(this.conversationDir, { recursive: true });
 			}
 
-			logger.info(`ConversationPersistence: Successfully deleted conversation: ${this.conversationId}`);
+			logger.info(`InteractionPersistence: Successfully deleted conversation: ${this.conversationId}`);
 		} catch (error) {
-			logger.error(`ConversationPersistence: Error deleting conversation: ${this.conversationId}`, error);
+			logger.error(`InteractionPersistence: Error deleting conversation: ${this.conversationId}`, error);
 			throw createError(ErrorType.FileHandling, `Failed to delete conversation: ${errorMessage(error)}`, {
 				filePath: this.conversationDir,
 				operation: 'delete',
@@ -1383,7 +1383,7 @@ class ConversationPersistence {
 		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
 		await this.ensureDirectory(this.resourceRevisionsDir);
 
-		logger.info(`ConversationPersistence: Writing revision resource: ${revisionResourcePath}`);
+		logger.info(`InteractionPersistence: Writing revision resource: ${revisionResourcePath}`);
 
 		if (typeof content === 'string') {
 			await Deno.writeTextFile(revisionResourcePath, content);
@@ -1404,7 +1404,7 @@ class ConversationPersistence {
 		// 	};
 		// 	await this.projectEditor.projectData.storeProjectResource(resourceUri, content, resourceMetadata);
 		// } catch (error) {
-		// 	logger.warn(`ConversationPersistence: Could not store resource at project level: ${errorMessage(error)}`);
+		// 	logger.warn(`InteractionPersistence: Could not store resource at project level: ${errorMessage(error)}`);
 		// 	// Continue even if project-level storage fails
 		// }
 	}
@@ -1418,7 +1418,7 @@ class ConversationPersistence {
 		// const oldFileRevisionsDir = join(dirname(this.resourceRevisionsDir), 'file_revisions');
 		// const oldRevisionPath = join(oldFileRevisionsDir, resourceKey);
 
-		logger.info(`ConversationPersistence: Reading revision resource: ${revisionResourcePath}`);
+		logger.info(`InteractionPersistence: Reading revision resource: ${revisionResourcePath}`);
 
 		// First try the new location
 		if (await exists(revisionResourcePath)) {
@@ -1458,7 +1458,7 @@ class ConversationPersistence {
 	async createBackups(): Promise<void> {
 		await this.ensureInitialized();
 		const backupDir = join(this.conversationDir, 'backups');
-		logger.debug(`ConversationPersistence: Ensure directory for createBackups: ${backupDir}`);
+		logger.debug(`InteractionPersistence: Ensure directory for createBackups: ${backupDir}`);
 		await this.ensureDirectory(backupDir);
 
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -1472,4 +1472,4 @@ class ConversationPersistence {
 	}
 }
 
-export default ConversationPersistence;
+export default InteractionPersistence;

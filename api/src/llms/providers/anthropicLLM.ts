@@ -459,7 +459,7 @@ class AnthropicLLM extends LLM {
 			//logger.info(`LlmProvider[${this.llmProviderName}]: llms-anthropic-anthropicResponse`, anthropicResponse);
 
 			if (this.projectConfig.api?.logLevel === 'debug1') {
-				interaction.conversationPersistence.writeLLMRequest({
+				interaction.interactionPersistence.writeLLMRequest({
 					messageId: anthropicMessage.id,
 					requestBody: messageRequest,
 					requestHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },

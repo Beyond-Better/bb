@@ -14,7 +14,7 @@ import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import PromptManager from '../prompts/promptManager.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
 import type { LLMProviderMessageResponse, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
@@ -280,7 +280,7 @@ class BaseController {
 	protected async loadInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction | null> {
 		logger.info(`BaseController: Attempting to load existing conversation: ${conversationId}`);
 		try {
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(conversationId, this.projectEditor).init();
 
 			const conversation = await persistence.loadConversation(this.getInteractionCallbacks());
 			if (!conversation) {
@@ -348,7 +348,7 @@ class BaseController {
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(interaction.id, this.projectEditor).init();
 			await persistence.saveConversation(interaction);
 
 			// Save system prompt and project info if running in local development
@@ -372,7 +372,7 @@ class BaseController {
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(interaction.id, this.projectEditor).init();
 
 			// Include the latest stats and usage in the saved conversation
 			//interaction.conversationStats = this.interactionStats.get(interaction.id),
@@ -611,7 +611,7 @@ class BaseController {
 		filePath: string | string[],
 		change: string | string[],
 	): Promise<void> {
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+		const persistence = await new InteractionPersistence(interaction.id, this.projectEditor).init();
 
 		if (Array.isArray(filePath) && Array.isArray(change)) {
 			if (filePath.length !== change.length) {
@@ -668,7 +668,7 @@ class BaseController {
 			this.updateTotalStats();
 
 			// Clean up persistence
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(conversationId, this.projectEditor).init();
 			await persistence.deleteConversation();
 
 			logger.info(`BaseController: Successfully deleted conversation: ${conversationId}`);
@@ -679,7 +679,7 @@ class BaseController {
 	}
 
 	async revertLastChange(interaction: LLMConversationInteraction): Promise<void> {
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+		const persistence = await new InteractionPersistence(interaction.id, this.projectEditor).init();
 		const changeLog = await persistence.getChangeLog();
 
 		if (changeLog.length === 0) {

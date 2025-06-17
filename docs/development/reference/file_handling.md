@@ -31,7 +31,7 @@ This document outlines the conventions and strategies for handling files within 
 ## File Updates
 
 - Replace the original file with the edited version in the conversation
-- Maintain a separate log of changes for each conversation using ConversationPersistence
+- Maintain a separate log of changes for each conversation using InteractionPersistence
 
 ## File Metadata
 

@@ -785,10 +785,10 @@ Ensure your summary accurately captures all important context from the removed m
 
 		logger.info('LLMToolConversationSummary: truncateConversation - messages:', messages.length);
 		logger.info('LLMToolConversationSummary: truncateConversation - maxTokensToKeep:', maxTokensToKeep);
-		const conversationPersistence = interaction.conversationPersistence;
+		const interactionPersistence = interaction.interactionPersistence;
 
 		// Create backup files
-		await conversationPersistence.createBackups();
+		await interactionPersistence.createBackups();
 
 		// Calculate token counts and find valid split point
 		let totalTokens = 0;
@@ -1051,7 +1051,7 @@ Ensure your summary accurately captures all important context from the removed m
 			interaction.setMessages(finalKeptMessages);
 
 			// Save the updated conversation
-			await conversationPersistence.saveConversation(interaction);
+			await interactionPersistence.saveConversation(interaction);
 
 			const timestamp = new Date().toISOString();
 			// Update the conversation log

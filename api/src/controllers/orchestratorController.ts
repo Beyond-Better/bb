@@ -15,7 +15,7 @@ import AgentController from 'api/controllers/agentController.ts';
 //import PromptManager from '../prompts/promptManager.ts';
 //import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-//import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+//import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';

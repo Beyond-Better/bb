@@ -64,11 +64,11 @@ Deno.test({
 			// Add messages and token usage to interaction
 			for (let i = 0; i < messages.length; i++) {
 				interaction.addMessage(messages[i]);
-				await interaction.conversationPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
 			}
 
 			// Save the conversation state
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Basic functionality - bbResponse:', result.bbResponse);
@@ -160,11 +160,11 @@ Deno.test({
 			// Add messages and token usage to interaction
 			for (let i = 0; i < messages.length; i++) {
 				interaction.addMessage(messages[i]);
-				await interaction.conversationPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
 			}
 
 			// Save the conversation state
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
@@ -218,7 +218,7 @@ Deno.test({
 			const interaction = await createTestInteraction('test-conversation', projectEditor);
 
 			// Save the empty conversation state
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
@@ -292,11 +292,11 @@ Deno.test({
 			// Add messages and token usage to interaction
 			for (let i = 0; i < messages.length; i++) {
 				interaction.addMessage(messages[i]);
-				await interaction.conversationPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
 			}
 
 			// Save the conversation state
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
@@ -365,11 +365,11 @@ Deno.test({
 			// Add messages and token usage to interaction
 			for (let i = 0; i < messages.length; i++) {
 				interaction.addMessage(messages[i]);
-				await interaction.conversationPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
+				await interaction.interactionPersistence.writeTokenUsage(tokenRecords[i], 'conversation');
 			}
 
 			// Save the conversation state
-			await interaction.conversationPersistence.saveConversation(interaction);
+			await interaction.interactionPersistence.saveConversation(interaction);
 
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 

@@ -4,7 +4,7 @@ import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type { CollaborationLogDataEntry, ConversationId, ConversationResponse } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -446,8 +446,8 @@ export const listConversations = async (
 			return;
 		}
 
-		//logger.info('ConversationHandler: Calling ConversationPersistence.listConversations');
-		const { conversations, totalCount } = await ConversationPersistence.listConversations({
+		//logger.info('ConversationHandler: Calling InteractionPersistence.listConversations');
+		const { conversations, totalCount } = await InteractionPersistence.listConversations({
 			page: page,
 			limit: limit,
 			startDate: startDate ? new Date(startDate) : undefined,

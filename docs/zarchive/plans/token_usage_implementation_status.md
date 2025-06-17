@@ -7,7 +7,7 @@
 - New token usage directory structure
 - TokenUsageRecord interface and types
 - TokenUsagePersistence class
-- Integration with ConversationPersistence
+- Integration with InteractionPersistence
 - Basic error handling and validation
 - Separation of conversation and chat tracking
 

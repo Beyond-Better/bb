@@ -349,7 +349,7 @@ const configManager = await getConfigManager();
 - Line 77 (read)
   Context:
   ```typescript
-  	public conversationPersistence!: ConversationPersistence;
+  	public interactionPersistence!: InteractionPersistence;
   	public collaborationLogger!: CollaborationLogger;
   	protected fullConfig!: FullConfigSchema;
   

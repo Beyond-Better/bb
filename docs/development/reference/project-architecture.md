@@ -349,7 +349,7 @@ The BB system follows an "instance-per-entity" pattern for persistence classes, 
    - Created via ProjectPersistenceManager
    - Focused on operations for a specific projectId
 
-2. **ConversationPersistence**:
+2. **InteractionPersistence**:
    - Each instance manages one conversation
    - Similar lifecycle and responsibility pattern
    - Focused on operations for a specific conversationId

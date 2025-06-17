@@ -3,14 +3,14 @@ import {
 	assertEquals,
 	assertObjectMatch,
 } from 'api/tests/deps.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import type {
 	ResourceMetrics,
 	//ConversationMetrics,
 } from 'shared/types.ts';
 
-Deno.test('ConversationPersistence.defaultTokenUsage returns correct structure', () => {
-	const tokenUsage = ConversationPersistence.defaultTokenUsage();
+Deno.test('InteractionPersistence.defaultTokenUsage returns correct structure', () => {
+	const tokenUsage = InteractionPersistence.defaultTokenUsage();
 
 	assertObjectMatch(tokenUsage, {
 		inputTokens: 0,
@@ -19,8 +19,8 @@ Deno.test('ConversationPersistence.defaultTokenUsage returns correct structure',
 	});
 });
 
-Deno.test('ConversationPersistence.defaultConversationStats returns correct structure', () => {
-	const stats = ConversationPersistence.defaultConversationStats();
+Deno.test('InteractionPersistence.defaultConversationStats returns correct structure', () => {
+	const stats = InteractionPersistence.defaultConversationStats();
 
 	assertObjectMatch(stats, {
 		statementCount: 0,
@@ -29,8 +29,8 @@ Deno.test('ConversationPersistence.defaultConversationStats returns correct stru
 	});
 });
 
-Deno.test('ConversationPersistence.defaultConversationMetrics returns correct structure', () => {
-	const metrics = ConversationPersistence.defaultConversationMetrics();
+Deno.test('InteractionPersistence.defaultConversationMetrics returns correct structure', () => {
+	const metrics = InteractionPersistence.defaultConversationMetrics();
 
 	assertObjectMatch(metrics, {
 		statementCount: 0,
@@ -45,8 +45,8 @@ Deno.test('ConversationPersistence.defaultConversationMetrics returns correct st
 	});
 });
 
-Deno.test('ConversationPersistence.defaultMetadata returns correct structure', () => {
-	const metadata = ConversationPersistence.defaultMetadata();
+Deno.test('InteractionPersistence.defaultMetadata returns correct structure', () => {
+	const metadata = InteractionPersistence.defaultMetadata();
 
 	// Check version defaults to 1
 	assertEquals(metadata.version, 3, 'Default version should be 3');

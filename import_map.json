@@ -137,7 +137,7 @@
 		"api/logEntries/types.ts": "./api/src/logEntries/types.ts",
 		"api/storage/projectPersistenceManager.ts": "./api/src/storage/projectPersistenceManager.ts",
 		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
-		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
+		"api/storage/interactionPersistence.ts": "./api/src/storage/interactionPersistence.ts",
 		"api/storage/conversationMigration.ts": "./api/src/storage/conversationMigration.ts",
 		"api/storage/collaborationLogger.ts": "./api/src/storage/collaborationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",
