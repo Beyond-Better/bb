@@ -2,7 +2,7 @@ import type {
 	ConversationContinue,
 	ConversationDeleted,
 	ConversationId,
-	ConversationLogEntry,
+	CollaborationLogEntry,
 	ConversationNew,
 	ConversationResponse,
 	ConversationStart,

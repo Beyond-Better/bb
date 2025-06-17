@@ -6,14 +6,14 @@ This document outlines the conversation logging and formatting system for BB, fo
 
 ## Key Components
 
-1. ConversationLogger (API)
-2. ConversationLogFormatter (CLI/BUI)
+1. CollaborationLogger (API)
+2. CollaborationLogFormatter (CLI/BUI)
 3. Dynamic Formatter Loader (CLI/BUI)
 4. Formatter Provider (API)
 
 ## Logging Structure
 
-The ConversationLogger in the API is responsible for creating and storing log entries in a JSON format. Each log entry contains:
+The CollaborationLogger in the API is responsible for creating and storing log entries in a JSON format. Each log entry contains:
 
 - Type (e.g., 'user', 'assistant', 'tool_use', 'tool_result', 'auxiliary')
 - Timestamp

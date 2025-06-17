@@ -3,7 +3,7 @@ import type { LLMToolFormatterDestination, LLMToolInputSchema } from 'api/llms/l
 import type { JSX } from 'preact';
 //import { renderToString } from 'preact-render-to-string';
 import LLMToolManager from '../llms/llmToolManager.ts';
-import type { ConversationLogEntry, ConversationLogEntryContent, ConversationLogEntryType } from 'shared/types.ts';
+import type { CollaborationLogEntry, CollaborationLogEntryContent, CollaborationLogEntryType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
@@ -41,12 +41,12 @@ export default class LogEntryFormatterManager {
 
 	async formatLogEntry(
 		destination: LLMToolFormatterDestination,
-		logEntry: ConversationLogEntry,
+		logEntry: CollaborationLogEntry,
 		options?: unknown,
 	): Promise<LogEntryFormattedResult> {
 		let formatted: LogEntryFormattedResult;
 		//logger.info(`LogEntryFormatterManager: formatLogEntry:`, logEntry);
-		switch (logEntry.entryType as ConversationLogEntryType) {
+		switch (logEntry.entryType as CollaborationLogEntryType) {
 			case 'user':
 				formatted = destination === 'console'
 					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myPersonsName || 'User')
@@ -103,7 +103,7 @@ export default class LogEntryFormatterManager {
 		return formatted;
 	}
 
-	private formatLogEntryBasicConsole(logEntry: ConversationLogEntry, title: string): LogEntryFormattedResult {
+	private formatLogEntryBasicConsole(logEntry: CollaborationLogEntry, title: string): LogEntryFormattedResult {
 		return {
 			title: this.formatLogEntryTitleConsole({ title }),
 			content: this.formatLogEntryContentConsole(logEntry),
@@ -111,7 +111,7 @@ export default class LogEntryFormatterManager {
 		};
 	}
 
-	private formatLogEntryBasicBrowser(logEntry: ConversationLogEntry, title: string): LogEntryFormattedResult {
+	private formatLogEntryBasicBrowser(logEntry: CollaborationLogEntry, title: string): LogEntryFormattedResult {
 		return {
 			title: this.formatLogEntryTitleBrowser({ title }),
 			content: this.formatLogEntryContentBrowser(logEntry, this.projectEditor.projectId),
@@ -119,14 +119,14 @@ export default class LogEntryFormatterManager {
 		};
 	}
 
-	private formatAuxiliaryConsole(logEntry: ConversationLogEntry): LogEntryFormattedResult {
-		const content: ConversationLogEntryContent = logEntry.content;
+	private formatAuxiliaryConsole(logEntry: CollaborationLogEntry): LogEntryFormattedResult {
+		const content: CollaborationLogEntryContent = logEntry.content;
 		if (typeof content === 'object' && 'purpose' in content) {
 			const auxContent = content as AuxiliaryChatContent;
 			return {
 				title: this.formatLogEntryTitleConsole({ title: auxContent.purpose }),
-				content: this.formatLogEntryContentConsole({ content: auxContent.message } as ConversationLogEntry),
-				preview: this.formatLogEntryPreviewConsole({ content: auxContent.message } as ConversationLogEntry),
+				content: this.formatLogEntryContentConsole({ content: auxContent.message } as CollaborationLogEntry),
+				preview: this.formatLogEntryPreviewConsole({ content: auxContent.message } as CollaborationLogEntry),
 			};
 		}
 		// Fallback for string content
@@ -137,17 +137,17 @@ export default class LogEntryFormatterManager {
 		};
 	}
 
-	private formatAuxiliaryBrowser(logEntry: ConversationLogEntry): LogEntryFormattedResult {
-		const content: ConversationLogEntryContent = logEntry.content;
+	private formatAuxiliaryBrowser(logEntry: CollaborationLogEntry): LogEntryFormattedResult {
+		const content: CollaborationLogEntryContent = logEntry.content;
 		if (typeof content === 'object' && 'purpose' in content) {
 			const auxContent = content as AuxiliaryChatContent;
 			return {
 				title: this.formatLogEntryTitleBrowser({ title: auxContent.purpose }),
 				content: this.formatLogEntryContentBrowser(
-					{ content: auxContent.message } as ConversationLogEntry,
+					{ content: auxContent.message } as CollaborationLogEntry,
 					this.projectEditor.projectId,
 				),
-				preview: this.formatLogEntryPreviewBrowser({ content: auxContent.message } as ConversationLogEntry),
+				preview: this.formatLogEntryPreviewBrowser({ content: auxContent.message } as CollaborationLogEntry),
 			};
 		}
 		// Fallback for string content
@@ -160,7 +160,7 @@ export default class LogEntryFormatterManager {
 
 	private async formatLogEntryTool(
 		destination: LLMToolFormatterDestination,
-		logEntry: ConversationLogEntry,
+		logEntry: CollaborationLogEntry,
 		_options: unknown,
 	): Promise<LogEntryFormattedResult> {
 		if (!logEntry.toolName) throw new Error(`Tool name not provided in log entry: ${logEntry.toolName}`);
@@ -177,8 +177,8 @@ export default class LogEntryFormatterManager {
 				// logger.error(`LogEntryFormatterManager: toolUse ${logEntry.toolName}:`, renderToString(toolUse.content as JSX.Element));
 				// return toolUse;
 			} else {
-				return tool.formatLogEntryToolResult(logEntry.content as ConversationLogEntryContent, destination);
-				//const toolResult =  tool.formatLogEntryToolResult(logEntry.content as ConversationLogEntryContent, destination);
+				return tool.formatLogEntryToolResult(logEntry.content as CollaborationLogEntryContent, destination);
+				//const toolResult =  tool.formatLogEntryToolResult(logEntry.content as CollaborationLogEntryContent, destination);
 				//logger.error(`LogEntryFormatterManager: toolResult ${logEntry.toolName}:`, renderToString(toolResult.content as JSX.Element));
 				//return toolResult;
 			}
@@ -200,12 +200,12 @@ export default class LogEntryFormatterManager {
 		return formatLogEntryTitleForConsole(titleData);
 	}
 
-	private formatLogEntryContentConsole(logEntry: ConversationLogEntry): string {
+	private formatLogEntryContentConsole(logEntry: CollaborationLogEntry): string {
 		return formatLogEntryContentForConsole(logEntry);
 	}
 
-	private formatLogEntryPreviewConsole(logEntry: ConversationLogEntry): string {
-		const logEntryContent: ConversationLogEntryContent = logEntry.content;
+	private formatLogEntryPreviewConsole(logEntry: CollaborationLogEntry): string {
+		const logEntryContent: CollaborationLogEntryContent = logEntry.content;
 		return formatLogEntryPreviewForConsole(this.getContentPreview(logEntryContent));
 	}
 
@@ -213,16 +213,16 @@ export default class LogEntryFormatterManager {
 		return formatLogEntryTitleForBrowser(titleData);
 	}
 
-	private formatLogEntryContentBrowser(logEntry: ConversationLogEntry, projectId?: string): string | JSX.Element {
+	private formatLogEntryContentBrowser(logEntry: CollaborationLogEntry, projectId?: string): string | JSX.Element {
 		return formatLogEntryContentForBrowser(logEntry, projectId);
 	}
 
-	private formatLogEntryPreviewBrowser(logEntry: ConversationLogEntry): string | JSX.Element {
-		const logEntryContent: ConversationLogEntryContent = logEntry.content;
+	private formatLogEntryPreviewBrowser(logEntry: CollaborationLogEntry): string | JSX.Element {
+		const logEntryContent: CollaborationLogEntryContent = logEntry.content;
 		return formatLogEntryPreviewForBrowser(this.getContentPreview(logEntryContent));
 	}
 
-	private getContentPreview(content: ConversationLogEntryContent): string {
+	private getContentPreview(content: CollaborationLogEntryContent): string {
 		if (typeof content === 'string') {
 			// Remove any XML-style tags and trim
 			const cleaned = content.replace(/<[^>]+>/g, '').trim();

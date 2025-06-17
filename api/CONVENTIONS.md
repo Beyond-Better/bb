@@ -119,7 +119,7 @@ The persistence layer is currently ad-hoc. Before implementing new storage featu
 ### Key Files
 - tokenUsagePersistence.ts
 - projectPersistence.ts
-- conversationLogger.ts
+- collaborationLogger.ts
 - conversationPersistence.ts
 
 ## Error Handling

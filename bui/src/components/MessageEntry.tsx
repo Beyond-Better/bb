@@ -2,8 +2,8 @@ import { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import type {
-	ConversationLogDataEntry,
-	//ConversationLogEntry
+	CollaborationLogDataEntry,
+	//CollaborationLogEntry
 } from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getDefaultTokenUsage, logDataEntryHasChildren, logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
@@ -20,7 +20,7 @@ import {
 } from '../utils/messageUtils.utils.tsx';
 
 interface MessageEntryProps {
-	logDataEntry: ConversationLogDataEntry;
+	logDataEntry: CollaborationLogDataEntry;
 	index: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;
@@ -46,7 +46,7 @@ declare global {
 }
 
 // Check if this is a parent logDataEntry with agent tasks
-function isAgentTaskParent(logDataEntry: ConversationLogDataEntry): boolean {
+function isAgentTaskParent(logDataEntry: CollaborationLogDataEntry): boolean {
 	// Tool inputs for delegate_tasks are parents of agent tasks
 	return logDataEntry.logEntry?.entryType === 'tool_use' &&
 		logDataEntry.logEntry?.toolName === 'delegate_tasks';
@@ -62,7 +62,7 @@ export function MessageEntry({
 	apiClient,
 	projectId,
 	conversationId,
-}: MessageEntryProps & { allEntries?: ConversationLogDataEntry[] }): JSX.Element {
+}: MessageEntryProps & { allEntries?: CollaborationLogDataEntry[] }): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(

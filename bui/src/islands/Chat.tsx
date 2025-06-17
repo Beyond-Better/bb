@@ -13,7 +13,7 @@ import type {
 
 import { useChatState } from '../hooks/useChatState.ts';
 import { setConversation, useAppState } from '../hooks/useAppState.ts';
-import { useModelState, initializeModelState } from '../hooks/useModelState.ts';
+import { initializeModelState, useModelState } from '../hooks/useModelState.ts';
 import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
@@ -42,7 +42,11 @@ const getConversationId = () => {
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
 // Model state hook for centralized model management
-const { modelState, getDefaultRolesModelConfig, getModelCapabilities } = useModelState();
+const {
+	//modelState,
+	getDefaultRolesModelConfig,
+	//getModelCapabilities,
+} = useModelState();
 
 const defaultChatConfig: ChatConfig = {
 	apiUrl: '',
@@ -84,6 +88,7 @@ const getInputOptionsFromConversation = (
 			},
 		};
 	}
+		//console.log('ChatIsland: getInputOptionsFromConversation - conversation.collaborationParams:', conversation.collaborationParams);
 
 	// Return conversation params
 	return {
@@ -98,7 +103,7 @@ interface ChatProps {
 // Initialize conversation list visibility state
 const isConversationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>({ ...defaultInputOptions.value });
+const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>(getInputOptionsFromConversation(null, []));
 const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
@@ -404,42 +409,45 @@ export default function Chat({
 			chatInputOptions.value = getInputOptionsFromConversation(id, chatState.value.conversations);
 			console.info('ChatIsland: Updated options for selected conversation', id, chatInputOptions.value);
 
-			// Fetch model capabilities for all models in the conversation
-			const rolesConfig = chatInputOptions.value.rolesModelConfig;
-			if (rolesConfig) {
-				const modelIds = [
-					rolesConfig.orchestrator?.model,
-					rolesConfig.agent?.model,
-					rolesConfig.chat?.model,
-				].filter((model): model is string => Boolean(model));
-
-				// Remove duplicates
-				const uniqueModelIds = [...new Set(modelIds)];
-
-				// Load capabilities for all models used in this conversation
-				if (uniqueModelIds.length > 0) {
-					try {
-						// Load capabilities for the primary model (orchestrator) for backward compatibility
-						if (rolesConfig.orchestrator?.model) {
-							const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
-							if (capabilities) {
-								modelData.value = capabilities;
-								console.info('Chat: Updated model capabilities for orchestrator:', capabilities.displayName);
-							}
-						}
-						// Preload other model capabilities in background
-						uniqueModelIds.forEach(modelId => {
-							if (modelId !== rolesConfig.orchestrator?.model) {
-								getModelCapabilities(modelId).catch(error => {
-									console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
-								});
-							}
-						});
-					} catch (error) {
-						console.error('Chat: Failed to fetch model capabilities', error);
-					}
-				}
-			}
+			// // Fetch model capabilities for all models in the conversation
+			// const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			// if (rolesConfig) {
+			// 	const modelIds = [
+			// 		rolesConfig.orchestrator?.model,
+			// 		rolesConfig.agent?.model,
+			// 		rolesConfig.chat?.model,
+			// 	].filter((model): model is string => Boolean(model));
+// 
+			// 	// Remove duplicates
+			// 	const uniqueModelIds = [...new Set(modelIds)];
+// 
+			// 	// Load capabilities for all models used in this conversation
+			// 	if (uniqueModelIds.length > 0) {
+			// 		try {
+			// 			// Load capabilities for the primary model (orchestrator) for backward compatibility
+			// 			if (rolesConfig.orchestrator?.model) {
+			// 				const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
+			// 				if (capabilities) {
+			// 					modelData.value = capabilities;
+			// 					console.info(
+			// 						'Chat: Updated model capabilities for orchestrator:',
+			// 						capabilities.displayName,
+			// 					);
+			// 				}
+			// 			}
+			// 			// Preload other model capabilities in background
+			// 			uniqueModelIds.forEach((modelId) => {
+			// 				if (modelId !== rolesConfig.orchestrator?.model) {
+			// 					getModelCapabilities(modelId).catch((error) => {
+			// 						console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
+			// 					});
+			// 				}
+			// 			});
+			// 		} catch (error) {
+			// 			console.error('Chat: Failed to fetch model capabilities', error);
+			// 		}
+			// 	}
+			// }
 
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
@@ -482,18 +490,18 @@ export default function Chat({
 			);
 			//console.info(`ChatIsland: Initialized chatInputOptions from conversation: ${chatState.value.conversationId}`, chatInputOptions.value);
 
-			// Fetch model capabilities for the current conversation models
-			const rolesConfig = chatInputOptions.value.rolesModelConfig;
-			if (rolesConfig?.orchestrator?.model) {
-				getModelCapabilities(rolesConfig.orchestrator.model)
-					.then((capabilities) => {
-						if (capabilities) {
-							modelData.value = capabilities;
-							console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
-						}
-					})
-					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
-			}
+			// // Fetch model capabilities for the current conversation models
+			// const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			// if (rolesConfig?.orchestrator?.model) {
+			// 	getModelCapabilities(rolesConfig.orchestrator.model)
+			// 		.then((capabilities) => {
+			// 			if (capabilities) {
+			// 				modelData.value = capabilities;
+			// 				console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
+			// 			}
+			// 		})
+			// 		.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
+			// }
 		}
 
 		const handlePopState = async () => {

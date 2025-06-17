@@ -8,7 +8,7 @@
 
 import { logger } from 'shared/logger.ts';
 import { isError } from 'api/errors/error.ts';
-import type { LLMProvider } from 'api/types.ts';
+import type { LLMModelConfig, LLMProvider } from 'api/types.ts';
 import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.ts';
 import type { LLMProviderConfig, ProjectConfig } from 'shared/config/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -388,6 +388,32 @@ export class ModelRegistryService {
 		}
 
 		return model.capabilities;
+	}
+
+	/**
+	 * Get model capabilities by ID
+	 */
+	public getModelConfig(modelId: string): LLMModelConfig {
+		const modelCapabilities = this.getModelCapabilities(modelId);
+
+		const modelConfig = {
+			model: modelId,
+			temperature: modelCapabilities.defaults.temperature ?? 0.7,
+			maxTokens: modelCapabilities.defaults.maxTokens ?? 16384,
+			extendedThinking: {
+				enabled: modelCapabilities.supportedFeatures.extendedThinking ?? false,
+				// enabled: modelCapabilities.supportedFeatures.extendedThinking ??
+				// 	(projectConfig.api?.extendedThinking?.enabled ?? globalConfig.api.extendedThinking?.enabled ?? true),
+				budgetTokens: 4096,
+				// budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
+				// 	globalConfig.api.extendedThinking?.budgetTokens || 4096,
+			},
+			usePromptCaching: modelCapabilities.supportedFeatures.promptCaching,
+			// usePromptCaching: modelCapabilities.supportedFeatures.promptCaching ??
+			// 	(projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true),
+		};
+
+		return modelConfig;
 	}
 
 	/**

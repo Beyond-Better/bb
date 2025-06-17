@@ -1,4 +1,4 @@
-import type { ConversationLogEntry } from 'shared/types.ts';
+import type { CollaborationLogEntry } from 'shared/types.ts';
 import type { LogEntryTitleData } from './types.ts';
 
 export const formatLogEntryTitle = (titleData: LogEntryTitleData): string => {
@@ -67,7 +67,7 @@ function getFileIconConsole(fileName: string): string {
 	return iconMap[fileExt] || iconMap.default;
 }
 
-export const formatLogEntryContent = (logEntry: ConversationLogEntry): string => {
+export const formatLogEntryContent = (logEntry: CollaborationLogEntry): string => {
 	// Format the main content
 	const contentArray: Array<{ type: string; content: string }> = formatContentParts(logEntry.content);
 	const mainContent = contentArray

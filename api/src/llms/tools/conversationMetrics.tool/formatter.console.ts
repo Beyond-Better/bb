@@ -1,5 +1,5 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolConversationMetricsResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
@@ -41,7 +41,7 @@ function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResultData['to
 }
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {

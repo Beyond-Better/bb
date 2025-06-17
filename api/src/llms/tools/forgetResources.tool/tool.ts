@@ -8,7 +8,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolForgetResourcesInput, LLMToolForgetResourcesResponseData } from './types.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -76,7 +76,7 @@ export default class LLMToolForgetResources extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

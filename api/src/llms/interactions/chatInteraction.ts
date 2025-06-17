@@ -44,7 +44,7 @@ class LLMChatInteraction extends LLMInteraction {
 		//logger.debug(`chat - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
 		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });
 
-		//this.conversationLogger.logAuxiliaryMessage(messageId, null, null, prompt);
+		//this.collaborationLogger.logAuxiliaryMessage(messageId, null, null, prompt);
 
 		//speakOptions = { model: this.projectConfig.defaultModels!.chat, ...speakOptions };
 		if (speakOptions.model) this.model = speakOptions.model;
@@ -60,7 +60,7 @@ class LLMChatInteraction extends LLMInteraction {
 			purpose: this.title,
 		};
 
-		this.conversationLogger.logAuxiliaryMessage(
+		this.collaborationLogger.logAuxiliaryMessage(
 			this.getLastMessageId(),
 			null,
 			null,

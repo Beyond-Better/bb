@@ -16,7 +16,7 @@ import {
 } from './formatter.console.ts';
 import type { LLMToolRunCommandInput, OutputTruncationLines } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
@@ -155,7 +155,7 @@ export default class LLMToolRunCommand extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

@@ -736,7 +736,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	// relayToolResult is a lower-level call, to handle tool use/results loop
-	// the caller is responsible for adding to conversationLogger
+	// the caller is responsible for adding to collaborationLogger
 	async relayToolResult(
 		prompt: string,
 		metadata: ConversationStatementMetadata,
@@ -870,7 +870,7 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		//if (promptFrom === 'orchestrator') {
 		if (parentMessageId) {
-			this.conversationLogger.logOrchestratorMessage(
+			this.collaborationLogger.logOrchestratorMessage(
 				messageId,
 				parentMessageId,
 				this.id,
@@ -878,7 +878,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				this.conversationStats,
 			);
 		} else {
-			this.conversationLogger.logUserMessage(
+			this.collaborationLogger.logUserMessage(
 				messageId,
 				modifiedPrompt,
 				this.conversationStats,

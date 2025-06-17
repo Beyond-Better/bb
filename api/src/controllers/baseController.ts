@@ -19,9 +19,9 @@ import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 import type { LLMProviderMessageResponse, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
 	ConversationContinue,
-	//ConversationLogDataEntry,
+	//CollaborationLogDataEntry,
 	ConversationId,
-	ConversationLogEntry,
+	CollaborationLogEntry,
 	//ConversationMetrics,
 	ConversationResponse,
 	//ConversationStart,
@@ -428,7 +428,7 @@ class BaseController {
 
 		const logEntryInteraction = this.logEntryInteraction(interaction.id);
 		const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
-		await interaction.conversationLogger.logToolUse(
+		await interaction.collaborationLogger.logToolUse(
 			interaction.getLastMessageId(),
 			parentMessageId,
 			agentInteractionId,
@@ -451,7 +451,7 @@ class BaseController {
 			this.projectEditor,
 		);
 		if (isError) {
-			interaction.conversationLogger.logError(
+			interaction.collaborationLogger.logError(
 				messageId,
 				parentMessageId,
 				agentInteractionId,
@@ -459,7 +459,7 @@ class BaseController {
 			);
 		}
 
-		await interaction.conversationLogger.logToolResult(
+		await interaction.collaborationLogger.logToolResult(
 			messageId,
 			parentMessageId,
 			agentInteractionId,
@@ -497,7 +497,7 @@ class BaseController {
 				parentInteractionId: ConversationId,
 				agentInteractionId: ConversationId | null,
 				timestamp: string,
-				logEntry: ConversationLogEntry,
+				logEntry: CollaborationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
 				modelConfig?: LLMModelConfig,
@@ -575,7 +575,7 @@ class BaseController {
 	}
 
 	/*
-	private getConversationHistory(interaction: LLMConversationInteraction): ConversationLogDataEntry[] {
+	private getConversationHistory(interaction: LLMConversationInteraction): CollaborationLogDataEntry[] {
 		const history = interaction.getMessageHistory();
 		return history.map((message: LLMMessage) => ({
 			type: message.role,

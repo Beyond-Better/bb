@@ -1,3 +1,5 @@
+import type { LLMRolesModelConfig } from 'shared/types.ts';
+
 /**
  * Parameters used in LLM requests
  */

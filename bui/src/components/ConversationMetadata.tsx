@@ -1,8 +1,8 @@
 import { JSX } from 'preact';
-import type { ConversationLogDataEntry } from 'shared/types.ts';
+import type { CollaborationLogDataEntry } from 'shared/types.ts';
 
 interface ConversationMetadataProps {
-	logDataEntries: ConversationLogDataEntry[];
+	logDataEntries: CollaborationLogDataEntry[];
 	conversationId: string | null;
 	title?: string;
 }

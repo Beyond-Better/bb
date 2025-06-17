@@ -30,7 +30,7 @@ import { MessageEntry } from "../components/MessageEntry.tsx";
 
 ```typescript
 interface MessageEntryProps {
-    entry: ConversationLogDataEntry;
+    entry: CollaborationLogDataEntry;
     index: number;
     onCopy: (text: string) => void;
 }

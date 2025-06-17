@@ -8,7 +8,7 @@ import type {
 } from 'shared/types.ts';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
-import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
 import type { StatementParams } from 'shared/types/collaborationParams.ts';
 
 interface WebSocketMessage {
@@ -23,7 +23,7 @@ interface WebSocketMessage {
 
 // interface WebSocketLogEntry {
 // 	timestamp: string;
-// 	logEntry: ConversationLogEntry;
+// 	logEntry: CollaborationLogEntry;
 // 	formattedContent: string;
 // }
 
@@ -39,7 +39,7 @@ interface WebSocketResponse {
 		| 'progressStatus'
 		| 'promptCacheTimer';
 	data: {
-		logEntry?: ConversationLogEntry;
+		logEntry?: CollaborationLogEntry;
 		timestamp?: string;
 		conversationTitle?: string;
 		messageId: string;

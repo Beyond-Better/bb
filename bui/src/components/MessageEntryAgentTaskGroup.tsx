@@ -1,13 +1,13 @@
 import { JSX } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { MessageEntry } from './MessageEntry.tsx';
-import type { ConversationLogDataEntry } from 'shared/types.ts';
+import type { CollaborationLogDataEntry } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { getInitialCollapseState, saveCollapseState } from '../utils/messageUtils.utils.tsx';
 
 interface MessageEntryAgentTaskGroupProps {
-	entries: ConversationLogDataEntry[];
-	parentEntry: ConversationLogDataEntry;
+	entries: CollaborationLogDataEntry[];
+	parentEntry: CollaborationLogDataEntry;
 	parentIndex: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;

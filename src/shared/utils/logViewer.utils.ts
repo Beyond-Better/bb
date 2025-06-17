@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 import { getBbDir } from 'shared/dataDir.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import ConversationLogger from 'api/storage/conversationLogger.ts';
+import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 
 export async function watchLogs(logFilePath: string, onNewContent: (content: string) => void) {
 	const watcher = Deno.watchFs(logFilePath);
@@ -61,6 +61,6 @@ export async function getLogFilePath(projectId: string, isApiLog: boolean, conve
 	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
 	return !isApiLog && conversationId
-		? await ConversationLogger.getLogFileRawPath(projectId, conversationId)
+		? await CollaborationLogger.getLogFileRawPath(projectId, conversationId)
 		: join(await getBbDir(projectId), globalConfig.api.logFile ?? 'api.log');
 }

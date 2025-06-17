@@ -7,15 +7,17 @@ import type {
 } from 'api/types/llms.ts';
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
-import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { VersionInfo } from './types/version.types.ts';
 
 export type {
-	ConversationLogEntry,
-	ConversationLogEntryContent,
-	ConversationLogEntryContentToolResult,
-	ConversationLogEntryType,
-} from 'api/storage/conversationLogger.ts';
+	CollaborationLogEntry,
+	CollaborationLogEntryContent,
+	CollaborationLogEntryContentToolResult,
+	CollaborationLogEntryType,
+} from 'api/storage/collaborationLogger.ts';
+export type {LLMModelConfig, LLMRolesModelConfig};
 
 export type ConversationId = string;
 
@@ -33,7 +35,9 @@ export interface ConversationMetadata {
 	//tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'>;
 	tokenUsageStats: TokenUsageStats;
 
-	collaborationParams: CollaborationParams;
+	// for interaction storage
+	collaborationParams?: CollaborationParams;
+	// for collaboration storage
 	modelConfig?: LLMModelConfig;
 
 	llmProviderName: string;
@@ -82,7 +86,7 @@ export interface Conversation {
 	id: ConversationId;
 	title: string;
 
-	logDataEntries: ConversationLogDataEntry[];
+	logDataEntries: CollaborationLogDataEntry[];
 
 	conversationStats: ConversationStats;
 	conversationMetrics?: ConversationMetrics;
@@ -286,7 +290,7 @@ export interface ConversationMetrics extends ConversationStats {
 	};
 }
 
-export type ConversationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse;
+export type CollaborationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse;
 
 export interface ConversationStart {
 	conversationId: ConversationId;
@@ -298,16 +302,16 @@ export interface ConversationStart {
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
 	// 	};
-	collaborationParams: CollaborationParams;
+	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats; // for resuming a conversation
-	conversationHistory: ConversationLogDataEntry[];
+	conversationHistory: CollaborationLogDataEntry[];
 	formattedContent?: string;
 	versionInfo: VersionInfo;
-	logEntry?: ConversationLogEntry;
+	logEntry?: CollaborationLogEntry;
 	children?: {
-		[agentInteractionId: string]: ConversationLogDataEntry[];
+		[agentInteractionId: string]: CollaborationLogDataEntry[];
 	};
 }
 
@@ -318,11 +322,11 @@ export interface ConversationContinue {
 	parentMessageId: string | null;
 	agentInteractionId: string | null;
 	timestamp: string;
-	logEntry: ConversationLogEntry;
+	logEntry: CollaborationLogEntry;
 	children?: {
-		[agentInteractionId: string]: ConversationLogDataEntry[];
+		[agentInteractionId: string]: CollaborationLogDataEntry[];
 	};
-	collaborationParams: CollaborationParams;
+	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
@@ -339,7 +343,7 @@ export interface ConversationNew {
 	//tokenUsageConversation: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;
-	collaborationParams: CollaborationParams;
+	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 }
 
@@ -355,11 +359,11 @@ export interface ConversationResponse {
 	parentMessageId: string | null;
 	agentInteractionId: string | null;
 	timestamp: string;
-	logEntry: ConversationLogEntry;
+	logEntry: CollaborationLogEntry;
 	children?: {
-		[agentInteractionId: string]: ConversationLogDataEntry[];
+		[agentInteractionId: string]: CollaborationLogDataEntry[];
 	};
-	collaborationParams: CollaborationParams;
+	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	conversationStats: ConversationStats;

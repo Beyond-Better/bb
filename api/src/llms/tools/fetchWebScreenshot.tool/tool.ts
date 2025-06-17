@@ -10,7 +10,7 @@ import {
 	formatLogEntryToolUse as formatLogEntryToolUseConsole,
 } from './formatter.console.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartImageBlock, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import FetchManager from 'shared/fetchManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -74,7 +74,7 @@ export default class LLMToolFetchWebScreenshot extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

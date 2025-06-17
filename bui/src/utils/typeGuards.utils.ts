@@ -1,6 +1,6 @@
 import type {
 	ConversationContinue,
-	ConversationLogDataEntry,
+	CollaborationLogDataEntry,
 	ConversationResponse,
 	ConversationStart,
 	TokenUsage,
@@ -9,21 +9,21 @@ import type {
 /**
  * Type guard to check if an entry is a ConversationStart
  */
-export function isConversationStart(entry: ConversationLogDataEntry): entry is ConversationStart {
+export function isConversationStart(entry: CollaborationLogDataEntry): entry is ConversationStart {
 	return !('logEntry' in entry) && 'conversationHistory' in entry;
 }
 
 /**
  * Type guard to check if an entry is a ConversationContinue
  */
-export function isConversationContinue(entry: ConversationLogDataEntry): entry is ConversationContinue {
+export function isConversationContinue(entry: CollaborationLogDataEntry): entry is ConversationContinue {
 	return 'logEntry' in entry && 'tokenUsageStats' in entry;
 }
 
 /**
  * Type guard to check if an entry is a ConversationResponse
  */
-export function isConversationResponse(entry: ConversationLogDataEntry): entry is ConversationResponse {
+export function isConversationResponse(entry: CollaborationLogDataEntry): entry is ConversationResponse {
 	return 'logEntry' in entry && !('tokenUsageStats' in entry);
 }
 
@@ -31,12 +31,12 @@ export function isConversationResponse(entry: ConversationLogDataEntry): entry i
  * Type guard for entries that have logEntry (Continue or Response)
  */
 export function logDataEntryHasLogEntry(
-	entry: ConversationLogDataEntry,
+	entry: CollaborationLogDataEntry,
 ): entry is ConversationContinue | ConversationResponse {
 	return 'logEntry' in entry;
 }
 export function logDataEntryHasChildren(
-	entry: ConversationLogDataEntry,
+	entry: CollaborationLogDataEntry,
 ): entry is ConversationContinue | ConversationResponse {
 	return 'children' in entry;
 }

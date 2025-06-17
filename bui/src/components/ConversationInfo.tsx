@@ -1,9 +1,9 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import type { ConversationContinue, ConversationLogDataEntry } from 'shared/types.ts';
+import type { ConversationContinue, CollaborationLogDataEntry } from 'shared/types.ts';
 
 interface ConversationInfoProps {
-	logDataEntries?: ConversationLogDataEntry[];
+	logDataEntries?: CollaborationLogDataEntry[];
 	conversationId?: string;
 	title?: string;
 }

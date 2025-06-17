@@ -3,7 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import hljs from 'highlight';
 import { Toast } from './Toast.tsx';
 import { ApiClient, LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
-import { ConversationLogEntry } from 'shared/types.ts';
+import { CollaborationLogEntry } from 'shared/types.ts';
 
 interface MessageEntryToolProps {
 	type: 'input' | 'output';
@@ -13,7 +13,7 @@ interface MessageEntryToolProps {
 	apiClient?: ApiClient;
 	projectId?: string;
 	conversationId?: string;
-	logEntry?: ConversationLogEntry;
+	logEntry?: CollaborationLogEntry;
 }
 
 export function MessageEntryTool({

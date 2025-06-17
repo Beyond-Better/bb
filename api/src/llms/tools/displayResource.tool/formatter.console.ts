@@ -1,7 +1,7 @@
 import { stripIndents } from 'common-tags';
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { DisplayResult, LLMToolDisplayResourceInput, LLMToolDisplayResourceResult } from './types.ts';
 
 function formatMetadata(metadata: DisplayResult['metadata']): string {
@@ -69,7 +69,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 };
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent as LLMToolDisplayResourceResult;
 

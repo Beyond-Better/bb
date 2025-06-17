@@ -1,6 +1,6 @@
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
-import { ApiStatus, ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
+import { ApiStatus, CollaborationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type {
 	ClientProjectData,
@@ -39,7 +39,7 @@ export interface ChatState {
 	projectData: ClientProjectData | null;
 	apiClient: ApiClient | null;
 	wsManager: WebSocketManager | null;
-	logDataEntries: ConversationLogDataEntry[];
+	logDataEntries: CollaborationLogDataEntry[];
 	conversations: ConversationMetadata[];
 	status: ChatStatus;
 }

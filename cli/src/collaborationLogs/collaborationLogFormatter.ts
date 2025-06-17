@@ -5,9 +5,9 @@ import { TextLineStream } from '@std/streams';
 import { colors } from 'cliffy/ansi/colors';
 //import { renderToString } from 'preact-render-to-string';
 
-import ConversationLogger from 'api/storage/conversationLogger.ts';
+import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import type { ConversationId, ConversationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
+import type { ConversationId, CollaborationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 
 const configManager = await getConfigManager();
@@ -29,11 +29,11 @@ const ERROR_ICON = '❌';
 const UNKNOWN_ICON = '❓';
 //const CLOCK_ICON = '🕒'; // Clock emoji
 
-export default class ConversationLogFormatter {
+export default class CollaborationLogFormatter {
 	private _maxLineLength: number;
 
 	private static readonly iconColorMap: Record<
-		ConversationLogEntryType,
+		CollaborationLogEntryType,
 		{ icon: string; color: (text: string) => string; label: string }
 	> = {
 		user: { icon: USER_ICON, color: colors.blue, label: globalConfig.myPersonsName || 'Person' },
@@ -55,10 +55,10 @@ export default class ConversationLogFormatter {
 	};
 
 	constructor(maxLineLength?: number) {
-		this._maxLineLength = ConversationLogFormatter.getMaxLineLength(maxLineLength);
+		this._maxLineLength = CollaborationLogFormatter.getMaxLineLength(maxLineLength);
 	}
 
-	public async init(): Promise<ConversationLogFormatter> {
+	public async init(): Promise<CollaborationLogFormatter> {
 		return this;
 	}
 
@@ -139,16 +139,16 @@ export default class ConversationLogFormatter {
 	}
 
 	async formatLogEntry(
-		type: ConversationLogEntryType,
+		type: CollaborationLogEntryType,
 		timestamp: string,
-		//logEntry: ConversationLogEntry,
+		//logEntry: CollaborationLogEntry,
 		content: string,
 		formattedResult: { title: string; preview?: string; subtitle?: string; content: string },
 		conversationStats: ConversationStats,
 		tokenUsage: TokenUsage,
 		toolName?: string,
 	): Promise<string> {
-		const { icon, color, label } = ConversationLogFormatter.iconColorMap[type] ||
+		const { icon, color, label } = CollaborationLogFormatter.iconColorMap[type] ||
 			{ icon: UNKNOWN_ICON, color: colors.reset, label: 'Unknown' };
 		//const label = type === 'user' || type === 'assistant' ? rawLabel : rawLabel + ' Message';
 		const subtitle = formattedResult.subtitle ? colors.bold(' | ' + formattedResult.subtitle) : '';
@@ -162,7 +162,7 @@ export default class ConversationLogFormatter {
 			`╭─ ${icon}  ${title}   🕒  ${new Date(timestamp).toLocaleString()}`,
 		);
 
-		if (!ConversationLogFormatter.isStatsAndUsageEmpty(conversationStats, tokenUsage)) {
+		if (!CollaborationLogFormatter.isStatsAndUsageEmpty(conversationStats, tokenUsage)) {
 			const summaryInfo = [
 				colors.green(`📝  St:${conversationStats.statementCount}`),
 				colors.magenta(`🔄  Tn:${conversationStats.statementTurnCount}`),
@@ -231,7 +231,7 @@ export default class ConversationLogFormatter {
 				totalAllTokens: 0,
 			};
 			if (typeof typeString !== 'undefined' && typeof timestamp !== 'undefined') {
-				const type = typeString as ConversationLogEntryType;
+				const type = typeString as CollaborationLogEntryType;
 				const content = messageLines.join('\n').trim();
 				return await this.formatLogEntry(
 					type,
@@ -259,8 +259,8 @@ export async function displayFormattedLogs(
 	callback?: (formattedEntry: string) => void,
 	follow = false,
 ): Promise<void> {
-	const formatter = await new ConversationLogFormatter().init();
-	const rawLogFile = await ConversationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
+	const formatter = await new CollaborationLogFormatter().init();
+	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
 
 	const processEntry = async (entry: string) => {
 		//console.debug('Debug: Raw entry before processing:\n', entry.trimStart());
@@ -287,7 +287,7 @@ export async function displayFormattedLogs(
 			let line: string | null;
 			while ((line = await bufReader.readString('\n')) !== null) {
 				//console.debug('Debug: Read line:', line.trimEnd());
-				if (line.includes(ConversationLogger.getEntrySeparator())) {
+				if (line.includes(CollaborationLogger.getEntrySeparator())) {
 					await processEntry(entry);
 					entry = '';
 					//console.debug('Debug: Entry separator found, resetting entry');
@@ -305,7 +305,7 @@ export async function displayFormattedLogs(
 	};
  */
 
-	const logEntrySeparator = ConversationLogger.getEntrySeparator();
+	const logEntrySeparator = CollaborationLogger.getEntrySeparator();
 
 	const readAndProcessEntries = async (startPosition = 0) => {
 		let file: Deno.FsFile | null = null;
@@ -354,11 +354,11 @@ export async function displayFormattedLogs(
 }
 
 export async function countLogEntries(conversationId: ConversationId): Promise<number> {
-	const rawLogFile = await ConversationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
+	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
 
 	try {
 		const content = await Deno.readTextFile(rawLogFile);
-		const entries = content.split(ConversationLogger.getEntrySeparator());
+		const entries = content.split(CollaborationLogger.getEntrySeparator());
 		// Filter out any empty entries
 		return entries.filter((entry) => entry.trim() !== '').length;
 	} catch (error) {

@@ -1,6 +1,6 @@
 //import type { JSX } from 'preact';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { VectorSearchErrorOptions } from 'api/errors/error.ts';
@@ -41,7 +41,7 @@ export default class LLMToolVectorSearch extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

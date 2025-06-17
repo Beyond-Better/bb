@@ -14,7 +14,7 @@ import type { LLMModelConfig } from 'api/types/llms.ts';
 
 import type {
 	ConversationId,
-	ConversationLogEntry,
+	CollaborationLogEntry,
 	ConversationStats,
 	//ObjectivesData,
 	TokenUsageStats,
@@ -49,7 +49,7 @@ const mockInteractionCallbacks: LLMCallbacks = {
 		_parentInteractionId: ConversationId,
 		_agentInteractionId: ConversationId | null,
 		_timestamp: string,
-		_logEntry: ConversationLogEntry,
+		_logEntry: CollaborationLogEntry,
 		_conversationStats: ConversationStats,
 		_tokenUsageStats: TokenUsageStats,
 		_modelConfig?: LLMModelConfig,

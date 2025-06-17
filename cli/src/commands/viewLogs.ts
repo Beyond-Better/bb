@@ -4,7 +4,7 @@ import { logger } from 'shared/logger.ts';
 import { getLogFilePath, viewLastLines, watchLogs } from 'shared/logViewer.ts';
 //import { join } from '@std/path';
 //import { ensureDir } from '@std/fs';
-import { displayFormattedLogs } from 'cli/conversationLogFormatter.ts';
+import { displayFormattedLogs } from 'cli/collaborationLogFormatter.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const viewLogs = new Command()
@@ -35,7 +35,7 @@ export const viewLogs = new Command()
 
 			if (options.follow) {
 				if (!options.api && options.id) {
-					// Use the ConversationLogFormatter for conversation logs
+					// Use the CollaborationLogFormatter for conversation logs
 					await displayFormattedLogs(
 						options.id,
 						(formattedEntry: string) => {

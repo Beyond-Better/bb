@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 //import type { JSX } from 'preact';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolConversationSummaryInput, LLMToolConversationSummaryResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
@@ -35,7 +35,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 };
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {

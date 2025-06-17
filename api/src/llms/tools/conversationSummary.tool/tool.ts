@@ -19,7 +19,7 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMProviderMessageResponse } from 'api/types/llms.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
@@ -79,7 +79,7 @@ export default class LLMToolConversationSummary extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'
@@ -1055,7 +1055,7 @@ Ensure your summary accurately captures all important context from the removed m
 
 			const timestamp = new Date().toISOString();
 			// Update the conversation log
-			await interaction.conversationLogger.logAuxiliaryMessage(
+			await interaction.collaborationLogger.logAuxiliaryMessage(
 				`truncate-${timestamp}`,
 				null,
 				null,

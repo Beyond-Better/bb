@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolRunCommandInput, LLMToolRunCommandResult } from './types.ts';
 import { logger } from 'shared/logger.ts';
 import { AnsiUp } from 'ansi_up';
@@ -66,7 +66,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 };
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent as LLMToolRunCommandResult;
 	const ansi_up = new AnsiUp();

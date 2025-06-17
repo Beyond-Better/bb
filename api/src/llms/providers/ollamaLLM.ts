@@ -15,6 +15,7 @@ import type {
 	LLMMessageStop,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types/llms.ts';
@@ -264,8 +265,18 @@ class OllamaLLM extends LLM {
 				},
 			};
 
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: 0, //providerMessageRequest.max_tokens!,
+					temperature: providerMessageRequest.options!.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
+			};
+
 			//logger.debug(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			return { messageResponse, messageMeta: { system: messageRequest.system,llmRequestParams } };
 		} catch (err) {
 			logger.error('Error calling Ollama API', err);
 			throw createError(

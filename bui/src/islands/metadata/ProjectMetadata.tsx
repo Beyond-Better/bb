@@ -3,7 +3,7 @@ import { ChatState } from '../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx';
 //import type { ApiClient } from '../../utils/apiClient.utils.ts';
-//import type { ConversationLogDataEntry } from 'shared/types.ts';
+//import type { CollaborationLogDataEntry } from 'shared/types.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 import { ProjectSelector } from '../../components/ProjectSelector/index.ts';
 

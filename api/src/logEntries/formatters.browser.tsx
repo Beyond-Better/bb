@@ -2,7 +2,7 @@
 //import type { JSX } from 'preact';
 import { marked } from 'marked';
 import { escape as escapeHtmlEntities } from '@std/html';
-import type { ConversationLogEntry } from 'shared/types.ts';
+import type { CollaborationLogEntry } from 'shared/types.ts';
 import type { LogEntryTitleData } from 'api/logEntries/types.ts';
 import { getApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
 
@@ -91,7 +91,7 @@ export const formatLogEntryPreview = (preview: string): string => {
   `.trim();
 };
 
-export const formatLogEntryContent = (logEntry: ConversationLogEntry, projectId?: string): string => {
+export const formatLogEntryContent = (logEntry: CollaborationLogEntry, projectId?: string): string => {
 	let formattedThinking = '';
 
 	// Format the thinking content if it exists in the logEntry

@@ -4,17 +4,15 @@ import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { notificationManager } from '../utils/notificationManager.ts';
 //import { userPersistenceManager } from '../storage/userPersistence.ts';
 import { ApiStatus } from 'shared/types.ts';
-import type { ConversationLogDataEntry } from 'shared/types.ts';
 //import { useVersion } from './useVersion.ts';
 import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
-import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 //import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
-//import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
@@ -95,7 +93,7 @@ const randomStringForEffect = (length: number): string => {
 export function useChatState(
 	chatConfig: Signal<ChatConfig>,
 	chatState: Signal<ChatState>,
-	chatInputOptions?: Signal<LLMRequestParams>,
+	_chatInputOptions?: Signal<LLMRequestParams>,
 ): [ChatHandlers, Signal<ScrollIndicatorState>] {
 	// Get project state
 	const appState = useAppState();
@@ -292,6 +290,7 @@ export function useChatState(
 				// Update conversations array with the loaded conversation
 				const updatedConversations = [...conversations];
 				if (conversation) {
+					//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-conversation`, conversation);
 					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
 					const conversationData = {
 						id: conversation.id,
@@ -492,7 +491,7 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logDataEntry: ConversationLogDataEntry }) => {
+		const handleMessage = (data: { msgType: string; logDataEntry: CollaborationLogDataEntry }) => {
 			const startTime = performance.now();
 			// console.debug('useChatState: wsManager effect: Processing message:', {
 			// 	type: data.msgType,
@@ -536,7 +535,7 @@ export function useChatState(
 						title: data.logDataEntry.conversationTitle,
 						tokenUsageStats: data.logDataEntry.tokenUsageStats,
 						modelConfig: data.logDataEntry.modelConfig,
-						collaborationParams: data.logDataEntry.collaborationParams,
+						//collaborationParams: data.logDataEntry.collaborationParams,
 						conversationStats: data.logDataEntry.conversationStats,
 						createdAt: data.logDataEntry.timestamp,
 						updatedAt: data.logDataEntry.timestamp,
@@ -607,7 +606,7 @@ export function useChatState(
 							tokenUsageStats: data.logDataEntry.tokenUsageStats,
 							conversationStats: data.logDataEntry.conversationStats,
 							modelConfig: data.logDataEntry.modelConfig,
-							collaborationParams: data.logDataEntry.collaborationParams,
+							//collaborationParams: data.logDataEntry.collaborationParams,
 							updatedAt: data.logDataEntry.timestamp,
 						};
 					}
@@ -646,19 +645,19 @@ export function useChatState(
 				// });
 
 				// Update chatInputOptions with the request parameters from the response if available
-				if (chatInputOptions && data.logDataEntry.collaborationParams) {
-					console.info(
-						'useChatState: wsManager effect: Updating options from message response',
-						data.logDataEntry.collaborationParams,
-					);
-					chatInputOptions.value = {
-						...chatInputOptions.value,
-						rolesModelConfig: {
-							...chatInputOptions.value.rolesModelConfig,
-							...data.logDataEntry.collaborationParams.rolesModelConfig,
-						},
-					};
-				}
+				// if (chatInputOptions && data.logDataEntry.collaborationParams) {
+				// 	console.info(
+				// 		'useChatState: wsManager effect: Updating options from message response',
+				// 		data.logDataEntry.collaborationParams,
+				// 	);
+				// 	chatInputOptions.value = {
+				// 		...chatInputOptions.value,
+				// 		rolesModelConfig: {
+				// 			...chatInputOptions.value.rolesModelConfig,
+				// 			...data.logDataEntry.collaborationParams.rolesModelConfig,
+				// 		},
+				// 	};
+				// }
 
 				chatState.value = {
 					...chatState.value,

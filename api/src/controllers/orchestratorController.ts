@@ -17,7 +17,7 @@ import AgentController from 'api/controllers/agentController.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 //import ConversationPersistence from 'api/storage/conversationPersistence.ts';
 //import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
-import type { CompletedTask, ErrorHandlingConfig, LLMRequestParams, Task } from 'api/types/llms.ts';
+import type { CompletedTask, ErrorHandlingConfig, Task } from 'api/types/llms.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
@@ -25,8 +25,8 @@ import { ErrorHandler } from '../llms/errorHandler.ts';
 import type {
 	ConversationId,
 	//ConversationContinue,
-	ConversationLogDataEntry,
-	//ConversationLogEntry,
+	CollaborationLogDataEntry,
+	//CollaborationLogEntry,
 	//ConversationMetrics,
 	ConversationResponse,
 	ConversationStart,
@@ -338,7 +338,7 @@ class OrchestratorController extends BaseController {
 			const versionInfo = await getVersionInfo();
 			const conversationReady: ConversationStart & {
 				conversationStats: ConversationStats;
-				conversationHistory: ConversationLogDataEntry[];
+				conversationHistory: CollaborationLogDataEntry[];
 			} = {
 				conversationId: interaction.id,
 				conversationTitle: interaction.title,
@@ -363,7 +363,7 @@ class OrchestratorController extends BaseController {
 			);
 
 			const speakOptions: LLMSpeakWithOptions = {
-				...statementParams.rolesModelConfig.orchestrator,
+				...statementParams?.rolesModelConfig.orchestrator,
 				//model: this.projectConfig?.defaultModels?.orchestrator
 				// //temperature: 0.7,
 				// //maxTokens: 1000,
@@ -471,7 +471,7 @@ class OrchestratorController extends BaseController {
 						if (textContent) {
 							const conversationStats: ConversationStats = interaction.conversationStats;
 
-							interaction.conversationLogger.logAssistantMessage(
+							interaction.collaborationLogger.logAssistantMessage(
 								interaction.getLastMessageId(),
 								null,
 								null,
@@ -535,7 +535,7 @@ class OrchestratorController extends BaseController {
 
 						// Log auxiliary message about forced summary
 						const timestamp = new Date().toISOString();
-						await interaction.conversationLogger.logAuxiliaryMessage(
+						await interaction.collaborationLogger.logAuxiliaryMessage(
 							`force-summary-${timestamp}`,
 							null,
 							null,
@@ -749,7 +749,7 @@ class OrchestratorController extends BaseController {
 			};
 			//logger.info(`OrchestratorController: statementAnswer-tokenUsageStats:`, statementAnswer.tokenUsageStats);
 
-			interaction.conversationLogger.logAnswerMessage(
+			interaction.collaborationLogger.logAnswerMessage(
 				interaction.getLastMessageId(),
 				null,
 				null,

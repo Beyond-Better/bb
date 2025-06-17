@@ -17,7 +17,7 @@ export interface Conversation {
 	id: ConversationId;
 	title: string;
 
-	logDataEntries: ConversationLogDataEntry[];
+	logDataEntries: CollaborationLogDataEntry[];
 
 	conversationMetrics?: ConversationMetrics;
 	tokenUsageTurn: TokenUsage;

@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk';
 import type { ClientOptions } from 'groq-sdk';
 
-import { GroqModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
+import { GroqModel, LLMProvider } from 'api/types.ts';
 import LLM from './baseLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -14,6 +14,7 @@ import type {
 	LLMCallbacks,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithResponse,
 } from 'api/types.ts';
 import type {
@@ -133,7 +134,7 @@ class GroqLLM extends LLM {
 
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
-		interaction?: LLMInteraction,
+		_interaction?: LLMInteraction,
 	): Promise<Parameters<typeof this.groq.chat.completions.create>[0]> {
 		let messages = this.asProviderMessageType(messageRequest.messages);
 
@@ -233,10 +234,21 @@ class GroqLLM extends LLM {
 				},
 			};
 
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.max_tokens!,
+					temperature: providerMessageRequest.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
+			};
+
 			return {
 				messageResponse,
 				messageMeta: {
 					system: messageRequest.system,
+					llmRequestParams,
 				},
 			};
 		} catch (err) {

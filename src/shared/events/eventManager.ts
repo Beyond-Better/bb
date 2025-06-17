@@ -4,7 +4,7 @@ import {
 	ConversationContinue,
 	ConversationDeleted,
 	ConversationId,
-	ConversationLogEntryType,
+	CollaborationLogEntryType,
 	ConversationNew,
 	ConversationResponse,
 	ConversationStart,

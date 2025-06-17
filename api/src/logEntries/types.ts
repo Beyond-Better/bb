@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContent } from 'shared/types.ts';
+import type { CollaborationLogEntryContent } from 'shared/types.ts';
 
 // source data to be formatted
 export interface LogEntrySourceData {
@@ -9,7 +9,7 @@ export interface LogEntrySourceData {
 	subtitle?: string; // e.g. "3 operations" or "Found 5 files"
 
 	// For the main body
-	content: string | LLMToolInputSchema | ConversationLogEntryContent; // complete formatted log entry content
+	content: string | LLMToolInputSchema | CollaborationLogEntryContent; // complete formatted log entry content
 
 	// For the right side preview
 	preview?: string; // Very short summary, e.g. "Searching for *.ts files"
@@ -36,7 +36,7 @@ export interface LogEntryFormattedResult {
 
 // export type LLMToolUseInputFormatter = (toolInput: LLMToolInputSchema, format: LLMToolFormatterDestination) => string;
 // export type LLMToolRunResultFormatter = (
-// 	resultContent: ConversationLogEntryContent,
+// 	resultContent: CollaborationLogEntryContent,
 // 	format: LLMToolFormatterDestination,
 // ) => string;
 

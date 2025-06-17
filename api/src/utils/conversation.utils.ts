@@ -35,7 +35,7 @@ export async function generateStatementObjective(
 		if (previousObjective) {
 			// For simple responses or instructions about objectives, maintain the previous objective
 			const msg = `Continue the current task based on the previous objective: ${previousObjective}`;
-			chat.conversationLogger.logAuxiliaryMessage(
+			chat.collaborationLogger.logAuxiliaryMessage(
 				chat.getLastMessageId(),
 				null, // only orchestrator creates statement objectives
 				null, // only orchestrator creates statement objectives
@@ -49,7 +49,7 @@ export async function generateStatementObjective(
 			// Otherwise, create a context-gathering objective
 			const neededContext = objective.substring('NEED_CONTEXT:'.length).trim();
 			const msg = `Gather context about ${neededContext} to proceed with the task`;
-			chat.conversationLogger.logAuxiliaryMessage(
+			chat.collaborationLogger.logAuxiliaryMessage(
 				chat.getLastMessageId(),
 				null, // only orchestrator creates statement objectives
 				null, // only orchestrator creates statement objectives

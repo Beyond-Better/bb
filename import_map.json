@@ -139,7 +139,7 @@
 		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
 		"api/storage/conversationPersistence.ts": "./api/src/storage/conversationPersistence.ts",
 		"api/storage/conversationMigration.ts": "./api/src/storage/conversationMigration.ts",
-		"api/storage/conversationLogger.ts": "./api/src/storage/conversationLogger.ts",
+		"api/storage/collaborationLogger.ts": "./api/src/storage/collaborationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
 		"api/tests/testSetup.ts": "./api/tests/lib/testSetup.ts",
@@ -149,7 +149,7 @@
 
 		"cli/apiClient.ts": "./cli/src/utils/apiClient.utils.ts",
 		"cli/websocketManager.ts": "./cli/src/utils/websocketManager.utils.ts",
-		"cli/conversationLogFormatter.ts": "./cli/src/conversationLogs/conversationLogFormatter.ts",
+		"cli/collaborationLogFormatter.ts": "./cli/src/collaborationLogs/collaborationLogFormatter.ts",
 
 		"shared/types.ts": "./src/shared/types.ts",
 		"shared/types/version.ts": "./src/shared/types/version.types.ts",

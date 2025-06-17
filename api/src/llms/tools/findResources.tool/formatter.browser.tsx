@@ -1,7 +1,7 @@
 /** @jsxImportSource preact */
 //import type { JSX } from 'preact';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolFindResourcesInput } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { getContentFromToolResult } from 'api/utils/llms.ts';
@@ -75,7 +75,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 };
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { toolResult, bbResponse } = resultContent;
 	const content = getContentFromToolResult(toolResult);

@@ -57,7 +57,7 @@ interface ChatState {
     conversationId: string | null;
     apiClient: ApiClient | null;
     wsManager: WebSocketManager | null;
-    logDataEntries: ConversationLogDataEntry[];
+    logDataEntries: CollaborationLogDataEntry[];
     conversations: ConversationMetadata[];
     status: ChatStatus;
     error: string | null;

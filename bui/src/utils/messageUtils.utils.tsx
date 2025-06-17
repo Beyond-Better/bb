@@ -1,4 +1,4 @@
-import { ConversationLogEntry } from 'shared/types.ts';
+import { CollaborationLogEntry } from 'shared/types.ts';
 
 // Default icons for each message type (will be replaced by API response in future)
 export const messageIcons = {
@@ -224,7 +224,7 @@ export function getContentSummary(content: string, maxLength: number = 150): str
 }
 
 // Helper to get structured summary (placeholder for API response)
-export function getStructuredSummary(logEntry: ConversationLogEntry): string | null {
+export function getStructuredSummary(logEntry: CollaborationLogEntry): string | null {
 	// This will be replaced by API response in future
 	return null;
 }

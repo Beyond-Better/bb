@@ -1,9 +1,9 @@
 # BUI TypeScript Fixes
 
 ## Type Union Handling
-The `ConversationLogDataEntry` type union needs proper handling in components. Current issues:
+The `CollaborationLogDataEntry` type union needs proper handling in components. Current issues:
 
-1. `ConversationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse`
+1. `CollaborationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse`
    - Properties like `logEntry` and `tokenUsageTurn` exist on `ConversationContinue` and `ConversationResponse`
    - But not on `ConversationStart`
    - Need to analyze usage and possibly create new union type
@@ -75,7 +75,7 @@ The `ConversationLogDataEntry` type union needs proper handling in components. C
    - Impact on type safety
    - Frequency of issues
    - Complexity of fixes
-3. Start with ConversationLogDataEntry type union as it affects multiple components
+3. Start with CollaborationLogDataEntry type union as it affects multiple components
 4. Follow with API response safety as it's critical for reliability
 5. Handle formatting issues last as they're more isolated
 

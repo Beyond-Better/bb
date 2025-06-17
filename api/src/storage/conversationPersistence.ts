@@ -27,7 +27,7 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { LLMModelConfig, LLMRequestParams, LLMRolesModelConfig } from 'api/types/llms.ts';
+import type { LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type { CollaborationParams } from 'shared/types/collaborationParams.ts';
 import type { ConversationResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
@@ -44,8 +44,12 @@ import type {
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 import { stripIndents } from 'common-tags';
+//import type { ProjectConfig } from 'shared/config/types.ts';
 //import { encodeHex } from '@std/encoding';
 
 // Ensure ProjectInfo includes projectId
@@ -421,7 +425,8 @@ class ConversationPersistence {
 				// for interaction storage
 				modelConfig: conversation.modelConfig,
 				// for collaboration storage
-				collaborationParams: conversation.collaborationParams,
+				collaborationParams: conversation.collaboration?.collaborationParams ||
+					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
 				llmProviderName: conversation.llmProviderName,
 				model: conversation.model,
 				createdAt: new Date().toISOString(),
@@ -447,7 +452,8 @@ class ConversationPersistence {
 				// for interaction storage
 				modelConfig: conversation.modelConfig,
 				// for collaboration storage
-				collaborationParams: conversation.collaborationParams,
+				collaborationParams: conversation.collaboration?.collaborationParams ||
+					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
 
 				// Store analyzed token usage in metadata
 				tokenUsageStats: {
@@ -532,6 +538,9 @@ class ConversationPersistence {
 
 			const metadata: ConversationDetailedMetadata = await this.getMetadata();
 			const conversation = new LLMConversationInteraction(this.conversationId);
+			//const conversation = new LLMConversationInteraction(this.conversationId) as LLMConversationInteraction & {
+			//	collaborationParams: CollaborationParams;
+			//};
 			await conversation.init(metadata.model, interactionCallbacks);
 
 			conversation.id = metadata.id;
@@ -544,10 +553,15 @@ class ConversationPersistence {
 			conversation.conversationStats = metadata.conversationStats;
 			//conversation.conversationMetrics = metadata.conversationMetrics;
 
-				// for interaction storage
+			// for interaction storage
 			conversation.modelConfig = metadata.modelConfig;
-				// for collaboration storage
-			conversation.collaborationParams = metadata.collaborationParams;
+			// for collaboration storage
+			conversation.collaboration = {
+				id: '',
+				type: 'project',
+				collaborationParams: metadata.collaborationParams ||
+					await this.getCollaborationParams(conversation), //ConversationPersistence.defaultCollaborationParams(),
+			};
 
 			conversation.totalProviderRequests = metadata.totalProviderRequests;
 
@@ -831,6 +845,39 @@ class ConversationPersistence {
 		return {};
 	}
 
+	async getCollaborationParams(
+		conversation: LLMConversationInteraction,
+	): Promise<CollaborationParams> {
+		if (
+			conversation.collaboration?.collaborationParams &&
+			conversation.collaboration?.collaborationParams.rolesModelConfig &&
+			conversation.collaboration?.collaborationParams.rolesModelConfig.orchestrator &&
+			conversation.collaboration?.collaborationParams.rolesModelConfig.agent &&
+			conversation.collaboration?.collaborationParams.rolesModelConfig.chat
+		) return conversation.collaboration?.collaborationParams;
+
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		//const projectConfig = await configManager.getProjectConfig(projectId);
+		const projectConfig = this.projectEditor.projectConfig;
+
+		// Use project defaults first, then global defaults
+		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+		const registryService = await ModelRegistryService.getInstance(projectConfig);
+		const orchestratorConfig = registryService.getModelConfig(defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator);
+		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
+		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+
+		return {
+			rolesModelConfig: {
+				orchestrator: orchestratorConfig,
+				agent: agentConfig,
+				chat: chatConfig,
+			} as LLMRolesModelConfig,
+		};
+	}
+
 	async getTokenUsageAnalysis(): Promise<{
 		conversation: TokenUsageAnalysis;
 		chat: TokenUsageAnalysis;
@@ -911,7 +958,7 @@ class ConversationPersistence {
 				if (metadata.requestParams && !metadata.modelConfig) {
 					// Move existing requestParams to rolesModelConfig.orchestrator
 					const legacyParams: LLMModelConfig = metadata.requestParams;
-				// for interaction storage
+					// for interaction storage
 					metadata.modelConfig = {
 						model: legacyParams.model || '',
 						temperature: legacyParams.temperature || 0.7,
@@ -919,7 +966,7 @@ class ConversationPersistence {
 						extendedThinking: legacyParams.extendedThinking,
 						usePromptCaching: legacyParams.usePromptCaching,
 					};
-				// for collaboration storage
+					// for collaboration storage
 					metadata.collaborationParams = {
 						rolesModelConfig: {
 							orchestrator: {
@@ -997,7 +1044,7 @@ class ConversationPersistence {
 			totalAllTokens: 0,
 		};
 	}
-				// for interaction storage
+	// for interaction storage
 	static defaultModelConfig(): LLMModelConfig {
 		return {
 			model: '',
@@ -1007,13 +1054,13 @@ class ConversationPersistence {
 			usePromptCaching: false,
 		};
 	}
-				// for collaboration storage
+	// for collaboration storage
 	static defaultCollaborationParams(): CollaborationParams {
 		return {
 			rolesModelConfig: {
-				orchestrator: null,
-				agent: null,
-				chat: null,
+				orchestrator: null, //ConversationPersistence.defaultModelConfig(),
+				agent: null, //ConversationPersistence.defaultModelConfig(),
+				chat: null, //ConversationPersistence.defaultModelConfig(),
 			},
 		};
 	}
@@ -1041,9 +1088,9 @@ class ConversationPersistence {
 				tokenUsageConversation: ConversationPersistence.defaultConversationTokenUsage(),
 			},
 
-				// for interaction storage
+			// for interaction storage
 			modelConfig: ConversationPersistence.defaultModelConfig(),
-				// for collaboration storage
+			// for collaboration storage
 			collaborationParams: ConversationPersistence.defaultCollaborationParams(),
 
 			conversationStats: ConversationPersistence.defaultConversationStats(),

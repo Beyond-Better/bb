@@ -32,6 +32,7 @@ import type {
 	//LLMMessageStop,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
@@ -471,7 +472,7 @@ class GoogleLLM extends LLM {
 			//logger.debug(`LlmProvider[${this.llmProviderName}]: speakWith-messageRequest`, JSON.stringify(messageRequest, null, 2));
 
 			const providerMessageRequest = await this.asProviderMessageRequest(messageRequest, interaction);
-			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_5_FLASH;
+			const model = providerMessageRequest.model;
 			logger.info(`LlmProvider[${this.llmProviderName}]: Complete request with model:`, { model });
 
 			const result = await this.google.models.generateContent(providerMessageRequest);
@@ -579,8 +580,18 @@ class GoogleLLM extends LLM {
 				};
 			}
 
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.config!.maxOutputTokens!,
+					temperature: providerMessageRequest.config!.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
+			};
+
 			//logger.info(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			return { messageResponse, messageMeta: { system: messageRequest.system, llmRequestParams } };
 		} catch (err) {
 			logger.error(`LlmProvider[${this.llmProviderName}]: Error calling Google API`, err);
 			throw createError(

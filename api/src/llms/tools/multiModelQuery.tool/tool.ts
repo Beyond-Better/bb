@@ -2,7 +2,7 @@
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { LLMToolMultiModelQueryConfig, LLMToolMultiModelQueryInput, ModelProvider } from './types.ts';
@@ -151,7 +151,7 @@ Responses will be returned separately for each model, preserving their exact out
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

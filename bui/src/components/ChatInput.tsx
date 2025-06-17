@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { batch, type Signal, signal, useComputed } from '@preact/signals';
+import { batch, type Signal, signal, useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
 import type {
@@ -15,7 +15,7 @@ import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
 import { ChatStatus, isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
-import { ApiClient } from '../utils/apiClient.utils.ts';
+import { ApiClient, type ModelDetails } from '../utils/apiClient.utils.ts';
 import { formatPathForInsertion, getTextPositions, processSuggestions } from '../utils/textHandling.utils.ts';
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
@@ -97,8 +97,17 @@ const shouldShowDataSourceInfo = signal<boolean>(false);
 const isOptionsOpen = signal<boolean>(false);
 const selectedModelRole = signal<'orchestrator' | 'agent' | 'chat'>('orchestrator');
 
+const ROLE_LABEL_MAPPING = {
+	orchestrator: 'Orchestrator',
+	agent: 'Agent',
+	chat: 'Admin',
+};
+
 // Use centralized model state hook
-const { modelState //getModelCapabilities, hasModelCapabilities, isLoadingModel
+const {
+	modelState,
+	//hasModelCapabilities, isLoadingModel
+	getModelCapabilities,
 } = useModelState();
 
 const inputMetrics = signal({
@@ -141,12 +150,35 @@ export function ChatInput({
 	// });
 
 	// Computed signal for current role's model capabilities
-	const currentRoleModelCapabilities = useComputed(() => {
+	// const currentRoleModelCapabilities = useComputed(() => {
+	// 	const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
+	// 	if (!currentModel) return null;
+	// 	const modelCapabilities = modelState.value.modelCapabilities[currentModel] ||
+	// 		await getModelCapabilities(currentModel) || null;
+	// 	console.info('ChatInput: currentRoleModelCapabilities called', {
+	// 		selectedModelRole: selectedModelRole.value,
+	// 		modelCapabilities,
+	// 	});
+	// 	return modelCapabilities;
+	// });
+	const currentRoleModelCapabilities = useSignal<ModelDetails | null>(null);
+
+	useSignalEffect(() => {
 		const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
-		if (!currentModel) return null;
-		const modelCapabilities = modelState.value.modelCapabilities[currentModel] || null;
-		console.info('ChatInput: CollaborationLog called', { modelCapabilities });
-		return modelCapabilities;
+		if (!currentModel) {
+			currentRoleModelCapabilities.value = null;
+			return;
+		}
+
+		const cached = modelState.value.modelCapabilities[currentModel];
+		if (cached) {
+			currentRoleModelCapabilities.value = cached;
+			return;
+		}
+
+		getModelCapabilities(currentModel).then((capabilities) => {
+			currentRoleModelCapabilities.value = capabilities || null;
+		});
 	});
 
 	const {
@@ -1680,7 +1712,6 @@ export function ChatInput({
 						<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
 							{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
 								const isSelected = selectedModelRole.value === role;
-								const labels = { orchestrator: 'Orchestrator', agent: 'Agent', chat: 'Admin' };
 
 								return (
 									<button
@@ -1697,7 +1728,7 @@ export function ChatInput({
 											className: 'mr-1 w-4 h-4',
 											'aria-label': `${role} model`,
 										})}
-										<span className='hidden sm:inline'>{labels[role]}</span>
+										<span className='hidden sm:inline'>{ROLE_LABEL_MAPPING[role]}</span>
 									</button>
 								);
 							})}
@@ -1744,9 +1775,7 @@ export function ChatInput({
 									newOptions.rolesModelConfig[selectedModelRole.value],
 								);
 							}}
-							label={`${
-								selectedModelRole.value.charAt(0).toUpperCase() + selectedModelRole.value.slice(1)
-							} Model`}
+							label={`${ROLE_LABEL_MAPPING[selectedModelRole.value]} Model`}
 							compact
 						/>
 
@@ -1841,19 +1870,25 @@ export function ChatInput({
 						{/* Extended Thinking Toggle */}
 						<div>
 							<div className='flex items-center justify-between'>
-								<label className={`text-sm ${
-									!currentRoleModelCapabilities?.value ||
-									currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false
-										? 'text-gray-400 dark:text-gray-500'
-										: 'text-gray-700 dark:text-gray-300'
-								}`}>Extended Thinking</label>
+								<label
+									className={`text-sm ${
+										!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+													?.extendedThinking === false
+											? 'text-gray-400 dark:text-gray-500'
+											: 'text-gray-700 dark:text-gray-300'
+									}`}
+								>
+									Extended Thinking
+								</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
 										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
 											?.extendedThinking?.enabled || false}
 										disabled={!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false}
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+													?.extendedThinking === false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
@@ -1893,7 +1928,8 @@ export function ChatInput({
 										htmlFor='toggle-extended-thinking'
 										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
 											!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.extendedThinking === false
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.extendedThinking === false
 												? 'cursor-not-allowed opacity-50'
 												: 'cursor-pointer'
 										} ${
@@ -1919,19 +1955,25 @@ export function ChatInput({
 						{/* Prompt Caching Toggle */}
 						<div>
 							<div className='flex items-center justify-between'>
-								<label className={`text-sm ${
-									!currentRoleModelCapabilities?.value ||
-									currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false
-										? 'text-gray-400 dark:text-gray-500'
-										: 'text-gray-700 dark:text-gray-300'
-								}`}>Use Prompt Caching</label>
+								<label
+									className={`text-sm ${
+										!currentRoleModelCapabilities?.value ||
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+													?.promptCaching === false
+											? 'text-gray-400 dark:text-gray-500'
+											: 'text-gray-700 dark:text-gray-300'
+									}`}
+								>
+									Use Prompt Caching
+								</label>
 								<div className='relative inline-block w-12 align-middle select-none'>
 									<input
 										type='checkbox'
 										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
 											?.usePromptCaching !== false}
 										disabled={!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false}
+											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+													?.promptCaching === false}
 										onChange={(e) => {
 											if (!e.target) return;
 											const input = e.target as HTMLInputElement;
@@ -1963,7 +2005,8 @@ export function ChatInput({
 										htmlFor='toggle-prompt-caching'
 										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
 											!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures?.promptCaching === false
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.promptCaching === false
 												? 'cursor-not-allowed opacity-50'
 												: 'cursor-pointer'
 										} ${
@@ -1990,10 +2033,12 @@ export function ChatInput({
 						{currentRoleModelCapabilities?.value && (
 							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
 								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Context window:{' '}
-									{(currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000).toFixed(
-										0,
-									)}K tokens
+									Context window: {currentRoleModelCapabilities.value.capabilities?.contextWindow
+										? (currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000)
+											.toFixed(
+												0,
+											)
+										: '--'}K tokens
 								</div>
 							</div>
 						)}

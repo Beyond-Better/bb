@@ -22,7 +22,7 @@ The `toolResults` get passed to `addMessageForToolResult` which will handle conv
 
 The `toolResponse` is optional. It is for providing the LLM with info/metadata about the tool run, if the `toolResults` data needs further explanation. The `toolResponse` is included in the prompt/statement that is returned to the LLM as part of the tool_results messages. 
 
-The `bbResponse` is for providing the user with info/metadata about the tool run. It is added to the conversation via `conversationLogger`. 
+The `bbResponse` is for providing the user with info/metadata about the tool run. It is added to the conversation via `collaborationLogger`. 
 
 ## Conversation Logger vs LLM Message History
 

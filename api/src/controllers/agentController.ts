@@ -394,7 +394,7 @@ class AgentController extends BaseController {
 						if (textContent) {
 							const conversationStats: ConversationStats = interaction.conversationStats;
 
-							interaction.conversationLogger.logAssistantMessage(
+							interaction.collaborationLogger.logAssistantMessage(
 								interaction.getLastMessageId(),
 								parentMessageId,
 								interaction.id,
@@ -453,7 +453,7 @@ class AgentController extends BaseController {
 
 						// Log auxiliary message about forced summary
 						const timestamp = new Date().toISOString();
-						await interaction.conversationLogger.logAuxiliaryMessage(
+						await interaction.collaborationLogger.logAuxiliaryMessage(
 							`force-summary-${timestamp}`,
 							parentMessageId,
 							interaction.id,
@@ -632,7 +632,7 @@ class AgentController extends BaseController {
 				? extractThinkingFromContent(currentResponse.messageResponse.answerContent)
 				: '';
 
-			interaction.conversationLogger.logAnswerMessage(
+			interaction.collaborationLogger.logAnswerMessage(
 				interaction.getLastMessageId(),
 				parentMessageId,
 				interaction.id,

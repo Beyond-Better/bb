@@ -1,20 +1,22 @@
 import { type LLMRolesModelConfig } from 'api/types/llms.ts';
 
-export interface CollaborationParams {
-	type: 'project' | 'workflow' | 'research'; 
+// [TODO] temporary interface until full class is defined
+export interface Collaboration {
+	id: string;
+	//ownerId: string;
+
+	type: 'project' | 'workflow' | 'research';
 	title?: string;
 
-	/**
-	 * Role-specific model configurations
-	 */
+	collaborationParams: CollaborationParams;
+}
+
+export interface CollaborationParams {
 	rolesModelConfig: LLMRolesModelConfig;
-	
 }
 
 export interface StatementParams {
 	objective?: string;
 
 	rolesModelConfig: LLMRolesModelConfig;
-	
 }
-

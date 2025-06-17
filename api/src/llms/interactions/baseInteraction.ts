@@ -29,8 +29,9 @@ import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import ConversationPersistence from 'api/storage/conversationPersistence.ts';
-import ConversationLogger from 'api/storage/conversationLogger.ts';
-import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import CollaborationLogger from 'api/storage/collaborationLogger.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
+import type { Collaboration } from 'shared/types/collaboration.ts';
 import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
@@ -99,7 +100,8 @@ class LLMInteraction {
 	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
 	protected _baseSystem: string = '';
 	public conversationPersistence!: ConversationPersistence;
-	public conversationLogger!: ConversationLogger;
+	public collaboration!: Collaboration;
+	public collaborationLogger!: CollaborationLogger;
 	protected projectConfig!: ProjectConfig;
 
 	private _llmProvider!: LLM;
@@ -162,7 +164,7 @@ class LLMInteraction {
 				parentInteractionId: ConversationId,
 				agentInteractionId: ConversationId | null,
 				timestamp: string,
-				logEntry: ConversationLogEntry,
+				logEntry: CollaborationLogEntry,
 				conversationStats: ConversationStats,
 				tokenUsageStats: TokenUsageStats,
 				modelConfig?: LLMModelConfig,
@@ -186,7 +188,7 @@ class LLMInteraction {
 				projectEditor,
 				parentInteractionId,
 			).init();
-			this.conversationLogger = await new ConversationLogger(
+			this.collaborationLogger = await new CollaborationLogger(
 				projectEditor,
 				parentInteractionId ?? this.id,
 				logEntryHandler,

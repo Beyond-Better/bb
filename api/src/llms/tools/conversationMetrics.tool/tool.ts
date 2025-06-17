@@ -12,7 +12,7 @@ import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResu
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
@@ -74,7 +74,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'

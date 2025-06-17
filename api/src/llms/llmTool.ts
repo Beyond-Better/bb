@@ -6,7 +6,7 @@ import { TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE, TOOL_TAGS_BROWSER } from './l
 import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import type { ConversationId, ConversationLogEntryContent } from 'shared/types.ts';
+import type { ConversationId, CollaborationLogEntryContent } from 'shared/types.ts';
 import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -44,7 +44,7 @@ export type LLMToolConfig = Record<string, unknown>;
 export type LLMToolFormatterDestination = 'console' | 'browser';
 export type LLMToolUseInputFormatter = (toolInput: LLMToolInputSchema, format: LLMToolFormatterDestination) => string;
 export type LLMToolRunResultFormatter = (
-	resultContent: ConversationLogEntryContent,
+	resultContent: CollaborationLogEntryContent,
 	format: LLMToolFormatterDestination,
 ) => string;
 
@@ -140,7 +140,7 @@ abstract class LLMTool {
 	): LLMToolLogEntryFormattedResult;
 
 	abstract formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContent,
+		resultContent: CollaborationLogEntryContent,
 		format: LLMToolFormatterDestination,
 	): LLMToolLogEntryFormattedResult;
 

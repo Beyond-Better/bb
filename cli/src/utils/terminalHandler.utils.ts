@@ -13,7 +13,7 @@ import { ansi } from 'cliffy/ansi';
 import Kia from 'kia-spinner';
 import { SPINNERS } from './terminalSpinners.ts';
 import ApiClient from 'cli/apiClient.ts';
-import ConversationLogFormatter from 'cli/conversationLogFormatter.ts';
+import CollaborationLogFormatter from 'cli/collaborationLogFormatter.ts';
 //import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { getStatementHistory } from './statementHistory.utils.ts';
@@ -64,7 +64,7 @@ interface StatusMessage {
 }
 
 export class TerminalHandler {
-	private formatter!: ConversationLogFormatter;
+	private formatter!: CollaborationLogFormatter;
 	private history: string[] = [];
 	private spinner!: Spinner;
 	private currentStatus: StatusMessage | null = null;
@@ -203,7 +203,7 @@ export class TerminalHandler {
 	public async init(): Promise<TerminalHandler> {
 		this.bbDir = await getBbDir(this.projectId);
 		this.loadHistory();
-		this.formatter = await new ConversationLogFormatter().init();
+		this.formatter = await new CollaborationLogFormatter().init();
 		return this;
 	}
 
@@ -481,7 +481,7 @@ export class TerminalHandler {
 			},
 		} = data;
 
-		const timestamp = ConversationLogFormatter.getTimestamp();
+		const timestamp = CollaborationLogFormatter.getTimestamp();
 		//const contentPart = data.response.answerContent[0] as LLMMessageContentPartTextBlock;
 		const answer = data.logEntry.content as string;
 		const content = this.highlightOutput(answer);

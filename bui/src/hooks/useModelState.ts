@@ -95,7 +95,6 @@ async function loadDefaultModels(): Promise<void> {
 	};
 
 	try {
-		// TODO: API needs to be updated to return LLMRolesModelConfig instead of LLMModelConfig
 		const defaults = await apiClient.getConversationDefaults(currentProjectId);
 		
 		if (!defaults) {
@@ -104,39 +103,7 @@ async function loadDefaultModels(): Promise<void> {
 
 		// For now, handle the current API response format
 		// Once API is updated, this can be simplified
-		let rolesModelConfig: LLMRolesModelConfig;
-		
-		if ('rolesModelConfig' in defaults && defaults.rolesModelConfig) {
-			// New format - API already returns LLMRolesModelConfig
-			rolesModelConfig = defaults.rolesModelConfig;
-		} else {
-			// Current format - API returns single model config, apply to all roles
-			// This is temporary until API is updated
-			const singleConfig = defaults as any; // Current API format
-			rolesModelConfig = {
-				orchestrator: {
-					model: singleConfig.model || 'claude-sonnet-4-20250514',
-					temperature: singleConfig.temperature || 0.7,
-					maxTokens: singleConfig.maxTokens || 16384,
-					extendedThinking: singleConfig.extendedThinking || { enabled: true, budgetTokens: 4096 },
-					usePromptCaching: singleConfig.usePromptCaching !== false,
-				},
-				agent: {
-					model: singleConfig.model || 'claude-sonnet-4-20250514',
-					temperature: singleConfig.temperature || 0.7,
-					maxTokens: singleConfig.maxTokens || 16384,
-					extendedThinking: singleConfig.extendedThinking || { enabled: true, budgetTokens: 4096 },
-					usePromptCaching: singleConfig.usePromptCaching !== false,
-				},
-				chat: {
-					model: singleConfig.model || 'claude-sonnet-4-20250514',
-					temperature: singleConfig.temperature || 0.7,
-					maxTokens: singleConfig.maxTokens || 16384,
-					extendedThinking: singleConfig.extendedThinking || { enabled: true, budgetTokens: 4096 },
-					usePromptCaching: singleConfig.usePromptCaching !== false,
-				},
-			};
-		}
+		const rolesModelConfig: LLMRolesModelConfig = defaults.rolesModelConfig;
 
 		modelState.value = {
 			...modelState.value,

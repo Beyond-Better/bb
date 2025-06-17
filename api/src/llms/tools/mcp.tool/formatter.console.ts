@@ -1,5 +1,5 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContent } from 'shared/types.ts';
+import type { CollaborationLogEntryContent } from 'shared/types.ts';
 import type {
 	//LLMToolMCPInput,
 	LLMToolMCPResult,
@@ -28,7 +28,7 @@ export function formatLogEntryToolUse(
 }
 
 export function formatLogEntryToolResult(
-	resultContent: ConversationLogEntryContent,
+	resultContent: CollaborationLogEntryContent,
 	toolName: string,
 ): LLMToolLogEntryFormattedResult {
 	const { bbResponse } = resultContent as LLMToolMCPResult;
