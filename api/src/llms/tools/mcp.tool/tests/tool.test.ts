@@ -77,7 +77,7 @@ const toolConfig = {
 //         toolInput: { location: "New York" }
 //       };
 //
-//       const conversation = await projectEditor.initConversation('test-conversation-id');
+//       const conversation = await projectEditor.initCollaboration('test-conversation-id');
 //       const result = await tool.runTool(conversation, toolUse, projectEditor);
 //
 //       // Verify tool returned the MCP result directly
@@ -133,7 +133,7 @@ const toolConfig = {
 //         toolInput: { location: "New York" }
 //       };
 //
-//       const conversation = await projectEditor.initConversation('test-conversation-id');
+//       const conversation = await projectEditor.initCollaboration('test-conversation-id');
 //
 //       // Error should be thrown and handled by the tool manager
 //       await assertThrows(

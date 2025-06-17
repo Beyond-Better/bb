@@ -1,7 +1,7 @@
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 //import type { AnthropicModel } from 'api/types.ts';
 import type { LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -11,7 +11,7 @@ import type LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 
 class LLMChatInteraction extends LLMInteraction {
-	constructor(conversationId?: ConversationId) {
+	constructor(conversationId?: InteractionId) {
 		super(conversationId);
 		this._interactionType = 'chat';
 	}
@@ -65,7 +65,7 @@ class LLMChatInteraction extends LLMInteraction {
 			null,
 			null,
 			auxiliaryContent,
-			this.conversationStats,
+			this.interactionStats,
 			this.tokenUsageStats,
 		);
 

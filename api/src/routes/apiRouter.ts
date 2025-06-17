@@ -3,10 +3,10 @@ import { requireAuth } from '../middlewares/auth.middleware.ts';
 import {
 	chatConversation,
 	clearConversation,
-	deleteConversation,
+	deleteInteraction,
 	getConversation,
 	getConversationDefaults,
-	listConversations,
+	listInteractions,
 } from './api/conversation.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
@@ -49,11 +49,11 @@ apiRouter
 	.get('/v1/ws/app', websocketApp)
 	.get('/v1/ws/conversation/:id', websocketConversation)
 	// Conversation endpoints
-	.get('/v1/conversation', listConversations)
+	.get('/v1/conversation', listInteractions)
 	.get('/v1/conversation/defaults', getConversationDefaults)
 	.get('/v1/conversation/:id', getConversation)
 	.post('/v1/conversation/:id', chatConversation)
-	.delete('/v1/conversation/:id', deleteConversation)
+	.delete('/v1/conversation/:id', deleteInteraction)
 	.post('/v1/conversation/:id/clear', clearConversation)
 	// Log Entries endpoints
 	.post('/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType', logEntryFormatter)

@@ -211,9 +211,9 @@ export async function getInstanceOverview(_options: { detailed?: boolean } = {})
 	const rootInteractionIds: string[] = [];
 
 	// Track active conversation IDs to identify orphaned interactions
-	const activeConversationIds = new Set<string>();
+	const activeInteractionIds = new Set<string>();
 	for (const [conversationId] of projectEditors) {
-		activeConversationIds.add(conversationId);
+		activeInteractionIds.add(conversationId);
 	}
 
 	// Count orphaned interactions (not attached to active ProjectEditor)
@@ -232,7 +232,7 @@ export async function getInstanceOverview(_options: { detailed?: boolean } = {})
 			rootInteractionIds.push(interaction.id);
 
 			// Check if this root interaction is orphaned (not in an active ProjectEditor)
-			if (!activeConversationIds.has(interaction.id)) {
+			if (!activeInteractionIds.has(interaction.id)) {
 				orphanedCount++;
 			}
 		}

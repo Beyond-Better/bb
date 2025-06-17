@@ -19,11 +19,11 @@ import CollaborationLogFormatter from 'cli/collaborationLogFormatter.ts';
 import { getStatementHistory } from './statementHistory.utils.ts';
 import { getBbDir } from 'shared/dataDir.ts';
 import type {
-	ConversationContinue,
-	ConversationId,
-	ConversationNew,
-	ConversationResponse,
-	ConversationStart,
+	CollaborationContinue,
+	InteractionId,
+	CollaborationNew,
+	CollaborationResponse,
+	CollaborationStart,
 	TokenUsage,
 } from 'shared/types.ts';
 //import { logger } from 'shared/logger.ts';
@@ -337,9 +337,9 @@ export class TerminalHandler {
 		console.log(palette.secondary(`╭${'─'.repeat(cols - 2)}╮`));
 	}
 
-	public async displayConversationStart(
-		data: ConversationStart | ConversationNew,
-		conversationId?: ConversationId,
+	public async displayInteractionStart(
+		data: CollaborationStart | CollaborationNew,
+		conversationId?: InteractionId,
 		expectingMoreInput: boolean = true,
 	): Promise<void> {
 		if (this.spinner) this.hideSpinner();
@@ -350,13 +350,13 @@ export class TerminalHandler {
 			return;
 		}
 
-		const { conversationTitle } = data;
-		if (!conversationTitle) {
+		const { collaborationTitle } = data;
+		if (!collaborationTitle) {
 			console.log('Warning: No conversation title available');
 			return;
 		}
-		const statementCount = data.conversationStats?.statementCount || 1;
-		const shortTitle = conversationTitle ? conversationTitle.substring(0, 30) : '<pending>';
+		const statementCount = data.interactionStats?.statementCount || 1;
+		const shortTitle = collaborationTitle ? collaborationTitle.substring(0, 30) : '<pending>';
 
 		const { columns } = Deno.consoleSize();
 		const isNarrow = columns < 80;
@@ -383,19 +383,19 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayConversationContinue(
-		data: ConversationContinue,
-		conversationId: ConversationId,
+	public async displayInteractionContinue(
+		data: CollaborationContinue,
+		conversationId: InteractionId,
 		expectingMoreInput: boolean = false,
 	): Promise<void> {
 		// Ensure all optional properties are handled
 		const {
 			logEntry,
 			timestamp,
-			conversationStats = {
+			interactionStats = {
 				statementCount: 1,
 				statementTurnCount: 1,
-				conversationTurnCount: 1,
+				interactionTurnCount: 1,
 			},
 			tokenUsageStats = {
 				tokenUsageStatement: {
@@ -433,7 +433,7 @@ export class TerminalHandler {
 					//this.highlightOutput(formattedContent),
 					formattedContent,
 					formattedResult,
-					conversationStats,
+					interactionStats,
 					tokenUsageStats.tokenUsageStatement,
 					logEntry.toolName,
 				);
@@ -453,12 +453,12 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayConversationAnswer(
-		data: ConversationResponse,
-		conversationId?: ConversationId,
+	public async displayInteractionAnswer(
+		data: CollaborationResponse,
+		conversationId?: InteractionId,
 		expectingMoreInput: boolean = false,
 	): Promise<void> {
-		//logger.debug(`displayConversationAnswer called with data: ${JSON.stringify(data)}`);
+		//logger.debug(`displayInteractionAnswer called with data: ${JSON.stringify(data)}`);
 		this.hideSpinner();
 		conversationId = data.conversationId;
 
@@ -468,8 +468,8 @@ export class TerminalHandler {
 		}
 
 		const {
-			conversationTitle,
-			conversationStats = data.conversationStats, //{ statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
+			collaborationTitle,
+			interactionStats = data.interactionStats, //{ statementCount: 1, statementTurnCount: 1, interactionTurnCount: 1 },
 			tokenUsageStats = {
 				tokenUsageStatement: {
 					inputTokens: data.tokenUsageStats.tokenUsageStatement.inputTokens,
@@ -490,7 +490,7 @@ export class TerminalHandler {
 			timestamp,
 			content,
 			{ title: '', content },
-			conversationStats,
+			interactionStats,
 			tokenUsageStats.tokenUsageStatement,
 		);
 		console.log(formattedEntry);
@@ -499,20 +499,20 @@ export class TerminalHandler {
 		const isNarrow = columns < 100;
 
 		const idShort = conversationId?.substring(0, 8) || '';
-		const titleShort = conversationTitle?.substring(0, isNarrow ? 10 : 20) || '';
+		const titleShort = collaborationTitle?.substring(0, isNarrow ? 10 : 20) || '';
 
-		//logger.debug(`Preparing summary line with conversationStats: ${JSON.stringify(conversationStats)}, tokenUsage: ${JSON.stringify(tokenUsageStats.tokenUsageStatement)}`);
+		//logger.debug(`Preparing summary line with interactionStats: ${JSON.stringify(interactionStats)}, tokenUsage: ${JSON.stringify(tokenUsageStats.tokenUsageStatement)}`);
 		const summaryLine = [
 			colors.cyan(isNarrow ? 'C' : 'Conv'),
 			colors.yellow(isNarrow ? `${idShort}` : `ID:${idShort}`),
-			colors.green(isNarrow ? `S${conversationStats.statementCount}` : `St:${conversationStats.statementCount}`),
+			colors.green(isNarrow ? `S${interactionStats.statementCount}` : `St:${interactionStats.statementCount}`),
 			colors.magenta(
-				isNarrow ? `T${conversationStats.statementTurnCount}` : `Tn:${conversationStats.statementTurnCount}`,
+				isNarrow ? `T${interactionStats.statementTurnCount}` : `Tn:${interactionStats.statementTurnCount}`,
 			),
 			colors.blue(
 				isNarrow
-					? `TT${conversationStats.conversationTurnCount}`
-					: `TT:${conversationStats.conversationTurnCount}`,
+					? `TT${interactionStats.interactionTurnCount}`
+					: `TT:${interactionStats.interactionTurnCount}`,
 			),
 			colors.red(
 				isNarrow
@@ -539,16 +539,16 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayConversationComplete(
-		response: ConversationResponse,
+	public async displayInteractionComplete(
+		response: CollaborationResponse,
 		options: { id?: string; json?: boolean },
 		_expectingMoreInput: boolean = false,
 	): Promise<void> {
 		this.hideSpinner();
 		const isNewConversation = !options.id;
-		const { conversationId, conversationStats, conversationTitle } = response;
+		const { conversationId, interactionStats, collaborationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
-		const tokenUsageConversation: TokenUsage = {
+		const tokenUsageInteraction: TokenUsage = {
 			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
 			outputTokens: response.tokenUsageStats.tokenUsageStatement.outputTokens,
 			totalTokens: response.tokenUsageStats.tokenUsageStatement.totalTokens,
@@ -562,9 +562,9 @@ export class TerminalHandler {
 					...response,
 					isNewConversation,
 					conversationId,
-					conversationTitle,
-					conversationStats,
-					tokenUsageConversation,
+					collaborationTitle,
+					interactionStats,
+					tokenUsageInteraction,
 				},
 				null,
 				2,
@@ -585,23 +585,23 @@ export class TerminalHandler {
 				palette.secondary('│') + palette.accent(` ID: ${conversationId}`.padEnd(55)) + palette.secondary('│'),
 			);
 			console.log(
-				palette.secondary('│') + palette.info(` Title: ${conversationTitle}`.padEnd(55)) +
+				palette.secondary('│') + palette.info(` Title: ${collaborationTitle}`.padEnd(55)) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
-					palette.success(` ${symbols.info} Statements: ${conversationStats.statementCount}`.padEnd(55)) +
+					palette.success(` ${symbols.info} Statements: ${interactionStats.statementCount}`.padEnd(55)) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
-					palette.warning(` ${symbols.radioOn} Turns: ${conversationStats.statementTurnCount}`.padEnd(55)) +
+					palette.warning(` ${symbols.radioOn} Turns: ${interactionStats.statementTurnCount}`.padEnd(55)) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.info(
-						` ${symbols.clockwiseRightAndLeftSemicircleArrows} Total Turns: ${conversationStats.conversationTurnCount}`
+						` ${symbols.clockwiseRightAndLeftSemicircleArrows} Total Turns: ${interactionStats.interactionTurnCount}`
 							.padEnd(53),
 					) + palette.secondary('│'),
 			);
@@ -609,21 +609,21 @@ export class TerminalHandler {
 			console.log(
 				palette.secondary('│') +
 					palette.error(
-						` ${symbols.arrowDown} Input Tokens: ${tokenUsageConversation?.inputTokens}`.padEnd(55),
+						` ${symbols.arrowDown} Input Tokens: ${tokenUsageInteraction?.inputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.success(
-						` ${symbols.arrowUp} Output Tokens: ${tokenUsageConversation?.outputTokens}`.padEnd(55),
+						` ${symbols.arrowUp} Output Tokens: ${tokenUsageInteraction?.outputTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') +
 					palette.primary(
-						` ${symbols.radioOn} Total Tokens: ${tokenUsageConversation?.totalTokens}`.padEnd(55),
+						` ${symbols.radioOn} Total Tokens: ${tokenUsageInteraction?.totalTokens}`.padEnd(55),
 					) +
 					palette.secondary('│'),
 			);

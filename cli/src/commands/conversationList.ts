@@ -1,5 +1,5 @@
 import { Command } from 'cliffy/command';
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -47,7 +47,7 @@ export const conversationList = new Command()
 						`Page ${pagination.page} of ${pagination.totalPages} (Total items: ${pagination.totalItems})`,
 					);
 					conversations.forEach(
-						(conversation: ConversationMetadata, index: number) => {
+						(conversation: InteractionMetadata, index: number) => {
 							const createdAt = new Date(conversation.createdAt).toLocaleString();
 							const updatedAt = new Date(conversation.updatedAt).toLocaleString();
 							console.log(`${index + 1}. ID: ${conversation.id} | Title: ${conversation.title}`);

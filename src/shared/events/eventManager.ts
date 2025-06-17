@@ -1,27 +1,27 @@
 import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 import {
 	ApiStatus,
-	ConversationContinue,
-	ConversationDeleted,
-	ConversationId,
+	CollaborationContinue,
+	CollaborationDeleted,
+	InteractionId,
 	CollaborationLogEntryType,
-	ConversationNew,
-	ConversationResponse,
-	ConversationStart,
-	ConversationStats,
+	CollaborationNew,
+	CollaborationResponse,
+	CollaborationStart,
+	InteractionStats,
 } from 'shared/types.ts';
 import { VersionInfo } from '../types/version.types.ts';
 import { logger } from 'shared/logger.ts';
 
 export type EventMap = {
 	projectEditor: {
-		conversationNew: ConversationNew;
-		conversationDeleted: ConversationDeleted;
-		speakWith: { conversationId: ConversationId; projectId: string; prompt: string };
-		conversationReady: ConversationStart & { versionInfo: VersionInfo };
-		conversationContinue: ConversationContinue;
-		conversationAnswer: ConversationResponse;
-		conversationCancelled: { conversationId: ConversationId; message: string };
+		collaborationNew: CollaborationNew;
+		collaborationDeleted: CollaborationDeleted;
+		speakWith: { conversationId: InteractionId; projectId: string; prompt: string };
+		collaborationReady: CollaborationStart & { versionInfo: VersionInfo };
+		collaborationContinue: CollaborationContinue;
+		collaborationAnswer: CollaborationResponse;
+		collaborationCancelled: { conversationId: InteractionId; message: string };
 		progressStatus: {
 			type: 'progress_status';
 			status: ApiStatus;
@@ -38,11 +38,11 @@ export type EventMap = {
 			startTimestamp: number;
 			duration: number;
 		};
-		conversationError: {
-			conversationId: ConversationId;
+		collaborationError: {
+			conversationId: InteractionId;
 			agentInteractionId: string | null;
-			conversationTitle: string;
-			conversationStats: ConversationStats;
+			collaborationTitle: string;
+			interactionStats: InteractionStats;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'
@@ -54,13 +54,13 @@ export type EventMap = {
 		};
 	};
 	cli: {
-		conversationNew: ConversationNew;
-		conversationWaitForReady: { conversationId: ConversationId };
-		conversationWaitForAnswer: { conversationId: ConversationId };
-		conversationReady: ConversationStart & { versionInfo: VersionInfo };
-		conversationContinue: ConversationContinue;
-		conversationAnswer: ConversationResponse;
-		websocketReconnected: { conversationId: ConversationId };
+		collaborationNew: CollaborationNew;
+		conversationWaitForReady: { conversationId: InteractionId };
+		conversationWaitForAnswer: { conversationId: InteractionId };
+		collaborationReady: CollaborationStart & { versionInfo: VersionInfo };
+		collaborationContinue: CollaborationContinue;
+		collaborationAnswer: CollaborationResponse;
+		websocketReconnected: { conversationId: InteractionId };
 		progressStatus: {
 			type: 'progress_status';
 			status: ApiStatus;
@@ -77,8 +77,8 @@ export type EventMap = {
 			startTimestamp: number;
 			duration: number;
 		};
-		conversationError: {
-			conversationId: ConversationId;
+		collaborationError: {
+			conversationId: InteractionId;
 			agentInteractionId: string | null;
 			error: string;
 			code?:
@@ -127,14 +127,14 @@ class EventManager extends EventTarget {
 		return EventManager.instance;
 	}
 
-	private getListenerKey(event: string, conversationId?: ConversationId): string {
+	private getListenerKey(event: string, conversationId?: InteractionId): string {
 		return `${event}:${conversationId || 'global'}`;
 	}
 
 	on<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
-		conversationId?: ConversationId,
+		conversationId?: InteractionId,
 	): void {
 		const listenerKey = this.getListenerKey(event, conversationId);
 		if (!this.listenerMap.has(listenerKey)) {
@@ -164,7 +164,7 @@ class EventManager extends EventTarget {
 	off<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
-		conversationId?: ConversationId,
+		conversationId?: InteractionId,
 	): void {
 		const listenerKey = this.getListenerKey(event, conversationId);
 		const listenerWeakMap = this.listenerMap.get(listenerKey);
@@ -181,7 +181,7 @@ class EventManager extends EventTarget {
 
 	once<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
-		conversationId?: ConversationId,
+		conversationId?: InteractionId,
 	): Promise<EventPayload<T, E>> {
 		return new Promise((resolve) => {
 			const handler = (payload: EventPayload<T, E>) => {

@@ -121,7 +121,7 @@ export function createMockMessageRecordSequence(
 			{
 				statementCount: Math.floor(i / 2) + 1,
 				statementTurnCount: (i % 2) + 1,
-				conversationTurnCount: i + 1,
+				interactionTurnCount: i + 1,
 			},
 			undefined,
 			undefined,

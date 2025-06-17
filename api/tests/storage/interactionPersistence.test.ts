@@ -6,7 +6,7 @@ import {
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import type {
 	ResourceMetrics,
-	//ConversationMetrics,
+	//InteractionMetrics,
 } from 'shared/types.ts';
 
 Deno.test('InteractionPersistence.defaultTokenUsage returns correct structure', () => {
@@ -19,23 +19,23 @@ Deno.test('InteractionPersistence.defaultTokenUsage returns correct structure', 
 	});
 });
 
-Deno.test('InteractionPersistence.defaultConversationStats returns correct structure', () => {
-	const stats = InteractionPersistence.defaultConversationStats();
+Deno.test('InteractionPersistence.defaultInteractionStats returns correct structure', () => {
+	const stats = InteractionPersistence.defaultInteractionStats();
 
 	assertObjectMatch(stats, {
 		statementCount: 0,
 		statementTurnCount: 0,
-		conversationTurnCount: 0,
+		interactionTurnCount: 0,
 	});
 });
 
-Deno.test('InteractionPersistence.defaultConversationMetrics returns correct structure', () => {
-	const metrics = InteractionPersistence.defaultConversationMetrics();
+Deno.test('InteractionPersistence.defaultInteractionMetrics returns correct structure', () => {
+	const metrics = InteractionPersistence.defaultInteractionMetrics();
 
 	assertObjectMatch(metrics, {
 		statementCount: 0,
 		statementTurnCount: 0,
-		conversationTurnCount: 0,
+		interactionTurnCount: 0,
 		objectives: { conversation: '', statement: [], timestamp: '' },
 		resources: { accessed: new Set(), modified: new Set(), active: new Set() },
 		toolUsage: {
@@ -49,7 +49,7 @@ Deno.test('InteractionPersistence.defaultMetadata returns correct structure', ()
 	const metadata = InteractionPersistence.defaultMetadata();
 
 	// Check version defaults to 1
-	assertEquals(metadata.version, 3, 'Default version should be 3');
+	assertEquals(metadata.version, 4, 'Default version should be 4');
 
 	// Check required fields exist with correct types
 	assertEquals(typeof metadata.id, 'string', 'id should be string');
@@ -76,33 +76,33 @@ Deno.test('InteractionPersistence.defaultMetadata returns correct structure', ()
 		totalAllTokens: 0,
 	}, 'tokenUsageStatement should have correct structure and defaults');
 
-	assertEquals(metadata.tokenUsageStats.tokenUsageConversation, {
+	assertEquals(metadata.tokenUsageStats.tokenUsageInteraction, {
 		inputTokens: 0,
 		outputTokens: 0,
 		totalTokens: 0,
 		thoughtTokens: 0,
 		totalAllTokens: 0,
-	}, 'tokenUsageConversation should have correct structure and defaults');
+	}, 'tokenUsageInteraction should have correct structure and defaults');
 
 	// Check conversation stats
-	assertEquals(metadata.conversationStats, {
+	assertEquals(metadata.interactionStats, {
 		statementCount: 0,
 		statementTurnCount: 0,
-		conversationTurnCount: 0,
-	}, 'conversationStats should have correct structure and defaults');
+		interactionTurnCount: 0,
+	}, 'interactionStats should have correct structure and defaults');
 
 	// Check conversation metrics
-	assertObjectMatch(metadata.conversationMetrics, {
+	assertObjectMatch(metadata.interactionMetrics, {
 		statementCount: 0,
 		statementTurnCount: 0,
-		conversationTurnCount: 0,
+		interactionTurnCount: 0,
 		objectives: { conversation: '', statement: [], timestamp: '' },
 		resources: { accessed: new Set(), modified: new Set(), active: new Set() } as ResourceMetrics,
 		toolUsage: {
 			currentToolSet: '',
 			toolStats: new Map(),
 		},
-	}, 'conversationMetrics should have correct structure and defaults');
+	}, 'interactionMetrics should have correct structure and defaults');
 
 	// Check numeric fields
 	assertEquals(metadata.temperature, 0, 'temperature should default to 0');

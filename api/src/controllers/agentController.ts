@@ -4,18 +4,18 @@ import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import type LLM from '../llms/providers/baseLLM.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 import type { CompletedTask, Task } from 'api/types/llms.ts';
 import type { ErrorHandler } from '../llms/errorHandler.ts';
 import { isLLMError } from 'api/errors/error.ts';
 //import { ApiStatus } from 'shared/types.ts';
 import type {
 	//ObjectivesData,
-	ConversationStatementMetadata,
-	ConversationStats,
+	InteractionStatementMetadata,
+	InteractionStats,
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 
 import BaseController from './baseController.ts';
@@ -29,13 +29,13 @@ function formatToolObjectivesAndStats(
 	turnCount: number,
 	maxTurns: number,
 ): string {
-	const metrics = interaction.conversationMetrics;
+	const metrics = interaction.interactionMetrics;
 	const parts = [`Turn ${turnCount}/${maxTurns}`];
 
 	/*
 	// Add objectives if set
 	logger.debug('Raw objectives:', metrics.objectives);
-	const conversationObjective = getConversationObjective(metrics.objectives);
+	const conversationObjective = getCollaborationObjective(metrics.objectives);
 	const currentObjective = getCurrentObjective(metrics.objectives);
 	logger.debug('Extracted objectives:', { conversationObjective, currentObjective });
 
@@ -69,13 +69,13 @@ function formatToolObjectivesAndStats(
 }
 
 class AgentController extends BaseController {
-	//private agentInteractionId: ConversationId;
-	private orchestratorInteractionId: ConversationId;
+	//private agentInteractionId: InteractionId;
+	private orchestratorInteractionId: InteractionId;
 	//private assignedTasks: any[] = []; // Replace 'any' with appropriate task type
 
 	constructor(
 		projectEditor: ProjectEditor & { projectInfo: ProjectInfo },
-		orchestratorInteractionId: ConversationId,
+		orchestratorInteractionId: InteractionId,
 	) {
 		super(projectEditor);
 		this._controllerType = 'agent';
@@ -92,7 +92,7 @@ class AgentController extends BaseController {
 	//}
 
 	//async initializeInteraction(): Promise<LLMConversationInteraction> {
-	//	const interactionId = generateConversationId();
+	//	const interactionId = generateInteractionId();
 	//	const interaction = await this.interactionManager.createInteraction(
 	//		'conversation',
 	//		interactionId,
@@ -103,7 +103,7 @@ class AgentController extends BaseController {
 	//}
 
 	async createAgentInteraction(title: string): Promise<LLMConversationInteraction> {
-		const agentInteractionId = shortenConversationId(generateConversationId());
+		const agentInteractionId = shortenInteractionId(generateInteractionId());
 		logger.info(
 			`AgentController: createAgentInteraction - creating interaction for: ${agentInteractionId} with parent ${this.orchestratorInteractionId}`,
 		);
@@ -242,20 +242,20 @@ class AgentController extends BaseController {
 					interaction;
 				const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 				this.eventManager.emit(
-					'projectEditor:conversationError',
+					'projectEditor:collaborationError',
 					{
 						conversationId: logEntryInteraction.id,
-						conversationTitle: interaction.title || '',
+						collaborationTitle: interaction.title || '',
 						agentInteractionId: agentInteractionId,
 						timestamp: new Date().toISOString(),
-						conversationStats: {
+						interactionStats: {
 							statementCount: interaction.statementCount,
 							statementTurnCount: interaction.statementTurnCount,
-							conversationTurnCount: interaction.conversationTurnCount,
+							interactionTurnCount: interaction.interactionTurnCount,
 						},
 						error: 'Missing instructions',
 						code: 'EMPTY_PROMPT' as const,
-					} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+					} as EventPayloadMap['projectEditor']['projectEditor:collaborationError'],
 				);
 				throw new Error('Missing instructions');
 			}
@@ -265,11 +265,11 @@ class AgentController extends BaseController {
 			/*
 		try {
 			// Get current conversation metrics to check objectives
-			const currentMetrics = interaction.conversationMetrics;
+			const currentMetrics = interaction.interactionMetrics;
 
 			// Generate conversation objective if not set
 			if (!currentMetrics.objectives?.conversation) {
-				const conversationObjective = await generateConversationObjective(
+				const conversationObjective = await generateCollaborationObjective(
 					await this.createChatInteraction(interaction.id, 'Generate conversation objective'),
 					statement,
 				);
@@ -314,7 +314,7 @@ class AgentController extends BaseController {
 
 			try {
 				logger.info(
-					`AgentController: Calling conversation.converse for turn ${interaction.statementTurnCount} with statement: "${
+					`AgentController: Calling interaction.converse for turn ${interaction.statementTurnCount} with statement: "${
 						statement.substring(0, 50)
 					}..."`,
 				);
@@ -324,7 +324,7 @@ class AgentController extends BaseController {
 				//this.emitPromptCacheTimer();
 
 				// Create metadata object with task information
-				const metadata: ConversationStatementMetadata = {
+				const metadata: InteractionStatementMetadata = {
 					system: {
 						timestamp: new Date().toISOString(),
 						os: Deno.build.os,
@@ -335,11 +335,11 @@ class AgentController extends BaseController {
 						title: task.title,
 						type: 'agent_task',
 					},
-					conversation: {
+					interaction: {
 						counts: {
 							statements: interaction.statementCount,
 							statement_turns: interaction.statementTurnCount,
-							conversation_turns: interaction.conversationTurnCount,
+							interaction_turns: interaction.interactionTurnCount,
 							//max_turns_per_statement: 15,
 						},
 					},
@@ -355,17 +355,17 @@ class AgentController extends BaseController {
 				//logger.debug('AgentController: LLM Response:', currentResponse);
 
 				// Update orchestrator's stats
-				this.updateStats(interaction.id, interaction.conversationStats);
+				this.updateStats(interaction.id, interaction.interactionStats);
 			} catch (error) {
 				logger.info('AgentController: Received error from LLM converse: ', error);
 				throw this.handleLLMError(error as Error, interaction);
 			}
 
-			// Save the conversation immediately after the first response
+			// Save the interaction immediately after the first response
 			logger.info(
-				`AgentController: Saving conversation at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+				`AgentController: Saving interaction at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 			);
-			await this.saveInitialConversationWithResponse(interaction, currentResponse);
+			await this.saveInitialInteractionWithResponse(interaction, currentResponse);
 
 			const modelCapabilities = await interaction.getModelCapabilities();
 			const contextWindowTokens = modelCapabilities.contextWindow;
@@ -392,7 +392,7 @@ class AgentController extends BaseController {
 
 						// Only log assistant message if tools are being used
 						if (textContent) {
-							const conversationStats: ConversationStats = interaction.conversationStats;
+							const interactionStats: InteractionStats = interaction.interactionStats;
 
 							interaction.collaborationLogger.logAssistantMessage(
 								interaction.getLastMessageId(),
@@ -400,11 +400,11 @@ class AgentController extends BaseController {
 								interaction.id,
 								textContent,
 								thinkingContent,
-								conversationStats,
+								interactionStats,
 								{
 									tokenUsageTurn: interaction.tokenUsageTurn,
 									tokenUsageStatement: interaction.tokenUsageStatement,
-									tokenUsageConversation: interaction.tokenUsageInteraction,
+									tokenUsageInteraction: interaction.tokenUsageInteraction,
 								},
 							);
 						}
@@ -448,7 +448,7 @@ class AgentController extends BaseController {
 							`AgentController: Turn token limit (${contextWindowTokensCutoff}) exceeded. ` +
 								`Current usage: ${totalTurnTokens} (direct: ${interaction.tokenUsageTurn.totalTokens}, ` +
 								`cache creation: ${interaction.tokenUsageTurn.cacheCreationInputTokens}, ` +
-								`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing conversation summary.`,
+								`cache read: ${interaction.tokenUsageTurn.cacheReadInputTokens}). Forcing collaboration summary.`,
 						);
 
 						// Log auxiliary message about forced summary
@@ -464,9 +464,9 @@ class AgentController extends BaseController {
 							},
 						);
 
-						// Manually construct tool use for conversation summary
+						// Manually construct tool use for collaboration summary
 						const toolUse: LLMAnswerToolUse = {
-							toolName: 'conversation_summary',
+							toolName: 'collaboration_summary',
 							toolInput: {
 								requestSource: 'tool',
 								// Calculate maxTokensToKeep:
@@ -478,7 +478,7 @@ class AgentController extends BaseController {
 									if (targetTokens < 1000) {
 										logger.warn(
 											`AgentController: Conversation token limit (${contextWindowTokens}) is very low. ` +
-												`Using minimum of 1000 tokens for conversation summary.`,
+												`Using minimum of 1000 tokens for collaboration summary.`,
 										);
 									}
 									return Math.max(1000, targetTokens);
@@ -519,7 +519,7 @@ class AgentController extends BaseController {
 							//this.emitPromptCacheTimer();
 
 							// Update metadata with current information
-							const toolMetadata: ConversationStatementMetadata = {
+							const toolMetadata: InteractionStatementMetadata = {
 								system: {
 									timestamp: new Date().toISOString(),
 									os: Deno.build.os,
@@ -530,11 +530,11 @@ class AgentController extends BaseController {
 									title: task.title,
 									type: 'agent_task',
 								},
-								conversation: {
+								interaction: {
 									counts: {
 										statements: interaction.statementCount,
 										statement_turns: interaction.statementTurnCount,
-										conversation_turns: interaction.conversationTurnCount,
+										interaction_turns: interaction.interactionTurnCount,
 										//max_turns_per_statement: 15,
 									},
 									turn: {
@@ -560,7 +560,7 @@ class AgentController extends BaseController {
 					}
 				} catch (error) {
 					logger.error(
-						`AgentController: Error in conversation turn ${loopTurnCount}: ${errorMessage(error)}`,
+						`AgentController: Error in interaction turn ${loopTurnCount}: ${errorMessage(error)}`,
 					);
 					if (loopTurnCount === maxTurns - 1) {
 						throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
@@ -575,20 +575,20 @@ class AgentController extends BaseController {
 					const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 					// args: { reason: failReason, retries: { max: maxRetries, current: retries } },
 					this.eventManager.emit(
-						'projectEditor:conversationError',
+						'projectEditor:collaborationError',
 						{
 							conversationId: interaction.id,
-							conversationTitle: interaction.title || '',
+							collaborationTitle: interaction.title || '',
 							agentInteractionId: agentInteractionId,
 							timestamp: new Date().toISOString(),
-							conversationStats: {
+							interactionStats: {
 								statementCount: interaction.statementCount,
 								statementTurnCount: interaction.statementTurnCount,
-								conversationTurnCount: interaction.conversationTurnCount,
+								interactionTurnCount: interaction.interactionTurnCount,
 							},
 							error: llmErrorMessage,
 							code: 'RESPONSE_HANDLING' as const,
-						} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+						} as EventPayloadMap['projectEditor']['projectEditor:collaborationError'],
 					);
 
 					// For non-fatal errors, log and continue to the next turn
@@ -609,18 +609,18 @@ class AgentController extends BaseController {
 			if (this.isCancelled) {
 				logger.warn('AgentController: Operation was cancelled.');
 			} else if (loopTurnCount >= maxTurns) {
-				logger.warn(`AgentController: Reached maximum number of turns (${maxTurns}) in conversation.`);
+				logger.warn(`AgentController: Reached maximum number of turns (${maxTurns}) in interaction.`);
 			}
 
-			// Final save of the entire conversation at the end of the loop
+			// Final save of the entire interaction at the end of the loop
 			logger.debug(
-				`AgentController: Saving conversation at end of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+				`AgentController: Saving interaction at end of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 			);
 
-			await this.saveConversationAfterStatement(interaction, currentResponse);
+			await this.saveInteractionAfterStatement(interaction, currentResponse);
 
 			logger.info(
-				`AgentController: Final save of conversation: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
+				`AgentController: Final save of interaction: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 			);
 
 			// Extract full answer text
@@ -641,12 +641,12 @@ class AgentController extends BaseController {
 				{
 					statementCount: interaction.statementCount,
 					statementTurnCount: interaction.statementTurnCount,
-					conversationTurnCount: interaction.conversationTurnCount,
+					interactionTurnCount: interaction.interactionTurnCount,
 				},
 				{
 					tokenUsageTurn: interaction.tokenUsageTurn,
 					tokenUsageStatement: interaction.tokenUsageStatement,
-					tokenUsageConversation: interaction.tokenUsageInteraction,
+					tokenUsageInteraction: interaction.tokenUsageInteraction,
 				},
 				currentResponse.messageMeta.llmRequestParams.modelConfig,
 			);

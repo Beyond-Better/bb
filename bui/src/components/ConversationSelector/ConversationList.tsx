@@ -1,12 +1,12 @@
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 import { useSignal } from '@preact/signals';
 import { ConfirmDialog } from '../Dialogs/ConfirmDialog.tsx';
 //import type { ChatState, ConversationListState } from '../types/chat.types.ts';
 
 interface ConversationListProps {
-	conversations: ConversationMetadata[];
+	conversations: InteractionMetadata[];
 	selectedIndex: number;
-	currentConversationId: string | null;
+	currentInteractionId: string | null;
 	showDeleteButton?: boolean;
 	onSelect: (id: string) => void;
 	onDelete: (id: string) => Promise<void>;
@@ -20,7 +20,7 @@ interface ConversationToDelete {
 export function ConversationList({
 	conversations,
 	selectedIndex,
-	currentConversationId,
+	currentInteractionId,
 	showDeleteButton = false,
 	onSelect,
 	onDelete,
@@ -46,7 +46,7 @@ export function ConversationList({
 								? 'bg-gray-100 dark:bg-gray-800'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-700'
 						} ${
-							conv.id === currentConversationId
+							conv.id === currentInteractionId
 								? 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-50 dark:hover:bg-blue-900/30'
 								: ''
 						}`}
@@ -67,7 +67,7 @@ export function ConversationList({
 								{/* Stats Row */}
 								<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
 									{/* Turn Count */}
-									{conv.conversationStats && (
+									{conv.interactionStats && (
 										<span className='flex items-center gap-1'>
 											<svg
 												className='w-4 h-4 mr-1'
@@ -82,12 +82,12 @@ export function ConversationList({
 													d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
 												/>
 											</svg>
-											{conv.conversationStats.conversationTurnCount} turns
+											{conv.interactionStats.interactionTurnCount} turns
 										</span>
 									)}
 
 									{/* Token Count */}
-									{conv.tokenUsageStats.tokenUsageConversation && (
+									{conv.tokenUsageStats.tokenUsageInteraction && (
 										<span className='flex items-center gap-1'>
 											<svg
 												className='w-4 h-4 mr-1'
@@ -102,9 +102,9 @@ export function ConversationList({
 													d='M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z'
 												/>
 											</svg>
-											{conv.tokenUsageStats.tokenUsageConversation.totalAllTokens
+											{conv.tokenUsageStats.tokenUsageInteraction.totalAllTokens
 												?.toLocaleString() ||
-												conv.tokenUsageStats.tokenUsageConversation.totalTokensTotal
+												conv.tokenUsageStats.tokenUsageInteraction.totalTokensTotal
 													?.toLocaleString() ||
 												0} tokens
 										</span>

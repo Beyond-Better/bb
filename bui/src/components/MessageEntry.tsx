@@ -315,7 +315,7 @@ export function MessageEntry({
 		return () => document.removeEventListener('keydown', handleKeyPress);
 	}, [toggleExpanded]);
 
-	// Handle entries without logEntry (ConversationStart or invalid entries)
+	// Handle entries without logEntry (CollaborationStart or invalid entries)
 	if (!logDataEntryHasLogEntry(logDataEntry)) {
 		return (
 			<div className='bb-message-entry py-3 pl-4 pr-6 mb-2 text-gray-500 dark:text-gray-400 text-sm italic'>
@@ -332,8 +332,8 @@ export function MessageEntry({
 	const tokenUsageTurn = 'tokenUsageStats' in logDataEntry
 		? logDataEntry.tokenUsageStats.tokenUsageTurn
 		: getDefaultTokenUsage();
-	const tokenUsageConversation = 'tokenUsageStats' in logDataEntry
-		? logDataEntry.tokenUsageStats.tokenUsageConversation
+	const tokenUsageInteraction = 'tokenUsageStats' in logDataEntry
+		? logDataEntry.tokenUsageStats.tokenUsageInteraction
 		: getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
@@ -791,9 +791,9 @@ export function MessageEntry({
 												</span>
 												<span title='Total conversation tokens (input/output)'>
 													Conversation:{' '}
-													{tokenUsageConversation.inputTokens?.toLocaleString() || 0}↑ /{' '}
-													{tokenUsageConversation.outputTokens?.toLocaleString() || 0}↓
-													({tokenUsageConversation.totalTokens?.toLocaleString() || 0})
+													{tokenUsageInteraction.inputTokens?.toLocaleString() || 0}↑ /{' '}
+													{tokenUsageInteraction.outputTokens?.toLocaleString() || 0}↓
+													({tokenUsageInteraction.totalTokens?.toLocaleString() || 0})
 												</span>
 											</>
 										)

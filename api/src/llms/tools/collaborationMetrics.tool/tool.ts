@@ -17,14 +17,14 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
-	LLMToolConversationMetricsInput,
-	LLMToolConversationMetricsResponseData,
-	LLMToolConversationMetricsResultData,
+	LLMToolCollaborationMetricsInput,
+	LLMToolCollaborationMetricsResponseData,
+	LLMToolCollaborationMetricsResultData,
 	LLMToolFileMetrics,
 	LLMToolToolMetrics,
 } from './types.ts';
 
-export default class LLMToolConversationMetrics extends LLMTool {
+export default class LLMToolCollaborationMetrics extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
 		return {
 			type: 'object',
@@ -96,7 +96,7 @@ export default class LLMToolConversationMetrics extends LLMTool {
 				includeQuality = true,
 				startTurn,
 				endTurn,
-			} = toolUse.toolInput as LLMToolConversationMetricsInput;
+			} = toolUse.toolInput as LLMToolCollaborationMetricsInput;
 
 			const messages = interaction.getMessages();
 			const filteredMessages = startTurn || endTurn ? messages.slice((startTurn || 1) - 1, endTurn) : messages;
@@ -112,22 +112,22 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			const toolResults = this.formatMetrics(metrics);
 			const toolResponse =
 				`Analyzed ${metrics.summary.totalTurns} conversation turns with ${metrics.summary.uniqueToolsUsed} unique tools used. Unless specifically asked to perform additional analysis or tasks, no further action is needed.`;
-			const bbResponse: LLMToolConversationMetricsResponseData = {
+			const bbResponse: LLMToolCollaborationMetricsResponseData = {
 				data: metrics,
 			};
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(
-				`LLMToolConversationMetrics: Error calculating conversation metrics: ${(error as Error).message}`,
+				`LLMToolCollaborationMetrics: Error calculating collaboration metrics: ${(error as Error).message}`,
 			);
 
 			throw createError(
 				ErrorType.ToolHandling,
-				`Error calculating conversation metrics: ${(error as Error).message}`,
+				`Error calculating collaboration metrics: ${(error as Error).message}`,
 				{
-					name: 'conversation-metrics',
-					toolName: 'conversation_metrics',
+					name: 'collaboration-metrics',
+					toolName: 'collaboration_metrics',
 					operation: 'tool-run',
 				},
 			);
@@ -144,8 +144,8 @@ export default class LLMToolConversationMetrics extends LLMTool {
 			includeTiming: boolean;
 			includeQuality: boolean;
 		},
-	): Promise<LLMToolConversationMetricsResultData> {
-		const metrics: LLMToolConversationMetricsResultData = {
+	): Promise<LLMToolCollaborationMetricsResultData> {
+		const metrics: LLMToolCollaborationMetricsResultData = {
 			summary: {
 				totalTurns: messages.length,
 				messageTypes: {
@@ -458,8 +458,8 @@ export default class LLMToolConversationMetrics extends LLMTool {
 		return corrections;
 	}
 
-	private formatMetrics(metrics: LLMToolConversationMetricsResultData): string {
-		return `Conversation Metrics Summary:
+	private formatMetrics(metrics: LLMToolCollaborationMetricsResultData): string {
+		return `Collaboration Metrics Summary:
 
 Basic Statistics:
 - Total Turns: ${metrics.summary.totalTurns}

@@ -1,7 +1,7 @@
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId, ConversationStatementMetadata, TokenUsage } from 'shared/types.ts';
+import type { InteractionId, InteractionStatementMetadata, TokenUsage as _TokenUsage } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -25,11 +25,11 @@ import { logger } from 'shared/logger.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import type {
-	ResourceForConversation,
+	ResourceForInteraction,
 	//ResourceManager,
 	ResourceMetadata,
 	ResourceRevisionMetadata,
-	ResourcesForConversation,
+	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';
 import type { ResourceType } from 'api/types.ts';
 //import { GitUtils } from 'shared/git.ts';
@@ -111,7 +111,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	};
 	//private currentCommit: string | null = null;
 
-	constructor(conversationId?: ConversationId) {
+	constructor(conversationId?: InteractionId) {
 		super(conversationId);
 		this._interactionType = 'conversation';
 	}
@@ -119,21 +119,13 @@ class LLMConversationInteraction extends LLMInteraction {
 	public override async init(
 		interactionModel: string,
 		interactionCallbacks: LLMCallbacks,
-		parentInteractionId?: ConversationId,
+		parentInteractionId?: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		await super.init(interactionModel, interactionCallbacks, parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 		//this.resourceManager = projectEditor.resourceManager;
 		this.projectData = projectEditor.projectData;
 		return this;
-	}
-
-	// these methods are really just convenience aliases for tokenUsageInteraction
-	public get tokenUsageConversation(): TokenUsage {
-		return this.tokenUsageInteraction;
-	}
-	public set tokenUsageConversation(tokenUsage: TokenUsage) {
-		this.tokenUsageInteraction = tokenUsage;
 	}
 
 	public override async prepareSytemPrompt(baseSystem: string): Promise<string> {
@@ -601,7 +593,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				const updatedMessage = new LLMMessage(
 					message.role,
 					updatedContent,
-					message.conversationStats,
+					message.interactionStats,
 					message.tool_call_id,
 					message.providerResponse,
 					message.id,
@@ -645,7 +637,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	addResourcesForMessage(
-		resourcesToAdd: ResourcesForConversation,
+		resourcesToAdd: ResourcesForInteraction,
 		messageId: string,
 		toolUseId?: string,
 	): Array<{ resourceUri: string; resourceMetadata: ResourceRevisionMetadata }> {
@@ -704,11 +696,11 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	// Getters and setters
-	get conversationId(): ConversationId {
+	get conversationId(): InteractionId {
 		return this.id;
 	}
 
-	set conversationId(value: ConversationId) {
+	set conversationId(value: InteractionId) {
 		this.id = value;
 	}
 
@@ -739,7 +731,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	// the caller is responsible for adding to collaborationLogger
 	async relayToolResult(
 		prompt: string,
-		metadata: ConversationStatementMetadata,
+		metadata: InteractionStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
@@ -763,7 +755,7 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		// // these are set in updateTotals
 		// this.statementTurnCount++;
-		// this.conversationTurnCount++;
+		// this.interactionTurnCount++;
 
 		// logToolUse and logToolResult are in orchestratorController
 
@@ -775,9 +767,9 @@ class LLMConversationInteraction extends LLMInteraction {
 		prompt: string,
 		//promptFrom: 'user' | 'orchestrator',
 		parentMessageId: string | null,
-		metadata: ConversationStatementMetadata,
+		metadata: InteractionStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
-		attachedResources?: ResourcesForConversation,
+		attachedResources?: ResourcesForInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		// Statement count is now incremented at the beginning of the method
 		if (!speakOptions) {
@@ -822,7 +814,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		// Inject file references into the prompt for chat history
 		let modifiedPrompt = prompt;
 		if (limitedAttachedResources && limitedAttachedResources.length > 0) {
-			let fileReferences = limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
+			let fileReferences = limitedAttachedResources.map((resourceToAdd: ResourceForInteraction) => {
 				// Extract resourceId from uploads URI
 				const resourceUri = resourceToAdd.resourceUri;
 				if (resourceUri.startsWith('bb+filesystem+__uploads+file:./')) {
@@ -850,7 +842,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 
 		const resourcesToAdd = limitedAttachedResources
-			? limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
+			? limitedAttachedResources.map((resourceToAdd: ResourceForInteraction) => {
 				return {
 					'type': 'text',
 					'text': `Resource added: <${resourceToAdd.resourceUri}>`,
@@ -875,13 +867,13 @@ class LLMConversationInteraction extends LLMInteraction {
 				parentMessageId,
 				this.id,
 				modifiedPrompt,
-				this.conversationStats,
+				this.interactionStats,
 			);
 		} else {
 			this.collaborationLogger.logUserMessage(
 				messageId,
 				modifiedPrompt,
-				this.conversationStats,
+				this.interactionStats,
 			);
 		}
 
@@ -904,7 +896,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this.statementTurnCount = 0;
 		// // these are set in updateTotals
 		// this.statementTurnCount++;
-		// this.conversationTurnCount++;
+		// this.interactionTurnCount++;
 
 		// logAssistantMessage is in orchestratorController
 

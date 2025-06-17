@@ -5,9 +5,9 @@ import {
 } from 'api/tests/deps.ts';
 import { ConversationMigration } from 'api/storage/conversationMigration.ts';
 import type {
-	//ConversationDetailedMetadata,
-	ConversationMetadata,
-	//ConversationMetrics,
+	//InteractionDetailedMetadata,
+	InteractionMetadata,
+	//InteractionMetrics,
 } from 'shared/types.ts';
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
@@ -60,13 +60,13 @@ Deno.test('ConversationMigration.readMetadata', async (t) => {
 			llmProviderName: 'test',
 			model: 'test',
 			tokenUsageStats: {
-				tokenUsageConversation: {
+				tokenUsageInteraction: {
 					inputTokens: 0,
 					outputTokens: 0,
 					totalTokens: 0,
 				},
 			},
-		} as ConversationMetadata;
+		} as InteractionMetadata;
 		await Deno.writeTextFile(metadataPath, JSON.stringify(testData));
 
 		const metadata = await ConversationMigration['readMetadata'](metadataPath);
@@ -91,7 +91,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 			updatedAt: new Date().toISOString(),
 			llmProviderName: 'test',
 			model: 'test',
-			tokenUsageConversation: {
+			tokenUsageInteraction: {
 				inputTokens: 100,
 				outputTokens: 200,
 				totalTokens: 300,
@@ -134,7 +134,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 			llmProviderName: 'test',
 			model: 'test',
 			tokenUsageStats: {
-				tokenUsageConversation: {
+				tokenUsageInteraction: {
 					inputTokens: 100,
 					outputTokens: 200,
 					totalTokens: 300,
@@ -188,7 +188,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 		const updatedMetadata = await ConversationMigration['readMetadata'](metadataPath);
 		assertEquals(updatedMetadata.version, 3, 'Metadata version should be 3');
 		assertEquals(
-			updatedMetadata.tokenUsageStats.tokenUsageConversation?.totalAllTokens,
+			updatedMetadata.tokenUsageStats.tokenUsageInteraction?.totalAllTokens,
 			375, // 300 + 50 + 25
 			'totalAllTokens should be sum of totalTokens + cache tokens',
 		);

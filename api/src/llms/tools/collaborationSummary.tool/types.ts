@@ -1,13 +1,13 @@
 import type LLMMessage from 'api/llms/llmMessage.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 
-export interface LLMToolConversationSummaryInput {
+export interface LLMToolCollaborationSummaryInput {
 	requestSource?: 'user' | 'tool';
 	maxTokensToKeep?: number;
 	summaryLength?: 'short' | 'medium' | 'long';
 }
 
-export interface LLMToolConversationSummarySection {
+export interface LLMToolCollaborationSummarySection {
 	files: Array<{
 		path: string;
 		revision: string;
@@ -31,7 +31,7 @@ export interface LLMToolConversationSummarySection {
 	projectContext: string[];
 }
 
-export interface LLMToolConversationSummaryMetadata {
+export interface LLMToolCollaborationSummaryMetadata {
 	messageRange: {
 		start: { id: string; timestamp: string };
 		end: { id: string; timestamp: string };
@@ -42,17 +42,17 @@ export interface LLMToolConversationSummaryMetadata {
 	fallbackUsed?: boolean;
 }
 
-export interface LLMToolConversationSummaryData {
+export interface LLMToolCollaborationSummaryData {
 	summary: string;
 	keptMessages: LLMMessage[];
 	originalTokenCount: number;
 	newTokenCount: number;
 	originalMessageCount: number;
 	summaryLength: 'short' | 'medium' | 'long';
-	metadata: LLMToolConversationSummaryMetadata;
+	metadata: LLMToolCollaborationSummaryMetadata;
 }
 
-export interface LLMToolConversationSummaryResultData {
+export interface LLMToolCollaborationSummaryResultData {
 	summary: string;
 	maxTokensToKeep: number;
 	summaryLength: 'short' | 'medium' | 'long';
@@ -60,16 +60,16 @@ export interface LLMToolConversationSummaryResultData {
 	originalTokenCount: number;
 	newTokenCount: number;
 	originalMessageCount: number;
-	metadata: LLMToolConversationSummaryMetadata;
+	metadata: LLMToolCollaborationSummaryMetadata;
 	keptMessageCount: number;
 	removedMessageCount: number;
 }
 
-export interface LLMToolConversationSummaryResponseData {
-	data: LLMToolConversationSummaryResultData;
+export interface LLMToolCollaborationSummaryResponseData {
+	data: LLMToolCollaborationSummaryResultData;
 }
 
-export interface LLMToolConversationSummaryResult {
+export interface LLMToolCollaborationSummaryResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: LLMToolConversationSummaryResponseData;
+	bbResponse: LLMToolCollaborationSummaryResponseData;
 }

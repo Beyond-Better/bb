@@ -81,24 +81,24 @@ const fetchConversations = async () => {
 ### Selecting a Conversation
 
 - When a user clicks on a conversation in the list, the `handleConversationSelect` function is called.
-- This function sets the selected conversation ID and calls `loadConversation`.
+- This function sets the selected conversation ID and calls `loadInteraction`.
 
 ```typescript
 const handleConversationSelect = (id: string) => {
   console.log('Selected conversation:', id);
   setSelectedConversationId(id);
-  loadConversation(id);
+  loadInteraction(id);
 };
 ```
 
 ### Loading Conversation Data
 
-- The `loadConversation` function fetches the full conversation history for a selected conversation.
+- The `loadInteraction` function fetches the full conversation history for a selected conversation.
 - It uses the `/api/v1/conversation/{id}` endpoint.
 - Each message in the conversation is formatted using the `formatLogEntry` function.
 
 ```typescript
-const loadConversation = async (id: string) => {
+const loadInteraction = async (id: string) => {
   if (!apiClient.value) return;
   setIsLoading(true);
   try {
@@ -159,7 +159,7 @@ useEffect(() => {
         conversationEntries.value = [...conversationEntries.value, formattedEntry];
       } else if ('answer' in newEntry) {
         conversationEntries.value = [...conversationEntries.value, newEntry];
-      } else if ('conversationTitle' in newEntry) {
+      } else if ('collaborationTitle' in newEntry) {
         wsManager.value.isReady.value = true;
       }
     });

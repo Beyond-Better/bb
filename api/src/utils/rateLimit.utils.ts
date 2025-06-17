@@ -67,7 +67,7 @@ class RateLimitManager {
 					request_usage: 0,
 					request_limit: 0,
 				} as LLMRateLimitErrorOptions,
-			); //model: conversation.model,
+			); //model: interaction.model,
 			 */
 		}
 	}

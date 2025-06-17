@@ -7,7 +7,7 @@ import { ChatState, ChatStatus } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 import type { ApiClient, ModelDetails } from '../utils/apiClient.utils.ts';
 import { ConversationSelector } from './ConversationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
@@ -97,7 +97,7 @@ export function ConversationHeader({
 			provider: currentConversation.value.llmProviderName || 'Unknown',
 			modelConfig: currentConversation.value.modelConfig,
 			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
-			tokenUsageConversation: currentConversation.value.tokenUsageStats?.tokenUsageConversation,
+			tokenUsageInteraction: currentConversation.value.tokenUsageStats?.tokenUsageInteraction,
 		};
 	};
 
@@ -209,7 +209,7 @@ export function ConversationHeader({
 												d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
 											/>
 										</svg>
-										{currentConversation.value.conversationStats.conversationTurnCount} turns
+										{currentConversation.value.interactionStats.interactionTurnCount} turns
 									</div>
 
 									<div className='flex items-center'>
@@ -226,7 +226,7 @@ export function ConversationHeader({
 												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 											/>
 										</svg>
-										{currentConversation.value.tokenUsageStats?.tokenUsageConversation
+										{currentConversation.value.tokenUsageStats?.tokenUsageInteraction
 											?.totalAllTokens
 											?.toLocaleString() ||
 											0} tokens

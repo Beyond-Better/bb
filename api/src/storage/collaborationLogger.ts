@@ -6,7 +6,7 @@ import { renderToString } from 'preact-render-to-string';
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import CollaborationLogFormatter from 'cli/collaborationLogFormatter.ts';
-import type { ConversationId, CollaborationLogDataEntry, ConversationStats, TokenUsageStats } from 'shared/types.ts';
+import type { InteractionId, CollaborationLogDataEntry, InteractionStats, TokenUsageStats } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
@@ -75,15 +75,15 @@ export default class CollaborationLogger {
 
 	constructor(
 		private projectEditor: ProjectEditor,
-		private conversationId: ConversationId,
+		private conversationId: InteractionId,
 		private logEntryHandler: (
 			messageId: string,
 			parentMessageId: string | null,
-			conversationId: ConversationId,
-			agentInteractionId: ConversationId | null,
+			conversationId: InteractionId,
+			agentInteractionId: InteractionId | null,
 			timestamp: string,
 			logEntry: CollaborationLogEntry,
-			conversationStats: ConversationStats,
+			interactionStats: InteractionStats,
 			tokenUsageStats: TokenUsageStats,
 			modelConfig?: LLMModelConfig,
 		) => Promise<void>,
@@ -150,9 +150,9 @@ export default class CollaborationLogger {
 	private async logEntry(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: ConversationId | null,
+		agentInteractionId: InteractionId | null,
 		logEntry: CollaborationLogEntry,
-		conversationStats: ConversationStats = { statementCount: 0, statementTurnCount: 0, conversationTurnCount: 0 },
+		interactionStats: InteractionStats = { statementCount: 0, statementTurnCount: 0, interactionTurnCount: 0 },
 		tokenUsageStats: TokenUsageStats = {
 			tokenUsageTurn: {
 				inputTokens: 0,
@@ -168,7 +168,7 @@ export default class CollaborationLogger {
 				thoughtTokens: 0,
 				totalAllTokens: 0,
 			},
-			tokenUsageConversation: {
+			tokenUsageInteraction: {
 				inputTokens: 0,
 				outputTokens: 0,
 				totalTokens: 0,
@@ -189,7 +189,7 @@ export default class CollaborationLogger {
 				agentInteractionId,
 				timestamp,
 				logEntry,
-				conversationStats,
+				interactionStats,
 				tokenUsageStats,
 				modelConfig,
 			);
@@ -202,7 +202,7 @@ export default class CollaborationLogger {
 			agentInteractionId,
 			timestamp,
 			logEntry,
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		);
@@ -218,7 +218,7 @@ export default class CollaborationLogger {
 			agentInteractionId,
 			timestamp,
 			logEntry,
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		});
@@ -232,9 +232,9 @@ export default class CollaborationLogger {
 	async logUserMessage(
 		messageId: string,
 		message: string,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 	) {
-		await this.logEntry(messageId, null, null, { entryType: 'user', content: message }, conversationStats);
+		await this.logEntry(messageId, null, null, { entryType: 'user', content: message }, interactionStats);
 	}
 
 	async logOrchestratorMessage(
@@ -242,14 +242,14 @@ export default class CollaborationLogger {
 		parentMessageId: string | null,
 		agentInteractionId: string | null,
 		message: string,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 	) {
 		await this.logEntry(
 			messageId,
 			parentMessageId,
 			agentInteractionId,
 			{ entryType: 'orchestrator', content: message },
-			conversationStats,
+			interactionStats,
 		);
 	}
 
@@ -259,7 +259,7 @@ export default class CollaborationLogger {
 		agentInteractionId: string | null,
 		message: string,
 		thinking: string,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 		tokenUsageStats: TokenUsageStats,
 		modelConfig?: LLMModelConfig,
 	) {
@@ -272,7 +272,7 @@ export default class CollaborationLogger {
 				content: message,
 				thinking: thinking,
 			},
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		);
@@ -284,7 +284,7 @@ export default class CollaborationLogger {
 		agentInteractionId: string | null,
 		answer: string,
 		assistantThinking: string,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 		tokenUsageStats: TokenUsageStats,
 		modelConfig?: LLMModelConfig,
 	) {
@@ -297,7 +297,7 @@ export default class CollaborationLogger {
 				content: answer,
 				thinking: assistantThinking,
 			},
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		);
@@ -308,7 +308,7 @@ export default class CollaborationLogger {
 		parentMessageId: string | null,
 		agentInteractionId: string | null,
 		message: string | AuxiliaryChatContent,
-		conversationStats?: ConversationStats,
+		interactionStats?: InteractionStats,
 		tokenUsageStats?: TokenUsageStats,
 		modelConfig?: LLMModelConfig,
 	) {
@@ -317,7 +317,7 @@ export default class CollaborationLogger {
 			parentMessageId,
 			agentInteractionId,
 			{ entryType: 'auxiliary', content: message },
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		);
@@ -329,7 +329,7 @@ export default class CollaborationLogger {
 		agentInteractionId: string | null,
 		toolName: string,
 		toolInput: LLMToolInputSchema,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 		tokenUsageStats: TokenUsageStats,
 		modelConfig?: LLMModelConfig,
 	) {
@@ -339,7 +339,7 @@ export default class CollaborationLogger {
 				parentMessageId,
 				agentInteractionId,
 				{ entryType: 'tool_use', content: toolInput, toolName },
-				conversationStats,
+				interactionStats,
 				tokenUsageStats,
 				modelConfig,
 			);
@@ -386,7 +386,7 @@ export default class CollaborationLogger {
 		agentInteractionId: string | null,
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
-		_conversationStats: ConversationStats,
+		_conversationStats: InteractionStats,
 		_tokenUsageStats: TokenUsageStats,
 		_modelConfig?: LLMModelConfig,
 	): Promise<string> {
@@ -413,7 +413,7 @@ export default class CollaborationLogger {
 		agentInteractionId: string | null,
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 		tokenUsageStats: TokenUsageStats,
 		modelConfig?: LLMModelConfig,
 	): Promise<string> {
@@ -422,7 +422,7 @@ export default class CollaborationLogger {
 			agentInteractionId,
 			timestamp,
 			logEntry,
-			conversationStats,
+			interactionStats,
 			tokenUsageStats,
 			modelConfig,
 		);

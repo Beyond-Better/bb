@@ -219,7 +219,7 @@ class GoogleLLM extends LLM {
 				const newUserMessage = new LLMMessage(
 					'user',
 					[toolUseParts[i]],
-					userMessageWithMultipleToolUse.conversationStats,
+					userMessageWithMultipleToolUse.interactionStats,
 					userMessageWithMultipleToolUse.tool_call_id,
 					userMessageWithMultipleToolUse.providerResponse,
 					userMessageWithMultipleToolUse.id,
@@ -227,7 +227,7 @@ class GoogleLLM extends LLM {
 				const newAssistantMessage = new LLMMessage(
 					'assistant',
 					[toolResultParts[i]],
-					assistantMessage.conversationStats,
+					assistantMessage.interactionStats,
 					assistantMessage.tool_call_id,
 					assistantMessage.providerResponse,
 					assistantMessage.id,

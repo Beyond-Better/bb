@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
-import type { ConversationContinue, CollaborationLogDataEntry } from 'shared/types.ts';
+import type { CollaborationContinue, CollaborationLogDataEntry } from 'shared/types.ts';
 
 interface ConversationInfoProps {
 	logDataEntries?: CollaborationLogDataEntry[];
@@ -8,7 +8,7 @@ interface ConversationInfoProps {
 	title?: string;
 }
 
-interface ConversationMetadata {
+interface InteractionMetadata {
 	title?: string;
 	messageCount: number;
 	tokenUsage: {
@@ -18,7 +18,7 @@ interface ConversationMetadata {
 }
 
 // Initialize metadata signal with default values
-const metadata = signal<ConversationMetadata>({
+const metadata = signal<InteractionMetadata>({
 	messageCount: 0,
 	tokenUsage: {
 		total: 0,
@@ -34,10 +34,10 @@ export function ConversationInfo({ logDataEntries = [], conversationId, title }:
 				messageCount: logDataEntries.length,
 				tokenUsage: {
 					total: 200000, // TODO: Get from actual token limits
-					//current: logDataEntries[logDataEntries.length].tokenUsageConversation?.totalTokens || 0,
+					//current: logDataEntries[logDataEntries.length].tokenUsageInteraction?.totalTokens || 0,
 					current: logDataEntries.reduce(
 						(sum, entry) =>
-							sum + ((entry as ConversationContinue).tokenUsageStats.tokenUsageTurn?.totalTokens || 0),
+							sum + ((entry as CollaborationContinue).tokenUsageStats.tokenUsageTurn?.totalTokens || 0),
 						0,
 					),
 				},

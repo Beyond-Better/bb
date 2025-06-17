@@ -1,7 +1,7 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
-import type { CollaborationLogDataEntry, ConversationId, ConversationResponse } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, InteractionId, CollaborationResponse } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
@@ -95,7 +95,7 @@ export const chatConversation = async (
 			return;
 		}
 
-		if (projectEditorManager.isConversationActive(conversationId)) {
+		if (projectEditorManager.isCollaborationActive(conversationId)) {
 			response.status = 400;
 			response.body = { error: 'Conversation is already in use' };
 			return;
@@ -106,7 +106,7 @@ export const chatConversation = async (
 		);
 		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
 
-		const result: ConversationResponse = await projectEditor.handleStatement(statement, conversationId, {
+		const result: CollaborationResponse = await projectEditor.handleStatement(statement, conversationId, {
 			maxTurns,
 		});
 
@@ -117,8 +117,8 @@ export const chatConversation = async (
 		response.body = {
 			conversationId: result.conversationId,
 			logEntry: result.logEntry,
-			conversationTitle: result.conversationTitle,
-			conversationStats: result.conversationStats,
+			collaborationTitle: result.collaborationTitle,
+			interactionStats: result.interactionStats,
 			tokenUsageStats: result.tokenUsageStats,
 		};
 	} catch (error) {
@@ -166,7 +166,7 @@ export const getConversation = async (
 	let projectEditor;
 	let orchestratorController;
 	try {
-		const conversationId = params.id as ConversationId;
+		const conversationId = params.id as InteractionId;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
 		logger.info(`ConversationHandler: getConversation for: ${conversationId}`);
@@ -237,13 +237,13 @@ export const getConversation = async (
 				statementTurnCount: 0,
 				totalTokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
 				logDataEntries: [], // Empty for new conversation
-				conversationStats: {
+				interactionStats: {
 					statementTurnCount: 0,
-					conversationTurnCount: 0,
+					interactionTurnCount: 0,
 					statementCount: 0,
 				},
 				tokenUsageStats: {
-					tokenUsageConversation: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+					tokenUsageInteraction: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
 				},
 				// Include default request params for this conversation
 				collaborationParams: {
@@ -287,13 +287,13 @@ export const getConversation = async (
 			statementTurnCount: interaction.statementTurnCount,
 			totalTokenUsage: interaction.totalTokensTotal,
 			logDataEntries,
-			conversationStats: {
+			interactionStats: {
 				statementTurnCount: interaction.statementTurnCount,
-				conversationTurnCount: interaction.conversationTurnCount,
+				interactionTurnCount: interaction.interactionTurnCount,
 				statementCount: interaction.statementCount,
 			},
 			tokenUsageStats: {
-				tokenUsageConversation: interaction.tokenUsageInteraction,
+				tokenUsageInteraction: interaction.tokenUsageInteraction,
 			},
 				collaborationParams: {
 					...(interaction.collaboration.collaborationParams || {}),
@@ -345,7 +345,7 @@ export const getConversation = async (
  *       500:
  *         description: Internal server error
  */
-export const deleteConversation = async (
+export const deleteInteraction = async (
 	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
 	//	{ params, response }: { params: { id: string }; response: Context['response'] },
 ) => {
@@ -364,7 +364,7 @@ export const deleteConversation = async (
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId as ConversationId,
+			conversationId as InteractionId,
 			projectId,
 			sessionManager,
 		);
@@ -374,12 +374,12 @@ export const deleteConversation = async (
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		projectEditor.orchestratorController.deleteConversation(conversationId as ConversationId);
+		projectEditor.orchestratorController.deleteInteraction(conversationId as InteractionId);
 
 		response.status = 200;
 		response.body = { message: `Conversation ${conversationId} deleted` };
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in deleteConversation: ${errorMessage(error)}`);
+		logger.error(`ConversationHandler: Error in deleteInteraction: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to delete conversation' };
 	}
@@ -427,11 +427,11 @@ export const deleteConversation = async (
  *       500:
  *         description: Internal server error
  */
-export const listConversations = async (
+export const listInteractions = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	const projectId = request.url.searchParams.get('projectId');
-	//logger.info(`ConversationHandler: listConversations called with projectId: ${projectId}`);
+	//logger.info(`ConversationHandler: listInteractions called with projectId: ${projectId}`);
 	try {
 		const params = request.url.searchParams;
 		const page = parseInt(params.get('page') || '1');
@@ -446,8 +446,8 @@ export const listConversations = async (
 			return;
 		}
 
-		//logger.info('ConversationHandler: Calling InteractionPersistence.listConversations');
-		const { conversations, totalCount } = await InteractionPersistence.listConversations({
+		//logger.info('ConversationHandler: Calling InteractionPersistence.listInteractions');
+		const { conversations, totalCount } = await InteractionPersistence.listInteractions({
 			page: page,
 			limit: limit,
 			startDate: startDate ? new Date(startDate) : undefined,
@@ -478,7 +478,7 @@ export const listConversations = async (
 				updatedAt: conv.updatedAt,
 				llmProviderName: conv.llmProviderName,
 				model: conv.model,
-				conversationStats: conv.conversationStats,
+				interactionStats: conv.interactionStats,
 				tokenUsageStats: conv.tokenUsageStats,
 				collaborationParams: {
 					...(conv.collaborationParams || {}),
@@ -498,7 +498,7 @@ export const listConversations = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in listConversations: ${errorMessage(error)}`, error);
+		logger.error(`ConversationHandler: Error in listInteractions: ${errorMessage(error)}`, error);
 		response.status = 500;
 		response.body = { error: 'Failed to list conversations', details: errorMessage(error) };
 	}
@@ -585,7 +585,7 @@ export const clearConversation = async (
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId as ConversationId,
+			conversationId as InteractionId,
 			projectId,
 			sessionManager,
 		);
@@ -596,7 +596,7 @@ export const clearConversation = async (
 		}
 
 		const interaction = projectEditor.orchestratorController.interactionManager.getInteraction(
-			conversationId as ConversationId,
+			conversationId as InteractionId,
 		);
 		if (!interaction) {
 			response.status = 404;
@@ -633,14 +633,14 @@ export const undoConversation = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as ConversationId, projectId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as InteractionId, projectId, sessionManager);
 
 		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		const interaction = projectEditor.orchestratorController.interactionManager.getInteraction(conversationId as ConversationId);
+		const interaction = projectEditor.orchestratorController.interactionManager.getInteraction(conversationId as InteractionId);
 		if (!interaction) {
 			response.status = 404;
 			response.body = { error: 'Conversation not found' };

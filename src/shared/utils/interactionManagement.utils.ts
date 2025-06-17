@@ -1,8 +1,8 @@
 //import { crypto } from '@std/crypto';
 import { ulid } from '@std/ulid';
-import { ConversationId } from 'shared/types.ts';
+import { InteractionId } from 'shared/types.ts';
 
-export function generateConversationId(): ConversationId {
+export function generateInteractionId(): InteractionId {
 	//const uuid = crypto.randomUUID();
 	//return ulid.replace(/-/g, '').substring(0, 8);
 	const conversationId = ulid();
@@ -10,7 +10,7 @@ export function generateConversationId(): ConversationId {
 	return conversationId;
 }
 
-export function shortenConversationId(ulid: string): string {
+export function shortenInteractionId(ulid: string): string {
 	// First 10 chars are timestamp (sortable), take 6 of these
 	const timestampPart = ulid.substring(0, 6);
 	// Last 16 chars are random, take last 4 for uniqueness

@@ -108,7 +108,7 @@ const mockProjectEditor: IProjectEditor = {
   changedFiles: new Set(),
   changeContents: new Map(),
   logAndCommitChanges: async () => {},
-  prepareResourcesForConversation: async () => []
+  prepareResourcesForInteraction: async () => []
 };
 ```
 

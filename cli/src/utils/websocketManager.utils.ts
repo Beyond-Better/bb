@@ -1,7 +1,7 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
-//import type { ApiStatus, ConversationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
-import type { ConversationId } from 'shared/types.ts';
+//import type { ApiStatus, InteractionId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
@@ -11,16 +11,16 @@ export default class WebsocketManager {
 	private MAX_RETRIES = 5;
 	private BASE_DELAY = 1000; // 1 second
 	private retryCount = 0;
-	private currentConversationId!: ConversationId;
+	private currentInteractionId!: InteractionId;
 	private projectId!: string;
 
 	async setupWebsocket(
-		conversationId: ConversationId,
+		conversationId: InteractionId,
 		projectId: string,
 		hostname?: string,
 		port?: number,
 	): Promise<void> {
-		this.currentConversationId = conversationId;
+		this.currentInteractionId = conversationId;
 		this.projectId = projectId;
 		const connectWebSocket = async (): Promise<WebSocket> => {
 			//console.log(`WebsocketManager: Connecting websocket for conversation: ${conversationId}`);
@@ -81,8 +81,8 @@ export default class WebsocketManager {
 		// Greeting is now sent after listener setup in setupWebsocket
 	}
 
-	updateConversation(conversationId: ConversationId): void {
-		this.currentConversationId = conversationId;
+	updateConversation(conversationId: InteractionId): void {
+		this.currentInteractionId = conversationId;
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.close();
 		}
@@ -94,16 +94,16 @@ export default class WebsocketManager {
 		//console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type}`);
 		//if (!msgData.data.conversationId) console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type} - missing conversationId`, msgData.data);
 		switch (msgData.type) {
-			case 'conversationNew':
+			case 'collaborationNew':
 				eventManager.emit(
-					'cli:conversationNew',
-					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationNew'],
+					'cli:collaborationNew',
+					{ ...msgData.data } as EventPayloadMap['cli']['cli:collaborationNew'],
 				);
 				break;
-			case 'conversationReady':
+			case 'collaborationReady':
 				eventManager.emit(
-					'cli:conversationReady',
-					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationReady'],
+					'cli:collaborationReady',
+					{ ...msgData.data } as EventPayloadMap['cli']['cli:collaborationReady'],
 				);
 				eventManager.emit(
 					'cli:conversationWaitForReady',
@@ -112,16 +112,16 @@ export default class WebsocketManager {
 					} as EventPayloadMap['cli']['cli:conversationWaitForReady'],
 				);
 				break;
-			case 'conversationContinue':
+			case 'collaborationContinue':
 				eventManager.emit(
-					'cli:conversationContinue',
-					{ ...msgData.data, expectingMoreInput: true } as EventPayloadMap['cli']['cli:conversationContinue'],
+					'cli:collaborationContinue',
+					{ ...msgData.data, expectingMoreInput: true } as EventPayloadMap['cli']['cli:collaborationContinue'],
 				);
 				break;
-			case 'conversationAnswer':
+			case 'collaborationAnswer':
 				eventManager.emit(
-					'cli:conversationAnswer',
-					{ ...msgData.data, expectingMoreInput: false } as EventPayloadMap['cli']['cli:conversationAnswer'],
+					'cli:collaborationAnswer',
+					{ ...msgData.data, expectingMoreInput: false } as EventPayloadMap['cli']['cli:collaborationAnswer'],
 				);
 				eventManager.emit(
 					'cli:conversationWaitForAnswer',
@@ -130,11 +130,11 @@ export default class WebsocketManager {
 					} as EventPayloadMap['cli']['cli:conversationWaitForAnswer'],
 				);
 				break;
-			case 'conversationError':
+			case 'collaborationError':
 				//console.error(`WebsocketManager: Received conversation error:`, msgData.data);
 				eventManager.emit(
-					'cli:conversationError',
-					{ ...msgData.data } as EventPayloadMap['cli']['cli:conversationError'],
+					'cli:collaborationError',
+					{ ...msgData.data } as EventPayloadMap['cli']['cli:collaborationError'],
 				);
 				break;
 			case 'progressStatus':
@@ -157,10 +157,10 @@ export default class WebsocketManager {
 	private async handleClose(): Promise<void> {
 		this.removeEventListeners();
 		await this.handleRetry(new Error('WebSocket connection closed'));
-		await this.setupWebsocket(this.currentConversationId, this.projectId);
+		await this.setupWebsocket(this.currentInteractionId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
-			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
+			{ conversationId: this.currentInteractionId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
@@ -168,10 +168,10 @@ export default class WebsocketManager {
 		this.removeEventListeners();
 		const error = event instanceof ErrorEvent ? event.error : new Error('Unknown WebSocket error');
 		await this.handleRetry(error);
-		await this.setupWebsocket(this.currentConversationId, this.projectId);
+		await this.setupWebsocket(this.currentInteractionId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
-			{ conversationId: this.currentConversationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
+			{ conversationId: this.currentInteractionId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
@@ -181,7 +181,7 @@ export default class WebsocketManager {
 			const projectId = await getProjectId(workingRoot);
 			this.ws.send(
 				JSON.stringify({
-					conversationId: this.currentConversationId,
+					conversationId: this.currentInteractionId,
 					projectId: projectId,
 					task: 'greeting',
 					statement: '',
@@ -192,7 +192,7 @@ export default class WebsocketManager {
 		}
 	}
 
-	async waitForReady(conversationId: ConversationId): Promise<void> {
+	async waitForReady(conversationId: InteractionId): Promise<void> {
 		//console.log(`WebsocketManager: Waiting for ready event for conversation ${conversationId}`);
 		await eventManager.once('cli:conversationWaitForReady' as EventName<'cli'>, conversationId) as Promise<
 			EventPayloadMap['cli']['cli:conversationWaitForReady']
@@ -200,7 +200,7 @@ export default class WebsocketManager {
 		//console.log(`WebsocketManager: Received ready event for conversation ${conversationId}`);
 	}
 
-	async waitForAnswer(conversationId: ConversationId): Promise<void> {
+	async waitForAnswer(conversationId: InteractionId): Promise<void> {
 		//console.log(`WebsocketManager: Waiting for answer event for conversation ${conversationId}`);
 		while (!this.cancellationRequested) {
 			try {
@@ -246,7 +246,7 @@ export default class WebsocketManager {
 		await new Promise((resolve) => setTimeout(resolve, delay));
 	}
 
-	sendCancellationMessage(conversationId: ConversationId): void {
+	sendCancellationMessage(conversationId: InteractionId): void {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.cancellationRequested = true;
 			this.ws.send(JSON.stringify({ conversationId, task: 'cancel' }));

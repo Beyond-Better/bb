@@ -155,7 +155,7 @@ export default class LLMToolLoadResources extends LLMTool {
 					dsConnectionToUse.getUriForResource(uri)
 				);
 			//logger.error(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
-			const resourcesAdded = await projectEditor.prepareResourcesForConversation(
+			const resourcesAdded = await projectEditor.prepareResourcesForInteraction(
 				resourceUris,
 			);
 

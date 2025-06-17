@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 
-import type { CollaborationLogDataEntry, ConversationMetadata, TokenUsage } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, InteractionMetadata, TokenUsage } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type {
 	ClientDataSourceConnection,
@@ -89,20 +89,20 @@ export interface ModelResponse {
 	model: ModelDetails;
 }
 
-interface ConversationResponse {
+interface CollaborationResponse {
 	id: string;
 	title: string;
 	llmProviderName: string;
 	model: string;
 	updatedAt: string;
 	createdAt: string;
-	conversationStats: {
+	interactionStats: {
 		statementTurnCount: number;
-		conversationTurnCount: number;
+		interactionTurnCount: number;
 		statementCount: number;
 	};
 	tokenUsageStats: {
-		tokenUsageConversation: TokenUsage;
+		tokenUsageInteraction: TokenUsage;
 		tokenUsageTurn: TokenUsage;
 		tokenUsageStatement: TokenUsage;
 		totalTokensTotal: TokenUsage;
@@ -111,8 +111,8 @@ interface ConversationResponse {
 	collaborationParams: CollaborationParams;
 }
 
-export interface ConversationListResponse {
-	conversations: ConversationMetadata[];
+export interface InteractionListResponse {
+	conversations: InteractionMetadata[];
 }
 
 export interface LogEntryFormatResponse {
@@ -652,14 +652,14 @@ export class ApiClient {
 	}
 
 	// Conversation Management Methods
-	async createConversation(id: string, projectId: string): Promise<ConversationResponse | null> {
-		return await this.get<ConversationResponse>(
+	async createConversation(id: string, projectId: string): Promise<CollaborationResponse | null> {
+		return await this.get<CollaborationResponse>(
 			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 		);
 	}
 
-	async getConversations(projectId: string, limit = 200): Promise<ConversationListResponse | null> {
-		return await this.get<ConversationListResponse>(
+	async getConversations(projectId: string, limit = 200): Promise<InteractionListResponse | null> {
+		return await this.get<InteractionListResponse>(
 			`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
 		);
 	}
@@ -673,14 +673,14 @@ export class ApiClient {
 	async getConversation(
 		id: string,
 		projectId: string,
-	): Promise<(ConversationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		return await this.get<ConversationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
+	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
+		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
 			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);
 	}
 
-	async deleteConversation(id: string, projectId: string): Promise<void> {
+	async deleteInteraction(id: string, projectId: string): Promise<void> {
 		await this.delete(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`, [404]);
 	}
 

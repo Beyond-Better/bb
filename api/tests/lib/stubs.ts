@@ -9,7 +9,7 @@ import LLMFactory from '../../src/llms/llmProvider.ts';
 
 //import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
 //import type { LLMSpeakWithResponse } from '../../src/types.ts';
-//import { ConversationId, ConversationResponse } from 'shared/types.ts';
+//import { InteractionId, CollaborationResponse } from 'shared/types.ts';
 
 /*
  *  To use these new stub factories in your tests, you would do something like this:
@@ -18,7 +18,7 @@ import LLMFactory from '../../src/llms/llmProvider.ts';
  *  const stubMaker = makeOrchestratorControllerStub(orchestratorController);
  *
  *  // Stub only the methods you need for a particular test
- *  stubMaker.generateConversationTitleStub(() => Promise.resolve('Test Title'));
+ *  stubMaker.generateCollaborationTitleStub(() => Promise.resolve('Test Title'));
  *  stubMaker.stageAndCommitAfterChangingStub(() => Promise.resolve());
  *
  *  // You can provide different implementations in different tests
@@ -32,29 +32,29 @@ import LLMFactory from '../../src/llms/llmProvider.ts';
 export function makeProjectEditorStub(projectEditor: ProjectEditor) {
 	const initStub = stub(projectEditor, 'init', async () => projectEditor);
 	/*
-	const initConversationStub = stub(
+	const initCollaborationStub = stub(
 		projectEditor,
-		'initConversation',
+		'initCollaboration',
 		() => ({} as LLMConversationInteraction),
 	);
 	const handleStatementStub = stub(projectEditor, 'handleStatement', async (
 		statement: string,
-		conversationId: ConversationId,
-	): Promise<ConversationResponse> => ({
+		conversationId: InteractionId,
+	): Promise<CollaborationResponse> => ({
 		conversationId: 'test-id',
 		response: { answerContent: [{ type: 'text', text: 'Test response' }] },
 		messageMeta: {},
-		conversationTitle: 'Test Conversation',
-		conversationStats: { statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
+		collaborationTitle: 'Test Conversation',
+		interactionStats: { statementCount: 1, statementTurnCount: 1, interactionTurnCount: 1 },
 		tokenUsageStatement: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
-		tokenUsageConversation: { inputTokensTotal: 10, outputTokensTotal: 20, totalTokensTotal: 30 },
+		tokenUsageInteraction: { inputTokensTotal: 10, outputTokensTotal: 20, totalTokensTotal: 30 },
 	}));
 	 */
 
 	return {
 		projectEditor,
 		initStub,
-		//initConversationStub,
+		//initCollaborationStub,
 		//handleStatementStub,
 	};
 }
@@ -66,33 +66,33 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 		};
 	};
 
-	const generateConversationTitleStub = createStub('generateConversationTitle');
+	const generateCollaborationTitleStub = createStub('generateCollaborationTitle');
 	//const stageAndCommitAfterChangingStub = createStub('stageAndCommitAfterChanging');
 	const revertLastChangeStub = createStub('revertLastChange');
 	const logChangeAndCommitStub = createStub('logChangeAndCommit');
-	const saveInitialConversationWithResponseStub = createStub('saveInitialConversationWithResponse');
-	const saveConversationAfterStatementStub = createStub('saveConversationAfterStatement');
+	const saveInitialInteractionWithResponseStub = createStub('saveInitialInteractionWithResponse');
+	const saveInteractionAfterStatementStub = createStub('saveInteractionAfterStatement');
 	const createChatInteractionStub = createStub('createChatInteraction');
 	/*
 	const initStub = stub(orchestratorController, 'init', async () => {});
 	const handleStatementStub = stub(orchestratorController, 'handleStatement', async (
 		statement: string,
-		conversationId: ConversationId,
-	): Promise<ConversationResponse> => ({
+		conversationId: InteractionId,
+	): Promise<CollaborationResponse> => ({
 		conversationId: 'test-id',
 		response: { answerContent: [{ type: 'text', text: 'Test response' }] },
 		messageMeta: {},
-		conversationTitle: 'Test Conversation',
-		conversationStats: { statementCount: 1, statementTurnCount: 1, conversationTurnCount: 1 },
+		collaborationTitle: 'Test Conversation',
+		interactionStats: { statementCount: 1, statementTurnCount: 1, interactionTurnCount: 1 },
 		tokenUsageStatement: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
-		tokenUsageConversation: { inputTokensTotal: 10, outputTokensTotal: 20, totalTokensTotal: 30 },
+		tokenUsageInteraction: { inputTokensTotal: 10, outputTokensTotal: 20, totalTokensTotal: 30 },
 	}));
 	const initializePrimaryInteractionStub = stub(orchestratorController, 'initializePrimaryInteraction', async () => ({
 		id: 'test-id',
 		title: 'Test Conversation',
 		statementCount: 1,
 		statementTurnCount: 1,
-		conversationTurnCount: 1,
+		interactionTurnCount: 1,
 	}));
 	const getInteractionStub = stub(orchestratorController, 'getInteraction', () => ({
 		id: 'test-id',
@@ -128,12 +128,12 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 
 	return {
 		orchestratorController,
-		generateConversationTitleStub,
+		generateCollaborationTitleStub,
 		//stageAndCommitAfterChangingStub,
 		revertLastChangeStub,
 		logChangeAndCommitStub,
-		saveInitialConversationWithResponseStub,
-		saveConversationAfterStatementStub,
+		saveInitialInteractionWithResponseStub,
+		saveInteractionAfterStatementStub,
 		createChatInteractionStub,
 		//initStub,
 		//handleStatementStub,
@@ -205,7 +205,7 @@ export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
 		};
 	};
 
-	const conversationStatsStub = createStub('conversationStats');
+	const conversationStatsStub = createStub('interactionStats');
 
 	// Implement chat stub that returns formatted summary response
 	const chatStub = (summaryText: string, usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 }) => {

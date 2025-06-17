@@ -19,14 +19,14 @@ import type {
 } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
-	ResourceForConversation,
+	ResourceForInteraction,
 	ResourceRevisionMetadata,
 	//ResourceMetadata,
-	ResourcesForConversation,
+	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
-import type { ConversationId, ConversationResponse } from 'shared/types.ts';
+import type { InteractionId, CollaborationResponse } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
@@ -320,8 +320,8 @@ class ProjectEditor {
 		this.projectInfo = projectInfo;
 	}
 
-	public async initConversation(
-		conversationId: ConversationId,
+	public async initCollaboration(
+		conversationId: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		logger.info(
 			`ProjectEditor: Initializing a conversation with ID: ${conversationId}`,
@@ -333,13 +333,13 @@ class ProjectEditor {
 
 	async handleStatement(
 		statement: string,
-		conversationId: ConversationId,
+		conversationId: InteractionId,
 		options?: { maxTurns?: number },
 		statementParams?: StatementParams,
 		filesToAttach?: string[],
 		dsConnectionIdForAttach?: string,
-	): Promise<ConversationResponse> {
-		await this.initConversation(conversationId);
+	): Promise<CollaborationResponse> {
+		await this.initCollaboration(conversationId);
 		logger.info(
 			`ProjectEditor: Initialized conversation with ID: ${conversationId}, handling statement`,
 			//{options, statementParams}
@@ -355,12 +355,12 @@ class ProjectEditor {
 		return statementAnswer;
 	}
 
-	// prepareResourcesForConversation is called by load_resources tool
+	// prepareResourcesForInteraction is called by load_resources tool
 	// only existing resources can be prepared and added, otherwise call write_resource tools with createIfMissing:true
-	async prepareResourcesForConversation(
+	async prepareResourcesForInteraction(
 		resourceUris: string[],
-	): Promise<ResourcesForConversation> {
-		const resourcesAdded: Array<ResourceForConversation> = [];
+	): Promise<ResourcesForInteraction> {
+		const resourcesAdded: Array<ResourceForInteraction> = [];
 
 		for (const resourceUri of resourceUris) {
 			try {

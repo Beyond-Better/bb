@@ -1,29 +1,29 @@
 import type {
-	ConversationContinue,
+	CollaborationContinue,
 	CollaborationLogDataEntry,
-	ConversationResponse,
-	ConversationStart,
+	CollaborationResponse,
+	CollaborationStart,
 	TokenUsage,
 } from 'shared/types.ts';
 
 /**
- * Type guard to check if an entry is a ConversationStart
+ * Type guard to check if an entry is a CollaborationStart
  */
-export function isConversationStart(entry: CollaborationLogDataEntry): entry is ConversationStart {
-	return !('logEntry' in entry) && 'conversationHistory' in entry;
+export function isInteractionStart(entry: CollaborationLogDataEntry): entry is CollaborationStart {
+	return !('logEntry' in entry) && 'collaborationHistory' in entry;
 }
 
 /**
- * Type guard to check if an entry is a ConversationContinue
+ * Type guard to check if an entry is a CollaborationContinue
  */
-export function isConversationContinue(entry: CollaborationLogDataEntry): entry is ConversationContinue {
+export function isInteractionContinue(entry: CollaborationLogDataEntry): entry is CollaborationContinue {
 	return 'logEntry' in entry && 'tokenUsageStats' in entry;
 }
 
 /**
- * Type guard to check if an entry is a ConversationResponse
+ * Type guard to check if an entry is a CollaborationResponse
  */
-export function isConversationResponse(entry: CollaborationLogDataEntry): entry is ConversationResponse {
+export function isInteractionResponse(entry: CollaborationLogDataEntry): entry is CollaborationResponse {
 	return 'logEntry' in entry && !('tokenUsageStats' in entry);
 }
 
@@ -32,12 +32,12 @@ export function isConversationResponse(entry: CollaborationLogDataEntry): entry 
  */
 export function logDataEntryHasLogEntry(
 	entry: CollaborationLogDataEntry,
-): entry is ConversationContinue | ConversationResponse {
+): entry is CollaborationContinue | CollaborationResponse {
 	return 'logEntry' in entry;
 }
 export function logDataEntryHasChildren(
 	entry: CollaborationLogDataEntry,
-): entry is ConversationContinue | ConversationResponse {
+): entry is CollaborationContinue | CollaborationResponse {
 	return 'children' in entry;
 }
 

@@ -8,7 +8,7 @@ import ProjectEditorManager from 'api/editor/projectEditorManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
-import type { ConversationStats } from 'shared/types.ts';
+import type { InteractionStats } from 'shared/types.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
@@ -76,7 +76,7 @@ export async function getProjectEditor(projectId: string): Promise<ProjectEditor
 	//console.log('getProjectEditor', { projectId });
 	const sessionManager = new SessionManager();
 	await sessionManager.initialize();
-	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectId, sessionManager);
+	const projectEditor = await projectEditorManager.getOrCreateEditor('test-collaboration', projectId, sessionManager);
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 
@@ -112,7 +112,7 @@ export async function createTestInteraction(
 	conversationId: string,
 	projectEditor: ProjectEditor,
 ): Promise<LLMConversationInteraction> {
-	const interaction = await projectEditor.initConversation(conversationId);
+	const interaction = await projectEditor.initCollaboration(conversationId);
 	return interaction as LLMConversationInteraction;
 }
 
@@ -139,10 +139,10 @@ export async function withTestProject<T>(
 	}
 }
 
-export function incrementConversationStats(conversationStats: ConversationStats): ConversationStats {
+export function incrementInteractionStats(interactionStats: InteractionStats): InteractionStats {
 	return {
-		statementCount: conversationStats.statementCount++,
-		statementTurnCount: conversationStats.statementTurnCount++,
-		conversationTurnCount: conversationStats.conversationTurnCount++,
+		statementCount: interactionStats.statementCount++,
+		statementTurnCount: interactionStats.statementTurnCount++,
+		interactionTurnCount: interactionStats.interactionTurnCount++,
 	};
 }

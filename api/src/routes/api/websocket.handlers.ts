@@ -2,7 +2,7 @@ import type { Context, RouterContext } from '@oak/oak';
 
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 //import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import EventManager from 'shared/eventManager.ts';
@@ -13,17 +13,17 @@ import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
 	private listeners: Map<
-		ConversationId,
+		InteractionId,
 		Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }>
 	> = new Map();
-	private activeConnections: Map<ConversationId, WebSocket> = new Map();
+	private activeConnections: Map<InteractionId, WebSocket> = new Map();
 
 	constructor(private eventManager: EventManager) {
 	}
 
 	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading conversations
 
-	handleConnection(ws: WebSocket, conversationId: ConversationId, sessionManager: SessionManager) {
+	handleConnection(ws: WebSocket, conversationId: InteractionId, sessionManager: SessionManager) {
 		try {
 			// Check if there's an existing connection for this conversation ID
 			const existingConnection = this.activeConnections.get(conversationId);
@@ -40,7 +40,7 @@ class WebSocketChatHandler {
 			const loadTimeout = setTimeout(() => {
 				if (this.activeConnections.has(conversationId)) {
 					logger.error(`WebSocketChatHandler: Timeout loading conversation: ${conversationId}`);
-					this.eventManager.emit('projectEditor:conversationError', {
+					this.eventManager.emit('projectEditor:collaborationError', {
 						conversationId,
 						error: 'Timeout loading conversation',
 						code: 'LOAD_TIMEOUT',
@@ -93,7 +93,7 @@ class WebSocketChatHandler {
 	}
 
 	private async handleMessage(
-		conversationId: ConversationId,
+		conversationId: InteractionId,
 		message: {
 			task: string;
 			statement: string;
@@ -115,7 +115,7 @@ class WebSocketChatHandler {
 				logger.error(
 					`WebSocketChatHandler: projectId is required for conversationId: ${conversationId}`,
 				);
-				this.eventManager.emit('projectEditor:conversationError', {
+				this.eventManager.emit('projectEditor:collaborationError', {
 					conversationId,
 					error: 'Project ID is required',
 					code: 'PROJECT_ID_REQUIRED',
@@ -134,7 +134,7 @@ class WebSocketChatHandler {
 				logger.error(
 					`WebSocketChatHandler: No projectEditor for conversationId: ${conversationId}`,
 				);
-				this.eventManager.emit('projectEditor:conversationError', {
+				this.eventManager.emit('projectEditor:collaborationError', {
 					conversationId,
 					error: 'No active conversation',
 					code: 'NO_ACTIVE_CONVERSATION',
@@ -148,10 +148,10 @@ class WebSocketChatHandler {
 					const interaction = projectEditor.orchestratorController.interactionManager.getInteractionStrict(
 						conversationId,
 					);
-					this.eventManager.emit('projectEditor:conversationReady', {
+					this.eventManager.emit('projectEditor:collaborationReady', {
 						conversationId: conversationId,
-						conversationTitle: interaction.title,
-						conversationStats: {
+						collaborationTitle: interaction.title,
+						interactionStats: {
 							statementCount: interaction.statementCount,
 						},
 						versionInfo,
@@ -161,7 +161,7 @@ class WebSocketChatHandler {
 						`WebSocketChatHandler: Error creating project editor for conversationId: ${conversationId}:`,
 						error,
 					);
-					this.eventManager.emit('projectEditor:conversationError', {
+					this.eventManager.emit('projectEditor:collaborationError', {
 						conversationId,
 						error: 'Failed to create project editor',
 						code: 'PROJECT_EDITOR_CREATION_FAILED',
@@ -185,11 +185,11 @@ class WebSocketChatHandler {
 						error,
 					);
 					if (!isLLMError(error)) {
-						// orchestratorController will emit conversationError for LLMError - we do it for all other types
+						// orchestratorController will emit collaborationError for LLMError - we do it for all other types
 						const errorMessage = isError(error)
 							? `Error handling statement: ${error.message}`
 							: 'Error handling statement';
-						this.eventManager.emit('projectEditor:conversationError', {
+						this.eventManager.emit('projectEditor:collaborationError', {
 							conversationId,
 							error: errorMessage,
 							code: 'STATEMENT_ERROR',
@@ -200,7 +200,7 @@ class WebSocketChatHandler {
 				logger.error(`WebSocketChatHandler: Cancelling statement for conversationId ${conversationId}`);
 				try {
 					projectEditor?.orchestratorController.cancelCurrentOperation(conversationId);
-					this.eventManager.emit('projectEditor:conversationCancelled', {
+					this.eventManager.emit('projectEditor:collaborationCancelled', {
 						conversationId,
 						message: 'Operation cancelled',
 					});
@@ -212,7 +212,7 @@ class WebSocketChatHandler {
 					const errorMessage = isError(error)
 						? `Error cancelling operation: ${error.message}`
 						: 'Error cancelling operation';
-					this.eventManager.emit('projectEditor:conversationError', {
+					this.eventManager.emit('projectEditor:collaborationError', {
 						conversationId,
 						error: errorMessage,
 						code: 'CANCELLATION_ERROR',
@@ -222,7 +222,7 @@ class WebSocketChatHandler {
 				logger.error(
 					`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}, unknown task: ${task}`,
 				);
-				this.eventManager.emit('projectEditor:conversationError', {
+				this.eventManager.emit('projectEditor:collaborationError', {
 					conversationId,
 					error: `Error handling statement, unknown task: ${task}`,
 					code: 'STATEMENT_ERROR',
@@ -230,7 +230,7 @@ class WebSocketChatHandler {
 			}
 		} catch (error) {
 			logger.error(`Unhandled error in handleMessage for conversationId ${conversationId}:`, error);
-			this.eventManager.emit('projectEditor:conversationError', {
+			this.eventManager.emit('projectEditor:collaborationError', {
 				conversationId,
 				error: 'Internal Server Error',
 				code: 'INTERNAL_ERROR',
@@ -242,38 +242,38 @@ class WebSocketChatHandler {
 		}
 	}
 
-	private setupEventListeners(ws: WebSocket, conversationId: ConversationId) {
+	private setupEventListeners(ws: WebSocket, conversationId: InteractionId) {
 		// Remove any existing listeners for this conversation ID
 		this.removeEventListeners(conversationId);
 
 		const listeners: Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }> = [
 			{
-				event: 'projectEditor:conversationNew',
-				callback: (data) => this.sendMessage(ws, 'conversationNew', data),
+				event: 'projectEditor:collaborationNew',
+				callback: (data) => this.sendMessage(ws, 'collaborationNew', data),
 			},
 			{
-				event: 'projectEditor:conversationDeleted',
-				callback: (data) => this.sendMessage(ws, 'conversationDeleted', data),
+				event: 'projectEditor:collaborationDeleted',
+				callback: (data) => this.sendMessage(ws, 'collaborationDeleted', data),
 			},
 			{
-				event: 'projectEditor:conversationReady',
-				callback: (data) => this.sendMessage(ws, 'conversationReady', data),
+				event: 'projectEditor:collaborationReady',
+				callback: (data) => this.sendMessage(ws, 'collaborationReady', data),
 			},
 			{
-				event: 'projectEditor:conversationCancelled',
-				callback: (data) => this.sendMessage(ws, 'conversationCancelled', data),
+				event: 'projectEditor:collaborationCancelled',
+				callback: (data) => this.sendMessage(ws, 'collaborationCancelled', data),
 			},
 			{
-				event: 'projectEditor:conversationContinue',
-				callback: (data) => this.sendMessage(ws, 'conversationContinue', data),
+				event: 'projectEditor:collaborationContinue',
+				callback: (data) => this.sendMessage(ws, 'collaborationContinue', data),
 			},
 			{
-				event: 'projectEditor:conversationAnswer',
-				callback: (data) => this.sendMessage(ws, 'conversationAnswer', data),
+				event: 'projectEditor:collaborationAnswer',
+				callback: (data) => this.sendMessage(ws, 'collaborationAnswer', data),
 			},
 			{
-				event: 'projectEditor:conversationError',
-				callback: (data) => this.sendMessage(ws, 'conversationError', data),
+				event: 'projectEditor:collaborationError',
+				callback: (data) => this.sendMessage(ws, 'collaborationError', data),
 			},
 			{
 				event: 'projectEditor:progressStatus',
@@ -294,7 +294,7 @@ class WebSocketChatHandler {
 		ws.addEventListener('close', () => this.removeEventListeners(conversationId));
 	}
 
-	private removeEventListeners(conversationId: ConversationId) {
+	private removeEventListeners(conversationId: InteractionId) {
 		const listeners = this.listeners.get(conversationId);
 		if (listeners) {
 			listeners.forEach((listener) => {
@@ -307,7 +307,7 @@ class WebSocketChatHandler {
 		}
 	}
 
-	private removeConnection(ws: WebSocket, conversationId: ConversationId) {
+	private removeConnection(ws: WebSocket, conversationId: InteractionId) {
 		// Only perform cleanup once
 		if (this.activeConnections.has(conversationId)) {
 			this.activeConnections.delete(conversationId);
@@ -325,7 +325,7 @@ class WebSocketChatHandler {
 	// Method to send messages back to the client
 	private sendMessage = (ws: WebSocket, type: string, data: unknown) => {
 		logger.info(`WebSocketChatHandler: Sending message of type: ${type}`);
-		if (type === 'conversationError') logger.info(`WebSocketChatHandler: error:`, data);
+		if (type === 'collaborationError') logger.info(`WebSocketChatHandler: error:`, data);
 		ws.send(JSON.stringify({ type, data }));
 	};
 }
@@ -431,7 +431,7 @@ export const websocketConversation = (ctx: Context) => {
 
 	try {
 		const { id } = (ctx as RouterContext<'/conversation/:id', { id: string }>).params;
-		const conversationId: ConversationId = id;
+		const conversationId: InteractionId = id;
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 
 		if (!sessionManager) {

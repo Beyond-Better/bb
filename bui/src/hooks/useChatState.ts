@@ -20,7 +20,7 @@ import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
@@ -275,7 +275,7 @@ export function useChatState(
 				const params = new URLSearchParams(globalThis.location.search);
 				const urlConversationId = params.get('conversationId');
 				const conversationId = urlConversationId || chatState.value.conversationId ||
-					appState.value.conversationId || shortenConversationId(generateConversationId());
+					appState.value.conversationId || shortenInteractionId(generateInteractionId());
 
 				// Load conversation data first
 				const conversation = (conversationId && appState.value.projectId)
@@ -288,17 +288,17 @@ export function useChatState(
 				//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
 
 				// Update conversations array with the loaded conversation
-				const updatedConversations = [...conversations];
+				const updatedInteractions = [...conversations];
 				if (conversation) {
 					//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-conversation`, conversation);
-					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
+					const existingIndex = updatedInteractions.findIndex((c) => c.id === conversation.id);
 					const conversationData = {
 						id: conversation.id,
 						title: conversation.title || 'Untitled Conversation',
 						tokenUsageStats: conversation.tokenUsageStats,
 						modelConfig: conversation.modelConfig,
 						collaborationParams: conversation.collaborationParams,
-						conversationStats: conversation.conversationStats,
+						interactionStats: conversation.interactionStats,
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),
 						llmProviderName: conversation.llmProviderName || 'anthropic',
@@ -307,10 +307,10 @@ export function useChatState(
 
 					if (existingIndex >= 0) {
 						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						updatedInteractions[existingIndex] = conversationData;
 					} else {
 						// Add new conversation
-						updatedConversations.push(conversationData);
+						updatedInteractions.push(conversationData);
 					}
 				}
 
@@ -326,7 +326,7 @@ export function useChatState(
 					apiClient,
 					wsManager,
 					conversationId,
-					conversations: updatedConversations,
+					conversations: updatedInteractions,
 					logDataEntries,
 				};
 
@@ -375,7 +375,7 @@ export function useChatState(
 					status: {
 						...chatState.value.status,
 						isLoading: false,
-						// [TODO] we should be letting the `conversationReady` websocket event set isReady via the readyChange handler
+						// [TODO] we should be letting the `collaborationReady` websocket event set isReady via the readyChange handler
 						// but there is a race condition that needs to be resolved, so forcing it here for now
 						isReady: true,
 					},
@@ -516,7 +516,7 @@ export function useChatState(
 			if (!mounted) return;
 
 			// Handle new conversation message
-			if (data.msgType === 'conversationNew') {
+			if (data.msgType === 'collaborationNew') {
 				// Update project stats for new conversation
 				//await updateProjectStats(currentProject.projectId, {
 				//	conversationCount: (currentProject.stats?.conversationCount || 0) + 1,
@@ -525,18 +525,18 @@ export function useChatState(
 				//});
 
 				// Update conversations array with the loaded conversation
-				const updatedConversations = [...chatState.value.conversations];
+				const updatedInteractions = [...chatState.value.conversations];
 				if (data.logDataEntry.conversationId) {
-					const existingIndex = updatedConversations.findIndex((c) =>
+					const existingIndex = updatedInteractions.findIndex((c) =>
 						c.id === data.logDataEntry.conversationId
 					);
 					const conversationData = {
 						id: data.logDataEntry.conversationId,
-						title: data.logDataEntry.conversationTitle,
+						title: data.logDataEntry.collaborationTitle,
 						tokenUsageStats: data.logDataEntry.tokenUsageStats,
 						modelConfig: data.logDataEntry.modelConfig,
 						//collaborationParams: data.logDataEntry.collaborationParams,
-						conversationStats: data.logDataEntry.conversationStats,
+						interactionStats: data.logDataEntry.interactionStats,
 						createdAt: data.logDataEntry.timestamp,
 						updatedAt: data.logDataEntry.timestamp,
 						llmProviderName: 'anthropic', // Default provider
@@ -545,22 +545,22 @@ export function useChatState(
 
 					if (existingIndex >= 0) {
 						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						updatedInteractions[existingIndex] = conversationData;
 					} else {
 						// Add new conversation
-						updatedConversations.push(conversationData);
+						updatedInteractions.push(conversationData);
 					}
 				}
 
 				chatState.value = {
 					...chatState.value,
-					conversations: updatedConversations,
+					conversations: updatedInteractions,
 				};
 				return;
 			}
 
 			// Handle conversation deletion
-			if (data.msgType === 'conversationDeleted') {
+			if (data.msgType === 'collaborationDeleted') {
 				// Update project stats for deleted conversation
 				const deletedConversation = chatState.value.conversations.find((c) =>
 					c.id === data.logDataEntry.conversationId
@@ -571,7 +571,7 @@ export function useChatState(
 					// 	totalTokens: Math.max(
 					// 		0,
 					// 		(currentProject.stats?.totalTokens || 0) -
-					// 			(deletedConversation.tokenUsageConversation?.totalTokens || 0),
+					// 			(deletedConversation.tokenUsageInteraction?.totalTokens || 0),
 					// 	),
 					// 	lastAccessed: new Date().toISOString(),
 					// });
@@ -604,7 +604,7 @@ export function useChatState(
 						return {
 							...conv,
 							tokenUsageStats: data.logDataEntry.tokenUsageStats,
-							conversationStats: data.logDataEntry.conversationStats,
+							interactionStats: data.logDataEntry.interactionStats,
 							modelConfig: data.logDataEntry.modelConfig,
 							//collaborationParams: data.logDataEntry.collaborationParams,
 							updatedAt: data.logDataEntry.timestamp,
@@ -688,7 +688,7 @@ export function useChatState(
 				statusQueue.reset({
 					status: ApiStatus.IDLE,
 					timestamp: Date.now(),
-					statementCount: data.logDataEntry.conversationStats.statementCount,
+					statementCount: data.logDataEntry.interactionStats.statementCount,
 					sequence: Number.MAX_SAFE_INTEGER,
 				});
 			}
@@ -919,16 +919,16 @@ export function useChatState(
 				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logDataEntries);
 
 				// Update conversations array with the loaded conversation
-				const updatedConversations = [...chatState.value.conversations];
+				const updatedInteractions = [...chatState.value.conversations];
 				if (conversation) {
-					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
+					const existingIndex = updatedInteractions.findIndex((c) => c.id === conversation.id);
 					const conversationData = {
 						id: conversation.id,
 						title: conversation.title || 'Untitled Conversation',
 						tokenUsageStats: conversation.tokenUsageStats,
 						modelConfig: conversation.modelConfig,
 						collaborationParams: conversation.collaborationParams,
-						conversationStats: conversation.conversationStats,
+						interactionStats: conversation.interactionStats,
 						createdAt: conversation.createdAt || new Date().toISOString(),
 						updatedAt: conversation.updatedAt || new Date().toISOString(),
 						llmProviderName: conversation.llmProviderName || 'anthropic',
@@ -937,10 +937,10 @@ export function useChatState(
 
 					if (existingIndex >= 0) {
 						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						updatedInteractions[existingIndex] = conversationData;
 					} else {
 						// Add new conversation
-						updatedConversations.push(conversationData);
+						updatedInteractions.push(conversationData);
 					}
 				}
 
@@ -948,7 +948,7 @@ export function useChatState(
 				chatState.value = {
 					...chatState.value,
 					conversationId: id,
-					conversations: updatedConversations,
+					conversations: updatedInteractions,
 					logDataEntries: conversation?.logDataEntries || [],
 					//status: { ...chatState.value.status, isLoading: false, isReady: true },
 				};

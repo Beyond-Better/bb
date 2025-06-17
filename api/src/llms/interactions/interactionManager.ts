@@ -1,8 +1,8 @@
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
-//import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
-import type { ConversationId } from 'shared/types.ts';
+//import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import type { InteractionId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 
@@ -19,12 +19,12 @@ class InteractionManager {
 
 	async createInteraction(
 		type: 'conversation' | 'chat',
-		interactionId: ConversationId,
+		interactionId: InteractionId,
 		interactionModel: string,
 		interactionCallbacks: LLMCallbacks,
 		parentInteractionId?: string,
 	): Promise<LLMInteraction> {
-		//const interactionId = shortenConversationId(generateConversationId());
+		//const interactionId = shortenInteractionId(generateInteractionId());
 		let interaction: LLMInteraction;
 
 		logger.info('InteractionManager: Creating interaction of type: ', type);

@@ -8,31 +8,6 @@ interface CoreTool {
 
 export const CORE_TOOLS: Array<CoreTool> = [
 	{
-		'toolNamePath': 'conversationSummary.tool',
-		'metadata': {
-			'name': 'conversation_summary',
-			'description':
-				'Summarize and optionally truncate the current conversation. By default, stops after generating summary unless explicitly asked to continue with other tasks. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'enabled': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
-		'toolNamePath': 'conversationMetrics.tool',
-		'metadata': {
-			'name': 'conversation_metrics',
-			'description':
-				'Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. By default, stops after providing analysis unless explicitly asked to perform additional tasks. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'fetchWebScreenshot.tool',
 		'metadata': {
 			'name': 'fetch_web_screenshot',
@@ -161,6 +136,31 @@ export const CORE_TOOLS: Array<CoreTool> = [
 				'Remove resources from the conversation context to reduce token usage. When prompt caching is enabled, resources remain in the cached context but should be mentally excluded. When prompt caching is disabled, resources are actively removed from the context. Use this to manage conversation scope and reduce cognitive load.',
 			'version': '1.0.0',
 			'category': 'ResourceManipulation',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'collaborationSummary.tool',
+		'metadata': {
+			'name': 'collaboration_summary',
+			'description':
+				'Summarize and optionally truncate the current conversation. By default, stops after generating summary unless explicitly asked to continue with other tasks. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'enabled': true,
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'collaborationMetrics.tool',
+		'metadata': {
+			'name': 'collaboration_metrics',
+			'description':
+				'Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. By default, stops after providing analysis unless explicitly asked to perform additional tasks. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.',
+			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
 			'protocolType': 'bb',

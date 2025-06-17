@@ -29,7 +29,7 @@ function isForgetResourcesResponse(
 // }
 
 Deno.test({
-	name: 'ForgetResourcesTool - Forget existing resources from conversation',
+	name: 'ForgetResourcesTool - Forget existing resources from interaction',
 	fn: async () => {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -40,17 +40,17 @@ Deno.test({
 			assert(tool, 'Failed to get tool');
 
 			const messageId = '1111-2222';
-			// Create test resources and add them to the conversation
+			// Create test resources and add them to the interaction
 			await Deno.writeTextFile(join(testProjectRoot, 'file1.txt'), 'Content of file1');
 			await Deno.writeTextFile(join(testProjectRoot, 'file2.txt'), 'Content of file2');
-			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			initialConversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
+			const initialCollaboration = await projectEditor.initCollaboration('test-collaboration-id');
+			initialCollaboration.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file1'.length,
 				lastModified: new Date(),
 			}, messageId);
-			initialConversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file2.txt'), {
+			initialCollaboration.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file2.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file2'.length,
@@ -69,10 +69,10 @@ Deno.test({
 				},
 			};
 
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
-			// console.log('Forget existing resources from conversation - bbResponse:', result.bbResponse);
-			// console.log('Forget existing resources from conversation - toolResponse:', result.toolResponse);
-			// console.log('Forget existing resources from conversation - toolResults:', result.toolResults);
+			const result = await tool.runTool(initialCollaboration, toolUse, projectEditor);
+			// console.log('Forget existing resources from interaction - bbResponse:', result.bbResponse);
+			// console.log('Forget existing resources from interaction - toolResponse:', result.toolResponse);
+			// console.log('Forget existing resources from interaction - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -109,18 +109,18 @@ Deno.test({
 			assertStringIncludes(thirdResult.text, 'Resource removed: file2.txt');
 
 			// Check if resources are removed from the conversation
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const resource1 = conversation.getResourceRevisionMetadata(
+			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			const resource1 = interaction.getResourceRevisionMetadata(
 				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./file1.txt'), '1'),
 			);
-			const resource2 = conversation.getResourceRevisionMetadata(
+			const resource2 = interaction.getResourceRevisionMetadata(
 				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./file2.txt'), '2'),
 			);
 			assertEquals(resource1, undefined, 'file1.txt should not exist in the conversation');
 			assertEquals(resource2, undefined, 'file2.txt should not exist in the conversation');
 
 			// Check if listResources doesn't return the removed resources
-			const resourceList = conversation.listResources();
+			const resourceList = interaction.listResources();
 			assertEquals(resourceList?.includes('file1.txt'), false, 'file1.txt should not be in the resource list');
 			assertEquals(resourceList?.includes('file2.txt'), false, 'file2.txt should not be in the resource list');
 		});
@@ -149,8 +149,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Attempt to forget non-existent resource - bbResponse:', result.bbResponse);
 			// console.log('Attempt to forget non-existent resource - toolResponse:', result.toolResponse);
 			// console.log('Attempt to forget non-existent resource - toolResults:', result.toolResults);
@@ -182,7 +182,7 @@ Deno.test({
 			assertStringIncludes(secondResult.text, 'non_existent.txt: Resource is not in the conversation history');
 
 			// Check that listResources doesn't include the non-existent resource
-			const resourceList = conversation.listResources();
+			const resourceList = interaction.listResources();
 			assertEquals(
 				resourceList?.includes('non_existent.txt'),
 				false,
@@ -206,10 +206,10 @@ Deno.test({
 			assert(tool, 'Failed to get tool');
 
 			const messageId = '1111-2222';
-			// Create test resource and add it to the conversation
+			// Create test resource and add it to the interaction
 			await Deno.writeTextFile(join(testProjectRoot, 'existing_file.txt'), 'Content of existing resource');
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			conversation.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), {
+			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			interaction.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of existing resource'.length,
@@ -228,7 +228,7 @@ Deno.test({
 				},
 			};
 
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Forget mix of existing and non-existent resources - bbResponse:', result.bbResponse);
 			// console.log('Forget mix of existing and non-existent resources - toolResponse:', result.toolResponse);
 			// console.log('Forget mix of existing and non-existent resources - toolResults:', result.toolResults);
@@ -268,13 +268,13 @@ Deno.test({
 			);
 
 			// Check if existing resource is forgotten from the conversation
-			const existingResource = conversation.getResourceRevisionMetadata(
+			const existingResource = interaction.getResourceRevisionMetadata(
 				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), '1'),
 			);
 			assertEquals(existingResource, undefined, 'existing_file.txt should not exist in the conversation');
 
 			// Check that listResources doesn't include either resource
-			const resourceList = conversation.listResources();
+			const resourceList = interaction.listResources();
 			assertEquals(
 				resourceList?.includes('existing_file.txt'),
 				false,

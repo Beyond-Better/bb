@@ -7,7 +7,7 @@ import { colors } from 'cliffy/ansi/colors';
 
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import type { ConversationId, CollaborationLogEntryType, ConversationStats, TokenUsage } from 'shared/types.ts';
+import type { InteractionId, CollaborationLogEntryType, InteractionStats, TokenUsage } from 'shared/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 
 const configManager = await getConfigManager();
@@ -129,10 +129,10 @@ export default class CollaborationLogFormatter {
 		return new Date().toISOString();
 	}
 
-	private static isStatsAndUsageEmpty(stats: ConversationStats, usage: TokenUsage): boolean {
+	private static isStatsAndUsageEmpty(stats: InteractionStats, usage: TokenUsage): boolean {
 		return (
 			!stats ||
-			(stats.statementCount === 0 && stats.statementTurnCount === 0 && stats.conversationTurnCount === 0) ||
+			(stats.statementCount === 0 && stats.statementTurnCount === 0 && stats.interactionTurnCount === 0) ||
 			!usage ||
 			(usage.inputTokens === 0 && usage.outputTokens === 0 && usage.totalTokens === 0)
 		);
@@ -144,7 +144,7 @@ export default class CollaborationLogFormatter {
 		//logEntry: CollaborationLogEntry,
 		content: string,
 		formattedResult: { title: string; preview?: string; subtitle?: string; content: string },
-		conversationStats: ConversationStats,
+		interactionStats: InteractionStats,
 		tokenUsage: TokenUsage,
 		toolName?: string,
 	): Promise<string> {
@@ -162,11 +162,11 @@ export default class CollaborationLogFormatter {
 			`╭─ ${icon}  ${title}   🕒  ${new Date(timestamp).toLocaleString()}`,
 		);
 
-		if (!CollaborationLogFormatter.isStatsAndUsageEmpty(conversationStats, tokenUsage)) {
+		if (!CollaborationLogFormatter.isStatsAndUsageEmpty(interactionStats, tokenUsage)) {
 			const summaryInfo = [
-				colors.green(`📝  St:${conversationStats.statementCount}`),
-				colors.magenta(`🔄  Tn:${conversationStats.statementTurnCount}`),
-				colors.blue(`🔢  TT:${conversationStats.conversationTurnCount}`),
+				colors.green(`📝  St:${interactionStats.statementCount}`),
+				colors.magenta(`🔄  Tn:${interactionStats.statementTurnCount}`),
+				colors.blue(`🔢  TT:${interactionStats.interactionTurnCount}`),
 				colors.red(`⌨️  In:${tokenUsage.inputTokens}`),
 				colors.yellow(`🗨️  Out:${tokenUsage.outputTokens}`),
 				colors.green(`Σ  Tot:${tokenUsage.totalTokens}`),
@@ -217,11 +217,11 @@ export default class CollaborationLogFormatter {
 		const [header, ...messageLines] = entry.split('\n');
 		if (typeof header !== 'undefined' && typeof messageLines !== 'undefined') {
 			const [typeString, timestamp] = header.replace('## ', '').split(' [');
-			// need to parse out the conversationStats and tokenUsage
-			const conversationStats: ConversationStats = {
+			// need to parse out the interactionStats and tokenUsage
+			const interactionStats: InteractionStats = {
 				statementCount: 0,
 				statementTurnCount: 0,
-				conversationTurnCount: 0,
+				interactionTurnCount: 0,
 			};
 			const tokenUsage: TokenUsage = {
 				inputTokens: 0,
@@ -238,7 +238,7 @@ export default class CollaborationLogFormatter {
 					timestamp.replace(']', ''),
 					content,
 					{ title: header, content },
-					conversationStats,
+					interactionStats,
 					tokenUsage,
 				);
 			} else {
@@ -255,7 +255,7 @@ export default class CollaborationLogFormatter {
 }
 
 export async function displayFormattedLogs(
-	conversationId: ConversationId,
+	conversationId: InteractionId,
 	callback?: (formattedEntry: string) => void,
 	follow = false,
 ): Promise<void> {
@@ -353,7 +353,7 @@ export async function displayFormattedLogs(
 	}
 }
 
-export async function countLogEntries(conversationId: ConversationId): Promise<number> {
+export async function countLogEntries(conversationId: InteractionId): Promise<number> {
 	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
 
 	try {

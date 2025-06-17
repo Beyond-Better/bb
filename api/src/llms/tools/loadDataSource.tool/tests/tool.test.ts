@@ -136,8 +136,8 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialCollaboration = await projectEditor.initCollaboration('test-conversation-id');
+			const result = await tool.runTool(initialCollaboration, toolUse, projectEditor);
 			console.log('List resources from filesystem - bbResponse:', result.bbResponse);
 			console.log('List resources from filesystem - toolResponse:', result.toolResponse);
 			console.log('List resources from filesystem - toolResults:', result.toolResults);
@@ -246,8 +246,8 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-metadata-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialCollaboration = await projectEditor.initCollaboration('test-metadata-conversation-id');
+			const result = await tool.runTool(initialCollaboration, toolUse, projectEditor);
 			console.log('Get metadata from filesystem - bbResponse:', result.bbResponse);
 
 			assert(
@@ -363,8 +363,8 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-both-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialCollaboration = await projectEditor.initCollaboration('test-both-conversation-id');
+			const result = await tool.runTool(initialCollaboration, toolUse, projectEditor);
 			console.log('Get both metadata and resources - bbResponse:', result.bbResponse);
 
 			assert(
@@ -467,7 +467,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 
 			try {
 				await tool.runTool(conversation, toolUse, projectEditor);

@@ -5,7 +5,7 @@ import type {
 	LLMProviderMessageResponseType,
 	LLMTokenUsage,
 } from 'api/types.ts';
-import type { ConversationStats } from 'shared/types.ts';
+import type { InteractionStats } from 'shared/types.ts';
 import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 
 export interface LLMMessageTextCitation {
@@ -129,7 +129,7 @@ class LLMMessage {
 	public timestamp: string = new Date().toISOString();
 	public id!: string;
 
-	public _conversationTurnCount!: number;
+	public _interactionTurnCount!: number;
 	public _statementTurnCount!: number;
 	public _statementCount!: number;
 
@@ -137,14 +137,14 @@ class LLMMessage {
 		//public role: 'user' | 'assistant' | 'system' | 'developer' | 'tool', // system, developer and tool are only for openai
 		public role: 'user' | 'assistant',
 		public content: LLMMessageContentParts,
-		stats: ConversationStats,
+		stats: InteractionStats,
 		public tool_call_id?: string,
 		public providerResponse?: LLMMessageProviderResponse,
 		id?: string,
 	) {
 		this.setId(id);
 		this.setTimestamp();
-		this.conversationStats = stats;
+		this.interactionStats = stats;
 	}
 
 	public setId(id?: string): void {
@@ -155,18 +155,18 @@ class LLMMessage {
 		}
 	}
 
-	public get conversationStats(): ConversationStats {
+	public get interactionStats(): InteractionStats {
 		return {
 			statementCount: this._statementCount,
 			statementTurnCount: this._statementTurnCount,
-			conversationTurnCount: this._conversationTurnCount,
+			interactionTurnCount: this._interactionTurnCount,
 		};
 	}
 
-	public set conversationStats(stats: ConversationStats) {
+	public set interactionStats(stats: InteractionStats) {
 		this._statementCount = stats.statementCount ?? 1;
 		this._statementTurnCount = stats.statementTurnCount ?? 1;
-		this._conversationTurnCount = stats.conversationTurnCount ?? 1;
+		this._interactionTurnCount = stats.interactionTurnCount ?? 1;
 	}
 
 	public setTimestamp(): void {

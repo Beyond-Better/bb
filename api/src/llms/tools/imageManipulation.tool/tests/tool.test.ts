@@ -150,7 +150,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			console.log('Format conversion (PNG to JPEG) - bbResponse:', result.bbResponse);
 			console.log('Format conversion (PNG to JPEG) - toolResponse:', result.toolResponse);
@@ -252,7 +252,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Format conversion (JPEG to PNG) - bbResponse:', result.bbResponse);
 			// console.log('Format conversion (JPEG to PNG) - toolResponse:', result.toolResponse);
@@ -336,7 +336,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Resize operation - bbResponse:', result.bbResponse);
 			// console.log('Resize operation - toolResponse:', result.toolResponse);
@@ -440,7 +440,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Multiple operations (resize + format + grayscale) - bbResponse:', result.bbResponse);
 			// console.log('Multiple operations (resize + format + grayscale) - toolResponse:', result.toolResponse);
@@ -518,7 +518,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			try {
 				await tool.runTool(conversation, toolUse, projectEditor);
 				assert(false, 'Should have thrown an error for path outside project');
@@ -570,7 +570,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Error: File already exists (no overwrite) - bbResponse:', result.bbResponse);
 			// console.log('Error: File already exists (no overwrite) - toolResponse:', result.toolResponse);
@@ -633,7 +633,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Error: Invalid input file - bbResponse:', result.bbResponse);
 			// console.log('Error: Invalid input file - toolResponse:', result.toolResponse);
@@ -690,7 +690,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 
 			try {
 				const result = await tool.runTool(conversation, toolUse, projectEditor);
@@ -782,7 +782,7 @@ Deno.test({
 				toolInput,
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('Formatter tests (toolUseInputFormatter and toolRunResultFormatter) - bbResponse:', result.bbResponse);
 			// console.log('Formatter tests (toolUseInputFormatter and toolRunResultFormatter) - toolResponse:', result.toolResponse);
@@ -862,7 +862,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -936,7 +936,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1010,7 +1010,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1084,7 +1084,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1158,7 +1158,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1240,7 +1240,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1317,7 +1317,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1392,7 +1392,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure
@@ -1467,7 +1467,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 
 			// Check basic response structure

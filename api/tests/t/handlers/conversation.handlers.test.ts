@@ -34,7 +34,7 @@ Deno.test('getConversation returns defaults for non-existent conversation', asyn
 	//     usePromptCaching: true
 	//   },
 	//   logDataEntries: [],
-	//   conversationStats: { statementTurnCount: 0, conversationTurnCount: 0, statementCount: 0 }
+	//   interactionStats: { statementTurnCount: 0, interactionTurnCount: 0, statementCount: 0 }
 	// }
 
 	console.log('Test placeholder: getConversation now returns defaults instead of 404');
@@ -78,7 +78,7 @@ Deno.test('startConversation handler', async (t) => {
 			.expect(200);
 
 		assertExists(response.body.conversationId);
-		assertEquals(response.body.conversationTitle, 'Test Conversation');
+		assertEquals(response.body.collaborationTitle, 'Test Conversation');
 		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
 		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
 		assertSpyCalls(projectEditorStub.getOrchestratorControllerStub, 1);
@@ -124,7 +124,7 @@ Deno.test('continueConversation handler', async (t) => {
 			.expect(200);
 
 		assertExists(response.body.conversationId);
-		assertEquals(response.body.conversationTitle, 'Test Conversation');
+		assertEquals(response.body.collaborationTitle, 'Test Conversation');
 		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
 		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
 		assertSpyCalls(projectEditorStub.getOrchestratorControllerStub, 1);
@@ -137,7 +137,7 @@ Deno.test('continueConversation handler', async (t) => {
 			.expect(400);
 	});
 });
-Deno.test('deleteConversation handler', async (t) => {
+Deno.test('deleteInteraction handler', async (t) => {
 	orchestratorControllerStub.deleteInteractionStub.reset();
 	await t.step('should delete an existing conversation', async () => {
 		const request = await superoak(app);

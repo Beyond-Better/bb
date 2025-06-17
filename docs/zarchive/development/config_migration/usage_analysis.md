@@ -70,7 +70,7 @@ const configManager = await getConfigManager();
 - Line 114 (read)
   Context:
   ```typescript
-  	public primaryInteractionId: ConversationId | null = null;
+  	public primaryInteractionId: InteractionId | null = null;
   	private agentControllers: Map<string, AgentController> = new Map();
   	public fullConfig!: FullConfigSchema;
   	public promptManager!: PromptManager;
@@ -690,7 +690,7 @@ const configManager = await getConfigManager();
   				{
   					role: 'assistant',
   					content: [{ type: 'tool_use', text: 'Using request_files to get config.ts' }],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   					providerResponse: { usage: { totalTokens: 2050 } },
   ```
 
@@ -713,7 +713,7 @@ const configManager = await getConfigManager();
   						text:
   							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1000,\n  "last_modified": "2024-01-01T00:00:00.000Z",\n  "revision": "abc123"\n}\n\nconst config = {\n  // Config file contents\n};',
   					}],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   ```
 
 - Line 1154 (read)
@@ -723,7 +723,7 @@ const configManager = await getConfigManager();
   				{
   					role: 'assistant',
   					content: [{ type: 'tool_use', text: 'Using search_and_replace to modify config.ts' }],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   					providerResponse: { usage: { totalTokens: 1950 } },
   ```
 
@@ -746,7 +746,7 @@ const configManager = await getConfigManager();
   						text:
   							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1100,\n  "last_modified": "2024-01-01T00:00:01.000Z",\n  "revision": "def456"\n}\n\nconst config = {\n  // Updated config file contents\n};',
   					}],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   ```
 
 - Line 1193 (read)

@@ -104,11 +104,11 @@ All endpoints are relative to: `https://<hostname>:<port>/api/v1`
     }
     ```
   - The server will emit events for conversation updates, including:
-    - `conversationReady`
-    - `conversationContinue`
-    - `conversationAnswer`
-    - `conversationError`
-    - `conversationCancelled`
+    - `collaborationReady`
+    - `collaborationContinue`
+    - `collaborationAnswer`
+    - `collaborationError`
+    - `collaborationCancelled`
 
 ## LLM Tools
 

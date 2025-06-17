@@ -5,10 +5,10 @@ import { logger } from 'shared/logger.ts';
 import ApiClient from 'cli/apiClient.ts';
 import WebsocketManager from 'cli/websocketManager.ts';
 import type {
-	ConversationContinue,
-	ConversationId,
-	ConversationResponse,
-	ConversationStart,
+	CollaborationContinue,
+	InteractionId,
+	CollaborationResponse,
+	CollaborationStart,
 	ProgressStatusMessage,
 	PromptCacheTimerMessage,
 } from 'shared/types.ts';
@@ -17,7 +17,7 @@ import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getBbDir, getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import { eventManager } from 'shared/eventManager.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ApiConfig } from 'shared/config/types.ts';
@@ -63,8 +63,8 @@ export const conversationChat = new Command()
 		const websocketManager = new WebsocketManager();
 
 		let terminalHandler: TerminalHandler | null = null;
-		let conversationId: ConversationId;
-		let conversationTitle: string | undefined;
+		let conversationId: InteractionId;
+		let collaborationTitle: string | undefined;
 
 		const handleInterrupt = async () => {
 			if (terminalHandler && terminalHandler.isStatementInProgress()) {
@@ -160,7 +160,7 @@ export const conversationChat = new Command()
 				}
 			}
 
-			conversationId = options.id || shortenConversationId(generateConversationId());
+			conversationId = options.id || shortenInteractionId(generateInteractionId());
 			let statement = options.statement?.trim();
 
 			const stdin = Deno.stdin;
@@ -198,7 +198,7 @@ export const conversationChat = new Command()
 					const data = await response.json();
 
 					terminalHandler = await new TerminalHandler(projectId).init();
-					await terminalHandler.displayConversationComplete(data, options);
+					await terminalHandler.displayInteractionComplete(data, options);
 				} else {
 					const errorBody = await response.text();
 					console.error(JSON.stringify(
@@ -237,35 +237,35 @@ export const conversationChat = new Command()
 				let conversationChatDisplayed = false;
 
 				// Handle new conversation metadata
-				eventManager.on('cli:conversationNew', async (data) => {
-					conversationTitle = (data as ConversationStart).conversationTitle;
+				eventManager.on('cli:collaborationNew', async (data) => {
+					collaborationTitle = (data as CollaborationStart).collaborationTitle;
 					if (!terminalHandler) {
 						logger.error(
-							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationNew`,
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:collaborationNew`,
 						);
 					}
-					await terminalHandler?.displayConversationStart(
-						data as ConversationStart,
+					await terminalHandler?.displayInteractionStart(
+						data as CollaborationStart,
 						conversationId,
 						true,
 					);
 					conversationChatDisplayed = true;
 				}, conversationId);
 
-				eventManager.on('cli:conversationReady', async (data) => {
+				eventManager.on('cli:collaborationReady', async (data) => {
 					// For existing conversations, get title from ready event
-					if (!conversationTitle) {
-						conversationTitle = (data as ConversationStart).conversationTitle;
+					if (!collaborationTitle) {
+						collaborationTitle = (data as CollaborationStart).collaborationTitle;
 					}
-					// Only display start if we haven't received conversationNew
+					// Only display start if we haven't received collaborationNew
 					if (!conversationChatDisplayed) {
 						if (!terminalHandler) {
 							logger.error(
-								`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationReady`,
+								`Terminal handler not initialized for conversation ${conversationId} and event cli:collaborationReady`,
 							);
 						}
-						await terminalHandler?.displayConversationStart(
-							data as ConversationStart,
+						await terminalHandler?.displayInteractionStart(
+							data as CollaborationStart,
 							conversationId,
 							true,
 						);
@@ -273,38 +273,38 @@ export const conversationChat = new Command()
 					}
 				}, conversationId);
 
-				eventManager.on('cli:conversationContinue', async (data) => {
+				eventManager.on('cli:collaborationContinue', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
-							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationContinue`,
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:collaborationContinue`,
 						);
 					}
 					// Use stored title if available
 					const messageData = {
-						...(data as ConversationContinue),
-						conversationTitle: conversationTitle || (data as ConversationContinue).conversationTitle ||
+						...(data as CollaborationContinue),
+						collaborationTitle: collaborationTitle || (data as CollaborationContinue).collaborationTitle ||
 							'<pending>',
-					} as ConversationContinue;
-					await terminalHandler?.displayConversationContinue(
+					} as CollaborationContinue;
+					await terminalHandler?.displayInteractionContinue(
 						messageData,
 						conversationId,
 						true,
 					);
 				}, conversationId);
 
-				eventManager.on('cli:conversationAnswer', async (data) => {
+				eventManager.on('cli:collaborationAnswer', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
-							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationAnswer`,
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:collaborationAnswer`,
 						);
 					}
 					// Use stored title if available
 					const messageData = {
-						...(data as ConversationResponse),
-						conversationTitle: conversationTitle || (data as ConversationResponse).conversationTitle ||
+						...(data as CollaborationResponse),
+						collaborationTitle: collaborationTitle || (data as CollaborationResponse).collaborationTitle ||
 							'<pending>',
-					} as ConversationResponse;
-					await terminalHandler?.displayConversationAnswer(
+					} as CollaborationResponse;
+					await terminalHandler?.displayInteractionAnswer(
 						messageData,
 						conversationId,
 						false,
@@ -313,16 +313,16 @@ export const conversationChat = new Command()
 					terminalHandler?.handleProgressStatus({
 						type: 'progress_status',
 						status: ApiStatus.IDLE,
-						statementCount: messageData.conversationStats.statementCount,
+						statementCount: messageData.interactionStats.statementCount,
 						sequence: Number.MAX_SAFE_INTEGER,
 						timestamp: Date.now(),
 					});
 				}, conversationId);
 
-				eventManager.on('cli:conversationError', async (data) => {
+				eventManager.on('cli:collaborationError', async (data) => {
 					if (!terminalHandler) {
 						logger.error(
-							`Terminal handler not initialized for conversation ${conversationId} and event cli:conversationError`,
+							`Terminal handler not initialized for conversation ${conversationId} and event cli:collaborationError`,
 						);
 						return;
 					}
@@ -425,7 +425,7 @@ const processStatement = async (
 	bbDir: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,
-	conversationId: ConversationId,
+	conversationId: InteractionId,
 	statement: string,
 	options?: { maxTurns?: number },
 ): Promise<void> => {

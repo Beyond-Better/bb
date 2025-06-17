@@ -1,5 +1,5 @@
 import { createError } from '../utils/error.utils.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 
 export class ResourceLock {
 	private locks: Map<string, string>; // resourcePath -> interactionId
@@ -8,7 +8,7 @@ export class ResourceLock {
 		this.locks = new Map();
 	}
 
-	async acquireLock(resourcePath: string, interactionId: ConversationId, timeout: number = 5000): Promise<boolean> {
+	async acquireLock(resourcePath: string, interactionId: InteractionId, timeout: number = 5000): Promise<boolean> {
 		const startTime = Date.now();
 		while (Date.now() - startTime < timeout) {
 			if (!this.locks.has(resourcePath)) {
@@ -21,7 +21,7 @@ export class ResourceLock {
 		return false;
 	}
 
-	releaseLock(resourcePath: string, interactionId: ConversationId): void {
+	releaseLock(resourcePath: string, interactionId: InteractionId): void {
 		const lockHolder = this.locks.get(resourcePath);
 		if (lockHolder === interactionId) {
 			this.locks.delete(resourcePath);
@@ -37,7 +37,7 @@ export class ResourceLock {
 		return this.locks.has(resourcePath);
 	}
 
-	getLockHolder(resourcePath: string): ConversationId | undefined {
+	getLockHolder(resourcePath: string): InteractionId | undefined {
 		return this.locks.get(resourcePath);
 	}
 

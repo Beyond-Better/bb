@@ -1,13 +1,13 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolConversationMetricsResultData } from './types.ts';
+import type { LLMToolCollaborationMetricsResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
 
 export const formatLogEntryToolUse = (_toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
 	return {
-		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Conversation Metrics'),
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Collaboration Metrics'),
 		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Calculating conversation metrics...'),
 		content: stripIndents`
             Analyzing turns, message types, and token usage...
@@ -16,7 +16,7 @@ export const formatLogEntryToolUse = (_toolInput: LLMToolInputSchema): LLMToolLo
 	};
 };
 
-function formatChatMetrics(chatMetrics: LLMToolConversationMetricsResultData['tokens']): string {
+function formatChatMetrics(chatMetrics: LLMToolCollaborationMetricsResultData['tokens']): string {
 	if (chatMetrics.totalUsage.total === 0) {
 		return '- No auxiliary chat activity';
 	}
@@ -45,7 +45,7 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const metrics = bbResponse.data as LLMToolConversationMetricsResultData;
+		const metrics = bbResponse.data as LLMToolCollaborationMetricsResultData;
 		const content = stripIndents`
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Basic Statistics:')}
             Total Turns: ${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)}
@@ -170,7 +170,7 @@ export const formatLogEntryToolResult = (
         `;
 
 		return {
-			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Conversation Metrics'),
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Collaboration Metrics'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
 				`${LLMTool.TOOL_STYLES_CONSOLE.content.counts(metrics.summary.totalTurns)} turns analyzed over ${
 					LLMTool.TOOL_STYLES_CONSOLE.content.duration(metrics.timing.totalDuration)
@@ -182,9 +182,9 @@ export const formatLogEntryToolResult = (
 			} unique tools`,
 		};
 	} else {
-		logger.error('LLMToolConversationMetrics: Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolCollaborationMetrics: Unexpected bbResponse format:', bbResponse);
 		return {
-			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Error', 'Conversation Metrics'),
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Error', 'Collaboration Metrics'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Failed to process metrics'),
 			content: bbResponse,
 			preview: 'Error processing metrics',

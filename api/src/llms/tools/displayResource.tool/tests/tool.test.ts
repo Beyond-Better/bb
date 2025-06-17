@@ -58,7 +58,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('display text resource - bbResponse:', result.bbResponse);
 			// console.log('display text resource - toolResponse:', result.toolResponse);
@@ -193,7 +193,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('display text resource - bbResponse:', result.bbResponse);
 			// console.log('display text resource - toolResponse:', result.toolResponse);
@@ -250,7 +250,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('resource outside project - bbResponse:', result.bbResponse);
 			// console.log('resource outside project - toolResponse:', result.toolResponse);
@@ -286,7 +286,7 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const conversation = await projectEditor.initCollaboration('test-conversation-id');
 			const result = await tool.runTool(conversation, toolUse, projectEditor);
 			// console.log('resource outside project - bbResponse:', result.bbResponse);
 			// console.log('resource outside project - toolResponse:', result.toolResponse);

@@ -37,10 +37,10 @@ Example log entry structure:
     ]
   },
   "metadata": {
-    "conversationStats": {
+    "interactionStats": {
       "statementCount": 5,
       "statementTurnCount": 2,
-      "conversationTurnCount": 10
+      "interactionTurnCount": 10
     },
     "tokenUsage": {
       "inputTokens": 50,

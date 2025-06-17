@@ -14,15 +14,15 @@ interface ConversationListProps {
 /*
 export interface Conversation {
 	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
-	id: ConversationId;
+	id: InteractionId;
 	title: string;
 
 	logDataEntries: CollaborationLogDataEntry[];
 
-	conversationMetrics?: ConversationMetrics;
+	interactionMetrics?: InteractionMetrics;
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
-	tokenUsageConversation: TokenUsage;
+	tokenUsageInteraction: TokenUsage;
 
 	//tools?: Array<{ name: string; description: string }>;
 	model: string;
@@ -210,7 +210,7 @@ export function ConversationList({
 												</span>
 											</div>
 											<div className='grid grid-cols-2 gap-1.5 text-xs mt-1'>
-												{conv.conversationStats && (
+												{conv.interactionStats && (
 													<p className='flex items-center text-blue-600 dark:text-blue-400 dark:text-blue-400'>
 														<svg
 															className='w-3.5 h-3.5 mr-1'
@@ -225,10 +225,10 @@ export function ConversationList({
 																d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
 															/>
 														</svg>
-														{conv.conversationStats.conversationTurnCount} turns
+														{conv.interactionStats.interactionTurnCount} turns
 													</p>
 												)}
-												{conv.tokenUsageStats.tokenUsageConversation && (
+												{conv.tokenUsageStats.tokenUsageInteraction && (
 													<p className='flex items-center text-purple-600 dark:text-purple-400 dark:text-purple-400'>
 														<svg
 															className='w-3.5 h-3.5 mr-1'
@@ -243,9 +243,9 @@ export function ConversationList({
 																d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 															/>
 														</svg>
-														{conv.tokenUsageStats.tokenUsageConversation.totalTokens
+														{conv.tokenUsageStats.tokenUsageInteraction.totalTokens
 															?.toLocaleString() ||
-															conv.tokenUsageStats.tokenUsageConversation.totalTokensTotal
+															conv.tokenUsageStats.tokenUsageInteraction.totalTokensTotal
 																?.toLocaleString() ||
 															0} tokens
 													</p>

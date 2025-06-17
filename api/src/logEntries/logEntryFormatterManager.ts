@@ -1,4 +1,4 @@
-//import type { ConversationStats, TokenUsage } from 'shared/types.ts';
+//import type { InteractionStats, TokenUsage } from 'shared/types.ts';
 import type { LLMToolFormatterDestination, LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type { JSX } from 'preact';
 //import { renderToString } from 'preact-render-to-string';
@@ -239,26 +239,26 @@ export default class LogEntryFormatterManager {
 
 	/*
 	private formatMetadataConsole(
-		conversationStats?: ConversationStats,
+		interactionStats?: InteractionStats,
 		tokenUsageTurn?: TokenUsage,
 		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: TokenUsage,
+		tokenUsageInteraction?: TokenUsage,
 	): string {
 		return JSON.stringify(
-			{ conversationStats, tokenUsageTurn, tokenUsageStatement, tokenUsageConversation },
+			{ interactionStats, tokenUsageTurn, tokenUsageStatement, tokenUsageInteraction },
 			null,
 			2,
 		);
 	}
 
 	private formatMetadataBrowser(
-		conversationStats?: ConversationStats,
+		interactionStats?: InteractionStats,
 		tokenUsageTurn?: TokenUsage,
 		tokenUsageStatement?: TokenUsage,
-		tokenUsageConversation?: TokenUsage,
+		tokenUsageInteraction?: TokenUsage,
 	): string {
 		const metadata = JSON.stringify(
-			{ conversationStats, tokenUsageTurn, tokenUsageStatement, tokenUsageConversation },
+			{ interactionStats, tokenUsageTurn, tokenUsageStatement, tokenUsageInteraction },
 			null,
 			2,
 		);

@@ -2,7 +2,7 @@ import { Signal, useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import { ConversationTrigger } from './ConversationTrigger.tsx';
 import { ConversationList } from './ConversationList.tsx';
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 import type { ChatState, ConversationListState } from '../../types/chat.types.ts';
 
 interface ConversationSelectorProps {
@@ -48,8 +48,8 @@ export function ConversationSelector({
 		);
 	});
 
-	const currentConversation = useComputed<ConversationMetadata | undefined>(() =>
-		chatState.value.conversations.find((c: ConversationMetadata) => c.id === chatState.value.conversationId)
+	const currentConversation = useComputed<InteractionMetadata | undefined>(() =>
+		chatState.value.conversations.find((c: InteractionMetadata) => c.id === chatState.value.conversationId)
 	);
 
 	// Handle keyboard navigation
@@ -151,7 +151,7 @@ export function ConversationSelector({
 						<ConversationList
 							conversations={displayedConversations.value}
 							selectedIndex={selectedIndex.value}
-							currentConversationId={chatState.value.conversationId}
+							currentInteractionId={chatState.value.conversationId}
 							onSelect={async (id) => {
 								isOpen.value = false;
 								await onSelect(id);

@@ -142,7 +142,7 @@ Deno.test('InteractionPersistence - Token usage integration', async (t) => {
       // Test implementation
     });
 
-    await t.step('should handle token usage in saveConversation', async () => {
+    await t.step('should handle token usage in saveInteraction', async () => {
       // Test implementation
     });
   });

@@ -13,9 +13,9 @@ import type { TokenUsageRecord } from 'shared/types.ts';
 // Helper function to set up test directory structure
 // async function setupTestDir(testProjectRoot: string, conversationId: string) {
 // 	const bbDir = join(testProjectRoot, '.bb');
-// 	const conversationsDir = join(bbDir, 'data', 'conversations', conversationId);
-// 	await ensureDir(conversationsDir);
-// 	return conversationsDir;
+// 	const interactionsDir = join(bbDir, 'data', 'conversations', conversationId);
+// 	await ensureDir(interactionsDir);
+// 	return interactionsDir;
 // }
 
 Deno.test({

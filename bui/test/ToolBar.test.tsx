@@ -47,7 +47,7 @@ describe('ToolBar', () => {
     createConversation: vi.fn(),
     getConversations: vi.fn(),
     getConversation: vi.fn(),
-    deleteConversation: vi.fn(),
+    deleteInteraction: vi.fn(),
     formatLogEntry: vi.fn(),
   };
   const defaultProps = {

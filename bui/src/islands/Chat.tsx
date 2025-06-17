@@ -27,8 +27,8 @@ import { ChatInput } from '../components/ChatInput.tsx';
 import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
-import type { CollaborationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import type { CollaborationLogDataEntry, InteractionMetadata } from 'shared/types.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 import { LLMRolesModelConfig } from 'api/types.ts';
@@ -62,7 +62,7 @@ const defaultChatConfig: ChatConfig = {
 // For new conversations, this will use the default models from the model state hook
 const getInputOptionsFromConversation = (
 	conversationId: string | null,
-	conversations: ConversationMetadata[],
+	conversations: InteractionMetadata[],
 ): LLMRequestParams => {
 	if (!conversationId) {
 		// Use defaults from model state hook
@@ -352,7 +352,7 @@ export default function Chat({
 		return logDataEntry;
 	};
 
-	const deleteConversation = async (id: string) => {
+	const deleteInteraction = async (id: string) => {
 		try {
 			if (!projectId) throw new Error('projectId is undefined for delete conversation');
 			if (!chatState.value.apiClient) throw new Error('API client not initialized');
@@ -365,12 +365,12 @@ export default function Chat({
 				throw new Error('Please wait for the current operation to complete');
 			}
 
-			await chatState.value.apiClient.deleteConversation(id, projectId);
+			await chatState.value.apiClient.deleteInteraction(id, projectId);
 
 			// Update conversations list immediately
 			chatState.value = {
 				...chatState.value,
-				conversations: chatState.value.conversations.filter((conv: ConversationMetadata) => conv.id !== id),
+				conversations: chatState.value.conversations.filter((conv: InteractionMetadata) => conv.id !== id),
 			};
 
 			// Handle currently selected conversation
@@ -391,7 +391,7 @@ export default function Chat({
 				const retryInterval = setInterval(() => {
 					if (chatState.value.status.isReady) {
 						clearInterval(retryInterval);
-						deleteConversation(id).catch(console.error);
+						deleteInteraction(id).catch(console.error);
 					}
 				}, 1000);
 				// Clear interval after 10 seconds
@@ -767,11 +767,11 @@ export default function Chat({
 											isConversationListVisible.value = false;
 										}}
 										onNew={async () => {
-											const id = shortenConversationId(generateConversationId());
+											const id = shortenInteractionId(generateInteractionId());
 											await selectConversation(id);
 											isConversationListVisible.value = false;
 										}}
-										onDelete={deleteConversation}
+										onDelete={deleteInteraction}
 										onClose={() => isConversationListVisible.value = false}
 									/>
 								</div>
@@ -784,10 +784,10 @@ export default function Chat({
 									status={chatState.value.status}
 									onSelect={selectConversation}
 									onNew={async () => {
-										const id = shortenConversationId(generateConversationId());
+										const id = shortenInteractionId(generateInteractionId());
 										await selectConversation(id);
 									}}
-									onDelete={deleteConversation}
+									onDelete={deleteInteraction}
 									onToggleList={() =>
 										isConversationListVisible.value = !isConversationListVisible.value}
 									isListVisible={isConversationListVisible.value}
@@ -894,7 +894,6 @@ export default function Chat({
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}
 										attachedFiles={attachedFiles}
-										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										primaryDataSourceName={chatState.value.projectData?.dsConnections?.find((ds) =>

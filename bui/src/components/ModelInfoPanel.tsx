@@ -12,7 +12,7 @@ interface ModelInfoPanelProps {
 		model: string;
 		provider: string;
 		modelConfig?: LLMModelConfig;
-		tokenUsageConversation?: TokenUsage;
+		tokenUsageInteraction?: TokenUsage;
 		tokenUsageTurn?: TokenUsage;
 	};
 	modelData: Signal<ModelDetails | null>;
@@ -24,7 +24,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 	//console.log(`ModelInfoPanel: ${isOpen ? 'Open' : 'Closed'}`);
 	//console.log(`ModelInfoPanel:`, {modelInfo});
 	console.log(`ModelInfoPanel:`, { modelData: modelData.value });
-	const { model, provider, modelConfig, tokenUsageTurn, tokenUsageConversation } = modelInfo;
+	const { model, provider, modelConfig, tokenUsageTurn, tokenUsageInteraction } = modelInfo;
 
 	// Extract request parameters or use defaults
 	const temperature = modelConfig?.temperature ?? 0;

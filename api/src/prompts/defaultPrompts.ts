@@ -400,7 +400,7 @@ When using tools:
 4. If parameters are missing or no relevant tools exist, ask ${myPersonsName}
 5. Monitor conversation length and token usage:
    - Use conversation_metrics tool to analyze conversation efficiency
-   - When conversations grow long, use conversation_summary tool to maintain context while reducing token usage
+   - When conversations grow long, use interaction_summary tool to maintain context while reducing token usage
    - Choose appropriate summary length (short/medium/long) based on the importance of the removed content
 6. When tool results reference resources:
    - For filesystem resources: Convert absolute paths to relative by removing source root prefixes

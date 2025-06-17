@@ -1,12 +1,12 @@
 import type {
-	ConversationContinue,
-	ConversationDeleted,
-	ConversationId,
+	CollaborationContinue,
+	CollaborationDeleted,
+	InteractionId,
 	CollaborationLogEntry,
-	ConversationNew,
-	ConversationResponse,
-	ConversationStart,
-	ConversationStats,
+	CollaborationNew,
+	CollaborationResponse,
+	CollaborationStart,
+	InteractionStats,
 	TokenUsage,
 } from '../types.ts';
 
@@ -22,41 +22,41 @@ export interface WebSocketResponseBase {
 	data: Record<string, unknown>;
 }
 
-export interface ConversationReadyResponse extends WebSocketResponseBase {
-	type: 'conversationReady';
-	data: ConversationStart;
+export interface CollaborationReadyResponse extends WebSocketResponseBase {
+	type: 'collaborationReady';
+	data: CollaborationStart;
 }
 
-export interface ConversationNewResponse extends WebSocketResponseBase {
-	type: 'conversationNew';
-	data: ConversationNew;
+export interface CollaborationNewResponse extends WebSocketResponseBase {
+	type: 'collaborationNew';
+	data: CollaborationNew;
 }
 
-export interface ConversationDeletedResponse extends WebSocketResponseBase {
-	type: 'conversationDeleted';
-	data: ConversationDeleted;
+export interface CollaborationDeletedResponse extends WebSocketResponseBase {
+	type: 'collaborationDeleted';
+	data: CollaborationDeleted;
 }
 
-export interface ConversationContinueResponse extends WebSocketResponseBase {
-	type: 'conversationContinue';
-	data: ConversationContinue;
+export interface CollaborationContinueResponse extends WebSocketResponseBase {
+	type: 'collaborationContinue';
+	data: CollaborationContinue;
 }
 
-export interface ConversationAnswerResponse extends WebSocketResponseBase {
-	type: 'conversationAnswer';
-	data: ConversationResponse;
+export interface CollaborationAnswerResponse extends WebSocketResponseBase {
+	type: 'collaborationAnswer';
+	data: CollaborationResponse;
 }
 
-export interface ConversationErrorResponse extends WebSocketResponseBase {
-	type: 'conversationError';
+export interface CollaborationErrorResponse extends WebSocketResponseBase {
+	type: 'collaborationError';
 	data: {
 		error: string;
 		code?: string;
 	};
 }
 
-export interface ConversationCancelledResponse extends WebSocketResponseBase {
-	type: 'conversationCancelled';
+export interface CollaborationCancelledResponse extends WebSocketResponseBase {
+	type: 'collaborationCancelled';
 	data: {
 		message: string;
 	};
@@ -85,12 +85,12 @@ export interface PromptCacheTimerResponse extends WebSocketResponseBase {
 }
 
 export type WebSocketResponse =
-	| ConversationReadyResponse
-	| ConversationNewResponse
-	| ConversationDeletedResponse
-	| ConversationContinueResponse
-	| ConversationAnswerResponse
-	| ConversationErrorResponse
-	| ConversationCancelledResponse
+	| CollaborationReadyResponse
+	| CollaborationNewResponse
+	| CollaborationDeletedResponse
+	| CollaborationContinueResponse
+	| CollaborationAnswerResponse
+	| CollaborationErrorResponse
+	| CollaborationCancelledResponse
 	| ProgressStatusResponse
 	| PromptCacheTimerResponse;

@@ -1,5 +1,5 @@
 import ProjectEditor from 'api/editor/projectEditor.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { InteractionId } from 'shared/types.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
 import { logger } from 'shared/logger.ts';
@@ -10,12 +10,12 @@ class ProjectEditorManager {
 	private pendingEditorCreations: Map<string, Promise<ProjectEditor>> = new Map();
 
 	async getOrCreateEditor(
-		conversationId: ConversationId | undefined,
+		conversationId: InteractionId | undefined,
 		projectId: string,
 		sessionManager: SessionManager,
 	): Promise<ProjectEditor> {
 		if (!conversationId) {
-			throw new Error('ConversationId is required to create a new ProjectEditor');
+			throw new Error('InteractionId is required to create a new ProjectEditor');
 		}
 
 		// Create a composite key using both projectId and conversationId
@@ -66,30 +66,30 @@ class ProjectEditorManager {
 	private async createEditorWithLock(
 		editorKey: string,
 		projectId: string,
-		conversationId: ConversationId,
+		conversationId: InteractionId,
 		sessionManager: SessionManager,
 	): Promise<ProjectEditor> {
 		//try {
 		const projectEditor = await new ProjectEditor(projectId, sessionManager).init();
 		this.projectEditors.set(editorKey, projectEditor);
-		await projectEditor.initConversation(conversationId);
+		await projectEditor.initCollaboration(conversationId);
 		return projectEditor;
 		//} catch (error) {
 		//	logger.error(`ProjectEditorManager: Failed to create ProjectEditor: ${errorMessage(error)}`);
 		//}
 	}
 
-	getEditor(conversationId: ConversationId, projectId?: string): ProjectEditor | undefined {
+	getEditor(conversationId: InteractionId, projectId?: string): ProjectEditor | undefined {
 		const editorKey = projectId ? `${projectId}-${conversationId}` : conversationId;
 		return this.projectEditors.get(editorKey);
 	}
 
-	releaseEditor(conversationId: ConversationId, projectId?: string): void {
+	releaseEditor(conversationId: InteractionId, projectId?: string): void {
 		const editorKey = projectId ? `${projectId}-${conversationId}` : conversationId;
 		this.projectEditors.delete(editorKey);
 	}
 
-	isConversationActive(conversationId: ConversationId | undefined, projectId?: string): boolean {
+	isCollaborationActive(conversationId: InteractionId | undefined, projectId?: string): boolean {
 		if (!conversationId) return false;
 		const editorKey = projectId && conversationId ? `${projectId}-${conversationId}` : conversationId;
 		return editorKey ? this.projectEditors.has(editorKey) : false;

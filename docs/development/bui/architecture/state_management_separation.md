@@ -58,7 +58,7 @@ interface ChatState {
     apiClient: ApiClient | null;
     wsManager: WebSocketManager | null;
     logDataEntries: CollaborationLogDataEntry[];
-    conversations: ConversationMetadata[];
+    conversations: InteractionMetadata[];
     status: ChatStatus;
     error: string | null;
 }
@@ -116,7 +116,7 @@ class WebSocketManagerApp extends WebSocketManagerBaseImpl {
 Handles chat-level WebSocket communication:
 ```typescript
 class WebSocketManagerChat extends WebSocketManagerBaseImpl {
-    private conversationId: ConversationId | null = null;
+    private conversationId: InteractionId | null = null;
 
     protected getWebSocketUrl(): string {
         return `${this.wsUrl}/conversation/${this.conversationId}`;

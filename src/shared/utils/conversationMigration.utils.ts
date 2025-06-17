@@ -6,7 +6,7 @@ import { generateResourceRevisionKey, generateResourceUriKey } from 'shared/data
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 
@@ -15,7 +15,15 @@ import type ProjectPersistence from 'api/storage/projectPersistence.ts';
  */
 export interface ConversationsFileV1 {
 	version: string;
-	conversations: ConversationMetadata[];
+	conversations: InteractionMetadata[];
+}
+
+/**
+ * Versioned format for conversations.json file
+ */
+export interface InteractionsFileV2 {
+	version: string;
+	interactions: InteractionMetadata[];
 }
 
 /**
@@ -31,7 +39,7 @@ export interface ConversationsMigrationState {
  * Current version of the conversation migrations
  * This should match the version used in the conversations.json file
  */
-export const CURRENT_MIGRATION_VERSION = '1.0';
+export const CURRENT_MIGRATION_VERSION = '2.0';
 
 /**
  * Map of migration locks to prevent concurrent migrations
@@ -186,7 +194,7 @@ export async function migrateConversationResources(
 ): Promise<void> {
 	try {
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-		const conversationsDir = join(projectAdminDataDir, 'conversations');
+		const interactionsDir = join(projectAdminDataDir, 'conversations');
 		const migrationStateFile = join(projectAdminDataDir, '.conversations-migrated');
 
 		// Check if migration state file exists
@@ -217,7 +225,7 @@ export async function migrateConversationResources(
 		}
 
 		// Ensure the directory exists
-		if (!await exists(conversationsDir)) {
+		if (!await exists(interactionsDir)) {
 			logger.info(`ConversationMigration: No conversations directory found for project ${projectId}`);
 
 			// Create migration state file even if no conversations exist
@@ -235,14 +243,14 @@ export async function migrateConversationResources(
 		let migratedCount = 0;
 
 		// Process each conversation directory
-		for await (const entry of Deno.readDir(conversationsDir)) {
+		for await (const entry of Deno.readDir(interactionsDir)) {
 			if (!entry.isDirectory) continue;
 
 			const conversationId = entry.name;
-			const newMetadataPath = join(conversationsDir, conversationId, 'resources_metadata.json');
-			const oldMetadataPath = join(conversationsDir, conversationId, 'files_metadata.json');
-			const newResourceRevisionsDir = join(conversationsDir, conversationId, 'resource_revisions');
-			const oldFileRevisionsDir = join(conversationsDir, conversationId, 'file_revisions');
+			const newMetadataPath = join(interactionsDir, conversationId, 'resources_metadata.json');
+			const oldMetadataPath = join(interactionsDir, conversationId, 'files_metadata.json');
+			const newResourceRevisionsDir = join(interactionsDir, conversationId, 'resource_revisions');
+			const oldFileRevisionsDir = join(interactionsDir, conversationId, 'file_revisions');
 
 			// If resources_metadata.json exists, assume migration is already complete for this conversation
 			if (await exists(newMetadataPath)) {
@@ -435,16 +443,16 @@ async function migrateProjectResources(
 
 				// Find the content of the latest revision
 				const revisionId = info.latestRevision;
-				const conversationsDir = join(projectAdminDataDir, 'conversations');
+				const interactionsDir = join(projectAdminDataDir, 'conversations');
 				let content: string | Uint8Array | null = null;
 
 				// Look through all conversations for this revision
-				for await (const entry of Deno.readDir(conversationsDir)) {
+				for await (const entry of Deno.readDir(interactionsDir)) {
 					if (!entry.isDirectory) continue;
 
 					const conversationId = entry.name;
 					const revisionKey = generateResourceRevisionKey(info.uri, revisionId);
-					const revisionPath = join(conversationsDir, conversationId, 'resource_revisions', revisionKey);
+					const revisionPath = join(interactionsDir, conversationId, 'resource_revisions', revisionKey);
 
 					// Check if the revision exists
 					if (await exists(revisionPath)) {

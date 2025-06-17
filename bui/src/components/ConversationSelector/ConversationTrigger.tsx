@@ -1,8 +1,8 @@
 import { forwardRef } from 'preact/compat';
-import type { ConversationMetadata } from 'shared/types.ts';
+import type { InteractionMetadata } from 'shared/types.ts';
 
 interface ConversationTriggerProps {
-	conversation: ConversationMetadata | undefined;
+	conversation: InteractionMetadata | undefined;
 	isOpen: boolean;
 	onClick: () => void;
 	className?: string;
