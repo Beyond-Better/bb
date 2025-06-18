@@ -300,7 +300,8 @@ class AgentController extends BaseController {
 			}
 		} catch (error) {
 			logger.info('AgentController: Received error from LLM chat: ', error);
-			throw this.handleLLMError(error as Error, interaction);
+			// Note: Agent controller doesn't have direct collaboration context
+			throw error;
 		}
 		 */
 
@@ -358,7 +359,7 @@ class AgentController extends BaseController {
 				this.updateStats(interaction.id, interaction.interactionStats);
 			} catch (error) {
 				logger.info('AgentController: Received error from LLM converse: ', error);
-				throw this.handleLLMError(error as Error, interaction);
+				throw this.handleLLMError(error as Error, collaboration, interaction);
 			}
 
 			// Save the interaction immediately after the first response
@@ -552,7 +553,7 @@ class AgentController extends BaseController {
 							//this.emitStatus(ApiStatus.API_BUSY);
 							//logger.info('AgentController: tool response', currentResponse);
 						} catch (error) {
-							throw this.handleLLMError(error as Error, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
+							throw this.handleLLMError(error as Error, collaboration, interaction); // This error is likely fatal, so we'll throw it to be caught by the outer try-catch
 						}
 					} else {
 						// No more tool toolResponse, exit the loop

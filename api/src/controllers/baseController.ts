@@ -1,7 +1,9 @@
 import * as diff from 'diff';
 
-import type InteractionManager from 'api/llms/interactionManager.ts';
-import { interactionManager } from 'api/llms/interactionManager.ts';
+import type InteractionManager from 'api/llms/interactions/interactionManager.ts';
+import { interactionManager } from 'api/llms/interactions/interactionManager.ts';
+import type CollaborationManager from 'api/collaborations/collaborationManager.ts';
+import { createCollaborationManager } from 'api/collaborations/collaborationManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -16,8 +18,9 @@ import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse, LLMRequestParams, LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponse, LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
+	Collaboration,
 	CollaborationContinue,
 	//CollaborationLogDataEntry,
 	InteractionId,
@@ -54,6 +57,7 @@ import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 class BaseController {
 	protected _controllerType: 'base' | 'orchestrator' | 'agent';
 	public projectConfig!: ProjectConfig;
+	public collaborationManager: CollaborationManager;
 	public interactionManager: InteractionManager;
 	public promptManager!: PromptManager;
 	public toolManager!: LLMToolManager;
@@ -121,7 +125,8 @@ class BaseController {
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this._controllerType = 'base';
 		this.projectEditorRef = new WeakRef(projectEditor);
-		this.interactionManager = interactionManager; //new InteractionManager();
+		this.collaborationManager = createCollaborationManager(projectEditor as ProjectEditor & { projectInfo: ProjectInfo & { projectId: string } });
+		this.interactionManager = interactionManager;
 	}
 
 	async init(): Promise<BaseController> {
@@ -134,7 +139,7 @@ class BaseController {
 		return this;
 	}
 
-	protected handleLLMError(error: Error, interaction: LLMConversationInteraction): LLMError {
+	protected handleLLMError(error: Error, collaboration:Collaboration,interaction: LLMConversationInteraction): LLMError {
 		logger.error(`BaseController: handleLLMError:`, error);
 
 		if (isLLMError(error)) {
@@ -153,8 +158,9 @@ class BaseController {
 			this.eventManager.emit(
 				'projectEditor:collaborationError',
 				{
-					conversationId: interaction.id,
-					collaborationTitle: interaction.title || '',
+					collaborationId: collaboration.id,
+					interactionId: interaction.id,
+					collaborationTitle: collaboration.title || '',
 					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
 					interactionStats: {
@@ -515,7 +521,8 @@ class BaseController {
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: CollaborationResponse = {
 						timestamp,
-						conversationId: logEntryInteraction.id,
+						collaborationId: '', // TODO: Get from collaboration context
+						interactionId: logEntryInteraction.id,
 						collaborationTitle: logEntryInteraction.title,
 						messageId,
 						parentMessageId,
@@ -532,7 +539,8 @@ class BaseController {
 				} else {
 					const collaborationContinue: CollaborationContinue = {
 						timestamp,
-						conversationId: logEntryInteraction.id,
+						collaborationId: '', // TODO: Get from collaboration context
+						interactionId: logEntryInteraction.id,
 						collaborationTitle: logEntryInteraction.title,
 						messageId,
 						parentMessageId,
@@ -652,7 +660,7 @@ class BaseController {
 			this.eventManager.emit(
 				'projectEditor:collaborationDeleted',
 				{
-					conversationId,
+					collaborationId: conversationId,
 					timestamp: new Date().toISOString(),
 				} as EventPayloadMap['projectEditor']['projectEditor:collaborationDeleted'],
 			);
