@@ -1,7 +1,7 @@
 import * as diff from 'diff';
 
-import type InteractionManager from 'api/llms/interactions/interactionManager.ts';
-import { interactionManager } from 'api/llms/interactions/interactionManager.ts';
+import type InteractionManager from 'api/llms/interactionManager.ts';
+import { interactionManager } from 'api/llms/interactionManager.ts';
 import type CollaborationManager from 'api/collaborations/collaborationManager.ts';
 import { createCollaborationManager } from 'api/collaborations/collaborationManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -125,7 +125,7 @@ class BaseController {
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this._controllerType = 'base';
 		this.projectEditorRef = new WeakRef(projectEditor);
-		this.collaborationManager = createCollaborationManager(projectEditor as ProjectEditor & { projectInfo: ProjectInfo & { projectId: string } });
+		this.collaborationManager = createCollaborationManager();
 		this.interactionManager = interactionManager;
 	}
 

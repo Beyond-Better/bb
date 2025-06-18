@@ -1,77 +1,14 @@
 import type { CollaborationId, InteractionId } from 'shared/types.ts';
-import type { LLMCallbacks } from 'api/types.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
 import Collaboration from './collaboration.ts';
-import type ProjectEditor from 'api/editor/projectEditor.ts';
-import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
-import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
+import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
-import { generateCollaborationId, shortenCollaborationId } from 'shared/utils/interactionManagement.utils.ts';
-
-// Ensure ProjectInfo includes projectId
-type ExtendedProjectInfo = ProjectInfo & { projectId: string };
 
 export default class CollaborationManager {
 	private collaborations: Map<CollaborationId, Collaboration> = new Map();
 	private collaborationResults: Map<CollaborationId, unknown> = new Map();
-	private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo };
 
-	constructor(projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo }) {
-		this.projectEditor = projectEditor;
-	}
-
-	async createCollaboration(
-		options: {
-			id?: CollaborationId;
-			title?: string;
-			type?: 'project' | 'workflow' | 'research';
-			collaborationParams?: CollaborationParams;
-		} = {}
-	): Promise<Collaboration> {
-		const collaborationId = options.id || shortenCollaborationId(generateCollaborationId());
-		
-		logger.info(`CollaborationManager: Creating collaboration ${collaborationId}`);
-
-		// Check if collaboration already exists
-		if (this.collaborations.has(collaborationId)) {
-			throw new Error(`Collaboration with id ${collaborationId} already exists`);
-		}
-
-		const collaboration = await Collaboration.create(
-			collaborationId,
-			this.projectEditor,
-			{
-				title: options.title,
-				type: options.type,
-				collaborationParams: options.collaborationParams,
-			}
-		);
-
-		this.collaborations.set(collaborationId, collaboration);
-		logger.info(`CollaborationManager: Created collaboration ${collaborationId}`);
-
-		return collaboration;
-	}
-
-	async loadCollaboration(collaborationId: CollaborationId): Promise<Collaboration | null> {
-		// Check if already loaded
-		if (this.collaborations.has(collaborationId)) {
-			return this.collaborations.get(collaborationId)!;
-		}
-
-		logger.info(`CollaborationManager: Loading collaboration ${collaborationId}`);
-
-		const collaboration = await Collaboration.load(collaborationId, this.projectEditor);
-		if (collaboration) {
-			this.collaborations.set(collaborationId, collaboration);
-			logger.info(`CollaborationManager: Loaded collaboration ${collaborationId}`);
-		} else {
-			logger.warn(`CollaborationManager: Collaboration ${collaborationId} not found`);
-		}
-
-		return collaboration;
-	}
-
+	// Basic collaboration management
 	addCollaboration(collaboration: Collaboration): void {
 		this.collaborations.set(collaboration.id, collaboration);
 		logger.debug(`CollaborationManager: Added collaboration ${collaboration.id}`);
@@ -97,39 +34,14 @@ export default class CollaborationManager {
 		return collaboration;
 	}
 
-	async removeCollaboration(id: CollaborationId): Promise<boolean> {
-		const collaboration = this.collaborations.get(id);
-		if (!collaboration) {
-			return false;
-		}
-
-		// Remove from memory
+	removeCollaboration(id: CollaborationId): boolean {
 		const removed = this.collaborations.delete(id);
 		this.collaborationResults.delete(id);
 
-		logger.info(`CollaborationManager: Removed collaboration ${id} from memory`);
-		return removed;
-	}
-
-	async deleteCollaboration(id: CollaborationId): Promise<boolean> {
-		const collaboration = this.collaborations.get(id);
-		if (!collaboration) {
-			// Try to load it first to delete it
-			const loadedCollaboration = await this.loadCollaboration(id);
-			if (!loadedCollaboration) {
-				return false;
-			}
-			await loadedCollaboration.delete();
-		} else {
-			await collaboration.delete();
+		if (removed) {
+			logger.info(`CollaborationManager: Removed collaboration ${id} from cache`);
 		}
-
-		// Remove from memory
-		this.collaborations.delete(id);
-		this.collaborationResults.delete(id);
-
-		logger.info(`CollaborationManager: Deleted collaboration ${id}`);
-		return true;
+		return removed;
 	}
 
 	hasCollaboration(id: CollaborationId): boolean {
@@ -144,7 +56,7 @@ export default class CollaborationManager {
 		return Array.from(this.collaborations.keys());
 	}
 
-	// Collaboration results management
+	// Collaboration results management (for storing operation results)
 	setCollaborationResult(collaborationId: CollaborationId, result: unknown): void {
 		this.collaborationResults.set(collaborationId, result);
 	}
@@ -154,84 +66,45 @@ export default class CollaborationManager {
 	}
 
 	// Interaction management through collaborations
-	async createInteractionInCollaboration(
+	addInteractionToCollaboration(
 		collaborationId: CollaborationId,
-		interactionCallbacks: LLMCallbacks,
-		parentInteractionId?: InteractionId,
-	): Promise<{ collaboration: Collaboration; interaction: any }> {
-		let collaboration = this.getCollaboration(collaborationId);
-		
-		if (!collaboration) {
-			// Try to load the collaboration
-			collaboration = await this.loadCollaboration(collaborationId);
-			if (!collaboration) {
-				throw new Error(`Collaboration ${collaborationId} not found`);
-			}
-		}
-
-		const interaction = await collaboration.createInteraction(parentInteractionId, interactionCallbacks);
-		
-		return { collaboration, interaction };
-	}
-
-	async getInteractionFromCollaboration(
-		collaborationId: CollaborationId,
-		interactionId: InteractionId,
-	): Promise<any> {
+		interaction: LLMInteraction,
+	): void {
 		const collaboration = this.getCollaboration(collaborationId);
 		if (!collaboration) {
 			throw new Error(`Collaboration ${collaborationId} not found`);
 		}
 
-		return await collaboration.getInteraction(interactionId);
+		collaboration.addLoadedInteraction(interaction);
+		logger.debug(`CollaborationManager: Added interaction ${interaction.id} to collaboration ${collaborationId}`);
 	}
 
-	// Listing and querying methods
-	async listCollaborations(options: {
-		page: number;
-		limit: number;
-		startDate?: Date;
-		endDate?: Date;
-		llmProviderName?: string;
-	}) {
-		return await CollaborationPersistence.listCollaborations({
-			...options,
-			projectId: this.projectEditor.projectId,
-		});
-	}
-
-	async getCollaborationIdByTitle(title: string): Promise<CollaborationId | null> {
-		// First check loaded collaborations
-		for (const collaboration of this.collaborations.values()) {
-			if (collaboration.title === title) {
-				return collaboration.id;
-			}
+	getInteractionFromCollaboration(
+		collaborationId: CollaborationId,
+		interactionId: InteractionId,
+	): LLMInteraction | undefined {
+		const collaboration = this.getCollaboration(collaborationId);
+		if (!collaboration) {
+			return undefined;
 		}
 
-		// Then check persistence
-		const persistence = new CollaborationPersistence('temp', this.projectEditor);
-		await persistence.init();
-		return await persistence.getCollaborationIdByTitle(title);
+		return collaboration.getLoadedInteraction(interactionId);
 	}
 
-	async getCollaborationTitleById(id: CollaborationId): Promise<string | null> {
-		// First check loaded collaborations
-		const collaboration = this.collaborations.get(id);
-		if (collaboration) {
-			return collaboration.title;
+	removeInteractionFromCollaboration(
+		collaborationId: CollaborationId,
+		interactionId: InteractionId,
+	): boolean {
+		const collaboration = this.getCollaboration(collaborationId);
+		if (!collaboration) {
+			return false;
 		}
 
-		// Then check persistence
-		const persistence = new CollaborationPersistence('temp', this.projectEditor);
-		await persistence.init();
-		return await persistence.getCollaborationTitleById(id);
-	}
-
-	async getAllCollaborationSummaries(): Promise<{ id: string; title: string }[]> {
-		// Get from persistence (this includes all collaborations, not just loaded ones)
-		const persistence = new CollaborationPersistence('temp', this.projectEditor);
-		await persistence.init();
-		return await persistence.getAllCollaborations();
+		const removed = collaboration.removeLoadedInteraction(interactionId);
+		if (removed) {
+			logger.debug(`CollaborationManager: Removed interaction ${interactionId} from collaboration ${collaborationId}`);
+		}
+		return removed;
 	}
 
 	// Utility methods
@@ -239,59 +112,77 @@ export default class CollaborationManager {
 		return this.collaborations.size;
 	}
 
-	getCollaborationSummaries(): Array<{ id: CollaborationId; title: string; type: string; totalInteractions: number }> {
+	getCollaborationSummaries(): Array<{ 
+		id: CollaborationId; 
+		title: string; 
+		type: string; 
+		totalInteractions: number;
+		projectId: string;
+	}> {
 		return Array.from(this.collaborations.values()).map(collaboration => collaboration.getSummary());
 	}
 
-	// Cleanup methods
+	// Find collaborations by criteria
+	findCollaborationsByTitle(title: string): Collaboration[] {
+		return Array.from(this.collaborations.values()).filter(
+			collaboration => collaboration.title.toLowerCase().includes(title.toLowerCase())
+		);
+	}
+
+	findCollaborationsByType(type: 'project' | 'workflow' | 'research'): Collaboration[] {
+		return Array.from(this.collaborations.values()).filter(
+			collaboration => collaboration.type === type
+		);
+	}
+
+	findCollaborationsByProjectId(projectId: string): Collaboration[] {
+		return Array.from(this.collaborations.values()).filter(
+			collaboration => collaboration.projectId === projectId
+		);
+	}
+
+	// Bulk operations
 	clearAllCollaborations(): void {
 		this.collaborations.clear();
 		this.collaborationResults.clear();
-		logger.info('CollaborationManager: Cleared all collaborations from memory');
+		logger.info('CollaborationManager: Cleared all collaborations from cache');
 	}
 
-	// Save all loaded collaborations
-	async saveAllCollaborations(): Promise<void> {
-		const savePromises = Array.from(this.collaborations.values()).map(collaboration => 
-			collaboration.save().catch(error => {
-				logger.error(`CollaborationManager: Failed to save collaboration ${collaboration.id}:`, error);
-			})
+	// Get collaborations with loaded interactions
+	getCollaborationsWithLoadedInteractions(): Collaboration[] {
+		return Array.from(this.collaborations.values()).filter(
+			collaboration => collaboration.getLoadedInteractions().length > 0
 		);
-
-		await Promise.all(savePromises);
-		logger.info(`CollaborationManager: Saved ${this.collaborations.size} collaborations`);
 	}
 
-	// Load collaborations by criteria
-	async loadCollaborationsByDateRange(startDate: Date, endDate: Date): Promise<Collaboration[]> {
-		const { collaborations } = await this.listCollaborations({
-			page: 1,
-			limit: 1000, // Large limit to get all
-			startDate,
-			endDate,
-		});
+	// Statistics
+	getTotalLoadedInteractions(): number {
+		return Array.from(this.collaborations.values()).reduce(
+			(total, collaboration) => total + collaboration.getLoadedInteractions().length,
+			0
+		);
+	}
 
-		const loadedCollaborations: Collaboration[] = [];
-		
-		for (const metadata of collaborations) {
-			let collaboration = this.getCollaboration(metadata.id);
-			if (!collaboration) {
-				collaboration = await this.loadCollaboration(metadata.id);
-			}
-			if (collaboration) {
-				loadedCollaborations.push(collaboration);
-			}
-		}
-
-		return loadedCollaborations;
+	getCollaborationStats() {
+		const collaborations = Array.from(this.collaborations.values());
+		return {
+			totalCollaborations: collaborations.length,
+			totalInteractions: collaborations.reduce((sum, c) => sum + c.totalInteractions, 0),
+			totalLoadedInteractions: this.getTotalLoadedInteractions(),
+			collaborationsByType: {
+				project: collaborations.filter(c => c.type === 'project').length,
+				workflow: collaborations.filter(c => c.type === 'workflow').length,
+				research: collaborations.filter(c => c.type === 'research').length,
+			},
+		};
 	}
 }
 
 // Create a singleton instance for global use
 let collaborationManagerInstance: CollaborationManager | null = null;
 
-export function createCollaborationManager(projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo }): CollaborationManager {
-	collaborationManagerInstance = new CollaborationManager(projectEditor);
+export function createCollaborationManager(): CollaborationManager {
+	collaborationManagerInstance = new CollaborationManager();
 	return collaborationManagerInstance;
 }
 

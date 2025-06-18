@@ -7,10 +7,10 @@ import type {
 } from 'api/types/llms.ts';
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
-import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
 import type { VersionInfo } from './types/version.types.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
 
+export type { Collaboration, CollaborationParams } from './types/collaboration.types.ts';
 export type {
 	CollaborationLogEntry,
 	CollaborationLogEntryContent,
@@ -314,7 +314,8 @@ export interface InteractionMetrics extends InteractionStats {
 export type CollaborationLogDataEntry = CollaborationStart | CollaborationContinue | CollaborationResponse;
 
 export interface CollaborationStart {
-	conversationId: InteractionId;
+	collaborationId: CollaborationId;
+	interactionId?: InteractionId;
 	collaborationTitle: string;
 	messageId?: string;
 	parentMessageId?: string | null;
@@ -337,7 +338,8 @@ export interface CollaborationStart {
 }
 
 export interface CollaborationContinue {
-	conversationId: InteractionId;
+	collaborationId: CollaborationId;
+	interactionId?: InteractionId;
 	collaborationTitle: string;
 	messageId?: string;
 	parentMessageId: string | null;
@@ -355,7 +357,8 @@ export interface CollaborationContinue {
 }
 
 export interface CollaborationNew {
-	conversationId: InteractionId;
+	collaborationId: CollaborationId;
+	interactionId?: InteractionId;
 	collaborationTitle: string;
 	messageId?: string;
 	parentMessageId?: string | null;
@@ -369,12 +372,14 @@ export interface CollaborationNew {
 }
 
 export interface CollaborationDeleted {
-	conversationId: InteractionId;
+	collaborationId: CollaborationId;
+	interactionId?: InteractionId;
 	timestamp: string;
 }
 
 export interface CollaborationResponse {
-	conversationId: InteractionId;
+	collaborationId: CollaborationId;
+	interactionId: InteractionId;
 	collaborationTitle: string;
 	messageId?: string;
 	parentMessageId: string | null;
