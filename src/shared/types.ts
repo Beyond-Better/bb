@@ -8,7 +8,7 @@ import type {
 import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
 import type { VersionInfo } from './types/version.types.ts';
 
 export type {

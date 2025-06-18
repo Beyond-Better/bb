@@ -112,17 +112,17 @@ export default class CollaborationLogger {
 	}
 	static async getLogFileDirPath(projectId: string, conversationId: string): Promise<string> {
 		const projectAdminDir = await getProjectAdminDataDir(projectId);
-		const collaborationLogsDir = join(projectAdminDir, 'conversations', conversationId);
+		const collaborationLogsDir = join(projectAdminDir, 'collaborations', conversationId);
 		//await ensureDir(collaborationLogsDir);
 		return collaborationLogsDir;
 	}
 	static async getLogFileRawPath(projectId: string, conversationId: string): Promise<string> {
 		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, conversationId);
-		return join(collaborationLogsDir, 'conversation.log');
+		return join(collaborationLogsDir, 'collaboration.log');
 	}
 	static async getLogFileJsonPath(projectId: string, conversationId: string): Promise<string> {
 		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, conversationId);
-		return join(collaborationLogsDir, 'conversation.jsonl');
+		return join(collaborationLogsDir, 'collaboration.jsonl');
 	}
 
 	static async getLogDataEntries(

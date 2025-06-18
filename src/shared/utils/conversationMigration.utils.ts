@@ -226,9 +226,9 @@ export async function migrateConversationResources(
 
 		// Ensure the directory exists
 		if (!await exists(interactionsDir)) {
-			logger.info(`ConversationMigration: No conversations directory found for project ${projectId}`);
+			logger.info(`ConversationMigration: No collaborations directory found for project ${projectId}`);
 
-			// Create migration state file even if no conversations exist
+			// Create migration state file even if no collaborations exist
 			const migrationState: ConversationsMigrationState = {
 				version: CURRENT_MIGRATION_VERSION,
 				lastMigrated: new Date().toISOString(),
@@ -443,14 +443,14 @@ async function migrateProjectResources(
 
 				// Find the content of the latest revision
 				const revisionId = info.latestRevision;
-				const interactionsDir = join(projectAdminDataDir, 'conversations');
+				const interactionsDir = join(projectAdminDataDir, 'collaborations');
 				let content: string | Uint8Array | null = null;
 
 				// Look through all conversations for this revision
 				for await (const entry of Deno.readDir(interactionsDir)) {
 					if (!entry.isDirectory) continue;
 
-					const conversationId = entry.name;
+					const collaborationId = entry.name;
 					const revisionKey = generateResourceRevisionKey(info.uri, revisionId);
 					const revisionPath = join(interactionsDir, conversationId, 'resource_revisions', revisionKey);
 

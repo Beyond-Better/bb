@@ -139,10 +139,16 @@ export class ConversationMigration {
 				case 1: {
 					const migrationResult2 = await ConversationMigration.migrateV1toV2(conversationDir);
 					const migrationResult3 = await ConversationMigration.migrateV2toV3(conversationDir);
-					return [migrationResult2, migrationResult3];
+					const migrationResult4 = await ConversationMigration.migrateV3toV4(conversationDir);
+					return [migrationResult2, migrationResult3, migrationResult4];
 				}
 				case 2: {
-					return [await ConversationMigration.migrateV2toV3(conversationDir)];
+					const migrationResult3 = await ConversationMigration.migrateV2toV3(conversationDir);
+					const migrationResult4 = await ConversationMigration.migrateV3toV4(conversationDir);
+					return [migrationResult3, migrationResult4];
+				}
+				case 3: {
+					return [await ConversationMigration.migrateV3toV4(conversationDir)];
 				}
 				default:
 					return [{
