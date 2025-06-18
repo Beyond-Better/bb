@@ -92,23 +92,31 @@ export interface ModelResponse {
 interface CollaborationResponse {
 	id: string;
 	title: string;
-	llmProviderName: string;
-	model: string;
+	type?: string;
+	llmProviderName?: string;
+	model?: string;
 	updatedAt: string;
 	createdAt: string;
-	interactionStats: {
+	totalInteractions?: number;
+	lastInteractionId?: string;
+	lastInteractionMetadata?: {
+		llmProviderName: string;
+		model: string;
+		updatedAt: string;
+	};
+	interactionStats?: {
 		statementTurnCount: number;
 		interactionTurnCount: number;
 		statementCount: number;
 	};
-	tokenUsageStats: {
+	tokenUsageStats?: {
 		tokenUsageInteraction: TokenUsage;
 		tokenUsageTurn: TokenUsage;
 		tokenUsageStatement: TokenUsage;
-		totalTokensTotal: TokenUsage;
+		totalTokensTotal?: TokenUsage;
 	};
-	modelConfig:LLMModelConfig;
-	collaborationParams: CollaborationParams;
+	modelConfig?: LLMModelConfig;
+	collaborationParams?: CollaborationParams;
 }
 
 export interface InteractionListResponse {
@@ -651,37 +659,146 @@ export class ApiClient {
 		}
 	}
 
-	// Conversation Management Methods
-	async createConversation(id: string, projectId: string): Promise<CollaborationResponse | null> {
+	// Collaboration Management Methods
+	async listCollaborations(projectId: string, page = 1, limit = 200): Promise<{
+		collaborations: CollaborationResponse[];
+		pagination: {
+			page: number;
+			pageSize: number;
+			totalPages: number;
+			totalItems: number;
+		};
+	} | null> {
+		return await this.get<{
+			collaborations: CollaborationResponse[];
+			pagination: {
+				page: number;
+				pageSize: number;
+				totalPages: number;
+				totalItems: number;
+			};
+		}>(
+			`/api/v1/collaborations?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`,
+		);
+	}
+
+	async createCollaboration(title: string, type: string, projectId: string): Promise<{
+		collaborationId: string;
+		title: string;
+		type: string;
+		createdAt: string;
+		updatedAt: string;
+	} | null> {
+		return await this.post<{
+			collaborationId: string;
+			title: string;
+			type: string;
+			createdAt: string;
+			updatedAt: string;
+		}>('/api/v1/collaborations', {
+			title,
+			type,
+			projectId,
+		});
+	}
+
+	async getCollaboration(
+		collaborationId: string,
+		projectId: string,
+	): Promise<CollaborationResponse | null> {
 		return await this.get<CollaborationResponse>(
-			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
+			`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`,
+			[404],
 		);
 	}
 
+	async deleteCollaboration(collaborationId: string, projectId: string): Promise<void> {
+		await this.delete(`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`, [404]);
+	}
+
+	async createInteraction(collaborationId: string, projectId: string, parentInteractionId?: string): Promise<{
+		interactionId: string;
+		collaborationId: string;
+	} | null> {
+		return await this.post<{
+			interactionId: string;
+			collaborationId: string;
+		}>(`/api/v1/collaborations/${collaborationId}/interactions`, {
+			projectId,
+			parentInteractionId,
+		});
+	}
+
+	async getInteraction(
+		collaborationId: string,
+		interactionId: string,
+		projectId: string,
+	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
+		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
+			`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}?projectId=${encodeURIComponent(projectId)}`,
+			[404],
+		);
+	}
+
+	async chatInteraction(
+		collaborationId: string,
+		interactionId: string,
+		statement: string,
+		projectId: string,
+		maxTurns?: number,
+	): Promise<{
+		collaborationId: string;
+		interactionId: string;
+		logEntry: CollaborationLogDataEntry;
+		collaborationTitle: string;
+		interactionStats: any;
+		tokenUsageStats: any;
+	} | null> {
+		return await this.post<{
+			collaborationId: string;
+			interactionId: string;
+			logEntry: CollaborationLogDataEntry;
+			collaborationTitle: string;
+			interactionStats: any;
+			tokenUsageStats: any;
+		}>(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}`, {
+			statement,
+			projectId,
+			maxTurns,
+		});
+	}
+
+	async deleteInteraction(collaborationId: string, interactionId: string, projectId: string): Promise<void> {
+		await this.delete(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}?projectId=${encodeURIComponent(projectId)}`, [404]);
+	}
+
+	// Legacy conversation methods for backward compatibility during transition
 	async getConversations(projectId: string, limit = 200): Promise<InteractionListResponse | null> {
-		return await this.get<InteractionListResponse>(
-			`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&limit=${limit}`,
-		);
-	}
-
-	async getConversationDefaults(projectId: string): Promise<LLMRequestParams | null> {
-		return await this.get<LLMRequestParams>(
-			`/api/v1/conversation/defaults?projectId=${encodeURIComponent(projectId)}`,
-		);
+		// Map to collaborations endpoint
+		const result = await this.listCollaborations(projectId, 1, limit);
+		if (!result) return null;
+		
+		return {
+			conversations: result.collaborations.map(collab => ({
+				id: collab.id,
+				title: collab.title,
+				createdAt: collab.createdAt,
+				updatedAt: collab.updatedAt,
+				llmProviderName: collab.llmProviderName || '',
+				model: collab.model || '',
+				interactionStats: collab.interactionStats,
+				tokenUsageStats: collab.tokenUsageStats,
+				collaborationParams: collab.collaborationParams,
+			} as InteractionMetadata))
+		};
 	}
 
 	async getConversation(
 		id: string,
 		projectId: string,
 	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
-			`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`,
-			[404],
-		);
-	}
-
-	async deleteInteraction(id: string, projectId: string): Promise<void> {
-		await this.delete(`/api/v1/conversation/${id}?projectId=${encodeURIComponent(projectId)}`, [404]);
+		// Map to collaboration endpoint
+		return await this.getCollaboration(id, projectId) as (CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null;
 	}
 
 	async getMeta(): Promise<SystemMeta | null> {

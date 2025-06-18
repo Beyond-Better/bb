@@ -374,6 +374,14 @@ class ProjectPersistence implements ProjectData {
 					const content = await Deno.readTextFile(projectDataPath);
 					const serializedData = JSON.parse(content) as SerializedProjectData;
 
+					// Check and migrate project data version if needed
+					if (!serializedData.version || serializedData.version < 4) {
+						logger.info(`ProjectPersistence: Migrating project data from version ${serializedData.version || 'unknown'} to version 4`);
+						serializedData.version = 4;
+						// Save the migrated version
+						await Deno.writeTextFile(projectDataPath, JSON.stringify(serializedData, null, 2));
+					}
+
 					// Populate class properties from loaded data
 					this._name = serializedData.name || '';
 					this._status = serializedData.status || 'draft';
@@ -700,6 +708,8 @@ class ProjectPersistence implements ProjectData {
 
 		// Create serialized version for storage
 		const serializedData: SerializedProjectData = this.toJSON();
+		// Ensure version 4 for collaboration support
+		serializedData.version = 4;
 
 		await ensureDir(projectDir);
 		await Deno.writeTextFile(projectDataPath, JSON.stringify(serializedData, null, 2));
@@ -737,6 +747,7 @@ class ProjectPersistence implements ProjectData {
 	 */
 	toJSON(): SerializedProjectData {
 		return {
+			version: 4, // Current project data format version
 			projectId: this._projectId,
 			name: this._name,
 			status: this._status,

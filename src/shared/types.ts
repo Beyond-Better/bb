@@ -20,8 +20,29 @@ export type {
 export type {LLMModelConfig, LLMRolesModelConfig};
 
 export type InteractionId = string;
+export type CollaborationId = string;
 
 export type VectorId = string;
+
+export interface CollaborationMetadata {
+	id: CollaborationId;
+	version: number; // Version 4 for collaboration format
+	title: string;
+	type: 'project' | 'workflow' | 'research';
+	collaborationParams: CollaborationParams;
+	createdAt: string;
+	updatedAt: string;
+	projectId: string;
+	totalInteractions: number;
+	tokenUsageStats: TokenUsageStats;
+	lastInteractionId?: InteractionId;
+	lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
+	interactionIds: InteractionId[];
+}
+
+export interface CollaborationDetailedMetadata extends CollaborationMetadata {
+	// Additional detailed fields for internal use
+}
 
 export interface InteractionMetadata {
 	//projectId: string;

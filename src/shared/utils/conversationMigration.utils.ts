@@ -446,13 +446,13 @@ async function migrateProjectResources(
 				const interactionsDir = join(projectAdminDataDir, 'collaborations');
 				let content: string | Uint8Array | null = null;
 
-				// Look through all conversations for this revision
+				// Look through all collaborations for this revision
 				for await (const entry of Deno.readDir(interactionsDir)) {
 					if (!entry.isDirectory) continue;
 
 					const collaborationId = entry.name;
 					const revisionKey = generateResourceRevisionKey(info.uri, revisionId);
-					const revisionPath = join(interactionsDir, conversationId, 'resource_revisions', revisionKey);
+					const revisionPath = join(interactionsDir, collaborationId, 'resource_revisions', revisionKey);
 
 					// Check if the revision exists
 					if (await exists(revisionPath)) {

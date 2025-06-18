@@ -1,100 +1,61 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
 import {
-	migrateConversationsFileIfNeeded,
-} from './conversationMigration.ts';
-import type { ConversationsFileV1, InteractionsFileV2 } from 'shared/conversationMigration.ts';
+	migrateConversationsToCollaborations,
+} from 'shared/conversationMigration.ts';
+import type { CollaborationsFileV4, InteractionsFileV2 } from 'shared/conversationMigration.ts';
 import {
 	getProjectAdminDataDir,
 	isProjectMigrated,
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
-import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type {
-	InteractionDetailedMetadata,
+	CollaborationDetailedMetadata,
+	CollaborationId,
+	CollaborationMetadata,
 	InteractionId,
 	InteractionMetadata,
-	InteractionMetrics,
 	InteractionStats,
-	LLMRequestRecord,
-	ObjectivesData,
-	ResourceMetrics,
 	TokenUsage,
 	TokenUsageAnalysis,
-	TokenUsageRecord,
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
-import type { CollaborationParams, Collaboration } from 'shared/types/collaboration.ts';
-import type { InteractionResourcesMetadata } from 'shared/types/dataSourceResource.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import { isTokenUsageValidationError } from 'api/errors/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type {
 	FileHandlingErrorOptions,
 	ProjectHandlingErrorOptions,
-	ResourceHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
-import type LLMTool from 'api/llms/llmTool.ts';
-import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
-import { generateResourceRevisionKey } from 'shared/dataSource.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
-import { stripIndents } from 'common-tags';
+import { generateInteractionId, shortenInteractionId } from 'shared/utils/interactionManagement.utils.ts';
+import InteractionPersistence from './interactionPersistence.ts';
 
 // Ensure ProjectInfo includes projectId
 type ExtendedProjectInfo = ProjectInfo & { projectId: string };
 
-// Collaboration storage interfaces
-export interface CollaborationMetadata {
-	id: string;
-	version: number;
-	title: string;
-	type: 'project' | 'workflow' | 'research';
-	collaborationParams: CollaborationParams;
-	createdAt: string;
-	updatedAt: string;
-	projectId: string;
-	// Aggregated stats from all child interactions
-	totalInteractions: number;
-	totalTokenUsage: TokenUsage;
-	lastInteractionId?: string;
-}
-
-export interface CollaborationsFileV4 {
-	version: '4.0';
-	collaborations: CollaborationMetadata[];
-}
-
-export interface CollaborationDetailedMetadata extends CollaborationMetadata {
-	// Additional detailed metadata for individual collaboration files
-	interactions: string[]; // Array of interaction IDs
-	parentCollaborationId?: string; // For nested collaborations
-}
-
 class CollaborationPersistence {
 	private collaborationDir!: string;
-	private collaborationsMetadataPath!: string;
 	private metadataPath!: string;
-	private interactionsDir!: string;
+	private collaborationsMetadataPath!: string;
 	private resourcesMetadataPath!: string;
 	private resourceRevisionsDir!: string;
 	private objectivesPath!: string;
 	private resourcesPath!: string;
 	private projectInfoPath!: string;
+	private interactionsDir!: string;
 	private initialized: boolean = false;
 	private tokenUsagePersistence!: TokenUsagePersistence;
 	private llmRequestPersistence!: LLMRequestPersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
-		private collaborationId: string,
+		private collaborationId: CollaborationId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
 	) {
 		//this.ensureInitialized();
@@ -109,10 +70,12 @@ class CollaborationPersistence {
 
 	async init(): Promise<CollaborationPersistence> {
 		// Get BB data directory using project ID
+		// Check if project has been migrated to new structure
 		const projectId = this.projectEditor.projectId;
 
 		const migrated = await isProjectMigrated(projectId);
 		if (!migrated) {
+			// Attempt migration for future calls
 			try {
 				await migrateProjectFiles(projectId);
 				logger.info(`CollaborationPersistence: Successfully migrated project ${projectId} files`);
@@ -130,8 +93,8 @@ class CollaborationPersistence {
 			}
 		}
 
-		// Migrate conversations to collaborations structure
-		await this.migrateConversationsToCollaborations(projectId);
+		// Migrate conversations to collaborations if needed
+		await migrateConversationsToCollaborations(projectId);
 
 		// Use new global project data directory
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
@@ -147,26 +110,24 @@ class CollaborationPersistence {
 				} as ProjectHandlingErrorOptions,
 			);
 		}
-
 		logger.debug(`CollaborationPersistence: Using data dir for ${projectId}: ${projectAdminDataDir}`);
-		
-		// New collaboration-based structure
 		const collaborationsDir = join(projectAdminDataDir, 'collaborations');
 		this.collaborationsMetadataPath = join(projectAdminDataDir, 'collaborations.json');
-		
+
 		this.collaborationDir = join(collaborationsDir, this.collaborationId);
-		this.metadataPath = join(this.collaborationDir, 'metadata.json');
 		this.interactionsDir = join(this.collaborationDir, 'interactions');
-		
+
+		this.metadataPath = join(this.collaborationDir, 'metadata.json');
+
 		this.resourcesMetadataPath = join(this.collaborationDir, 'resources_metadata.json');
 		this.resourceRevisionsDir = join(this.collaborationDir, 'resource_revisions');
+		// Ensure the resource_revisions directory exists
+		await ensureDir(this.resourceRevisionsDir);
+
 		this.projectInfoPath = join(this.collaborationDir, 'project_info.json');
+
 		this.objectivesPath = join(this.collaborationDir, 'objectives.json');
 		this.resourcesPath = join(this.collaborationDir, 'resources.json');
-
-		// Ensure directories exist
-		await ensureDir(this.resourceRevisionsDir);
-		await ensureDir(this.interactionsDir);
 
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.collaborationDir).init();
 		this.llmRequestPersistence = await new LLMRequestPersistence(this.collaborationDir).init();
@@ -174,199 +135,93 @@ class CollaborationPersistence {
 		return this;
 	}
 
-	/**
-	 * Migrates the old conversations structure to the new collaborations structure
-	 */
-	private async migrateConversationsToCollaborations(projectId: string): Promise<void> {
-		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-		if (!projectAdminDataDir) return;
-
-		const oldConversationsDir = join(projectAdminDataDir, 'conversations');
-		const oldConversationsMetadataPath = join(projectAdminDataDir, 'conversations.json');
-		const newCollaborationsDir = join(projectAdminDataDir, 'collaborations');
-		const newCollaborationsMetadataPath = join(projectAdminDataDir, 'collaborations.json');
-
-		// Check if migration is needed
-		if (!await exists(oldConversationsDir) || await exists(newCollaborationsMetadataPath)) {
-			return; // Already migrated or no old data
-		}
-
-		logger.info(`CollaborationPersistence: Migrating conversations to collaborations structure for project ${projectId}`);
-
-		try {
-			// Ensure new collaborations directory exists
-			await ensureDir(newCollaborationsDir);
-
-			// Read old conversations metadata
-			let oldInteractions: InteractionMetadata[] = [];
-			if (await exists(oldConversationsMetadataPath)) {
-				const content = await Deno.readTextFile(oldConversationsMetadataPath);
-				const data = JSON.parse(content);
-				
-				if (Array.isArray(data)) {
-					oldInteractions = data;
-				} else if (data.version && Array.isArray(data.interactions)) {
-					oldInteractions = data.interactions;
-				}
-			}
-
-			// Create collaborations from conversations
-			const collaborations: CollaborationMetadata[] = [];
-			
-			for (const interaction of oldInteractions) {
-				// Each conversation becomes a collaboration
-				const collaborationId = interaction.id;
-				const collaborationDir = join(newCollaborationsDir, collaborationId);
-				const oldInteractionDir = join(oldConversationsDir, interaction.id);
-
-				// Create collaboration directory
-				await ensureDir(collaborationDir);
-				await ensureDir(join(collaborationDir, 'interactions'));
-
-				// Move interaction data to collaboration/interactions/[interactionId]
-				const interactionDir = join(collaborationDir, 'interactions', interaction.id);
-				if (await exists(oldInteractionDir)) {
-					await copy(oldInteractionDir, interactionDir, { overwrite: true });
-				}
-
-				// Create collaboration metadata
-				const collaborationMetadata: CollaborationMetadata = {
-					id: collaborationId,
-					version: 4,
-					title: interaction.title,
-					type: 'project',
-					collaborationParams: interaction.collaborationParams || CollaborationPersistence.defaultCollaborationParams(),
-					createdAt: interaction.createdAt,
-					updatedAt: interaction.updatedAt,
-					projectId: projectId,
-					totalInteractions: 1,
-					totalTokenUsage: interaction.tokenUsageStats?.tokenUsageInteraction || CollaborationPersistence.defaultTokenUsage(),
-					lastInteractionId: interaction.id,
-				};
-
-				// Create detailed collaboration metadata
-				const detailedMetadata: CollaborationDetailedMetadata = {
-					...collaborationMetadata,
-					interactions: [interaction.id],
-				};
-
-				// Save collaboration metadata
-				const collaborationMetadataPath = join(collaborationDir, 'metadata.json');
-				await Deno.writeTextFile(collaborationMetadataPath, JSON.stringify(detailedMetadata, null, 2));
-
-				collaborations.push(collaborationMetadata);
-			}
-
-			// Create new collaborations.json with version 4 format
-			const collaborationsFile: CollaborationsFileV4 = {
-				version: '4.0',
-				collaborations: collaborations,
-			};
-
-			await Deno.writeTextFile(newCollaborationsMetadataPath, JSON.stringify(collaborationsFile, null, 2));
-
-			// Update project.json with version number for future migrations
-			await this.updateProjectVersion(projectId);
-
-			logger.info(`CollaborationPersistence: Successfully migrated ${collaborations.length} conversations to collaborations`);
-
-		} catch (error) {
-			logger.error(`CollaborationPersistence: Failed to migrate conversations to collaborations: ${errorMessage(error)}`);
-			throw error;
-		}
-	}
-
-	/**
-	 * Updates project.json with version number for future migrations
-	 */
-	private async updateProjectVersion(projectId: string): Promise<void> {
-		try {
-			const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-			if (!projectAdminDataDir) return;
-
-			const projectJsonPath = join(projectAdminDataDir, 'project.json');
-			let projectData: any = {};
-
-			if (await exists(projectJsonPath)) {
-				const content = await Deno.readTextFile(projectJsonPath);
-				projectData = JSON.parse(content);
-			}
-
-			// Set version 4 for collaboration structure
-			projectData.version = 4;
-			projectData.lastMigration = new Date().toISOString();
-
-			await Deno.writeTextFile(projectJsonPath, JSON.stringify(projectData, null, 2));
-			logger.debug(`CollaborationPersistence: Updated project.json version to 4 for project ${projectId}`);
-		} catch (error) {
-			logger.warn(`CollaborationPersistence: Failed to update project.json version: ${errorMessage(error)}`);
-			// Don't throw - this is not critical for functionality
-		}
-	}
-
-	/**
-	 * Lists all collaborations for a project
-	 */
 	static async listCollaborations(options: {
 		page: number;
 		limit: number;
 		startDate?: Date;
 		endDate?: Date;
-		collaborationType?: 'project' | 'workflow' | 'research';
+		llmProviderName?: string;
 		projectId: string;
 	}): Promise<{ collaborations: CollaborationMetadata[]; totalCount: number }> {
+		// Check if project has been migrated to new structure
 		const migrated = await isProjectMigrated(options.projectId);
 		if (!migrated) {
+			// Attempt migration for future calls
 			try {
 				await migrateProjectFiles(options.projectId);
-				logger.info(`CollaborationPersistence: Successfully migrated project ${options.projectId} files`);
+				logger.info(
+					`CollaborationPersistence: listCollaborations - Successfully migrated project ${options.projectId} files`,
+				);
 			} catch (migrationError) {
-				logger.warn(`CollaborationPersistence: Migration attempted but failed: ${(migrationError as Error).message}`);
+				logger.warn(
+					`CollaborationPersistence: Migration attempted but failed: ${(migrationError as Error).message}`,
+				);
 				throw createError(
 					ErrorType.ProjectHandling,
-					`Could not migrate project .bb directory for ${options.projectId}: ${(migrationError as Error).message}`,
-					{ projectId: options.projectId } as ProjectHandlingErrorOptions,
+					`Could not migrate project .bb directory for ${options.projectId}: ${
+						(migrationError as Error).message
+					}`,
+					{
+						projectId: options.projectId,
+					} as ProjectHandlingErrorOptions,
 				);
 			}
 		}
 
 		const projectAdminDataDir = await getProjectAdminDataDir(options.projectId);
 		if (!projectAdminDataDir) {
+			logger.error(
+				`CollaborationPersistence: Failed to get data directory for projectId ${options.projectId}`,
+			);
 			throw createError(
 				ErrorType.ProjectHandling,
 				`Failed to resolve project data directory`,
-				{ projectId: options.projectId } as ProjectHandlingErrorOptions,
+				{
+					projectId: options.projectId,
+				} as ProjectHandlingErrorOptions,
 			);
 		}
 
 		const collaborationsMetadataPath = join(projectAdminDataDir, 'collaborations.json');
 
 		try {
-			await ensureDir(dirname(projectAdminDataDir));
+			await ensureDir(dirname(projectAdminDataDir)); // Ensure parent directory exists
 			await ensureDir(projectAdminDataDir);
 		} catch (error) {
+			logger.error(`CollaborationPersistence: Failed to create required directories: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to create required directories: ${errorMessage(error)}`,
-				{ filePath: projectAdminDataDir, operation: 'write' } as FileHandlingErrorOptions,
+				{
+					filePath: projectAdminDataDir,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
 			);
 		}
 
 		try {
+			// Migrate conversations to collaborations if needed
+			await migrateConversationsToCollaborations(options.projectId);
+
 			if (!await exists(collaborationsMetadataPath)) {
-				// Create new collaborations.json file
-				const collaborationsFile: CollaborationsFileV4 = {
-					version: '4.0',
-					collaborations: [],
-				};
-				await Deno.writeTextFile(collaborationsMetadataPath, JSON.stringify(collaborationsFile, null, 2));
+				await Deno.writeTextFile(
+					collaborationsMetadataPath,
+					JSON.stringify({
+						version: '4.0',
+						collaborations: [],
+					}),
+				);
 				return { collaborations: [], totalCount: 0 };
 			}
 		} catch (error) {
+			logger.error(`CollaborationPersistence: Failed to create collaborations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to create collaborations.json: ${errorMessage(error)}`,
-				{ filePath: collaborationsMetadataPath, operation: 'write' } as FileHandlingErrorOptions,
+				{
+					filePath: collaborationsMetadataPath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
 			);
 		}
 
@@ -374,10 +229,14 @@ class CollaborationPersistence {
 		try {
 			content = await Deno.readTextFile(collaborationsMetadataPath);
 		} catch (error) {
+			logger.error(`CollaborationPersistence: Failed to read collaborations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to read collaborations.json: ${errorMessage(error)}`,
-				{ filePath: collaborationsMetadataPath, operation: 'read' } as FileHandlingErrorOptions,
+				{
+					filePath: collaborationsMetadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
 			);
 		}
 
@@ -387,15 +246,23 @@ class CollaborationPersistence {
 			collaborationsData = JSON.parse(content);
 
 			if (collaborationsData.version && Array.isArray(collaborationsData.collaborations)) {
+				// Version 4 format: object with version and collaborations array
 				collaborations = collaborationsData.collaborations;
 			} else {
+				// Unknown format
 				throw new Error('Invalid collaborations.json format');
 			}
 		} catch (error) {
+			logger.error(
+				`CollaborationPersistence: Failed to parse collaborations.json content: ${errorMessage(error)}`,
+			);
 			throw createError(
 				ErrorType.FileHandling,
 				`Invalid JSON in collaborations.json: ${errorMessage(error)}`,
-				{ filePath: collaborationsMetadataPath, operation: 'read' } as FileHandlingErrorOptions,
+				{
+					filePath: collaborationsMetadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
 			);
 		}
 
@@ -406,56 +273,38 @@ class CollaborationPersistence {
 		if (options.endDate) {
 			collaborations = collaborations.filter((collab) => new Date(collab.createdAt) <= options.endDate!);
 		}
-		if (options.collaborationType) {
-			collaborations = collaborations.filter((collab) => collab.type === options.collaborationType);
+		if (options.llmProviderName) {
+			collaborations = collaborations.filter((collab) => 
+				collab.lastInteractionMetadata?.llmProviderName === options.llmProviderName
+			);
 		}
 
 		// Get total count before pagination
 		const totalCount = collaborations.length;
 
-		// Sort by updatedAt in descending order
+		// Sort collaborations by updatedAt in descending order
 		collaborations.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
 		// Apply pagination
 		const startIndex = (options.page - 1) * options.limit;
 		collaborations = collaborations.slice(startIndex, startIndex + options.limit);
 
-		return { collaborations, totalCount };
-	}
-
-	/**
-	 * Creates a new interaction within this collaboration
-	 */
-	async createInteraction(interactionId: string): Promise<void> {
-		await this.ensureInitialized();
-		const interactionDir = join(this.interactionsDir, interactionId);
-		await ensureDir(interactionDir);
-
-		// Update collaboration metadata to include this interaction
-		const metadata = await this.getMetadata();
-		if (!metadata.interactions.includes(interactionId)) {
-			metadata.interactions.push(interactionId);
-			metadata.totalInteractions = metadata.interactions.length;
-			metadata.lastInteractionId = interactionId;
-			metadata.updatedAt = new Date().toISOString();
-			await this.saveMetadata(metadata);
-		}
-	}
-
-	/**
-	 * Gets the path for a specific interaction within this collaboration
-	 */
-	getInteractionPath(interactionId: string): string {
-		return join(this.interactionsDir, interactionId);
-	}
-
-	/**
-	 * Lists all interactions within this collaboration
-	 */
-	async listInteractions(): Promise<string[]> {
-		await this.ensureInitialized();
-		const metadata = await this.getMetadata();
-		return metadata.interactions || [];
+		return {
+			collaborations: collaborations.map((collab) => ({
+				...collab,
+				collaborationParams: collab.collaborationParams ||
+					CollaborationPersistence.defaultCollaborationParams(),
+				tokenUsageStats: {
+					tokenUsageInteraction: collab.tokenUsageStats?.tokenUsageInteraction ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageStatement: collab.tokenUsageStats?.tokenUsageStatement ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: collab.tokenUsageStats?.tokenUsageTurn ||
+						CollaborationPersistence.defaultTokenUsage(),
+				},
+			})),
+			totalCount,
+		};
 	}
 
 	/**
@@ -463,38 +312,69 @@ class CollaborationPersistence {
 	 */
 	private async ensureDirectory(dir: string): Promise<void> {
 		if (!this.ensuredDirs.has(dir)) {
-			await ensureDir(dirname(dir));
+			await ensureDir(dirname(dir)); // Ensure parent directory exists
 			await ensureDir(dir);
 			this.ensuredDirs.add(dir);
 		}
 	}
 
-	async saveCollaboration(collaboration: Collaboration): Promise<void> {
+	async saveCollaboration(
+		collaborationMetadata: Partial<CollaborationDetailedMetadata>,
+	): Promise<void> {
 		try {
 			await this.ensureInitialized();
+			logger.debug(`CollaborationPersistence: Ensure directory for saveCollaboration: ${this.collaborationDir}`);
 			await this.ensureDirectory(this.collaborationDir);
 
 			const metadata: CollaborationMetadata = {
-				id: collaboration.id,
+				id: this.collaborationId,
 				version: 4,
-				title: collaboration.title || 'Untitled Collaboration',
-				type: collaboration.type,
-				collaborationParams: collaboration.collaborationParams,
-				createdAt: new Date().toISOString(),
+				title: collaborationMetadata.title || 'New Collaboration',
+				type: collaborationMetadata.type || 'project',
+				collaborationParams: collaborationMetadata.collaborationParams ||
+					CollaborationPersistence.defaultCollaborationParams(),
+				createdAt: collaborationMetadata.createdAt || new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 				projectId: this.projectEditor.projectId,
-				totalInteractions: 0,
-				totalTokenUsage: CollaborationPersistence.defaultTokenUsage(),
+				totalInteractions: collaborationMetadata.totalInteractions || 0,
+				tokenUsageStats: collaborationMetadata.tokenUsageStats || {
+					tokenUsageInteraction: CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageStatement: CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: CollaborationPersistence.defaultTokenUsage(),
+				},
+				lastInteractionId: collaborationMetadata.lastInteractionId,
+				lastInteractionMetadata: collaborationMetadata.lastInteractionMetadata,
+				interactionIds: collaborationMetadata.interactionIds || [],
 			};
 
 			await this.updateCollaborationsMetadata(metadata);
 
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
+
+			// Create detailed metadata with analyzed token usage
 			const detailedMetadata: CollaborationDetailedMetadata = {
 				...metadata,
-				interactions: [],
+				// Store analyzed token usage in metadata
+				tokenUsageStats: {
+					tokenUsageInteraction: {
+						inputTokens: tokenAnalysis.combined.totalUsage.input,
+						outputTokens: tokenAnalysis.combined.totalUsage.output,
+						totalTokens: tokenAnalysis.combined.totalUsage.total,
+						cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+						cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+						thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
+						totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+					},
+					// Keep turn and statement level metrics
+					tokenUsageTurn: metadata.tokenUsageStats.tokenUsageTurn,
+					tokenUsageStatement: metadata.tokenUsageStats.tokenUsageStatement,
+				},
 			};
 
 			await this.saveMetadata(detailedMetadata);
+
+			// Save project info to JSON
 			await this.saveProjectInfo(this.projectEditor.projectInfo);
 
 		} catch (error) {
@@ -503,7 +383,7 @@ class CollaborationPersistence {
 		}
 	}
 
-	async loadCollaboration(): Promise<Collaboration | null> {
+	async loadCollaboration(): Promise<CollaborationDetailedMetadata | null> {
 		try {
 			await this.ensureInitialized();
 
@@ -512,29 +392,97 @@ class CollaborationPersistence {
 			}
 
 			const metadata: CollaborationDetailedMetadata = await this.getMetadata();
-			
-			const collaboration: Collaboration = {
-				id: metadata.id,
-				type: metadata.type,
-				title: metadata.title,
-				collaborationParams: metadata.collaborationParams,
+
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
+
+			// Update metadata with analyzed values
+			metadata.tokenUsageStats.tokenUsageInteraction = {
+				inputTokens: tokenAnalysis.combined.totalUsage.input,
+				outputTokens: tokenAnalysis.combined.totalUsage.output,
+				totalTokens: tokenAnalysis.combined.totalUsage.total,
+				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+				thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
+				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 			};
 
-			return collaboration;
+			return metadata;
 		} catch (error) {
 			logger.error(`CollaborationPersistence: Error loading collaboration: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`File or directory not found when loading collaboration: ${this.metadataPath}`,
-				{ filePath: this.metadataPath, operation: 'read' } as FileHandlingErrorOptions,
+				{
+					filePath: this.metadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
 			);
 		}
 	}
 
-	private async updateCollaborationsMetadata(collaboration: CollaborationMetadata): Promise<void> {
+	async createInteraction(
+		parentInteractionId?: InteractionId,
+		interactionCallbacks?: LLMCallbacks,
+	): Promise<InteractionPersistence> {
 		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.collaborationsMetadataPath));
 		
+		// Generate new interaction ID
+		const interactionId = shortenInteractionId(generateInteractionId());
+		
+		// Create interaction persistence instance
+		const interactionPersistence = new InteractionPersistence(
+			interactionId,
+			this.projectEditor,
+			this.collaborationId,
+			parentInteractionId,
+		);
+		
+		await interactionPersistence.init();
+
+		// Update collaboration metadata to include this interaction
+		const metadata = await this.getMetadata();
+		if (!metadata.interactionIds.includes(interactionId)) {
+			metadata.interactionIds.push(interactionId);
+			metadata.totalInteractions = metadata.interactionIds.length;
+			metadata.lastInteractionId = interactionId;
+			metadata.updatedAt = new Date().toISOString();
+			
+			await this.saveMetadata(metadata);
+			await this.updateCollaborationsMetadata(metadata);
+		}
+
+		return interactionPersistence;
+	}
+
+	async getInteraction(interactionId: InteractionId): Promise<InteractionPersistence> {
+		await this.ensureInitialized();
+		
+		const interactionPersistence = new InteractionPersistence(
+			interactionId,
+			this.projectEditor,
+			this.collaborationId,
+		);
+		
+		await interactionPersistence.init();
+		return interactionPersistence;
+	}
+
+	async listInteractions(): Promise<InteractionId[]> {
+		await this.ensureInitialized();
+		
+		const metadata = await this.getMetadata();
+		return metadata.interactionIds || [];
+	}
+
+	private async updateCollaborationsMetadata(
+		collaboration: CollaborationMetadata,
+	): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(
+			`CollaborationPersistence: Ensure directory for updateCollaborationsMetadata: ${this.collaborationsMetadataPath}`,
+		);
+		await this.ensureDirectory(dirname(this.collaborationsMetadataPath));
 		let collaborationsData: CollaborationsFileV4 = {
 			version: '4.0',
 			collaborations: [],
@@ -545,7 +493,14 @@ class CollaborationPersistence {
 			const parsedData = JSON.parse(content);
 
 			if (parsedData.version && Array.isArray(parsedData.collaborations)) {
+				// Version 4 format: object with version and collaborations array
 				collaborationsData = parsedData;
+			} else {
+				// Unknown format, create new one
+				collaborationsData = {
+					version: '4.0',
+					collaborations: [],
+				};
 			}
 		}
 
@@ -554,130 +509,77 @@ class CollaborationPersistence {
 			collaborationsData.collaborations[index] = {
 				...collaborationsData.collaborations[index],
 				...collaboration,
+				collaborationParams: collaboration.collaborationParams ||
+					CollaborationPersistence.defaultCollaborationParams(),
+				tokenUsageStats: {
+					tokenUsageInteraction: collaboration.tokenUsageStats.tokenUsageInteraction ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageStatement: collaboration.tokenUsageStats.tokenUsageStatement ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: collaboration.tokenUsageStats.tokenUsageTurn ||
+						CollaborationPersistence.defaultTokenUsage(),
+				},
 			};
 		} else {
-			collaborationsData.collaborations.push(collaboration);
+			collaborationsData.collaborations.push({
+				...collaboration,
+				collaborationParams: collaboration.collaborationParams ||
+					CollaborationPersistence.defaultCollaborationParams(),
+				tokenUsageStats: {
+					tokenUsageInteraction: collaboration.tokenUsageStats.tokenUsageInteraction ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageStatement: collaboration.tokenUsageStats.tokenUsageStatement ||
+						CollaborationPersistence.defaultTokenUsage(),
+					tokenUsageTurn: collaboration.tokenUsageStats.tokenUsageTurn ||
+						CollaborationPersistence.defaultTokenUsage(),
+				},
+			});
 		}
 
-		await Deno.writeTextFile(this.collaborationsMetadataPath, JSON.stringify(collaborationsData, null, 2));
+		await Deno.writeTextFile(
+			this.collaborationsMetadataPath,
+			JSON.stringify(collaborationsData, null, 2),
+		);
+
 		logger.debug(`CollaborationPersistence: Saved metadata to project level for collaboration: ${collaboration.id}`);
 	}
 
-	async saveMetadata(metadata: Partial<CollaborationDetailedMetadata>): Promise<void> {
-		metadata.version = 4;
-		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.metadataPath));
-		
-		const existingMetadata = await this.getMetadata();
-		const updatedMetadata = { ...existingMetadata, ...metadata };
-		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
-		logger.debug(`CollaborationPersistence: Saved metadata for collaboration: ${this.collaborationId}`);
+	async getCollaborationIdByTitle(title: string): Promise<string | null> {
+		if (await exists(this.collaborationsMetadataPath)) {
+			const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+			const data = JSON.parse(content);
 
-		// Update the stats in project-level collaborations metadata file
-		await this.updateCollaborationsMetadata(updatedMetadata);
-	}
-
-	async getMetadata(): Promise<CollaborationDetailedMetadata> {
-		await this.ensureInitialized();
-		if (await exists(this.metadataPath)) {
-			const metadataContent = await Deno.readTextFile(this.metadataPath);
-			const metadata = JSON.parse(metadataContent);
-
-			// Ensure version 4 format
-			if (!metadata.version || metadata.version < 4) {
-				metadata.version = 4;
-				if (!metadata.interactions) {
-					metadata.interactions = [];
-				}
-			}
-
-			return metadata;
-		}
-		return CollaborationPersistence.defaultDetailedMetadata();
-	}
-
-	async saveProjectInfo(projectInfo: ExtendedProjectInfo): Promise<void> {
-		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.projectInfoPath));
-		try {
-			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
-			logger.debug(`CollaborationPersistence: Saved project info JSON for collaboration: ${this.collaborationId}`);
-		} catch (error) {
-			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${errorMessage(error)}`, {
-				filePath: this.projectInfoPath,
-				operation: 'write',
-			} as FileHandlingErrorOptions);
-		}
-	}
-
-	async getProjectInfo(): Promise<ExtendedProjectInfo | null> {
-		await this.ensureInitialized();
-		try {
-			if (await exists(this.projectInfoPath)) {
-				const content = await Deno.readTextFile(this.projectInfoPath);
-				return JSON.parse(content);
-			}
-			return null;
-		} catch (error) {
-			throw createError(ErrorType.FileHandling, `Failed to load project info JSON: ${errorMessage(error)}`, {
-				filePath: this.projectInfoPath,
-				operation: 'read',
-			} as FileHandlingErrorOptions);
-		}
-	}
-
-	async deleteCollaboration(): Promise<void> {
-		await this.ensureInitialized();
-
-		try {
-			// Remove from collaborations metadata first
-			if (await exists(this.collaborationsMetadataPath)) {
-				const content = await Deno.readTextFile(this.collaborationsMetadataPath);
-				const data: CollaborationsFileV4 = JSON.parse(content);
-
-				data.collaborations = data.collaborations.filter((collab) => collab.id !== this.collaborationId);
-				await Deno.writeTextFile(this.collaborationsMetadataPath, JSON.stringify(data, null, 2));
-			}
-
-			// Delete the collaboration directory and all its contents
-			if (await exists(this.collaborationDir)) {
-				await Deno.remove(this.collaborationDir, { recursive: true });
-			}
-
-			logger.info(`CollaborationPersistence: Successfully deleted collaboration: ${this.collaborationId}`);
-		} catch (error) {
-			logger.error(`CollaborationPersistence: Error deleting collaboration: ${this.collaborationId}`, error);
-			throw createError(ErrorType.FileHandling, `Failed to delete collaboration: ${errorMessage(error)}`, {
-				filePath: this.collaborationDir,
-				operation: 'delete',
-			} as FileHandlingErrorOptions);
-		}
-	}
-
-	// Token usage methods
-	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
-		await this.ensureInitialized();
-		try {
-			await this.tokenUsagePersistence.writeUsage(record, type);
-		} catch (error) {
-			if (isTokenUsageValidationError(error)) {
-				logger.error(
-					`CollaborationPersistence: TokenUsage validation failed: ${error.options.field} - ${error.options.constraint}`,
-				);
-			} else {
-				logger.error(
-					`CollaborationPersistence: TokenUsage validation failed - Unknown error type: ${
-						(error instanceof Error) ? error.message : error
-					}`,
-				);
-				throw error;
+			if (data.version && Array.isArray(data.collaborations)) {
+				const collaboration = data.collaborations.find((collab: CollaborationMetadata) => collab.title === title);
+				return collaboration ? collaboration.id : null;
 			}
 		}
+		return null;
 	}
 
-	async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
-		await this.ensureInitialized();
-		return this.tokenUsagePersistence.getUsage(type);
+	async getCollaborationTitleById(id: string): Promise<string | null> {
+		if (await exists(this.collaborationsMetadataPath)) {
+			const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+			const data = JSON.parse(content);
+
+			if (data.version && Array.isArray(data.collaborations)) {
+				const collaboration = data.collaborations.find((collab: CollaborationMetadata) => collab.id === id);
+				return collaboration ? collaboration.title : null;
+			}
+		}
+		return null;
+	}
+
+	async getAllCollaborations(): Promise<{ id: string; title: string }[]> {
+		if (await exists(this.collaborationsMetadataPath)) {
+			const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+			const data = JSON.parse(content);
+
+			if (data.version && Array.isArray(data.collaborations)) {
+				return data.collaborations.map(({ id, title }: CollaborationMetadata) => ({ id, title }));
+			}
+		}
+		return [];
 	}
 
 	async getTokenUsageAnalysis(): Promise<{
@@ -733,179 +635,37 @@ class CollaborationPersistence {
 		};
 	}
 
-	// LLM Request methods
-	async writeLLMRequest(record: LLMRequestRecord): Promise<void> {
+	async saveMetadata(metadata: Partial<CollaborationDetailedMetadata>): Promise<void> {
+		// Set version 4 for new collaboration format
+		metadata.version = 4;
 		await this.ensureInitialized();
-		await this.llmRequestPersistence.writeLLMRequest(record);
+		logger.debug(`CollaborationPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
+		await this.ensureDirectory(dirname(this.metadataPath));
+		const existingMetadata = await this.getMetadata();
+		const updatedMetadata = { ...existingMetadata, ...metadata };
+		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
+		logger.debug(`CollaborationPersistence: Saved metadata for collaboration: ${this.collaborationId}`);
+
+		// Update the stats in project-level collaborations metadata file
+		await this.updateCollaborationsMetadata(updatedMetadata);
 	}
 
-	async getLLMRequest(): Promise<LLMRequestRecord[]> {
+	async getMetadata(): Promise<CollaborationDetailedMetadata> {
 		await this.ensureInitialized();
-		return this.llmRequestPersistence.getLLMRequest();
-	}
+		if (await exists(this.metadataPath)) {
+			const metadataContent = await Deno.readTextFile(this.metadataPath);
+			const metadata = JSON.parse(metadataContent);
 
-	// Resource methods
-	async saveResourcesMetadata(resourcesMetadata: InteractionResourcesMetadata): Promise<void> {
-		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.resourcesMetadataPath));
-		const existingResourcesMetadata = await this.getResourcesMetadata();
-		const updatedResourcesMetadata = { ...existingResourcesMetadata, ...resourcesMetadata };
-		await Deno.writeTextFile(this.resourcesMetadataPath, JSON.stringify(updatedResourcesMetadata, null, 2));
-		logger.debug(`CollaborationPersistence: Saved resourcesMetadata for collaboration: ${this.collaborationId}`);
-	}
-
-	async getResourcesMetadata(): Promise<InteractionResourcesMetadata> {
-		await this.ensureInitialized();
-		if (await exists(this.resourcesMetadataPath)) {
-			const resourcesMetadataContent = await Deno.readTextFile(this.resourcesMetadataPath);
-			return JSON.parse(resourcesMetadataContent);
-		}
-		return {};
-	}
-
-	async storeResourceRevision(resourceUri: string, revisionId: string, content: string | Uint8Array): Promise<void> {
-		await this.ensureInitialized();
-		const resourceKey = generateResourceRevisionKey(resourceUri, revisionId);
-		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
-		await this.ensureDirectory(this.resourceRevisionsDir);
-
-		logger.info(`CollaborationPersistence: Writing revision resource: ${revisionResourcePath}`);
-
-		if (typeof content === 'string') {
-			await Deno.writeTextFile(revisionResourcePath, content);
-		} else {
-			await Deno.writeFile(revisionResourcePath, content);
-		}
-	}
-
-	async getResourceRevision(resourceUri: string, revisionId: string): Promise<string | Uint8Array> {
-		await this.ensureInitialized();
-		const resourceKey = generateResourceRevisionKey(resourceUri, revisionId);
-		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
-
-		logger.info(`CollaborationPersistence: Reading revision resource: ${revisionResourcePath}`);
-
-		if (await exists(revisionResourcePath)) {
-			const resourceInfo = await Deno.stat(revisionResourcePath);
-			if (resourceInfo.isFile) {
-				if (resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-					return await Deno.readFile(revisionResourcePath);
-				} else {
-					return await Deno.readTextFile(revisionResourcePath);
-				}
+			// Ensure version 4 format
+			if (!metadata.version || metadata.version < 4) {
+				metadata.version = 4;
 			}
+
+			return metadata;
 		}
-
-		throw createError(
-			ErrorType.ResourceHandling,
-			`Could not read resource contents for resource revision ${revisionResourcePath}`,
-			{ filePath: revisionResourcePath, operation: 'read' } as ResourceHandlingErrorOptions,
-		);
+		return CollaborationPersistence.defaultMetadata();
 	}
 
-	// Objectives and resources methods
-	async saveObjectives(objectives: ObjectivesData): Promise<void> {
-		if (!objectives.statement || !Array.isArray(objectives.statement)) {
-			throw createError(ErrorType.FileHandling, 'Invalid objectives format', {
-				filePath: this.objectivesPath,
-				operation: 'write',
-			} as FileHandlingErrorOptions);
-		}
-
-		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.objectivesPath));
-		await Deno.writeTextFile(this.objectivesPath, JSON.stringify(objectives, null, 2));
-		logger.debug(`CollaborationPersistence: Saved objectives for collaboration: ${this.collaborationId}`);
-	}
-
-	async getObjectives(): Promise<ObjectivesData | null> {
-		await this.ensureInitialized();
-		if (await exists(this.objectivesPath)) {
-			const content = await Deno.readTextFile(this.objectivesPath);
-			return JSON.parse(content);
-		}
-		return null;
-	}
-
-	async saveResources(resourceMetrics: ResourceMetrics): Promise<void> {
-		if (!resourceMetrics.accessed || !resourceMetrics.modified || !resourceMetrics.active) {
-			throw createError(ErrorType.FileHandling, 'Invalid resourceMetrics format', {
-				filePath: this.resourcesPath,
-				operation: 'write',
-			} as FileHandlingErrorOptions);
-		}
-
-		await this.ensureInitialized();
-		await this.ensureDirectory(dirname(this.resourcesPath));
-		const storageFormat = {
-			accessed: Array.from(resourceMetrics.accessed),
-			modified: Array.from(resourceMetrics.modified),
-			active: Array.from(resourceMetrics.active),
-			timestamp: new Date().toISOString(),
-		};
-		await Deno.writeTextFile(this.resourcesPath, JSON.stringify(storageFormat, null, 2));
-		logger.debug(`CollaborationPersistence: Saved resourceMetrics for collaboration: ${this.collaborationId}`);
-	}
-
-	async getResources(): Promise<ResourceMetrics | null> {
-		await this.ensureInitialized();
-		if (await exists(this.resourcesPath)) {
-			const content = await Deno.readTextFile(this.resourcesPath);
-			const stored = JSON.parse(content);
-			return {
-				accessed: new Set(stored.accessed),
-				modified: new Set(stored.modified),
-				active: new Set(stored.active),
-			};
-		}
-		return null;
-	}
-
-	// Utility methods
-	async getCollaborationParams(interaction?: LLMConversationInteraction): Promise<CollaborationParams> {
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const projectConfig = this.projectEditor.projectConfig;
-
-		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-
-		const registryService = await ModelRegistryService.getInstance(projectConfig);
-		const orchestratorConfig = registryService.getModelConfig(defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator);
-		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
-		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
-
-		return {
-			rolesModelConfig: {
-				orchestrator: orchestratorConfig,
-				agent: agentConfig,
-				chat: chatConfig,
-			} as LLMRolesModelConfig,
-		};
-	}
-
-	private handleSaveError(error: unknown, filePath: string): never {
-		if (error instanceof Deno.errors.PermissionDenied) {
-			throw createError(
-				ErrorType.FileHandling,
-				`Permission denied when saving collaboration: ${filePath}`,
-				{ filePath, operation: 'write' } as FileHandlingErrorOptions,
-			);
-		} else if (error instanceof Deno.errors.NotFound) {
-			throw createError(
-				ErrorType.FileHandling,
-				`File or directory not found when saving collaboration: ${filePath}`,
-				{ filePath, operation: 'write' } as FileHandlingErrorOptions,
-			);
-		} else {
-			logger.error(`CollaborationPersistence: Error saving collaboration: ${errorMessage(error)}`);
-			throw createError(ErrorType.FileHandling, `Failed to save collaboration: ${filePath}`, {
-				filePath,
-				operation: 'write',
-			} as FileHandlingErrorOptions);
-		}
-	}
-
-	// Default values
 	static defaultTokenUsage(): TokenUsage {
 		return {
 			inputTokens: 0,
@@ -926,10 +686,10 @@ class CollaborationPersistence {
 		};
 	}
 
-	static defaultMetadata(): CollaborationMetadata {
+	static defaultMetadata(): CollaborationDetailedMetadata {
 		return {
-			id: '',
 			version: 4,
+			id: '',
 			title: '',
 			type: 'project',
 			collaborationParams: CollaborationPersistence.defaultCollaborationParams(),
@@ -937,15 +697,122 @@ class CollaborationPersistence {
 			updatedAt: '',
 			projectId: '',
 			totalInteractions: 0,
-			totalTokenUsage: CollaborationPersistence.defaultTokenUsage(),
+			tokenUsageStats: {
+				tokenUsageTurn: CollaborationPersistence.defaultTokenUsage(),
+				tokenUsageStatement: CollaborationPersistence.defaultTokenUsage(),
+				tokenUsageInteraction: CollaborationPersistence.defaultTokenUsage(),
+			},
+			interactionIds: [],
 		};
 	}
 
-	static defaultDetailedMetadata(): CollaborationDetailedMetadata {
-		return {
-			...CollaborationPersistence.defaultMetadata(),
-			interactions: [],
-		};
+	async saveProjectInfo(projectInfo: ExtendedProjectInfo): Promise<void> {
+		await this.ensureInitialized();
+		logger.debug(`CollaborationPersistence: Ensure directory for saveProjectInfo: ${this.projectInfoPath}`);
+		await this.ensureDirectory(dirname(this.projectInfoPath));
+		try {
+			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
+			logger.debug(`CollaborationPersistence: Saved project info JSON for collaboration: ${this.collaborationId}`);
+		} catch (error) {
+			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${errorMessage(error)}`, {
+				filePath: this.projectInfoPath,
+				operation: 'write',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	async getProjectInfo(): Promise<ExtendedProjectInfo | null> {
+		await this.ensureInitialized();
+		try {
+			if (await exists(this.projectInfoPath)) {
+				const content = await Deno.readTextFile(this.projectInfoPath);
+				return JSON.parse(content);
+			}
+			return null;
+		} catch (error) {
+			throw createError(ErrorType.FileHandling, `Failed to load project info JSON: ${errorMessage(error)}`, {
+				filePath: this.projectInfoPath,
+				operation: 'read',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	private handleSaveError(error: unknown, filePath: string): never {
+		if (error instanceof Deno.errors.PermissionDenied) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Permission denied when saving collaboration: ${filePath}`,
+				{
+					filePath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		} else if (error instanceof Deno.errors.NotFound) {
+			throw createError(
+				ErrorType.FileHandling,
+				`File or directory not found when saving collaboration: ${filePath}`,
+				{
+					filePath,
+					operation: 'write',
+				} as FileHandlingErrorOptions,
+			);
+		} else {
+			logger.error(`CollaborationPersistence: Error saving collaboration: ${errorMessage(error)}`);
+			throw createError(ErrorType.FileHandling, `Failed to save collaboration: ${filePath}`, {
+				filePath,
+				operation: 'write',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	async deleteCollaboration(): Promise<void> {
+		await this.ensureInitialized();
+
+		try {
+			// Remove from collaborations metadata first
+			if (await exists(this.collaborationsMetadataPath)) {
+				const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+				const data = JSON.parse(content);
+
+				if (data.version && Array.isArray(data.collaborations)) {
+					data.collaborations = data.collaborations.filter((collab: CollaborationMetadata) =>
+						collab.id !== this.collaborationId
+					);
+					await Deno.writeTextFile(this.collaborationsMetadataPath, JSON.stringify(data, null, 2));
+				}
+			}
+
+			// Delete the collaboration directory and all its contents
+			if (await exists(this.collaborationDir)) {
+				await Deno.remove(this.collaborationDir, { recursive: true });
+			}
+
+			logger.info(`CollaborationPersistence: Successfully deleted collaboration: ${this.collaborationId}`);
+		} catch (error) {
+			logger.error(`CollaborationPersistence: Error deleting collaboration: ${this.collaborationId}`, error);
+			throw createError(ErrorType.FileHandling, `Failed to delete collaboration: ${errorMessage(error)}`, {
+				filePath: this.collaborationDir,
+				operation: 'delete',
+			} as FileHandlingErrorOptions);
+		}
+	}
+
+	async createBackups(): Promise<void> {
+		await this.ensureInitialized();
+		const backupDir = join(this.collaborationDir, 'backups');
+		logger.debug(`CollaborationPersistence: Ensure directory for createBackups: ${backupDir}`);
+		await this.ensureDirectory(backupDir);
+
+		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+		const filesToBackup = ['metadata.json', 'objectives.json', 'resources.json'];
+
+		for (const file of filesToBackup) {
+			const sourcePath = join(this.collaborationDir, file);
+			if (await exists(sourcePath)) {
+				const backupPath = join(backupDir, `${file}.${timestamp}`);
+				await copy(sourcePath, backupPath, { overwrite: true });
+			}
+		}
 	}
 }
 

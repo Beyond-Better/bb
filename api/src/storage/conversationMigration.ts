@@ -1,7 +1,25 @@
 import { join } from '@std/path';
+import { exists, ensureDir } from '@std/fs';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-import type { InteractionMetadata, TokenUsage, TokenUsageAnalysis } from 'shared/types.ts';
+import type { InteractionMetadata, CollaborationMetadata, TokenUsage, TokenUsageAnalysis } from 'shared/types.ts';
+
+export interface ConversationsFileV1 {
+	version: string;
+	conversations: InteractionMetadata[];
+}
+
+export interface InteractionsFileV2 {
+	version: string;
+	interactions: InteractionMetadata[];
+}
+
+export interface CollaborationsFileV4 {
+	version: string;
+	collaborations: CollaborationMetadata[];
+}
+import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 
 export interface MigrationResult {
 	total: number;
@@ -347,5 +365,232 @@ export class ConversationMigration {
 	private static async saveConversationsJson(dataDir: string, conversations: InteractionMetadata[]): Promise<void> {
 		const path = join(dataDir, 'conversations.json');
 		await Deno.writeTextFile(path, JSON.stringify(conversations, null, 2));
+	}
+
+	private static async migrateV3toV4(conversationDir: string): Promise<ConversationMigrationResult> {
+		const result: ConversationMigrationResult = {
+			success: true,
+			version: {
+				from: 3,
+				to: 4,
+			},
+			changes: [],
+			errors: [],
+		};
+
+		try {
+			// Get current metadata
+			const metadata = await ConversationMigration.readMetadata(join(conversationDir, 'metadata.json'));
+			if (metadata.version === 4) {
+				// Already at latest version
+				result.version.from = 4;
+				return result;
+			}
+
+			// This migration is handled by the new collaboration system
+			// The actual migration from conversations to collaborations happens
+			// in migrateConversationsToCollaborations function
+			metadata.version = 4;
+
+			// Save updated metadata
+			await ConversationMigration.saveMetadata(join(conversationDir, 'metadata.json'), metadata);
+			result.changes.push({
+				type: 'metadata',
+				path: 'metadata.json',
+				details: 'Updated version to 4 for collaboration format',
+			});
+
+			return result;
+		} catch (error) {
+			result.success = false;
+			result.errors.push({
+				message: `Migration failed: ${(error as Error).message}`,
+				details: error,
+			});
+			return result;
+		}
+	}
+}
+
+/**
+ * Migrate conversations to collaborations structure
+ * This function handles the major structural change from conversations to collaborations
+ */
+export async function migrateConversationsToCollaborations(projectId: string): Promise<void> {
+	const projectAdminDataDir = await getProjectAdminDataDir(projectId);
+	if (!projectAdminDataDir) {
+		throw new Error(`Failed to get project admin data directory for ${projectId}`);
+	}
+
+	const conversationsDir = join(projectAdminDataDir, 'conversations');
+	const collaborationsDir = join(projectAdminDataDir, 'collaborations');
+	const cleanupDir = join(projectAdminDataDir, 'cleanup');
+	const conversationsJsonPath = join(projectAdminDataDir, 'conversations.json');
+	const collaborationsJsonPath = join(projectAdminDataDir, 'collaborations.json');
+
+	// Check if migration is needed
+	if (await exists(collaborationsJsonPath) && await exists(collaborationsDir)) {
+		// Already migrated
+		return;
+	}
+
+	if (!await exists(conversationsDir)) {
+		// No conversations to migrate
+		return;
+	}
+
+	logger.info(`Starting migration from conversations to collaborations for project ${projectId}`);
+
+	try {
+		// Ensure cleanup directory exists
+		await ensureDir(cleanupDir);
+		await ensureDir(collaborationsDir);
+
+		// Read existing conversations.json if it exists
+		let conversations: InteractionMetadata[] = [];
+		if (await exists(conversationsJsonPath)) {
+			const content = await Deno.readTextFile(conversationsJsonPath);
+			const data = JSON.parse(content);
+			if (Array.isArray(data)) {
+				conversations = data;
+			} else if (data.version && Array.isArray(data.interactions || data.conversations)) {
+				conversations = data.interactions || data.conversations;
+			}
+		}
+
+		// Create collaborations from conversations
+		const collaborations: CollaborationMetadata[] = [];
+		const processedDirs = new Set<string>();
+
+		// Process each conversation directory
+		for await (const entry of Deno.readDir(conversationsDir)) {
+			if (!entry.isDirectory) continue;
+
+			const conversationId = entry.name;
+			const conversationPath = join(conversationsDir, conversationId);
+			processedDirs.add(conversationId);
+
+			// Check if directory is empty or only has empty resource_revisions
+			const isEmpty = await isEmptyConversationDir(conversationPath);
+			if (isEmpty) {
+				// Move empty directory to cleanup
+				const cleanupPath = join(cleanupDir, `empty_conversation_${conversationId}`);
+				await Deno.rename(conversationPath, cleanupPath);
+				logger.info(`Moved empty conversation directory ${conversationId} to cleanup`);
+				continue;
+			}
+
+			// Find corresponding metadata
+			const conversationMetadata = conversations.find(c => c.id === conversationId);
+			if (!conversationMetadata) {
+				logger.warn(`No metadata found for conversation ${conversationId}, skipping`);
+				continue;
+			}
+
+			// Create collaboration using existing conversation ID
+			const collaborationId = conversationId;
+			const collaborationDir = join(collaborationsDir, collaborationId);
+			const interactionsDir = join(collaborationDir, 'interactions');
+
+			// Create collaboration directory structure
+			await ensureDir(collaborationDir);
+			await ensureDir(interactionsDir);
+
+			// Move conversation data to interaction within collaboration
+			const interactionDir = join(interactionsDir, conversationId);
+			await Deno.rename(conversationPath, interactionDir);
+
+			// Create collaboration metadata
+			const collaborationMetadata: CollaborationMetadata = {
+				id: collaborationId,
+				version: 4,
+				title: conversationMetadata.title,
+				type: 'project',
+				collaborationParams: conversationMetadata.collaborationParams || {
+					rolesModelConfig: {
+						orchestrator: null,
+						agent: null,
+						chat: null,
+					},
+				},
+				createdAt: conversationMetadata.createdAt,
+				updatedAt: conversationMetadata.updatedAt,
+				projectId: projectId,
+				totalInteractions: 1,
+				tokenUsageStats: conversationMetadata.tokenUsageStats,
+				lastInteractionId: conversationId,
+				lastInteractionMetadata: {
+					llmProviderName: conversationMetadata.llmProviderName,
+					model: conversationMetadata.model,
+					updatedAt: conversationMetadata.updatedAt,
+				},
+				interactionIds: [conversationId],
+			};
+
+			// Save collaboration metadata
+			const collaborationMetadataPath = join(collaborationDir, 'metadata.json');
+			await Deno.writeTextFile(collaborationMetadataPath, JSON.stringify(collaborationMetadata, null, 2));
+
+			collaborations.push(collaborationMetadata);
+			logger.info(`Migrated conversation ${conversationId} to collaboration`);
+		}
+
+		// Create collaborations.json
+		const collaborationsData: CollaborationsFileV4 = {
+			version: '4.0',
+			collaborations: collaborations,
+		};
+		await Deno.writeTextFile(collaborationsJsonPath, JSON.stringify(collaborationsData, null, 2));
+
+		// Move original conversations directory to cleanup
+		if (await exists(conversationsDir)) {
+			const backupConversationsPath = join(cleanupDir, 'conversations_backup');
+			await Deno.rename(conversationsDir, backupConversationsPath);
+			logger.info(`Moved original conversations directory to cleanup`);
+		}
+
+		// Move original conversations.json to cleanup
+		if (await exists(conversationsJsonPath)) {
+			const backupConversationsJsonPath = join(cleanupDir, 'conversations_backup.json');
+			await Deno.rename(conversationsJsonPath, backupConversationsJsonPath);
+			logger.info(`Moved original conversations.json to cleanup`);
+		}
+
+		logger.info(`Successfully migrated ${collaborations.length} conversations to collaborations for project ${projectId}`);
+
+	} catch (error) {
+		logger.error(`Failed to migrate conversations to collaborations for project ${projectId}: ${(error as Error).message}`);
+		throw error;
+	}
+}
+
+/**
+ * Check if a conversation directory is empty or only contains empty resource_revisions
+ */
+async function isEmptyConversationDir(conversationPath: string): Promise<boolean> {
+	try {
+		const entries = [];
+		for await (const entry of Deno.readDir(conversationPath)) {
+			entries.push(entry);
+		}
+
+		if (entries.length === 0) {
+			return true;
+		}
+
+		// Check if only resource_revisions directory exists and is empty
+		if (entries.length === 1 && entries[0].name === 'resource_revisions' && entries[0].isDirectory) {
+			const resourceRevisionsPath = join(conversationPath, 'resource_revisions');
+			const revisionEntries = [];
+			for await (const entry of Deno.readDir(resourceRevisionsPath)) {
+				revisionEntries.push(entry);
+			}
+			return revisionEntries.length === 0;
+		}
+
+		return false;
+	} catch (error) {
+		// If we can't read the directory, assume it's not empty
+		return false;
 	}
 }

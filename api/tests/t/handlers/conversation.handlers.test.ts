@@ -5,338 +5,186 @@ import { superoak } from 'https://deno.land/x/superoak@4.7.0/mod.ts';
 import apiRouter from '../../../src/routes/apiRouter.ts';
 import ProjectEditorManager from '../../../src/editor/projectEditorManager.ts';
 import ProjectEditor from '../../../src/editor/projectEditor.ts';
-//import DelegateTasksTool from '../../../src/llms/tools/delegateTasksTool.ts';
 import InteractionManager from '../../../src/llms/interactions/interactionManager.ts';
 import OrchestratorController from '../../../src/controllers/orchestratorController.ts';
 import { makeOrchestratorControllerStub, makeProjectEditorStub } from '../../lib/stubs.ts';
 
-// Test for new getConversation behavior that returns defaults for non-existent conversations
-Deno.test('getConversation returns defaults for non-existent conversation', async () => {
-	// This test demonstrates the new behavior where getConversation
-	// returns default configuration values instead of 404 for new conversations
-
-	// In a real test, we would:
-	// 1. Set up proper mocks for ProjectEditorManager
-	// 2. Mock the config manager to return known default values
-	// 3. Call the getConversation endpoint for a non-existent conversation ID
-	// 4. Verify that it returns 200 with default model configuration
-	// 5. Verify that the response includes modelConfig with proper defaults
-
+// Test for new collaboration structure
+Deno.test('listCollaborations returns paginated list of collaborations', async () => {
+	// This test demonstrates the new collaboration listing behavior
 	// Expected response structure:
 	// {
-	//   id: 'new-conversation-id',
-	//   model: 'claude-3-7-sonnet-20250219', // from global/project defaults
-	//   modelConfig: {
-	//     model: 'claude-3-7-sonnet-20250219',
-	//     temperature: 0.7,
-	//     maxTokens: 16384,
-	//     extendedThinking: { enabled: true, budgetTokens: 4096 },
-	//     usePromptCaching: true
-	//   },
-	//   logDataEntries: [],
-	//   interactionStats: { statementTurnCount: 0, interactionTurnCount: 0, statementCount: 0 }
+	//   collaborations: [
+	//     {
+	//       id: 'collab-id',
+	//       title: 'Test Collaboration',
+	//       type: 'project',
+	//       totalInteractions: 3,
+	//       createdAt: '2024-01-01T00:00:00.000Z',
+	//       updatedAt: '2024-01-01T12:00:00.000Z',
+	//       lastInteractionId: 'interaction-id',
+	//       lastInteractionMetadata: {
+	//         llmProviderName: 'anthropic',
+	//         model: 'claude-3-7-sonnet-20250219',
+	//         updatedAt: '2024-01-01T12:00:00.000Z'
+	//       },
+	//       tokenUsageStats: { ... },
+	//       collaborationParams: { ... }
+	//     }
+	//   ],
+	//   pagination: {
+	//     page: 1,
+	//     pageSize: 10,
+	//     totalPages: 1,
+	//     totalItems: 1
+	//   }
 	// }
 
-	console.log('Test placeholder: getConversation now returns defaults instead of 404');
+	console.log('Test placeholder: listCollaborations endpoint with pagination');
 });
 
-/*
-// Create stubs
-const projectEditorStub = makeProjectEditorStub(new ProjectEditor('test-id', mockProjectRoot));
-const orchestratorControllerStub = makeOrchestratorControllerStub(
-	new OrchestratorController(projectEditorStub.projectEditor),
-);
+Deno.test('createCollaboration creates new collaboration', async () => {
+	// This test demonstrates the new collaboration creation behavior
+	// Expected request body:
+	// {
+	//   title: 'New Collaboration',
+	//   type: 'project',
+	//   projectId: 'project-123'
+	// }
+	//
+	// Expected response:
+	// {
+	//   collaborationId: 'generated-id',
+	//   title: 'New Collaboration',
+	//   type: 'project',
+	//   createdAt: '2024-01-01T00:00:00.000Z',
+	//   updatedAt: '2024-01-01T00:00:00.000Z'
+	// }
 
-// Mock the ProjectEditorManager
-class MockProjectEditorManager {
-	async getOrCreateEditor() {
-		return projectEditorStub.projectEditor;
-	}
-}
-
-// Replace the actual ProjectEditorManager with our mock
-stub(ProjectEditorManager.prototype, 'getOrCreateEditor', MockProjectEditorManager.prototype.getOrCreateEditor);
- */
-
-/*
-// Setup the application for testing
-const app = new Application();
-app.use(apiRouter.routes());
-app.use(apiRouter.allowedMethods());
-
-// Setup a mock project root for testing
-const mockProjectRoot = await Deno.makeTempDir();
-
-
-Deno.test('startConversation handler', async (t) => {
-	projectEditorStub.handleStatementStub.reset();
-	projectEditorStub.getOrchestratorControllerStub.reset();
-	await t.step('should start a new conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation')
-			.send({ statement: 'Hello', startDir: mockProjectRoot })
-			.expect(200);
-
-		assertExists(response.body.conversationId);
-		assertEquals(response.body.collaborationTitle, 'Test Conversation');
-		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
-		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
-		assertSpyCalls(projectEditorStub.getOrchestratorControllerStub, 1);
-	});
-
-	await t.step('should return 400 if statement is missing', async () => {
-		const request = await superoak(app);
-		await request.post('/api/v1/conversation')
-			.send({ startDir: mockProjectRoot })
-			.expect(400);
-	});
+	console.log('Test placeholder: createCollaboration endpoint');
 });
 
-Deno.test('getConversation handler', async (t) => {
-	orchestratorControllerStub.getInteractionStub.reset();
-	await t.step('should retrieve conversation details', async () => {
-		const request = await superoak(app);
-		const response = await request.get('/api/v1/conversation/test-conversation-id')
-			.expect(200);
+Deno.test('getCollaboration returns collaboration details', async () => {
+	// This test demonstrates retrieving a specific collaboration
+	// Expected response includes:
+	// - Collaboration metadata
+	// - List of interaction IDs
+	// - Token usage statistics
+	// - Collaboration parameters
 
-		assertEquals(response.body.id, 'test-conversation-id');
-		assertEquals(response.body.llmProviderName, 'test-provider');
-		assertSpyCalls(orchestratorControllerStub.getInteractionStub, 1);
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.getInteractionStub.reset();
-		orchestratorControllerStub.getInteractionStub.throws(new Error('Conversation not found'));
-		const request = await superoak(app);
-		await request.get('/api/v1/conversation/non-existent-id')
-			.expect(404);
-
-		assertSpyCalls(orchestratorControllerStub.getInteractionStub, 1);
-	});
+	console.log('Test placeholder: getCollaboration endpoint');
 });
 
-Deno.test('continueConversation handler', async (t) => {
-	projectEditorStub.handleStatementStub.reset();
-	await t.step('should continue an existing conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id')
-			.send({ statement: 'Continue', startDir: mockProjectRoot })
-			.expect(200);
+Deno.test('deleteCollaboration removes collaboration and all interactions', async () => {
+	// This test demonstrates collaboration deletion
+	// Should remove:
+	// - Collaboration metadata
+	// - All child interactions
+	// - Associated files and logs
 
-		assertExists(response.body.conversationId);
-		assertEquals(response.body.collaborationTitle, 'Test Conversation');
-		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
-		assertSpyCalls(projectEditorStub.handleStatementStub, 1);
-		assertSpyCalls(projectEditorStub.getOrchestratorControllerStub, 1);
-	});
-
-	await t.step('should return 400 if statement is missing', async () => {
-		const request = await superoak(app);
-		await request.post('/api/v1/conversation/test-conversation-id')
-			.send({ startDir: mockProjectRoot })
-			.expect(400);
-	});
-});
-Deno.test('deleteInteraction handler', async (t) => {
-	orchestratorControllerStub.deleteInteractionStub.reset();
-	await t.step('should delete an existing conversation', async () => {
-		const request = await superoak(app);
-		await request.delete('/api/v1/conversation/test-conversation-id')
-			.expect(200);
-
-		assertSpyCalls(orchestratorControllerStub.deleteInteractionStub, 1);
-	});
+	console.log('Test placeholder: deleteCollaboration endpoint');
 });
 
-Deno.test('clearConversation handler', async (t) => {
-	orchestratorControllerStub.clearInteractionStub.reset();
+Deno.test('createInteraction creates new interaction within collaboration', async () => {
+	// This test demonstrates creating an interaction within a collaboration
+	// Expected request body:
+	// {
+	//   projectId: 'project-123',
+	//   parentInteractionId: 'optional-parent-id'
+	// }
+	//
+	// Expected response:
+	// {
+	//   interactionId: 'generated-interaction-id',
+	//   collaborationId: 'parent-collaboration-id'
+	// }
 
-	await t.step('should clear an existing conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id/clear')
-			.expect(200);
-
-		assertEquals(response.body.message, 'Conversation cleared successfully');
-		assertSpyCalls(orchestratorControllerStub.clearInteractionStub, 1);
-		assertSpyCalls(orchestratorControllerStub.clearInteractionStub.calls[0], 1);
-		assertEquals(orchestratorControllerStub.clearInteractionStub.calls[0].args[0], 'test-conversation-id');
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.clearInteractionStub.reset();
-		orchestratorControllerStub.clearInteractionStub.throws(new Error('Conversation not found'));
-
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/non-existent-id/clear')
-			.expect(404);
-
-		assertEquals(response.body.error, 'Conversation not found');
-		assertSpyCalls(orchestratorControllerStub.clearInteractionStub, 1);
-	});
+	console.log('Test placeholder: createInteraction endpoint');
 });
 
-Deno.test('undoConversation handler', async (t) => {
-	orchestratorControllerStub.undoInteractionStub.reset();
+Deno.test('getInteraction returns interaction details with logs', async () => {
+	// This test demonstrates retrieving a specific interaction
+	// Expected response includes:
+	// - Interaction metadata
+	// - Log data entries
+	// - Token usage for this interaction
+	// - Parent collaboration reference
 
-	await t.step('should undo the last change in a conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id/undo')
-			.expect(200);
-
-		assertEquals(response.body.message, 'Last change undone successfully');
-		assertSpyCalls(orchestratorControllerStub.undoInteractionStub, 1);
-		assertEquals(orchestratorControllerStub.undoInteractionStub.calls[0].args[0], 'test-conversation-id');
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.undoInteractionStub.reset();
-		orchestratorControllerStub.undoInteractionStub.throws(new Error('Conversation not found'));
-
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/non-existent-id/undo')
-			.expect(404);
-
-		assertEquals(response.body.error, 'Conversation not found');
-		assertSpyCalls(orchestratorControllerStub.undoInteractionStub, 1);
-	});
-
-	await t.step('should return 400 if there are no changes to undo', async () => {
-		orchestratorControllerStub.undoInteractionStub.reset();
-		orchestratorControllerStub.undoInteractionStub.throws(new Error('No changes to undo'));
-
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id/undo')
-			.expect(400);
-
-		assertEquals(response.body.error, 'No changes to undo');
-		assertSpyCalls(orchestratorControllerStub.undoInteractionStub, 1);
-	});
+	console.log('Test placeholder: getInteraction endpoint');
 });
 
-Deno.test('addFile handler', async (t) => {
-	orchestratorControllerStub.addFileToInteractionStub.reset();
+Deno.test('chatInteraction processes statement within interaction', async () => {
+	// This test demonstrates the chat functionality within an interaction
+	// Expected request body:
+	// {
+	//   statement: 'User message',
+	//   projectId: 'project-123',
+	//   maxTurns: 5
+	// }
+	//
+	// Expected response:
+	// {
+	//   collaborationId: 'parent-collaboration-id',
+	//   interactionId: 'current-interaction-id',
+	//   logEntry: { ... },
+	//   collaborationTitle: 'Collaboration Title',
+	//   interactionStats: { ... },
+	//   tokenUsageStats: { ... }
+	// }
 
-	await t.step('should add a file to a conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id/file')
-			.attach('file', 'test.txt', 'Hello, World!')
-			.expect(200);
-
-		assertEquals(response.body.message, 'File added successfully');
-		assertSpyCalls(orchestratorControllerStub.addFileToInteractionStub, 1);
-		assertEquals(orchestratorControllerStub.addFileToInteractionStub.calls[0].args[0], 'test-conversation-id');
-		assertEquals(orchestratorControllerStub.addFileToInteractionStub.calls[0].args[1], 'test.txt');
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.addFileToInteractionStub.reset();
-		orchestratorControllerStub.addFileToInteractionStub.throws(new Error('Conversation not found'));
-
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/non-existent-id/file')
-			.attach('file', 'test.txt', 'Hello, World!')
-			.expect(404);
-
-		assertEquals(response.body.error, 'Conversation not found');
-		assertSpyCalls(orchestratorControllerStub.addFileToInteractionStub, 1);
-	});
-
-	await t.step('should return 400 if file is not provided', async () => {
-		const request = await superoak(app);
-		const response = await request.post('/api/v1/conversation/test-conversation-id/file')
-			.expect(400);
-
-		assertEquals(response.body.error, 'No file provided');
-		assertSpyCalls(orchestratorControllerStub.addFileToInteractionStub, 0);
-	});
+	console.log('Test placeholder: chatInteraction endpoint');
 });
 
-Deno.test('removeFile handler', async (t) => {
-	orchestratorControllerStub.removeFileFromInteractionStub.reset();
+Deno.test('deleteInteraction removes interaction from collaboration', async () => {
+	// This test demonstrates interaction deletion
+	// Should:
+	// - Remove interaction from collaboration
+	// - Update collaboration metadata
+	// - Clean up associated files and logs
 
-	await t.step('should remove a file from a conversation', async () => {
-		const request = await superoak(app);
-		const response = await request.delete('/api/v1/conversation/test-conversation-id/file/test.txt')
-			.expect(200);
-
-		assertEquals(response.body.message, 'File removed successfully');
-		assertSpyCalls(orchestratorControllerStub.removeFileFromInteractionStub, 1);
-		assertEquals(orchestratorControllerStub.removeFileFromInteractionStub.calls[0].args[0], 'test-conversation-id');
-		assertEquals(orchestratorControllerStub.removeFileFromInteractionStub.calls[0].args[1], 'test.txt');
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.removeFileFromInteractionStub.reset();
-		orchestratorControllerStub.removeFileFromInteractionStub.throws(new Error('Conversation not found'));
-
-		const request = await superoak(app);
-		const response = await request.delete('/api/v1/conversation/non-existent-id/file/test.txt')
-			.expect(404);
-
-		assertEquals(response.body.error, 'Conversation not found');
-		assertSpyCalls(orchestratorControllerStub.removeFileFromInteractionStub, 1);
-	});
-
-	await t.step('should return 404 if file is not found in the conversation', async () => {
-		orchestratorControllerStub.removeFileFromInteractionStub.reset();
-		orchestratorControllerStub.removeFileFromInteractionStub.throws(new Error('File not found in conversation'));
-
-		const request = await superoak(app);
-		const response = await request.delete('/api/v1/conversation/test-conversation-id/file/non-existent.txt')
-			.expect(404);
-
-		assertEquals(response.body.error, 'File not found in conversation');
-		assertSpyCalls(orchestratorControllerStub.removeFileFromInteractionStub, 1);
-	});
+	console.log('Test placeholder: deleteInteraction endpoint');
 });
 
-Deno.test('listFiles handler', async (t) => {
-	orchestratorControllerStub.getInteractionStub.reset();
+// Integration tests for the collaboration workflow
+Deno.test('collaboration workflow integration', async () => {
+	// This test demonstrates the complete workflow:
+	// 1. Create collaboration
+	// 2. Create interaction within collaboration
+	// 3. Chat within interaction
+	// 4. Retrieve collaboration with updated stats
+	// 5. Clean up
 
-	await t.step('should list files in a conversation', async () => {
-		orchestratorControllerStub.getInteractionStub.returns({
-			id: 'test-conversation-id',
-			files: ['file1.txt', 'file2.txt'],
-		});
-
-		const request = await superoak(app);
-		const response = await request.get('/api/v1/conversation/test-conversation-id/files')
-			.expect(200);
-
-		assertExists(response.body.files);
-		assertEquals(Array.isArray(response.body.files), true);
-		assertEquals(response.body.files, ['file1.txt', 'file2.txt']);
-		assertSpyCalls(orchestratorControllerStub.getInteractionStub, 1);
-		assertEquals(orchestratorControllerStub.getInteractionStub.calls[0].args[0], 'test-conversation-id');
-	});
-
-	await t.step('should return 404 if conversation is not found', async () => {
-		orchestratorControllerStub.getInteractionStub.reset();
-		orchestratorControllerStub.getInteractionStub.throws(new Error('Conversation not found'));
-
-		const request = await superoak(app);
-		const response = await request.get('/api/v1/conversation/non-existent-id/files')
-			.expect(404);
-
-		assertEquals(response.body.error, 'Conversation not found');
-		assertSpyCalls(orchestratorControllerStub.getInteractionStub, 1);
-	});
-
-	await t.step('should return an empty array if conversation has no files', async () => {
-		orchestratorControllerStub.getInteractionStub.reset();
-		orchestratorControllerStub.getInteractionStub.returns({
-			id: 'test-conversation-id',
-			files: [],
-		});
-
-		const request = await superoak(app);
-		const response = await request.get('/api/v1/conversation/test-conversation-id/files')
-			.expect(200);
-
-		assertExists(response.body.files);
-		assertEquals(Array.isArray(response.body.files), true);
-		assertEquals(response.body.files.length, 0);
-		assertSpyCalls(orchestratorControllerStub.getInteractionStub, 1);
-	});
+	console.log('Test placeholder: full collaboration workflow');
 });
- */
+
+// Migration tests
+Deno.test('migration from conversations to collaborations', async () => {
+	// This test demonstrates that the migration process:
+	// 1. Converts existing conversations to collaborations
+	// 2. Preserves all data and metadata
+	// 3. Updates file structure correctly
+	// 4. Maintains backward compatibility during transition
+
+	console.log('Test placeholder: conversation to collaboration migration');
+});
+
+// Error handling tests
+Deno.test('collaboration error handling', async () => {
+	// This test demonstrates proper error handling for:
+	// - Missing required parameters
+	// - Non-existent collaborations/interactions
+	// - Permission errors
+	// - Validation failures
+
+	console.log('Test placeholder: collaboration error handling');
+});
+
+// Authentication and authorization tests
+Deno.test('collaboration access control', async () => {
+	// This test demonstrates that:
+	// - Protected routes require authentication
+	// - Users can only access their own collaborations
+	// - Project-level access controls are enforced
+
+	console.log('Test placeholder: collaboration access control');
+});

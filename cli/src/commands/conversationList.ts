@@ -7,13 +7,13 @@ import { getConfigManager } from 'shared/config/configManager.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
 export const conversationList = new Command()
-	.description('List saved conversations')
+	.description('List saved collaborations')
 	.option('-d, --directory <dir:string>', 'The starting directory for the project', { default: Deno.cwd() })
 	.option('-p, --page <page:number>', 'Page number', { default: 1 })
 	.option('-l, --limit <limit:number>', 'Number of items per page', { default: 10 })
 	.action(async ({ directory, page, limit }) => {
-		// 		const spinner = createSpinner('Fetching saved conversations...');
-		// 		startSpinner(spinner, 'Fetching saved conversations...');
+		// 		const spinner = createSpinner('Fetching saved collaborations...');
+		// 		startSpinner(spinner, 'Fetching saved collaborations...');
 
 		try {
 			let projectId: string | undefined;
@@ -32,30 +32,33 @@ export const conversationList = new Command()
 			const globalConfig = await configManager.getGlobalConfig();
 			//const projectConfig = await configManager.getProjectConfig(projectId);
 			const apiClient = await ApiClient.create(projectId);
-			const response = await apiClient.get(
-				`/api/v1/conversation?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`,
-			);
+			const response = await apiClient.listCollaborations(projectId, page, limit);
 			//stopSpinner(spinner);
 
-			if (response.ok) {
-				const { conversations, pagination } = await response.json();
-				if (conversations.length === 0) {
-					console.log('No saved conversations found on this page.');
+			if (response && response.collaborations) {
+				const { collaborations, pagination } = response;
+				if (collaborations.length === 0) {
+					console.log('No saved collaborations found on this page.');
 				} else {
-					console.log('Saved conversations:');
+					console.log('Saved collaborations:');
 					console.log(
 						`Page ${pagination.page} of ${pagination.totalPages} (Total items: ${pagination.totalItems})`,
 					);
-					conversations.forEach(
-						(conversation: InteractionMetadata, index: number) => {
-							const createdAt = new Date(conversation.createdAt).toLocaleString();
-							const updatedAt = new Date(conversation.updatedAt).toLocaleString();
-							console.log(`${index + 1}. ID: ${conversation.id} | Title: ${conversation.title}`);
+					collaborations.forEach(
+						(collaboration: any, index: number) => {
+							const createdAt = new Date(collaboration.createdAt).toLocaleString();
+							const updatedAt = new Date(collaboration.updatedAt).toLocaleString();
+							console.log(`${index + 1}. ID: ${collaboration.id} | Title: ${collaboration.title} | Type: ${collaboration.type}`);
 							console.log(
-								`   Provider: ${conversation.llmProviderName || 'N/A'} | Model: ${
-									conversation.model || 'N/A'
-								} | Created: ${createdAt} | Updated: ${updatedAt}`,
+								`   Interactions: ${collaboration.totalInteractions || 0} | Created: ${createdAt} | Updated: ${updatedAt}`,
 							);
+							if (collaboration.lastInteractionMetadata) {
+								console.log(
+									`   Last Provider: ${collaboration.lastInteractionMetadata.llmProviderName || 'N/A'} | Model: ${
+										collaboration.lastInteractionMetadata.model || 'N/A'
+									}`,
+								);
+							}
 						},
 					);
 
@@ -63,29 +66,27 @@ export const conversationList = new Command()
 					console.log('\nPagination instructions:');
 					if (pagination.page < pagination.totalPages) {
 						console.log(
-							`To view the next page, use: ${globalConfig.bbExeName} conversation list --page ${
+							`To view the next page, use: ${globalConfig.bbExeName} collaboration list --page ${
 								pagination.page + 1
 							} --limit ${limit}`,
 						);
 					}
 					if (pagination.page > 1) {
 						console.log(
-							`To view the previous page, use: ${globalConfig.bbExeName} conversation list --page ${
+							`To view the previous page, use: ${globalConfig.bbExeName} collaboration list --page ${
 								pagination.page - 1
 							} --limit ${limit}`,
 						);
 					}
 					console.log(`Current items per page: ${limit}`);
 					console.log(`To change the number of items per page, use the --limit option. For example:`);
-					console.log(`${globalConfig.bbExeName} conversation list --page ${pagination.page} --limit 20`);
+					console.log(`${globalConfig.bbExeName} collaboration list --page ${pagination.page} --limit 20`);
 				}
 			} else {
-				console.error('Failed to fetch saved conversations:', response.statusText);
-				const errorBody = await response.json();
-				console.error('Error details:', errorBody.error);
+				console.error('Failed to fetch saved collaborations');
 			}
 		} catch (error) {
 			//stopSpinner(spinner);
-			console.error('Error fetching saved conversations:', (error as Error).message);
+			console.error('Error fetching saved collaborations:', (error as Error).message);
 		}
 	});

@@ -66,6 +66,7 @@ export interface CreateProjectData {
  * Serialized project data for transmission/storage
  */
 export interface SerializedProjectData {
+	version?: number; // Project data format version
 	projectId: string;
 	name: string;
 	status: ProjectStatus;

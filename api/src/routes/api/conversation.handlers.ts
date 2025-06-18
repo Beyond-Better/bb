@@ -4,6 +4,7 @@ import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type { CollaborationLogDataEntry, InteractionId, CollaborationResponse } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
+import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
@@ -11,387 +12,21 @@ import { errorMessage } from 'shared/error.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getLLMModelToProvider } from 'api/types/llms.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+import { shortenInteractionId, generateInteractionId } from 'shared/utils/interactionManagement.utils.ts';
 
 /**
  * @openapi
- * /api/v1/conversation/{id}:
- *   post:
- *     summary: Chat in an conversation
- *     description: Continues an existing conversation with the AI assistant using the OrchestratorController
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the conversation to continue
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - statement
- *               - projectId
- *             properties:
- *               statement:
- *                 type: string
- *                 description: The statement to continue the conversation
- *               projectId:
- *                 type: string
- *                 description: The starting directory for the project
- *     responses:
- *       200:
- *         description: Successful response with conversation continuation
- *       400:
- *         description: Bad request, missing required parameters
- *       500:
- *         description: Internal server error
- */
-
-export const chatConversation = async (
-	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
-) => {
-	logger.debug('ConversationHandler: chatConversation called');
-
-	const { id: conversationId } = params;
-
-	try {
-		const body = await request.body.json();
-		const { statement, projectId, maxTurns } = body;
-
-		logger.info(
-			`ConversationHandler: chatConversation for conversationId: ${conversationId}, Prompt: "${
-				statement?.substring(0, 50)
-			}..."`,
-		);
-
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
-			);
-			response.status = 400;
-			response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		if (!statement) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: Missing statement for conversationId: ${conversationId}`,
-			);
-			response.status = 400;
-			response.body = { error: 'Missing statement' };
-			return;
-		}
-
-		if (!projectId) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: Missing projectId for conversationId: ${conversationId}`,
-			);
-			response.status = 400;
-			response.body = { error: 'Missing projectId' };
-			return;
-		}
-
-		if (projectEditorManager.isCollaborationActive(conversationId)) {
-			response.status = 400;
-			response.body = { error: 'Conversation is already in use' };
-			return;
-		}
-
-		logger.debug(
-			`ConversationHandler: HandlerContinueConversation: Creating ProjectEditor for conversationId: ${conversationId} using projectId: ${projectId}`,
-		);
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
-
-		const result: CollaborationResponse = await projectEditor.handleStatement(statement, conversationId, {
-			maxTurns,
-		});
-
-		logger.debug(
-			`ConversationHandler: HandlerContinueConversation: Response received from handleStatement for conversationId: ${conversationId}`,
-		);
-		response.status = 200;
-		response.body = {
-			conversationId: result.conversationId,
-			logEntry: result.logEntry,
-			collaborationTitle: result.collaborationTitle,
-			interactionStats: result.interactionStats,
-			tokenUsageStats: result.tokenUsageStats,
-		};
-	} catch (error) {
-		logger.error(
-			`ConversationHandler: Error in chatConversation for conversationId: ${conversationId}: ${
-				errorMessage(error)
-			}`,
-			error,
-		);
-		response.status = 500;
-		response.body = { error: 'Failed to generate response', details: errorMessage(error) };
-	}
-};
-
-/**
- * @openapi
- * /api/v1/conversation/{id}:
+ * /api/v1/collaborations:
  *   get:
- *     summary: Get conversation details or defaults
- *     description: Retrieves details of a specific conversation. If the conversation doesn't exist, returns a template with default configuration values from global/project settings.
+ *     summary: List collaborations
+ *     description: Retrieves a list of collaborations with pagination and filtering options
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the conversation to retrieve
  *       - in: query
  *         name: projectId
  *         required: true
  *         schema:
  *           type: string
- *         description: The project ID for configuration context
- *     responses:
- *       200:
- *         description: Successful response with conversation details or default template
- *       400:
- *         description: Bad request, missing required parameters
- *       500:
- *         description: Internal server error
- */
-export const getConversation = async (
-	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
-) => {
-	let projectEditor;
-	let orchestratorController;
-	try {
-		const conversationId = params.id as InteractionId;
-		const projectId = request.url.searchParams.get('projectId') || '';
-
-		logger.info(`ConversationHandler: getConversation for: ${conversationId}`);
-
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
-			);
-			response.status = 400;
-			response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		let interaction;
-		try {
-			//logger.info(`ConversationHandler: Creating ProjectEditor for dir: ${projectId}`);
-			projectEditor = await projectEditorManager.getOrCreateEditor(conversationId, projectId, sessionManager);
-			//logger.info(`ConversationHandler: ProjectEditor created successfully`);
-
-			orchestratorController = projectEditor.orchestratorController;
-			if (!orchestratorController) {
-				logger.info(`ConversationHandler: Failed to create orchestratorController`);
-				throw new Error('Failed to initialize OrchestratorController');
-			}
-
-			//logger.info(`ConversationHandler: Getting conversation: ${conversationId}`);
-			interaction = orchestratorController.interactionManager.getInteraction(conversationId);
-		} catch (error) {
-			// getInteraction throws an error when conversation doesn't exist
-			logger.info(
-				`ConversationHandler: Conversation ${conversationId} not found, will return defaults: ${
-					errorMessage(error)
-				}`,
-			);
-			interaction = null;
-		}
-
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-
-		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-
-		const registryService = await ModelRegistryService.getInstance(projectConfig);
-		const orchestratorConfig = registryService.getModelConfig(
-			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
-		);
-		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
-		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
-
-		if (!interaction) {
-			logger.info(`ConversationHandler: Conversation not found, return defaults`);
-			// Return a default conversation template with configuration defaults
-			// Use project defaults first, then global defaults
-			const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-			const defaultModelOrchestrator = defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator;
-
-			response.status = 200;
-			response.body = {
-				id: conversationId,
-				llmProviderName: (await getLLMModelToProvider())[defaultModelOrchestrator] || 'anthropic', // Default provider
-				title: '', // Empty for new conversation
-				system: '', // Will be populated when conversation starts
-				model: defaultModels.orchestrator,
-				maxTokens: 16384,
-				temperature: 0.7, // Default temperature
-				statementTurnCount: 0,
-				totalTokenUsage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-				logDataEntries: [], // Empty for new conversation
-				interactionStats: {
-					statementTurnCount: 0,
-					interactionTurnCount: 0,
-					statementCount: 0,
-				},
-				tokenUsageStats: {
-					tokenUsageInteraction: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-				},
-				// Include default request params for this conversation
-				collaborationParams: {
-					rolesModelConfig: {
-						orchestrator: orchestratorConfig,
-						agent: agentConfig,
-						chat: chatConfig,
-					},
-				},
-			};
-			return;
-		}
-
-		//logger.info(`ConversationHandler: Loading log data entries for conversation ${conversationId}`);
-		let logDataEntries: Array<CollaborationLogDataEntry>;
-		try {
-			logDataEntries = await CollaborationLogger.getLogDataEntries(projectId, conversationId);
-			logger.debug(`ConversationHandler: Log data entries loaded successfully`);
-		} catch (_error) {
-			// New conversations don't have log files yet
-			logger.debug(
-				`ConversationHandler: No log data found for new conversation ${conversationId}, using empty array`,
-			);
-			logDataEntries = [];
-		}
-		//logger.info(`ConversationHandler: logDataEntries`, logDataEntries);
-		// logger.info(`ConversationHandler: inputOptions`, {
-		// 	model: interaction.model,
-		// 	maxTokens: interaction.maxTokens,
-		// 	temperature: interaction.temperature,
-		// });
-		response.status = 200;
-		response.body = {
-			id: interaction.id,
-			llmProviderName: interaction.llmProviderName,
-			title: interaction.title,
-			system: interaction.baseSystem,
-			model: interaction.model,
-			maxTokens: interaction.maxTokens,
-			temperature: interaction.temperature,
-			statementTurnCount: interaction.statementTurnCount,
-			totalTokenUsage: interaction.totalTokensTotal,
-			logDataEntries,
-			interactionStats: {
-				statementTurnCount: interaction.statementTurnCount,
-				interactionTurnCount: interaction.interactionTurnCount,
-				statementCount: interaction.statementCount,
-			},
-			tokenUsageStats: {
-				tokenUsageInteraction: interaction.tokenUsageInteraction,
-			},
-				collaborationParams: {
-					...(interaction.collaboration.collaborationParams || {}),
-					rolesModelConfig: {
-						orchestrator: interaction.collaboration.collaborationParams?.rolesModelConfig.orchestrator || orchestratorConfig,
-						agent: interaction.collaboration.collaborationParams?.rolesModelConfig.agent || agentConfig,
-						chat: interaction.collaboration.collaborationParams?.rolesModelConfig.chat || chatConfig,
-					} as LLMRolesModelConfig,
-				},
-			//rolesModelConfig: interaction.collaboration.collaborationParams.rolesModelConfig,
-			// requestParams: {
-			// 	model: interaction.model,
-			// 	temperature: interaction.temperature,
-			// 	maxTokens: interaction.maxTokens,
-			// 	extendedThinking: {
-			// 		enabled: projectConfig.api?.extendedThinking?.enabled ??
-			// 			globalConfig.api.extendedThinking?.enabled ?? true,
-			// 		budgetTokens: projectConfig.api?.extendedThinking?.budgetTokens ||
-			// 			globalConfig.api.extendedThinking?.budgetTokens || 4096,
-			// 	},
-			// 	usePromptCaching: projectConfig.api?.usePromptCaching ?? globalConfig.api.usePromptCaching ?? true,
-			// },
-		};
-	} catch (error) {
-		logger.error(`ConversationHandler: Error in getConversation: ${errorMessage(error)}`);
-		response.status = 404;
-		response.body = { error: 'Conversation not found' };
-	}
-};
-
-/**
- * @openapi
- * /api/v1/conversation/{id}:
- *   delete:
- *     summary: Delete a conversation
- *     description: Deletes a specific conversation
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the conversation to delete
- *     responses:
- *       200:
- *         description: Successful response with deletion confirmation
- *       404:
- *         description: Conversation not found
- *       500:
- *         description: Internal server error
- */
-export const deleteInteraction = async (
-	{ params, request, response, app }: RouterContext<'/v1/conversation/:id', { id: string }>,
-	//	{ params, response }: { params: { id: string }; response: Context['response'] },
-) => {
-	try {
-		const { id: conversationId } = params;
-		const projectId = request.url.searchParams.get('projectId') || '';
-
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
-			);
-			response.status = 400;
-			response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId as InteractionId,
-			projectId,
-			sessionManager,
-		);
-
-		// orchestratorController already defined
-		if (!projectEditor.orchestratorController) {
-			throw new Error('Failed to initialize OrchestratorController');
-		}
-
-		projectEditor.orchestratorController.deleteInteraction(conversationId as InteractionId);
-
-		response.status = 200;
-		response.body = { message: `Conversation ${conversationId} deleted` };
-	} catch (error) {
-		logger.error(`ConversationHandler: Error in deleteInteraction: ${errorMessage(error)}`);
-		response.status = 500;
-		response.body = { error: 'Failed to delete conversation' };
-	}
-};
-
-/**
- * @openapi
- * /api/v1/conversations:
- *   get:
- *     summary: List conversations
- *     description: Retrieves a list of conversations with pagination and filtering options
- *     parameters:
+ *         description: The project ID
  *       - in: query
  *         name: page
  *         schema:
@@ -399,7 +34,7 @@ export const deleteInteraction = async (
  *           default: 1
  *         description: Page number for pagination
  *       - in: query
- *         name: pageSize
+ *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
@@ -409,29 +44,32 @@ export const deleteInteraction = async (
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter conversations starting from this date
+ *         description: Filter collaborations starting from this date
  *       - in: query
  *         name: endDate
  *         schema:
  *           type: string
  *           format: date
- *         description: Filter conversations up to this date
+ *         description: Filter collaborations up to this date
  *       - in: query
  *         name: llmProviderName
  *         schema:
  *           type: string
- *         description: Filter conversations by LLM provider name
+ *         description: Filter collaborations by LLM provider name
  *     responses:
  *       200:
- *         description: Successful response with list of conversations
+ *         description: Successful response with list of collaborations
+ *       400:
+ *         description: Bad request, missing required parameters
  *       500:
  *         description: Internal server error
  */
-export const listInteractions = async (
+export const listCollaborations = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	const projectId = request.url.searchParams.get('projectId');
-	//logger.info(`ConversationHandler: listInteractions called with projectId: ${projectId}`);
+	logger.info(`CollaborationHandler: listCollaborations called with projectId: ${projectId}`);
+	
 	try {
 		const params = request.url.searchParams;
 		const page = parseInt(params.get('page') || '1');
@@ -446,8 +84,8 @@ export const listInteractions = async (
 			return;
 		}
 
-		//logger.info('ConversationHandler: Calling InteractionPersistence.listInteractions');
-		const { conversations, totalCount } = await InteractionPersistence.listInteractions({
+		logger.info('CollaborationHandler: Calling CollaborationPersistence.listCollaborations');
+		const { collaborations, totalCount } = await CollaborationPersistence.listCollaborations({
 			page: page,
 			limit: limit,
 			startDate: startDate ? new Date(startDate) : undefined,
@@ -471,24 +109,24 @@ export const listInteractions = async (
 
 		response.status = 200;
 		response.body = {
-			conversations: conversations.map((conv) => ({
-				id: conv.id,
-				title: conv.title,
-				createdAt: conv.createdAt,
-				updatedAt: conv.updatedAt,
-				llmProviderName: conv.llmProviderName,
-				model: conv.model,
-				interactionStats: conv.interactionStats,
-				tokenUsageStats: conv.tokenUsageStats,
+			collaborations: collaborations.map((collab) => ({
+				id: collab.id,
+				title: collab.title,
+				type: collab.type,
+				createdAt: collab.createdAt,
+				updatedAt: collab.updatedAt,
+				totalInteractions: collab.totalInteractions,
+				lastInteractionId: collab.lastInteractionId,
+				lastInteractionMetadata: collab.lastInteractionMetadata,
+				tokenUsageStats: collab.tokenUsageStats,
 				collaborationParams: {
-					...(conv.collaborationParams || {}),
+					...(collab.collaborationParams || {}),
 					rolesModelConfig: {
-						orchestrator: conv.collaborationParams?.rolesModelConfig.orchestrator || orchestratorConfig,
-						agent: conv.collaborationParams?.rolesModelConfig.agent || agentConfig,
-						chat: conv.collaborationParams?.rolesModelConfig.chat || chatConfig,
+						orchestrator: collab.collaborationParams?.rolesModelConfig.orchestrator || orchestratorConfig,
+						agent: collab.collaborationParams?.rolesModelConfig.agent || agentConfig,
+						chat: collab.collaborationParams?.rolesModelConfig.chat || chatConfig,
 					} as LLMRolesModelConfig,
 				},
-				//rolesModelConfig: conv.collaborationParams?.rolesModelConfig,
 			})),
 			pagination: {
 				page: page,
@@ -498,19 +136,119 @@ export const listInteractions = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in listInteractions: ${errorMessage(error)}`, error);
+		logger.error(`CollaborationHandler: Error in listCollaborations: ${errorMessage(error)}`, error);
 		response.status = 500;
-		response.body = { error: 'Failed to list conversations', details: errorMessage(error) };
+		response.body = { error: 'Failed to list collaborations', details: errorMessage(error) };
 	}
 };
 
 /**
  * @openapi
- * /api/v1/conversation/defaults:
+ * /api/v1/collaborations:
+ *   post:
+ *     summary: Create a new collaboration
+ *     description: Creates a new collaboration with the specified title and type
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - projectId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The title of the collaboration
+ *               type:
+ *                 type: string
+ *                 enum: [project, workflow, research]
+ *                 default: project
+ *                 description: The type of collaboration
+ *               projectId:
+ *                 type: string
+ *                 description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with collaboration details
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const createCollaboration = async (
+	{ request, response, app }: { request: Context['request']; response: Context['response']; app: Context['app'] },
+) => {
+	logger.debug('CollaborationHandler: createCollaboration called');
+
+	try {
+		const body = await request.body.json();
+		const { title, type = 'project', projectId } = body;
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!title) {
+			logger.warn('CollaborationHandler: Missing title');
+			response.status = 400;
+			response.body = { error: 'Missing title' };
+			return;
+		}
+
+		if (!projectId) {
+			logger.warn('CollaborationHandler: Missing projectId');
+			response.status = 400;
+			response.body = { error: 'Missing projectId' };
+			return;
+		}
+
+		const collaborationId = shortenInteractionId(generateInteractionId());
+		const projectEditor = await projectEditorManager.getOrCreateEditor(collaborationId, projectId, sessionManager);
+		
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+		
+		await collaborationPersistence.saveCollaboration({
+			title,
+			type,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		});
+
+		response.status = 200;
+		response.body = { 
+			collaborationId, 
+			title, 
+			type,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in createCollaboration: ${errorMessage(error)}`, error);
+		response.status = 500;
+		response.body = { error: 'Failed to create collaboration', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}:
  *   get:
- *     summary: Get default conversation input options
- *     description: Returns default LLM request parameters based on global and project configuration
+ *     summary: Get collaboration details
+ *     description: Retrieves details of a specific collaboration
  *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the collaboration to retrieve
  *       - in: query
  *         name: projectId
  *         required: true
@@ -519,17 +257,30 @@ export const listInteractions = async (
  *         description: The project ID for configuration context
  *     responses:
  *       200:
- *         description: Successful response with default input options
+ *         description: Successful response with collaboration details
  *       400:
  *         description: Bad request, missing required parameters
+ *       404:
+ *         description: Collaboration not found
  *       500:
  *         description: Internal server error
  */
-export const getConversationDefaults = async (
-	{ request, response }: { request: Context['request']; response: Context['response'] },
+export const getCollaboration = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId', { collaborationId: string }>,
 ) => {
 	try {
+		const { collaborationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
+
+		logger.info(`CollaborationHandler: getCollaboration for: ${collaborationId}`);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
 
 		if (!projectId) {
 			response.status = 400;
@@ -537,125 +288,452 @@ export const getConversationDefaults = async (
 			return;
 		}
 
-		// Get configuration
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-
-		// Use project defaults first, then global defaults
-		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-
-		const registryService = await ModelRegistryService.getInstance(projectConfig);
-		const orchestratorConfig = registryService.getModelConfig(
-			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
-		);
-		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
-		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(collaborationId, projectId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+		
+		const collaboration = await collaborationPersistence.loadCollaboration();
+		if (!collaboration) {
+			response.status = 404;
+			response.body = { error: 'Collaboration not found' };
+			return;
+		}
 
 		response.status = 200;
-		response.body = {
-			rolesModelConfig: {
-				orchestrator: orchestratorConfig,
-				agent: agentConfig,
-				chat: chatConfig,
-			} as LLMRolesModelConfig,
-		};
+		response.body = collaboration;
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in getConversationDefaults: ${errorMessage(error)}`);
+		logger.error(`CollaborationHandler: Error in getCollaboration: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to retrieve default conversation options' };
+		response.body = { error: 'Failed to retrieve collaboration', details: errorMessage(error) };
 	}
 };
 
-export const clearConversation = async (
-	{ params, request, response, app }: RouterContext<'/v1/conversation/:id/clear', { id: string }>,
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}:
+ *   delete:
+ *     summary: Delete a collaboration
+ *     description: Deletes a specific collaboration and all its interactions
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the collaboration to delete
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with deletion confirmation
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       404:
+ *         description: Collaboration not found
+ *       500:
+ *         description: Internal server error
+ */
+export const deleteCollaboration = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId', { collaborationId: string }>,
 ) => {
 	try {
-		const { id: conversationId } = params;
+		const { collaborationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
 		const sessionManager: SessionManager = app.state.auth.sessionManager;
 		if (!sessionManager) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
-			);
+			logger.warn('CollaborationHandler: No session manager configured');
 			response.status = 400;
 			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(collaborationId, projectId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+
+		await collaborationPersistence.deleteCollaboration();
+
+		response.status = 200;
+		response.body = { message: `Collaboration ${collaborationId} deleted` };
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in deleteCollaboration: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to delete collaboration', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/interactions:
+ *   post:
+ *     summary: Create a new interaction within a collaboration
+ *     description: Creates a new interaction as a child of the specified collaboration
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the parent collaboration
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               parentInteractionId:
+ *                 type: string
+ *                 description: Optional parent interaction ID for nested interactions
+ *               projectId:
+ *                 type: string
+ *                 description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with interaction details
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const createInteraction = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId/interactions', { collaborationId: string }>,
+) => {
+	try {
+		const { collaborationId } = params;
+		const body = await request.body.json();
+		const { parentInteractionId, projectId } = body;
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(collaborationId, projectId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+		
+		const interactionPersistence = await collaborationPersistence.createInteraction(
+			parentInteractionId,
+			app.state.llmCallbacks
+		);
+
+		response.status = 200;
+		response.body = { 
+			interactionId: interactionPersistence.interactionId,
+			collaborationId 
+		};
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in createInteraction: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to create interaction', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/interactions/{interactionId}:
+ *   get:
+ *     summary: Get interaction details
+ *     description: Retrieves details of a specific interaction within a collaboration
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the parent collaboration
+ *       - in: path
+ *         name: interactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the interaction to retrieve
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with interaction details
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       404:
+ *         description: Interaction not found
+ *       500:
+ *         description: Internal server error
+ */
+export const getInteraction = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId/interactions/:interactionId', { collaborationId: string; interactionId: string }>,
+) => {
+	try {
+		const { collaborationId, interactionId } = params;
+		const projectId = request.url.searchParams.get('projectId') || '';
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(collaborationId, projectId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+		
+		const interactionPersistence = await collaborationPersistence.getInteraction(interactionId as InteractionId);
+		const interaction = await interactionPersistence.loadInteraction();
+		
+		if (!interaction) {
+			response.status = 404;
+			response.body = { error: 'Interaction not found' };
+			return;
+		}
+
+		// Load log data entries for the interaction
+		let logDataEntries: Array<CollaborationLogDataEntry>;
+		try {
+			logDataEntries = await CollaborationLogger.getLogDataEntries(projectId, interactionId as InteractionId);
+		} catch (_error) {
+			logDataEntries = [];
+		}
+
+		response.status = 200;
+		response.body = {
+			...interaction,
+			logDataEntries,
+		};
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in getInteraction: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to retrieve interaction', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/interactions/{interactionId}:
+ *   post:
+ *     summary: Chat in an interaction
+ *     description: Continues an existing interaction with the AI assistant using the OrchestratorController
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the parent collaboration
+ *       - in: path
+ *         name: interactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the interaction to continue
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - statement
+ *               - projectId
+ *             properties:
+ *               statement:
+ *                 type: string
+ *                 description: The statement to continue the interaction
+ *               projectId:
+ *                 type: string
+ *                 description: The project ID
+ *               maxTurns:
+ *                 type: integer
+ *                 description: Maximum number of turns for this interaction
+ *     responses:
+ *       200:
+ *         description: Successful response with interaction continuation
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const chatInteraction = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId/interactions/:interactionId', { collaborationId: string; interactionId: string }>,
+) => {
+	logger.debug('CollaborationHandler: chatInteraction called');
+
+	const { collaborationId, interactionId } = params;
+
+	try {
+		const body = await request.body.json();
+		const { statement, projectId, maxTurns } = body;
+
+		logger.info(
+			`CollaborationHandler: chatInteraction for collaborationId: ${collaborationId}, interactionId: ${interactionId}, Prompt: "${
+				statement?.substring(0, 50)
+			}..."`,
+		);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!statement) {
+			logger.warn(`CollaborationHandler: Missing statement for interactionId: ${interactionId}`);
+			response.status = 400;
+			response.body = { error: 'Missing statement' };
+			return;
+		}
+
+		if (!projectId) {
+			logger.warn(`CollaborationHandler: Missing projectId for interactionId: ${interactionId}`);
+			response.status = 400;
+			response.body = { error: 'Missing projectId' };
+			return;
+		}
+
+		if (projectEditorManager.isCollaborationActive(interactionId)) {
+			response.status = 400;
+			response.body = { error: 'Interaction is already in use' };
+			return;
+		}
+
+		logger.debug(
+			`CollaborationHandler: Creating ProjectEditor for interactionId: ${interactionId} using projectId: ${projectId}`,
+		);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(interactionId, projectId, sessionManager);
+
+		const result: CollaborationResponse = await projectEditor.handleStatement(statement, interactionId, {
+			maxTurns,
+		});
+
+		logger.debug(
+			`CollaborationHandler: Response received from handleStatement for interactionId: ${interactionId}`,
+		);
+		response.status = 200;
+		response.body = {
+			collaborationId: result.conversationId,
+			interactionId: interactionId,
+			logEntry: result.logEntry,
+			collaborationTitle: result.collaborationTitle,
+			interactionStats: result.interactionStats,
+			tokenUsageStats: result.tokenUsageStats,
+		};
+	} catch (error) {
+		logger.error(
+			`CollaborationHandler: Error in chatInteraction for interactionId: ${interactionId}: ${
+				errorMessage(error)
+			}`,
+			error,
+		);
+		response.status = 500;
+		response.body = { error: 'Failed to generate response', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/interactions/{interactionId}:
+ *   delete:
+ *     summary: Delete an interaction
+ *     description: Deletes a specific interaction within a collaboration
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the parent collaboration
+ *       - in: path
+ *         name: interactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the interaction to delete
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with deletion confirmation
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const deleteInteraction = async (
+	{ params, request, response, app }: RouterContext<'/v1/collaborations/:collaborationId/interactions/:interactionId', { collaborationId: string; interactionId: string }>,
+) => {
+	try {
+		const { collaborationId, interactionId } = params;
+		const projectId = request.url.searchParams.get('projectId') || '';
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
 			return;
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId as InteractionId,
+			interactionId as InteractionId,
 			projectId,
 			sessionManager,
 		);
 
-		// orchestratorController already defined
 		if (!projectEditor.orchestratorController) {
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		const interaction = projectEditor.orchestratorController.interactionManager.getInteraction(
-			conversationId as InteractionId,
-		);
-		if (!interaction) {
-			response.status = 404;
-			response.body = { error: 'Conversation not found' };
-			return;
-		}
-
-		interaction.clearMessages();
+		projectEditor.orchestratorController.deleteInteraction(interactionId as InteractionId);
 
 		response.status = 200;
-		response.body = { message: `Conversation ${conversationId} cleared` };
+		response.body = { message: `Interaction ${interactionId} deleted` };
 	} catch (error) {
-		logger.error(`ConversationHandler: Error in clearConversation: ${errorMessage(error)}`);
+		logger.error(`CollaborationHandler: Error in deleteInteraction: ${errorMessage(error)}`);
 		response.status = 500;
-		response.body = { error: 'Failed to clear conversation' };
+		response.body = { error: 'Failed to delete interaction', details: errorMessage(error) };
 	}
 };
-
-/*
-export const undoConversation = async (
-	{ params, request, response, app }: RouterContext<'/v1/conversation/:id/undo', { id: string }>,
-) => {
-	try {
-		const { id: conversationId } = params;
-		const projectId = request.url.searchParams.get('projectId') || '';
-
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`ConversationHandler: HandlerContinueConversation: No session manager configured`,
-			);
-			response.status = 400;
-			response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const projectEditor = await projectEditorManager.getOrCreateEditor(conversationId as InteractionId, projectId, sessionManager);
-
-		// orchestratorController already defined
-		if (!projectEditor.orchestratorController) {
-			throw new Error('Failed to initialize OrchestratorController');
-		}
-
-		const interaction = projectEditor.orchestratorController.interactionManager.getInteraction(conversationId as InteractionId);
-		if (!interaction) {
-			response.status = 404;
-			response.body = { error: 'Conversation not found' };
-			return;
-		}
-
-		await interaction.revertLastChange();
-
-		response.status = 200;
-		response.body = { message: `Last change in conversation ${conversationId} undone` };
-	} catch (error) {
-		logger.error(`ConversationHandler: Error in undoConversation: ${error.message}`);
-		response.status = 500;
-		response.body = { error: 'Failed to undo last change in conversation' };
-	}
-};
-
- */

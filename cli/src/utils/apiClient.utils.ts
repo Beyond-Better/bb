@@ -70,6 +70,71 @@ export default class ApiClient {
 		}
 	}
 
+	async listCollaborations(projectId: string, page = 1, limit = 10) {
+		try {
+			const response = await this.get(
+				`/api/v1/collaborations?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`
+			);
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: List collaborations failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
+	async createCollaboration(title: string, type: string, projectId: string) {
+		try {
+			const response = await this.post('/api/v1/collaborations', {
+				title,
+				type,
+				projectId,
+			});
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: Create collaboration failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
+	async getCollaboration(collaborationId: string, projectId: string) {
+		try {
+			const response = await this.get(
+				`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`
+			);
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: Get collaboration failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
+	async createInteraction(collaborationId: string, projectId: string, parentInteractionId?: string) {
+		try {
+			const response = await this.post(`/api/v1/collaborations/${collaborationId}/interactions`, {
+				projectId,
+				parentInteractionId,
+			});
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: Create interaction failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
+	async chatInteraction(collaborationId: string, interactionId: string, statement: string, projectId: string, maxTurns?: number) {
+		try {
+			const response = await this.post(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}`, {
+				statement,
+				projectId,
+				maxTurns,
+			});
+			return await response.json();
+		} catch (error) {
+			logger.error(`APIClient: Chat interaction failed: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+
 	async listDirectory(dirPath: string, options: { only?: 'files' | 'directories'; matchingString?: string } = {}) {
 		try {
 			const response = await this.post('/api/v1/files/list-directory', {

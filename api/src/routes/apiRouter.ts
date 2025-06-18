@@ -1,12 +1,14 @@
 import { Router } from '@oak/oak';
 import { requireAuth } from '../middlewares/auth.middleware.ts';
 import {
-	chatConversation,
-	clearConversation,
+	listCollaborations,
+	createCollaboration,
+	getCollaboration,
+	deleteCollaboration,
+	createInteraction,
+	getInteraction,
+	chatInteraction,
 	deleteInteraction,
-	getConversation,
-	getConversationDefaults,
-	listInteractions,
 } from './api/conversation.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
@@ -29,7 +31,7 @@ const apiRouter = new Router();
 // Define protected routes
 const protectedPaths = [
 	'/v1/ws/conversation/*',
-	'/v1/conversation/*',
+	'/v1/collaborations/*',
 	'/v1/project/*',
 	'/v1/files/*',
 	'/v1/user/*', // Protect all user routes including subscription
@@ -48,13 +50,16 @@ apiRouter
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
 	.get('/v1/ws/conversation/:id', websocketConversation)
-	// Conversation endpoints
-	.get('/v1/conversation', listInteractions)
-	.get('/v1/conversation/defaults', getConversationDefaults)
-	.get('/v1/conversation/:id', getConversation)
-	.post('/v1/conversation/:id', chatConversation)
-	.delete('/v1/conversation/:id', deleteInteraction)
-	.post('/v1/conversation/:id/clear', clearConversation)
+	// Collaboration endpoints
+	.get('/v1/collaborations', listCollaborations)
+	.post('/v1/collaborations', createCollaboration)
+	.get('/v1/collaborations/:collaborationId', getCollaboration)
+	.delete('/v1/collaborations/:collaborationId', deleteCollaboration)
+	// Interaction endpoints within collaborations
+	.post('/v1/collaborations/:collaborationId/interactions', createInteraction)
+	.get('/v1/collaborations/:collaborationId/interactions/:interactionId', getInteraction)
+	.post('/v1/collaborations/:collaborationId/interactions/:interactionId', chatInteraction)
+	.delete('/v1/collaborations/:collaborationId/interactions/:interactionId', deleteInteraction)
 	// Log Entries endpoints
 	.post('/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType', logEntryFormatter)
 	/**
