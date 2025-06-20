@@ -2,6 +2,7 @@ import { encodeBase64 } from '@std/encoding';
 
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
 import type { InteractionId, InteractionStatementMetadata, TokenUsage as _TokenUsage } from 'shared/types.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -82,25 +83,6 @@ class LLMConversationInteraction extends LLMInteraction {
 	 */
 	private _maxHydratedMessagesPerResource: number = 2;
 
-	/**
-	 * Gets the maximum number of messages to keep per resource in the hydratedResources map.
-	 */
-	get maxHydratedMessagesPerResource(): number {
-		return this._maxHydratedMessagesPerResource;
-	}
-
-	/**
-	 * Sets the maximum number of messages to keep per resource in the hydratedResources map.
-	 * @param value - Must be a positive integer
-	 * @throws Error if value is less than 1
-	 */
-	set maxHydratedMessagesPerResource(value: number) {
-		if (!Number.isInteger(value) || value < 1) {
-			throw new Error('maxHydratedMessagesPerResource must be a positive integer');
-		}
-		this._maxHydratedMessagesPerResource = value;
-	}
-
 	//private resourceManager!: ResourceManager;
 	private projectData!: ProjectPersistence;
 	private toolUsageStats: ToolUsageStats = {
@@ -111,8 +93,8 @@ class LLMConversationInteraction extends LLMInteraction {
 	};
 	//private currentCommit: string | null = null;
 
-	constructor(conversationId?: InteractionId) {
-		super(conversationId);
+	constructor(collaboration: Collaboration, interactionId?: InteractionId) {
+		super(collaboration, interactionId);
 		this._interactionType = 'conversation';
 	}
 
@@ -702,6 +684,34 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	set conversationId(value: InteractionId) {
 		this.id = value;
+	}
+
+	// Getters and setters
+	get interactionId(): InteractionId {
+		return this.id;
+	}
+
+	set interactionId(value: InteractionId) {
+		this.id = value;
+	}
+
+	/**
+	 * Gets the maximum number of messages to keep per resource in the hydratedResources map.
+	 */
+	get maxHydratedMessagesPerResource(): number {
+		return this._maxHydratedMessagesPerResource;
+	}
+
+	/**
+	 * Sets the maximum number of messages to keep per resource in the hydratedResources map.
+	 * @param value - Must be a positive integer
+	 * @throws Error if value is less than 1
+	 */
+	set maxHydratedMessagesPerResource(value: number) {
+		if (!Number.isInteger(value) || value < 1) {
+			throw new Error('maxHydratedMessagesPerResource must be a positive integer');
+		}
+		this._maxHydratedMessagesPerResource = value;
 	}
 
 	public getToolUsageStats(): ToolUsageStats {

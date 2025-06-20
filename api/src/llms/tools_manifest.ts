@@ -142,31 +142,6 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'collaborationSummary.tool',
-		'metadata': {
-			'name': 'collaboration_summary',
-			'description':
-				'Summarize and optionally truncate the current conversation. By default, stops after generating summary unless explicitly asked to continue with other tasks. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'enabled': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
-		'toolNamePath': 'collaborationMetrics.tool',
-		'metadata': {
-			'name': 'collaboration_metrics',
-			'description':
-				'Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. By default, stops after providing analysis unless explicitly asked to perform additional tasks. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.',
-			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'protocolType': 'bb',
-		},
-	},
-	{
 		'toolNamePath': 'displayResource.tool',
 		'metadata': {
 			'name': 'display_resource',
@@ -232,6 +207,18 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'interactionMetrics.tool',
+		'metadata': {
+			'name': 'interaction_metrics',
+			'description':
+				'Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. By default, stops after providing analysis unless explicitly asked to perform additional tasks. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
 		'toolNamePath': 'runCommand.tool',
 		'metadata': {
 			'name': 'run_command',
@@ -256,6 +243,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 					'env',
 				],
 			},
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'interactionSummary.tool',
+		'metadata': {
+			'name': 'interaction_summary',
+			'description':
+				'Summarize and optionally truncate the current conversation. By default, stops after generating summary unless explicitly asked to continue with other tasks. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'enabled': true,
 			'protocolType': 'bb',
 		},
 	},

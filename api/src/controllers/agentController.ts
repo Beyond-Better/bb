@@ -1,5 +1,6 @@
 //import type InteractionManager from 'api/llms/interactionManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
@@ -91,24 +92,14 @@ class AgentController extends BaseController {
 	//	return this.agentInteractionId;
 	//}
 
-	//async initializeInteraction(): Promise<LLMConversationInteraction> {
-	//	const interactionId = generateInteractionId();
-	//	const interaction = await this.interactionManager.createInteraction(
-	//		'conversation',
-	//		interactionId,
-	//		this.llmProvider,
-	//		this.orchestratorInteractionId,
-	//	) as LLMConversationInteraction;
-	//	return interaction;
-	//}
-
-	async createAgentInteraction(title: string): Promise<LLMConversationInteraction> {
+	async createAgentInteraction(collaboration: Collaboration, title: string): Promise<LLMConversationInteraction> {
 		const agentInteractionId = shortenInteractionId(generateInteractionId());
 		logger.info(
 			`AgentController: createAgentInteraction - creating interaction for: ${agentInteractionId} with parent ${this.orchestratorInteractionId}`,
 		);
 		const interactionModel = this.projectConfig.defaultModels?.agent ?? 'claude-sonnet-4-20250514';
 		const agentInteraction = await this.interactionManager.createInteraction(
+			collaboration, 
 			'conversation',
 			agentInteractionId,
 			//this.llmProvider,
@@ -151,6 +142,7 @@ class AgentController extends BaseController {
 
 	public async executeSyncTasks(
 		orchestratorController: OrchestratorController,
+		collaboration: Collaboration,
 		parentMessageId: string,
 		tasks: Task[],
 		errorHandler: ErrorHandler,
@@ -161,7 +153,7 @@ class AgentController extends BaseController {
 		for (const task of tasks) {
 			try {
 				completedTasks.push(
-					await this.executeTask(orchestratorController, parentMessageId, task, errorHandler),
+					await this.executeTask(orchestratorController, collaboration, parentMessageId, task, errorHandler),
 				);
 			} catch (error) {
 				throw error;
@@ -173,6 +165,7 @@ class AgentController extends BaseController {
 
 	public async executeAsyncTasks(
 		orchestratorController: OrchestratorController,
+		collaboration: Collaboration,
 		parentMessageId: string,
 		tasks: Task[],
 		errorHandler: ErrorHandler,
@@ -182,7 +175,7 @@ class AgentController extends BaseController {
 		//tasks.forEach((task) => this.taskQueue.addTask(task));
 		try {
 			completedTasks = await Promise.all(
-				tasks.map((task) => this.executeTask(orchestratorController, parentMessageId, task, errorHandler)),
+				tasks.map((task) => this.executeTask(orchestratorController, collaboration, parentMessageId, task, errorHandler)),
 			);
 		} catch (error) {
 			throw error;
@@ -192,13 +185,14 @@ class AgentController extends BaseController {
 
 	private async executeTask(
 		orchestratorController: OrchestratorController,
+		collaboration: Collaboration,
 		parentMessageId: string,
 		task: Task,
 		errorHandler: ErrorHandler,
 	): Promise<CompletedTask> {
 		logger.info('AgentController: executeTask ', { parentMessageId, task });
 
-		const interaction = await this.createAgentInteraction(task.title);
+		const interaction = await this.createAgentInteraction(collaboration, task.title);
 		if (!interaction) {
 			throw new Error(`No agent interaction created for parent ID: ${this.orchestratorInteractionId}`);
 		}
@@ -206,7 +200,7 @@ class AgentController extends BaseController {
 
 		let completedTask: CompletedTask;
 		try {
-			completedTask = await this.handleTask(orchestratorController, interaction, parentMessageId, task, {
+			completedTask = await this.handleTask(orchestratorController, collaboration, interaction, parentMessageId, task, {
 				maxTurns: 10,
 				model: orchestratorController!.projectConfig?.defaultModels?.agent,
 			});
@@ -220,6 +214,7 @@ class AgentController extends BaseController {
 
 	async handleTask(
 		_orchestratorController: OrchestratorController,
+		collaboration: Collaboration,
 		interaction: LLMConversationInteraction,
 		parentMessageId: string,
 		task: Task,
@@ -244,9 +239,9 @@ class AgentController extends BaseController {
 				this.eventManager.emit(
 					'projectEditor:collaborationError',
 					{
-						collaborationId: '', // TODO: Get from collaboration context
+						collaborationId: collaboration.id,
 						interactionId: logEntryInteraction.id,
-						collaborationTitle: interaction.title || '',
+						collaborationTitle: collaboration.title || '',
 						agentInteractionId: agentInteractionId,
 						timestamp: new Date().toISOString(),
 						interactionStats: {
@@ -581,9 +576,9 @@ class AgentController extends BaseController {
 					this.eventManager.emit(
 						'projectEditor:collaborationError',
 						{
-							collaborationId: '', // TODO: Get from collaboration context
+							collaborationId: collaboration.id,
 							interactionId: interaction.id,
-							collaborationTitle: interaction.title || '',
+							collaborationTitle: collaboration.title || '',
 							agentInteractionId: agentInteractionId,
 							timestamp: new Date().toISOString(),
 							interactionStats: {

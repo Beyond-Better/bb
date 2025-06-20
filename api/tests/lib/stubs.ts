@@ -39,9 +39,9 @@ export function makeProjectEditorStub(projectEditor: ProjectEditor) {
 	);
 	const handleStatementStub = stub(projectEditor, 'handleStatement', async (
 		statement: string,
-		conversationId: InteractionId,
+		interactionId: InteractionId,
 	): Promise<CollaborationResponse> => ({
-		conversationId: 'test-id',
+		interactionId: 'test-id',
 		response: { answerContent: [{ type: 'text', text: 'Test response' }] },
 		messageMeta: {},
 		collaborationTitle: 'Test Conversation',
@@ -77,9 +77,9 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 	const initStub = stub(orchestratorController, 'init', async () => {});
 	const handleStatementStub = stub(orchestratorController, 'handleStatement', async (
 		statement: string,
-		conversationId: InteractionId,
+		interactionId: InteractionId,
 	): Promise<CollaborationResponse> => ({
-		conversationId: 'test-id',
+		interactionId: 'test-id',
 		response: { answerContent: [{ type: 'text', text: 'Test response' }] },
 		messageMeta: {},
 		collaborationTitle: 'Test Conversation',

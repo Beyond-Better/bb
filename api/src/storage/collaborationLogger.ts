@@ -6,7 +6,13 @@ import { renderToString } from 'preact-render-to-string';
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import CollaborationLogFormatter from 'cli/collaborationLogFormatter.ts';
-import type { InteractionId, CollaborationLogDataEntry, InteractionStats, TokenUsageStats } from 'shared/types.ts';
+import type {
+	CollaborationId,
+	CollaborationLogDataEntry,
+	InteractionId,
+	InteractionStats,
+	TokenUsageStats,
+} from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
@@ -75,11 +81,12 @@ export default class CollaborationLogger {
 
 	constructor(
 		private projectEditor: ProjectEditor,
-		private conversationId: InteractionId,
+		private collaborationId: CollaborationId,
 		private logEntryHandler: (
 			messageId: string,
 			parentMessageId: string | null,
-			conversationId: InteractionId,
+			collaborationId: CollaborationId,
+			//parentInteractionId: InteractionId,
 			agentInteractionId: InteractionId | null,
 			timestamp: string,
 			logEntry: CollaborationLogEntry,
@@ -94,10 +101,10 @@ export default class CollaborationLogger {
 	async init(): Promise<CollaborationLogger> {
 		this.logEntryFormatterManager = await new LogEntryFormatterManager(this.projectEditor).init();
 
-		this.collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(this.projectId, this.conversationId);
+		this.collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(this.projectId, this.collaborationId);
 
-		this.logFileRaw = await CollaborationLogger.getLogFileRawPath(this.projectId, this.conversationId);
-		this.logFileJson = await CollaborationLogger.getLogFileJsonPath(this.projectId, this.conversationId);
+		this.logFileRaw = await CollaborationLogger.getLogFileRawPath(this.projectId, this.collaborationId);
+		this.logFileJson = await CollaborationLogger.getLogFileJsonPath(this.projectId, this.collaborationId);
 
 		CollaborationLogger.entryTypeLabels.user = globalConfig.myPersonsName || 'Person';
 		CollaborationLogger.entryTypeLabels.assistant = globalConfig.myAssistantsName || 'Assistant';
@@ -110,26 +117,26 @@ export default class CollaborationLogger {
 		await ensureDir(this.collaborationLogsDir);
 		this.ensuredDir = true;
 	}
-	static async getLogFileDirPath(projectId: string, conversationId: string): Promise<string> {
+	static async getLogFileDirPath(projectId: string, collaborationId: string): Promise<string> {
 		const projectAdminDir = await getProjectAdminDataDir(projectId);
-		const collaborationLogsDir = join(projectAdminDir, 'collaborations', conversationId);
+		const collaborationLogsDir = join(projectAdminDir, 'collaborations', collaborationId);
 		//await ensureDir(collaborationLogsDir);
 		return collaborationLogsDir;
 	}
-	static async getLogFileRawPath(projectId: string, conversationId: string): Promise<string> {
-		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, conversationId);
+	static async getLogFileRawPath(projectId: string, collaborationId: string): Promise<string> {
+		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, collaborationId);
 		return join(collaborationLogsDir, 'collaboration.log');
 	}
-	static async getLogFileJsonPath(projectId: string, conversationId: string): Promise<string> {
-		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, conversationId);
+	static async getLogFileJsonPath(projectId: string, collaborationId: string): Promise<string> {
+		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, collaborationId);
 		return join(collaborationLogsDir, 'collaboration.jsonl');
 	}
 
 	static async getLogDataEntries(
 		projectId: string,
-		conversationId: string,
+		collaborationId: string,
 	): Promise<Array<CollaborationLogDataEntry>> {
-		const collaborationLogFile = await CollaborationLogger.getLogFileJsonPath(projectId, conversationId);
+		const collaborationLogFile = await CollaborationLogger.getLogFileJsonPath(projectId, collaborationId);
 		const content = await Deno.readTextFile(collaborationLogFile);
 		return content.trim().split('\n').map((line) => JSON.parse(line));
 	}
@@ -150,6 +157,7 @@ export default class CollaborationLogger {
 	private async logEntry(
 		messageId: string,
 		parentMessageId: string | null,
+		//parentInteractionId: InteractionId | null,
 		agentInteractionId: InteractionId | null,
 		logEntry: CollaborationLogEntry,
 		interactionStats: InteractionStats = { statementCount: 0, statementTurnCount: 0, interactionTurnCount: 0 },
@@ -185,7 +193,8 @@ export default class CollaborationLogger {
 			await this.logEntryHandler(
 				messageId,
 				parentMessageId,
-				this.conversationId,
+				this.collaborationId,
+				//parentInteractionId,
 				agentInteractionId,
 				timestamp,
 				logEntry,
@@ -199,6 +208,7 @@ export default class CollaborationLogger {
 
 		const rawEntry = await this.createRawEntryWithSeparator(
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			timestamp,
 			logEntry,
@@ -215,6 +225,7 @@ export default class CollaborationLogger {
 		const jsonEntry = JSON.stringify({
 			messageId,
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			timestamp,
 			logEntry,
@@ -240,13 +251,15 @@ export default class CollaborationLogger {
 	async logOrchestratorMessage(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		message: string,
 		interactionStats: InteractionStats,
 	) {
 		await this.logEntry(
 			messageId,
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			{ entryType: 'orchestrator', content: message },
 			interactionStats,
@@ -256,7 +269,8 @@ export default class CollaborationLogger {
 	async logAssistantMessage(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		message: string,
 		thinking: string,
 		interactionStats: InteractionStats,
@@ -266,6 +280,7 @@ export default class CollaborationLogger {
 		await this.logEntry(
 			messageId,
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			{
 				entryType: 'assistant',
@@ -281,7 +296,8 @@ export default class CollaborationLogger {
 	async logAnswerMessage(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		answer: string,
 		assistantThinking: string,
 		interactionStats: InteractionStats,
@@ -291,6 +307,7 @@ export default class CollaborationLogger {
 		await this.logEntry(
 			messageId,
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			{
 				entryType: 'answer',
@@ -306,7 +323,8 @@ export default class CollaborationLogger {
 	async logAuxiliaryMessage(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		message: string | AuxiliaryChatContent,
 		interactionStats?: InteractionStats,
 		tokenUsageStats?: TokenUsageStats,
@@ -315,6 +333,7 @@ export default class CollaborationLogger {
 		await this.logEntry(
 			messageId,
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			{ entryType: 'auxiliary', content: message },
 			interactionStats,
@@ -326,7 +345,8 @@ export default class CollaborationLogger {
 	async logToolUse(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		toolName: string,
 		toolInput: LLMToolInputSchema,
 		interactionStats: InteractionStats,
@@ -337,6 +357,7 @@ export default class CollaborationLogger {
 			await this.logEntry(
 				messageId,
 				parentMessageId,
+				//parentInteractionId,
 				agentInteractionId,
 				{ entryType: 'tool_use', content: toolInput, toolName },
 				interactionStats,
@@ -351,17 +372,24 @@ export default class CollaborationLogger {
 	async logToolResult(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		toolName: string,
 		toolResult: LLMToolRunResultContent,
 		bbResponse: LLMToolRunBbResponse,
 	) {
 		try {
-			await this.logEntry(messageId, parentMessageId, agentInteractionId, {
-				entryType: 'tool_result',
-				content: { toolResult, bbResponse },
-				toolName,
-			});
+			await this.logEntry(
+				messageId,
+				parentMessageId,
+				//parentInteractionId,
+				agentInteractionId,
+				{
+					entryType: 'tool_result',
+					content: { toolResult, bbResponse },
+					toolName,
+				},
+			);
 		} catch (error) {
 			logger.error('Error in logEntry for logToolResult:', error);
 		}
@@ -370,10 +398,20 @@ export default class CollaborationLogger {
 	async logError(
 		messageId: string,
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		error: string,
 	) {
-		await this.logEntry(messageId, parentMessageId, agentInteractionId, { entryType: 'error', content: error });
+		await this.logEntry(
+			messageId,
+			parentMessageId,
+			//parentInteractionId,
+			agentInteractionId,
+			{
+				entryType: 'error',
+				content: error,
+			},
+		);
 	}
 
 	//async logTextChange(filePath: string, change: string) {
@@ -383,7 +421,8 @@ export default class CollaborationLogger {
 
 	async createRawEntry(
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
 		_conversationStats: InteractionStats,
@@ -403,14 +442,15 @@ export default class CollaborationLogger {
 			: renderToString(formattedContent.content as JSX.Element);
 
 		const label = CollaborationLogger.entryTypeLabels[logEntry.entryType] || 'Unknown';
-		return `## ${label} [${timestamp}] [AgentId: ${agentInteractionId || '--'}][Parent MessageId:${
-			parentMessageId || '--'
-		}]\n${rawEntryContent.trim()}`;
+		return `## ${label} [${timestamp}] [CollaborationId: ${this.collaborationId || '--'}][AgentId: ${
+			agentInteractionId || '--'
+		}][Parent MessageId:${parentMessageId || '--'}]\n${rawEntryContent.trim()}`;
 	}
 
 	async createRawEntryWithSeparator(
 		parentMessageId: string | null,
-		agentInteractionId: string | null,
+		//parentInteractionId: InteractionId | null,
+		agentInteractionId: InteractionId | null,
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
 		interactionStats: InteractionStats,
@@ -419,6 +459,7 @@ export default class CollaborationLogger {
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
 			parentMessageId,
+			//parentInteractionId,
 			agentInteractionId,
 			timestamp,
 			logEntry,

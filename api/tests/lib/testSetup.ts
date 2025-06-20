@@ -76,7 +76,7 @@ export async function getProjectEditor(projectId: string): Promise<ProjectEditor
 	//console.log('getProjectEditor', { projectId });
 	const sessionManager = new SessionManager();
 	await sessionManager.initialize();
-	const projectEditor = await projectEditorManager.getOrCreateEditor('test-collaboration', projectId, sessionManager);
+	const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, 'test-collaboration', sessionManager);
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 
@@ -109,20 +109,24 @@ export async function getToolManager(
 export const getTestFilePath = (testProjectRoot: string, filename: string) => join(testProjectRoot, filename);
 
 export async function createTestInteraction(
-	conversationId: string,
+	collaborationId: string,
+	interactionId: string,
 	projectEditor: ProjectEditor,
 ): Promise<LLMConversationInteraction> {
-	const interaction = await projectEditor.initCollaboration(conversationId);
+	const interaction = await projectEditor.initInteraction(collaborationId, interactionId);
 	return interaction as LLMConversationInteraction;
 }
 
 export async function createTestChatInteraction(
-	conversationId: string,
+	collaborationId: string,
+	interactionId: string,
 	projectEditor: ProjectEditor,
 	chatTitle: string = 'Chat Title',
 ): Promise<LLMChatInteraction> {
+	const interaction = await projectEditor.initInteraction(collaborationId, interactionId);
 	const chatInteraction = await projectEditor.orchestratorController.createChatInteraction(
-		conversationId,
+		interaction.collaboration,
+		interaction.id,
 		chatTitle,
 	);
 	return chatInteraction as LLMChatInteraction;

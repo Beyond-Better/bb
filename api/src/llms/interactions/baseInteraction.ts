@@ -24,20 +24,20 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import { getLLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
+import { getLLMModelToProvider, type LLMProviderMessageResponseRole } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
-import type { Collaboration } from 'shared/types/collaboration.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { InteractionPreferences, ModelCapabilities } from 'api/types/modelCapabilities.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import LLMFactory from '../llmProvider.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
 
@@ -100,7 +100,7 @@ class LLMInteraction {
 	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
 	protected _baseSystem: string = '';
 	public interactionPersistence!: InteractionPersistence;
-	public collaboration!: Collaboration;
+	protected collaborationRef!: WeakRef<Collaboration>;
 	public collaborationLogger!: CollaborationLogger;
 	protected projectConfig!: ProjectConfig;
 
@@ -123,10 +123,12 @@ class LLMInteraction {
 	// 		usePromptCaching: false,
 	// 	};
 
-	constructor(conversationId?: InteractionId) {
-		this.id = conversationId ?? shortenInteractionId(generateInteractionId());
-		//this.llm = llm;
+	constructor(collaboration: Collaboration, interactionId?: InteractionId, ) {
+		this.collaborationRef = new WeakRef(collaboration);
+
+		this.id = interactionId ?? shortenInteractionId(generateInteractionId());
 		this._interactionType = 'base';
+
 		// Ensure objectives are properly initialized
 		this._objectives = {
 			collaboration: undefined,
@@ -184,6 +186,7 @@ class LLMInteraction {
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
 			this.interactionPersistence = await new InteractionPersistence(
+				this.collaboration.id,
 				this.id,
 				projectEditor,
 				parentInteractionId,
@@ -200,6 +203,15 @@ class LLMInteraction {
 			throw error;
 		}
 		return this;
+	}
+
+	public get collaboration(): Collaboration {
+		const collaboration = this.collaborationRef.deref();
+		if (!collaboration) throw new Error('No collaboration to deref from collaborationRef');
+		return collaboration;
+	}
+	public set collaboration(collaboration: Collaboration) {
+		this.collaborationRef = new WeakRef(collaboration);
 	}
 
 	public get interactionType(): 'chat' | 'conversation' | 'base' {
@@ -874,7 +886,7 @@ class LLMInteraction {
 		},
 		provider?: LLMProvider,
 	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
+		const registryService = await ModelRegistryService.getInstance(this.projectConfig);
 
 		const modelToProvider = await getLLMModelToProvider();
 		const effectiveProvider = provider || modelToProvider[model];
@@ -889,30 +901,27 @@ class LLMInteraction {
 		const explicitExtendedThinking = parameters.extendedThinking;
 
 		// Resolve maxTokens with proper priority
-		const maxTokens = capabilitiesManager.resolveMaxTokens(
+		const maxTokens = registryService.resolveMaxTokens(
 			model,
 			explicitMaxTokens, // || this._maxTokens,
 			userPreferences?.maxTokens,
 			interactionPreferences.maxTokens,
-			provider,
 		);
 
 		// Resolve temperature with proper priority
-		const temperature = capabilitiesManager.resolveTemperature(
+		const temperature = registryService.resolveTemperature(
 			model,
 			explicitTemperature, // || this._temperature,
 			userPreferences?.temperature,
 			interactionPreferences.temperature,
-			provider,
 		);
 
 		// Resolve temperature with proper priority
-		const extendedThinking = capabilitiesManager.resolveExtendedThinking(
+		const extendedThinking = registryService.resolveExtendedThinking(
 			model,
 			explicitExtendedThinking, // || this._extendedThinking.enabled,
 			userPreferences?.extendedThinking,
 			interactionPreferences.extendedThinking,
-			provider,
 		);
 
 		return { maxTokens, temperature, extendedThinking };
@@ -924,8 +933,8 @@ class LLMInteraction {
 	 * @returns model capabilities for current model for the interaction
 	 */
 	public async getModelCapabilities(): Promise<ModelCapabilities> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
-		const modelCapabilities = capabilitiesManager.getModelCapabilities(this.model);
+		const registryService = await ModelRegistryService.getInstance(this.projectConfig);
+		const modelCapabilities = registryService.getModelCapabilities(this.model);
 		//logger.info('BaseInteraction: modelCapabilities:', modelCapabilities);
 		return modelCapabilities;
 	}

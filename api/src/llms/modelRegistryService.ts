@@ -469,4 +469,139 @@ export class ModelRegistryService {
 		// Could be enhanced with more sophisticated logic
 		return models.length > 0 ? models[0].id : undefined;
 	}
+
+
+	/**
+	 * Resolves a parameter value based on priority
+	 */
+	public resolveParameter<T>(
+		paramName: keyof ModelCapabilities['defaults'],
+		model: string,
+		explicitValue?: T,
+		userPreference?: T,
+		interactionPreference?: T,
+	): T {
+		// If explicitly provided, use that value
+		if (explicitValue !== undefined) {
+			return this.validateParameterValue(paramName, model, explicitValue);
+		}
+
+		// If user has configured a preference, use that
+		if (userPreference !== undefined) {
+			return this.validateParameterValue(paramName, model, userPreference);
+		}
+
+		// If interaction has a specific preference, use that
+		if (interactionPreference !== undefined) {
+			return this.validateParameterValue(paramName, model, interactionPreference);
+		}
+
+		// Otherwise use the model's default value
+		const capabilities = this.getModelCapabilities(model);
+		const defaultValue = capabilities.defaults[paramName as keyof ModelCapabilities['defaults']];
+
+		return defaultValue as unknown as T;
+	}
+
+	/**
+	 * Resolves the temperature parameter with validation
+	 */
+	public resolveTemperature(
+		model: string,
+		explicitValue?: number,
+		userPreference?: number,
+		interactionPreference?: number,
+	): number {
+		const temperature = this.resolveParameter<number>(
+			'temperature',
+			model,
+			explicitValue,
+			userPreference,
+			interactionPreference,
+		);
+
+		// Validate against model constraints
+		const capabilities = this.getModelCapabilities(model);
+		const { min, max } = capabilities.constraints.temperature;
+		return Math.max(min, Math.min(max, temperature));
+	}
+
+	/**
+	 * Resolves the maxTokens parameter with validation
+	 */
+	public resolveMaxTokens(
+		model: string,
+		explicitValue?: number,
+		userPreference?: number,
+		interactionPreference?: number,
+	): number {
+		const requestedTokens = this.resolveParameter<number>(
+			'maxTokens',
+			model,
+			explicitValue,
+			userPreference,
+			interactionPreference,
+		);
+
+		// Ensure tokens don't exceed the model's maximum
+		const capabilities = this.getModelCapabilities(model);
+		return Math.min(requestedTokens, capabilities.maxOutputTokens);
+	}
+
+	/**
+	 * Resolves the extendedThinking parameter with validation
+	 */
+	public resolveExtendedThinking(
+		model: string,
+		explicitValue?: boolean,
+		userPreference?: boolean,
+		interactionPreference?: boolean,
+	): boolean {
+		const wantsExtendedThinking = this.resolveParameter<boolean | undefined>(
+			'extendedThinking',
+			model,
+			explicitValue,
+			userPreference,
+			interactionPreference,
+		);
+
+		// Ensure tokens don't exceed the model's maximum
+		const capabilities = this.getModelCapabilities(model);
+		return wantsExtendedThinking ?? capabilities.supportedFeatures.extendedThinking ?? false;
+	}
+
+	/**
+	 * Validates and normalizes parameter values based on model constraints
+	 */
+	private validateParameterValue<T>(
+		parameter: keyof ModelCapabilities['defaults'],
+		model: string,
+		value: T,
+	): T {
+		const capabilities = this.getModelCapabilities(model);
+
+		// Handle special cases that need validation
+		if (parameter === 'temperature') {
+			const range = capabilities.constraints.temperature;
+			const temperature = value as unknown as number;
+			return Math.max(range.min, Math.min(range.max, temperature)) as unknown as T;
+		}
+
+		if (parameter === 'maxTokens') {
+			const maxAllowed = capabilities.maxOutputTokens;
+			const tokens = value as unknown as number;
+			return Math.min(maxAllowed, tokens > 0 ? tokens : maxAllowed) as unknown as T;
+		}
+
+		if (parameter === 'extendedThinking') {
+			const extendedThinkingAllowed = capabilities.supportedFeatures.extendedThinking;
+			const extendedThinking = value as unknown as boolean;
+			return (extendedThinkingAllowed ? extendedThinking : false) as unknown as T;
+		}
+
+		// For other parameters, just return as is
+		return value;
+	}
+
+
 }

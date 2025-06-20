@@ -57,10 +57,10 @@ export async function viewLastLines(logFilePath: string, lines: number): Promise
 	}
 }
 
-export async function getLogFilePath(projectId: string, isApiLog: boolean, conversationId?: string): Promise<string> {
+export async function getLogFilePath(projectId: string, isApiLog: boolean, collaborationId?: string): Promise<string> {
 	const configManager = await getConfigManager();
 	const globalConfig = await configManager.getGlobalConfig();
-	return !isApiLog && conversationId
-		? await CollaborationLogger.getLogFileRawPath(projectId, conversationId)
+	return !isApiLog && collaborationId
+		? await CollaborationLogger.getLogFileRawPath(projectId, collaborationId)
 		: join(await getBbDir(projectId), globalConfig.api.logFile ?? 'api.log');
 }

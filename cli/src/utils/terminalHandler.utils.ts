@@ -20,7 +20,7 @@ import { getStatementHistory } from './statementHistory.utils.ts';
 import { getBbDir } from 'shared/dataDir.ts';
 import type {
 	CollaborationContinue,
-	InteractionId,
+	CollaborationId,
 	CollaborationNew,
 	CollaborationResponse,
 	CollaborationStart,
@@ -337,22 +337,22 @@ export class TerminalHandler {
 		console.log(palette.secondary(`╭${'─'.repeat(cols - 2)}╮`));
 	}
 
-	public async displayInteractionStart(
+	public async displayCollaborationStart(
 		data: CollaborationStart | CollaborationNew,
-		conversationId?: InteractionId,
+		collaborationId?: CollaborationId,
 		expectingMoreInput: boolean = true,
 	): Promise<void> {
 		if (this.spinner) this.hideSpinner();
-		conversationId = data.conversationId;
+		collaborationId = data.collaborationId;
 
-		if (!data.conversationId) {
-			console.log('Entry has no conversationId', data);
+		if (!data.collaborationId) {
+			console.log('Entry has no collaborationId', data);
 			return;
 		}
 
 		const { collaborationTitle } = data;
 		if (!collaborationTitle) {
-			console.log('Warning: No conversation title available');
+			console.log('Warning: No collaboration title available');
 			return;
 		}
 		const statementCount = data.interactionStats?.statementCount || 1;
@@ -367,7 +367,7 @@ export class TerminalHandler {
 		};
 
 		const lines = [
-			formatLine('ID', conversationId.substring(0, 8), palette.accent),
+			formatLine('ID', collaborationId.substring(0, 8), palette.accent),
 			formatLine('Title', shortTitle, palette.info),
 			formatLine('Statement', statementCount.toString(), palette.success),
 		];
@@ -383,9 +383,9 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayInteractionContinue(
+	public async displayCollaborationContinue(
 		data: CollaborationContinue,
-		conversationId: InteractionId,
+		collaborationId: CollaborationId,
 		expectingMoreInput: boolean = false,
 	): Promise<void> {
 		// Ensure all optional properties are handled
@@ -407,7 +407,7 @@ export class TerminalHandler {
 				},
 			},
 		} = data;
-		conversationId = data.conversationId;
+		collaborationId = data.collaborationId;
 
 		if (!logEntry) {
 			console.log('Entry has no content', data);
@@ -417,7 +417,7 @@ export class TerminalHandler {
 		try {
 			const formatterResponse = await this.apiClient.post(
 				`/api/v1/format_log_entry/console/${logEntry.entryType}`,
-				{ logEntry, projectId: this.projectId, conversationId },
+				{ logEntry, projectId: this.projectId, collaborationId },
 			);
 
 			if (!formatterResponse.ok) {
@@ -453,14 +453,14 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayInteractionAnswer(
+	public async displayCollaborationAnswer(
 		data: CollaborationResponse,
-		conversationId?: InteractionId,
+		collaborationId?: CollaborationId,
 		expectingMoreInput: boolean = false,
 	): Promise<void> {
-		//logger.debug(`displayInteractionAnswer called with data: ${JSON.stringify(data)}`);
+		//logger.debug(`displayCollaborationAnswer called with data: ${JSON.stringify(data)}`);
 		this.hideSpinner();
-		conversationId = data.conversationId;
+		collaborationId = data.collaborationId;
 
 		if (!data.logEntry) {
 			console.log('Entry has no logEntry', data);
@@ -498,7 +498,7 @@ export class TerminalHandler {
 		const { columns } = Deno.consoleSize();
 		const isNarrow = columns < 100;
 
-		const idShort = conversationId?.substring(0, 8) || '';
+		const idShort = collaborationId?.substring(0, 8) || '';
 		const titleShort = collaborationTitle?.substring(0, isNarrow ? 10 : 20) || '';
 
 		//logger.debug(`Preparing summary line with interactionStats: ${JSON.stringify(interactionStats)}, tokenUsage: ${JSON.stringify(tokenUsageStats.tokenUsageStatement)}`);
@@ -539,14 +539,14 @@ export class TerminalHandler {
 		}
 	}
 
-	public async displayInteractionComplete(
+	public async displayCollaborationComplete(
 		response: CollaborationResponse,
 		options: { id?: string; json?: boolean },
 		_expectingMoreInput: boolean = false,
 	): Promise<void> {
 		this.hideSpinner();
-		const isNewConversation = !options.id;
-		const { conversationId, interactionStats, collaborationTitle } = response;
+		const isNewCollaboration = !options.id;
+		const { collaborationId, interactionStats, collaborationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
 		const tokenUsageInteraction: TokenUsage = {
 			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
@@ -560,8 +560,8 @@ export class TerminalHandler {
 			console.log(JSON.stringify(
 				{
 					...response,
-					isNewConversation,
-					conversationId,
+					isNewCollaboration,
+					collaborationId,
 					collaborationTitle,
 					interactionStats,
 					tokenUsageInteraction,
@@ -582,7 +582,7 @@ export class TerminalHandler {
 			);
 			console.log(palette.secondary('├─────────────────────────────────────────────────────┤'));
 			console.log(
-				palette.secondary('│') + palette.accent(` ID: ${conversationId}`.padEnd(55)) + palette.secondary('│'),
+				palette.secondary('│') + palette.accent(` ID: ${collaborationId}`.padEnd(55)) + palette.secondary('│'),
 			);
 			console.log(
 				palette.secondary('│') + palette.info(` Title: ${collaborationTitle}`.padEnd(55)) +

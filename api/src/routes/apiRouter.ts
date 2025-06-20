@@ -9,7 +9,7 @@ import {
 	getInteraction,
 	chatInteraction,
 	deleteInteraction,
-} from './api/conversation.handlers.ts';
+} from './api/collaboration.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';

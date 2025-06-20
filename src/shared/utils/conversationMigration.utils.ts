@@ -21,7 +21,7 @@ export interface ConversationsFileV1 {
 /**
  * Versioned format for conversations.json file
  */
-export interface InteractionsFileV2 {
+export interface InteractionsFileV4 {
 	version: string;
 	interactions: InteractionMetadata[];
 }

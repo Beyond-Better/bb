@@ -37,9 +37,9 @@ The system currently tracks token usage at multiple levels:
 Token usage data is currently stored across multiple files:
 - `messages.jsonl`: Contains raw token usage in `providerResponse.usage` - the canonical source of token metrics
 - `metadata.json`: Contains conversation-level token metrics
-- `conversations.json`: Stores basic usage metrics for listing/overview
-- `conversation.log`: Human-readable log including token usage
-- `conversation.jsonl`: Machine-readable log entries
+- `interactions.json`: Stores basic usage metrics for listing/overview
+- `interaction.log`: Human-readable log including token usage
+- `interaction.jsonl`: Machine-readable log entries
 
 ## 2. Issues and Limitations
 

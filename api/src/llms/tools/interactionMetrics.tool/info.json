@@ -1,5 +1,5 @@
 {
-	"name": "collaboration_metrics",
+	"name": "interaction_metrics",
 	"description": "Analyze conversation metrics including turns, message types, token usage, tool usage patterns, file operations, and interaction quality. By default, stops after providing analysis unless explicitly asked to perform additional tasks. Use for understanding conversation efficiency, resource usage, and identifying improvement opportunities.",
 	"version": "1.0.0",
 	"author": "BB Team",

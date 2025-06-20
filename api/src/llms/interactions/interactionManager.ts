@@ -1,6 +1,7 @@
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 //import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import type { InteractionId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
@@ -18,6 +19,7 @@ class InteractionManager {
 	}
 
 	async createInteraction(
+		collaboration: Collaboration,
 		type: 'conversation' | 'chat',
 		interactionId: InteractionId,
 		interactionModel: string,
@@ -30,13 +32,13 @@ class InteractionManager {
 		logger.info('InteractionManager: Creating interaction of type: ', type);
 
 		if (type === 'conversation') {
-			interaction = await new LLMConversationInteraction(interactionId).init(
+			interaction = await new LLMConversationInteraction(collaboration, interactionId).init(
 				interactionModel,
 				interactionCallbacks,
 				parentInteractionId,
 			);
 		} else {
-			interaction = await new LLMChatInteraction(interactionId).init(
+			interaction = await new LLMChatInteraction(collaboration, interactionId).init(
 				interactionModel,
 				interactionCallbacks,
 				parentInteractionId,
@@ -71,6 +73,14 @@ class InteractionManager {
 
 	getInteractionStrict(id: string): LLMInteraction {
 		return this.getInteractionOrThrow(id);
+	}
+
+	private getInteractionOrThrow(id: string): LLMInteraction {
+		const interaction = this.getInteraction(id);
+		if (!interaction) {
+			throw new Error(`Interaction with id ${id} not found`);
+		}
+		return interaction;
 	}
 
 	removeInteraction(id: string): boolean {
@@ -146,14 +156,6 @@ class InteractionManager {
 			throw new Error('Interaction or new parent does not exist');
 		}
 		this.interactionHierarchy.set(interactionId, newParentId);
-	}
-
-	private getInteractionOrThrow(id: string): LLMInteraction {
-		const interaction = this.getInteraction(id);
-		if (!interaction) {
-			throw new Error(`Interaction with id ${id} not found`);
-		}
-		return interaction;
 	}
 }
 

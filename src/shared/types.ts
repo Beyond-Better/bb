@@ -9,14 +9,15 @@ import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTo
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { VersionInfo } from './types/version.types.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
+import type { CollaborationInterface, CollaborationParams } from './types/collaboration.types.ts';
 
-export type { Collaboration, CollaborationParams } from './types/collaboration.types.ts';
 export type {
 	CollaborationLogEntry,
 	CollaborationLogEntryContent,
 	CollaborationLogEntryContentToolResult,
 	CollaborationLogEntryType,
 } from 'api/storage/collaborationLogger.ts';
+export type { CollaborationInterface, CollaborationParams } ;
 export type {LLMModelConfig, LLMRolesModelConfig};
 
 export type InteractionId = string;
@@ -36,7 +37,8 @@ export interface CollaborationMetadata {
 	totalInteractions: number;
 	tokenUsageStats: TokenUsageStats;
 	lastInteractionId?: InteractionId;
-	lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
+	//lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
+	lastInteractionMetadata?: InteractionMetadata;
 	interactionIds: InteractionId[];
 }
 
@@ -48,7 +50,7 @@ export interface InteractionMetadata {
 	//projectId: string;
 	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
 	id: InteractionId;
-	title: string;
+	title?: string;
 
 	interactionStats: InteractionStats;
 	interactionMetrics?: InteractionMetrics;

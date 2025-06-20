@@ -1,7 +1,7 @@
 import type { TokenUsageAnalysis } from 'shared/types.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 
-export interface LLMToolCollaborationMetricsInput {
+export interface LLMToolInteractionMetricsInput {
 	includeTools?: boolean;
 	includeFiles?: boolean;
 	includeTokens?: boolean;
@@ -50,7 +50,7 @@ export interface TimeMetrics {
 	}>;
 }
 
-export interface LLMToolCollaborationMetricsResultData {
+export interface LLMToolInteractionMetricsResultData {
 	summary: {
 		totalTurns: number;
 		messageTypes: {
@@ -85,11 +85,11 @@ export interface LLMToolCollaborationMetricsResultData {
 		averageToolSuccess: number;
 	};
 }
-export interface LLMToolCollaborationMetricsResponseData {
-	data: LLMToolCollaborationMetricsResultData;
+export interface LLMToolInteractionMetricsResponseData {
+	data: LLMToolInteractionMetricsResultData;
 }
 
-export interface LLMToolCollaborationMetricsResult {
+export interface LLMToolInteractionMetricsResult {
 	toolResult: LLMToolRunResultContent;
-	bbResponse: LLMToolCollaborationMetricsResponseData;
+	bbResponse: LLMToolInteractionMetricsResponseData;
 }

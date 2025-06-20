@@ -6,7 +6,7 @@ import { getConfigManager } from 'shared/config/configManager.ts';
 // import { createSpinner, startSpinner, stopSpinner } from '../utils/terminalHandler.utils.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
-export const conversationList = new Command()
+export const collaborationList = new Command()
 	.description('List saved collaborations')
 	.option('-d, --directory <dir:string>', 'The starting directory for the project', { default: Deno.cwd() })
 	.option('-p, --page <page:number>', 'Page number', { default: 1 })

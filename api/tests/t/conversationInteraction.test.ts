@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
+import Collaboration from 'api/collaborations/collaboration.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
@@ -13,8 +14,8 @@ import { makeConversationInteractionStub } from '../lib/stubs.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
 
 import type {
-	InteractionId,
 	CollaborationLogEntry,
+	InteractionId,
 	InteractionStats,
 	//ObjectivesData,
 	TokenUsageStats,
@@ -72,8 +73,9 @@ async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
 	await GitUtils.initGit(dataSourceRoot);
 	const projectEditor = await getProjectEditor(projectId);
 
-	// Create interaction and stub the LLMFactory to prevent real provider creation
-	const interaction = new LLMConversationInteraction('test-collaboration-id');
+	// Create collaboration, interaction and stub the LLMFactory to prevent real provider creation
+	const collaboration = Collaboration.create('test-collaboration-id', projectId);
+	const interaction = new LLMConversationInteraction(collaboration, 'test-interaction-id');
 	const { factoryStub } = makeConversationInteractionStub(interaction, projectEditor);
 
 	// Now init the interaction - it will use the stubbed factory

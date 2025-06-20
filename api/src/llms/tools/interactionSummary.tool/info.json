@@ -1,5 +1,5 @@
 {
-	"name": "collaboration_summary",
+	"name": "interaction_summary",
 	"description": "Summarize and optionally truncate the current conversation. By default, stops after generating summary unless explicitly asked to continue with other tasks. Can be used both explicitly by user request or proactively by the LLM when the conversation becomes long. When truncating, preserves the most recent messages to maintain immediate context while reducing token usage. This helps maintain conversation effectiveness by staying within model context limits while keeping the most relevant recent interactions. The tool generates a summary of the conversation content to maintain awareness of earlier context even after truncation.",
 	"version": "1.0.0",
 	"author": "BB Team",

@@ -36,7 +36,7 @@ Deno.test('InteractionPersistence.defaultInteractionMetrics returns correct stru
 		statementCount: 0,
 		statementTurnCount: 0,
 		interactionTurnCount: 0,
-		objectives: { conversation: '', statement: [], timestamp: '' },
+		objectives: { collaboration: '', statement: [], timestamp: '' },
 		resources: { accessed: new Set(), modified: new Set(), active: new Set() },
 		toolUsage: {
 			currentToolSet: '',
@@ -96,7 +96,7 @@ Deno.test('InteractionPersistence.defaultMetadata returns correct structure', ()
 		statementCount: 0,
 		statementTurnCount: 0,
 		interactionTurnCount: 0,
-		objectives: { conversation: '', statement: [], timestamp: '' },
+		objectives: { collaboration: '', statement: [], timestamp: '' },
 		resources: { accessed: new Set(), modified: new Set(), active: new Set() } as ResourceMetrics,
 		toolUsage: {
 			currentToolSet: '',

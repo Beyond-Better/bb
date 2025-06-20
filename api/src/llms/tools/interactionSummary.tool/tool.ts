@@ -33,13 +33,13 @@ import { extractTextFromContent } from 'api/utils/llms.ts';
 // [TODO] Allow selective message removal by messageId for more granular conversation management
 
 import type {
-	LLMToolCollaborationSummaryData,
-	//LLMToolCollaborationSummarySection,
-	LLMToolCollaborationSummaryMetadata,
-	LLMToolCollaborationSummaryResponseData,
+	LLMToolInteractionSummaryData,
+	//LLMToolInteractionSummarySection,
+	LLMToolInteractionSummaryMetadata,
+	LLMToolInteractionSummaryResponseData,
 } from './types.ts';
 
-export default class LLMToolCollaborationSummary extends LLMTool {
+export default class LLMToolInteractionSummary extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
 		return {
 			type: 'object',
@@ -106,7 +106,7 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 				'maxTokensToKeep must be at least 1000 to ensure meaningful context',
 				{
 					name: 'validate-max-tokens',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-input',
 				},
 			);
@@ -117,7 +117,7 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 				'maxTokensToKeep cannot exceed model context window (128K tokens)',
 				{
 					name: 'validate-max-tokens',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-input',
 				},
 			);
@@ -129,7 +129,7 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 				'summaryLength must be allowed value (short|medium|long)',
 				{
 					name: 'validate-summary-length',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-input',
 				},
 			);
@@ -141,7 +141,7 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 				'requestSource must be allowed value (tool|user)',
 				{
 					name: 'validate-request-source',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-input',
 				},
 			);
@@ -149,7 +149,8 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 
 		try {
 			const messages = interaction.getMessages();
-			const result = await this.summarizeAndTruncateCollaboration(
+			logger.info(`LLMToolInteractionSummary:`, {messages});
+			const result = await this.summarizeAndTruncateInteraction(
 				interaction,
 				messages,
 				maxTokensToKeep,
@@ -158,7 +159,7 @@ export default class LLMToolCollaborationSummary extends LLMTool {
 				projectEditor,
 			);
 
-			const toolResults = `Collaboration Summary Results:
+			const toolResults = `Conversation Summary Results:
 
 Original Token Count: ${result.originalTokenCount}
 New Token Count: ${result.newTokenCount}
@@ -173,7 +174,7 @@ Model Used: ${result.metadata.model}
 
 A summary of the removed messages has been added to the start of the conversation.`;
 
-			const toolResponse = `Collaboration ${
+			const toolResponse = `Conversation ${
 				maxTokensToKeep ? 'truncated and ' : ''
 			}summarized successfully. Unless specifically asked to continue with other tasks, no further action is needed. ${
 				maxTokensToKeep
@@ -193,13 +194,13 @@ A summary of the removed messages has been added to the start of the conversatio
 					maxTokensToKeep,
 					summaryLength,
 					requestSource,
-				} as LLMToolCollaborationSummaryResponseData['data'],
+				} as LLMToolInteractionSummaryResponseData['data'],
 			};
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(
-				`LLMToolCollaborationSummary: Error summarizing and truncating conversation: ${
+				`LLMToolInteractionSummary: Error summarizing and truncating conversation: ${
 					(error as Error).message
 				}`,
 			);
@@ -209,21 +210,21 @@ A summary of the removed messages has been added to the start of the conversatio
 				`Error summarizing and truncating conversation: ${(error as Error).message}`,
 				{
 					name: 'summarize-and-truncate',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-run',
 				},
 			);
 		}
 	}
 
-	private async summarizeAndTruncateCollaboration(
+	private async summarizeAndTruncateInteraction(
 		interaction: LLMConversationInteraction,
 		messages: LLMMessage[],
 		maxTokensToKeep: number,
 		summaryLength: 'short' | 'medium' | 'long' = 'medium',
 		requestSource: 'tool' | 'user' = 'tool',
 		projectEditor: ProjectEditor,
-	): Promise<LLMToolCollaborationSummaryData> {
+	): Promise<LLMToolInteractionSummaryData> {
 		// [TODO] Allow selective message removal by messageId for more granular conversation management
 		// [TODO] Implement performance optimizations for large conversations (e.g., batch processing)
 		// [TODO] Add restore functionality for conversation backups to support undo operations
@@ -244,7 +245,7 @@ A summary of the removed messages has been added to the start of the conversatio
 		try {
 			if (maxTokensToKeep && originalTokenCount > maxTokensToKeep) {
 				// Get kept messages and generate summary for removed ones
-				const result = await this.truncateCollaboration(
+				const result = await this.truncateInteraction(
 					interaction,
 					messages,
 					maxTokensToKeep,
@@ -266,6 +267,7 @@ A summary of the removed messages has been added to the start of the conversatio
 				// If no truncation needed, generate summary of entire conversation
 				const summaryPrompt = this.generatePromptWithMessageHistory(messages, [], summaryLength);
 				const chat = await projectEditor.orchestratorController.createChatInteraction(
+					interaction.collaboration,
 					interaction.id,
 					'Generate conversation summary',
 				);
@@ -277,7 +279,7 @@ A summary of the removed messages has been added to the start of the conversatio
 						'Invalid response structure from LLM: missing answerContent',
 						{
 							name: 'validate-response',
-							toolName: 'collaboration_summary',
+							toolName: 'interaction_summary',
 							operation: 'tool-run',
 						},
 					);
@@ -289,7 +291,7 @@ A summary of the removed messages has been added to the start of the conversatio
 				model = response.messageResponse.model;
 
 				// Validate summary structure based on summaryLength
-				const requiredSections = ['## Removed Collaboration Context'];
+				const requiredSections = ['## Removed Conversation Context'];
 
 				// Essential sections required for all summary lengths
 				requiredSections.push(
@@ -321,14 +323,14 @@ A summary of the removed messages has been added to the start of the conversatio
 						}`,
 						{
 							name: 'validate-summary',
-							toolName: 'collaboration_summary',
+							toolName: 'interaction_summary',
 							operation: 'tool-run',
 						},
 					);
 				}
 			}
 			// Create metadata
-			const metadata: LLMToolCollaborationSummaryMetadata = {
+			const metadata: LLMToolInteractionSummaryMetadata = {
 				messageRange: {
 					start: {
 						id: messages[0]?.id || '',
@@ -357,10 +359,10 @@ A summary of the removed messages has been added to the start of the conversatio
 		} catch (error) {
 			throw createError(
 				ErrorType.ToolHandling,
-				`Failed to summarize and truncate collaboration: ${(error as Error).message}`,
+				`Failed to summarize and truncate interaction: ${(error as Error).message}`,
 				{
 					name: 'summarize-and-truncate',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-run',
 				},
 			);
@@ -493,7 +495,7 @@ ${removedMessages.map(formatMessage).join('\n\n')}
 
 Please provide a ${summaryLength} summary of the removed messages in this format:
 
-## Removed Collaboration Context
+## Removed Conversation Context
 *From ${removedRange.start} to ${removedRange.end}*
 
 ${this.getSummarySections(summaryLength)}
@@ -509,7 +511,7 @@ Ensure your summary accurately captures all important context from the removed m
 	 */
 	private validateToolSequences(messages: LLMMessage[]): boolean {
 		logger.info(
-			'LLMToolCollaborationSummary: validateToolSequences - messages:',
+			'LLMToolInteractionSummary: validateToolSequences - messages:',
 			messages.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => c.type),
@@ -522,7 +524,7 @@ Ensure your summary accurately captures all important context from the removed m
 		for (const message of messages) {
 			if (this.hasToolUse(message)) {
 				logger.info(
-					`LLMToolCollaborationSummary: Found tool use in message: role=${message.role}, content=${
+					`LLMToolInteractionSummary: Found tool use in message: role=${message.role}, content=${
 						JSON.stringify(message.content)
 					}`,
 				);
@@ -538,7 +540,7 @@ Ensure your summary accurately captures all important context from the removed m
 				expectingResult = true;
 			} else if (this.hasToolResult(message)) {
 				logger.info(
-					`LLMToolCollaborationSummary: Found tool result in message: role=${message.role}, content=${
+					`LLMToolInteractionSummary: Found tool result in message: role=${message.role}, content=${
 						JSON.stringify(message.content)
 					}`,
 				);
@@ -569,18 +571,18 @@ Ensure your summary accurately captures all important context from the removed m
 	 * @returns true if valid, false if needs correction
 	 */
 	private validateMessageAlternation(messages: LLMMessage[]): boolean {
-		logger.info('LLMToolCollaborationSummary: validateMessageAlternation - messages:', messages.length);
+		logger.info('LLMToolInteractionSummary: validateMessageAlternation - messages:', messages.length);
 		for (let i = 1; i < messages.length; i++) {
 			const prevRole = messages[i - 1].role;
 			const currRole = messages[i].role;
 			logger.info(
-				`LLMToolCollaborationSummary: validateMessageAlternation - checking messages ${
+				`LLMToolInteractionSummary: validateMessageAlternation - checking messages ${
 					i - 1
 				} and ${i}: ${prevRole} -> ${currRole}`,
 			);
 			if (currRole === prevRole) {
 				logger.info(
-					`LLMToolCollaborationSummary: validateMessageAlternation - found broken alternation at index ${i}: ${prevRole} -> ${currRole}`,
+					`LLMToolInteractionSummary: validateMessageAlternation - found broken alternation at index ${i}: ${prevRole} -> ${currRole}`,
 				);
 				return false;
 			}
@@ -609,7 +611,7 @@ Ensure your summary accurately captures all important context from the removed m
 	private removeInterruptedSequences(messages: LLMMessage[]): LLMMessage[] {
 		/*
 		logger.info(
-			'LLMToolCollaborationSummary: removeInterruptedSequences - processing messages:',
+			'LLMToolInteractionSummary: removeInterruptedSequences - processing messages:',
 			messages.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -635,7 +637,7 @@ Ensure your summary accurately captures all important context from the removed m
 				);
 				if (toolUse) {
 					toolUses.set(toolUse.id, i);
-					logger.info(`LLMToolCollaborationSummary: Found tool use at index ${i}:`, { id: toolUse.id });
+					logger.info(`LLMToolInteractionSummary: Found tool use at index ${i}:`, { id: toolUse.id });
 				}
 			}
 		}
@@ -652,7 +654,7 @@ Ensure your summary accurately captures all important context from the removed m
 						index: i,
 						isError: toolResult.is_error || false,
 					});
-					logger.info(`LLMToolCollaborationSummary: Found tool result at index ${i}:`, {
+					logger.info(`LLMToolInteractionSummary: Found tool result at index ${i}:`, {
 						id: toolResult.tool_use_id,
 						isError: toolResult.is_error,
 					});
@@ -687,12 +689,12 @@ Ensure your summary accurately captures all important context from the removed m
 
 				// Skip both messages if result is error
 				if (result.isError) {
-					logger.info(`LLMToolCollaborationSummary: Skipping error sequence:`, { toolId: toolUse.id });
+					logger.info(`LLMToolInteractionSummary: Skipping error sequence:`, { toolId: toolUse.id });
 					continue;
 				}
 
 				// Keep both messages for successful sequence
-				logger.info(`LLMToolCollaborationSummary: Keeping successful sequence:`, { toolId: toolUse.id });
+				logger.info(`LLMToolInteractionSummary: Keeping successful sequence:`, { toolId: toolUse.id });
 				indicesToKeep.add(i);
 				indicesToKeep.add(result.index);
 			}
@@ -703,7 +705,7 @@ Ensure your summary accurately captures all important context from the removed m
 
 		/*
 		logger.info(
-			'LLMToolCollaborationSummary: removeInterruptedSequences - result:',
+			'LLMToolInteractionSummary: removeInterruptedSequences - result:',
 			result.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -720,7 +722,7 @@ Ensure your summary accurately captures all important context from the removed m
 		);
 
 		logger.info(
-			'LLMToolCollaborationSummary: removeInterruptedSequences - result:',
+			'LLMToolInteractionSummary: removeInterruptedSequences - result:',
 			result.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -759,7 +761,7 @@ Ensure your summary accurately captures all important context from the removed m
 	// 		return false;
 	// 	}
 
-	private async truncateCollaboration(
+	private async truncateInteraction(
 		interaction: LLMConversationInteraction,
 		messages: LLMMessage[],
 		maxTokensToKeep: number,
@@ -768,23 +770,23 @@ Ensure your summary accurately captures all important context from the removed m
 		projectEditor: ProjectEditor,
 	): Promise<{ keptMessages: LLMMessage[]; summary: string; providerResponse: LLMProviderMessageResponse }> {
 		// Validate message alternation first
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - validating message alternation');
+		logger.info('LLMToolInteractionSummary: truncateInteraction - validating message alternation');
 		if (!this.validateMessageAlternation(messages)) {
 			const messageSequence = messages.map((msg, i) => `${i}: ${msg.role}`).join('\n');
-			logger.error('LLMToolCollaborationSummary: Message alternation validation failed:\n' + messageSequence);
+			logger.error('LLMToolInteractionSummary: Message alternation validation failed:\n' + messageSequence);
 			throw createError(
 				ErrorType.ToolHandling,
 				`Failed to maintain correct message alternation pattern. Message sequence:\n${messageSequence}`,
 				{
 					name: 'validate-messages',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-run',
 				},
 			);
 		}
 
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - messages:', messages.length);
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - maxTokensToKeep:', maxTokensToKeep);
+		logger.info('LLMToolInteractionSummary: truncateInteraction - messages:', messages.length);
+		logger.info('LLMToolInteractionSummary: truncateInteraction - maxTokensToKeep:', maxTokensToKeep);
 		const interactionPersistence = interaction.interactionPersistence;
 
 		// Create backup files
@@ -796,29 +798,31 @@ Ensure your summary accurately captures all important context from the removed m
 
 		// First, find the minimum number of messages we need to keep from the end
 		let lastPairIndex = messages.length - 1;
-		logger.info('LLMToolCollaborationSummary: Finding last complete message pair:');
+		logger.info('LLMToolInteractionSummary: Finding last complete message pair:');
 		logger.info(
-			`LLMToolCollaborationSummary: Starting from index ${lastPairIndex}: ${messages[lastPairIndex].role}`,
+			`LLMToolInteractionSummary: Starting from index ${lastPairIndex}: ${messages[lastPairIndex].role}`,
 		);
 		while (lastPairIndex > 0 && messages[lastPairIndex].role === messages[lastPairIndex - 1].role) {
 			lastPairIndex--;
-			logger.info(`LLMToolCollaborationSummary: Moved to index ${lastPairIndex}: ${messages[lastPairIndex].role}`);
+			logger.info(
+				`LLMToolInteractionSummary: Moved to index ${lastPairIndex}: ${messages[lastPairIndex].role}`,
+			);
 		}
 		if (lastPairIndex > 0) {
 			lastPairIndex--; // Include the complete pair
-			logger.info(`LLMToolCollaborationSummary: Including complete pair, final index: ${lastPairIndex}`);
+			logger.info(`LLMToolInteractionSummary: Including complete pair, final index: ${lastPairIndex}`);
 		}
 
 		// Calculate tokens backwards from the end
 		for (let i = messages.length - 1; i >= 0; i--) {
 			const message = messages[i];
 			const messageTokens = message.role === 'assistant' ? (message.providerResponse?.usage.totalTokens || 0) : 0;
-			logger.info(`LLMToolCollaborationSummary: Message ${i}: role=${message.role}, tokens=${messageTokens}`);
+			logger.info(`LLMToolInteractionSummary: Message ${i}: role=${message.role}, tokens=${messageTokens}`);
 
 			// Always keep messages from the minimum pair onwards
 			if (i >= lastPairIndex) {
 				logger.info(
-					`LLMToolCollaborationSummary: Keeping message ${i} (part of minimum pair): role=${message.role}, tokens=${messageTokens}`,
+					`LLMToolInteractionSummary: Keeping message ${i} (part of minimum pair): role=${message.role}, tokens=${messageTokens}`,
 				);
 				totalTokens += messageTokens;
 				continue;
@@ -827,7 +831,7 @@ Ensure your summary accurately captures all important context from the removed m
 			// Check if adding this message would exceed token limit
 			if (totalTokens + messageTokens > maxTokensToKeep) {
 				logger.info(
-					`LLMToolCollaborationSummary: Would exceed token limit at index ${i}: ${totalTokens} + ${messageTokens} > ${maxTokensToKeep}`,
+					`LLMToolInteractionSummary: Would exceed token limit at index ${i}: ${totalTokens} + ${messageTokens} > ${maxTokensToKeep}`,
 				);
 				splitIndex = i + 1; // Keep messages from next index onwards
 				break;
@@ -839,7 +843,7 @@ Ensure your summary accurately captures all important context from the removed m
 		// Get initial kept messages and remove interrupted sequences
 		const initialKeptMessages = messages.slice(splitIndex);
 		logger.info(
-			'LLMToolCollaborationSummary: truncateCollaboration - initial kept messages:',
+			'LLMToolInteractionSummary: truncateInteraction - initial kept messages:',
 			initialKeptMessages.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -856,11 +860,11 @@ Ensure your summary accurately captures all important context from the removed m
 		);
 
 		logger.info(
-			'LLMToolCollaborationSummary: truncateCollaboration - removing interrupted sequences from kept messages',
+			'LLMToolInteractionSummary: truncateInteraction - removing interrupted sequences from kept messages',
 		);
 		const keptMessages = this.removeInterruptedSequences(initialKeptMessages);
 		logger.info(
-			'LLMToolCollaborationSummary: truncateCollaboration - kept messages after cleaning:',
+			'LLMToolInteractionSummary: truncateInteraction - kept messages after cleaning:',
 			keptMessages.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -879,7 +883,7 @@ Ensure your summary accurately captures all important context from the removed m
 		const removedMessages = messages.slice(0, splitIndex);
 		/*
 		logger.info(
-			'LLMToolCollaborationSummary: truncateCollaboration - removed messages:',
+			'LLMToolInteractionSummary: truncateInteraction - removed messages:',
 			removedMessages.map((m) => ({
 				role: m.role,
 				content: m.content.map((c) => ({
@@ -897,30 +901,30 @@ Ensure your summary accurately captures all important context from the removed m
  */
 
 		// Validate remaining tool sequences
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - validating tool sequences');
+		logger.info('LLMToolInteractionSummary: truncateInteraction - validating tool sequences');
 		if (!this.validateToolSequences(keptMessages)) {
 			throw createError(ErrorType.ToolHandling, 'Found incomplete tool use/result pairs in messages', {
 				name: 'validate-tool-sequences',
-				toolName: 'collaboration_summary',
+				toolName: 'interaction_summary',
 				operation: 'tool-run',
 			});
 		}
 
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - splitIndex:', splitIndex);
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - keptMessages:', keptMessages.length);
-		logger.info('LLMToolCollaborationSummary: truncateCollaboration - removedMessages:', removedMessages.length);
+		logger.info('LLMToolInteractionSummary: truncateInteraction - splitIndex:', splitIndex);
+		logger.info('LLMToolInteractionSummary: truncateInteraction - keptMessages:', keptMessages.length);
+		logger.info('LLMToolInteractionSummary: truncateInteraction - removedMessages:', removedMessages.length);
 
 		// Verify the kept messages maintain valid tool sequences
-		logger.info('LLMToolCollaborationSummary: Verifying tool sequences in kept messages:');
+		logger.info('LLMToolInteractionSummary: Verifying tool sequences in kept messages:');
 		if (!this.validateToolSequences(keptMessages)) {
 			// If sequences are broken, try including more messages
-			logger.info('LLMToolCollaborationSummary: Tool sequences broken, adjusting split point...');
+			logger.info('LLMToolInteractionSummary: Tool sequences broken, adjusting split point...');
 			let newSplitIndex = splitIndex;
 			while (newSplitIndex > 0) {
 				newSplitIndex--;
 				const newKeptMessages = messages.slice(newSplitIndex);
 				if (this.validateToolSequences(newKeptMessages)) {
-					logger.info(`LLMToolCollaborationSummary: Found valid split point at index ${newSplitIndex}`);
+					logger.info(`LLMToolInteractionSummary: Found valid split point at index ${newSplitIndex}`);
 					splitIndex = newSplitIndex;
 					break;
 				}
@@ -940,15 +944,16 @@ Ensure your summary accurately captures all important context from the removed m
 				summaryLength,
 			);
 			const chat = await projectEditor.orchestratorController.createChatInteraction(
+				interaction.collaboration,
 				interaction.id,
-				'Generate collaboration summary and truncate',
+				'Generate interaction summary and truncate',
 			);
 			const response = await chat.chat(summaryPrompt);
 			//const answer = response.messageResponse.answer || 'no answer from LLM';
 			const answer = extractTextFromContent(response.messageResponse.answerContent);
 
 			// Validate summary structure based on summaryLength
-			const requiredSections = ['## Removed Collaboration Context'];
+			const requiredSections = ['## Removed Conversation Context'];
 
 			// Essential sections required for all summary lengths
 			requiredSections.push(
@@ -978,7 +983,7 @@ Ensure your summary accurately captures all important context from the removed m
 					`Generated ${summaryLength} summary is missing required sections: ${missingSections.join(', ')}`,
 					{
 						name: 'validate-summary',
-						toolName: 'collaboration_summary',
+						toolName: 'interaction_summary',
 						operation: 'tool-run',
 					},
 				);
@@ -986,7 +991,7 @@ Ensure your summary accurately captures all important context from the removed m
 
 			summary = answer;
 
-			const lastCollaborationStats = finalRemovedMessages[finalRemovedMessages.length - 1]?.interactionStats ?? {
+			const lastInteractionStats = finalRemovedMessages[finalRemovedMessages.length - 1]?.interactionStats ?? {
 				statementCount: 0,
 				statementTurnCount: 0,
 				interactionTurnCount: 0,
@@ -1000,18 +1005,18 @@ Ensure your summary accurately captures all important context from the removed m
 					text:
 						'Please incorporate the context from the previous conversation messages that have been summarized below',
 				}],
-				lastCollaborationStats,
+				lastInteractionStats,
 			);
 
 			// Create summary message with stats from last removed message
 			const summaryMessage = new LLMMessage(
 				'assistant',
 				[{ type: 'text', text: summary }],
-				lastCollaborationStats,
+				lastInteractionStats,
 			);
 
 			// Add summary and initial messages
-			//logger.info('LLMToolCollaborationSummary: Messages before adding summary:', finalKeptMessages.map(m => ({ role: m.role, content: m.content })));
+			//logger.info('LLMToolInteractionSummary: Messages before adding summary:', finalKeptMessages.map(m => ({ role: m.role, content: m.content })));
 			finalKeptMessages.unshift(summaryMessage);
 			finalKeptMessages.unshift(initialMessage);
 
@@ -1026,14 +1031,14 @@ Ensure your summary accurately captures all important context from the removed m
 					});
 				}
 			}
-			//logger.info('LLMToolCollaborationSummary: Messages after adding summary:', finalKeptMessages.map(m => ({ role: m.role, content: m.content })));
+			//logger.info('LLMToolInteractionSummary: Messages after adding summary:', finalKeptMessages.map(m => ({ role: m.role, content: m.content })));
 
 			// If first kept message is assistant, add dummy user message to maintain alternation
 			if (finalKeptMessages[2]?.role === 'assistant') {
 				const dummyMessage = new LLMMessage(
 					'user',
 					[{ type: 'text', text: 'Continue with the conversation based on the context above' }],
-					lastCollaborationStats,
+					lastInteractionStats,
 				);
 				finalKeptMessages.splice(2, 0, dummyMessage);
 			}
@@ -1042,7 +1047,7 @@ Ensure your summary accurately captures all important context from the removed m
 			if (!this.validateMessageAlternation(finalKeptMessages)) {
 				throw createError(ErrorType.ToolHandling, 'Failed to maintain correct message alternation pattern', {
 					name: 'validate-messages',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-run',
 				});
 			}
@@ -1061,8 +1066,8 @@ Ensure your summary accurately captures all important context from the removed m
 				null,
 				{
 					message:
-						`Collaboration truncated to ${finalKeptMessages.length} messages. ${finalRemovedMessages.length} messages summarized.`,
-					purpose: 'Collaboration Summary',
+						`Conversation truncated to ${finalKeptMessages.length} messages. ${finalRemovedMessages.length} messages summarized.`,
+					purpose: 'Conversation Summary',
 				},
 			);
 
@@ -1073,7 +1078,7 @@ Ensure your summary accurately captures all important context from the removed m
 				`Failed to generate and validate summary: ${(error as Error).message}`,
 				{
 					name: 'generate-summary',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					operation: 'tool-run',
 				},
 			);

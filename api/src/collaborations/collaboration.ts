@@ -1,10 +1,5 @@
-import type {
-	CollaborationId,
-	InteractionId,
-	InteractionMetadata,
-	TokenUsageStats,
-} from 'shared/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import type { CollaborationId, InteractionId, InteractionMetadata, TokenUsageStats } from 'shared/types.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -13,24 +8,24 @@ export default class Collaboration {
 	public readonly id: CollaborationId;
 	public title: string;
 	public type: 'project' | 'workflow' | 'research';
-	
+
 	// Configuration
 	public collaborationParams: CollaborationParams;
-	
+
 	// Timestamps
 	public readonly createdAt: string;
 	public updatedAt: string;
-	
+
 	// Project association
 	public readonly projectId: string;
-	
+
 	// Interaction management
 	public totalInteractions: number;
 	public lastInteractionId?: InteractionId;
 	public lastInteractionMetadata?: InteractionMetadata;
 	private interactionIds: InteractionId[] = [];
 	private loadedInteractions: Map<InteractionId, LLMInteraction> = new Map();
-	
+
 	// Usage tracking
 	public tokenUsageStats: TokenUsageStats;
 
@@ -48,11 +43,11 @@ export default class Collaboration {
 			lastInteractionMetadata?: InteractionMetadata;
 			interactionIds?: InteractionId[];
 			tokenUsageStats?: TokenUsageStats;
-		} = {}
+		} = {},
 	) {
 		this.id = id;
 		this.projectId = projectId;
-		
+
 		// Initialize with provided options or defaults
 		this.title = options.title || 'New Collaboration';
 		this.type = options.type || 'project';
@@ -64,6 +59,10 @@ export default class Collaboration {
 		this.lastInteractionMetadata = options.lastInteractionMetadata;
 		this.interactionIds = options.interactionIds || [];
 		this.tokenUsageStats = options.tokenUsageStats || this.getDefaultTokenUsageStats();
+	}
+
+	async init(): Promise<Collaboration> {
+		return this;
 	}
 
 	private getDefaultCollaborationParams(): CollaborationParams {
@@ -118,14 +117,14 @@ export default class Collaboration {
 			this.interactionIds.splice(index, 1);
 			this.totalInteractions = this.interactionIds.length;
 			this.loadedInteractions.delete(interactionId);
-			
+
 			// Update lastInteractionId if we removed the last one
 			if (this.lastInteractionId === interactionId) {
-				this.lastInteractionId = this.interactionIds.length > 0 
-					? this.interactionIds[this.interactionIds.length - 1] 
+				this.lastInteractionId = this.interactionIds.length > 0
+					? this.interactionIds[this.interactionIds.length - 1]
 					: undefined;
 			}
-			
+
 			this.updatedAt = new Date().toISOString();
 			return true;
 		}
@@ -143,10 +142,10 @@ export default class Collaboration {
 	// Loaded interaction management (cache)
 	addLoadedInteraction(interaction: LLMInteraction): void {
 		this.loadedInteractions.set(interaction.id, interaction);
-		
+
 		// Ensure the interaction ID is tracked
 		this.addInteractionId(interaction.id);
-		
+
 		// Set collaboration reference if it's a conversation interaction
 		if ('collaboration' in interaction) {
 			(interaction as any).collaboration = {
@@ -155,7 +154,7 @@ export default class Collaboration {
 				collaborationParams: this.collaborationParams,
 			};
 		}
-		
+
 		logger.debug(`Collaboration: Added loaded interaction ${interaction.id} to collaboration ${this.id}`);
 	}
 
@@ -192,11 +191,7 @@ export default class Collaboration {
 	}
 
 	updateLastInteractionMetadata(metadata: InteractionMetadata): void {
-		this.lastInteractionMetadata = {
-			llmProviderName: metadata.llmProviderName,
-			model: metadata.model,
-			updatedAt: metadata.updatedAt,
-		};
+		this.lastInteractionMetadata = metadata;
 		this.updatedAt = new Date().toISOString();
 	}
 
@@ -268,7 +263,7 @@ export default class Collaboration {
 			title?: string;
 			type?: 'project' | 'workflow' | 'research';
 			collaborationParams?: CollaborationParams;
-		} = {}
+		} = {},
 	): Collaboration {
 		return new Collaboration(id, projectId, {
 			...options,

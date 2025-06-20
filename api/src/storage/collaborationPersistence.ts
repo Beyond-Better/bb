@@ -2,8 +2,8 @@ import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
 import {
 	migrateConversationsToCollaborations,
-} from 'shared/conversationMigration.ts';
-import type { CollaborationsFileV4, InteractionsFileV2 } from 'shared/conversationMigration.ts';
+} from 'api/storage/conversationMigration.ts';
+import type { CollaborationsFileV4, InteractionsFileV4 } from 'api/storage/conversationMigration.ts';
 import {
 	getProjectAdminDataDir,
 	isProjectMigrated,
@@ -21,7 +21,7 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
@@ -33,7 +33,7 @@ import type {
 } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/utils/interactionManagement.utils.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import InteractionPersistence from './interactionPersistence.ts';
 
 // Ensure ProjectInfo includes projectId
@@ -392,6 +392,8 @@ class CollaborationPersistence {
 			}
 
 			const metadata: CollaborationDetailedMetadata = await this.getMetadata();
+			
+			metadata.id = this.collaborationId;
 
 			// Get token usage analysis
 			const tokenAnalysis = await this.getTokenUsageAnalysis();
@@ -432,9 +434,9 @@ class CollaborationPersistence {
 		
 		// Create interaction persistence instance
 		const interactionPersistence = new InteractionPersistence(
+			this.collaborationId,
 			interactionId,
 			this.projectEditor,
-			this.collaborationId,
 			parentInteractionId,
 		);
 		
@@ -459,9 +461,9 @@ class CollaborationPersistence {
 		await this.ensureInitialized();
 		
 		const interactionPersistence = new InteractionPersistence(
+			this.collaborationId,
 			interactionId,
 			this.projectEditor,
-			this.collaborationId,
 		);
 		
 		await interactionPersistence.init();

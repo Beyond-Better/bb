@@ -4,10 +4,8 @@ import {
 	//migrateConversationResources,
 	migrateConversationsFileIfNeeded,
 } from 'shared/conversationMigration.ts';
-import {
-	migrateConversationsToCollaborations,
-} from './conversationMigration.ts';
-import type { ConversationsFileV1, InteractionsFileV2 } from 'shared/conversationMigration.ts';
+import { migrateConversationsToCollaborations } from 'api/storage/conversationMigration.ts';
+import type { ConversationsFileV1, InteractionsFileV4 } from 'shared/conversationMigration.ts';
 import {
 	getProjectAdminDataDir,
 	//getProjectAdminDir,
@@ -15,7 +13,9 @@ import {
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import type {
+	CollaborationId,
 	InteractionDetailedMetadata,
 	InteractionId,
 	InteractionMetadata,
@@ -66,7 +66,7 @@ class InteractionPersistence {
 	private changeLogPath!: string;
 	private preparedSystemPath!: string;
 	private preparedToolsPath!: string;
-	private collaborationsMetadataPath!: string;
+	private interactionsMetadataPath!: string;
 	private resourcesMetadataPath!: string;
 	private resourceRevisionsDir!: string;
 	private objectivesPath!: string;
@@ -78,9 +78,9 @@ class InteractionPersistence {
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
-		private interactionId: InteractionId,
+		private _collaborationId: CollaborationId,
+		private _interactionId: InteractionId,
 		private projectEditor: ProjectEditor & { projectInfo: ExtendedProjectInfo },
-		private collaborationId?: string,
 		private parentInteractionId?: InteractionId,
 	) {
 		//this.ensureInitialized();
@@ -136,17 +136,20 @@ class InteractionPersistence {
 			);
 		}
 		logger.debug(`InteractionPersistence: Using data dir for ${projectId}: ${projectAdminDataDir}`);
-		
+
 		// Use collaborations structure
 		const collaborationsDir = join(projectAdminDataDir, 'collaborations');
-		this.collaborationsMetadataPath = join(projectAdminDataDir, 'collaborations.json');
 
 		// If no collaboration ID provided, use interaction ID (for backward compatibility)
-		const effectiveCollaborationId = this.collaborationId || this.interactionId;
+		const effectiveCollaborationId = this._collaborationId; // || this._interactionId;
 		const collaborationDir = join(collaborationsDir, effectiveCollaborationId);
 		const interactionsDir = join(collaborationDir, 'interactions');
-		
-		this.interactionDir = join(interactionsDir, this.interactionId);
+		//logger.info(`InteractionPersistence: Using collaborationDir for ${effectiveCollaborationId}: ${collaborationDir}`);
+		//logger.info(`InteractionPersistence: Using interactionsDir for ${effectiveCollaborationId}: ${interactionsDir}`);
+
+		this.interactionsMetadataPath = join(collaborationDir, 'interactions.json');
+
+		this.interactionDir = join(interactionsDir, this._interactionId);
 		if (this.parentInteractionId) {
 			this.interactionParentDir = join(interactionsDir, this.parentInteractionId);
 		}
@@ -182,13 +185,17 @@ class InteractionPersistence {
 		return this;
 	}
 
+	public get interactionId(): InteractionId {
+		return this._interactionId;
+	}
+
 	// export interface ProjectHandlingErrorOptions extends ErrorOptions {
 	// 	project_id?: string;
 	// 	project_root?: string;
 	// 	project_type?: string;
 	// }
 
-	static async listInteractions(options: {
+	static async listInteractions(collaboration: Collaboration, options: {
 		page: number;
 		limit: number;
 		startDate?: Date;
@@ -236,12 +243,14 @@ class InteractionPersistence {
 			);
 		}
 
-		const interactionsMetadataPath = join(projectAdminDataDir, 'conversations.json');
+		const collaborationDir = join(projectAdminDataDir, 'collaborations', collaboration.id);
+		const interactionsMetadataPath = join(collaborationDir, 'interactions.json');
 
 		try {
 			//logger.info(`InteractionPersistence: Ensuring directories exist: ${dirname(projectAdminDataDir)} and ${projectAdminDataDir}`);
 			await ensureDir(dirname(projectAdminDataDir)); // Ensure parent directory exists
 			await ensureDir(projectAdminDataDir);
+			await ensureDir(collaborationDir);
 		} catch (error) {
 			logger.error(`InteractionPersistence: Failed to create required directories: ${errorMessage(error)}`);
 			throw createError(
@@ -260,12 +269,12 @@ class InteractionPersistence {
 
 			if (!await exists(interactionsMetadataPath)) {
 				// logger.info(
-				// 	`InteractionPersistence: Creating new conversations.json file at ${interactionsMetadataPath}`,
+				// 	`InteractionPersistence: Creating new interactions.json file at ${interactionsMetadataPath}`,
 				// );
 				await Deno.writeTextFile(
 					interactionsMetadataPath,
 					JSON.stringify({
-						version: '1.0',
+						version: '4.0',
 						interactions: [],
 					}),
 				);
@@ -277,7 +286,7 @@ class InteractionPersistence {
 				ErrorType.FileHandling,
 				`Failed to create collaborations.json: ${errorMessage(error)}`,
 				{
-					filePath: collaborationsMetadataPath,
+					filePath: interactionsMetadataPath,
 					operation: 'write',
 				} as FileHandlingErrorOptions,
 			);
@@ -285,14 +294,14 @@ class InteractionPersistence {
 
 		let content: string;
 		try {
-			content = await Deno.readTextFile(collaborationsMetadataPath);
+			content = await Deno.readTextFile(interactionsMetadataPath);
 		} catch (error) {
 			logger.error(`InteractionPersistence: Failed to read collaborations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
 				`Failed to read collaborations.json: ${errorMessage(error)}`,
 				{
-					filePath: collaborationsMetadataPath,
+					filePath: interactionsMetadataPath,
 					operation: 'read',
 				} as FileHandlingErrorOptions,
 			);
@@ -301,7 +310,7 @@ class InteractionPersistence {
 		// For now, return empty interactions since we're transitioning to collaborations
 		// This method should eventually be deprecated in favor of collaboration-based listing
 		let interactions: InteractionMetadata[] = [];
-		
+
 		// TODO: Extract interactions from collaborations if needed
 		// This is a temporary implementation during the transition period
 
@@ -331,12 +340,8 @@ class InteractionPersistence {
 				...conv,
 				interactionStats: (conv as InteractionMetadata).interactionStats ||
 					InteractionPersistence.defaultInteractionStats(),
-				// for interaction storage
 				modelConfig: (conv as InteractionMetadata).modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				// for collaboration storage
-				collaborationParams: (conv as InteractionMetadata).collaborationParams ||
-					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageInteraction: (conv as InteractionMetadata).tokenUsageStats?.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
@@ -399,20 +404,16 @@ class InteractionPersistence {
 	async saveInteraction(interaction: LLMConversationInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
-			logger.debug(`InteractionPersistence: Ensure directory for saveInteraction: ${this.conversationDir}`);
-			await this.ensureDirectory(this.conversationDir);
+			logger.debug(`InteractionPersistence: Ensure directory for saveInteraction: ${this.interactionDir}`);
+			await this.ensureDirectory(this.interactionDir);
 
 			const metadata: InteractionMetadata = {
 				id: interaction.id,
-				title: interaction.title,
+				//title: interaction.title,
 				interactionStats: interaction.interactionStats,
 				interactionMetrics: interaction.interactionMetrics,
 				tokenUsageStats: interaction.tokenUsageStats,
-				// for interaction storage
 				modelConfig: interaction.modelConfig,
-				// for collaboration storage
-				collaborationParams: interaction.collaboration?.collaborationParams ||
-					await this.getCollaborationParams(interaction), //InteractionPersistence.defaultCollaborationParams(),
 				llmProviderName: interaction.llmProviderName,
 				model: interaction.model,
 				createdAt: new Date().toISOString(),
@@ -437,11 +438,7 @@ class InteractionPersistence {
 				interactionStats: interaction.interactionStats,
 				interactionMetrics: interaction.interactionMetrics,
 
-				// for interaction storage
 				modelConfig: interaction.modelConfig,
-				// for collaboration storage
-				collaborationParams: interaction.collaboration?.collaborationParams ||
-					await this.getCollaborationParams(interaction), //InteractionPersistence.defaultCollaborationParams(),
 
 				// Store analyzed token usage in metadata
 				tokenUsageStats: {
@@ -515,7 +512,10 @@ class InteractionPersistence {
 		}
 	}
 
-	async loadInteraction(interactionCallbacks: LLMCallbacks): Promise<LLMConversationInteraction | null> {
+	async loadInteraction(
+		collaboration: Collaboration,
+		interactionCallbacks: LLMCallbacks,
+	): Promise<LLMConversationInteraction | null> {
 		try {
 			await this.ensureInitialized();
 
@@ -525,14 +525,11 @@ class InteractionPersistence {
 			}
 
 			const metadata: InteractionDetailedMetadata = await this.getMetadata();
-			const interaction = new LLMConversationInteraction(this.interactionId);
-			//const interaction = new LLMConversationInteraction(this.conversationId) as LLMConversationInteraction & {
-			//	collaborationParams: CollaborationParams;
-			//};
+			const interaction = new LLMConversationInteraction(collaboration, this._interactionId);
 			await interaction.init(metadata.model, interactionCallbacks);
 
 			interaction.id = metadata.id;
-			interaction.title = metadata.title;
+			//interaction.title = metadata.title;
 			//interaction.baseSystem = metadata.system;
 			//interaction.model = metadata.model; // set during init
 			interaction.maxTokens = metadata.maxTokens;
@@ -543,13 +540,13 @@ class InteractionPersistence {
 
 			// for interaction storage
 			interaction.modelConfig = metadata.modelConfig;
-			// for collaboration storage
-			interaction.collaboration = {
-				id: '',
-				type: 'project',
-				collaborationParams: metadata.collaborationParams ||
-					await this.getCollaborationParams(interaction), //InteractionPersistence.defaultCollaborationParams(),
-			};
+			// // for collaboration storage
+			// interaction.collaboration = {
+			// 	id: '',
+			// 	type: 'project',
+			// 	collaborationParams: metadata.collaborationParams ||
+			// 		await this.getCollaborationParams(interaction), //InteractionPersistence.defaultCollaborationParams(),
+			// };
 
 			interaction.totalProviderRequests = metadata.totalProviderRequests;
 
@@ -618,6 +615,7 @@ class InteractionPersistence {
 
 			if (await exists(this.messagesPath)) {
 				const messagesContent = await Deno.readTextFile(this.messagesPath);
+				logger.debug('InteractionPersistence: Loaded project messages from JSON', { messagesContent });
 				const messageLines = messagesContent.trim().split('\n');
 
 				for (const line of messageLines) {
@@ -657,6 +655,78 @@ class InteractionPersistence {
 		}
 	}
 
+	async getInteractionData(): Promise<InteractionDetailedMetadata | null> {
+		try {
+			await this.ensureInitialized();
+
+			if (!await exists(this.metadataPath)) {
+				//logger.warn(`InteractionPersistence: Interaction metadata file not found: ${this.metadataPath}`);
+				return null;
+			}
+
+			const interaction: InteractionDetailedMetadata = await this.getMetadata();
+
+			// Get token usage analysis
+			const tokenAnalysis = await this.getTokenUsageAnalysis();
+
+			// Update interaction with analyzed values
+			interaction.tokenUsageStats.tokenUsageInteraction = {
+				inputTokens: tokenAnalysis.combined.totalUsage.input,
+				outputTokens: tokenAnalysis.combined.totalUsage.output,
+				totalTokens: tokenAnalysis.combined.totalUsage.total,
+				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+				thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
+				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+			};
+
+			// interaction.statementTurnCount = metadata.interactionMetrics?.statementTurnCount || 0;
+			// interaction.interactionTurnCount = metadata.interactionMetrics?.interactionTurnCount || 0;
+			// interaction.statementCount = metadata.interactionMetrics?.statementCount || 0;
+
+			/*
+			// Load objectives if they exist
+			try {
+				interaction.objectives = await this.getObjectives();
+			} catch (error) {
+				logger.warn(`InteractionPersistence: Error loading objectives: ${errorMessage(error)}`);
+				// Continue loading - don't fail the whole interaction load
+			}
+
+			// Load resourceMetrics if they exist
+			try {
+				interaction.resourceMetrics = await this.getResources();
+			} catch (error) {
+				logger.warn(`InteractionPersistence: Error loading resourceMetrics: ${errorMessage(error)}`);
+				// Continue loading - don't fail the whole interaction load
+			}
+
+			// Load project info if it exists
+			try {
+				interaction.projectInfo = await this.getProjectInfo();
+			} catch (error) {
+				logger.warn(`InteractionPersistence: Error loading project info: ${errorMessage(error)}`);
+				// Continue loading - don't fail the whole interaction load
+			}
+
+			// Load resourcesMetadata
+			interaction.resourcesMetadata = await this.getResourcesMetadata();
+ */
+
+			return interaction;
+		} catch (error) {
+			logger.error(`InteractionPersistence: Error loading interaction: ${errorMessage(error)}`);
+			throw createError(
+				ErrorType.FileHandling,
+				`File or directory not found when loading interaction: ${this.metadataPath}`,
+				{
+					filePath: this.metadataPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
+			);
+		}
+	}
+
 	private async updateInteractionsMetadata(
 		interaction: InteractionMetadata & {
 			interactionStats?: InteractionStats;
@@ -669,13 +739,14 @@ class InteractionPersistence {
 			`InteractionPersistence: Ensure directory for updateInteractionsMetadata: ${this.interactionsMetadataPath}`,
 		);
 		await this.ensureDirectory(dirname(this.interactionsMetadataPath));
-		let interactionsData: ConversationsFileV1 | InteractionsFileV2 = {
-			version: '2.0',
+		//let interactionsData: ConversationsFileV1 | InteractionsFileV4 = {
+		let interactionsData: InteractionsFileV4 = {
+			version: '4.0',
 			interactions: [],
 		};
 
-		if (await exists(this.collaborationsMetadataPath)) {
-			const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+		if (await exists(this.interactionsMetadataPath)) {
+			const content = await Deno.readTextFile(this.interactionsMetadataPath);
 			const parsedData = JSON.parse(content);
 
 			// Handle both old and new format
@@ -688,7 +759,7 @@ class InteractionPersistence {
 			} else {
 				// Unknown format, create new one
 				interactionsData = {
-					version: '2.0',
+					version: '4.0',
 					interactions: [],
 				};
 			}
@@ -703,12 +774,8 @@ class InteractionPersistence {
 					InteractionPersistence.defaultInteractionStats(),
 				interactionMetrics: interaction.interactionMetrics ||
 					InteractionPersistence.defaultInteractionMetrics(),
-				// for interaction storage
 				modelConfig: interaction.modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				// for collaboration storage
-				collaborationParams: interaction.collaborationParams ||
-					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageInteraction: interaction.tokenUsageStats.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
@@ -725,12 +792,8 @@ class InteractionPersistence {
 					InteractionPersistence.defaultInteractionStats(),
 				interactionMetrics: interaction.interactionMetrics ||
 					InteractionPersistence.defaultInteractionMetrics(),
-				// for interaction storage
 				modelConfig: interaction.modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				// for collaboration storage
-				collaborationParams: interaction.collaborationParams ||
-					InteractionPersistence.defaultCollaborationParams(),
 				tokenUsageStats: {
 					tokenUsageInteraction: interaction.tokenUsageStats.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
@@ -750,6 +813,7 @@ class InteractionPersistence {
 		logger.debug(`InteractionPersistence: Saved metadata to project level for interaction: ${interaction.id}`);
 	}
 
+	/*
 	async getInteractionIdByTitle(title: string): Promise<string | null> {
 		if (await exists(this.interactionsMetadataPath)) {
 			const content = await Deno.readTextFile(this.interactionsMetadataPath);
@@ -770,7 +834,9 @@ class InteractionPersistence {
 		}
 		return null;
 	}
+ */
 
+	/*
 	async getInteractionTitleById(id: string): Promise<string | null> {
 		if (await exists(this.interactionsMetadataPath)) {
 			const content = await Deno.readTextFile(this.interactionsMetadataPath);
@@ -791,6 +857,7 @@ class InteractionPersistence {
 		}
 		return null;
 	}
+ */
 
 	async getAllInteractions(): Promise<{ id: string; title: string }[]> {
 		if (await exists(this.interactionsMetadataPath)) {
@@ -807,7 +874,7 @@ class InteractionPersistence {
 				return [];
 			}
 
-			return interactions.map(({ id, title }) => ({ id, title }));
+			return interactions.map(({ id, title }) => ({ id, title: title || 'untitled' }));
 		}
 		return [];
 	}
@@ -821,11 +888,11 @@ class InteractionPersistence {
 		const existingResourcesMetadata = await this.getResourcesMetadata();
 		const updatedResourcesMetadata = { ...existingResourcesMetadata, ...resourcesMetadata };
 		await Deno.writeTextFile(this.resourcesMetadataPath, JSON.stringify(updatedResourcesMetadata, null, 2));
-		logger.debug(`InteractionPersistence: Saved resourcesMetadata for interaction: ${this.interactionId}`);
+		logger.debug(`InteractionPersistence: Saved resourcesMetadata for interaction: ${this._interactionId}`);
 	}
 	async getResourcesMetadata(): Promise<InteractionResourcesMetadata> {
 		await this.ensureInitialized();
-		//logger.info(`InteractionPersistence: Reading resourcesMetadata for interaction: ${this.conversationId} from ${this.resourcesMetadataPath}`);
+		//logger.info(`InteractionPersistence: Reading resourcesMetadata for interaction: ${this._interactionId} from ${this.resourcesMetadataPath}`);
 		if (await exists(this.resourcesMetadataPath)) {
 			const resourcesMetadataContent = await Deno.readTextFile(this.resourcesMetadataPath);
 			return JSON.parse(resourcesMetadataContent);
@@ -833,6 +900,7 @@ class InteractionPersistence {
 		return {};
 	}
 
+	/*
 	async getCollaborationParams(
 		interaction: LLMConversationInteraction,
 	): Promise<CollaborationParams> {
@@ -865,6 +933,7 @@ class InteractionPersistence {
 			} as LLMRolesModelConfig,
 		};
 	}
+ */
 
 	async getTokenUsageAnalysis(): Promise<{
 		conversation: TokenUsageAnalysis;
@@ -928,7 +997,7 @@ class InteractionPersistence {
 		const existingMetadata = await this.getMetadata();
 		const updatedMetadata = { ...existingMetadata, ...metadata };
 		await Deno.writeTextFile(this.metadataPath, JSON.stringify(updatedMetadata, null, 2));
-		logger.debug(`InteractionPersistence: Saved metadata for interaction: ${this.interactionId}`);
+		logger.debug(`InteractionPersistence: Saved metadata for interaction: ${this._interactionId}`);
 
 		// Update the stats in project-level interactions metadata file
 		await this.updateInteractionsMetadata(updatedMetadata);
@@ -946,7 +1015,6 @@ class InteractionPersistence {
 				if (metadata.requestParams && !metadata.modelConfig) {
 					// Move existing requestParams to rolesModelConfig.orchestrator
 					const legacyParams: LLMModelConfig = metadata.requestParams;
-					// for interaction storage
 					metadata.modelConfig = {
 						model: legacyParams.model || '',
 						temperature: legacyParams.temperature || 0.7,
@@ -954,25 +1022,11 @@ class InteractionPersistence {
 						extendedThinking: legacyParams.extendedThinking,
 						usePromptCaching: legacyParams.usePromptCaching,
 					};
-					// for collaboration storage
-					metadata.collaborationParams = {
-						rolesModelConfig: {
-							orchestrator: {
-								model: legacyParams.model || '',
-								temperature: legacyParams.temperature || 0.7,
-								maxTokens: legacyParams.maxTokens || 4000,
-								extendedThinking: legacyParams.extendedThinking,
-								usePromptCaching: legacyParams.usePromptCaching,
-							},
-							agent: null,
-							chat: null,
-						},
-					};
 
 					logger.info(
 						`InteractionPersistence: Migrated requestParams from version ${
 							metadata.version || 'unknown'
-						} to version 4 for interaction: ${this.interactionId}`,
+						} to version 4 for interaction: ${this._interactionId}`,
 					);
 				}
 				metadata.version = 4;
@@ -981,7 +1035,7 @@ class InteractionPersistence {
 				try {
 					await Deno.writeTextFile(this.metadataPath, JSON.stringify(metadata, null, 2));
 					logger.debug(
-						`InteractionPersistence: Persisted migrated metadata for interaction: ${this.interactionId}`,
+						`InteractionPersistence: Persisted migrated metadata for interaction: ${this._interactionId}`,
 					);
 				} catch (error) {
 					logger.warn(`InteractionPersistence: Failed to persist migrated metadata: ${errorMessage(error)}`);
@@ -1076,10 +1130,7 @@ class InteractionPersistence {
 				tokenUsageInteraction: InteractionPersistence.defaultInteractionTokenUsage(),
 			},
 
-			// for interaction storage
 			modelConfig: InteractionPersistence.defaultModelConfig(),
-			// for collaboration storage
-			collaborationParams: InteractionPersistence.defaultCollaborationParams(),
 
 			interactionStats: InteractionPersistence.defaultInteractionStats(),
 			interactionMetrics: InteractionPersistence.defaultInteractionMetrics(),
@@ -1096,7 +1147,7 @@ class InteractionPersistence {
 		await this.ensureDirectory(dirname(this.preparedSystemPath));
 		const promptData = { systemPrompt };
 		await Deno.writeTextFile(this.preparedSystemPath, JSON.stringify(promptData, null, 2));
-		logger.info(`InteractionPersistence: Prepared prompt saved for interaction: ${this.interactionId}`);
+		logger.info(`InteractionPersistence: Prepared prompt saved for interaction: ${this._interactionId}`);
 	}
 
 	async getPreparedSystemPrompt(): Promise<string | null> {
@@ -1120,7 +1171,7 @@ class InteractionPersistence {
 			inputSchema: tool.inputSchema,
 		}));
 		await Deno.writeTextFile(this.preparedToolsPath, JSON.stringify(toolsData, null, 2));
-		logger.info(`InteractionPersistence: Prepared tools saved for interaction: ${this.interactionId}`);
+		logger.info(`InteractionPersistence: Prepared tools saved for interaction: ${this._interactionId}`);
 	}
 
 	async getPreparedTools(): Promise<LLMTool[] | null> {
@@ -1145,7 +1196,7 @@ class InteractionPersistence {
 		logger.debug(`InteractionPersistence: Ensure directory for saveObjectives: ${this.objectivesPath}`);
 		await this.ensureDirectory(dirname(this.objectivesPath));
 		await Deno.writeTextFile(this.objectivesPath, JSON.stringify(objectives, null, 2));
-		logger.debug(`InteractionPersistence: Saved objectives for interaction: ${this.interactionId}`);
+		logger.debug(`InteractionPersistence: Saved objectives for interaction: ${this._interactionId}`);
 	}
 
 	async getObjectives(): Promise<ObjectivesData | null> {
@@ -1176,7 +1227,7 @@ class InteractionPersistence {
 			timestamp: new Date().toISOString(),
 		};
 		await Deno.writeTextFile(this.resourcesPath, JSON.stringify(storageFormat, null, 2));
-		logger.debug(`InteractionPersistence: Saved resourceMetrics for interaction: ${this.interactionId}`);
+		logger.debug(`InteractionPersistence: Saved resourceMetrics for interaction: ${this._interactionId}`);
 	}
 
 	async getResources(): Promise<ResourceMetrics | null> {
@@ -1200,7 +1251,7 @@ class InteractionPersistence {
 		await this.ensureDirectory(dirname(this.projectInfoPath));
 		try {
 			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
-			logger.debug(`InteractionPersistence: Saved project info JSON for interaction: ${this.interactionId}`);
+			logger.debug(`InteractionPersistence: Saved project info JSON for interaction: ${this._interactionId}`);
 		} catch (error) {
 			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${errorMessage(error)}`, {
 				filePath: this.projectInfoPath,
@@ -1237,7 +1288,7 @@ class InteractionPersistence {
 			${projectInfo.content}
 		`;
 		await Deno.writeTextFile(projectInfoPath, content);
-		logger.info(`InteractionPersistence: Project info dumped for interaction: ${this.interactionId}`);
+		logger.info(`InteractionPersistence: Project info dumped for interaction: ${this._interactionId}`);
 	}
 
 	// this is a system prompt dump primarily used for debugging
@@ -1247,7 +1298,7 @@ class InteractionPersistence {
 		await this.ensureDirectory(this.interactionDir);
 		const systemPromptPath = join(this.interactionDir, 'dump_system_prompt.md');
 		await Deno.writeTextFile(systemPromptPath, systemPrompt);
-		logger.info(`InteractionPersistence: System prompt dumped for interaction: ${this.interactionId}`);
+		logger.info(`InteractionPersistence: System prompt dumped for interaction: ${this._interactionId}`);
 	}
 
 	private handleSaveError(error: unknown, filePath: string): never {
@@ -1311,26 +1362,26 @@ class InteractionPersistence {
 
 		try {
 			// Remove from interactions metadata first
-			if (await exists(this.collaborationsMetadataPath)) {
-				const content = await Deno.readTextFile(this.collaborationsMetadataPath);
+			if (await exists(this.interactionsMetadataPath)) {
+				const content = await Deno.readTextFile(this.interactionsMetadataPath);
 				const data = JSON.parse(content);
 
 				// Handle both old and new format
 				if (Array.isArray(data)) {
 					// Old format
 					const updatedInteractions = data.filter((conv: InteractionMetadata) =>
-						conv.id !== this.interactionId
+						conv.id !== this._interactionId
 					);
 					await Deno.writeTextFile(
-						this.collaborationsMetadataPath,
+						this.interactionsMetadataPath,
 						JSON.stringify(updatedInteractions, null, 2),
 					);
 				} else if (data.version && Array.isArray(data.interactions)) {
 					// New format
 					data.interactions = data.interactions.filter((conv: InteractionMetadata) =>
-						conv.id !== this.interactionId
+						conv.id !== this._interactionId
 					);
-					await Deno.writeTextFile(this.collaborationsMetadataPath, JSON.stringify(data, null, 2));
+					await Deno.writeTextFile(this.interactionsMetadataPath, JSON.stringify(data, null, 2));
 				}
 			}
 
@@ -1339,9 +1390,9 @@ class InteractionPersistence {
 				await Deno.remove(this.interactionDir, { recursive: true });
 			}
 
-			logger.info(`InteractionPersistence: Successfully deleted interaction: ${this.interactionId}`);
+			logger.info(`InteractionPersistence: Successfully deleted interaction: ${this._interactionId}`);
 		} catch (error) {
-			logger.error(`InteractionPersistence: Error deleting interaction: ${this.interactionId}`, error);
+			logger.error(`InteractionPersistence: Error deleting interaction: ${this._interactionId}`, error);
 			throw createError(ErrorType.FileHandling, `Failed to delete interaction: ${errorMessage(error)}`, {
 				filePath: this.interactionDir,
 				operation: 'delete',
@@ -1450,12 +1501,24 @@ class InteractionPersistence {
 		await this.ensureDirectory(backupDir);
 
 		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const filesToBackup = ['messages.jsonl', 'conversation.jsonl', 'conversation.log', 'metadata.json'];
+		const filesToBackup = [
+			'messages.jsonl',
+			'conversation.jsonl',
+			'conversation.log',
+			'interaction.jsonl',
+			'interaction.log',
+			'metadata.json',
+		];
 
 		for (const file of filesToBackup) {
 			const sourcePath = join(this.interactionDir, file);
 			const backupPath = join(backupDir, `${file}.${timestamp}`);
-			await copy(sourcePath, backupPath, { overwrite: true });
+			try {
+				await copy(sourcePath, backupPath, { overwrite: true });
+			} catch (error) {
+				if (error instanceof Deno.errors.NotFound) continue;
+				throw error;
+			}
 		}
 	}
 }

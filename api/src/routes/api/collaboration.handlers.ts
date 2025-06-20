@@ -1,8 +1,8 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import type {
-	Collaboration,
 	CollaborationId,
 	CollaborationLogDataEntry,
 	CollaborationResponse,
@@ -18,7 +18,7 @@ import { errorMessage } from 'shared/error.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 //import { getLLMModelToProvider } from 'api/types/llms.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/utils/interactionManagement.utils.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 
 /**
  * @openapi
@@ -529,7 +529,7 @@ export const getInteraction = async (
 		await collaborationPersistence.init();
 
 		const interactionPersistence = await collaborationPersistence.getInteraction(interactionId as InteractionId);
-		const interaction = await interactionPersistence.loadInteraction();
+		const interaction = await interactionPersistence.getInteractionData();
 
 		if (!interaction) {
 			response.status = 404;
@@ -757,7 +757,7 @@ export const deleteInteraction = async (
 			throw new Error('Failed to initialize OrchestratorController');
 		}
 
-		projectEditor.orchestratorController.deleteInteraction(interactionId as InteractionId);
+		projectEditor.orchestratorController.deleteInteraction(collaborationId, interactionId as InteractionId);
 
 		response.status = 200;
 		response.body = { message: `Interaction ${interactionId} deleted` };

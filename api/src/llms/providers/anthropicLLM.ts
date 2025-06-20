@@ -11,7 +11,7 @@ import type LLMTool from 'api/llms/llmTool.ts';
 import { createError, errorMessage } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import type {
 	LLMCallbacks,
 	//LLMExtendedThinkingOptions,
@@ -347,20 +347,20 @@ class AnthropicLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+		const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			maxTokens = capabilitiesManager.resolveMaxTokens(
+			maxTokens = registryService.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
 			);
 
-			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			extendedThinking = registryService.resolveExtendedThinking(
 				model,
 				messageRequest.extendedThinking?.enabled,
 			);
 
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
+			temperature = extendedThinking ? 1 : registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);

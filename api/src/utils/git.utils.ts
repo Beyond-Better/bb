@@ -106,6 +106,7 @@ export async function generateCommitMessage(
 	});
 
 	const chat: LLMChatInteraction = await projectEditor.orchestratorController.createChatInteraction(
+		interaction.collaboration,
 		interaction.id,
 		'Generate Commit Message',
 	);

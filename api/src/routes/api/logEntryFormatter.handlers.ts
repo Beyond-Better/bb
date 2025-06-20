@@ -18,7 +18,7 @@ export const logEntryFormatter = async (
 	const { logEntryDestination, logEntryFormatterType } = params;
 
 	try {
-		const { logEntry, projectId, conversationId } = await request.body.json();
+		const { logEntry, projectId, collaborationId } = await request.body.json();
 		// logger.info(
 		// 	`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
 		// 		logEntry.toolName || 'N/A'
@@ -37,8 +37,8 @@ export const logEntryFormatter = async (
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId,
 			projectId,
+			collaborationId,
 			sessionManager,
 		);
 		const logEntryFormatterManager = await new LogEntryFormatterManager(

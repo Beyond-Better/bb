@@ -9,10 +9,11 @@ import type LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
 import { logger } from 'shared/logger.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 
 class LLMChatInteraction extends LLMInteraction {
-	constructor(conversationId?: InteractionId) {
-		super(conversationId);
+	constructor(collaboration: Collaboration, interactionId?: InteractionId) {
+		super(collaboration, interactionId);
 		this._interactionType = 'chat';
 	}
 

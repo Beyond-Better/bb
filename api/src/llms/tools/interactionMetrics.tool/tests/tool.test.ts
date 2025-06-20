@@ -1,8 +1,8 @@
 import { assert, assertEquals } from 'api/tests/deps.ts';
 import { stripAnsiCode } from '@std/fmt/colors';
 
-import type LLMToolCollaborationMetrics from '../tool.ts';
-import type { LLMToolCollaborationMetricsResultData } from '../types.ts';
+import type LLMToolInteractionMetrics from '../tool.ts';
+import type { LLMToolInteractionMetricsResultData } from '../types.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import LLMMessage from 'api/llms/llmMessage.ts';
 //import type { LLMToolRunBbResponseData } from 'api/llms/llmTool.ts';
@@ -10,23 +10,23 @@ import { createTestInteraction, getProjectEditor, getToolManager, withTestProjec
 import { createMockMessageRecordSequence, createMockTokenUsageRecord } from 'api/tests/mockData.ts';
 
 Deno.test({
-	name: 'CollaborationMetricsTool - Basic functionality',
+	name: 'InteractionMetricsTool - Basic functionality',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_metrics') as LLMToolCollaborationMetrics;
-			assert(tool, 'Failed to get CollaborationMetricsTool');
+			const tool = await toolManager.getTool('interaction_metrics') as LLMToolInteractionMetrics;
+			assert(tool, 'Failed to get InteractionMetricsTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_metrics',
+				toolName: 'interaction_metrics',
 				toolInput: {},
 			};
 
 			// Create test interaction
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create message sequence
 			const messages = createMockMessageRecordSequence(4, {
@@ -80,7 +80,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolCollaborationMetricsResultData;
+				const metrics = result.bbResponse.data as LLMToolInteractionMetricsResultData;
 				//console.log('metrics:', metrics);
 
 				// Message counts
@@ -105,23 +105,23 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationMetricsTool - Cache impact analysis',
+	name: 'InteractionMetricsTool - Cache impact analysis',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_metrics') as LLMToolCollaborationMetrics;
-			assert(tool, 'Failed to get CollaborationMetricsTool');
+			const tool = await toolManager.getTool('interaction_metrics') as LLMToolInteractionMetrics;
+			assert(tool, 'Failed to get InteractionMetricsTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_metrics',
+				toolName: 'interaction_metrics',
 				toolInput: {},
 			};
 
 			// Create test interaction
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create message sequence
 			const messages = createMockMessageRecordSequence(3, {
@@ -173,7 +173,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolCollaborationMetricsResultData;
+				const metrics = result.bbResponse.data as LLMToolInteractionMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -199,23 +199,23 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationMetricsTool - Empty interaction',
+	name: 'InteractionMetricsTool - Empty interaction',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_metrics') as LLMToolCollaborationMetrics;
-			assert(tool, 'Failed to get CollaborationMetricsTool');
+			const tool = await toolManager.getTool('interaction_metrics') as LLMToolInteractionMetrics;
+			assert(tool, 'Failed to get InteractionMetricsTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_metrics',
+				toolName: 'interaction_metrics',
 				toolInput: {},
 			};
 
 			// Create empty interaction
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Save the empty interaction state
 			await interaction.interactionPersistence.saveInteraction(interaction);
@@ -227,7 +227,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolCollaborationMetricsResultData;
+				const metrics = result.bbResponse.data as LLMToolInteractionMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 0, 'Total turns should be 0');
@@ -246,23 +246,23 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationMetricsTool - Single role interaction',
+	name: 'InteractionMetricsTool - Single role interaction',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_metrics') as LLMToolCollaborationMetrics;
-			assert(tool, 'Failed to get CollaborationMetricsTool');
+			const tool = await toolManager.getTool('interaction_metrics') as LLMToolInteractionMetrics;
+			assert(tool, 'Failed to get InteractionMetricsTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_metrics',
+				toolName: 'interaction_metrics',
 				toolInput: {},
 			};
 
 			// Create test interaction
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create message sequence (all assistant messages)
 			const messages = createMockMessageRecordSequence(3, {
@@ -305,7 +305,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolCollaborationMetricsResultData;
+				const metrics = result.bbResponse.data as LLMToolInteractionMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 3, 'Total turns should be 3');
@@ -324,23 +324,23 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationMetricsTool - Large token counts',
+	name: 'InteractionMetricsTool - Large token counts',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_metrics') as LLMToolCollaborationMetrics;
-			assert(tool, 'Failed to get CollaborationMetricsTool');
+			const tool = await toolManager.getTool('interaction_metrics') as LLMToolInteractionMetrics;
+			assert(tool, 'Failed to get InteractionMetricsTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_metrics',
+				toolName: 'interaction_metrics',
 				toolInput: {},
 			};
 
 			// Create test interaction
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create message sequence
 			const messages = createMockMessageRecordSequence(2, {
@@ -378,7 +378,7 @@ Deno.test({
 			assert(result.bbResponse, 'BB response should not be null');
 
 			if (typeof result.bbResponse === 'object' && 'data' in result.bbResponse) {
-				const metrics = result.bbResponse.data as LLMToolCollaborationMetricsResultData;
+				const metrics = result.bbResponse.data as LLMToolInteractionMetricsResultData;
 
 				// Message counts
 				assertEquals(metrics.summary.totalTurns, 2, 'Total turns should be 2');

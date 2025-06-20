@@ -1,12 +1,39 @@
 import type { CollaborationId, InteractionId } from 'shared/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import Collaboration from './collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 
-export default class CollaborationManager {
+class CollaborationManager {
 	private collaborations: Map<CollaborationId, Collaboration> = new Map();
 	private collaborationResults: Map<CollaborationId, unknown> = new Map();
+
+	async createCollaboration(
+		collaborationId: CollaborationId,
+		projectId: string,
+		type: 'project' | 'workflow' | 'research' = 'project',
+		title?: string,
+		collaborationParams?: CollaborationParams,
+	): Promise<Collaboration> {
+		//const collaborationId = shortenCollaborationId(generateCollaborationId());
+		let collaboration: Collaboration;
+
+		logger.info('CollaborationManager: Creating collaboration of type: ', type);
+
+		collaboration = await new Collaboration(
+			collaborationId,
+			projectId,
+			{
+				title,
+				type,
+				collaborationParams,
+			},
+		).init();
+
+		this.collaborations.set(collaborationId, collaboration);
+
+		return collaboration;
+	}
 
 	// Basic collaboration management
 	addCollaboration(collaboration: Collaboration): void {
@@ -102,7 +129,9 @@ export default class CollaborationManager {
 
 		const removed = collaboration.removeLoadedInteraction(interactionId);
 		if (removed) {
-			logger.debug(`CollaborationManager: Removed interaction ${interactionId} from collaboration ${collaborationId}`);
+			logger.debug(
+				`CollaborationManager: Removed interaction ${interactionId} from collaboration ${collaborationId}`,
+			);
 		}
 		return removed;
 	}
@@ -112,32 +141,32 @@ export default class CollaborationManager {
 		return this.collaborations.size;
 	}
 
-	getCollaborationSummaries(): Array<{ 
-		id: CollaborationId; 
-		title: string; 
-		type: string; 
+	getCollaborationSummaries(): Array<{
+		id: CollaborationId;
+		title: string;
+		type: string;
 		totalInteractions: number;
 		projectId: string;
 	}> {
-		return Array.from(this.collaborations.values()).map(collaboration => collaboration.getSummary());
+		return Array.from(this.collaborations.values()).map((collaboration) => collaboration.getSummary());
 	}
 
 	// Find collaborations by criteria
 	findCollaborationsByTitle(title: string): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
-			collaboration => collaboration.title.toLowerCase().includes(title.toLowerCase())
+			(collaboration) => collaboration.title.toLowerCase().includes(title.toLowerCase()),
 		);
 	}
 
 	findCollaborationsByType(type: 'project' | 'workflow' | 'research'): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
-			collaboration => collaboration.type === type
+			(collaboration) => collaboration.type === type,
 		);
 	}
 
 	findCollaborationsByProjectId(projectId: string): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
-			collaboration => collaboration.projectId === projectId
+			(collaboration) => collaboration.projectId === projectId,
 		);
 	}
 
@@ -151,7 +180,7 @@ export default class CollaborationManager {
 	// Get collaborations with loaded interactions
 	getCollaborationsWithLoadedInteractions(): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
-			collaboration => collaboration.getLoadedInteractions().length > 0
+			(collaboration) => collaboration.getLoadedInteractions().length > 0,
 		);
 	}
 
@@ -159,7 +188,7 @@ export default class CollaborationManager {
 	getTotalLoadedInteractions(): number {
 		return Array.from(this.collaborations.values()).reduce(
 			(total, collaboration) => total + collaboration.getLoadedInteractions().length,
-			0
+			0,
 		);
 	}
 
@@ -170,31 +199,14 @@ export default class CollaborationManager {
 			totalInteractions: collaborations.reduce((sum, c) => sum + c.totalInteractions, 0),
 			totalLoadedInteractions: this.getTotalLoadedInteractions(),
 			collaborationsByType: {
-				project: collaborations.filter(c => c.type === 'project').length,
-				workflow: collaborations.filter(c => c.type === 'workflow').length,
-				research: collaborations.filter(c => c.type === 'research').length,
+				project: collaborations.filter((c) => c.type === 'project').length,
+				workflow: collaborations.filter((c) => c.type === 'workflow').length,
+				research: collaborations.filter((c) => c.type === 'research').length,
 			},
 		};
 	}
 }
 
-// Create a singleton instance for global use
-let collaborationManagerInstance: CollaborationManager | null = null;
+export default CollaborationManager;
 
-export function createCollaborationManager(): CollaborationManager {
-	collaborationManagerInstance = new CollaborationManager();
-	return collaborationManagerInstance;
-}
-
-export function getCollaborationManager(): CollaborationManager {
-	if (!collaborationManagerInstance) {
-		throw new Error('CollaborationManager not initialized. Call createCollaborationManager first.');
-	}
-	return collaborationManagerInstance;
-}
-
-// Export the singleton for backward compatibility
-export const collaborationManager = {
-	getInstance: getCollaborationManager,
-	createInstance: createCollaborationManager,
-};
+export const collaborationManager: CollaborationManager = new CollaborationManager();

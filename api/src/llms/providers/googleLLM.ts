@@ -39,7 +39,7 @@ import type {
 } from 'api/types/llms.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -417,13 +417,13 @@ class GoogleLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			maxTokens = capabilitiesManager.resolveMaxTokens(
+			maxTokens = registryService.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
 			);
-			temperature = capabilitiesManager.resolveTemperature(
+			temperature = registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -487,7 +487,7 @@ class GoogleLLM extends LLM {
 					{
 						model: model,
 						provider: this.llmProviderName,
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 						name: 'GoogleLLMError',
 						args: {
 							reason: result.promptFeedback.blockReason,
@@ -505,7 +505,7 @@ class GoogleLLM extends LLM {
 					{
 						model: model,
 						provider: this.llmProviderName,
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 						name: 'GoogleLLMError',
 						args: { promptFeedback: result.promptFeedback, usageMetadata: result.usageMetadata },
 					} as LLMErrorOptions,

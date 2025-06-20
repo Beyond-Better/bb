@@ -34,12 +34,12 @@ export interface CollaborationInterface {
 
 // Legacy interface for backward compatibility
 // @deprecated Use CollaborationInterface instead
-export interface Collaboration {
-	id: string;
-	type: 'project' | 'workflow' | 'research';
-	title?: string;
-	collaborationParams: CollaborationParams;
-}
+//export interface Collaboration {
+//	id: string;
+//	type: 'project' | 'workflow' | 'research';
+//	title?: string;
+//	collaborationParams: CollaborationParams;
+//}
 
 export interface CollaborationParams {
 	rolesModelConfig: LLMRolesModelConfig;

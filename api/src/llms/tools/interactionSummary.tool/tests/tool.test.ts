@@ -2,8 +2,8 @@ import { assert, assertEquals, assertRejects } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 import { ensureDir } from '@std/fs';
 
-import type LLMToolCollaborationSummary from '../tool.ts';
-import type { LLMToolCollaborationSummaryResultData } from '../types.ts';
+import type LLMToolInteractionSummary from '../tool.ts';
+import type { LLMToolInteractionSummaryResultData } from '../types.ts';
 import type {
 	LLMAnswerToolUse,
 	//LLMMessageContentPart,
@@ -28,16 +28,50 @@ import {
 } from 'api/tests/testSetup.ts';
 
 // Helper function to set up conversation directory structure
-async function setupCollaborationDir(projectId: string, conversationId: string) {
+async function setupCollaborationDir(projectId: string, collaborationId: string) {
 	const projectAdminDir = await getProjectAdminDataDir(projectId);
-	const interactionsDir = join(projectAdminDir, 'conversations', conversationId);
-	await ensureDir(interactionsDir);
-	return interactionsDir;
+	const collaborationDir = join(projectAdminDir, 'collaborations', collaborationId);
+	await ensureDir(collaborationDir);
+	await Deno.writeTextFile(
+		join(collaborationDir, 'interactions.json'),
+		JSON.stringify({
+			version: '4.0',
+			interactions: [],
+		}),
+	);
+	await Deno.writeTextFile(
+		join(collaborationDir, 'metadata.json'),
+		`{
+  "version": 4,
+  "id": "",
+  "title": "",
+  "type": "project",
+  "collaborationParams": {},
+  "createdAt": "",
+  "updatedAt": "",
+  "projectId": "",
+  "totalInteractions": 0,
+  "tokenUsageStats": {
+	"tokenUsageTurn": {},
+	"tokenUsageStatement": {},
+	"tokenUsageInteraction": {}
+  },
+  "interactionIds": []
+}`,
+	);
+	return collaborationDir;
+}
+
+// Helper function to set up conversation directory structure
+async function setupInteractionDir(collaborationDir: string, interactionId: string) {
+	const interactionDir = join(collaborationDir, 'interactions', interactionId);
+	await ensureDir(interactionDir);
+	return interactionDir;
 }
 
 // Helper function to create test messages
 async function createTestMessages(
-	interactionsDir: string,
+	interactionDir: string,
 	messages: LLMMessage[],
 ) {
 	const messagesJsonl = messages.map((msg, idx) => ({
@@ -54,13 +88,14 @@ async function createTestMessages(
 		...(msg.providerResponse ? { providerResponse: msg.providerResponse } : {}),
 	})).map((msg) => JSON.stringify(msg)).join('\n');
 
-	await Deno.writeTextFile(join(interactionsDir, 'messages.jsonl'), messagesJsonl);
-	await Deno.writeTextFile(join(interactionsDir, 'conversation.jsonl'), '');
-	await Deno.writeTextFile(join(interactionsDir, 'conversation.log'), '');
+	await Deno.writeTextFile(join(interactionDir, 'messages.jsonl'), messagesJsonl);
+	await Deno.writeTextFile(join(interactionDir, 'interaction.jsonl'), '');
+	await Deno.writeTextFile(join(interactionDir, 'interaction.log'), '');
+				console.log('createTestMessages: writing metadata.json', join(interactionDir, 'metadata.json'));
 	await Deno.writeTextFile(
-		join(interactionsDir, 'metadata.json'),
+		join(interactionDir, 'metadata.json'),
 		`{
-  "id": "test-collaboration",
+  "id": "test-interaction",
   "title": "Test Collaboration",
   "llmProviderName": "anthropic",
   "model": "",
@@ -89,17 +124,18 @@ async function createTestMessages(
     "interactionTurnCount": 1,
     "statementCount": 1
   }
-}`,
-	);
+}`);
 }
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle edge case - Empty Messages',
+	name: 'InteractionSummaryTool - Handle edge case - Empty Messages',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test collaboration directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			// const interactionStats = {
 			// 	statementCount: 0,
@@ -109,16 +145,17 @@ Deno.test({
 
 			// Create test messages
 			const testMessages = [] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate collaboration summary',
 			);
@@ -127,7 +164,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -145,14 +182,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -171,7 +208,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.originalTokenCount === 0, 'Empty conversation should have 0 tokens');
 				assert(data.originalMessageCount === 0, 'Empty conversation should have 0 messages');
@@ -186,12 +223,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle edge case - Very large token count',
+	name: 'InteractionSummaryTool - Handle edge case - Very large token count',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test collaboration directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -224,16 +263,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 100000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -242,7 +282,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -260,14 +300,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 128000, // Default max
 						summaryLength: 'short',
@@ -286,7 +326,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.originalTokenCount === 200000, 'Should handle large token count');
 				assert(data.newTokenCount <= 128000, 'Should truncate to maxTokensToKeep');
@@ -301,12 +341,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle edge case - Minimum allowed token count',
+	name: 'InteractionSummaryTool - Handle edge case - Minimum allowed token count',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -339,16 +381,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -357,7 +400,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -375,14 +418,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1000, // Minimum allowed
 						summaryLength: 'short',
@@ -401,7 +444,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.originalTokenCount === 1500, 'Should handle minimum token scenario');
 				assert(data.newTokenCount <= 1000, 'Should truncate to minimum tokens');
@@ -416,12 +459,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle requestSource parameter - user',
+	name: 'InteractionSummaryTool - Handle requestSource parameter - user',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -443,16 +488,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -461,7 +507,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -479,14 +525,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-1',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 						requestSource: 'user',
@@ -506,7 +552,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.requestSource === 'user', 'bbResponse data should show user request source');
 			} finally {
@@ -520,12 +566,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle requestSource parameter - tool',
+	name: 'InteractionSummaryTool - Handle requestSource parameter - tool',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -547,16 +595,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -565,7 +614,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -583,14 +632,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-1',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 						requestSource: 'tool',
@@ -610,7 +659,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -624,12 +673,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle requestSource parameter - default',
+	name: 'InteractionSummaryTool - Handle requestSource parameter - default',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -651,16 +702,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -669,7 +721,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -687,14 +739,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id-1',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -712,7 +764,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.requestSource === 'tool', 'bbResponse data should show user request source');
 			} finally {
@@ -726,12 +778,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle invalid requestSource value',
+	name: 'InteractionSummaryTool - Handle invalid requestSource value',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -753,16 +807,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -771,7 +826,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -789,14 +844,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 						requestSource: 'invalid' as 'user' | 'tool', // Type assertion to bypass TypeScript
@@ -819,12 +874,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Verify backup creation and truncation',
+	name: 'InteractionSummaryTool - Verify backup creation and truncation',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -879,16 +936,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 1000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -897,7 +955,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -915,14 +973,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 2000,
 						summaryLength: 'short',
@@ -930,7 +988,7 @@ Deno.test({
 				};
 
 				// Set up backups directory path
-				const backupsDir = join(interactionsDir, 'backups');
+				const backupsDir = join(interactionDir, 'backups');
 
 				// Clean up any existing backups
 				try {
@@ -952,7 +1010,7 @@ Deno.test({
 				console.log('Verify backup creation - toolResults:', result.toolResults);
 
 				// console.log('Verifying conversation directory contents:');
-				// for await (const entry of Deno.readDir(interactionsDir)) {
+				// for await (const entry of Deno.readDir(interactionDir)) {
 				// 	console.log(`- ${entry.name}`);
 				// }
 
@@ -999,7 +1057,7 @@ Deno.test({
 				console.log('\nFound backup files:', backupFiles);
 				const backupsByType = {
 					messages: backupFiles.filter((f) => f.startsWith('messages.jsonl.')),
-					conversation: backupFiles.filter((f) => f.startsWith('conversation.jsonl.')),
+					conversation: backupFiles.filter((f) => f.startsWith('interaction.jsonl.')),
 					metadata: backupFiles.filter((f) => f.startsWith('metadata.json.')),
 				};
 				console.log('Grouped backup files:', backupsByType);
@@ -1028,7 +1086,7 @@ Deno.test({
 
 				// Read and count lines in files
 				const readAndCountLines = async (filename: string, backupPath: string) => {
-					const currentPath = join(interactionsDir, filename);
+					const currentPath = join(interactionDir, filename);
 					const backupFullPath = join(backupsDir, backupPath);
 					//console.log(`Reading files:\n- Current: ${currentPath}\n- Backup: ${backupFullPath}`);
 
@@ -1112,12 +1170,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle file operations in summary',
+	name: 'InteractionSummaryTool - Handle file operations in summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -1169,16 +1229,17 @@ Deno.test({
 					interactionStats: incrementInteractionStats(interactionStats),
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1187,7 +1248,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -1208,15 +1269,15 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				// Configure tool to force truncation
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1900, // With 4000 total tokens, this will force truncation
 						summaryLength: 'short',
@@ -1234,13 +1295,13 @@ Deno.test({
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
 				// Verify truncation occurred
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assert(data.originalTokenCount === 4000, 'Original token count should be 4000');
 				assert(data.newTokenCount <= 2000, 'New token count should be <= 2000');
 
 				// Verify summary structure and content quality
 				assert(
-					data.summary.startsWith('## Removed Collaboration Context'),
+					data.summary.startsWith('## Removed Conversation Context'),
 					'Summary should start with correct header',
 				);
 				assert(data.summary.includes('*From'), 'Summary should include date range');
@@ -1301,12 +1362,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Verify summary length requirements - short summary',
+	name: 'InteractionSummaryTool - Verify summary length requirements - short summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -1325,16 +1388,17 @@ Deno.test({
 				interactionStats: incrementInteractionStats(interactionStats),
 				providerResponse: { usage: { totalTokens: 500 } },
 			}] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1343,7 +1407,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -1361,14 +1425,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -1387,13 +1451,13 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				// Verify summary content quality
 				assert(data.summary.includes('### Files Referenced'), 'Short summary missing Files Referenced');
 				// Verify summary formatting
 				assert(
-					data.summary.startsWith('## Removed Collaboration Context'),
+					data.summary.startsWith('## Removed Conversation Context'),
 					'Summary should start with correct header',
 				);
 				assert(data.summary.includes('*From'), 'Summary should include date range');
@@ -1433,12 +1497,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Verify summary length requirements - medium summary',
+	name: 'InteractionSummaryTool - Verify summary length requirements - medium summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -1457,16 +1523,17 @@ Deno.test({
 				interactionStats: incrementInteractionStats(interactionStats),
 				providerResponse: { usage: { totalTokens: 500 } },
 			}] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1475,7 +1542,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -1502,14 +1569,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -1528,7 +1595,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.summary.includes('### Files Referenced'), 'Medium summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Medium summary missing Tools Used');
@@ -1554,12 +1621,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Verify summary length requirements - long summary',
+	name: 'InteractionSummaryTool - Verify summary length requirements - long summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -1578,16 +1647,17 @@ Deno.test({
 				interactionStats: incrementInteractionStats(interactionStats),
 				providerResponse: { usage: { totalTokens: 500 } },
 			}] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1596,7 +1666,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -1626,14 +1696,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -1652,7 +1722,7 @@ Deno.test({
 				);
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				assert(data.summary.includes('### Files Referenced'), 'Long summary missing Files Referenced');
 				assert(data.summary.includes('### Tools Used'), 'Long summary missing Tools Used');
@@ -1675,12 +1745,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle interrupted tool sequence',
+	name: 'InteractionSummaryTool - Handle interrupted tool sequence',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -1728,16 +1800,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 1000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1746,7 +1819,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -1765,14 +1838,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1000,
 						summaryLength: 'short',
@@ -1857,7 +1930,7 @@ Deno.test({
 				}
 
 				// Verify token counts
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assert(
 					data.originalTokenCount === 2500,
 					`Expected original token count 2500, got ${data.originalTokenCount}`,
@@ -1874,12 +1947,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Basic functionality - Generate summary without truncation',
+	name: 'InteractionSummaryTool - Basic functionality - Generate summary without truncation',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			// Create test messages
 			const interactionStats = {
@@ -1921,26 +1996,26 @@ Deno.test({
 			// 	}
 			// });
 			//
-			// console.log('\nWriting test messages to:', join(interactionsDir, 'messages.jsonl'));
+			// console.log('\nWriting test messages to:', join(interactionDir, 'messages.jsonl'));
 			// console.log('\nCreating test messages:', testMessages.map((m) => ({ role: m.role, content: m.content })));
 
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			// Verify the files were created
 			// console.log('\nVerifying conversation directory contents:');
-			// for await (const entry of Deno.readDir(interactionsDir)) {
+			// for await (const entry of Deno.readDir(interactionDir)) {
 			// 	console.log(`- ${entry.name}`);
 			// }
 
 			// Read back the messages file to verify content
-			// const messagesContent = await Deno.readTextFile(join(interactionsDir, 'messages.jsonl'));
+			// const messagesContent = await Deno.readTextFile(join(interactionDir, 'messages.jsonl'));
 			// console.log('\nVerifying messages.jsonl content:');
 			// console.log(messagesContent);
 
 			// List directory contents to verify files
-			// console.log('Collaboration directory:',interactionsDir);
+			// console.log('Collaboration directory:',collaborationDir);
 			// console.log('Collaboration directory contents:');
-			// for await (const entry of Deno.readDir(interactionsDir)) {
+			// for await (const entry of Deno.readDir(collaborationDir)) {
 			// 	console.log(`- ${entry.name}`);
 			// }
 
@@ -1949,7 +2024,7 @@ Deno.test({
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 
 			// // Log initial messages in interaction
 			// const initialMessages = interaction.getMessages();
@@ -1983,7 +2058,8 @@ Deno.test({
 			// });
 
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -1993,7 +2069,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns a properly formatted summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2020,14 +2096,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'medium',
 					},
@@ -2048,10 +2124,10 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assertEquals(data.originalTokenCount, 40, 'Original token count should be 40');
 				assertEquals(data.summaryLength, 'medium', 'Summary length should be medium');
-				assert(data.summary.includes('## Removed Collaboration Context'), 'Summary should have correct header');
+				assert(data.summary.includes('## Removed Conversation Context'), 'Summary should have correct header');
 				assert(data.summary.includes('### Files Referenced'), 'Summary should have Files Referenced section');
 				assert(data.summary.includes('### Tools Used'), 'Summary should have Tools Used section');
 				assert(data.summary.includes('### Key Decisions'), 'Summary should have Key Decisions section');
@@ -2097,12 +2173,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Generate long summary with complex context',
+	name: 'InteractionSummaryTool - Generate long summary with complex context',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2157,16 +2235,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 100 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2176,7 +2255,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns a properly formatted long summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2228,14 +2307,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'long',
 					},
@@ -2247,12 +2326,12 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assertEquals(data.summaryLength, 'long', 'Summary length should be long');
 
 				// Verify all required sections for long summary
 				const requiredSections = [
-					'## Removed Collaboration Context',
+					'## Removed Conversation Context',
 					'### Files Referenced',
 					'### Tools Used',
 					'### Key Decisions',
@@ -2293,12 +2372,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle invalid summary formats',
+	name: 'InteractionSummaryTool - Handle invalid summary formats',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2320,16 +2401,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 15 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2339,8 +2421,8 @@ Deno.test({
 			);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			// Test 1: Invalid format (not markdown)
 			const chatInteractionStubMaker1 = makeChatInteractionStub(chatInteraction);
@@ -2350,7 +2432,7 @@ Deno.test({
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -2367,7 +2449,7 @@ Deno.test({
 
 			// Test 2: Missing required sections
 			const chatInteractionStubMaker2 = makeChatInteractionStub(chatInteraction);
-			const chatStub2 = chatInteractionStubMaker2.chatStub(`## Removed Collaboration Context
+			const chatStub2 = chatInteractionStubMaker2.chatStub(`## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2380,7 +2462,7 @@ Deno.test({
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -2398,7 +2480,7 @@ Deno.test({
 
 			// 			// Test 3: Invalid content structure
 			// 			const chatInteractionStubMaker3 = makeChatInteractionStub(chatInteraction);
-			// 			const chatStub3 = chatInteractionStubMaker3.chatStub(`## Removed Collaboration Context
+			// 			const chatStub3 = chatInteractionStubMaker3.chatStub(`## Removed Conversation Context
 			// *From 2024-01-01 to 2024-01-02*
 			//
 			// ### Files Referenced
@@ -2416,7 +2498,7 @@ Deno.test({
 			// 				const toolUse: LLMAnswerToolUse = {
 			// 					toolValidation: { validated: true, results: '' },
 			// 					toolUseId: 'test-id',
-			// 					toolName: 'collaboration_summary',
+			// 					toolName: 'interaction_summary',
 			// 					toolInput: {
 			// 						summaryLength: 'short',
 			// 					},
@@ -2438,12 +2520,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle tool use as last message',
+	name: 'InteractionSummaryTool - Handle tool use as last message',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2476,16 +2560,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 500 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2494,7 +2579,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2512,14 +2597,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 2000, // High enough to keep all messages
 						summaryLength: 'short',
@@ -2535,7 +2620,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				// Get final messages
 				const messages = interaction.getMessages();
@@ -2608,12 +2693,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle minimum token limit',
+	name: 'InteractionSummaryTool - Handle minimum token limit',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2646,16 +2733,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 600 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2664,7 +2752,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2682,14 +2770,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1000, // Minimum allowed token limit
 						summaryLength: 'short',
@@ -2702,7 +2790,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				// const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				// Verify we kept at least one complete message pair
 				const messages = interaction.getMessages();
@@ -2742,12 +2830,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle complex tool sequences and token limits',
+	name: 'InteractionSummaryTool - Handle complex tool sequences and token limits',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2802,16 +2892,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 1000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2820,7 +2911,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -2839,15 +2930,15 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				// Test with token limit that forces split in middle of tool sequence
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1250, // Should force split after first tool sequence
 						summaryLength: 'short',
@@ -2860,7 +2951,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				// const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				// const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 
 				// Verify messages are properly truncated
 				const messages = interaction.getMessages();
@@ -2899,12 +2990,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Truncate conversation with tool uses',
+	name: 'InteractionSummaryTool - Truncate conversation with tool uses',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -2970,16 +3063,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 1000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -2988,7 +3082,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3007,14 +3101,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1500,
 						summaryLength: 'short',
@@ -3030,7 +3124,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 3000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 
@@ -3079,12 +3173,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Handle failed chat interaction',
+	name: 'InteractionSummaryTool - Handle failed chat interaction',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			// Create test messages
 			const interactionStats = {
@@ -3105,16 +3201,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 15 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3129,13 +3226,13 @@ Deno.test({
 			const chatErrorStub = chatInteractionStubMaker.chatErrorStub('Failed to generate summary');
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_summary',
+				toolName: 'interaction_summary',
 				toolInput: {
 					summaryLength: 'short',
 				},
@@ -3158,12 +3255,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Validate tool use/result pairing',
+	name: 'InteractionSummaryTool - Validate tool use/result pairing',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			// Create test messages with broken tool use/result pairing
 			const interactionStats = {
@@ -3223,16 +3322,17 @@ Deno.test({
 					interactionStats: incrementInteractionStats(interactionStats),
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3242,7 +3342,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns a properly formatted summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3269,14 +3369,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 						maxTokensToKeep: 1500,
@@ -3300,12 +3400,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Error on missing required sections in summary',
+	name: 'InteractionSummaryTool - Error on missing required sections in summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			// Create test messages
 			const interactionStats = {
@@ -3326,16 +3428,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 15 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3345,7 +3448,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns an incomplete summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3360,14 +3463,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -3389,12 +3492,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Error on broken message alternation',
+	name: 'InteractionSummaryTool - Error on broken message alternation',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -3432,16 +3537,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 2000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3451,7 +3557,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns an incomplete summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3478,14 +3584,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 						maxTokensToKeep: 1500,
@@ -3508,12 +3614,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Generate short summary',
+	name: 'InteractionSummaryTool - Generate short summary',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -3535,16 +3643,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 15 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3554,7 +3663,7 @@ Deno.test({
 			);
 
 			// Create chat stub that returns a properly formatted summary
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3572,14 +3681,14 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			try {
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						summaryLength: 'short',
 					},
@@ -3591,11 +3700,11 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assertEquals(data.summaryLength, 'short', 'Summary length should be short');
 
 				// Verify required sections for short summary
-				assert(data.summary.includes('## Removed Collaboration Context'), 'Summary should have correct header');
+				assert(data.summary.includes('## Removed Conversation Context'), 'Summary should have correct header');
 				assert(data.summary.includes('### Files Referenced'), 'Summary should have Files Referenced section');
 				assert(data.summary.includes('### Tools Used'), 'Summary should have Tools Used section');
 				assert(data.summary.includes('### Key Decisions'), 'Summary should have Key Decisions section');
@@ -3628,12 +3737,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Truncate conversation with token limit',
+	name: 'InteractionSummaryTool - Truncate conversation with token limit',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -3677,16 +3788,17 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 1000 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
 
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 			const chatInteraction = await createTestChatInteraction(
-				conversationId,
+				collaborationId,
+				interactionId,
 				projectEditor,
 				'Generate conversation summary',
 			);
@@ -3695,7 +3807,7 @@ Deno.test({
 				Promise.resolve(chatInteraction)
 			);
 
-			const summaryText = `## Removed Collaboration Context
+			const summaryText = `## Removed Conversation Context
 *From 2024-01-01 to 2024-01-02*
 
 ### Files Referenced
@@ -3713,8 +3825,8 @@ Deno.test({
 			const chatStub = chatInteractionStubMaker.chatStub(summaryText);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			// Create chat stub that returns a properly formatted summary
 
@@ -3722,7 +3834,7 @@ Deno.test({
 				const toolUse: LLMAnswerToolUse = {
 					toolValidation: { validated: true, results: '' },
 					toolUseId: 'test-id',
-					toolName: 'collaboration_summary',
+					toolName: 'interaction_summary',
 					toolInput: {
 						maxTokensToKeep: 1500,
 						summaryLength: 'short',
@@ -3735,7 +3847,7 @@ Deno.test({
 				assert(result.bbResponse && typeof result.bbResponse === 'object', 'bbResponse should be an object');
 				assert('data' in result.bbResponse, 'bbResponse should have data property');
 
-				const data = result.bbResponse.data as LLMToolCollaborationSummaryResultData;
+				const data = result.bbResponse.data as LLMToolInteractionSummaryResultData;
 				assertEquals(data.originalTokenCount, 3000, 'Original token count should be 2000');
 				assert(data.newTokenCount < data.originalTokenCount, 'New token count should be less than original');
 
@@ -3761,12 +3873,14 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'CollaborationSummaryTool - Error on invalid token limit',
+	name: 'InteractionSummaryTool - Error on invalid token limit',
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Set up test conversation directory
-			const conversationId = 'test-collaboration';
-			const interactionsDir = await setupCollaborationDir(testProjectId, conversationId);
+			const collaborationId = 'test-collaboration';
+			const interactionId = 'test-interaction';
+			const collaborationDir = await setupCollaborationDir(testProjectId, collaborationId);
+			const interactionDir = await setupInteractionDir(collaborationDir, interactionId);
 
 			const interactionStats = {
 				statementCount: 0,
@@ -3788,20 +3902,20 @@ Deno.test({
 					providerResponse: { usage: { totalTokens: 15 } },
 				},
 			] as LLMMessage[];
-			await createTestMessages(interactionsDir, testMessages);
+			await createTestMessages(interactionDir, testMessages);
 
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction(conversationId, projectEditor);
+			const interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
-			const tool = await toolManager.getTool('collaboration_summary') as LLMToolCollaborationSummary;
-			assert(tool, 'Failed to get CollaborationSummaryTool');
+			const tool = await toolManager.getTool('interaction_summary') as LLMToolInteractionSummary;
+			assert(tool, 'Failed to get InteractionSummaryTool');
 
 			// Test too low token limit
 			const toolUseTooLow: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_summary',
+				toolName: 'interaction_summary',
 				toolInput: {
 					maxTokensToKeep: 500, // Below minimum 1000
 					summaryLength: 'short',
@@ -3818,7 +3932,7 @@ Deno.test({
 			const toolUseTooHigh: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
-				toolName: 'collaboration_summary',
+				toolName: 'interaction_summary',
 				toolInput: {
 					maxTokensToKeep: 200000, // Above maximum 128000
 					summaryLength: 'short',

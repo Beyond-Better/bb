@@ -11,7 +11,7 @@ import type {
 } from '../types.ts';
 
 export interface WebSocketMessage {
-	conversationId: string;
+	collaborationId: string;
 	projectId: string;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement?: string;

@@ -1,5 +1,5 @@
 import type { BBLLMResponse, LLMProvider } from 'api/types.ts';
-import type { InteractionId } from 'shared/types.ts';
+import type { CollaborationId, InteractionId } from 'shared/types.ts';
 export type { ErrorObject as AjvErrorObject } from 'ajv';
 import { Status } from '@oak/oak';
 export { isError } from 'shared/error.ts';
@@ -93,7 +93,8 @@ export interface LLMErrorOptions extends ErrorOptions {
 		};
 		bbResponse?: BBLLMResponse;
 	};
-	conversationId: InteractionId;
+	collaborationId?: CollaborationId;
+	interactionId?: InteractionId;
 }
 
 export interface LLMRateLimitErrorOptions extends LLMErrorOptions {

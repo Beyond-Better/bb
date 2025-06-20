@@ -6,8 +6,8 @@ import { apiStart } from './commands/apiStart.ts';
 import { apiStop } from './commands/apiStop.ts';
 import { apiStatus } from './commands/apiStatus.ts';
 import { apiRestart } from './commands/apiRestart.ts';
-import { conversationChat } from './commands/conversationChat.ts';
-import { conversationList } from './commands/conversationList.ts';
+import { collaborationChat } from './commands/collaborationChat.ts';
+import { collaborationList } from './commands/collaborationList.ts';
 import { viewLogs } from './commands/viewLogs.ts';
 import { config as configCommand } from './commands/config.ts';
 import { secure } from './commands/secure.ts';
@@ -31,9 +31,9 @@ const cli = new Command()
 	.description('CLI tool for BB')
 	.command('init', init)
 	//
-	// conversation commands
-	.command('chat', conversationChat)
-	.command('list', conversationList)
+	// collaboration commands
+	.command('chat', collaborationChat)
+	.command('list', collaborationList)
 	// list should be sub-commnds of chat
 	// but only the 'chat' command has --prompt - does Cliffy support a sub-command of `` (empty) command name to use as default??
 	//

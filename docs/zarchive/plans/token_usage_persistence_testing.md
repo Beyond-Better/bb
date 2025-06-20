@@ -35,7 +35,7 @@ Deno.test({
     await withTestProject(async (testProjectId, testProjectRoot) => {
       // Test setup using project structure
       const projectEditor = await getProjectEditor(testProjectId);
-      const interaction = await createTestInteraction('test-conversation', projectEditor);
+      const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
       // Test implementation
       const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];

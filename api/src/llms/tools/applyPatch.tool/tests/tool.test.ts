@@ -41,7 +41,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');
@@ -138,7 +138,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');
@@ -253,7 +253,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');
@@ -358,7 +358,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');
@@ -450,7 +450,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');
@@ -527,7 +527,7 @@ Deno.test({
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			const toolManager = await getToolManager(projectEditor);
 			const tool = await toolManager.getTool('apply_patch');

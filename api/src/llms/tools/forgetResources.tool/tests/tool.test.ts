@@ -43,14 +43,14 @@ Deno.test({
 			// Create test resources and add them to the interaction
 			await Deno.writeTextFile(join(testProjectRoot, 'file1.txt'), 'Content of file1');
 			await Deno.writeTextFile(join(testProjectRoot, 'file2.txt'), 'Content of file2');
-			const initialCollaboration = await projectEditor.initCollaboration('test-collaboration-id');
-			initialCollaboration.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
+			const initialInteraction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			initialInteraction.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file1'.length,
 				lastModified: new Date(),
 			}, messageId);
-			initialCollaboration.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file2.txt'), {
+			initialInteraction.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file2.txt'), {
 				contentType: 'text',
 				type: 'file',
 				size: 'Content of file2'.length,
@@ -69,7 +69,7 @@ Deno.test({
 				},
 			};
 
-			const result = await tool.runTool(initialCollaboration, toolUse, projectEditor);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
 			// console.log('Forget existing resources from interaction - bbResponse:', result.bbResponse);
 			// console.log('Forget existing resources from interaction - toolResponse:', result.toolResponse);
 			// console.log('Forget existing resources from interaction - toolResults:', result.toolResults);
@@ -109,7 +109,7 @@ Deno.test({
 			assertStringIncludes(thirdResult.text, 'Resource removed: file2.txt');
 
 			// Check if resources are removed from the conversation
-			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const resource1 = interaction.getResourceRevisionMetadata(
 				generateResourceRevisionKey(primaryDsConnection!.getUriForResource('file:./file1.txt'), '1'),
 			);
@@ -149,7 +149,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Attempt to forget non-existent resource - bbResponse:', result.bbResponse);
 			// console.log('Attempt to forget non-existent resource - toolResponse:', result.toolResponse);
@@ -208,7 +208,7 @@ Deno.test({
 			const messageId = '1111-2222';
 			// Create test resource and add it to the interaction
 			await Deno.writeTextFile(join(testProjectRoot, 'existing_file.txt'), 'Content of existing resource');
-			const interaction = await projectEditor.initCollaboration('test-collaboration-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			interaction.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./existing_file.txt'), {
 				contentType: 'text',
 				type: 'file',

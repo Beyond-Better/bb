@@ -51,7 +51,7 @@ import {
 	//generateCollaborationTitle,
 	generateStatementObjective,
 } from '../utils/collaboration.utils.ts';
-//import { generateInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import type {
 	//ResourceForInteraction,
 	//ResourceMetadata,
@@ -154,45 +154,66 @@ class OrchestratorController extends BaseController {
 		return this;
 	}
 
-	async initializeInteraction(interactionId: InteractionId): Promise<LLMConversationInteraction> {
+	async initializeCollaboration(collaborationId: CollaborationId): Promise<Collaboration> {
+		let collaboration;
+		try {
+			//logger.info('OrchestratorController: initializeCollaboration:', { collaborationId });
+			collaboration = await this.loadCollaboration(collaborationId);
+		} catch (error) {
+			logger.error(`OrchestratorController: Collaboration ${collaborationId} not found: ${errorMessage(error)}`);
+			collaboration = null;
+		}
+
+		if (!collaboration) {
+			logger.info('OrchestratorController: initializeCollaboration: creating collaboration', { collaborationId });
+			collaboration = await this.createCollaboration(collaborationId, this.projectEditor.projectId, 'project');
+		}
+
+		return collaboration;
+	}
+
+	async initializeInteraction(
+		collaboration: Collaboration,
+		interactionId?: InteractionId,
+	): Promise<LLMConversationInteraction> {
+		const effectiveInteractionId = interactionId ?? collaboration.lastInteractionId ?? shortenInteractionId(generateInteractionId());;
 		let interaction;
 		try {
-			//logger.info('OrchestratorController: initializeInteraction:', { interactionId });
-			interaction = await this.loadInteraction(interactionId);
+			logger.info('OrchestratorController: initializeInteraction:', { effectiveInteractionId });
+			interaction = await this.loadInteraction(collaboration, effectiveInteractionId);
+			//logger.info('OrchestratorController: initializeInteraction: loaded', { interaction });
 		} catch (error) {
-			// loadInteraction throws an error when interaction doesn't exist
-			logger.error(
-				`OrchestratorController: Interaction ${interactionId} not found: ${errorMessage(error)}`,
-			);
+			logger.error(`OrchestratorController: Interaction ${interactionId} not found: ${errorMessage(error)}`);
 			interaction = null;
 		}
 
 		if (!interaction) {
-			logger.info('OrchestratorController: initializeInteraction: creating interaction', { interactionId });
-			interaction = await this.createInteraction(interactionId);
+			logger.info('OrchestratorController: initializeInteraction: creating interaction', { effectiveInteractionId });
+			interaction = await this.createInteraction(collaboration, effectiveInteractionId);
+			//logger.info('OrchestratorController: initializeInteraction: created', { interaction });
 		}
-		// [TODO] `createInteraction` calls interactionManager.createInteraction which adds it to manager
-		// so let `loadInteraction` handle interactionManager.addInteraction
-		//this.interactionManager.addInteraction(interaction);
+
+		collaboration.lastInteractionId = effectiveInteractionId;
 		await this.addToolsToInteraction(interaction);
+
 		return interaction;
 	}
 
 	async handleStatement(
 		statement: string,
 		collaborationId: CollaborationId,
-		interactionId: InteractionId,
-		options: { maxTurns?: number } = {},
+		interactionId?: InteractionId,
+		options?: { maxTurns?: number },
 		statementParams?: StatementParams,
 		resourcesToAttach?: string[], // Array of resource IDs
 		_dataSourceIdForAttach?: string, // Data source to load attached resources from
 	): Promise<CollaborationResponse> {
 		this.isCancelled = false;
 		const collaboration = this.collaborationManager.getCollaboration(collaborationId) as Collaboration;
-		const interaction = this.interactionManager.getInteraction(interactionId) as LLMConversationInteraction;
+		const interaction = this.interactionManager.getInteraction(interactionId ??collaboration.lastInteractionId!) as LLMConversationInteraction;
 		try {
 			if (!interaction) {
-				throw new Error(`No interaction found for ID: ${interactionId}`);
+				throw new Error(`No interaction found for ID: ${interactionId ??collaboration.lastInteractionId}`);
 			}
 			this.resetStatus(collaboration.id);
 			this.emitStatus(collaboration.id, ApiStatus.API_BUSY);
@@ -226,7 +247,7 @@ class OrchestratorController extends BaseController {
 
 			try {
 				if (!collaboration.title) {
-					collaboration.title = await this.generateCollaborationTitle(statement, interaction.id);
+					collaboration.title = await this.generateCollaborationTitle(statement, collaboration, interaction.id);
 					// Emit new collaboration event after title is generated
 					this.eventManager.emit(
 						'projectEditor:collaborationNew',
@@ -252,7 +273,7 @@ class OrchestratorController extends BaseController {
 				// Generate interaction objective if not set
 				if (!currentMetrics.objectives?.collaboration) {
 					const collaborationObjective = await generateCollaborationObjective(
-						await this.createChatInteraction(interaction.id, 'Generate collaboration objective'),
+						await this.createChatInteraction(collaboration, interaction.id, 'Generate collaboration objective'),
 						statement,
 					);
 					interaction.setObjectives(collaborationObjective);
@@ -272,7 +293,7 @@ class OrchestratorController extends BaseController {
 					logger.info('Previous objective:', previousObjective);
 
 					const statementObjective = await generateStatementObjective(
-						await this.createChatInteraction(interaction.id, 'Generate statement objective'),
+						await this.createChatInteraction(collaboration, interaction.id, 'Generate statement objective'),
 						statement,
 						currentMetrics.objectives?.collaboration,
 						previousResponse,
@@ -385,7 +406,7 @@ class OrchestratorController extends BaseController {
 			);
 
 			let currentResponse: LLMSpeakWithResponse | null = null;
-			const maxTurns = options.maxTurns ?? this.projectConfig.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
+			const maxTurns = options?.maxTurns ?? this.projectConfig.api?.maxTurns ?? 25; // Maximum number of turns for the run loop
 
 			try {
 				logger.info(
@@ -739,8 +760,8 @@ class OrchestratorController extends BaseController {
 
 			const statementAnswer: CollaborationResponse = {
 				logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },
-							collaborationId: collaborationId,
-							interactionId: interaction.id,
+				collaborationId: collaborationId,
+				interactionId: interaction.id,
 				collaborationTitle: collaboration.title,
 				parentMessageId: null,
 				agentInteractionId: null,
@@ -777,8 +798,8 @@ class OrchestratorController extends BaseController {
 			);
 			const statementAnswer: CollaborationResponse = {
 				logEntry: { entryType: 'answer', content: 'Error handling statement', thinking: '' },
-							collaborationId: collaborationId,
-							interactionId: interaction.id,
+				collaborationId: collaborationId,
+				interactionId: interaction.id,
 				collaborationTitle: collaboration.title,
 				parentMessageId: null,
 				agentInteractionId: null,
@@ -837,9 +858,9 @@ class OrchestratorController extends BaseController {
 		const errorHandler = new ErrorHandler(errorHandlingConfig);
 
 		if (sync) {
-			return await agentController.executeSyncTasks(this, parentMessageId, tasks, errorHandler);
+			return await agentController.executeSyncTasks(this, interaction.collaboration, parentMessageId, tasks, errorHandler);
 		} else {
-			return await agentController.executeAsyncTasks(this, parentMessageId, tasks, errorHandler);
+			return await agentController.executeAsyncTasks(this, interaction.collaboration, parentMessageId, tasks, errorHandler);
 		}
 
 		// 		const errors = results.filter((r) => r.error);

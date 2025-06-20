@@ -1,12 +1,12 @@
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
-import type { LLMToolCollaborationSummaryInput, LLMToolCollaborationSummaryResultData } from './types.ts';
+import type { LLMToolInteractionSummaryInput, LLMToolInteractionSummaryResultData } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
 
 export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult => {
-	const { maxTokensToKeep, summaryLength } = toolInput as LLMToolCollaborationSummaryInput;
+	const { maxTokensToKeep, summaryLength } = toolInput as LLMToolInteractionSummaryInput;
 
 	const content = stripIndents`
         ${maxTokensToKeep ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Max Tokens:')} ${maxTokensToKeep}` : ''}
@@ -14,7 +14,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
     `.trim();
 
 	return {
-		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Collaboration Summary'),
+		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Use', 'Conversation Summary'),
 		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Summarizing conversation...'),
 		content,
 		preview: maxTokensToKeep ? `Truncating to ${maxTokensToKeep} tokens` : 'Generating summary',
@@ -26,7 +26,7 @@ export const formatLogEntryToolResult = (
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
-		const data = bbResponse.data as LLMToolCollaborationSummaryResultData;
+		const data = bbResponse.data as LLMToolInteractionSummaryResultData;
 
 		const content = stripIndents`
             ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Summary (${data.summaryLength}):`)}
@@ -50,7 +50,7 @@ export const formatLogEntryToolResult = (
         `;
 
 		return {
-			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Collaboration Summary'),
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Conversation Summary'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
 				`${data.originalMessageCount - data.keptMessageCount} messages summarized`,
 			),
@@ -58,9 +58,9 @@ export const formatLogEntryToolResult = (
 			preview: `Summarized ${data.originalMessageCount - data.keptMessageCount} messages`,
 		};
 	} else {
-		logger.error('LLMToolCollaborationSummary: Unexpected bbResponse format:', bbResponse);
+		logger.error('LLMToolInteractionSummary: Unexpected bbResponse format:', bbResponse);
 		return {
-			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Error', 'Collaboration Summary'),
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Error', 'ConversationInteraction Summary'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Failed to process summary'),
 			content: bbResponse,
 			preview: 'Error processing summary',

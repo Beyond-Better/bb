@@ -5,9 +5,9 @@ import { InteractionId, CollaborationId } from 'shared/types.ts';
 export function generateInteractionId(): InteractionId {
 	//const uuid = crypto.randomUUID();
 	//return ulid.replace(/-/g, '').substring(0, 8);
-	const conversationId = ulid();
-	//return conversationId.substring(0, 8);
-	return conversationId;
+	const interactionId = ulid();
+	//return interactionId.substring(0, 8);
+	return interactionId;
 }
 
 export function shortenInteractionId(ulid: string): string {

@@ -30,7 +30,7 @@ Deno.test({
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Verify TokenUsagePersistence is initialized
 			assert(
@@ -52,10 +52,11 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const conversationId = 'persistence-test-interaction';
+			const collaborationId = 'persistence-test-collaboration';
+			const interactionId = 'persistence-test-interaction';
 
 			// First session
-			let interaction = await createTestInteraction(conversationId, projectEditor);
+			let interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 
 			// Create and save some records
 			const records = createMockTokenUsageRecordSequence(3, {
@@ -78,7 +79,7 @@ Deno.test({
 			await interaction.interactionPersistence.saveInteraction(interaction);
 
 			// Second session with same interaction ID
-			interaction = await createTestInteraction(conversationId, projectEditor);
+			interaction = await createTestInteraction(collaborationId, interactionId, projectEditor);
 
 			// Verify records persisted
 			const savedRecords = await interaction.interactionPersistence.getTokenUsage('conversation');
@@ -104,7 +105,7 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('concurrent-writes', projectEditor);
+			const interaction = await createTestInteraction('collaboration-concurrent-writes', 'concurrent-writes', projectEditor);
 
 			// Create records with same messageId but different content
 			const baseRecord = createMockTokenUsageRecord('assistant', 'conversation', {
@@ -156,7 +157,7 @@ Deno.test({
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create test record using mock utility
 			const record = createMockTokenUsageRecord('assistant', 'conversation', {
@@ -183,7 +184,7 @@ Deno.test({
 			// Add message and update interaction properties
 			interaction.addMessage(message);
 			interaction.id = 'test-interaction';
-			interaction.title = 'Test Interaction';
+			//interaction.title = 'Test Interaction';
 			interaction.model = 'test-model';
 			interaction.maxTokens = 4096;
 			interaction.temperature = 0.7;
@@ -211,7 +212,7 @@ Deno.test({
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create sequence of records with alternating roles
 			const records = createMockTokenUsageRecordSequence(4, {
@@ -270,7 +271,7 @@ Deno.test({
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create multiple records
 			const records = createMockTokenUsageRecordSequence(5, {
@@ -301,7 +302,7 @@ Deno.test({
 					// Set up interaction properties
 					interaction.addMessage(message);
 					interaction.id = record.messageId;
-					interaction.title = `Test Interaction ${record.messageId}`;
+					//interaction.title = `Test Interaction ${record.messageId}`;
 					interaction.model = 'test-model';
 					interaction.maxTokens = 4096;
 					interaction.temperature = 0.7;
@@ -340,7 +341,7 @@ Deno.test({
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			// Test setup
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-interaction', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
 			// Create records for both interaction and chat
 			const conversationRecords = createMockTokenUsageRecordSequence(2, {

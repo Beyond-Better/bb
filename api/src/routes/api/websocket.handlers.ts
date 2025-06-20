@@ -2,7 +2,7 @@ import type { Context, RouterContext } from '@oak/oak';
 
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { InteractionId } from 'shared/types.ts';
+import type { CollaborationId,InteractionId } from 'shared/types.ts';
 //import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import EventManager from 'shared/eventManager.ts';
@@ -13,44 +13,44 @@ import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
 	private listeners: Map<
-		InteractionId,
+		CollaborationId,
 		Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }>
 	> = new Map();
-	private activeConnections: Map<InteractionId, WebSocket> = new Map();
+	private activeConnections: Map<CollaborationId, WebSocket> = new Map();
 
 	constructor(private eventManager: EventManager) {
 	}
 
 	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading conversations
 
-	handleConnection(ws: WebSocket, conversationId: InteractionId, sessionManager: SessionManager) {
+	handleConnection(ws: WebSocket, collaborationId: CollaborationId, sessionManager: SessionManager) {
 		try {
 			// Check if there's an existing connection for this conversation ID
-			const existingConnection = this.activeConnections.get(conversationId);
+			const existingConnection = this.activeConnections.get(collaborationId);
 			if (existingConnection) {
-				logger.warn(`Closing existing connection for conversationId: ${conversationId}`);
+				logger.warn(`Closing existing connection for collaborationId: ${collaborationId}`);
 				existingConnection.close(1000, 'New connection established');
-				this.removeConnection(existingConnection, conversationId);
+				this.removeConnection(existingConnection, collaborationId);
 			}
 
 			// Set the new connection
-			this.activeConnections.set(conversationId, ws);
+			this.activeConnections.set(collaborationId, ws);
 
 			// Set timeout for conversation loading
 			const loadTimeout = setTimeout(() => {
-				if (this.activeConnections.has(conversationId)) {
-					logger.error(`WebSocketChatHandler: Timeout loading conversation: ${conversationId}`);
+				if (this.activeConnections.has(collaborationId)) {
+					logger.error(`WebSocketChatHandler: Timeout loading conversation: ${collaborationId}`);
 					this.eventManager.emit('projectEditor:collaborationError', {
-						conversationId,
+						collaborationId,
 						error: 'Timeout loading conversation',
 						code: 'LOAD_TIMEOUT',
 					});
-					this.removeConnection(ws, conversationId);
+					this.removeConnection(ws, collaborationId);
 				}
 			}, this.LOAD_TIMEOUT);
 
 			ws.onopen = () => {
-				logger.info(`WebSocketChatHandler: WebSocket connection opened for conversationId: ${conversationId}`);
+				logger.info(`WebSocketChatHandler: WebSocket connection opened for collaborationId: ${collaborationId}`);
 			};
 
 			ws.onmessage = async (event) => {
@@ -59,10 +59,10 @@ class WebSocketChatHandler {
 					clearTimeout(loadTimeout);
 
 					const message = JSON.parse(event.data);
-					await this.handleMessage(conversationId, message, sessionManager);
+					await this.handleMessage(collaborationId, message, sessionManager);
 				} catch (error) {
 					logger.error(
-						`WebSocketChatHandler: Error handling message for conversationId: ${conversationId}:`,
+						`WebSocketChatHandler: Error handling message for collaborationId: ${collaborationId}:`,
 						error,
 					);
 					ws.send(JSON.stringify({ error: 'Invalid message format' }));
@@ -72,32 +72,33 @@ class WebSocketChatHandler {
 			ws.onclose = () => {
 				// Clear load timeout on close
 				clearTimeout(loadTimeout);
-				logger.info(`WebSocketChatHandler: WebSocket connection closed for conversationId: ${conversationId}`);
-				this.removeConnection(ws, conversationId);
+				logger.info(`WebSocketChatHandler: WebSocket connection closed for collaborationId: ${collaborationId}`);
+				this.removeConnection(ws, collaborationId);
 			};
 
 			ws.onerror = (event: Event | ErrorEvent) => {
 				const errorMessage = event instanceof ErrorEvent ? event.message : 'Unknown WebSocket error';
 				logger.error(
-					`WebSocketChatHandler: WebSocket error for conversationId: ${conversationId}:`,
+					`WebSocketChatHandler: WebSocket error for collaborationId: ${collaborationId}:`,
 					errorMessage,
 				);
 			};
 
-			this.setupEventListeners(ws, conversationId);
+			this.setupEventListeners(ws, collaborationId);
 		} catch (error) {
-			logger.error(`Error in handleConnection for conversationId ${conversationId}:`, error);
+			logger.error(`Error in handleConnection for collaborationId ${collaborationId}:`, error);
 			ws.close(1011, 'Internal Server Error');
-			this.removeConnection(ws, conversationId);
+			this.removeConnection(ws, collaborationId);
 		}
 	}
 
 	private async handleMessage(
-		conversationId: InteractionId,
+		collaborationId: CollaborationId,
 		message: {
 			task: string;
 			statement: string;
 			projectId: string;
+			interactionId: InteractionId,
 			options?: { maxTurns?: number }; // statement options
 			statementParams: StatementParams; // LLM request params
 			filesToAttach?: string[]; // Array of file IDs to include in message
@@ -106,17 +107,17 @@ class WebSocketChatHandler {
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, options, statementParams, filesToAttach, dataSourceIdForAttach } =
+			const { task, statement, projectId, interactionId, options, statementParams, filesToAttach, dataSourceIdForAttach } =
 				message;
-			logger.info(`WebSocketChatHandler: handleMessage for conversationId ${conversationId}, task: ${task}`);
+			logger.info(`WebSocketChatHandler: handleMessage for collaborationId ${collaborationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
 			if (!projectId) {
 				logger.error(
-					`WebSocketChatHandler: projectId is required for conversationId: ${conversationId}`,
+					`WebSocketChatHandler: projectId is required for collaborationId: ${collaborationId}`,
 				);
 				this.eventManager.emit('projectEditor:collaborationError', {
-					conversationId,
+					collaborationId,
 					error: 'Project ID is required',
 					code: 'PROJECT_ID_REQUIRED',
 				});
@@ -124,18 +125,18 @@ class WebSocketChatHandler {
 			}
 
 			const projectEditor = await projectEditorManager.getOrCreateEditor(
-				conversationId,
 				projectId,
+				collaborationId,
 				sessionManager,
 			);
 
 			//if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
 			if (!projectEditor) {
 				logger.error(
-					`WebSocketChatHandler: No projectEditor for conversationId: ${conversationId}`,
+					`WebSocketChatHandler: No projectEditor for collaborationId: ${collaborationId}`,
 				);
 				this.eventManager.emit('projectEditor:collaborationError', {
-					conversationId,
+					collaborationId,
 					error: 'No active conversation',
 					code: 'NO_ACTIVE_CONVERSATION',
 				});
@@ -145,24 +146,24 @@ class WebSocketChatHandler {
 			if (task === 'greeting') {
 				try {
 					const versionInfo = await getVersionInfo();
-					const interaction = projectEditor.orchestratorController.interactionManager.getInteractionStrict(
-						conversationId,
+					const collaboration = projectEditor.orchestratorController.collaborationManager.getCollaborationStrict(
+						collaborationId,
 					);
 					this.eventManager.emit('projectEditor:collaborationReady', {
-						conversationId: conversationId,
-						collaborationTitle: interaction.title,
-						interactionStats: {
-							statementCount: interaction.statementCount,
+						collaborationId: collaborationId,
+						collaborationTitle: collaboration.title,
+						collaborationStats: {
+							statementCount: collaboration.lastInteractionMetadata?.interactionStats.statementCount,
 						},
 						versionInfo,
 					});
 				} catch (error) {
 					logger.error(
-						`WebSocketChatHandler: Error creating project editor for conversationId: ${conversationId}:`,
+						`WebSocketChatHandler: Error creating project editor for collaborationId: ${collaborationId}:`,
 						error,
 					);
 					this.eventManager.emit('projectEditor:collaborationError', {
-						conversationId,
+						collaborationId,
 						error: 'Failed to create project editor',
 						code: 'PROJECT_EDITOR_CREATION_FAILED',
 					});
@@ -173,7 +174,8 @@ class WebSocketChatHandler {
 					//logger.info('WebSocketChatHandler: filesToAttach', filesToAttach);
 					await projectEditor?.handleStatement(
 						statement,
-						conversationId,
+						collaborationId,
+						interactionId,
 						options,
 						statementParams,
 						filesToAttach,
@@ -181,7 +183,7 @@ class WebSocketChatHandler {
 					);
 				} catch (error) {
 					logger.error(
-						`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}:`,
+						`WebSocketChatHandler: Error handling statement for collaborationId ${collaborationId}:`,
 						error,
 					);
 					if (!isLLMError(error)) {
@@ -190,61 +192,61 @@ class WebSocketChatHandler {
 							? `Error handling statement: ${error.message}`
 							: 'Error handling statement';
 						this.eventManager.emit('projectEditor:collaborationError', {
-							conversationId,
+							collaborationId,
 							error: errorMessage,
 							code: 'STATEMENT_ERROR',
 						});
 					}
 				}
 			} else if (task === 'cancel') {
-				logger.error(`WebSocketChatHandler: Cancelling statement for conversationId ${conversationId}`);
+				logger.error(`WebSocketChatHandler: Cancelling statement for collaborationId ${collaborationId}`);
 				try {
-					projectEditor?.orchestratorController.cancelCurrentOperation(conversationId);
+					projectEditor?.orchestratorController.cancelCurrentOperation(collaborationId);
 					this.eventManager.emit('projectEditor:collaborationCancelled', {
-						conversationId,
+						collaborationId,
 						message: 'Operation cancelled',
 					});
 				} catch (error) {
 					logger.error(
-						`WebSocketChatHandler: Error cancelling operation for conversationId: ${conversationId}:`,
+						`WebSocketChatHandler: Error cancelling operation for collaborationId: ${collaborationId}:`,
 						error,
 					);
 					const errorMessage = isError(error)
 						? `Error cancelling operation: ${error.message}`
 						: 'Error cancelling operation';
 					this.eventManager.emit('projectEditor:collaborationError', {
-						conversationId,
+						collaborationId,
 						error: errorMessage,
 						code: 'CANCELLATION_ERROR',
 					});
 				}
 			} else {
 				logger.error(
-					`WebSocketChatHandler: Error handling statement for conversationId ${conversationId}, unknown task: ${task}`,
+					`WebSocketChatHandler: Error handling statement for collaborationId ${collaborationId}, unknown task: ${task}`,
 				);
 				this.eventManager.emit('projectEditor:collaborationError', {
-					conversationId,
+					collaborationId,
 					error: `Error handling statement, unknown task: ${task}`,
 					code: 'STATEMENT_ERROR',
 				});
 			}
 		} catch (error) {
-			logger.error(`Unhandled error in handleMessage for conversationId ${conversationId}:`, error);
+			logger.error(`Unhandled error in handleMessage for collaborationId ${collaborationId}:`, error);
 			this.eventManager.emit('projectEditor:collaborationError', {
-				conversationId,
+				collaborationId,
 				error: 'Internal Server Error',
 				code: 'INTERNAL_ERROR',
 			});
-			const ws = this.activeConnections.get(conversationId);
+			const ws = this.activeConnections.get(collaborationId);
 			if (ws) {
-				this.removeConnection(ws, conversationId);
+				this.removeConnection(ws, collaborationId);
 			}
 		}
 	}
 
-	private setupEventListeners(ws: WebSocket, conversationId: InteractionId) {
+	private setupEventListeners(ws: WebSocket, collaborationId: CollaborationId) {
 		// Remove any existing listeners for this conversation ID
-		this.removeEventListeners(conversationId);
+		this.removeEventListeners(collaborationId);
 
 		const listeners: Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }> = [
 			{
@@ -285,33 +287,33 @@ class WebSocketChatHandler {
 			},
 		];
 
-		listeners.forEach((listener) => this.eventManager.on(listener.event, listener.callback, conversationId));
+		listeners.forEach((listener) => this.eventManager.on(listener.event, listener.callback, collaborationId));
 
 		// Store listeners for this conversation ID
-		this.listeners.set(conversationId, listeners);
+		this.listeners.set(collaborationId, listeners);
 
 		// Remove listeners when the connection closes
-		ws.addEventListener('close', () => this.removeEventListeners(conversationId));
+		ws.addEventListener('close', () => this.removeEventListeners(collaborationId));
 	}
 
-	private removeEventListeners(conversationId: InteractionId) {
-		const listeners = this.listeners.get(conversationId);
+	private removeEventListeners(collaborationId: CollaborationId) {
+		const listeners = this.listeners.get(collaborationId);
 		if (listeners) {
 			listeners.forEach((listener) => {
-				this.eventManager.off(listener.event, listener.callback, conversationId);
+				this.eventManager.off(listener.event, listener.callback, collaborationId);
 				logger.debug(
-					`WebSocketChatHandler: Removed listener for event ${listener.event} for conversationId ${conversationId}`,
+					`WebSocketChatHandler: Removed listener for event ${listener.event} for collaborationId ${collaborationId}`,
 				);
 			});
-			this.listeners.delete(conversationId);
+			this.listeners.delete(collaborationId);
 		}
 	}
 
-	private removeConnection(ws: WebSocket, conversationId: InteractionId) {
+	private removeConnection(ws: WebSocket, collaborationId: CollaborationId) {
 		// Only perform cleanup once
-		if (this.activeConnections.has(conversationId)) {
-			this.activeConnections.delete(conversationId);
-			projectEditorManager.releaseEditor(conversationId);
+		if (this.activeConnections.has(collaborationId)) {
+			this.activeConnections.delete(collaborationId);
+			projectEditorManager.releaseEditor(collaborationId);
 
 			// Only close if the socket is still open
 			if (ws.readyState === ws.OPEN) {
@@ -431,7 +433,7 @@ export const websocketConversation = (ctx: Context) => {
 
 	try {
 		const { id } = (ctx as RouterContext<'/conversation/:id', { id: string }>).params;
-		const conversationId: InteractionId = id;
+		const collaborationId: CollaborationId = id;
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 
 		if (!sessionManager) {
@@ -441,7 +443,7 @@ export const websocketConversation = (ctx: Context) => {
 			ctx.throw(400, 'Cannot upgrade to WebSocket');
 		}
 		const ws = ctx.upgrade();
-		chatHandler.handleConnection(ws, conversationId, sessionManager);
+		chatHandler.handleConnection(ws, collaborationId, sessionManager);
 		ctx.response.status = 200;
 	} catch (error) {
 		logger.error(`WebSocketHandler: Error in websocketConversation: ${(error as Error).message}`, error);

@@ -25,7 +25,7 @@ import type {
 } from 'api/types.ts';
 import type { BBLLMResponse } from 'api/types/llms.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 type LLMMessageContentPartOrString =
 	| string
@@ -243,19 +243,19 @@ class BbLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			maxTokens = capabilitiesManager.resolveMaxTokens(
+			maxTokens = registryService.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
 			);
 
-			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			extendedThinking = registryService.resolveExtendedThinking(
 				model,
 				messageRequest.extendedThinking?.enabled,
 			);
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
+			temperature = extendedThinking ? 1 : registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -457,7 +457,7 @@ class BbLLM extends LLM {
 						model: messageRequest.model,
 						provider: this.llmProviderName,
 						args: { bbResponse: bbResponseMessage },
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 					} as LLMErrorOptions,
 				);
 			}

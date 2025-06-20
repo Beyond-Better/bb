@@ -9,7 +9,7 @@ export interface ConversationsFileV1 {
 	conversations: InteractionMetadata[];
 }
 
-export interface InteractionsFileV2 {
+export interface InteractionsFileV4 {
 	version: string;
 	interactions: InteractionMetadata[];
 }
@@ -18,7 +18,7 @@ export interface CollaborationsFileV4 {
 	version: string;
 	collaborations: CollaborationMetadata[];
 }
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 
 export interface MigrationResult {
@@ -363,7 +363,7 @@ export class ConversationMigration {
 	}
 
 	private static async saveConversationsJson(dataDir: string, conversations: InteractionMetadata[]): Promise<void> {
-		const path = join(dataDir, 'conversations.json');
+		const path = join(dataDir, 'interactions.json');
 		await Deno.writeTextFile(path, JSON.stringify(conversations, null, 2));
 	}
 
@@ -504,7 +504,7 @@ export async function migrateConversationsToCollaborations(projectId: string): P
 			const collaborationMetadata: CollaborationMetadata = {
 				id: collaborationId,
 				version: 4,
-				title: conversationMetadata.title,
+				title: conversationMetadata.title || 'untitled',
 				type: 'project',
 				collaborationParams: conversationMetadata.collaborationParams || {
 					rolesModelConfig: {
@@ -520,8 +520,12 @@ export async function migrateConversationsToCollaborations(projectId: string): P
 				tokenUsageStats: conversationMetadata.tokenUsageStats,
 				lastInteractionId: conversationId,
 				lastInteractionMetadata: {
+					id: conversationId,
 					llmProviderName: conversationMetadata.llmProviderName,
 					model: conversationMetadata.model,
+					interactionStats: conversationMetadata.interactionStats,
+					tokenUsageStats: conversationMetadata.tokenUsageStats,
+					createdAt: conversationMetadata.createdAt,
 					updatedAt: conversationMetadata.updatedAt,
 				},
 				interactionIds: [conversationId],

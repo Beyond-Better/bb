@@ -1,7 +1,7 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
-//import type { ApiStatus, InteractionId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
-import type { InteractionId } from 'shared/types.ts';
+//import type { ApiStatus, CollaborationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import type { CollaborationId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
@@ -11,23 +11,23 @@ export default class WebsocketManager {
 	private MAX_RETRIES = 5;
 	private BASE_DELAY = 1000; // 1 second
 	private retryCount = 0;
-	private currentInteractionId!: InteractionId;
+	private currentCollaborationId!: CollaborationId;
 	private projectId!: string;
 
 	async setupWebsocket(
-		conversationId: InteractionId,
+		collaborationId: CollaborationId,
 		projectId: string,
 		hostname?: string,
 		port?: number,
 	): Promise<void> {
-		this.currentInteractionId = conversationId;
+		this.currentCollaborationId = collaborationId;
 		this.projectId = projectId;
 		const connectWebSocket = async (): Promise<WebSocket> => {
-			//console.log(`WebsocketManager: Connecting websocket for conversation: ${conversationId}`);
+			//console.log(`WebsocketManager: Connecting websocket for collaboration: ${collaborationId}`);
 			try {
 				const apiClient = await ApiClient.create(projectId, hostname, port);
 				// apiClient.connectWebSocket returns a promise, so we return that promise rather than awaiting
-				return apiClient.connectWebSocket(`/api/v1/ws/conversation/${conversationId}`);
+				return apiClient.connectWebSocket(`/api/v1/ws/collaboration/${collaborationId}`);
 			} catch (error) {
 				await this.handleRetry(error as Error);
 				return connectWebSocket();
@@ -37,10 +37,10 @@ export default class WebsocketManager {
 		this.ws = await connectWebSocket();
 		this.retryCount = 0; // Reset retry count on successful connection
 
-		//console.log(`WebsocketManager: Setting up ws listeners for conversation: ${conversationId}`);
+		//console.log(`WebsocketManager: Setting up ws listeners for collaboration: ${collaborationId}`);
 		this.setupEventListeners();
 
-		//console.log(`WebsocketManager: Sending greeting for conversation: ${conversationId}`);
+		//console.log(`WebsocketManager: Sending greeting for collaboration: ${collaborationId}`);
 		await this.sendGreeting();
 	}
 
@@ -81,18 +81,18 @@ export default class WebsocketManager {
 		// Greeting is now sent after listener setup in setupWebsocket
 	}
 
-	updateConversation(conversationId: InteractionId): void {
-		this.currentInteractionId = conversationId;
+	updateConversation(collaborationId: CollaborationId): void {
+		this.currentCollaborationId = collaborationId;
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.close();
 		}
-		this.setupWebsocket(conversationId, this.projectId);
+		this.setupWebsocket(collaborationId, this.projectId);
 	}
 
 	private handleMessage(event: MessageEvent): void {
 		const msgData = JSON.parse(event.data);
 		//console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type}`);
-		//if (!msgData.data.conversationId) console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type} - missing conversationId`, msgData.data);
+		//if (!msgData.data.collaborationId) console.log(`WebsocketManager: WebSocket handling message for type: ${msgData.type} - missing collaborationId`, msgData.data);
 		switch (msgData.type) {
 			case 'collaborationNew':
 				eventManager.emit(
@@ -106,10 +106,10 @@ export default class WebsocketManager {
 					{ ...msgData.data } as EventPayloadMap['cli']['cli:collaborationReady'],
 				);
 				eventManager.emit(
-					'cli:conversationWaitForReady',
+					'cli:collaborationWaitForReady',
 					{
-						conversationId: msgData.data.conversationId,
-					} as EventPayloadMap['cli']['cli:conversationWaitForReady'],
+						collaborationId: msgData.data.collaborationId,
+					} as EventPayloadMap['cli']['cli:collaborationWaitForReady'],
 				);
 				break;
 			case 'collaborationContinue':
@@ -124,14 +124,14 @@ export default class WebsocketManager {
 					{ ...msgData.data, expectingMoreInput: false } as EventPayloadMap['cli']['cli:collaborationAnswer'],
 				);
 				eventManager.emit(
-					'cli:conversationWaitForAnswer',
+					'cli:collaborationWaitForAnswer',
 					{
-						conversationId: msgData.data.conversationId,
-					} as EventPayloadMap['cli']['cli:conversationWaitForAnswer'],
+						collaborationId: msgData.data.collaborationId,
+					} as EventPayloadMap['cli']['cli:collaborationWaitForAnswer'],
 				);
 				break;
 			case 'collaborationError':
-				//console.error(`WebsocketManager: Received conversation error:`, msgData.data);
+				//console.error(`WebsocketManager: Received collaboration error:`, msgData.data);
 				eventManager.emit(
 					'cli:collaborationError',
 					{ ...msgData.data } as EventPayloadMap['cli']['cli:collaborationError'],
@@ -157,10 +157,10 @@ export default class WebsocketManager {
 	private async handleClose(): Promise<void> {
 		this.removeEventListeners();
 		await this.handleRetry(new Error('WebSocket connection closed'));
-		await this.setupWebsocket(this.currentInteractionId, this.projectId);
+		await this.setupWebsocket(this.currentCollaborationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
-			{ conversationId: this.currentInteractionId } as EventPayloadMap['cli']['cli:websocketReconnected'],
+			{ collaborationId: this.currentCollaborationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
@@ -168,10 +168,10 @@ export default class WebsocketManager {
 		this.removeEventListeners();
 		const error = event instanceof ErrorEvent ? event.error : new Error('Unknown WebSocket error');
 		await this.handleRetry(error);
-		await this.setupWebsocket(this.currentInteractionId, this.projectId);
+		await this.setupWebsocket(this.currentCollaborationId, this.projectId);
 		eventManager.emit(
 			'cli:websocketReconnected',
-			{ conversationId: this.currentInteractionId } as EventPayloadMap['cli']['cli:websocketReconnected'],
+			{ collaborationId: this.currentCollaborationId } as EventPayloadMap['cli']['cli:websocketReconnected'],
 		);
 	}
 
@@ -181,7 +181,7 @@ export default class WebsocketManager {
 			const projectId = await getProjectId(workingRoot);
 			this.ws.send(
 				JSON.stringify({
-					conversationId: this.currentInteractionId,
+					collaborationId: this.currentCollaborationId,
 					projectId: projectId,
 					task: 'greeting',
 					statement: '',
@@ -192,21 +192,21 @@ export default class WebsocketManager {
 		}
 	}
 
-	async waitForReady(conversationId: InteractionId): Promise<void> {
-		//console.log(`WebsocketManager: Waiting for ready event for conversation ${conversationId}`);
-		await eventManager.once('cli:conversationWaitForReady' as EventName<'cli'>, conversationId) as Promise<
-			EventPayloadMap['cli']['cli:conversationWaitForReady']
+	async waitForReady(collaborationId: CollaborationId): Promise<void> {
+		//console.log(`WebsocketManager: Waiting for ready event for collaboration ${collaborationId}`);
+		await eventManager.once('cli:collaborationWaitForReady' as EventName<'cli'>, collaborationId) as Promise<
+			EventPayloadMap['cli']['cli:collaborationWaitForReady']
 		>;
-		//console.log(`WebsocketManager: Received ready event for conversation ${conversationId}`);
+		//console.log(`WebsocketManager: Received ready event for collaboration ${collaborationId}`);
 	}
 
-	async waitForAnswer(conversationId: InteractionId): Promise<void> {
-		//console.log(`WebsocketManager: Waiting for answer event for conversation ${conversationId}`);
+	async waitForAnswer(collaborationId: CollaborationId): Promise<void> {
+		//console.log(`WebsocketManager: Waiting for answer event for collaboration ${collaborationId}`);
 		while (!this.cancellationRequested) {
 			try {
 				await Promise.race([
-					eventManager.once('cli:conversationWaitForAnswer' as EventName<'cli'>, conversationId) as Promise<
-						EventPayloadMap['cli']['cli:conversationWaitForAnswer']
+					eventManager.once('cli:collaborationWaitForAnswer' as EventName<'cli'>, collaborationId) as Promise<
+						EventPayloadMap['cli']['cli:collaborationWaitForAnswer']
 					>,
 					new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000)),
 				]);
@@ -218,11 +218,11 @@ export default class WebsocketManager {
 		}
 		this.cancellationRequested = false;
 		//throw new Error('Operation cancelled');
-		//console.log(`WebsocketManager: Waiting for answer event for conversation ${conversationId}`);
-		await eventManager.once('cli:conversationWaitForAnswer' as EventName<'cli'>, conversationId) as Promise<
-			EventPayloadMap['cli']['cli:conversationWaitForAnswer']
+		//console.log(`WebsocketManager: Waiting for answer event for collaboration ${collaborationId}`);
+		await eventManager.once('cli:collaborationWaitForAnswer' as EventName<'cli'>, collaborationId) as Promise<
+			EventPayloadMap['cli']['cli:collaborationWaitForAnswer']
 		>;
-		//console.log(`WebsocketManager: Received answer event for conversation ${conversationId}`);
+		//console.log(`WebsocketManager: Received answer event for collaboration ${collaborationId}`);
 	}
 
 	private async handleRetry(error: Error): Promise<void> {
@@ -246,10 +246,10 @@ export default class WebsocketManager {
 		await new Promise((resolve) => setTimeout(resolve, delay));
 	}
 
-	sendCancellationMessage(conversationId: InteractionId): void {
+	sendCancellationMessage(collaborationId: CollaborationId): void {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.cancellationRequested = true;
-			this.ws.send(JSON.stringify({ conversationId, task: 'cancel' }));
+			this.ws.send(JSON.stringify({ collaborationId, task: 'cancel' }));
 		} else {
 			console.error('WebsocketManager: WebSocket is not open. Cannot send cancellation message.');
 		}

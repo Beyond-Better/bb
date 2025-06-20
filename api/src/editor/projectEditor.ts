@@ -26,7 +26,7 @@ import type {
 } from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
-import type { InteractionId, CollaborationResponse } from 'shared/types.ts';
+import type { CollaborationId, CollaborationResponse, InteractionId } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
@@ -37,6 +37,7 @@ import {
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
 import EventManager from 'shared/eventManager.ts';
+import Collaboration from 'api/collaborations/collaboration.ts';
 
 // Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {
@@ -321,32 +322,43 @@ class ProjectEditor {
 	}
 
 	public async initCollaboration(
-		conversationId: InteractionId,
+		collaborationId: CollaborationId,
+	): Promise<Collaboration> {
+		logger.info(
+			`ProjectEditor: Initializing a collaboration with ID: ${collaborationId}`,
+		);
+		return await this.orchestratorController.initializeCollaboration(collaborationId);
+	}
+
+	public async initInteraction(
+		collaborationId: CollaborationId,
+		interactionId?: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		logger.info(
-			`ProjectEditor: Initializing a conversation with ID: ${conversationId}`,
+			`ProjectEditor: Initializing a interaction with ID: ${interactionId}`,
 		);
-		return await this.orchestratorController.initializeInteraction(
-			conversationId,
-		);
+		const collaboration = await this.orchestratorController.initializeCollaboration(collaborationId);
+		return await this.orchestratorController.initializeInteraction(collaboration, interactionId);
 	}
 
 	async handleStatement(
 		statement: string,
-		conversationId: InteractionId,
+		collaborationId: CollaborationId,
+		interactionId?: InteractionId,
 		options?: { maxTurns?: number },
 		statementParams?: StatementParams,
 		filesToAttach?: string[],
 		dsConnectionIdForAttach?: string,
 	): Promise<CollaborationResponse> {
-		await this.initCollaboration(conversationId);
+		await this.initInteraction(collaborationId, interactionId);
 		logger.info(
-			`ProjectEditor: Initialized conversation with ID: ${conversationId}, handling statement`,
+			`ProjectEditor: Initialized collaboration with ID: ${collaborationId}, handling statement`,
 			//{options, statementParams}
 		);
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,
-			conversationId,
+			collaborationId,
+			interactionId,
 			options,
 			statementParams,
 			filesToAttach,
