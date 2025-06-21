@@ -51,7 +51,7 @@ import {
 	//generateCollaborationTitle,
 	generateStatementObjective,
 } from '../utils/collaboration.utils.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import type {
 	//ResourceForInteraction,
 	//ResourceMetadata,

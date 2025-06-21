@@ -16,8 +16,8 @@ This document describes the implementation of auto-save functionality and page r
 // Saves input after 1 second of inactivity
 const SAVE_DEBOUNCE = 1000; // 1 second
 
-// Storage key format: bb-chat-current-{conversationId}
-const currentInputKey = `bb-chat-current-${conversationId}`;
+// Storage key format: bb-chat-current-{collaborationId}
+const currentInputKey = `bb-chat-current-${collaborationId}`;
 ```
 
 #### Content Management:
@@ -51,7 +51,7 @@ const {
   saveCurrentInput,    // Save input to localStorage
   getSavedInput,       // Retrieve saved input
   clearCurrentInput,   // Clear saved input
-} = useChatInputHistory(conversationIdSignal);
+} = useChatInputHistory(collaborationIdSignal);
 ```
 
 ### Key Integration Points
@@ -132,10 +132,10 @@ const {
 ### Storage Keys
 ```typescript
 // Auto-save key pattern
-bb-chat-current-{conversationId}
+bb-chat-current-{collaborationId}
 
 // History key pattern  
-bb-chat-history-{conversationId}
+bb-chat-history-{collaborationId}
 ```
 
 ### Timing Constants
@@ -163,7 +163,7 @@ const INPUT_DEBOUNCE = 16;      // UI update debounce (1 frame @ 60fps)
 The implementation includes comprehensive logging:
 ```typescript
 console.info('ChatInput: Found saved input to restore', { savedLength });
-console.info('ChatInput: Auto-save triggered', { conversationId, length });
+console.info('ChatInput: Auto-save triggered', { collaborationId, length });
 console.info('ChatInput: Preventing page reload with unsaved content');
 ```
 

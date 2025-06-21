@@ -20,7 +20,7 @@ import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 
-import { generateCollaborationId, shortenCollaborationId } from 'shared/collaborationManagement.ts';
+import { generateCollaborationId, shortenCollaborationId } from 'shared/generateIds.ts';
 import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
@@ -269,7 +269,7 @@ export function useChatState(
 					throw new Error('Failed to load collaborations');
 				}
 				const collaborations = collaborationResponse.collaborations;
-				//console.log(`useChatState: url/projectId effect[${effectId}]: collaborations`, collaborations);
+				console.log(`useChatState: url/projectId effect[${effectId}]: collaborations`, collaborations);
 
 				// Get collaboration ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -284,6 +284,7 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
+				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
 				const interaction = (collaboration && appState.value.projectId)
 					? await apiClient.getInteraction(
 						collaborationId,
@@ -291,8 +292,9 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
+				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-interaction`, interaction);
 				const logDataEntries = createNestedLogDataEntries(interaction?.logDataEntries || []);
-				//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
+				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
 
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...collaborations];

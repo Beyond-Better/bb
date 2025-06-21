@@ -165,7 +165,7 @@
 		"shared/utils/logEntries.ts": "./src/shared/utils/logEntries.utils.ts",
 		"shared/logger.ts": "./src/shared/utils/logger.utils.ts",
 		"shared/logViewer.ts": "./src/shared/utils/logViewer.utils.ts",
-		"shared/interactionManagement.ts": "./src/shared/utils/interactionManagement.utils.ts",
+		"shared/generateIds.ts": "./src/shared/utils/generateIds.utils.ts",
 		"shared/conversationMigration.ts": "./src/shared/utils/conversationMigration.utils.ts",
 		"shared/eventManager.ts": "./src/shared/events/eventManager.ts",
 		"shared/fetchManager.ts": "./src/shared/fetch/fetchManager.ts",

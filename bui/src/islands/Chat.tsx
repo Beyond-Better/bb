@@ -28,7 +28,7 @@ import { CollaborationStateEmpty } from '../components/CollaborationStateEmpty.t
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
 import type { CollaborationLogDataEntry, CollaborationValues } from 'shared/types.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 import { LLMRolesModelConfig } from 'api/types.ts';

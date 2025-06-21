@@ -210,8 +210,7 @@ export function CollaborationHeader({
 												d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
 											/>
 										</svg>
-										{currentCollaboration.value.lastInteractionMetadata?.interactionStats
-											.interactionTurnCount || '--'} turns
+										{currentCollaboration.value.lastInteractionMetadata?.interactionStats?.interactionTurnCount || '--'} turns
 									</div>
 
 									<div className='flex items-center'>

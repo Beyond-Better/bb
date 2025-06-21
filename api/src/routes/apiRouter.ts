@@ -11,7 +11,7 @@ import {
 	getInteraction,
 	listCollaborations,
 } from './api/collaboration.handlers.ts';
-import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
+import { websocketApp, websocketCollaboration } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';
 import { getModelCapabilities, listModels } from './api/model.handlers.ts';
@@ -31,7 +31,7 @@ const apiRouter = new Router();
 
 // Define protected routes
 const protectedPaths = [
-	'/v1/ws/conversation/*',
+	'/v1/ws/collaboration/*',
 	'/v1/collaborations/*',
 	'/v1/project/*',
 	'/v1/files/*',
@@ -50,7 +50,7 @@ apiRouter
 	.get('/v1/model/:modelId', getModelCapabilities)
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
-	.get('/v1/ws/conversation/:id', websocketConversation)
+	.get('/v1/ws/collaboration/:id', websocketCollaboration)
 	// Collaboration endpoints
 	.get('/v1/collaborations', listCollaborations)
 	.post('/v1/collaborations', createCollaboration)
@@ -227,8 +227,8 @@ apiRouter
     // Logs endpoint
     .get('/v1/logs', getLogs)
     // Persistence endpoints
-    .post('/v1/persist', persistConversation)
-    .post('/v1/resume', resumeConversation)
+    .post('/v1/persist', persistCollaboration)
+    .post('/v1/resume', resumeCollaboration)
  */
 
 /**

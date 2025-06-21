@@ -55,7 +55,7 @@ import {
 	generateCollaborationTitle,
 	//generateStatementObjective,
 } from '../utils/collaboration.utils.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 //import { getVersionInfo } from 'shared/version.ts';

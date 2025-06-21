@@ -70,8 +70,8 @@ Limitations in current usage recording:
 ### 3.1 File Structure
 New directory structure for token usage tracking:
 ```
-conversations/
-  {conversationId}/
+interactions/
+  {interactionId}/
     metadata.json           # Overall conversation metadata
     messages.jsonl         # Message content and basic metadata
     conversation.jsonl     # Conversation log entries

@@ -2,7 +2,7 @@ import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type Collaboration from 'api/collaborations/collaboration.ts';
-//import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+//import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import type { InteractionId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMCallbacks } from 'api/types.ts';

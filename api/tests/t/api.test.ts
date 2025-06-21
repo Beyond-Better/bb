@@ -67,12 +67,12 @@ Deno.test({
 // They should be updated and uncommented once the necessary configurations are in place
 
 /*
-Deno.test("Start conversation endpoint", async () => {
+Deno.test("Start collaboration endpoint", async () => {
   await withTestProject(async (testProjectId, testProjectRoot) => {
     const { app } = await import('../../src/main.ts');
     const request = await superoak(app);
     const response = await request
-      .post("/api/v1/conversation")
+      .post("/api/v1/collaboration")
       .send({
         prompt: "Test prompt",
         startDir: testProjectRoot
@@ -81,14 +81,14 @@ Deno.test("Start conversation endpoint", async () => {
       .expect("Content-Type", /json/);
 
     assertObjectMatch(response.body, {
-      conversationId: String,
+      collaborationId: String,
       response: Object
     });
-    const conversationId = response.body.conversationId;
+    const collaborationId = response.body.collaborationId;
 
-    // Continue conversation test
+    // Continue collaboration test
     const continueResponse = await request
-      .post(`/api/v1/conversation/${conversationId}`)
+      .post(`/api/v1/collaboration/${collaborationId}`)
       .send({
         prompt: "Continue test prompt",
         startDir: testProjectRoot
@@ -97,18 +97,18 @@ Deno.test("Start conversation endpoint", async () => {
       .expect("Content-Type", /json/);
 
     assertObjectMatch(continueResponse.body, {
-      conversationId: String,
+      collaborationId: String,
       response: Object
     });
   });
 });
 
-Deno.test("File operations in conversation", async () => {
+Deno.test("File operations in collaboration", async () => {
   await withTestProject(async (testProjectId, testProjectRoot) => {
     const { app } = await import('../../src/main.ts');
     const request = await superoak(app);
 
-    // Add file to conversation
+    // Add file to collaboration
     const addFileResponse = await request
       .post("/api/v1/files")
       .field("file", "test content")
@@ -117,12 +117,12 @@ Deno.test("File operations in conversation", async () => {
       .expect("Content-Type", /json/);
 
     assertObjectMatch(addFileResponse.body, {
-      message: "File added to conversation",
-      conversationId: String,
+      message: "File added to collaboration",
+      collaborationId: String,
       filePath: String
     });
 
-    // List files in conversation
+    // List files in collaboration
     const listFilesResponse = await request
       .get("/api/v1/files")
       .expect(200)

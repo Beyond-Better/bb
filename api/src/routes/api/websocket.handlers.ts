@@ -21,11 +21,11 @@ class WebSocketChatHandler {
 	constructor(private eventManager: EventManager) {
 	}
 
-	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading conversations
+	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading collaborations
 
 	handleConnection(ws: WebSocket, collaborationId: CollaborationId, sessionManager: SessionManager) {
 		try {
-			// Check if there's an existing connection for this conversation ID
+			// Check if there's an existing connection for this collaboration ID
 			const existingConnection = this.activeConnections.get(collaborationId);
 			if (existingConnection) {
 				logger.warn(`Closing existing connection for collaborationId: ${collaborationId}`);
@@ -36,13 +36,13 @@ class WebSocketChatHandler {
 			// Set the new connection
 			this.activeConnections.set(collaborationId, ws);
 
-			// Set timeout for conversation loading
+			// Set timeout for collaboration loading
 			const loadTimeout = setTimeout(() => {
 				if (this.activeConnections.has(collaborationId)) {
-					logger.error(`WebSocketChatHandler: Timeout loading conversation: ${collaborationId}`);
+					logger.error(`WebSocketChatHandler: Timeout loading collaboration: ${collaborationId}`);
 					this.eventManager.emit('projectEditor:collaborationError', {
 						collaborationId,
-						error: 'Timeout loading conversation',
+						error: 'Timeout loading collaboration',
 						code: 'LOAD_TIMEOUT',
 					});
 					this.removeConnection(ws, collaborationId);
@@ -149,8 +149,8 @@ class WebSocketChatHandler {
 				);
 				this.eventManager.emit('projectEditor:collaborationError', {
 					collaborationId,
-					error: 'No active conversation',
-					code: 'NO_ACTIVE_CONVERSATION',
+					error: 'No active collaboration',
+					code: 'NO_ACTIVE_COLLABORATION',
 				});
 				return;
 			}
@@ -166,7 +166,7 @@ class WebSocketChatHandler {
 						collaborationId: collaborationId,
 						collaborationTitle: collaboration.title,
 						collaborationStats: {
-							statementCount: collaboration.lastInteractionMetadata?.interactionStats.statementCount,
+							statementCount: collaboration.lastInteractionMetadata?.interactionStats?.statementCount,
 						},
 						versionInfo,
 					});
@@ -258,7 +258,7 @@ class WebSocketChatHandler {
 	}
 
 	private setupEventListeners(ws: WebSocket, collaborationId: CollaborationId) {
-		// Remove any existing listeners for this conversation ID
+		// Remove any existing listeners for this collaboration ID
 		this.removeEventListeners(collaborationId);
 
 		const listeners: Array<{ event: EventName<keyof EventMap>; callback: (data: unknown) => void }> = [
@@ -302,7 +302,7 @@ class WebSocketChatHandler {
 
 		listeners.forEach((listener) => this.eventManager.on(listener.event, listener.callback, collaborationId));
 
-		// Store listeners for this conversation ID
+		// Store listeners for this collaboration ID
 		this.listeners.set(collaborationId, listeners);
 
 		// Remove listeners when the connection closes
@@ -440,12 +440,12 @@ const chatHandler = new WebSocketChatHandler(eventManager);
 const appHandler = new WebSocketAppHandler();
 
 // Router endpoint handlers
-export const websocketConversation = (ctx: Context) => {
-	logger.debug('WebSocketHandler: websocketConversation called from router');
+export const websocketCollaboration = (ctx: Context) => {
+	logger.debug('WebSocketHandler: websocketCollaboration called from router');
 	//logger.info('WebSocketHandler: sessionManager', ctx.app.state.auth.sessionManager);
 
 	try {
-		const { id } = (ctx as RouterContext<'/conversation/:id', { id: string }>).params;
+		const { id } = (ctx as RouterContext<'/collaboration/:id', { id: string }>).params;
 		const collaborationId: CollaborationId = id;
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 
@@ -459,7 +459,7 @@ export const websocketConversation = (ctx: Context) => {
 		chatHandler.handleConnection(ws, collaborationId, sessionManager);
 		ctx.response.status = 200;
 	} catch (error) {
-		logger.error(`WebSocketHandler: Error in websocketConversation: ${(error as Error).message}`, error);
+		logger.error(`WebSocketHandler: Error in websocketCollaboration: ${(error as Error).message}`, error);
 		ctx.response.status = 500;
 		ctx.response.body = { error: 'Failed to generate response', details: (error as Error).message };
 	}

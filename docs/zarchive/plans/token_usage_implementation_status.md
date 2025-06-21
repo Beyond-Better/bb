@@ -26,7 +26,7 @@ New endpoints needed in `api/src/routes/api/token.handlers.ts`:
 
 ```typescript
 // Get token usage for a conversation
-GET /api/v1/token-usage/{conversationId}
+GET /api/v1/token-usage/{collaborationId}
 Response: {
   conversation: TokenUsageAnalysis;
   chat: TokenUsageAnalysis;
@@ -47,7 +47,7 @@ Response: {
 }
 
 // Get detailed token usage metrics
-GET /api/v1/token-usage/{conversationId}/metrics
+GET /api/v1/token-usage/{collaborationId}/metrics
 Query params:
   - includeTools?: boolean
   - includeCache?: boolean

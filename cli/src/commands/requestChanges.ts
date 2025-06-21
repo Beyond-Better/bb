@@ -16,7 +16,7 @@ export const requestChanges = new Command()
 			const apiClient = await ApiClient.create(projectId);
 			const response = await apiClient.post('/api/v1/request-changes', {
 				prompt: options.prompt,
-				conversationId: options.id,
+				interactionId: options.id,
 			});
 
 			if (response.ok) {

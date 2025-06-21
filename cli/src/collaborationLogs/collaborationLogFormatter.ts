@@ -255,12 +255,12 @@ export default class CollaborationLogFormatter {
 }
 
 export async function displayFormattedLogs(
-	conversationId: InteractionId,
+	interactionId: InteractionId,
 	callback?: (formattedEntry: string) => void,
 	follow = false,
 ): Promise<void> {
 	const formatter = await new CollaborationLogFormatter().init();
-	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
+	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), interactionId);
 
 	const processEntry = async (entry: string) => {
 		//console.debug('Debug: Raw entry before processing:\n', entry.trimStart());
@@ -353,8 +353,8 @@ export async function displayFormattedLogs(
 	}
 }
 
-export async function countLogEntries(conversationId: InteractionId): Promise<number> {
-	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), conversationId);
+export async function countLogEntries(interactionId: InteractionId): Promise<number> {
+	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), interactionId);
 
 	try {
 		const content = await Deno.readTextFile(rawLogFile);

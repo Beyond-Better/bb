@@ -16,7 +16,7 @@ import type {
 	InteractionStats,
 } from 'shared/types.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import { extractTextFromContent, extractThinkingFromContent } from 'api/utils/llms.ts';
 
 import BaseController from './baseController.ts';

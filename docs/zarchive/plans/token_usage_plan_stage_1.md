@@ -8,7 +8,7 @@ This document outlines the initial implementation phase for the new token usage 
 
 Set up the new directory structure for token usage:
 ```
-conversations/{conversationId}/tokenUsage/
+conversations/{collaborationId}/tokenUsage/
   - conversation.jsonl
   - chats.jsonl
 ```

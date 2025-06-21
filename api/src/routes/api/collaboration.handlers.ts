@@ -14,7 +14,7 @@ import { errorMessage } from 'shared/error.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 //import { getLLMModelToProvider } from 'api/types/llms.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 
 /**
  * @openapi

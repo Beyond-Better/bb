@@ -5,7 +5,7 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import { ProjectList } from './ProjectList.tsx';
 import { ProjectTrigger } from './ProjectTrigger.tsx';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
-import { generateCollaborationId, shortenCollaborationId } from 'shared/collaborationManagement.ts';
+import { generateCollaborationId, shortenCollaborationId } from 'shared/generateIds.ts';
 
 interface ProjectSelectorProps {
 	isCollapsed?: boolean;

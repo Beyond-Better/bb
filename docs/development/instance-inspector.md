@@ -165,7 +165,7 @@ deno task tool:debug-instances-orphaned
 
 ### Duplicate Instances
 
-Look for multiple ProjectEditors with the same conversationId or multiple OrchestratorControllers when there should only be one.
+Look for multiple ProjectEditors with the same collaborationId or multiple OrchestratorControllers when there should only be one.
 
 ## Advanced Usage
 
