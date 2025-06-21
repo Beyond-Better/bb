@@ -162,11 +162,7 @@ export default class Collaboration {
 
 		// Set collaboration reference if it's a conversation interaction
 		if ('collaboration' in interaction) {
-			(interaction as any).collaboration = {
-				id: this.id,
-				type: this.type,
-				collaborationParams: this.collaborationParams,
-			};
+			interaction.collaboration = this; // the getter in LLMInteraction makes collaboration a weak reference
 		}
 
 		logger.debug(`Collaboration: Added loaded interaction ${interaction.id} to collaboration ${this.id}`);

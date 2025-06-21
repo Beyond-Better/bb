@@ -10,8 +10,8 @@ import {
 	getBbDirFromWorkingRoot,
 	getGlobalConfigDir,
 } from 'shared/dataDir.ts';
-import { StorageMigration } from 'api/storage/storageMigration.ts';
-import type { MigrationResult as ConversationMigrationResult } from 'api/storage/storageMigration.ts';
+//import { StorageMigration } from 'api/storage/storageMigration.ts';
+//import type { MigrationResult as ConversationMigrationResult } from 'api/storage/storageMigration.ts';
 import {
 	getProjectAdminConfigPath,
 	getProjectAdminDataDir,
@@ -31,7 +31,7 @@ interface MigrationReport {
 		changes: Array<{ path: string[]; from: unknown; to: unknown }>;
 		errors: Array<{ path: string[]; message: string }>;
 	};
-	conversations?: ConversationMigrationResult;
+	//conversations?: ConversationMigrationResult;
 }
 import type {
 	ConfigVersion,
@@ -610,10 +610,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				);
 				this.projectConfigs.set(projectId, mergedConfig);
 
+				/*
+				// Storage files and resrouces are handled by API startup process
+				// and should be decoupled from config management
 				// Migrate conversations if needed
 				try {
 					const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-					const conversationResult = await StorageMigration.migrateProjectInteractions(projectAdminDataDir);
+					const conversationResult = await StorageMigration.migrateProjectInteractions(projectId, projectAdminDataDir);
 					if (conversationResult.failed > 0) {
 						logger.warn(
 							`ConfigManager: Some conversations failed to migrate: ${conversationResult.failed} failures out of ${conversationResult.total} total`,
@@ -643,7 +646,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 						skipped: 0,
 						failed: 0,
 						results: [{
-							conversationId: 'all',
+							entityId: 'all',
 							result: {
 								success: false,
 								version: { from: 1, to: 1 },
@@ -665,6 +668,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					reports.push(report);
 					await Deno.writeTextFile(reportPath, JSON.stringify(reports, null, 2));
 				}
+				 */
 			} else {
 				logger.info(`ConfigManager: Config is current version for: ${projectId}`);
 			}

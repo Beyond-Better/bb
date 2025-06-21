@@ -13,7 +13,7 @@ export type { InteractionPreferences, ModelCapabilities, UserModelPreferences } 
 
 // Model registry service will be used instead of enums
 // Import the service for runtime access
-import type { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+//import type { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 /**
  * Well-known model IDs as constants for easy reference
@@ -425,7 +425,7 @@ export enum LLMCallbackType {
 
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {
-	// @ts-ignore any
+	// deno-lint-ignore no-explicit-any
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
 

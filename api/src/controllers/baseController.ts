@@ -39,7 +39,7 @@ import type {
 	TokenUsage,
 	TokenUsageStats,
 } from 'shared/types.ts';
-import type { CollaborationInterface, StatementParams } from 'shared/types/collaboration.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';

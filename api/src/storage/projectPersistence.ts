@@ -4,7 +4,11 @@ import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
-import type { DefaultModels, DefaultModelsPartial, RepoInfoConfigSchema } from 'shared/config/types.ts';
+import type {
+	// DefaultModels,
+	// DefaultModelsPartial,
+	RepoInfoConfigSchema,
+} from 'shared/config/types.ts';
 //import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ClientProjectData, ProjectData, ProjectStatus, SerializedProjectData } from 'shared/types/project.ts';
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';

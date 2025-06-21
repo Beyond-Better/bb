@@ -32,7 +32,7 @@ Deno.test('StorageMigration.readMetadata', async (t) => {
 
 	await t.step('returns defaultMetadata when file does not exist', async () => {
 		await assertRejects(
-			() => ConversationMigration['readMetadata'](join(testDir, 'nonexistent.json')),
+			() => StorageMigration['readMetadata'](join(testDir, 'nonexistent.json')),
 			Error,
 			'Legacy conversation: metadata.json not found',
 		);
@@ -43,7 +43,7 @@ Deno.test('StorageMigration.readMetadata', async (t) => {
 		await Deno.writeTextFile(metadataPath, '{ bad json }');
 
 		await assertRejects(
-			() => ConversationMigration['readMetadata'](metadataPath),
+			() => StorageMigration['readMetadata'](metadataPath),
 			Error,
 			'Invalid JSON',
 		);
@@ -69,7 +69,7 @@ Deno.test('StorageMigration.readMetadata', async (t) => {
 		} as InteractionMetadata;
 		await Deno.writeTextFile(metadataPath, JSON.stringify(testData));
 
-		const metadata = await ConversationMigration['readMetadata'](metadataPath);
+		const metadata = await StorageMigration['readMetadata'](metadataPath);
 		assertEquals(metadata, testData, 'Should return exact data from file');
 	});
 
@@ -100,7 +100,7 @@ Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 		await Deno.writeTextFile(metadataPath, JSON.stringify(v1Metadata));
 
 		// Run migration
-		const result = await ConversationMigration['migrateV1toV2'](conversationDir);
+		const result = await StorageMigration['migrateV1toV2'](conversationDir);
 		console.log('Migrate v1 to v2:', result);
 
 		// Verify results
@@ -109,7 +109,7 @@ Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 		assertEquals(result.changes.length, 1, 'Should have one changes (metadata)');
 
 		// Verify metadata was updated
-		const updatedMetadata = await ConversationMigration['readMetadata'](metadataPath);
+		const updatedMetadata = await StorageMigration['readMetadata'](metadataPath);
 		console.log('updatedMetadata:', updatedMetadata);
 		assertEquals(updatedMetadata.version, 2, 'Metadata version should be 2');
 	});
@@ -117,7 +117,7 @@ Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 	await cleanup();
 });
 
-Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
+Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 	const testDir = await setupTestDir();
 	const conversationDir = join(testDir, 'test_conversation');
 	await ensureDir(conversationDir);
@@ -176,7 +176,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 		);
 
 		// Run migration
-		const result = await ConversationMigration['migrateV2toV3'](conversationDir);
+		const result = await StorageMigration['migrateV2toV3'](conversationDir);
 		console.log('Migrate v2 to v3:', result);
 
 		// Verify results
@@ -185,7 +185,7 @@ Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
 		assertEquals(result.changes.length, 2, 'Should have two changes (token usage and metadata)');
 
 		// Verify metadata was updated
-		const updatedMetadata = await ConversationMigration['readMetadata'](metadataPath);
+		const updatedMetadata = await StorageMigration['readMetadata'](metadataPath);
 		assertEquals(updatedMetadata.version, 3, 'Metadata version should be 3');
 		assertEquals(
 			updatedMetadata.tokenUsageStats.tokenUsageInteraction?.totalAllTokens,

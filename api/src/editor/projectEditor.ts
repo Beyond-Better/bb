@@ -27,7 +27,7 @@ import type {
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { CollaborationId, CollaborationResponse, InteractionId, ProjectId } from 'shared/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+//import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
 import {
@@ -37,7 +37,7 @@ import {
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
 import EventManager from 'shared/eventManager.ts';
-import Collaboration from 'api/collaborations/collaboration.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 
 // Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {

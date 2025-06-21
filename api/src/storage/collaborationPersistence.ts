@@ -1,32 +1,29 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-import { StorageMigration } from 'api/storage/storageMigration.ts';
-import type { CollaborationsFileV4, InteractionsFileV4 } from 'api/storage/storageMigration.ts';
+import type { CollaborationsFileV4 } from 'api/storage/storageMigration.ts';
 import { getProjectAdminDataDir, isProjectMigrated, migrateProjectFiles } from 'shared/projectPath.ts';
 import type {
 	CollaborationDetailedMetadata,
 	CollaborationId,
 	CollaborationMetadata,
 	InteractionId,
-	InteractionMetadata,
-	InteractionStats,
 	ProjectId,
 	TokenUsage,
 	TokenUsageAnalysis,
-	TokenUsageStats,
+	//TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-import { LLMRequestPersistence } from './llmRequestPersistence.ts';
+//import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
-import InteractionPersistence from './interactionPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 
 // Ensure ProjectInfo includes projectId
 type ExtendedProjectInfo = ProjectInfo & { projectId: ProjectId };
@@ -40,10 +37,10 @@ class CollaborationPersistence {
 	private objectivesPath!: string;
 	private resourcesPath!: string;
 	private projectInfoPath!: string;
-	private interactionsDir!: string;
+	//private interactionsDir!: string;
 	private initialized: boolean = false;
 	private tokenUsagePersistence!: TokenUsagePersistence;
-	private llmRequestPersistence!: LLMRequestPersistence;
+	//private llmRequestPersistence!: LLMRequestPersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
@@ -85,9 +82,6 @@ class CollaborationPersistence {
 			}
 		}
 
-		// Migrate conversations to collaborations if needed
-		await StorageMigration.migrateConversationsToCollaborations(projectId);
-
 		// Use new global project data directory
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
 		if (!projectAdminDataDir) {
@@ -107,7 +101,7 @@ class CollaborationPersistence {
 		this.collaborationsMetadataPath = join(projectAdminDataDir, 'collaborations.json');
 
 		this.collaborationDir = join(collaborationsDir, this.collaborationId);
-		this.interactionsDir = join(this.collaborationDir, 'interactions');
+		//this.interactionsDir = join(this.collaborationDir, 'interactions');
 
 		this.metadataPath = join(this.collaborationDir, 'metadata.json');
 
@@ -122,7 +116,7 @@ class CollaborationPersistence {
 		this.resourcesPath = join(this.collaborationDir, 'resources.json');
 
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.collaborationDir).init();
-		this.llmRequestPersistence = await new LLMRequestPersistence(this.collaborationDir).init();
+		//this.llmRequestPersistence = await new LLMRequestPersistence(this.collaborationDir).init();
 
 		return this;
 	}
@@ -192,9 +186,6 @@ class CollaborationPersistence {
 		}
 
 		try {
-			// Migrate conversations to collaborations if needed
-			await StorageMigration.migrateConversationsToCollaborations(options.projectId);
-
 			if (!await exists(collaborationsMetadataPath)) {
 				await Deno.writeTextFile(
 					collaborationsMetadataPath,
@@ -414,9 +405,9 @@ class CollaborationPersistence {
 		}
 	}
 
-	async createInteraction(
+	async createInteractionPersistence(
 		parentInteractionId?: InteractionId,
-		interactionCallbacks?: LLMCallbacks,
+		_interactionCallbacks?: LLMCallbacks, // only used for loadInteraction which creates a LLMConversationInteraction
 	): Promise<InteractionPersistence> {
 		await this.ensureInitialized();
 

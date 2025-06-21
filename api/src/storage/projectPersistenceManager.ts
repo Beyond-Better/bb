@@ -2,7 +2,6 @@ import { walk } from '@std/fs';
 import { dirname, join, relative, resolve } from '@std/path';
 
 import { logger } from 'shared/logger.ts';
-// Migration now handled at startup - see api/src/storage/storageMigration.ts
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
@@ -154,9 +153,6 @@ class ProjectPersistenceManager {
 		try {
 			const projectPersistence = new ProjectPersistence(projectId);
 			await projectPersistence.init();
-
-			// Migration now handled at startup - see api/src/storage/storageMigration.ts
-			// Individual project migration will be retried if needed during project access
 
 			this.projectCache.set(projectId, projectPersistence);
 			return projectPersistence;

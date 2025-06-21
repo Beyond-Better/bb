@@ -1,11 +1,11 @@
 import type { Context, RouterContext } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
-import type Collaboration from 'api/collaborations/collaboration.ts';
+//import type Collaboration from 'api/collaborations/collaboration.ts';
 import type { CollaborationId, CollaborationLogDataEntry, CollaborationResponse, InteractionId } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
-import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
+import type { CollaborationValues } from 'shared/types/collaboration.ts';
 import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 //import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
@@ -444,7 +444,7 @@ export const createInteraction = async (
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
-		const interactionPersistence = await collaborationPersistence.createInteraction(
+		const interactionPersistence = await collaborationPersistence.createInteractionPersistence(
 			parentInteractionId,
 			app.state.llmCallbacks,
 		);

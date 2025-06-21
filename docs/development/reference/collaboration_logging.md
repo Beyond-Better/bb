@@ -1,8 +1,8 @@
-# Conversation Logging and Formatting in BB
+# Collaboration Logging and Formatting in BB
 
 ## Overview
 
-This document outlines the conversation logging and formatting system for BB, focusing on techniques for efficient and flexible logging across the API, CLI, and BUI components. The primary goal is to maintain a centralized logging system in the API while providing dynamic, tool-specific formatting capabilities for different output destinations.
+This document outlines the collaboration logging and formatting system for BB, focusing on techniques for efficient and flexible logging across the API, CLI, and BUI components. The primary goal is to maintain a centralized logging system in the API while providing dynamic, tool-specific formatting capabilities for different output destinations.
 
 ## Key Components
 
@@ -18,7 +18,7 @@ The CollaborationLogger in the API is responsible for creating and storing log e
 - Type (e.g., 'user', 'assistant', 'tool_use', 'tool_result', 'auxiliary')
 - Timestamp
 - Content (raw data)
-- Metadata (e.g., conversation stats, token usage)
+- Metadata (e.g., collaboration stats, token usage)
 
 Example log entry structure:
 

@@ -2,14 +2,14 @@
 
 ## Overview
 
-BB uses a hierarchical objectives system to maintain context and guide decision-making throughout conversations. This system helps both the LLM and users stay focused on immediate tasks while maintaining alignment with broader conversation goals.
+BB uses a hierarchical objectives system to maintain context and guide decision-making throughout collaborations. This system helps both the LLM and users stay focused on immediate tasks while maintaining alignment with broader collaboration goals.
 
 ## Objective Types
 
-### Conversation Goals
-- Generated at the start of each conversation
+### Collaboration Goals
+- Generated at the start of each collaboration
 - Provides overall context and purpose
-- Remains consistent throughout the conversation
+- Remains consistent throughout the collaboration
 - Used for strategic decision-making
 - Example: "Analyze and improve the error handling in the project's file operations"
 
@@ -26,13 +26,13 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
 ## Implementation Details
 
 ### Generation
-- Conversation goals are generated only at conversation start
+- Collaboration goals are generated only at collaboration start
 - Statement objectives are generated for each new user statement
 - Both use separate LLM interactions to maintain focus
-- Statement objectives consider the conversation goal for context
+- Statement objectives consider the collaboration goal for context
 
 ### Storage
-- Objectives are stored with conversation metadata
+- Objectives are stored with collaboration metadata
 - Statement objectives maintain an ordered history
 - Length of statement objectives array matches statement count
 - Both types persist across session breaks
@@ -44,7 +44,7 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
   ```
   Tool results feedback:
   Turn X/Y
-  Conversation Goal: [overall purpose]
+  Collaboration Goal: [overall purpose]
   Current Objective: [immediate task]
   [tool results]
   ```
@@ -53,7 +53,7 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
 
 ### For LLMs
 1. Decision Making:
-   - Use conversation goal for strategic choices
+   - Use collaboration goal for strategic choices
    - Use current objective for tactical decisions
    - Consider both when selecting tools
    - Frame responses in proper context
@@ -71,7 +71,7 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
    - Maintain consistency across turns
 
 ### For Users
-1. Conversation Structure:
+1. Collaboration Structure:
    - Start with clear overall goals
    - Break down into specific statements
    - Monitor objective progression
@@ -81,12 +81,12 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
    - Use objectives to track progress
    - Ensure tasks align with goals
    - Review objective history
-   - Guide conversation flow
+   - Guide collaboration flow
 
 ## Best Practices
 
 1. Objective Creation:
-   - Make conversation goals specific but broad enough
+   - Make collaboration goals specific but broad enough
    - Keep statement objectives focused and actionable
    - Ensure objectives are measurable
    - Use clear, concise language
@@ -107,7 +107,7 @@ BB uses a hierarchical objectives system to maintain context and guide decision-
 
 ### Example 1: Code Refactoring
 ```
-Conversation Goal: Refactor the project's error handling system for better consistency and maintainability
+Collaboration Goal: Refactor the project's error handling system for better consistency and maintainability
 Statement Objectives:
 1. "Analyze current error handling patterns in the codebase"
 2. "Identify inconsistencies and potential improvements"
@@ -117,7 +117,7 @@ Statement Objectives:
 
 ### Example 2: Documentation Update
 ```
-Conversation Goal: Update project documentation to reflect recent API changes
+Collaboration Goal: Update project documentation to reflect recent API changes
 Statement Objectives:
 1. "Identify all API-related documentation files"
 2. "Review recent API changes in the codebase"
@@ -133,9 +133,9 @@ Statement Objectives:
    - Maintains context through turns
    - Guides next actions
 
-2. Conversation Management:
-   - Persists objectives with conversation data
-   - Loads objectives with conversation history
+2. Collaboration Management:
+   - Persists objectives with collaboration data
+   - Loads objectives with collaboration history
    - Tracks objective progression
    - Manages objective updates
 
@@ -147,4 +147,4 @@ Statement Objectives:
 
 ## Conclusion
 
-The objectives system is a core component of BB that helps maintain focus, context, and progress throughout conversations. By providing both high-level goals and immediate objectives, it enables more effective collaboration between users and LLMs while ensuring consistent progress toward desired outcomes.
+The objectives system is a core component of BB that helps maintain focus, context, and progress throughout collaborations. By providing both high-level goals and immediate objectives, it enables more effective collaboration between users and LLMs while ensuring consistent progress toward desired outcomes.

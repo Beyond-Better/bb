@@ -1,7 +1,6 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-// Migration now handled at startup - see api/src/storage/storageMigration.ts
-import type { ConversationsFileV1, InteractionsFileV4 } from 'api/storage/storageMigration.ts';
+import type { InteractionsFileV4 } from 'api/storage/storageMigration.ts';
 import {
 	getProjectAdminDataDir,
 	//getProjectAdminDir,
@@ -27,7 +26,10 @@ import type {
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
+import type {
+	LLMModelConfig,
+	//LLMRolesModelConfig
+} from 'api/types/llms.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { InteractionResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
@@ -44,10 +46,10 @@ import type {
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
-import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+//import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
+//import { getConfigManager } from 'shared/config/configManager.ts';
 import { stripIndents } from 'common-tags';
 //import type { ProjectConfig } from 'shared/config/types.ts';
 //import { encodeHex } from '@std/encoding';
@@ -279,7 +281,7 @@ class InteractionPersistence {
 			logger.error(`InteractionPersistence: Failed to create collaborations.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
-				`Failed to create collaborations.json: ${errorMessage(error)}`,
+				`Failed to create interactions.json: ${errorMessage(error)}`,
 				{
 					filePath: interactionsMetadataPath,
 					operation: 'write',
@@ -287,14 +289,15 @@ class InteractionPersistence {
 			);
 		}
 
-		let content: string;
+		let interactionsData: InteractionsFileV4;
 		try {
-			content = await Deno.readTextFile(interactionsMetadataPath);
+			const content = await Deno.readTextFile(interactionsMetadataPath);
+			interactionsData = JSON.parse(content);
 		} catch (error) {
-			logger.error(`InteractionPersistence: Failed to read collaborations.json: ${errorMessage(error)}`);
+			logger.error(`InteractionPersistence: Failed to read interactions.json: ${errorMessage(error)}`);
 			throw createError(
 				ErrorType.FileHandling,
-				`Failed to read collaborations.json: ${errorMessage(error)}`,
+				`Failed to read interactions.json: ${errorMessage(error)}`,
 				{
 					filePath: interactionsMetadataPath,
 					operation: 'read',
@@ -302,9 +305,7 @@ class InteractionPersistence {
 			);
 		}
 
-		// For now, return empty interactions since we're transitioning to collaborations
-		// This method should eventually be deprecated in favor of collaboration-based listing
-		let interactions: InteractionMetadata[] = [];
+		let interactions: InteractionMetadata[] = interactionsData.interactions;
 
 		// TODO: Extract interactions from collaborations if needed
 		// This is a temporary implementation during the transition period
@@ -734,7 +735,6 @@ class InteractionPersistence {
 			`InteractionPersistence: Ensure directory for updateInteractionsMetadata: ${this.interactionsMetadataPath}`,
 		);
 		await this.ensureDirectory(dirname(this.interactionsMetadataPath));
-		//let interactionsData: ConversationsFileV1 | InteractionsFileV4 = {
 		let interactionsData: InteractionsFileV4 = {
 			version: '4.0',
 			interactions: [],

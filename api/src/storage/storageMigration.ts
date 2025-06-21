@@ -7,7 +7,7 @@ import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { generateResourceRevisionKey, generateResourceUriKey } from 'shared/dataSource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
-import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
+import type { ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type {
 	CollaborationMetadata,
 	InteractionMetadata,
@@ -15,7 +15,7 @@ import type {
 	TokenUsage,
 	TokenUsageAnalysis,
 } from 'shared/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.ts';
+//import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
 import ProjectPersistence from 'api/storage/projectPersistence.ts';
 
@@ -183,28 +183,11 @@ export class StorageMigration {
 				}
 			}
 
-			// Create ProjectPersistence instance for resource migration
-			const projectPersistence = new ProjectPersistence(projectId);
-			await projectPersistence.init();
-
-			// Migrate conversation resources to new format
-			try {
-				await StorageMigration.migrateConversationResources(projectId, projectPersistence);
-				logger.info(`StorageMigration: Successfully migrated conversation resources for project ${projectId}`);
-			} catch (migrationError) {
-				logger.warn(
-					`StorageMigration: Error during resource migration for project ${projectId}: ${
-						errorMessage(migrationError)
-					}`,
-				);
-				// Continue with other migrations even if resource migration fails
-			}
-
 			// Migrate conversations to collaborations structure (v3 to v4)
 			await StorageMigration.migrateConversationsToCollaborations(projectId);
 
 			// Migrate individual interactions through version progression
-			await StorageMigration.migrateProjectInteractions(projectAdminDataDir);
+			await StorageMigration.migrateProjectInteractions(projectId, projectAdminDataDir);
 
 			// Create/update migration state file
 			const migrationState: ProjectMigrationState = {
@@ -216,7 +199,9 @@ export class StorageMigration {
 			await ensureDir(projectAdminDataDir);
 			await Deno.writeTextFile(migrationStateFile, JSON.stringify(migrationState, null, 2));
 
-			logger.info(`StorageMigration: Successfully migrated project ${projectId} to storage version ${CURRENT_STORAGE_VERSION}`);
+			logger.info(
+				`StorageMigration: Successfully migrated project ${projectId} to storage version ${CURRENT_STORAGE_VERSION}`,
+			);
 		} catch (error) {
 			logger.error(`StorageMigration: Failed to migrate project ${projectId}: ${errorMessage(error)}`);
 			throw createError(
@@ -233,7 +218,7 @@ export class StorageMigration {
 	 * Migrates all interactions within a project through the version progression
 	 * Previously named migrateProject in conversationMigration.ts
 	 */
-	static async migrateProjectInteractions(dataDir: string): Promise<MigrationResult> {
+	static async migrateProjectInteractions(projectId: ProjectId, dataDir: string): Promise<MigrationResult> {
 		const result: MigrationResult = {
 			total: 0,
 			migrated: 0,
@@ -254,7 +239,7 @@ export class StorageMigration {
 
 				for (const conversation of conversations) {
 					const conversationDir = join(conversationsDir, conversation.id);
-					await StorageMigration.processEntityMigration(conversationDir, conversation.id, result);
+					await StorageMigration.processEntityMigration(projectId, conversationDir, conversation.id, result);
 				}
 			}
 
@@ -269,7 +254,12 @@ export class StorageMigration {
 							if (!interactionEntry.isDirectory) continue;
 
 							const interactionDir = join(interactionsDir, interactionEntry.name);
-							await StorageMigration.processEntityMigration(interactionDir, interactionEntry.name, result);
+							await StorageMigration.processEntityMigration(
+								projectId,
+								interactionDir,
+								interactionEntry.name,
+								result,
+							);
 						}
 					}
 				}
@@ -286,12 +276,13 @@ export class StorageMigration {
 	 * Process migration for a single entity (conversation/interaction)
 	 */
 	private static async processEntityMigration(
+		projectId: ProjectId,
 		entityDir: string,
 		entityId: string,
 		result: MigrationResult,
 	): Promise<void> {
 		try {
-			const migrationResults = await StorageMigration.migrateInteractionThroughVersions(entityDir);
+			const migrationResults = await StorageMigration.migrateInteractionThroughVersions(projectId, entityDir);
 			for (const migrationResult of migrationResults) {
 				result.results.push({
 					entityId,
@@ -325,7 +316,10 @@ export class StorageMigration {
 	 * Migrates a single interaction through all necessary version upgrades
 	 * Previously named migrateConversation in conversationMigration.ts
 	 */
-	static async migrateInteractionThroughVersions(interactionDir: string): Promise<Array<EntityMigrationResult>> {
+	static async migrateInteractionThroughVersions(
+		projectId: ProjectId,
+		interactionDir: string,
+	): Promise<Array<EntityMigrationResult>> {
 		try {
 			// Get current metadata to check version
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
@@ -334,18 +328,18 @@ export class StorageMigration {
 			// Apply incremental migrations based on current version
 			switch (currentVersion) {
 				case 1: {
-					const migrationResult2 = await StorageMigration.migrateV1toV2(interactionDir);
-					const migrationResult3 = await StorageMigration.migrateV2toV3(interactionDir);
-					const migrationResult4 = await StorageMigration.migrateV3toV4(interactionDir);
+					const migrationResult2 = await StorageMigration.migrateV1toV2(projectId, interactionDir);
+					const migrationResult3 = await StorageMigration.migrateV2toV3(projectId, interactionDir);
+					const migrationResult4 = await StorageMigration.migrateV3toV4(projectId, interactionDir);
 					return [migrationResult2, migrationResult3, migrationResult4];
 				}
 				case 2: {
-					const migrationResult3 = await StorageMigration.migrateV2toV3(interactionDir);
-					const migrationResult4 = await StorageMigration.migrateV3toV4(interactionDir);
+					const migrationResult3 = await StorageMigration.migrateV2toV3(projectId, interactionDir);
+					const migrationResult4 = await StorageMigration.migrateV3toV4(projectId, interactionDir);
 					return [migrationResult3, migrationResult4];
 				}
 				case 3: {
-					return [await StorageMigration.migrateV3toV4(interactionDir)];
+					return [await StorageMigration.migrateV3toV4(projectId, interactionDir)];
 				}
 				default:
 					return [{
@@ -377,7 +371,7 @@ export class StorageMigration {
 	/**
 	 * Migrate from version 1 to version 2
 	 */
-	private static async migrateV1toV2(interactionDir: string): Promise<EntityMigrationResult> {
+	private static async migrateV1toV2(_projectId: ProjectId, interactionDir: string): Promise<EntityMigrationResult> {
 		const result: EntityMigrationResult = {
 			success: true,
 			version: {
@@ -418,7 +412,7 @@ export class StorageMigration {
 	 * Migrate from version 2 to version 3
 	 * Includes token usage migration from conversationMigration.utils.ts
 	 */
-	private static async migrateV2toV3(interactionDir: string): Promise<EntityMigrationResult> {
+	private static async migrateV2toV3(projectId: ProjectId, interactionDir: string): Promise<EntityMigrationResult> {
 		const result: EntityMigrationResult = {
 			success: true,
 			version: {
@@ -496,6 +490,34 @@ export class StorageMigration {
 				details: 'Updated tokenUsageInteraction and version to 3',
 			});
 
+			try {
+				StorageMigration.migrateConversationsFileIfNeeded(projectId);
+			} catch (migrationError) {
+				logger.warn(
+					`StorageMigration: Error during conversations file migration for project ${projectId}: ${
+						errorMessage(migrationError)
+					}`,
+				);
+				// Continue with other migrations even if conversations file migration fails
+			}
+
+			// Create ProjectPersistence instance for resource migration
+			const projectPersistence = new ProjectPersistence(projectId);
+			await projectPersistence.init();
+
+			// Migrate conversation resources to new format
+			try {
+				await StorageMigration.migrateConversationResources(projectId, projectPersistence);
+				logger.info(`StorageMigration: Successfully migrated conversation resources for project ${projectId}`);
+			} catch (migrationError) {
+				logger.warn(
+					`StorageMigration: Error during resource migration for project ${projectId}: ${
+						errorMessage(migrationError)
+					}`,
+				);
+				// Continue with other migrations even if resource migration fails
+			}
+
 			return result;
 		} catch (error) {
 			result.success = false;
@@ -511,7 +533,7 @@ export class StorageMigration {
 	 * Migrate from version 3 to version 4
 	 * Handles conversation.log and conversation.jsonl file moves and renames
 	 */
-	private static async migrateV3toV4(interactionDir: string): Promise<EntityMigrationResult> {
+	private static async migrateV3toV4(_projectId: ProjectId, interactionDir: string): Promise<EntityMigrationResult> {
 		const result: EntityMigrationResult = {
 			success: true,
 			version: {
@@ -842,7 +864,9 @@ export class StorageMigration {
 			await Deno.writeTextFile(migrationStateFile, JSON.stringify(migrationState, null, 2));
 			logger.info(`StorageMigration: Updated resource migration state for project ${projectId}`);
 		} catch (error) {
-			logger.error(`StorageMigration: Error migrating resources for project ${projectId}: ${errorMessage(error)}`);
+			logger.error(
+				`StorageMigration: Error migrating resources for project ${projectId}: ${errorMessage(error)}`,
+			);
 			throw createError(
 				ErrorType.ProjectHandling,
 				`Failed to migrate conversation resources: ${errorMessage(error)}`,
@@ -880,7 +904,9 @@ export class StorageMigration {
 			return;
 		}
 
-		logger.info(`StorageMigration: Starting migration from conversations to collaborations for project ${projectId}`);
+		logger.info(
+			`StorageMigration: Starting migration from conversations to collaborations for project ${projectId}`,
+		);
 
 		try {
 			// Ensure cleanup directory exists
@@ -1081,7 +1107,7 @@ export class StorageMigration {
 			}
 
 			return false;
-		} catch (error) {
+		} catch (_error) {
 			// If we can't read the directory, assume it's not empty
 			return false;
 		}
@@ -1099,7 +1125,7 @@ export class StorageMigration {
 			const projectAdminDataDir = await getProjectAdminDataDir(projectId);
 
 			// Process each resource
-			for (const [resourceKey, info] of resourceMap.entries()) {
+			for (const [_resourceKey, info] of resourceMap.entries()) {
 				try {
 					// Skip resources with no URI
 					if (!info.uri) continue;
@@ -1138,7 +1164,9 @@ export class StorageMigration {
 							uri: info.uri,
 							mimeType: info.metadata.mimeType || 'text/plain',
 							size: info.metadata.size,
-							lastModified: info.metadata.lastModified ? new Date(info.metadata.lastModified) : new Date(),
+							lastModified: info.metadata.lastModified
+								? new Date(info.metadata.lastModified)
+								: new Date(),
 						};
 
 						await projectPersistence.storeProjectResource(info.uri, content, resourceMetadata);

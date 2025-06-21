@@ -81,7 +81,7 @@ export default class WebsocketManager {
 		// Greeting is now sent after listener setup in setupWebsocket
 	}
 
-	updateConversation(collaborationId: CollaborationId): void {
+	updateCollaboration(collaborationId: CollaborationId): void {
 		this.currentCollaborationId = collaborationId;
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.ws.close();
