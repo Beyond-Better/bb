@@ -10,6 +10,7 @@ import type {
 } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
+import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
 import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 //import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
@@ -115,7 +116,7 @@ export const listCollaborations = async (
 
 		response.status = 200;
 		response.body = {
-			collaborations: collaborations.map((collab: any) => ({
+			collaborations: collaborations.map((collab: CollaborationValues) => ({
 				id: collab.id,
 				title: collab.title,
 				type: collab.type,
@@ -301,7 +302,7 @@ export const getCollaboration = async (
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
-		const collaboration = await collaborationPersistence.loadCollaboration();
+		const collaboration = await collaborationPersistence.loadCollaboration() as CollaborationValues;
 		if (!collaboration) {
 			response.status = 404;
 			response.body = { error: 'Collaboration not found' };
@@ -765,5 +766,150 @@ export const deleteInteraction = async (
 		logger.error(`CollaborationHandler: Error in deleteInteraction: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to delete interaction', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/defaults:
+ *   get:
+ *     summary: Get collaboration defaults
+ *     description: Retrieves default collaboration parameters including model configurations for each role
+ *     parameters:
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     responses:
+ *       200:
+ *         description: Successful response with collaboration defaults
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: Empty ID for defaults
+ *                 projectId:
+ *                   type: string
+ *                   description: The project ID
+ *                 title:
+ *                   type: string
+ *                   description: Default collaboration title
+ *                 type:
+ *                   type: string
+ *                   description: Default collaboration type
+ *                 collaborationParams:
+ *                   type: object
+ *                   properties:
+ *                     rolesModelConfig:
+ *                       type: object
+ *                       properties:
+ *                         orchestrator:
+ *                           type: object
+ *                           description: Default model configuration for orchestrator role
+ *                         agent:
+ *                           type: object
+ *                           description: Default model configuration for agent role
+ *                         chat:
+ *                           type: object
+ *                           description: Default model configuration for chat role
+ *                 totalInteractions:
+ *                   type: integer
+ *                   description: Default interaction count (0)
+ *                 interactionIds:
+ *                   type: array
+ *                   description: Default empty interaction IDs array
+ *                 tokenUsageStats:
+ *                   type: object
+ *                   description: Default token usage statistics
+ *                 createdAt:
+ *                   type: string
+ *                   description: Default creation timestamp
+ *                 updatedAt:
+ *                   type: string
+ *                   description: Default update timestamp
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+export const getCollaborationDefaults = async (
+	{ request, response }: { request: Context['request']; response: Context['response'] },
+) => {
+	const projectId = request.url.searchParams.get('projectId');
+	logger.info(`CollaborationHandler: getCollaborationDefaults called with projectId: ${projectId}`);
+
+	try {
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		logger.info('CollaborationHandler: Loading project configuration for collaboration defaults');
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+
+		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+		const registryService = await ModelRegistryService.getInstance(projectConfig);
+		const orchestratorConfig = registryService.getModelConfig(
+			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
+		);
+		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
+		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+
+		const collaborationDefaults: CollaborationValues = {
+			id: '' as CollaborationId, // Empty ID for defaults
+			projectId: projectId,
+			title: 'New Collaboration',
+			type: 'project',
+			collaborationParams: {
+				rolesModelConfig: {
+					orchestrator: orchestratorConfig,
+					agent: agentConfig,
+					chat: chatConfig,
+				} as LLMRolesModelConfig,
+			},
+			totalInteractions: 0,
+			interactionIds: [],
+			tokenUsageStats: {
+				tokenUsageInteraction: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					thoughtTokens: 0,
+					totalAllTokens: 0,
+				},
+				tokenUsageStatement: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					thoughtTokens: 0,
+					totalAllTokens: 0,
+				},
+				tokenUsageTurn: {
+					inputTokens: 0,
+					outputTokens: 0,
+					totalTokens: 0,
+					thoughtTokens: 0,
+					totalAllTokens: 0,
+				},
+			},
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+
+		response.status = 200;
+		response.body = collaborationDefaults;
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in getCollaborationDefaults: ${errorMessage(error)}`, error);
+		response.status = 500;
+		response.body = { error: 'Failed to get collaboration defaults', details: errorMessage(error) };
 	}
 };

@@ -9,6 +9,7 @@ import {
 	getInteraction,
 	chatInteraction,
 	deleteInteraction,
+	getCollaborationDefaults,
 } from './api/collaboration.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
@@ -53,6 +54,7 @@ apiRouter
 	// Collaboration endpoints
 	.get('/v1/collaborations', listCollaborations)
 	.post('/v1/collaborations', createCollaboration)
+	.get('/v1/collaborations/defaults', getCollaborationDefaults)
 	.get('/v1/collaborations/:collaborationId', getCollaboration)
 	.delete('/v1/collaborations/:collaborationId', deleteCollaboration)
 	// Interaction endpoints within collaborations

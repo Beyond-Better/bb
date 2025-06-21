@@ -95,15 +95,14 @@ async function loadDefaultModels(): Promise<void> {
 	};
 
 	try {
-		const defaults = await apiClient.getConversationDefaults(currentProjectId);
+		const defaults = await apiClient.getCollaborationDefaults(currentProjectId);
 		
 		if (!defaults) {
 			throw new Error('Failed to load default models from API');
 		}
 
-		// For now, handle the current API response format
-		// Once API is updated, this can be simplified
-		const rolesModelConfig: LLMRolesModelConfig = defaults.rolesModelConfig;
+		// Extract the rolesModelConfig from the CollaborationValues response
+		const rolesModelConfig: LLMRolesModelConfig = defaults.collaborationParams.rolesModelConfig;
 
 		modelState.value = {
 			...modelState.value,

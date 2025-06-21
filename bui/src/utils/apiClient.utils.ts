@@ -1,6 +1,6 @@
 import type { JSX } from 'preact';
 
-import type { CollaborationLogDataEntry, InteractionMetadata, TokenUsage } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, CollaborationValues, TokenUsage,ProjectId } from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type {
 	ClientDataSourceConnection,
@@ -9,7 +9,7 @@ import type {
 	ClientProjectWithConfigSources,
 } from 'shared/types/project.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
-import type { CollaborationParams } from 'shared/types/collaborationParams.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
@@ -119,8 +119,8 @@ interface CollaborationResponse {
 	collaborationParams?: CollaborationParams;
 }
 
-export interface InteractionListResponse {
-	conversations: InteractionMetadata[];
+export interface CollaborationListResponse {
+	collaborations: CollaborationValues[];
 }
 
 export interface LogEntryFormatResponse {
@@ -517,7 +517,7 @@ export class ApiClient {
 		return await this.get<{ projects: ClientProjectWithConfigSources[] }>('/api/v1/project');
 	}
 
-	async getProject(projectId: string): Promise<{ project: ClientProjectWithConfigSources } | null> {
+	async getProject(projectId: ProjectId): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		const result = await this.get<{ project: ClientProjectWithConfigSources }>(`/api/v1/project/${projectId}`, [
 			404,
 		]);
@@ -539,7 +539,7 @@ export class ApiClient {
 	}
 
 	async updateProject(
-		projectId: string,
+		projectId: ProjectId,
 		updates: Partial<ClientProjectWithConfigForUpdates>,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.put<{ project: ClientProjectWithConfigSources }, Partial<ClientProjectWithConfigForUpdates>>(
@@ -548,7 +548,7 @@ export class ApiClient {
 		);
 	}
 
-	async deleteProject(projectId: string): Promise<void> {
+	async deleteProject(projectId: ProjectId): Promise<void> {
 		await this.delete(`/api/v1/project/${projectId}`, [404]);
 	}
 
@@ -558,7 +558,7 @@ export class ApiClient {
 
 	// Data Source Management Methods
 	async updateDsConnection(
-		projectId: string,
+		projectId: ProjectId,
 		dsConnectionId: string,
 		updates: Partial<ClientDataSourceConnection>,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
@@ -569,7 +569,7 @@ export class ApiClient {
 	}
 
 	async setPrimaryDsConnection(
-		projectId: string,
+		projectId: ProjectId,
 		dsConnectionId: string,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.put<{ project: ClientProjectWithConfigSources }>(
@@ -579,7 +579,7 @@ export class ApiClient {
 	}
 
 	async addDsConnection(
-		projectId: string,
+		projectId: ProjectId,
 		dsConnection: ClientDataSourceConnection,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.post<{ project: ClientProjectWithConfigSources }, ClientDataSourceConnection>(
@@ -589,7 +589,7 @@ export class ApiClient {
 	}
 
 	async removeDsConnection(
-		projectId: string,
+		projectId: ProjectId,
 		dsConnectionId: string,
 	): Promise<{ project: ClientProjectWithConfigSources } | null> {
 		return await this.delete<{ project: ClientProjectWithConfigSources }>(
@@ -597,7 +597,7 @@ export class ApiClient {
 		);
 	}
 
-	async getDsProvidersForProject(projectId: string): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
+	async getDsProvidersForProject(projectId: ProjectId): Promise<{ dsProviders: DataSourceProviderInfo[] } | null> {
 		console.log(`APIClient: getDsProvidersForProject: ${projectId}`);
 		return await this.get<{ dsProviders: DataSourceProviderInfo[] }>(
 			`/api/v1/project/${projectId}/datasource/types`,
@@ -622,7 +622,7 @@ export class ApiClient {
 	}
 
 	// File Management Methods
-	async suggestFiles(partialPath: string, projectId: string): Promise<FileSuggestionsResponse | null> {
+	async suggestFiles(partialPath: string, projectId: ProjectId): Promise<FileSuggestionsResponse | null> {
 		return await this.post<FileSuggestionsResponse>(
 			'/api/v1/files/suggest',
 			{ partialPath, projectId },
@@ -660,8 +660,8 @@ export class ApiClient {
 	}
 
 	// Collaboration Management Methods
-	async listCollaborations(projectId: string, page = 1, limit = 200): Promise<{
-		collaborations: CollaborationResponse[];
+	async listCollaborations(projectId: ProjectId, page = 1, limit = 200): Promise<{
+		collaborations: CollaborationValues[];
 		pagination: {
 			page: number;
 			pageSize: number;
@@ -670,7 +670,7 @@ export class ApiClient {
 		};
 	} | null> {
 		return await this.get<{
-			collaborations: CollaborationResponse[];
+			collaborations: CollaborationValues[];
 			pagination: {
 				page: number;
 				pageSize: number;
@@ -682,7 +682,7 @@ export class ApiClient {
 		);
 	}
 
-	async createCollaboration(title: string, type: string, projectId: string): Promise<{
+	async createCollaboration(title: string, type: string, projectId: ProjectId): Promise<{
 		collaborationId: string;
 		title: string;
 		type: string;
@@ -704,25 +704,26 @@ export class ApiClient {
 
 	async getCollaboration(
 		collaborationId: string,
-		projectId: string,
-	): Promise<CollaborationResponse | null> {
-		return await this.get<CollaborationResponse>(
+		projectId: ProjectId,
+	): Promise<CollaborationValues | null> {
+	//): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
+		return await this.get<CollaborationValues>(
 			`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);
 	}
 
-	async deleteCollaboration(collaborationId: string, projectId: string): Promise<void> {
+	async deleteCollaboration(collaborationId: string, projectId: ProjectId): Promise<void> {
 		await this.delete(`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`, [404]);
 	}
 
-	async createInteraction(collaborationId: string, projectId: string, parentInteractionId?: string): Promise<{
-		interactionId: string;
+	async createInteraction(collaborationId: string, projectId: ProjectId, parentInteractionId?: string): Promise<{
 		collaborationId: string;
+		interactionId: string;
 	} | null> {
 		return await this.post<{
-			interactionId: string;
 			collaborationId: string;
+			interactionId: string;
 		}>(`/api/v1/collaborations/${collaborationId}/interactions`, {
 			projectId,
 			parentInteractionId,
@@ -732,7 +733,7 @@ export class ApiClient {
 	async getInteraction(
 		collaborationId: string,
 		interactionId: string,
-		projectId: string,
+		projectId: ProjectId,
 	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
 		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
 			`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}?projectId=${encodeURIComponent(projectId)}`,
@@ -744,7 +745,7 @@ export class ApiClient {
 		collaborationId: string,
 		interactionId: string,
 		statement: string,
-		projectId: string,
+		projectId: ProjectId,
 		maxTurns?: number,
 	): Promise<{
 		collaborationId: string;
@@ -768,37 +769,14 @@ export class ApiClient {
 		});
 	}
 
-	async deleteInteraction(collaborationId: string, interactionId: string, projectId: string): Promise<void> {
+	async deleteInteraction(collaborationId: string, interactionId: string, projectId: ProjectId): Promise<void> {
 		await this.delete(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}?projectId=${encodeURIComponent(projectId)}`, [404]);
 	}
 
-	// Legacy conversation methods for backward compatibility during transition
-	async getConversations(projectId: string, limit = 200): Promise<InteractionListResponse | null> {
-		// Map to collaborations endpoint
-		const result = await this.listCollaborations(projectId, 1, limit);
-		if (!result) return null;
-		
-		return {
-			conversations: result.collaborations.map(collab => ({
-				id: collab.id,
-				title: collab.title,
-				createdAt: collab.createdAt,
-				updatedAt: collab.updatedAt,
-				llmProviderName: collab.llmProviderName || '',
-				model: collab.model || '',
-				interactionStats: collab.interactionStats,
-				tokenUsageStats: collab.tokenUsageStats,
-				collaborationParams: collab.collaborationParams,
-			} as InteractionMetadata))
-		};
-	}
-
-	async getConversation(
-		id: string,
-		projectId: string,
-	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		// Map to collaboration endpoint
-		return await this.getCollaboration(id, projectId) as (CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null;
+	async getCollaborationDefaults(projectId: ProjectId): Promise<CollaborationValues | null> {
+		return await this.get<CollaborationValues>(
+			`/api/v1/collaborations/defaults?projectId=${encodeURIComponent(projectId)}`,
+		);
 	}
 
 	async getMeta(): Promise<SystemMeta | null> {
@@ -888,13 +866,13 @@ export class ApiClient {
 		return await this.put<ConfigUpdateResponse>('/api/v1/config/global', { key, value });
 	}
 
-	async getProjectConfig(projectId: string): Promise<ProjectConfig | null> {
+	async getProjectConfig(projectId: ProjectId): Promise<ProjectConfig | null> {
 		const result = await this.get<ProjectConfig>(`/api/v1/config/project/${projectId}`);
 		console.log('APIClient.getProjectConfig response:', JSON.stringify(result, null, 2));
 		return result;
 	}
 
-	async updateProjectConfig(projectId: string, key: string, value: string): Promise<ConfigUpdateResponse | null> {
+	async updateProjectConfig(projectId: ProjectId, key: string, value: string): Promise<ConfigUpdateResponse | null> {
 		return await this.put<ConfigUpdateResponse>(`/api/v1/config/project/${projectId}`, { key, value });
 	}
 
@@ -908,12 +886,12 @@ export class ApiClient {
 	async formatLogEntry(
 		entryType: string,
 		logEntry: unknown,
-		projectId: string,
-		conversationId: string,
+		projectId: ProjectId,
+		collaborationId: string,
 	): Promise<LogEntryFormatResponse | null> {
 		return await this.post<LogEntryFormatResponse>(
 			`/api/v1/format_log_entry/browser/${entryType}`,
-			{ logEntry, projectId, conversationId },
+			{ logEntry, projectId, collaborationId },
 		);
 	}
 
