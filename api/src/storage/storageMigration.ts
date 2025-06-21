@@ -17,7 +17,7 @@ import type {
 } from 'shared/types.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
-import type ProjectPersistence from 'api/storage/projectPersistence.ts';
+import ProjectPersistence from 'api/storage/projectPersistence.ts';
 
 /**
  * Current unified storage version
@@ -181,6 +181,23 @@ export class StorageMigration {
 						}`,
 					);
 				}
+			}
+
+			// Create ProjectPersistence instance for resource migration
+			const projectPersistence = new ProjectPersistence(projectId);
+			await projectPersistence.init();
+
+			// Migrate conversation resources to new format
+			try {
+				await StorageMigration.migrateConversationResources(projectId, projectPersistence);
+				logger.info(`StorageMigration: Successfully migrated conversation resources for project ${projectId}`);
+			} catch (migrationError) {
+				logger.warn(
+					`StorageMigration: Error during resource migration for project ${projectId}: ${
+						errorMessage(migrationError)
+					}`,
+				);
+				// Continue with other migrations even if resource migration fails
 			}
 
 			// Migrate conversations to collaborations structure (v3 to v4)
