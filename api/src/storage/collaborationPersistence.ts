@@ -1,7 +1,7 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-import { migrateConversationsToCollaborations } from 'api/storage/conversationMigration.ts';
-import type { CollaborationsFileV4, InteractionsFileV4 } from 'api/storage/conversationMigration.ts';
+import { StorageMigration } from 'api/storage/storageMigration.ts';
+import type { CollaborationsFileV4, InteractionsFileV4 } from 'api/storage/storageMigration.ts';
 import { getProjectAdminDataDir, isProjectMigrated, migrateProjectFiles } from 'shared/projectPath.ts';
 import type {
 	CollaborationDetailedMetadata,
@@ -86,7 +86,7 @@ class CollaborationPersistence {
 		}
 
 		// Migrate conversations to collaborations if needed
-		await migrateConversationsToCollaborations(projectId);
+		await StorageMigration.migrateConversationsToCollaborations(projectId);
 
 		// Use new global project data directory
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
@@ -193,7 +193,7 @@ class CollaborationPersistence {
 
 		try {
 			// Migrate conversations to collaborations if needed
-			await migrateConversationsToCollaborations(options.projectId);
+			await StorageMigration.migrateConversationsToCollaborations(options.projectId);
 
 			if (!await exists(collaborationsMetadataPath)) {
 				await Deno.writeTextFile(

@@ -141,7 +141,7 @@
 		"api/storage/projectPersistence.ts": "./api/src/storage/projectPersistence.ts",
 		"api/storage/collaborationPersistence.ts": "./api/src/storage/collaborationPersistence.ts",
 		"api/storage/interactionPersistence.ts": "./api/src/storage/interactionPersistence.ts",
-		"api/storage/conversationMigration.ts": "./api/src/storage/conversationMigration.ts",
+		"api/storage/storageMigration.ts": "./api/src/storage/storageMigration.ts",
 		"api/storage/collaborationLogger.ts": "./api/src/storage/collaborationLogger.ts",
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
@@ -166,7 +166,7 @@
 		"shared/logger.ts": "./src/shared/utils/logger.utils.ts",
 		"shared/logViewer.ts": "./src/shared/utils/logViewer.utils.ts",
 		"shared/generateIds.ts": "./src/shared/utils/generateIds.utils.ts",
-		"shared/conversationMigration.ts": "./src/shared/utils/conversationMigration.utils.ts",
+
 		"shared/eventManager.ts": "./src/shared/events/eventManager.ts",
 		"shared/fetchManager.ts": "./src/shared/fetch/fetchManager.ts",
 		"shared/kvStorage.ts": "./src/shared/storage/kvStorage.ts",

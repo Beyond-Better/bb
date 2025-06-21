@@ -2,7 +2,7 @@ import { walk } from '@std/fs';
 import { dirname, join, relative, resolve } from '@std/path';
 
 import { logger } from 'shared/logger.ts';
-import { migrateConversationResources } from 'shared/conversationMigration.ts';
+// Migration now handled at startup - see api/src/storage/storageMigration.ts
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
@@ -155,21 +155,8 @@ class ProjectPersistenceManager {
 			const projectPersistence = new ProjectPersistence(projectId);
 			await projectPersistence.init();
 
-			// Migrate conversation resources to the new format
-			try {
-				//logger.info(`ProjectPersistenceManager: Migrating conversation resources for project ${projectId}`);
-				await migrateConversationResources(projectId, projectPersistence);
-				//logger.info(
-				//	`ProjectPersistenceManager: Successfully migrated conversation resources for project ${projectId}`,
-				//);
-			} catch (migrationError) {
-				logger.warn(
-					`ProjectPersistenceManager: Error during resource migration for project ${projectId}: ${
-						(migrationError as Error).message
-					}`,
-				);
-				// Continue loading project even if migration fails
-			}
+			// Migration now handled at startup - see api/src/storage/storageMigration.ts
+			// Individual project migration will be retried if needed during project access
 
 			this.projectCache.set(projectId, projectPersistence);
 			return projectPersistence;

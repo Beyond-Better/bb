@@ -10,8 +10,8 @@ import {
 	getBbDirFromWorkingRoot,
 	getGlobalConfigDir,
 } from 'shared/dataDir.ts';
-import { ConversationMigration } from 'api/storage/conversationMigration.ts';
-import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
+import { StorageMigration } from 'api/storage/storageMigration.ts';
+import type { MigrationResult as ConversationMigrationResult } from 'api/storage/storageMigration.ts';
 import {
 	getProjectAdminConfigPath,
 	getProjectAdminDataDir,
@@ -613,7 +613,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				// Migrate conversations if needed
 				try {
 					const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-					const conversationResult = await ConversationMigration.migrateProject(projectAdminDataDir);
+					const conversationResult = await StorageMigration.migrateProjectInteractions(projectAdminDataDir);
 					if (conversationResult.failed > 0) {
 						logger.warn(
 							`ConfigManager: Some conversations failed to migrate: ${conversationResult.failed} failures out of ${conversationResult.total} total`,

@@ -3,7 +3,7 @@ import {
 	assertEquals,
 	assertRejects,
 } from 'api/tests/deps.ts';
-import { ConversationMigration } from 'api/storage/conversationMigration.ts';
+import { StorageMigration } from 'api/storage/storageMigration.ts';
 import type {
 	//InteractionDetailedMetadata,
 	InteractionMetadata,
@@ -27,7 +27,7 @@ async function cleanup() {
 	}
 }
 
-Deno.test('ConversationMigration.readMetadata', async (t) => {
+Deno.test('StorageMigration.readMetadata', async (t) => {
 	const testDir = await setupTestDir();
 
 	await t.step('returns defaultMetadata when file does not exist', async () => {
@@ -76,7 +76,7 @@ Deno.test('ConversationMigration.readMetadata', async (t) => {
 	await cleanup();
 });
 
-Deno.test('ConversationMigration.migrateV1toV2', async (t) => {
+Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 	const testDir = await setupTestDir();
 	const conversationDir = join(testDir, 'test_conversation');
 	await ensureDir(conversationDir);

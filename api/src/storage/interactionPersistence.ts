@@ -1,11 +1,7 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-import {
-	//migrateConversationResources,
-	migrateConversationsFileIfNeeded,
-} from 'shared/conversationMigration.ts';
-import { migrateConversationsToCollaborations } from 'api/storage/conversationMigration.ts';
-import type { ConversationsFileV1, InteractionsFileV4 } from 'shared/conversationMigration.ts';
+// Migration now handled at startup - see api/src/storage/storageMigration.ts
+import type { ConversationsFileV1, InteractionsFileV4 } from 'api/storage/storageMigration.ts';
 import {
 	getProjectAdminDataDir,
 	//getProjectAdminDir,
@@ -119,8 +115,7 @@ class InteractionPersistence {
 				);
 			}
 		}
-		// Migrate conversations to collaborations if needed
-		await migrateConversationsToCollaborations(projectId);
+		// Migration now handled at startup - see api/src/storage/storageMigration.ts
 
 		// Use new global project data directory
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
@@ -265,8 +260,7 @@ class InteractionPersistence {
 		}
 
 		try {
-			// Migrate conversations file to new format if needed
-			await migrateConversationsFileIfNeeded(options.projectId);
+			// Migration now handled at startup - see api/src/storage/storageMigration.ts
 
 			if (!await exists(interactionsMetadataPath)) {
 				// logger.info(
