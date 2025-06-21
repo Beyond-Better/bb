@@ -1,14 +1,8 @@
 import { copy, ensureDir, exists } from '@std/fs';
 import { dirname, join } from '@std/path';
-import {
-	migrateConversationsToCollaborations,
-} from 'api/storage/conversationMigration.ts';
+import { migrateConversationsToCollaborations } from 'api/storage/conversationMigration.ts';
 import type { CollaborationsFileV4, InteractionsFileV4 } from 'api/storage/conversationMigration.ts';
-import {
-	getProjectAdminDataDir,
-	isProjectMigrated,
-	migrateProjectFiles,
-} from 'shared/projectPath.ts';
+import { getProjectAdminDataDir, isProjectMigrated, migrateProjectFiles } from 'shared/projectPath.ts';
 import type {
 	CollaborationDetailedMetadata,
 	CollaborationId,
@@ -16,28 +10,26 @@ import type {
 	InteractionId,
 	InteractionMetadata,
 	InteractionStats,
+	ProjectId,
 	TokenUsage,
 	TokenUsageAnalysis,
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.ts';
+import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { LLMRequestPersistence } from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
-import type {
-	FileHandlingErrorOptions,
-	ProjectHandlingErrorOptions,
-} from 'api/errors/error.ts';
+import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/interactionManagement.ts';
 import InteractionPersistence from './interactionPersistence.ts';
 
 // Ensure ProjectInfo includes projectId
-type ExtendedProjectInfo = ProjectInfo & { projectId: string };
+type ExtendedProjectInfo = ProjectInfo & { projectId: ProjectId };
 
 class CollaborationPersistence {
 	private collaborationDir!: string;
@@ -141,8 +133,8 @@ class CollaborationPersistence {
 		startDate?: Date;
 		endDate?: Date;
 		llmProviderName?: string;
-		projectId: string;
-	}): Promise<{ collaborations: CollaborationMetadata[]; totalCount: number }> {
+		projectId: ProjectId;
+	}): Promise<{ collaborations: CollaborationValues[]; totalCount: number }> {
 		// Check if project has been migrated to new structure
 		const migrated = await isProjectMigrated(options.projectId);
 		if (!migrated) {
@@ -241,7 +233,7 @@ class CollaborationPersistence {
 		}
 
 		let collaborationsData: CollaborationsFileV4;
-		let collaborations: CollaborationMetadata[];
+		let collaborations: CollaborationValues[];
 		try {
 			collaborationsData = JSON.parse(content);
 
@@ -274,7 +266,7 @@ class CollaborationPersistence {
 			collaborations = collaborations.filter((collab) => new Date(collab.createdAt) <= options.endDate!);
 		}
 		if (options.llmProviderName) {
-			collaborations = collaborations.filter((collab) => 
+			collaborations = collaborations.filter((collab) =>
 				collab.lastInteractionMetadata?.llmProviderName === options.llmProviderName
 			);
 		}
@@ -376,7 +368,6 @@ class CollaborationPersistence {
 
 			// Save project info to JSON
 			await this.saveProjectInfo(this.projectEditor.projectInfo);
-
 		} catch (error) {
 			logger.error(`CollaborationPersistence: Error saving collaboration: ${errorMessage(error)}`);
 			this.handleSaveError(error, this.metadataPath);
@@ -392,7 +383,7 @@ class CollaborationPersistence {
 			}
 
 			const metadata: CollaborationDetailedMetadata = await this.getMetadata();
-			
+
 			metadata.id = this.collaborationId;
 
 			// Get token usage analysis
@@ -428,10 +419,10 @@ class CollaborationPersistence {
 		interactionCallbacks?: LLMCallbacks,
 	): Promise<InteractionPersistence> {
 		await this.ensureInitialized();
-		
+
 		// Generate new interaction ID
 		const interactionId = shortenInteractionId(generateInteractionId());
-		
+
 		// Create interaction persistence instance
 		const interactionPersistence = new InteractionPersistence(
 			this.collaborationId,
@@ -439,7 +430,7 @@ class CollaborationPersistence {
 			this.projectEditor,
 			parentInteractionId,
 		);
-		
+
 		await interactionPersistence.init();
 
 		// Update collaboration metadata to include this interaction
@@ -449,7 +440,7 @@ class CollaborationPersistence {
 			metadata.totalInteractions = metadata.interactionIds.length;
 			metadata.lastInteractionId = interactionId;
 			metadata.updatedAt = new Date().toISOString();
-			
+
 			await this.saveMetadata(metadata);
 			await this.updateCollaborationsMetadata(metadata);
 		}
@@ -459,20 +450,20 @@ class CollaborationPersistence {
 
 	async getInteraction(interactionId: InteractionId): Promise<InteractionPersistence> {
 		await this.ensureInitialized();
-		
+
 		const interactionPersistence = new InteractionPersistence(
 			this.collaborationId,
 			interactionId,
 			this.projectEditor,
 		);
-		
+
 		await interactionPersistence.init();
 		return interactionPersistence;
 	}
 
 	async listInteractions(): Promise<InteractionId[]> {
 		await this.ensureInitialized();
-		
+
 		const metadata = await this.getMetadata();
 		return metadata.interactionIds || [];
 	}
@@ -543,7 +534,9 @@ class CollaborationPersistence {
 			JSON.stringify(collaborationsData, null, 2),
 		);
 
-		logger.debug(`CollaborationPersistence: Saved metadata to project level for collaboration: ${collaboration.id}`);
+		logger.debug(
+			`CollaborationPersistence: Saved metadata to project level for collaboration: ${collaboration.id}`,
+		);
 	}
 
 	async getCollaborationIdByTitle(title: string): Promise<string | null> {
@@ -552,7 +545,9 @@ class CollaborationPersistence {
 			const data = JSON.parse(content);
 
 			if (data.version && Array.isArray(data.collaborations)) {
-				const collaboration = data.collaborations.find((collab: CollaborationMetadata) => collab.title === title);
+				const collaboration = data.collaborations.find((collab: CollaborationMetadata) =>
+					collab.title === title
+				);
 				return collaboration ? collaboration.id : null;
 			}
 		}
@@ -714,7 +709,9 @@ class CollaborationPersistence {
 		await this.ensureDirectory(dirname(this.projectInfoPath));
 		try {
 			await Deno.writeTextFile(this.projectInfoPath, JSON.stringify(projectInfo, null, 2));
-			logger.debug(`CollaborationPersistence: Saved project info JSON for collaboration: ${this.collaborationId}`);
+			logger.debug(
+				`CollaborationPersistence: Saved project info JSON for collaboration: ${this.collaborationId}`,
+			);
 		} catch (error) {
 			throw createError(ErrorType.FileHandling, `Failed to save project info JSON: ${errorMessage(error)}`, {
 				filePath: this.projectInfoPath,

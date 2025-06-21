@@ -11,24 +11,24 @@ export interface ChatInputHistoryEntry {
 	isPinned: boolean;
 }
 
-// Global state for all conversations
+// Global state for all collaborations
 const historyMap = new Map<string, ChatInputHistoryEntry[]>();
 const currentHistory = signal<ChatInputHistoryEntry[]>([]);
 const isDropdownOpen = signal(false);
 
-export function useChatInputHistory(conversationId: Signal<string | null>) {
+export function useChatInputHistory(collaborationId: Signal<string | null>) {
 	// Refs for batching
 	const batchUpdateRef = useRef<number | null>(null);
 	//const pendingUpdatesRef = useRef<ChatInputHistoryEntry[]>([]);
 
 	// Storage keys as computed values
 	const storageKey = useComputed(() => {
-		const key = conversationId.value ? `bb-chat-history-${conversationId.value}` : null;
+		const key = collaborationId.value ? `bb-chat-history-${collaborationId.value}` : null;
 		return key;
 	});
 
 	const currentInputKey = useComputed(() => {
-		const key = conversationId.value ? `bb-chat-current-${conversationId.value}` : null;
+		const key = collaborationId.value ? `bb-chat-current-${collaborationId.value}` : null;
 		return key;
 	});
 
@@ -44,8 +44,8 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 	// Save current input with validation
 	const saveCurrentInput = (value: string): void => {
 		// Ensure we have a valid key and value
-		if (!conversationId.value) {
-			console.info('ChatHistory: No conversation ID for save');
+		if (!collaborationId.value) {
+			console.info('ChatHistory: No collaboration ID for save');
 			return;
 		}
 
@@ -58,7 +58,7 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		// Force immediate computation of storage key
 		const key = currentInputKey.value;
 		// console.info('ChatHistory: Attempting to save input', {
-		// 	conversationId: conversationId.value,
+		// 	collaborationId: collaborationId.value,
 		// 	hasKey: !!key,
 		// 	valueLength: value.length,
 		// });
@@ -90,16 +90,16 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 
 	// Get saved input with validation and error handling
 	const getSavedInput = () => {
-		// Ensure we have a valid conversation ID
-		if (!conversationId.value) {
-			console.info('ChatHistory: No conversation ID for retrieval');
+		// Ensure we have a valid collaboration ID
+		if (!collaborationId.value) {
+			console.info('ChatHistory: No collaboration ID for retrieval');
 			return '';
 		}
 
 		// Force immediate computation of storage key
 		const key = currentInputKey.value;
 		// console.info('ChatHistory: Attempting to get saved input', {
-		// 	conversationId: conversationId.value,
+		// 	collaborationId: collaborationId.value,
 		// 	hasKey: !!key,
 		// });
 		if (!key) {
@@ -175,17 +175,17 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		localStorage.setItem(storageKey.value, JSON.stringify({ entries: newHistory }));
 	};
 
-	// Handle conversation changes and data loading
+	// Handle collaboration changes and data loading
 	useEffect(() => {
-		const id = conversationId.value;
-		// console.info('ChatHistory: Conversation changed', {
+		const id = collaborationId.value;
+		// console.info('ChatHistory: Collaboration changed', {
 		// 	id,
 		// 	hasStorageKey: !!storageKey.value,
 		// 	hasInputKey: !!currentInputKey.value,
 		// });
 
 		if (!id) {
-			console.info('ChatHistory: No conversation ID, clearing state');
+			console.info('ChatHistory: No collaboration ID, clearing state');
 			currentHistory.value = [];
 			return;
 		}
@@ -196,8 +196,8 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		// // 	hasInput: !!savedInput,
 		// // 	inputLength: savedInput?.length,
 		// // });
-		// // console.info('ChatHistory: Conversation changed, checking storage', {
-		// // 	conversationId: conversationId.value,
+		// // console.info('ChatHistory: Collaboration changed, checking storage', {
+		// // 	collaborationId: collaborationId.value,
 		// // 	hasStorageKey: !!storageKey.value,
 		// // 	hasInputKey: !!currentInputKey.value,
 		// // });
@@ -207,7 +207,7 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 			return;
 		}
 
-		// Check if we already have this conversation's history in memory
+		// Check if we already have this collaboration's history in memory
 		if (historyMap.has(key)) {
 			currentHistory.value = historyMap.get(key) || [];
 			return;
@@ -236,25 +236,25 @@ export function useChatInputHistory(conversationId: Signal<string | null>) {
 		}
 	}, [storageKey.value]);
 
-	// Cleanup only on conversation change, not on page reload/unmount
+	// Cleanup only on collaboration change, not on page reload/unmount
 	useEffect(() => {
-		const currentId = conversationId.value;
+		const currentId = collaborationId.value;
 		return () => {
-			// Only clear if conversation ID actually changed (not just unmounting)
-			if (currentId && conversationId.value !== currentId) {
-				console.info('ChatHistory: Clearing saved input for conversation change', {
+			// Only clear if collaboration ID actually changed (not just unmounting)
+			if (currentId && collaborationId.value !== currentId) {
+				console.info('ChatHistory: Clearing saved input for collaboration change', {
 					from: currentId,
-					to: conversationId.value,
+					to: collaborationId.value,
 				});
 				const keyToClear = `bb-chat-current-${currentId}`;
 				try {
 					localStorage.removeItem(keyToClear);
 				} catch (e) {
-					console.error('ChatHistory: Failed to clear old conversation input:', e);
+					console.error('ChatHistory: Failed to clear old collaboration input:', e);
 				}
 			}
 		};
-	}, [conversationId.value]);
+	}, [collaborationId.value]);
 
 	// Cleanup timeouts
 	useEffect(() => {

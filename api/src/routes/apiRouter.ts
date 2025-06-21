@@ -1,15 +1,15 @@
 import { Router } from '@oak/oak';
 import { requireAuth } from '../middlewares/auth.middleware.ts';
 import {
-	listCollaborations,
-	createCollaboration,
-	getCollaboration,
-	deleteCollaboration,
-	createInteraction,
-	getInteraction,
 	chatInteraction,
+	createCollaboration,
+	createInteraction,
+	deleteCollaboration,
 	deleteInteraction,
+	getCollaboration,
 	getCollaborationDefaults,
+	getInteraction,
+	listCollaborations,
 } from './api/collaboration.handlers.ts';
 import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';

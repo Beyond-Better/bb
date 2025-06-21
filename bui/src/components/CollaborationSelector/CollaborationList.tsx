@@ -1,10 +1,10 @@
-import type { InteractionMetadata } from 'shared/types.ts';
+import type { CollaborationValues } from 'shared/types.ts';
 import { useSignal } from '@preact/signals';
 import { ConfirmDialog } from '../Dialogs/ConfirmDialog.tsx';
-//import type { ChatState, ConversationListState } from '../types/chat.types.ts';
+//import type { ChatState, CollaborationListState } from '../types/chat.types.ts';
 
-interface ConversationListProps {
-	conversations: InteractionMetadata[];
+interface CollaborationListProps {
+	collaborations: CollaborationValues[];
 	selectedIndex: number;
 	currentInteractionId: string | null;
 	showDeleteButton?: boolean;
@@ -12,22 +12,22 @@ interface ConversationListProps {
 	onDelete: (id: string) => Promise<void>;
 }
 
-interface ConversationToDelete {
+interface CollaborationToDelete {
 	id: string;
 	title: string;
 }
 
-export function ConversationList({
-	conversations,
+export function CollaborationList({
+	collaborations,
 	selectedIndex,
 	currentInteractionId,
 	showDeleteButton = false,
 	onSelect,
 	onDelete,
-}: ConversationListProps) {
+}: CollaborationListProps) {
 	const showDeleteConfirm = useSignal(false);
-	const conversationToDelete = useSignal<ConversationToDelete | undefined>(undefined);
-	if (conversations.length === 0) {
+	const collaborationToDelete = useSignal<CollaborationToDelete | undefined>(undefined);
+	if (collaborations.length === 0) {
 		return (
 			<div className='p-4 text-center text-gray-500 dark:text-gray-400 text-sm'>
 				<p className='text-sm'>No conversations found</p>
@@ -38,19 +38,19 @@ export function ConversationList({
 	return (
 		<>
 			<ul className='max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800'>
-				{conversations.map((conv, index) => (
+				{collaborations.map((collab, index) => (
 					<li
-						key={conv.id}
+						key={collab.id}
 						className={`px-4 py-2 cursor-pointer group ${
 							index === selectedIndex
 								? 'bg-gray-100 dark:bg-gray-800'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-700'
 						} ${
-							conv.id === currentInteractionId
+							collab.id === currentInteractionId
 								? 'bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-50 dark:hover:bg-blue-900/30'
 								: ''
 						}`}
-						onClick={() => onSelect(conv.id)}
+						onClick={() => onSelect(collab.id)}
 					>
 						<div className='flex justify-between items-start'>
 							<div className='flex-1 min-w-0'>
@@ -58,16 +58,16 @@ export function ConversationList({
 								<div className='flex justify-between items-start mb-1'>
 									<h3
 										className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'
-										title={conv.title || 'Untitled'}
+										title={collab.title || 'Untitled'}
 									>
-										{conv.title || 'Untitled'}
+										{collab.title || 'Untitled'}
 									</h3>
 								</div>
 
 								{/* Stats Row */}
 								<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
 									{/* Turn Count */}
-									{conv.interactionStats && (
+									{collab.lastInteractionMetadata?.interactionStats && (
 										<span className='flex items-center gap-1'>
 											<svg
 												className='w-4 h-4 mr-1'
@@ -82,12 +82,12 @@ export function ConversationList({
 													d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
 												/>
 											</svg>
-											{conv.interactionStats.interactionTurnCount} turns
+											{collab.lastInteractionMetadata.interactionStats.interactionTurnCount} turns
 										</span>
 									)}
 
 									{/* Token Count */}
-									{conv.tokenUsageStats.tokenUsageInteraction && (
+									{collab.tokenUsageStats.tokenUsageInteraction && (
 										<span className='flex items-center gap-1'>
 											<svg
 												className='w-4 h-4 mr-1'
@@ -102,16 +102,16 @@ export function ConversationList({
 													d='M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z'
 												/>
 											</svg>
-											{conv.tokenUsageStats.tokenUsageInteraction.totalAllTokens
+											{collab.tokenUsageStats.tokenUsageInteraction.totalAllTokens
 												?.toLocaleString() ||
-												conv.tokenUsageStats.tokenUsageInteraction.totalTokensTotal
+												collab.tokenUsageStats.tokenUsageInteraction.totalTokensTotal
 													?.toLocaleString() ||
 												0} tokens
 										</span>
 									)}
 									{/* Updated At */}
 									<span className='text-xs text-gray-500 dark:text-gray-400 ml-2 whitespace-nowrap'>
-										{new Date(conv.updatedAt).toLocaleDateString(undefined, {
+										{new Date(collab.updatedAt).toLocaleDateString(undefined, {
 											month: 'short',
 											day: 'numeric',
 											hour: 'numeric',
@@ -127,9 +127,9 @@ export function ConversationList({
 									<button
 										onClick={(e) => {
 											e.stopPropagation();
-											conversationToDelete.value = {
-												id: conv.id,
-												title: conv.title || 'Untitled',
+											collaborationToDelete.value = {
+												id: collab.id,
+												title: collab.title || 'Untitled',
 											};
 											showDeleteConfirm.value = true;
 										}}
@@ -161,18 +161,18 @@ export function ConversationList({
 			<ConfirmDialog
 				visible={showDeleteConfirm.value}
 				title='Delete Conversation'
-				message={`Are you sure you want to delete the conversation '${conversationToDelete.value?.title}'?`}
+				message={`Are you sure you want to delete the conversation '${collaborationToDelete.value?.title}'?`}
 				confirmLabel='Delete'
 				onConfirm={async () => {
-					if (conversationToDelete.value) {
-						await onDelete(conversationToDelete.value.id);
+					if (collaborationToDelete.value) {
+						await onDelete(collaborationToDelete.value.id);
 						showDeleteConfirm.value = false;
-						conversationToDelete.value = undefined;
+						collaborationToDelete.value = undefined;
 					}
 				}}
 				onCancel={() => {
 					showDeleteConfirm.value = false;
-					conversationToDelete.value = undefined;
+					collaborationToDelete.value = undefined;
 				}}
 				isDangerous={true}
 			/>

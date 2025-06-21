@@ -39,8 +39,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			console.log('successful fetch - bbResponse:', result.bbResponse);
 			// console.log('successful fetch - toolResponse:', result.toolResponse);
 			// console.log('successful fetch - toolResults:', result.toolResults);
@@ -109,8 +109,8 @@ Deno.test({
 					},
 				};
 
-				const conversation = await projectEditor.initCollaboration('test-conversation-id');
-				await tool.runTool(conversation, toolUse, projectEditor);
+				const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+				const result = await tool.runTool(interaction, toolUse, projectEditor);
 			} catch (error) {
 				assertStringIncludes((error as Error).message, 'Failed to capture screenshot');
 			}

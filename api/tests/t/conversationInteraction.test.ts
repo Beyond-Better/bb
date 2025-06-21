@@ -17,6 +17,7 @@ import type {
 	CollaborationLogEntry,
 	InteractionId,
 	InteractionStats,
+	ProjectId,
 	//ObjectivesData,
 	TokenUsageStats,
 } from 'shared/types.ts';
@@ -69,7 +70,7 @@ const mockInteractionCallbacks: LLMCallbacks = {
 	// [TODO] PREPARE_RESOURCES
 };
 
-async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
+async function setupTestEnvironment(projectId: ProjectId, dataSourceRoot: string) {
 	await GitUtils.initGit(dataSourceRoot);
 	const projectEditor = await getProjectEditor(projectId);
 

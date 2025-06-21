@@ -3,18 +3,14 @@ export { default as Collaboration } from './collaboration.ts';
 export { default as CollaborationManager } from './collaborationManager.ts';
 
 // Manager utilities
-export {
-	createCollaborationManager,
-	getCollaborationManager,
-	collaborationManager,
-} from './collaborationManager.ts';
+export { collaborationManager, createCollaborationManager, getCollaborationManager } from './collaborationManager.ts';
 
 // Re-export types for convenience
 export type {
-	CollaborationInterface,
 	Collaboration as CollaborationLegacy,
-	CollaborationParams,
-	StatementParams,
 	CollaborationCreateOptions,
+	CollaborationInterface,
+	CollaborationParams,
 	CollaborationSummary,
+	StatementParams,
 } from 'shared/types/collaboration.types.ts';

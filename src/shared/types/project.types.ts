@@ -12,6 +12,7 @@ import type {
 	DataSourceProviderInfo,
 	DataSourceProviderType,
 } from 'shared/types/dataSource.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type {
 	DataSourceConnection,
 	DataSourceConnectionValues,
@@ -20,7 +21,7 @@ import type {
 export type ProjectStatus = 'draft' | 'active' | 'archived';
 
 export interface ProjectStats {
-	conversationCount: number;
+	collaborationCount: number;
 	totalTokens: number;
 	lastAccessed: string;
 }
@@ -31,7 +32,7 @@ export interface ProjectStats {
  * Contains the intrinsic properties of a project (what the project IS)
  */
 export interface ProjectData {
-	projectId: string;
+	projectId: ProjectId;
 	name: string;
 	status: ProjectStatus;
 	dataSourceProviders?: DataSourceProviderInfo[];
@@ -67,7 +68,7 @@ export interface CreateProjectData {
  */
 export interface SerializedProjectData {
 	version?: number; // Project data format version
-	projectId: string;
+	projectId: ProjectId;
 	name: string;
 	status: ProjectStatus;
 	dsConnections: DataSourceConnectionValues[];
@@ -102,7 +103,7 @@ export interface ClientDataSourceConnection {
  * All data is plain objects, no class instances, but maintains object structure
  */
 export interface ClientProjectData {
-	projectId: string;
+	projectId: ProjectId;
 	name: string;
 	status: ProjectStatus;
 	dataSourceProviders?: DataSourceProviderInfo[];

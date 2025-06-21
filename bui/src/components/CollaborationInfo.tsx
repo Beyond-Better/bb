@@ -2,13 +2,13 @@ import { signal } from '@preact/signals';
 import { useEffect } from 'preact/hooks';
 import type { CollaborationContinue, CollaborationLogDataEntry } from 'shared/types.ts';
 
-interface ConversationInfoProps {
+interface CollaborationInfoProps {
 	logDataEntries?: CollaborationLogDataEntry[];
-	conversationId?: string;
+	collaborationId?: string;
 	title?: string;
 }
 
-interface InteractionMetadata {
+interface CollaborationMetadata {
 	title?: string;
 	messageCount: number;
 	tokenUsage: {
@@ -18,7 +18,7 @@ interface InteractionMetadata {
 }
 
 // Initialize metadata signal with default values
-const metadata = signal<InteractionMetadata>({
+const metadata = signal<CollaborationMetadata>({
 	messageCount: 0,
 	tokenUsage: {
 		total: 0,
@@ -26,7 +26,7 @@ const metadata = signal<InteractionMetadata>({
 	},
 });
 
-export function ConversationInfo({ logDataEntries = [], conversationId, title }: ConversationInfoProps) {
+export function CollaborationInfo({ logDataEntries = [], collaborationId, title }: CollaborationInfoProps) {
 	useEffect(() => {
 		if (logDataEntries) {
 			metadata.value = {

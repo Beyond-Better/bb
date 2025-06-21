@@ -4,6 +4,7 @@ import { getGlobalConfigDir } from 'shared/dataDir.ts';
 import { logger } from 'shared/logger.ts';
 import type { ProjectType } from 'shared/config/types.ts';
 import type { ProjectData, ProjectStatus } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 // Storage interfaces
 export interface StoredProjectV0 {
@@ -18,7 +19,7 @@ export interface StoredProjectV1 {
 	dataSourcePaths: string[]; // Array of paths for filesystem datasources
 }
 export interface ReturnedProjectV1 {
-	projectId: string;
+	projectId: ProjectId;
 	name: string;
 	status: ProjectStatus;
 	dataSourcePaths: string[]; // Array of paths for filesystem datasources
@@ -27,7 +28,7 @@ export interface ReturnedProjectV1 {
 export interface ProjectsFileV1 {
 	version: string;
 	projects: {
-		[projectId: string]: StoredProjectV1;
+		[projectId: ProjectId]: StoredProjectV1;
 	};
 }
 
@@ -194,7 +195,7 @@ export class ProjectRegistry {
 	/**
 	 * Gets a project by its ID
 	 */
-	public async getProject(projectId: string): Promise<ReturnedProjectV1 | null> {
+	public async getProject(projectId: ProjectId): Promise<ReturnedProjectV1 | null> {
 		if (!this.projectsData) {
 			//logger.info(`ProjectRegistry: No projectsData - loading from file for: ${projectId}`);
 			this.projectsData = await this.loadProjectsFile();
@@ -216,7 +217,7 @@ export class ProjectRegistry {
 	/**
 	 * Gets a project by its ID
 	 */
-	public async getDataSourcePaths(projectId: string): Promise<string[]> {
+	public async getDataSourcePaths(projectId: ProjectId): Promise<string[]> {
 		const project = await this.getProject(projectId);
 		if (!project) {
 			return [];
@@ -270,7 +271,7 @@ export class ProjectRegistry {
 	/**
 	 * Removes a project from the registry
 	 */
-	public async deleteProject(projectId: string): Promise<void> {
+	public async deleteProject(projectId: ProjectId): Promise<void> {
 		if (!this.projectsData) {
 			this.projectsData = await this.loadProjectsFile();
 		}
@@ -285,7 +286,7 @@ export class ProjectRegistry {
 	/**
 	 * Updates or adds a data source path to a project
 	 */
-	public async addDataSourcePath(projectId: string, path: string): Promise<void> {
+	public async addDataSourcePath(projectId: ProjectId, path: string): Promise<void> {
 		if (!this.projectsData) {
 			this.projectsData = await this.loadProjectsFile();
 		}
@@ -312,7 +313,7 @@ export class ProjectRegistry {
 	/**
 	 * Removes a data source path from a project
 	 */
-	public async removeDataSourcePath(projectId: string, path: string): Promise<void> {
+	public async removeDataSourcePath(projectId: ProjectId, path: string): Promise<void> {
 		if (!this.projectsData) {
 			this.projectsData = await this.loadProjectsFile();
 		}

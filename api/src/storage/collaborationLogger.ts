@@ -11,6 +11,7 @@ import type {
 	CollaborationLogDataEntry,
 	InteractionId,
 	InteractionStats,
+	ProjectId,
 	TokenUsageStats,
 } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
@@ -77,7 +78,7 @@ export default class CollaborationLogger {
 		error: 'Error',
 	};
 	private logEntryFormatterManager!: LogEntryFormatterManager;
-	private projectId: string;
+	private projectId: ProjectId;
 
 	constructor(
 		private projectEditor: ProjectEditor,
@@ -117,23 +118,23 @@ export default class CollaborationLogger {
 		await ensureDir(this.collaborationLogsDir);
 		this.ensuredDir = true;
 	}
-	static async getLogFileDirPath(projectId: string, collaborationId: string): Promise<string> {
+	static async getLogFileDirPath(projectId: ProjectId, collaborationId: string): Promise<string> {
 		const projectAdminDir = await getProjectAdminDataDir(projectId);
 		const collaborationLogsDir = join(projectAdminDir, 'collaborations', collaborationId);
 		//await ensureDir(collaborationLogsDir);
 		return collaborationLogsDir;
 	}
-	static async getLogFileRawPath(projectId: string, collaborationId: string): Promise<string> {
+	static async getLogFileRawPath(projectId: ProjectId, collaborationId: string): Promise<string> {
 		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, collaborationId);
 		return join(collaborationLogsDir, 'collaboration.log');
 	}
-	static async getLogFileJsonPath(projectId: string, collaborationId: string): Promise<string> {
+	static async getLogFileJsonPath(projectId: ProjectId, collaborationId: string): Promise<string> {
 		const collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(projectId, collaborationId);
 		return join(collaborationLogsDir, 'collaboration.jsonl');
 	}
 
 	static async getLogDataEntries(
-		projectId: string,
+		projectId: ProjectId,
 		collaborationId: string,
 	): Promise<Array<CollaborationLogDataEntry>> {
 		const collaborationLogFile = await CollaborationLogger.getLogFileJsonPath(projectId, collaborationId);

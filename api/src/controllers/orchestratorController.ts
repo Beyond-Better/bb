@@ -176,7 +176,8 @@ class OrchestratorController extends BaseController {
 		collaboration: Collaboration,
 		interactionId?: InteractionId,
 	): Promise<LLMConversationInteraction> {
-		const effectiveInteractionId = interactionId ?? collaboration.lastInteractionId ?? shortenInteractionId(generateInteractionId());;
+		const effectiveInteractionId = interactionId ?? collaboration.lastInteractionId ??
+			shortenInteractionId(generateInteractionId());
 		let interaction;
 		try {
 			logger.info('OrchestratorController: initializeInteraction:', { effectiveInteractionId });
@@ -188,7 +189,9 @@ class OrchestratorController extends BaseController {
 		}
 
 		if (!interaction) {
-			logger.info('OrchestratorController: initializeInteraction: creating interaction', { effectiveInteractionId });
+			logger.info('OrchestratorController: initializeInteraction: creating interaction', {
+				effectiveInteractionId,
+			});
 			interaction = await this.createInteraction(collaboration, effectiveInteractionId);
 			//logger.info('OrchestratorController: initializeInteraction: created', { interaction });
 		}
@@ -210,10 +213,12 @@ class OrchestratorController extends BaseController {
 	): Promise<CollaborationResponse> {
 		this.isCancelled = false;
 		const collaboration = this.collaborationManager.getCollaboration(collaborationId) as Collaboration;
-		const interaction = this.interactionManager.getInteraction(interactionId ??collaboration.lastInteractionId!) as LLMConversationInteraction;
+		const interaction = this.interactionManager.getInteraction(
+			interactionId ?? collaboration.lastInteractionId!,
+		) as LLMConversationInteraction;
 		try {
 			if (!interaction) {
-				throw new Error(`No interaction found for ID: ${interactionId ??collaboration.lastInteractionId}`);
+				throw new Error(`No interaction found for ID: ${interactionId ?? collaboration.lastInteractionId}`);
 			}
 			this.resetStatus(collaboration.id);
 			this.emitStatus(collaboration.id, ApiStatus.API_BUSY);
@@ -247,7 +252,11 @@ class OrchestratorController extends BaseController {
 
 			try {
 				if (!collaboration.title) {
-					collaboration.title = await this.generateCollaborationTitle(statement, collaboration, interaction.id);
+					collaboration.title = await this.generateCollaborationTitle(
+						statement,
+						collaboration,
+						interaction.id,
+					);
 					// Emit new collaboration event after title is generated
 					this.eventManager.emit(
 						'projectEditor:collaborationNew',
@@ -255,6 +264,13 @@ class OrchestratorController extends BaseController {
 							collaborationId: collaborationId,
 							interactionId: interaction.id,
 							collaborationTitle: collaboration.title,
+							collaborationType: collaboration.type,
+							collaborationParams: collaboration.collaborationParams,
+							projectId: collaboration.projectId,
+							totalInteractions: collaboration.totalInteractions,
+							interactionIds: collaboration.interactionIds,
+							createdAt: collaboration.createdAt,
+							updatedAt: collaboration.updatedAt,
 							timestamp: new Date().toISOString(),
 							tokenUsageStats: {
 								//tokenUsageInteraction: this.tokenUsageInteraction,
@@ -273,7 +289,11 @@ class OrchestratorController extends BaseController {
 				// Generate interaction objective if not set
 				if (!currentMetrics.objectives?.collaboration) {
 					const collaborationObjective = await generateCollaborationObjective(
-						await this.createChatInteraction(collaboration, interaction.id, 'Generate collaboration objective'),
+						await this.createChatInteraction(
+							collaboration,
+							interaction.id,
+							'Generate collaboration objective',
+						),
 						statement,
 					);
 					interaction.setObjectives(collaborationObjective);
@@ -369,7 +389,16 @@ class OrchestratorController extends BaseController {
 			} = {
 				collaborationId: collaborationId,
 				interactionId: interaction.id,
+				projectId: collaboration.projectId,
 				collaborationTitle: collaboration.title,
+				//version: collaboration.version,
+				collaborationType: collaboration.type,
+				collaborationParams: collaboration.collaborationParams,
+				totalInteractions: collaboration.totalInteractions,
+				interactionIds: collaboration.interactionIds,
+				createdAt: collaboration.createdAt,
+				updatedAt: collaboration.updatedAt,
+
 				timestamp: new Date().toISOString(),
 				interactionStats: {
 					statementCount: interaction.statementCount,
@@ -762,7 +791,14 @@ class OrchestratorController extends BaseController {
 				logEntry: { entryType: 'answer', content: answer, thinking: assistantThinking },
 				collaborationId: collaborationId,
 				interactionId: interaction.id,
+				projectId: collaboration.projectId,
 				collaborationTitle: collaboration.title,
+				collaborationType: collaboration.type,
+				collaborationParams: collaboration.collaborationParams,
+				createdAt: collaboration.createdAt,
+				updatedAt: collaboration.updatedAt,
+				totalInteractions: collaboration.totalInteractions,
+				interactionIds: collaboration.interactionIds,
 				parentMessageId: null,
 				agentInteractionId: null,
 				timestamp: new Date().toISOString(),
@@ -800,7 +836,14 @@ class OrchestratorController extends BaseController {
 				logEntry: { entryType: 'answer', content: 'Error handling statement', thinking: '' },
 				collaborationId: collaborationId,
 				interactionId: interaction.id,
+				projectId: collaboration.projectId,
 				collaborationTitle: collaboration.title,
+				collaborationType: collaboration.type,
+				collaborationParams: collaboration.collaborationParams,
+				createdAt: collaboration.createdAt,
+				updatedAt: collaboration.updatedAt,
+				totalInteractions: collaboration.totalInteractions,
+				interactionIds: collaboration.interactionIds,
 				parentMessageId: null,
 				agentInteractionId: null,
 				timestamp: new Date().toISOString(),
@@ -858,9 +901,21 @@ class OrchestratorController extends BaseController {
 		const errorHandler = new ErrorHandler(errorHandlingConfig);
 
 		if (sync) {
-			return await agentController.executeSyncTasks(this, interaction.collaboration, parentMessageId, tasks, errorHandler);
+			return await agentController.executeSyncTasks(
+				this,
+				interaction.collaboration,
+				parentMessageId,
+				tasks,
+				errorHandler,
+			);
 		} else {
-			return await agentController.executeAsyncTasks(this, interaction.collaboration, parentMessageId, tasks, errorHandler);
+			return await agentController.executeAsyncTasks(
+				this,
+				interaction.collaboration,
+				parentMessageId,
+				tasks,
+				errorHandler,
+			);
 		}
 
 		// 		const errors = results.filter((r) => r.error);

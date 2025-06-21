@@ -26,7 +26,7 @@ import type {
 } from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
-import type { CollaborationId, CollaborationResponse, InteractionId } from 'shared/types.ts';
+import type { CollaborationId, CollaborationResponse, InteractionId, ProjectId } from 'shared/types.ts';
 import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
@@ -41,7 +41,7 @@ import Collaboration from 'api/collaborations/collaboration.ts';
 
 // Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {
-	projectId: string;
+	projectId: ProjectId;
 }
 
 class ProjectEditor {
@@ -53,7 +53,7 @@ class ProjectEditor {
 	public mcpManager!: MCPManager;
 	public resourceManager!: ResourceManager;
 	public sessionManager: SessionManager;
-	public projectId: string;
+	public projectId: ProjectId;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
 	public changedResources: Set<string> = new Set();
@@ -65,7 +65,7 @@ class ProjectEditor {
 		//tier: null,
 	};
 
-	constructor(projectId: string, sessionManager: SessionManager) {
+	constructor(projectId: ProjectId, sessionManager: SessionManager) {
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
 		this.sessionManager = sessionManager;

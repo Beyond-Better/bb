@@ -8,13 +8,13 @@ import ProjectEditorManager from 'api/editor/projectEditorManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
-import type { InteractionStats } from 'shared/types.ts';
+import type { InteractionStats, ProjectId } from 'shared/types.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
-export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: string }> {
+export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: ProjectId }> {
 	Deno.env.set('BB_UNIT_TESTS', '1');
 	// Set custom global config directory
 	const globalConfigDir = await Deno.makeTempDir();
@@ -62,7 +62,7 @@ export async function setupTestProject(): Promise<{ dataSourceRoot: string; proj
 	return { dataSourceRoot, projectId };
 }
 
-export async function cleanupTestProject(projectId: string, _dataSourceRoot: string) {
+export async function cleanupTestProject(projectId: ProjectId, _dataSourceRoot: string) {
 	try {
 		const projectPersistenceManager = await getProjectPersistenceManager();
 		await projectPersistenceManager.deleteProject(projectId);
@@ -71,7 +71,7 @@ export async function cleanupTestProject(projectId: string, _dataSourceRoot: str
 	}
 }
 
-export async function getProjectEditor(projectId: string): Promise<ProjectEditor> {
+export async function getProjectEditor(projectId: ProjectId): Promise<ProjectEditor> {
 	const projectEditorManager = new ProjectEditorManager();
 	//console.log('getProjectEditor', { projectId });
 	const sessionManager = new SessionManager();
@@ -133,7 +133,7 @@ export async function createTestChatInteraction(
 }
 
 export async function withTestProject<T>(
-	testFn: (projectId: string, dataSourceRoot: string) => Promise<T>,
+	testFn: (projectId: ProjectId, dataSourceRoot: string) => Promise<T>,
 ): Promise<T> {
 	const { projectId, dataSourceRoot } = await setupTestProject();
 	try {

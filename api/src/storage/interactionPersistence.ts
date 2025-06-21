@@ -23,6 +23,7 @@ import type {
 	InteractionStats,
 	LLMRequestRecord,
 	ObjectivesData,
+	ProjectId,
 	ResourceMetrics,
 	TokenUsage,
 	TokenUsageAnalysis,
@@ -56,7 +57,7 @@ import { stripIndents } from 'common-tags';
 //import { encodeHex } from '@std/encoding';
 
 // Ensure ProjectInfo includes projectId
-type ExtendedProjectInfo = ProjectInfo & { projectId: string };
+type ExtendedProjectInfo = ProjectInfo & { projectId: ProjectId };
 
 class InteractionPersistence {
 	private interactionDir!: string;
@@ -201,7 +202,7 @@ class InteractionPersistence {
 		startDate?: Date;
 		endDate?: Date;
 		llmProviderName?: string;
-		projectId: string;
+		projectId: ProjectId;
 	}): Promise<{ interactions: InteractionMetadata[]; totalCount: number }> {
 		//logger.info(`InteractionPersistence: listInteractions called with projectId: ${options.projectId}`);
 		// Check if project has been migrated to new structure

@@ -2,7 +2,13 @@
 //import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
-import { type LLMCallbacks, LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider, type LLMModelConfig } from 'api/types.ts';
+import {
+	type LLMCallbacks,
+	LLMCallbackType,
+	type LLMExtendedThinkingOptions,
+	type LLMModelConfig,
+	type LLMProvider,
+} from 'api/types.ts';
 import type {
 	CacheImpact,
 	InteractionId,
@@ -123,7 +129,7 @@ class LLMInteraction {
 	// 		usePromptCaching: false,
 	// 	};
 
-	constructor(collaboration: Collaboration, interactionId?: InteractionId, ) {
+	constructor(collaboration: Collaboration, interactionId?: InteractionId) {
 		this.collaborationRef = new WeakRef(collaboration);
 
 		this.id = interactionId ?? shortenInteractionId(generateInteractionId());

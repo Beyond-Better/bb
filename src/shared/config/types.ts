@@ -7,6 +7,7 @@
  */
 
 import { LLMProvider } from 'api/types/llms.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type { CreateProjectData } from 'shared/types/project.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { DefaultModels, DefaultModelsPartial } from 'shared/types/models.ts';
@@ -234,7 +235,7 @@ export interface RepoInfoConfigSchema {
  */
 export interface ProjectConfigV2 {
 	version: ConfigVersion;
-	projectId: string;
+	projectId: ProjectId;
 	name?: string; // deprecated, use projectPersistence.name instead - kept here for migrating from older config versions
 	//type?: ProjectType;
 	myPersonsName?: string;
@@ -319,17 +320,21 @@ export interface ValidationResult {
 export interface IConfigManagerV2 {
 	// Core configuration operations
 	getGlobalConfig(): Promise<GlobalConfig>;
-	getProjectConfig(projectId: string): Promise<ProjectConfig>;
+	getProjectConfig(projectId: ProjectId): Promise<ProjectConfig>;
 	updateGlobalConfig(updates: Partial<GlobalConfig>): Promise<void>;
-	updateProjectConfig(projectId: string, updates: Partial<ProjectConfig>): Promise<void>;
+	updateProjectConfig(projectId: ProjectId, updates: Partial<ProjectConfig>): Promise<void>;
 
 	// Tool configuration
 	getToolConfig(toolName: string): Promise<unknown>;
 	updateToolConfig(toolName: string, config: unknown): Promise<void>;
 
 	// Project management
-	createProjectConfig(projectId: string, createProjectData: CreateProjectData, workingRoot?: string): Promise<void>;
-	archiveProject(projectId: string): Promise<void>;
+	createProjectConfig(
+		projectId: ProjectId,
+		createProjectData: CreateProjectData,
+		workingRoot?: string,
+	): Promise<void>;
+	archiveProject(projectId: ProjectId): Promise<void>;
 
 	// Migration and validation
 	migrateConfig(config: unknown): Promise<MigrationResult>;

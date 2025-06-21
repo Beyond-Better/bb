@@ -89,7 +89,11 @@ export async function generateObjective(
 		   - OR there is no collaboration goal provided
 		4. Previous assistant response is optional and should not trigger NEED_CONTEXT
 		5. Ensure the objective aligns with the collaboration goal`
-	}${collaborationGoal ? `\n<overall_collaboration_goal>\n${collaborationGoal}\n</overall_collaboration_goal>\n` : ''}${
+	}${
+		collaborationGoal
+			? `\n<overall_collaboration_goal>\n${collaborationGoal}\n</overall_collaboration_goal>\n`
+			: ''
+	}${
 		previousAssistantResponse
 			? `\n<previous_assistant_response>\n${previousAssistantResponse.substring(0, 2500)}${
 				previousAssistantResponse.length > 2500 ? '...' : ''

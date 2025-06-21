@@ -61,7 +61,7 @@ async function getDiskSpace(path: string): Promise<DiskSpace> {
 }
 
 /**
- * Gets statistics about stored conversations
+ * Gets statistics about stored interactions
  */
 async function getInteractionStats(interactionsDir: string): Promise<InteractionStats> {
 	const stats: InteractionStats = {
@@ -95,8 +95,8 @@ async function getInteractionStats(interactionsDir: string): Promise<Interaction
 			}
 		}
 	} catch (error) {
-		logger.error('Failed to get conversation stats:', error);
-		throw new Error('Could not analyze conversations: ' + error.message);
+		logger.error('Failed to get interaction stats:', error);
+		throw new Error('Could not analyze interactions: ' + error.message);
 	}
 
 	return stats;
@@ -141,7 +141,7 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 		}
 
 		// Check conversations directory
-		const interactionsDir = join(globalDir, 'conversations');
+		const interactionsDir = join(globalDir, 'interactions');
 		const convStats = await getInteractionStats(interactionsDir);
 
 		// Warn if total conversation size is over 1GB
@@ -159,7 +159,7 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 				fix: {
 					description: 'Consider archiving or removing old conversations',
 					command: 'bb conversation clean',
-					apiEndpoint: '/api/v1/conversations/clean',
+					apiEndpoint: '/api/v1/collaborations/clean',
 				},
 			});
 		}

@@ -2,6 +2,7 @@ import { join } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
 import { getGlobalConfigDir } from './dataDir.utils.ts';
 import { getProjectRegistry, type StoredProjectV0 } from 'shared/projectRegistry.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 /**
@@ -9,7 +10,7 @@ import { logger } from 'shared/logger.ts';
  * This is where project-specific data will be stored in the new structure.
  * Format: ${globalRoot}/projects/${projectId}/
  */
-export async function getProjectAdminDir(projectId: string): Promise<string> {
+export async function getProjectAdminDir(projectId: ProjectId): Promise<string> {
 	const customProjectAdminDir = Deno.env.get('BB_PROJECT_ADMIN_DIR'); // used for testing - don't rely on it for other purposes
 	if (customProjectAdminDir) {
 		if (!Deno.env.get('BB_UNIT_TESTS')) {
@@ -29,7 +30,7 @@ export async function getProjectAdminDir(projectId: string): Promise<string> {
  * Gets the path to the project data directory within the global config directory.
  * Format: ${globalRoot}/projects/${projectId}/data/
  */
-export async function getProjectAdminDataDir(projectId: string): Promise<string> {
+export async function getProjectAdminDataDir(projectId: ProjectId): Promise<string> {
 	const projectDir = await getProjectAdminDir(projectId);
 	const dataDir = join(projectDir, 'data');
 	await ensureDir(dataDir);
@@ -40,7 +41,7 @@ export async function getProjectAdminDataDir(projectId: string): Promise<string>
  * Gets the path to the project configuration file within the global config directory.
  * Format: ${globalRoot}/projects/${projectId}/config.yaml
  */
-export async function getProjectAdminConfigPath(projectId: string): Promise<string> {
+export async function getProjectAdminConfigPath(projectId: ProjectId): Promise<string> {
 	const projectDir = await getProjectAdminDir(projectId);
 	return join(projectDir, 'config.yaml');
 }
@@ -49,7 +50,7 @@ export async function getProjectAdminConfigPath(projectId: string): Promise<stri
  * Checks if a project has been migrated to the new structure
  * by checking if the global project directory exists and has the necessary files.
  */
-export async function isProjectMigrated(projectId: string): Promise<boolean> {
+export async function isProjectMigrated(projectId: ProjectId): Promise<boolean> {
 	const globalConfigDir = await getGlobalConfigDir();
 	const projectDir = join(globalConfigDir, 'projects', projectId);
 	const configPath = join(projectDir, 'config.yaml');
@@ -66,7 +67,7 @@ export async function isProjectMigrated(projectId: string): Promise<boolean> {
 // Store in-progress migrations
 const migrationPromises = new Map<string, Promise<void>>();
 const migrationLock = new Map<string, boolean>();
-export async function migrateProjectFiles(projectId: string): Promise<void> {
+export async function migrateProjectFiles(projectId: ProjectId): Promise<void> {
 	// Check if migration is already in progress
 	if (migrationPromises.has(projectId)) {
 		// Wait for the existing migration to complete

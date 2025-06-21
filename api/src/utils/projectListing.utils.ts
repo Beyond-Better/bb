@@ -7,6 +7,7 @@ import { countTokens } from 'anthropic-tokenizer';
 import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHandling.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
+import type { ProjectId } from 'shared/types.ts';
 //import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 //import { createError, ErrorType } from 'api/utils/error.ts';
 
@@ -20,7 +21,7 @@ export const FILE_LISTING_TIERS = [
 ];
 
 export async function generateFileListing(
-	projectId: string,
+	projectId: ProjectId,
 	dataSourceRoot: string,
 ): Promise<{ listing: string; tier: number } | null> {
 	const configManager = await getConfigManager();

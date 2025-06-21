@@ -149,7 +149,7 @@ export default class LLMToolInteractionSummary extends LLMTool {
 
 		try {
 			const messages = interaction.getMessages();
-			logger.info(`LLMToolInteractionSummary:`, {messages});
+			logger.info(`LLMToolInteractionSummary:`, { messages });
 			const result = await this.summarizeAndTruncateInteraction(
 				interaction,
 				messages,
@@ -200,9 +200,7 @@ A summary of the removed messages has been added to the start of the conversatio
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(
-				`LLMToolInteractionSummary: Error summarizing and truncating conversation: ${
-					(error as Error).message
-				}`,
+				`LLMToolInteractionSummary: Error summarizing and truncating conversation: ${(error as Error).message}`,
 			);
 
 			throw createError(

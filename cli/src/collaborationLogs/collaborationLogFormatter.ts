@@ -7,7 +7,7 @@ import { colors } from 'cliffy/ansi/colors';
 
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import type { InteractionId, CollaborationLogEntryType, InteractionStats, TokenUsage } from 'shared/types.ts';
+import type { CollaborationLogEntryType, InteractionId, InteractionStats, TokenUsage } from 'shared/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 
 const configManager = await getConfigManager();

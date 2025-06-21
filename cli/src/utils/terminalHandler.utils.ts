@@ -24,6 +24,7 @@ import type {
 	CollaborationNew,
 	CollaborationResponse,
 	CollaborationStart,
+	ProjectId,
 	TokenUsage,
 } from 'shared/types.ts';
 //import { logger } from 'shared/logger.ts';
@@ -74,11 +75,11 @@ export class TerminalHandler {
 	private promptCacheStartTime: number | null = null;
 	private promptCacheDuration: number | null = null;
 	private statementInProgress: boolean = false;
-	private projectId: string;
+	private projectId: ProjectId;
 	private bbDir!: string;
 	private apiClient!: ApiClient;
 
-	constructor(projectId: string) {
+	constructor(projectId: ProjectId) {
 		this.projectId = projectId;
 		this.spinner = this.createSpinner('BB warming up...');
 	}
@@ -510,9 +511,7 @@ export class TerminalHandler {
 				isNarrow ? `T${interactionStats.statementTurnCount}` : `Tn:${interactionStats.statementTurnCount}`,
 			),
 			colors.blue(
-				isNarrow
-					? `TT${interactionStats.interactionTurnCount}`
-					: `TT:${interactionStats.interactionTurnCount}`,
+				isNarrow ? `TT${interactionStats.interactionTurnCount}` : `TT:${interactionStats.interactionTurnCount}`,
 			),
 			colors.red(
 				isNarrow

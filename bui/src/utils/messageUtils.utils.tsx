@@ -176,34 +176,34 @@ export const defaultExpanded = {
 };
 
 // Helper to generate storage key for collapse state
-export function getCollapseStateKey(conversationId: string, agentInteractionId: string | null, index: number): string {
+export function getCollapseStateKey(collaborationId: string, agentInteractionId: string | null, index: number): string {
 	const agentId = agentInteractionId || 'parent';
-	return `bb_collapse_state:${conversationId}:${agentId}:${index}`;
+	return `bb_collapse_state:${collaborationId}:${agentId}:${index}`;
 }
 
 // Helper to get initial collapse state
 export function getInitialCollapseState(
-	conversationId: string,
+	collaborationId: string,
 	agentInteractionId: string | null,
 	index: number,
 	entryType: keyof typeof defaultExpanded,
 ): boolean {
 	if (typeof localStorage === 'undefined') return defaultExpanded[entryType] ?? true;
 
-	const storedState = localStorage.getItem(getCollapseStateKey(conversationId, agentInteractionId, index));
+	const storedState = localStorage.getItem(getCollapseStateKey(collaborationId, agentInteractionId, index));
 	const wantExpanded = agentInteractionId ? false : defaultExpanded[entryType] ?? true;
 	return storedState !== null ? storedState === 'true' : wantExpanded;
 }
 
 // Helper to save collapse state
 export function saveCollapseState(
-	conversationId: string,
+	collaborationId: string,
 	agentInteractionId: string | null,
 	index: number,
 	isExpanded: boolean,
 ): void {
 	if (typeof localStorage === 'undefined') return;
-	localStorage.setItem(getCollapseStateKey(conversationId, agentInteractionId, index), String(isExpanded));
+	localStorage.setItem(getCollapseStateKey(collaborationId, agentInteractionId, index), String(isExpanded));
 }
 
 // Helper to generate content summary

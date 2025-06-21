@@ -99,7 +99,7 @@ class AgentController extends BaseController {
 		);
 		const interactionModel = this.projectConfig.defaultModels?.agent ?? 'claude-sonnet-4-20250514';
 		const agentInteraction = await this.interactionManager.createInteraction(
-			collaboration, 
+			collaboration,
 			'conversation',
 			agentInteractionId,
 			//this.llmProvider,
@@ -175,7 +175,9 @@ class AgentController extends BaseController {
 		//tasks.forEach((task) => this.taskQueue.addTask(task));
 		try {
 			completedTasks = await Promise.all(
-				tasks.map((task) => this.executeTask(orchestratorController, collaboration, parentMessageId, task, errorHandler)),
+				tasks.map((task) =>
+					this.executeTask(orchestratorController, collaboration, parentMessageId, task, errorHandler)
+				),
 			);
 		} catch (error) {
 			throw error;
@@ -200,10 +202,17 @@ class AgentController extends BaseController {
 
 		let completedTask: CompletedTask;
 		try {
-			completedTask = await this.handleTask(orchestratorController, collaboration, interaction, parentMessageId, task, {
-				maxTurns: 10,
-				model: orchestratorController!.projectConfig?.defaultModels?.agent,
-			});
+			completedTask = await this.handleTask(
+				orchestratorController,
+				collaboration,
+				interaction,
+				parentMessageId,
+				task,
+				{
+					maxTurns: 10,
+					model: orchestratorController!.projectConfig?.defaultModels?.agent,
+				},
+			);
 		} catch (error) {
 			const completedError = await errorHandler!.handleError(error as Error, task, 0);
 			completedTask = { title: task.title, status: 'failed', error: completedError.message };

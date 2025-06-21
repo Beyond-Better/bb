@@ -14,7 +14,7 @@ import type {
 	//LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
-import type { InteractionStats } from 'shared/types.ts';
+import type { InteractionStats, ProjectId } from 'shared/types.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
 
 import { makeChatInteractionStub, makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
@@ -28,7 +28,7 @@ import {
 } from 'api/tests/testSetup.ts';
 
 // Helper function to set up conversation directory structure
-async function setupCollaborationDir(projectId: string, collaborationId: string) {
+async function setupCollaborationDir(projectId: ProjectId, collaborationId: string) {
 	const projectAdminDir = await getProjectAdminDataDir(projectId);
 	const collaborationDir = join(projectAdminDir, 'collaborations', collaborationId);
 	await ensureDir(collaborationDir);
@@ -91,7 +91,7 @@ async function createTestMessages(
 	await Deno.writeTextFile(join(interactionDir, 'messages.jsonl'), messagesJsonl);
 	await Deno.writeTextFile(join(interactionDir, 'interaction.jsonl'), '');
 	await Deno.writeTextFile(join(interactionDir, 'interaction.log'), '');
-				console.log('createTestMessages: writing metadata.json', join(interactionDir, 'metadata.json'));
+	console.log('createTestMessages: writing metadata.json', join(interactionDir, 'metadata.json'));
 	await Deno.writeTextFile(
 		join(interactionDir, 'metadata.json'),
 		`{
@@ -124,7 +124,8 @@ async function createTestMessages(
     "interactionTurnCount": 1,
     "statementCount": 1
   }
-}`);
+}`,
+	);
 }
 
 Deno.test({

@@ -339,8 +339,6 @@ export interface LLMRequestParams {
 	// usePromptCaching?: boolean;
 }
 
-
-
 export interface LLMProviderMessageMeta {
 	system: LLMProviderSystem;
 	llmRequestParams: LLMRequestParams;

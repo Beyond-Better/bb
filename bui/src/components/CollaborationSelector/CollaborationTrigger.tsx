@@ -1,15 +1,15 @@
 import { forwardRef } from 'preact/compat';
-import type { InteractionMetadata } from 'shared/types.ts';
+import type { CollaborationValues } from 'shared/types.ts';
 
-interface ConversationTriggerProps {
-	conversation: InteractionMetadata | undefined;
+interface CollaborationTriggerProps {
+	collaboration: CollaborationValues | undefined;
 	isOpen: boolean;
 	onClick: () => void;
 	className?: string;
 }
 
-export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTriggerProps>(
-	({ conversation, isOpen, onClick, className = '' }, ref) => {
+export const CollaborationTrigger = forwardRef<HTMLButtonElement, CollaborationTriggerProps>(
+	({ collaboration, isOpen, onClick, className = '' }, ref) => {
 		return (
 			<button
 				type='button'
@@ -23,7 +23,7 @@ export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTri
 				style={{ height: '40px' }}
 			>
 				<div className='flex items-center gap-2 min-w-0'>
-					{/* Conversation Icon */}
+					{/* Collaboration Icon */}
 					<svg
 						className='w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0'
 						fill='none'
@@ -38,13 +38,13 @@ export const ConversationTrigger = forwardRef<HTMLButtonElement, ConversationTri
 						/>
 					</svg>
 
-					{/* Conversation Details */}
+					{/* Collaboration Details */}
 					<div className='flex-1 min-w-0'>
-						{conversation
+						{collaboration
 							? (
 								<div className='flex flex-col'>
 									<span className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
-										{conversation.title || 'Untitled'}
+										{collaboration.title || 'Untitled'}
 									</span>
 								</div>
 							)

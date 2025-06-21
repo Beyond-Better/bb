@@ -12,7 +12,7 @@ interface MessageEntryToolProps {
 	onCopy?: (text: string) => void;
 	apiClient?: ApiClient;
 	projectId?: string;
-	conversationId?: string;
+	collaborationId?: string;
 	logEntry?: CollaborationLogEntry;
 }
 
@@ -23,7 +23,7 @@ export function MessageEntryTool({
 	//onCopy,
 	apiClient,
 	projectId,
-	conversationId,
+	collaborationId,
 	logEntry,
 }: MessageEntryToolProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
@@ -32,7 +32,7 @@ export function MessageEntryTool({
 
 	// Format content using API if available
 	useEffect(() => {
-		if (!apiClient || !projectId || !conversationId || !logEntry) return;
+		if (!apiClient || !projectId || !collaborationId || !logEntry) return;
 
 		const fetchFormatting = async () => {
 			setIsLoading(true);
@@ -41,7 +41,7 @@ export function MessageEntryTool({
 					logEntry.entryType,
 					logEntry,
 					projectId,
-					conversationId,
+					collaborationId,
 				);
 				setFormatted(response);
 			} catch (error) {
@@ -52,7 +52,7 @@ export function MessageEntryTool({
 		};
 
 		fetchFormatting();
-	}, [apiClient, projectId, conversationId, logEntry]);
+	}, [apiClient, projectId, collaborationId, logEntry]);
 
 	// Default JSON formatting as fallback
 	const formattedContent = JSON.stringify(content, null, 2);

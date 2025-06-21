@@ -14,7 +14,7 @@ import type {
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
 import { ChatStatus, isProcessing } from '../types/chat.types.ts';
-import { ApiStatus } from 'shared/types.ts';
+import { ApiStatus, ProjectId } from 'shared/types.ts';
 import { ApiClient, type ModelDetails } from '../utils/apiClient.utils.ts';
 import { formatPathForInsertion, getTextPositions, processSuggestions } from '../utils/textHandling.utils.ts';
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
@@ -38,7 +38,7 @@ interface ErrorState {
 
 interface ChatInputProps {
 	apiClient: ApiClient;
-	projectId: string;
+	projectId: ProjectId;
 	primaryDataSourceName?: string;
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
@@ -49,7 +49,7 @@ interface ChatInputProps {
 	textareaRef?: RefObject<ChatInputRef>;
 	statusState: Signal<ChatStatus>;
 	maxLength?: number;
-	conversationId: string | null;
+	collaborationId: string | null;
 	onHeightChange?: (height: number) => void;
 }
 
@@ -115,7 +115,7 @@ const inputMetrics = signal({
 	updateCount: 0,
 	slowUpdates: 0,
 });
-const conversationIdSignal = signal<string | null>(null);
+const collaborationIdSignal = signal<string | null>(null);
 
 export function ChatInput({
 	apiClient,
@@ -130,7 +130,7 @@ export function ChatInput({
 	onCancelProcessing,
 	projectId,
 	primaryDataSourceName,
-	conversationId,
+	collaborationId,
 	onHeightChange,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -191,7 +191,7 @@ export function ChatInput({
 		saveCurrentInput,
 		getSavedInput,
 		clearCurrentInput,
-	} = useChatInputHistory(conversationIdSignal);
+	} = useChatInputHistory(collaborationIdSignal);
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
 		console.debug('ChatInput: fetchSuggestions called', { searchPath, tabState: tabState.value, forceShow });
@@ -559,22 +559,22 @@ export function ChatInput({
 		};
 	}, []);
 
-	// Initialize conversation ID signal and handle saved input
+	// Initialize collaboration ID signal and handle saved input
 	useEffect(() => {
-		// Skip if no conversation ID
-		if (!conversationId) {
-			console.info('ChatInput: No conversation ID to initialize');
+		// Skip if no collaboration ID
+		if (!collaborationId) {
+			console.info('ChatInput: No collaboration ID to initialize');
 			return;
 		}
 
 		// Update signal immediately
-		conversationIdSignal.value = conversationId;
+		collaborationIdSignal.value = collaborationId;
 
-		// Handle conversation change
-		const isConversationChange = conversationIdSignal.value !== conversationId;
+		// Handle collaboration change
+		const isCollaborationChange = collaborationIdSignal.value !== collaborationId;
 
-		// Reset initial mount flag for conversation changes
-		if (isConversationChange) {
+		// Reset initial mount flag for collaboration changes
+		if (isCollaborationChange) {
 			isInitialMount.current = true;
 		}
 
@@ -603,7 +603,7 @@ export function ChatInput({
 
 		// Check for saved input
 		// console.info('ChatInput: Checking for saved input', {
-		// 	conversationId,
+		// 	collaborationId,
 		// 	hasInputText: !!chatInputText.value,
 		// 	inputTextLength: chatInputText.value.length,
 		// });
@@ -613,7 +613,7 @@ export function ChatInput({
 		// 	savedLength: saved?.length || 0,
 		// 	savedContent: saved ? saved.substring(0, 50) + '...' : 'none',
 		// });
-		// Only restore on initial mount or conversation change, not when user clears input
+		// Only restore on initial mount or collaboration change, not when user clears input
 		if (saved && !chatInputText.value && isInitialMount.current) {
 			//console.info('ChatInput: Found saved input to restore', {
 			//	savedLength: saved.length,
@@ -625,7 +625,7 @@ export function ChatInput({
 		if (isInitialMount.current) {
 			isInitialMount.current = false;
 		}
-	}, [conversationId, chatInputText.value]);
+	}, [collaborationId, chatInputText.value]);
 
 	// Load model capabilities when role or model changes
 	// useEffect(() => {
@@ -644,7 +644,7 @@ export function ChatInput({
 	// 	}
 	// }, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig]);
 
-	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
+	// Note: Initial mount handling moved to collaboration ID effect for proper restore timing
 
 	// Safe operation wrapper with rate limit handling
 	const safeOperation = async (operation: () => Promise<void> | void, errorMessage: string) => {
@@ -711,7 +711,7 @@ export function ChatInput({
 		console.info('ChatInput: Sending message', {
 			hasValue: !!chatInputText.value.trim(),
 			length: chatInputText.value.length,
-			conversationId,
+			collaborationId,
 			chatInputOptions: chatInputOptions.value,
 			hasFiles: fileIds.length > 0,
 			fileCount: fileIds.length,
@@ -782,8 +782,8 @@ export function ChatInput({
 	};
 
 	const handleInput = (e: Event) => {
-		if (!conversationId) {
-			console.info('ChatInput: No conversation ID, input will not be saved');
+		if (!collaborationId) {
+			console.info('ChatInput: No collaboration ID, input will not be saved');
 		}
 		// Reset the message sent flag when user starts typing again
 		isMessageSentRef.current = false;
@@ -844,8 +844,8 @@ export function ChatInput({
 
 		// Handle auto-save
 		const handleAutoSave = () => {
-			if (!conversationId) {
-				console.info('ChatInput: No conversation ID for auto-save');
+			if (!collaborationId) {
+				console.info('ChatInput: No collaboration ID for auto-save');
 				return;
 			}
 
@@ -867,7 +867,7 @@ export function ChatInput({
 			// console.info('ChatInput: Auto-save triggered', {
 			// 	hasValue: !!newValue.trim(),
 			// 	length: newValue.length,
-			// 	conversationId,
+			// 	collaborationId,
 			// 	valuePreview: newValue.substring(0, 50) + '...',
 			// });
 
@@ -1740,7 +1740,7 @@ export function ChatInput({
 								chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
 							}`}
 							apiClient={apiClient}
-							context='conversation'
+							context='collaboration'
 							role={selectedModelRole.value}
 							value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}
 							onChange={(modelId: string | ModelSelectionValue) => {

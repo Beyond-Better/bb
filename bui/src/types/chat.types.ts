@@ -1,6 +1,6 @@
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { WebSocketManager } from '../utils/websocketManager.utils.ts';
-import { ApiStatus, CollaborationLogDataEntry, InteractionMetadata } from 'shared/types.ts';
+import { ApiStatus, CollaborationLogDataEntry, CollaborationValues, ProjectId } from 'shared/types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type {
 	ClientProjectData,
@@ -26,7 +26,7 @@ export interface ChatStatus extends WebSocketStatus {
 }
 
 // export interface ProjectData {
-// 	projectId: string;
+// 	projectId: ProjectId;
 // 	name: string;
 // 	//type: string;
 // 	primaryDataSourceRoot?: string;
@@ -35,19 +35,19 @@ export interface ChatStatus extends WebSocketStatus {
 // }
 
 export interface ChatState {
-	conversationId: string | null;
+	collaborationId: string | null;
 	projectData: ClientProjectData | null;
 	apiClient: ApiClient | null;
 	wsManager: WebSocketManager | null;
 	logDataEntries: CollaborationLogDataEntry[];
-	conversations: InteractionMetadata[];
+	collaborations: CollaborationValues[];
 	status: ChatStatus;
 }
 
 export interface ChatConfig {
 	apiUrl: string;
 	wsUrl: string;
-	//projectId: string;
+	//projectId: ProjectId;
 
 	onMessage?: (message: any) => void;
 	onError?: (error: Error) => void;
@@ -62,14 +62,14 @@ export interface ChatHandlers {
 		statementParams?: StatementParams,
 		attachedFiles?: LLMAttachedFiles,
 	) => Promise<void>;
-	selectConversation: (id: string) => Promise<void>;
-	clearConversation: () => void;
+	selectCollaboration: (id: string) => Promise<void>;
+	clearCollaboration: () => void;
 	cancelProcessing: () => Promise<void>;
 	updateScrollVisibility: (isAtBottom: boolean) => void; // Update scroll indicator visibility and state
 }
 
-export interface ConversationListState {
-	conversations: InteractionMetadata[];
+export interface CollaborationListState {
+	collaborations: CollaborationValues[];
 	selectedId: string | null;
 	isLoading: boolean;
 }

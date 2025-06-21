@@ -10,6 +10,7 @@ import type {
 	CollaborationResponse,
 	CollaborationStart,
 	ProgressStatusMessage,
+	ProjectId,
 	PromptCacheTimerMessage,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
@@ -31,7 +32,7 @@ export const collaborationChat = new Command()
 	.option('--max-turns <number:number>', 'Maximum number of turns in the collaboration')
 	.option('--json', 'Return JSON instead of plain text')
 	.action(async (options) => {
-		let projectId: string | undefined;
+		let projectId: ProjectId | undefined;
 		try {
 			const startDir = Deno.cwd();
 			const workingRoot = await getWorkingRootFromStartDir(startDir);
@@ -421,7 +422,7 @@ function handleWebsocketReconnection() {
 }
 
 const processStatement = async (
-	projectId: string,
+	projectId: ProjectId,
 	bbDir: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,

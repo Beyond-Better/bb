@@ -9,7 +9,7 @@ import type { LLMToolInputSchema, LLMToolRunResultContent } from 'api/llms/llmTo
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { VersionInfo } from './types/version.types.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
-import type { CollaborationInterface, CollaborationParams } from './types/collaboration.types.ts';
+import type { CollaborationInterface, CollaborationParams, CollaborationValues } from './types/collaboration.types.ts';
 
 export type {
 	CollaborationLogEntry,
@@ -17,29 +17,32 @@ export type {
 	CollaborationLogEntryContentToolResult,
 	CollaborationLogEntryType,
 } from 'api/storage/collaborationLogger.ts';
-export type { CollaborationInterface, CollaborationParams } ;
-export type {LLMModelConfig, LLMRolesModelConfig};
+export type { CollaborationInterface, CollaborationParams, CollaborationValues };
+export type { LLMModelConfig, LLMRolesModelConfig };
 
+export type ProjectId = string;
 export type InteractionId = string;
 export type CollaborationId = string;
+
+export type CollaborationType = 'project' | 'workflow' | 'research';
 
 export type VectorId = string;
 
 export interface CollaborationMetadata {
 	id: CollaborationId;
 	version: number; // Version 4 for collaboration format
+	projectId: ProjectId;
 	title: string;
-	type: 'project' | 'workflow' | 'research';
+	type: CollaborationType;
 	collaborationParams: CollaborationParams;
+	totalInteractions: number;
+	interactionIds: InteractionId[];
+	tokenUsageStats: TokenUsageStats; // [TODO] should this be part of lastInteractionMetadata
+	lastInteractionId?: InteractionId;
+	lastInteractionMetadata?: InteractionMetadata;
+	//lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
 	createdAt: string;
 	updatedAt: string;
-	projectId: string;
-	totalInteractions: number;
-	tokenUsageStats: TokenUsageStats;
-	lastInteractionId?: InteractionId;
-	//lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
-	lastInteractionMetadata?: InteractionMetadata;
-	interactionIds: InteractionId[];
 }
 
 export interface CollaborationDetailedMetadata extends CollaborationMetadata {
@@ -47,8 +50,8 @@ export interface CollaborationDetailedMetadata extends CollaborationMetadata {
 }
 
 export interface InteractionMetadata {
-	//projectId: string;
-	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
+	//projectId: ProjectId;
+	version?: number;
 	id: InteractionId;
 	title?: string;
 
@@ -104,25 +107,25 @@ export interface InteractionDetailedMetadata extends InteractionMetadata {
 	//tools?: Array<{ name: string; description: string }>;
 }
 
-export interface Conversation {
-	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
-	id: InteractionId;
-	title: string;
-
-	logDataEntries: CollaborationLogDataEntry[];
-
-	interactionStats: InteractionStats;
-	interactionMetrics?: InteractionMetrics;
-	tokenUsageStats: TokenUsageStats;
-	// 	tokenUsageTurn: TokenUsage;
-	// 	tokenUsageStatement: TokenUsage;
-	// 	tokenUsageInteraction: TokenUsage;
-
-	//tools?: Array<{ name: string; description: string }>;
-	model: string;
-	createdAt: string;
-	updatedAt: string;
-}
+//export interface Conversation {
+//	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
+//	id: InteractionId;
+//	title: string;
+//
+//	logDataEntries: CollaborationLogDataEntry[];
+//
+//	interactionStats: InteractionStats;
+//	interactionMetrics?: InteractionMetrics;
+//	tokenUsageStats: TokenUsageStats;
+//	// 	tokenUsageTurn: TokenUsage;
+//	// 	tokenUsageStatement: TokenUsage;
+//	// 	tokenUsageInteraction: TokenUsage;
+//
+//	//tools?: Array<{ name: string; description: string }>;
+//	model: string;
+//	createdAt: string;
+//	updatedAt: string;
+//}
 
 export interface FileMetadata {
 	type: 'text' | 'image';
@@ -301,6 +304,7 @@ export interface TokenUsageStats {
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
 	tokenUsageInteraction: TokenUsage;
+	//tokenUsageCollaboration: TokenUsage;
 }
 
 export interface InteractionMetrics extends InteractionStats {
@@ -318,7 +322,18 @@ export type CollaborationLogDataEntry = CollaborationStart | CollaborationContin
 export interface CollaborationStart {
 	collaborationId: CollaborationId;
 	interactionId?: InteractionId;
+	projectId: ProjectId;
 	collaborationTitle: string;
+	//version: number;
+	collaborationType: CollaborationType;
+	collaborationParams: CollaborationParams;
+	createdAt: string;
+	updatedAt: string;
+	totalInteractions: number;
+	interactionIds: InteractionId[];
+	// lastInteractionId?: InteractionId;
+	// lastInteractionMetadata?: InteractionMetadata;
+
 	messageId?: string;
 	parentMessageId?: string | null;
 	agentInteractionId?: string | null;
@@ -326,7 +341,6 @@ export interface CollaborationStart {
 	// 	tokenUsageStats: Omit<TokenUsageStats, 'tokenUsageTurn' | 'tokenUsageStatement'> & {
 	// 		tokenUsageStatement?: TokenUsage;
 	// 	};
-	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	interactionStats: InteractionStats; // for resuming a collaboration
@@ -342,16 +356,24 @@ export interface CollaborationStart {
 export interface CollaborationContinue {
 	collaborationId: CollaborationId;
 	interactionId?: InteractionId;
+	projectId: ProjectId;
 	collaborationTitle: string;
+	collaborationType: CollaborationType;
 	messageId?: string;
 	parentMessageId: string | null;
 	agentInteractionId: string | null;
+	collaborationParams: CollaborationParams;
+	createdAt: string;
+	updatedAt: string;
+	totalInteractions: number;
+	interactionIds: InteractionId[];
 	timestamp: string;
 	logEntry: CollaborationLogEntry;
 	children?: {
 		[agentInteractionId: string]: CollaborationLogDataEntry[];
 	};
-	//collaborationParams: CollaborationParams;
+	// lastInteractionId?: InteractionId;
+	// lastInteractionMetadata?: InteractionMetadata;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	interactionStats: InteractionStats;
@@ -361,15 +383,24 @@ export interface CollaborationContinue {
 export interface CollaborationNew {
 	collaborationId: CollaborationId;
 	interactionId?: InteractionId;
+	projectId: ProjectId;
 	collaborationTitle: string;
+	version: number;
+	collaborationType: CollaborationType;
+	collaborationParams: CollaborationParams;
+	createdAt: string;
+	updatedAt: string;
+	totalInteractions: number;
+	interactionIds: InteractionId[];
+	// lastInteractionId?: InteractionId;
+	// lastInteractionMetadata?: InteractionMetadata;
+
 	messageId?: string;
 	parentMessageId?: string | null;
 	agentInteractionId?: string | null;
 	timestamp: string;
-	//tokenUsageInteraction: TokenUsage;
 	tokenUsageStats: TokenUsageStats;
 	interactionStats: InteractionStats;
-	//collaborationParams: CollaborationParams;
 	modelConfig?: LLMModelConfig;
 }
 
@@ -382,16 +413,24 @@ export interface CollaborationDeleted {
 export interface CollaborationResponse {
 	collaborationId: CollaborationId;
 	interactionId: InteractionId;
+	projectId: ProjectId;
 	collaborationTitle: string;
+	collaborationType: CollaborationType;
 	messageId?: string;
 	parentMessageId: string | null;
 	agentInteractionId: string | null;
+	collaborationParams: CollaborationParams;
+	createdAt: string;
+	updatedAt: string;
+	totalInteractions: number;
+	interactionIds: InteractionId[];
 	timestamp: string;
 	logEntry: CollaborationLogEntry;
 	children?: {
 		[agentInteractionId: string]: CollaborationLogDataEntry[];
 	};
-	//collaborationParams: CollaborationParams;
+	// lastInteractionId?: InteractionId;
+	// lastInteractionMetadata?: InteractionMetadata;
 	modelConfig?: LLMModelConfig;
 	tokenUsageStats: TokenUsageStats;
 	interactionStats: InteractionStats;

@@ -470,7 +470,6 @@ export class ModelRegistryService {
 		return models.length > 0 ? models[0].id : undefined;
 	}
 
-
 	/**
 	 * Resolves a parameter value based on priority
 	 */
@@ -602,6 +601,4 @@ export class ModelRegistryService {
 		// For other parameters, just return as is
 		return value;
 	}
-
-
 }

@@ -1,5 +1,12 @@
-import type { CollaborationId, InteractionId, InteractionMetadata, TokenUsageStats } from 'shared/types.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.ts';
+import type {
+	CollaborationId,
+	CollaborationType,
+	InteractionId,
+	InteractionMetadata,
+	ProjectId,
+	TokenUsageStats,
+} from 'shared/types.ts';
+import type { CollaborationParams, CollaborationSummary, CollaborationValues } from 'shared/types/collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -7,7 +14,7 @@ export default class Collaboration {
 	// Core identification
 	public readonly id: CollaborationId;
 	public title: string;
-	public type: 'project' | 'workflow' | 'research';
+	public type: CollaborationType;
 
 	// Configuration
 	public collaborationParams: CollaborationParams;
@@ -17,24 +24,24 @@ export default class Collaboration {
 	public updatedAt: string;
 
 	// Project association
-	public readonly projectId: string;
+	public readonly projectId: ProjectId;
 
 	// Interaction management
 	public totalInteractions: number;
 	public lastInteractionId?: InteractionId;
 	public lastInteractionMetadata?: InteractionMetadata;
-	private interactionIds: InteractionId[] = [];
-	private loadedInteractions: Map<InteractionId, LLMInteraction> = new Map();
+	private _interactionIds: InteractionId[] = [];
+	private _loadedInteractions: Map<InteractionId, LLMInteraction> = new Map();
 
 	// Usage tracking
 	public tokenUsageStats: TokenUsageStats;
 
 	constructor(
 		id: CollaborationId,
-		projectId: string,
+		projectId: ProjectId,
 		options: {
 			title?: string;
-			type?: 'project' | 'workflow' | 'research';
+			type?: CollaborationType;
 			collaborationParams?: CollaborationParams;
 			createdAt?: string;
 			updatedAt?: string;
@@ -57,7 +64,7 @@ export default class Collaboration {
 		this.totalInteractions = options.totalInteractions || 0;
 		this.lastInteractionId = options.lastInteractionId;
 		this.lastInteractionMetadata = options.lastInteractionMetadata;
-		this.interactionIds = options.interactionIds || [];
+		this._interactionIds = options.interactionIds || [];
 		this.tokenUsageStats = options.tokenUsageStats || this.getDefaultTokenUsageStats();
 	}
 
@@ -101,27 +108,34 @@ export default class Collaboration {
 		};
 	}
 
+	public get interactionIds(): InteractionId[] {
+		return [...this._interactionIds];
+	}
+	// public get loadedInteractions(): Map<InteractionId, LLMInteraction> {
+	// 	return this._loadedInteractions;
+	// }
+
 	// Interaction ID management
 	addInteractionId(interactionId: InteractionId): void {
-		if (!this.interactionIds.includes(interactionId)) {
-			this.interactionIds.push(interactionId);
-			this.totalInteractions = this.interactionIds.length;
+		if (!this._interactionIds.includes(interactionId)) {
+			this._interactionIds.push(interactionId);
+			this.totalInteractions = this._interactionIds.length;
 			this.lastInteractionId = interactionId;
 			this.updatedAt = new Date().toISOString();
 		}
 	}
 
 	removeInteractionId(interactionId: InteractionId): boolean {
-		const index = this.interactionIds.indexOf(interactionId);
+		const index = this._interactionIds.indexOf(interactionId);
 		if (index !== -1) {
-			this.interactionIds.splice(index, 1);
-			this.totalInteractions = this.interactionIds.length;
-			this.loadedInteractions.delete(interactionId);
+			this._interactionIds.splice(index, 1);
+			this.totalInteractions = this._interactionIds.length;
+			this._loadedInteractions.delete(interactionId);
 
 			// Update lastInteractionId if we removed the last one
 			if (this.lastInteractionId === interactionId) {
-				this.lastInteractionId = this.interactionIds.length > 0
-					? this.interactionIds[this.interactionIds.length - 1]
+				this.lastInteractionId = this._interactionIds.length > 0
+					? this._interactionIds[this._interactionIds.length - 1]
 					: undefined;
 			}
 
@@ -132,16 +146,16 @@ export default class Collaboration {
 	}
 
 	getInteractionIds(): InteractionId[] {
-		return [...this.interactionIds];
+		return [...this._interactionIds];
 	}
 
 	hasInteraction(interactionId: InteractionId): boolean {
-		return this.interactionIds.includes(interactionId);
+		return this._interactionIds.includes(interactionId);
 	}
 
 	// Loaded interaction management (cache)
 	addLoadedInteraction(interaction: LLMInteraction): void {
-		this.loadedInteractions.set(interaction.id, interaction);
+		this._loadedInteractions.set(interaction.id, interaction);
 
 		// Ensure the interaction ID is tracked
 		this.addInteractionId(interaction.id);
@@ -159,19 +173,19 @@ export default class Collaboration {
 	}
 
 	getLoadedInteraction(interactionId: InteractionId): LLMInteraction | undefined {
-		return this.loadedInteractions.get(interactionId);
+		return this._loadedInteractions.get(interactionId);
 	}
 
 	removeLoadedInteraction(interactionId: InteractionId): boolean {
-		return this.loadedInteractions.delete(interactionId);
+		return this._loadedInteractions.delete(interactionId);
 	}
 
 	getLoadedInteractions(): LLMInteraction[] {
-		return Array.from(this.loadedInteractions.values());
+		return Array.from(this._loadedInteractions.values());
 	}
 
 	getLoadedInteractionIds(): InteractionId[] {
-		return Array.from(this.loadedInteractions.keys());
+		return Array.from(this._loadedInteractions.keys());
 	}
 
 	// State management methods
@@ -196,53 +210,40 @@ export default class Collaboration {
 	}
 
 	// Conversion methods for persistence
-	toMetadata() {
+	toJSON(): CollaborationValues {
 		return {
 			id: this.id,
 			title: this.title,
 			type: this.type,
-			collaborationParams: this.collaborationParams,
-			createdAt: this.createdAt,
-			updatedAt: this.updatedAt,
 			projectId: this.projectId,
+			collaborationParams: this.collaborationParams,
 			totalInteractions: this.totalInteractions,
+			interactionIds: this.interactionIds,
 			lastInteractionId: this.lastInteractionId,
 			lastInteractionMetadata: this.lastInteractionMetadata,
-			interactionIds: this.interactionIds,
 			tokenUsageStats: this.tokenUsageStats,
+			createdAt: this.createdAt,
+			updatedAt: this.updatedAt,
 		};
 	}
 
-	static fromMetadata(metadata: {
-		id: CollaborationId;
-		title: string;
-		type: 'project' | 'workflow' | 'research';
-		collaborationParams: CollaborationParams;
-		createdAt: string;
-		updatedAt: string;
-		projectId: string;
-		totalInteractions: number;
-		lastInteractionId?: InteractionId;
-		lastInteractionMetadata?: InteractionMetadata;
-		interactionIds: InteractionId[];
-		tokenUsageStats: TokenUsageStats;
-	}): Collaboration {
-		return new Collaboration(metadata.id, metadata.projectId, {
-			title: metadata.title,
-			type: metadata.type,
-			collaborationParams: metadata.collaborationParams,
-			createdAt: metadata.createdAt,
-			updatedAt: metadata.updatedAt,
-			totalInteractions: metadata.totalInteractions,
-			lastInteractionId: metadata.lastInteractionId,
-			lastInteractionMetadata: metadata.lastInteractionMetadata,
-			interactionIds: metadata.interactionIds,
-			tokenUsageStats: metadata.tokenUsageStats,
+	static fromJSON(values: CollaborationValues): Collaboration {
+		return new Collaboration(values.id, values.projectId, {
+			title: values.title,
+			type: values.type,
+			collaborationParams: values.collaborationParams,
+			totalInteractions: values.totalInteractions,
+			interactionIds: values.interactionIds,
+			lastInteractionId: values.lastInteractionId,
+			lastInteractionMetadata: values.lastInteractionMetadata,
+			tokenUsageStats: values.tokenUsageStats,
+			createdAt: values.createdAt,
+			updatedAt: values.updatedAt,
 		});
 	}
 
 	// Utility methods
-	getSummary() {
+	getSummary(): CollaborationSummary {
 		return {
 			id: this.id,
 			title: this.title,
@@ -258,10 +259,10 @@ export default class Collaboration {
 	// Static factory method for new collaborations
 	static create(
 		id: CollaborationId,
-		projectId: string,
+		projectId: ProjectId,
 		options: {
 			title?: string;
-			type?: 'project' | 'workflow' | 'research';
+			type?: CollaborationType;
 			collaborationParams?: CollaborationParams;
 		} = {},
 	): Collaboration {

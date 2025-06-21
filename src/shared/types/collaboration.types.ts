@@ -1,8 +1,10 @@
 import { type LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
 	CollaborationId,
+	CollaborationType,
 	InteractionId,
 	InteractionMetadata,
+	ProjectId,
 	TokenUsageStats,
 } from 'shared/types.ts';
 
@@ -11,32 +13,48 @@ export interface CollaborationInterface {
 	// Core identification
 	readonly id: CollaborationId;
 	title: string;
-	type: 'project' | 'workflow' | 'research';
-	
+	type: CollaborationType;
+
 	// Configuration
 	collaborationParams: CollaborationParams;
-	
-	// Timestamps
-	readonly createdAt: string;
-	updatedAt: string;
-	
+
 	// Project association
-	readonly projectId: string;
-	
+	readonly projectId: ProjectId;
+
 	// Interaction management
 	totalInteractions: number;
 	lastInteractionId?: InteractionId;
 	lastInteractionMetadata?: InteractionMetadata;
-	
+
 	// Usage tracking
 	tokenUsageStats: TokenUsageStats;
+
+	// Timestamps
+	readonly createdAt: string;
+	updatedAt: string;
+}
+
+// For JSON transfer
+export interface CollaborationValues {
+	id: CollaborationId;
+	projectId: ProjectId;
+	title: string;
+	type: CollaborationType;
+	collaborationParams: CollaborationParams;
+	totalInteractions: number;
+	lastInteractionId?: InteractionId;
+	lastInteractionMetadata?: InteractionMetadata;
+	interactionIds: InteractionId[];
+	tokenUsageStats: TokenUsageStats;
+	createdAt: string;
+	updatedAt: string;
 }
 
 // Legacy interface for backward compatibility
 // @deprecated Use CollaborationInterface instead
 //export interface Collaboration {
 //	id: string;
-//	type: 'project' | 'workflow' | 'research';
+//	type: CollaborationType;
 //	title?: string;
 //	collaborationParams: CollaborationParams;
 //}
@@ -54,7 +72,7 @@ export interface StatementParams {
 export interface CollaborationCreateOptions {
 	id?: CollaborationId;
 	title?: string;
-	type?: 'project' | 'workflow' | 'research';
+	type?: CollaborationType;
 	collaborationParams?: CollaborationParams;
 }
 
@@ -62,8 +80,8 @@ export interface CollaborationCreateOptions {
 export interface CollaborationSummary {
 	id: CollaborationId;
 	title: string;
-	type: 'project' | 'workflow' | 'research';
-	projectId: string;
+	type: CollaborationType;
+	projectId: ProjectId;
 	totalInteractions: number;
 	createdAt: string;
 	updatedAt: string;

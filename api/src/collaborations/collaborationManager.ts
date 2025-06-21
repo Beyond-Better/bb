@@ -1,4 +1,4 @@
-import type { CollaborationId, InteractionId } from 'shared/types.ts';
+import type { CollaborationId, CollaborationType, InteractionId, ProjectId } from 'shared/types.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import Collaboration from './collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
@@ -10,8 +10,8 @@ class CollaborationManager {
 
 	async createCollaboration(
 		collaborationId: CollaborationId,
-		projectId: string,
-		type: 'project' | 'workflow' | 'research' = 'project',
+		projectId: ProjectId,
+		type: CollaborationType = 'project',
 		title?: string,
 		collaborationParams?: CollaborationParams,
 	): Promise<Collaboration> {
@@ -146,7 +146,7 @@ class CollaborationManager {
 		title: string;
 		type: string;
 		totalInteractions: number;
-		projectId: string;
+		projectId: ProjectId;
 	}> {
 		return Array.from(this.collaborations.values()).map((collaboration) => collaboration.getSummary());
 	}
@@ -158,13 +158,13 @@ class CollaborationManager {
 		);
 	}
 
-	findCollaborationsByType(type: 'project' | 'workflow' | 'research'): Collaboration[] {
+	findCollaborationsByType(type: CollaborationType): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
 			(collaboration) => collaboration.type === type,
 		);
 	}
 
-	findCollaborationsByProjectId(projectId: string): Collaboration[] {
+	findCollaborationsByProjectId(projectId: ProjectId): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
 			(collaboration) => collaboration.projectId === projectId,
 		);

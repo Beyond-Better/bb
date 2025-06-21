@@ -1,24 +1,24 @@
 import { expect } from 'expect';
 import { fireEvent, render } from '@testing-library/preact';
-import { ConversationHeader } from '../../src/components/ConversationHeader.tsx';
+import { CollaborationHeader } from '../../src/components/CollaborationHeader.tsx';
 
-describe('ConversationHeader', () => {
+describe('CollaborationHeader', () => {
 	const defaultProps = {
 		projectId: 'default',
 		onProjectIdChange: () => {},
-		onClearConversation: () => {},
+		onClearCollaboration: () => {},
 		status: {
 			isReady: true,
 			isConnecting: false,
 		},
-		conversationCount: 5,
+		collaborationCount: 5,
 		totalTokens: 1000,
 		cacheStatus: 'active' as const,
 	};
 
 	it('renders all components correctly', () => {
 		const { getByText, getByAltText, getByLabelText } = render(
-			<ConversationHeader {...defaultProps} />,
+			<CollaborationHeader {...defaultProps} />,
 		);
 
 		// Logo and title
@@ -40,12 +40,12 @@ describe('ConversationHeader', () => {
 
 	it('handles directory input changes', () => {
 		const onProjectIdChange = jest.fn();
-		const onClearConversation = jest.fn();
+		const onClearCollaboration = jest.fn();
 		const { getByLabelText } = render(
-			<ConversationHeader
+			<CollaborationHeader
 				{...defaultProps}
 				onProjectIdChange={onProjectIdChange}
-				onClearConversation={onClearConversation}
+				onClearCollaboration={onClearCollaboration}
 			/>,
 		);
 
@@ -53,12 +53,12 @@ describe('ConversationHeader', () => {
 		fireEvent.change(input, { target: { value: '/new/dir' } });
 
 		expect(onProjectIdChange).toHaveBeenCalledWith('/new/dir');
-		expect(onClearConversation).toHaveBeenCalled();
+		expect(onClearCollaboration).toHaveBeenCalled();
 	});
 
 	it('shows different connection states', () => {
 		const { rerender, getByText } = render(
-			<ConversationHeader
+			<CollaborationHeader
 				{...defaultProps}
 				status={{ isReady: false, isConnecting: true }}
 			/>,
@@ -66,7 +66,7 @@ describe('ConversationHeader', () => {
 		expect(getByText('Connecting')).toBeTruthy();
 
 		rerender(
-			<ConversationHeader
+			<CollaborationHeader
 				{...defaultProps}
 				status={{ isReady: false, isConnecting: false }}
 			/>,
@@ -76,23 +76,23 @@ describe('ConversationHeader', () => {
 
 	it('renders cache status indicator with correct status', () => {
 		const { container, rerender } = render(
-			<ConversationHeader {...defaultProps} cacheStatus='active' />,
+			<CollaborationHeader {...defaultProps} cacheStatus='active' />,
 		);
 		let indicator = container.querySelector('.bg-green-500');
 		expect(indicator).toBeTruthy();
 
-		rerender(<ConversationHeader {...defaultProps} cacheStatus='expiring' />);
+		rerender(<CollaborationHeader {...defaultProps} cacheStatus='expiring' />);
 		indicator = container.querySelector('.bg-yellow-500');
 		expect(indicator).toBeTruthy();
 
-		rerender(<ConversationHeader {...defaultProps} cacheStatus='inactive' />);
+		rerender(<CollaborationHeader {...defaultProps} cacheStatus='inactive' />);
 		indicator = container.querySelector('.bg-gray-400');
 		expect(indicator).toBeTruthy();
 	});
 
 	it('renders optional metadata when provided', () => {
 		const { getByText } = render(
-			<ConversationHeader
+			<CollaborationHeader
 				{...defaultProps}
 				projectType='local'
 				createdAt='2024-03-20T12:00:00Z'

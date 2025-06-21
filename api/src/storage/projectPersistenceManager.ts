@@ -9,6 +9,7 @@ import { createExcludeRegexPatterns } from 'api/utils/fileHandling.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 //import type { RepoInfoConfigSchema } from 'shared/config/types.ts';
 import type { CreateProjectData, ProjectData } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -87,7 +88,7 @@ class ProjectPersistenceManager {
 	 * Gets a ProjectPersistence instance for a project
 	 * If the project doesn't exist, returns null
 	 */
-	async getProject(projectId: string): Promise<ProjectPersistence | undefined> {
+	async getProject(projectId: ProjectId): Promise<ProjectPersistence | undefined> {
 		await this.ensureInitialized();
 
 		// Check if project exists in registry
@@ -127,7 +128,7 @@ class ProjectPersistenceManager {
 	/**
 	 * Helper method to clean up pending operations
 	 */
-	private scheduleCleanup(projectId: string, operation: Promise<ProjectPersistence | undefined>): void {
+	private scheduleCleanup(projectId: ProjectId, operation: Promise<ProjectPersistence | undefined>): void {
 		const cleanup = async () => {
 			// logger.info(
 			// 	`ProjectPersistenceManager: Waiting to clean up after creating ProjectPersistence for ${projectId}`,
@@ -149,7 +150,7 @@ class ProjectPersistenceManager {
 	/**
 	 * Atomic operation to create a ProjectPersistence instance
 	 */
-	private async createProjectWithLock(projectId: string): Promise<ProjectPersistence | undefined> {
+	private async createProjectWithLock(projectId: ProjectId): Promise<ProjectPersistence | undefined> {
 		try {
 			const projectPersistence = new ProjectPersistence(projectId);
 			await projectPersistence.init();
@@ -308,7 +309,7 @@ class ProjectPersistenceManager {
 		}
 	}
 
-	async deleteProject(projectId: string): Promise<void> {
+	async deleteProject(projectId: ProjectId): Promise<void> {
 		const project = await this.getProject(projectId);
 		if (project) project.delete();
 	}
@@ -475,7 +476,7 @@ class ProjectPersistenceManager {
 	/**
 	 * Clears a project from the cache
 	 */
-	releaseProject(projectId: string): void {
+	releaseProject(projectId: ProjectId): void {
 		this.projectCache.delete(projectId);
 	}
 }

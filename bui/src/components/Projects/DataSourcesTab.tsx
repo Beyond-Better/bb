@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { DataSourceList } from '../DataSourceList.tsx';
 //import type { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
@@ -17,7 +18,7 @@ interface DataSourcesTabProps {
 export function DataSourcesTab({ editingProject, onUpdate, appState }: DataSourcesTabProps) {
 	const [error, setError] = useState<string | null>(null);
 
-	const handleProjectUpdate = async (_projectId: string, updatedProject: ClientProjectWithConfigSources) => {
+	const handleProjectUpdate = async (_projectId: ProjectId, updatedProject: ClientProjectWithConfigSources) => {
 		try {
 			setError(null);
 			await onUpdate(updatedProject);

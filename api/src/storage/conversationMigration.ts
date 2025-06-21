@@ -1,8 +1,14 @@
 import { join } from '@std/path';
-import { exists, ensureDir } from '@std/fs';
+import { ensureDir, exists } from '@std/fs';
 import { logger } from 'shared/logger.ts';
 import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-import type { InteractionMetadata, CollaborationMetadata, TokenUsage, TokenUsageAnalysis } from 'shared/types.ts';
+import type {
+	CollaborationMetadata,
+	InteractionMetadata,
+	ProjectId,
+	TokenUsage,
+	TokenUsageAnalysis,
+} from 'shared/types.ts';
 
 export interface ConversationsFileV1 {
 	version: string;
@@ -416,7 +422,7 @@ export class ConversationMigration {
  * Migrate conversations to collaborations structure
  * This function handles the major structural change from conversations to collaborations
  */
-export async function migrateConversationsToCollaborations(projectId: string): Promise<void> {
+export async function migrateConversationsToCollaborations(projectId: ProjectId): Promise<void> {
 	const projectAdminDataDir = await getProjectAdminDataDir(projectId);
 	if (!projectAdminDataDir) {
 		throw new Error(`Failed to get project admin data directory for ${projectId}`);
@@ -481,7 +487,7 @@ export async function migrateConversationsToCollaborations(projectId: string): P
 			}
 
 			// Find corresponding metadata
-			const conversationMetadata = conversations.find(c => c.id === conversationId);
+			const conversationMetadata = conversations.find((c) => c.id === conversationId);
 			if (!conversationMetadata) {
 				logger.warn(`No metadata found for conversation ${conversationId}, skipping`);
 				continue;
@@ -560,10 +566,13 @@ export async function migrateConversationsToCollaborations(projectId: string): P
 			logger.info(`Moved original conversations.json to cleanup`);
 		}
 
-		logger.info(`Successfully migrated ${collaborations.length} conversations to collaborations for project ${projectId}`);
-
+		logger.info(
+			`Successfully migrated ${collaborations.length} conversations to collaborations for project ${projectId}`,
+		);
 	} catch (error) {
-		logger.error(`Failed to migrate conversations to collaborations for project ${projectId}: ${(error as Error).message}`);
+		logger.error(
+			`Failed to migrate conversations to collaborations for project ${projectId}: ${(error as Error).message}`,
+		);
 		throw error;
 	}
 }

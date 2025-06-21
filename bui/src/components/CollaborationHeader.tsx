@@ -7,9 +7,9 @@ import { ChatState, ChatStatus } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
-import type { InteractionMetadata } from 'shared/types.ts';
+import type { CollaborationValues, ProjectId } from 'shared/types.ts';
 import type { ApiClient, ModelDetails } from '../utils/apiClient.utils.ts';
-import { ConversationSelector } from './ConversationSelector/index.ts';
+import { CollaborationSelector } from './CollaborationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
 import { ModelInfoPanel } from './ModelInfoPanel.tsx';
 import { DataSourceSummary } from './DataSourceSummary.tsx';
@@ -18,7 +18,7 @@ import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
 // Initialize collapse state signal from localStorage if available, otherwise default to true
 const getInitialCollapsedState = () => {
 	if (IS_BROWSER) {
-		const stored = localStorage.getItem('conversationListCollapsed');
+		const stored = localStorage.getItem('collaborationListCollapsed');
 		return stored === null ? true : stored === 'true';
 	}
 	return true;
@@ -31,7 +31,7 @@ interface ChatInputRef {
 	adjustHeight: () => void;
 }
 
-interface ConversationHeaderProps {
+interface CollaborationHeaderProps {
 	cacheStatus: 'active' | 'expiring' | 'inactive';
 	status: ChatStatus;
 	onSelect: (id: string) => void;
@@ -44,12 +44,12 @@ interface ConversationHeaderProps {
 	onSendMessage: (message: string) => Promise<void>;
 	chatInputRef: RefObject<ChatInputRef>;
 	disabled: boolean;
-	projectId: string;
+	projectId: ProjectId;
 	apiClient: ApiClient;
 	currentProject?: ClientProjectWithConfigSources;
 }
 
-export function ConversationHeader({
+export function CollaborationHeader({
 	cacheStatus,
 	status,
 	onSelect,
@@ -65,15 +65,15 @@ export function ConversationHeader({
 	projectId,
 	apiClient,
 	currentProject,
-}: ConversationHeaderProps): JSX.Element {
+}: CollaborationHeaderProps): JSX.Element {
 	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
-	const currentConversation = useComputed(() =>
-		chatState.value.conversations.find((c) => c.id === chatState.value.conversationId)
+	const currentCollaboration = useComputed(() =>
+		chatState.value.collaborations.find((c) => c.id === chatState.value.collaborationId)
 	);
 
 	// Find the latest assistant message that might have request params
 	const getModelInfo = () => {
-		if (!currentConversation.value) {
+		if (!currentCollaboration.value) {
 			return {
 				model: 'Unknown',
 				provider: 'Unknown',
@@ -81,7 +81,7 @@ export function ConversationHeader({
 		}
 
 		const logDataEntries = chatState.value.logDataEntries || [];
-		//console.log('ConversationHeader: getModelInfo', {logDataEntries});
+		//console.log('CollaborationHeader: getModelInfo', {logDataEntries});
 		const assistantEntries = logDataEntries.filter((logDataEntry) =>
 			logDataEntry.logEntry?.entryType === 'assistant' || logDataEntry.logEntry?.entryType === 'tool_use' ||
 			logDataEntry.logEntry?.entryType === 'answer'
@@ -93,11 +93,12 @@ export function ConversationHeader({
 		);
 
 		return {
-			model: currentConversation.value.model || 'Unknown',
-			provider: currentConversation.value.llmProviderName || 'Unknown',
-			modelConfig: currentConversation.value.modelConfig,
+			model: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator?.model || 'Unknown',
+			provider: currentCollaboration.value.lastInteractionMetadata?.llmProviderName || 'Unknown',
+			modelConfig: currentCollaboration.value.lastInteractionMetadata?.modelConfig,
 			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
-			tokenUsageInteraction: currentConversation.value.tokenUsageStats?.tokenUsageInteraction,
+			tokenUsageInteraction: currentCollaboration.value.lastInteractionMetadata?.tokenUsageStats
+				?.tokenUsageInteraction,
 		};
 	};
 
@@ -112,7 +113,7 @@ export function ConversationHeader({
 							onToggleList();
 							isCollapsed.value = !isCollapsed.value;
 							if (IS_BROWSER) {
-								localStorage.setItem('conversationListCollapsed', String(!isListVisible));
+								localStorage.setItem('collaborationListCollapsed', String(!isListVisible));
 							}
 						}}
 						className='p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
@@ -138,8 +139,8 @@ export function ConversationHeader({
 						</svg>
 					</button>
 
-					{/* Conversation Selector */}
-					<ConversationSelector
+					{/* Collaboration Selector */}
+					<CollaborationSelector
 						chatState={chatState}
 						onSelect={onSelect}
 						onNew={onNew}
@@ -151,16 +152,16 @@ export function ConversationHeader({
 					{/* Spacer */}
 					<div className='w-3'></div>
 
-					{/* Current Conversation Stats */}
-					{currentConversation.value && (
+					{/* Current Collaboration Stats */}
+					{currentCollaboration.value && (
 						<div className='flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400'>
-							{currentConversation.value && (
+							{currentCollaboration.value && (
 								<>
 									<div className='flex items-center space-x-4'>
 										{/* Project Name and ID */}
 										<div className='flex flex-col'>
 											<div className='flex items-center space-x-2'>
-												{/* Conversation Icon */}
+												{/* Collaboration Icon */}
 												<svg
 													className='w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0'
 													fill='none'
@@ -176,12 +177,12 @@ export function ConversationHeader({
 												</svg>
 												<div>
 													<span className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-														{currentConversation.value.title || 'No converstaion selected'}
+														{currentCollaboration.value.title || 'No converstaion selected'}
 													</span>
 													<div className='text-xs text-gray-500 dark:text-gray-400'>
-														{currentConversation.value.id}
+														{currentCollaboration.value.id}
 														<span className='ml-4 whitespace-nowrap'>
-															{new Date(currentConversation.value.updatedAt)
+															{new Date(currentCollaboration.value.updatedAt)
 																.toLocaleDateString(undefined, {
 																	month: 'short',
 																	day: 'numeric',
@@ -209,7 +210,8 @@ export function ConversationHeader({
 												d='M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14v-1a4 4 0 00-4-4h-4m0 0l3 3m-3-3l3-3'
 											/>
 										</svg>
-										{currentConversation.value.interactionStats.interactionTurnCount} turns
+										{currentCollaboration.value.lastInteractionMetadata?.interactionStats
+											.interactionTurnCount || '--'} turns
 									</div>
 
 									<div className='flex items-center'>
@@ -226,7 +228,7 @@ export function ConversationHeader({
 												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 											/>
 										</svg>
-										{currentConversation.value.tokenUsageStats?.tokenUsageInteraction
+										{currentCollaboration.value.tokenUsageStats?.tokenUsageInteraction
 											?.totalAllTokens
 											?.toLocaleString() ||
 											0} tokens

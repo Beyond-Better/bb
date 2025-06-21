@@ -1,19 +1,19 @@
 import { Signal, useSignal } from '@preact/signals';
 import { ConfirmDialog } from './Dialogs/ConfirmDialog.tsx';
-import type { ConversationListState } from '../types/chat.types.ts';
+import type { CollaborationListState } from '../types/chat.types.ts';
 
-interface ConversationListProps {
+interface CollaborationListProps {
 	onClose?: () => void;
-	conversationListState: Signal<ConversationListState>;
+	collaborationListState: Signal<CollaborationListState>;
 	onSelect: (id: string) => void;
 	onNew: () => void;
 	onDelete: (id: string) => Promise<void>;
 }
 
-// [TODO] conversations being passed through via conversationListState are still the legacy version, not this new interface
+// [TODO] collaborations being passed through via collaborationListState are still the legacy version, not this new interface
 /*
-export interface Conversation {
-	version?: number; // defaults to 1 for existing conversations, 2 for new token usage format
+export interface Collaboration {
+	version?: number; // defaults to 1 for existing collaborations, 2 for new token usage format
 	id: InteractionId;
 	title: string;
 
@@ -31,26 +31,26 @@ export interface Conversation {
 }
  */
 
-interface ConversationToDelete {
+interface CollaborationToDelete {
 	id: string;
 	title: string;
 }
 
-export function ConversationList({
-	conversationListState,
+export function CollaborationList({
+	collaborationListState,
 	onClose,
 	onSelect,
 	onNew,
 	onDelete,
-}: ConversationListProps) {
-	const isLoading = conversationListState.value.isLoading;
+}: CollaborationListProps) {
+	const isLoading = collaborationListState.value.isLoading;
 	const showDeleteConfirm = useSignal(false);
-	const conversationToDelete = useSignal<ConversationToDelete | undefined>(undefined);
+	const collaborationToDelete = useSignal<CollaborationToDelete | undefined>(undefined);
 
 	return (
 		<>
 			<div className='flex flex-col h-full'>
-				{/* New Conversation Button */}
+				{/* New Collaboration Button */}
 				<div className='p-4 border-b border-gray-200 dark:border-gray-700 flex-none bg-gray-50 dark:bg-gray-800'>
 					<div className='flex items-center gap-2 w-full'>
 						{/* Close Button */}
@@ -108,9 +108,9 @@ export function ConversationList({
 					</div>
 				</div>
 
-				{/* Conversations List */}
+				{/* Collaborations List */}
 				<div className='flex-1 overflow-y-auto'>
-					{conversationListState.value.conversations.length === 0
+					{collaborationListState.value.collaborations.length === 0
 						? (
 							<div className='text-center text-gray-500 dark:text-gray-400 dark:text-gray-400 py-8'>
 								<svg
@@ -136,33 +136,33 @@ export function ConversationList({
 						)
 						: (
 							<ul className='space-y-2 p-2 text-gray-600 dark:text-gray-300'>
-								{conversationListState.value.conversations
+								{collaborationListState.value.collaborations
 									.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-									.map((conv) => (
+									.map((collab) => (
 										<li
-											key={conv.id}
+											key={collab.id}
 											className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200 rounded-lg border dark:border-gray-700 group ${
-												conv.id === conversationListState.value.selectedId
+												collab.id === collaborationListState.value.selectedId
 													? 'bg-blue-50 dark:bg-blue-900/30'
 													: ''
 											} ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
-											onClick={() => !isLoading && onSelect(conv.id)}
+											onClick={() => !isLoading && onSelect(collab.id)}
 										>
 											<div className='flex justify-between items-start'>
 												<h3
 													className='font-medium text-gray-900 dark:text-gray-100 dark:text-gray-100 truncate text-sm'
-													title={conv.title || 'Untitled'}
+													title={collab.title || 'Untitled'}
 												>
-													{conv.title || 'Untitled'}
+													{collab.title || 'Untitled'}
 												</h3>
 												{/* Delete button - only visible on hover */}
 												<button
 													type='button'
 													onClick={(e) => {
 														e.stopPropagation();
-														conversationToDelete.value = {
-															id: conv.id,
-															title: conv.title || 'Untitled',
+														collaborationToDelete.value = {
+															id: collab.id,
+															title: collab.title || 'Untitled',
 														};
 														showDeleteConfirm.value = true;
 													}}
@@ -186,7 +186,7 @@ export function ConversationList({
 												</button>
 											</div>
 											<div className='grid grid-cols-2 gap-1.5 text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1'>
-												<span className='truncate'>ID: {conv.id}</span>
+												<span className='truncate'>ID: {collab.id}</span>
 												<span className='flex items-center whitespace-nowrap'>
 													<svg
 														className='w-3.5 h-3.5 mr-1'
@@ -201,7 +201,7 @@ export function ConversationList({
 															d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
 														/>
 													</svg>
-													{new Date(conv.updatedAt).toLocaleDateString(undefined, {
+													{new Date(collab.updatedAt).toLocaleDateString(undefined, {
 														month: 'short',
 														day: 'numeric',
 														hour: 'numeric',
@@ -210,7 +210,7 @@ export function ConversationList({
 												</span>
 											</div>
 											<div className='grid grid-cols-2 gap-1.5 text-xs mt-1'>
-												{conv.interactionStats && (
+												{collab.lastInteractionMetadata?.interactionStats && (
 													<p className='flex items-center text-blue-600 dark:text-blue-400 dark:text-blue-400'>
 														<svg
 															className='w-3.5 h-3.5 mr-1'
@@ -225,10 +225,11 @@ export function ConversationList({
 																d='M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'
 															/>
 														</svg>
-														{conv.interactionStats.interactionTurnCount} turns
+														{collab.lastInteractionMetadata?.interactionStats
+															.interactionTurnCount} turns
 													</p>
 												)}
-												{conv.tokenUsageStats.tokenUsageInteraction && (
+												{collab.tokenUsageStats.tokenUsageInteraction && (
 													<p className='flex items-center text-purple-600 dark:text-purple-400 dark:text-purple-400'>
 														<svg
 															className='w-3.5 h-3.5 mr-1'
@@ -243,9 +244,10 @@ export function ConversationList({
 																d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 															/>
 														</svg>
-														{conv.tokenUsageStats.tokenUsageInteraction.totalTokens
+														{collab.tokenUsageStats.tokenUsageInteraction.totalTokens
 															?.toLocaleString() ||
-															conv.tokenUsageStats.tokenUsageInteraction.totalTokensTotal
+															collab.tokenUsageStats.tokenUsageInteraction
+																.totalTokensTotal
 																?.toLocaleString() ||
 															0} tokens
 													</p>
@@ -262,18 +264,18 @@ export function ConversationList({
 			<ConfirmDialog
 				visible={showDeleteConfirm.value}
 				title='Delete Conversation'
-				message={`Are you sure you want to delete the conversation '${conversationToDelete.value?.title}'?`}
+				message={`Are you sure you want to delete the conversation '${collaborationToDelete.value?.title}'?`}
 				confirmLabel='Delete'
 				onConfirm={async () => {
-					if (conversationToDelete.value) {
-						await onDelete(conversationToDelete.value.id);
+					if (collaborationToDelete.value) {
+						await onDelete(collaborationToDelete.value.id);
 						showDeleteConfirm.value = false;
-						conversationToDelete.value = undefined;
+						collaborationToDelete.value = undefined;
 					}
 				}}
 				onCancel={() => {
 					showDeleteConfirm.value = false;
-					conversationToDelete.value = undefined;
+					collaborationToDelete.value = undefined;
 				}}
 				isDangerous={true}
 			/>

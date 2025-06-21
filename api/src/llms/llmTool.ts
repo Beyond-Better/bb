@@ -6,7 +6,7 @@ import { TOOL_STYLES_BROWSER, TOOL_STYLES_CONSOLE, TOOL_TAGS_BROWSER } from './l
 import type { LLMAnswerToolUse, LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import type { InteractionId, CollaborationLogEntryContent } from 'shared/types.ts';
+import type { CollaborationLogEntryContent, InteractionId } from 'shared/types.ts';
 import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { logger } from 'shared/logger.ts';
 

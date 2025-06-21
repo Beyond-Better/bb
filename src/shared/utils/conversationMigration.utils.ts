@@ -6,7 +6,7 @@ import { generateResourceRevisionKey, generateResourceUriKey } from 'shared/data
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
-import type { InteractionMetadata } from 'shared/types.ts';
+import type { InteractionMetadata, ProjectId } from 'shared/types.ts';
 import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 
@@ -55,7 +55,7 @@ const migrationPromises = new Map<string, Promise<void>>();
  * Migrates the conversations.json file format from v0 (array) to v1 (object with version and conversations array)
  * Similar to how projectRegistry handles migration
  */
-export async function migrateConversationsFileIfNeeded(projectId: string): Promise<void> {
+export async function migrateConversationsFileIfNeeded(projectId: ProjectId): Promise<void> {
 	// Check if migration is already in progress
 	if (migrationPromises.has(projectId)) {
 		// Wait for the existing migration to complete
@@ -189,7 +189,7 @@ interface ResourceRevisionInfo {
  * 4. Move files from file_revisions to resource_revisions
  */
 export async function migrateConversationResources(
-	projectId: string,
+	projectId: ProjectId,
 	projectPersistence: ProjectPersistence,
 ): Promise<void> {
 	try {
@@ -428,7 +428,7 @@ export async function migrateConversationResources(
  * Simplified to only look in the new resource_revisions directories
  */
 async function migrateProjectResources(
-	projectId: string,
+	projectId: ProjectId,
 	resourceMap: Map<string, ResourceRevisionInfo>,
 	projectPersistence: ProjectPersistence,
 ): Promise<void> {

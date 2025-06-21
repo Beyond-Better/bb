@@ -1,7 +1,7 @@
 import { JSX } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { MessageEntry } from './MessageEntry.tsx';
-import type { CollaborationLogDataEntry } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, ProjectId } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import { getInitialCollapseState, saveCollapseState } from '../utils/messageUtils.utils.tsx';
 
@@ -11,8 +11,8 @@ interface MessageEntryAgentTaskGroupProps {
 	parentIndex: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;
-	projectId: string;
-	conversationId: string;
+	projectId: ProjectId;
+	collaborationId: string;
 }
 
 export function MessageEntryAgentTaskGroup({
@@ -22,14 +22,14 @@ export function MessageEntryAgentTaskGroup({
 	onCopy,
 	apiClient,
 	projectId,
-	conversationId,
+	collaborationId,
 }: MessageEntryAgentTaskGroupProps): JSX.Element {
 	const agentInteractionId = entries.length > 0 ? entries[0].agentInteractionId : null;
 
 	// State for collapse control
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(
-			conversationId,
+			collaborationId,
 			`group-${agentInteractionId}`,
 			parentIndex,
 			'agent_group',
@@ -39,10 +39,10 @@ export function MessageEntryAgentTaskGroup({
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => {
 			const newState = !prev;
-			saveCollapseState(conversationId, `group-${agentInteractionId}`, parentIndex, newState);
+			saveCollapseState(collaborationId, `group-${agentInteractionId}`, parentIndex, newState);
 			return newState;
 		});
-	}, [conversationId, agentInteractionId, parentIndex]);
+	}, [collaborationId, agentInteractionId, parentIndex]);
 
 	// Extract info from entries
 	//const taskTitle = entries.find(entry =>
@@ -139,7 +139,7 @@ export function MessageEntryAgentTaskGroup({
 							onCopy={onCopy}
 							apiClient={apiClient}
 							projectId={projectId}
-							conversationId={conversationId}
+							collaborationId={collaborationId}
 						/>
 					))}
 				</div>

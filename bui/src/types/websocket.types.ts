@@ -1,4 +1,5 @@
 import type { VersionInfo } from 'shared/types/version.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 
 /**
@@ -61,5 +62,5 @@ export interface WebSocketConfigApp extends WebSocketConfigBase {
 export interface WebSocketConfigChat extends WebSocketConfigBase {
 	/** API server URL for REST endpoints */
 	apiUrl: string;
-	projectId: string;
+	projectId: ProjectId;
 }

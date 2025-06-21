@@ -1,14 +1,14 @@
 import { JSX } from 'preact';
 import type { CollaborationLogDataEntry } from 'shared/types.ts';
 
-interface InteractionMetadataProps {
+interface CollaborationMetadataProps {
 	logDataEntries: CollaborationLogDataEntry[];
-	conversationId: string | null;
+	collaborationId: string | null;
 	title?: string;
 }
 
-export function InteractionMetadata(
-	{ logDataEntries, conversationId, title }: InteractionMetadataProps,
+export function CollaborationMetadata(
+	{ logDataEntries, collaborationId, title }: CollaborationMetadataProps,
 ): JSX.Element {
 	// Get the most recent token usage from logDataEntries
 	const latestEntry = logDataEntries[logDataEntries.length - 1];
@@ -16,17 +16,17 @@ export function InteractionMetadata(
 
 	return (
 		<div className='flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400'>
-			{/* Conversation Title */}
+			{/* Collaboration Title */}
 			{title && (
 				<div className='flex items-center'>
 					<span className='font-medium text-gray-700 dark:text-gray-200'>{title}</span>
 				</div>
 			)}
 
-			{/* Conversation ID */}
-			{conversationId && (
+			{/* Collaboration ID */}
+			{collaborationId && (
 				<div className='font-mono'>
-					<span className='text-gray-400 dark:text-gray-500 mr-1'>ID:</span> {conversationId}
+					<span className='text-gray-400 dark:text-gray-500 mr-1'>ID:</span> {collaborationId}
 				</div>
 			)}
 

@@ -152,7 +152,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Basic content search functionality - bbResponse:', result.bbResponse);
 			// console.log('Basic content search functionality - toolResponse:', result.toolResponse);
@@ -221,7 +221,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Search pattern spanning multiple buffers - bbResponse:', result.bbResponse);
 			// console.log('Search pattern spanning multiple buffers - toolResponse:', result.toolResponse);
@@ -289,7 +289,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Date-based search - bbResponse:', result.bbResponse);
 			// console.log('Date-based search - toolResponse:', result.toolResponse);
@@ -371,7 +371,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Resource-only search (metadata) - bbResponse:', result.bbResponse);
 			// console.log('Resource-only search (metadata) - toolResponse:', result.toolResponse);
@@ -455,7 +455,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Combining all search criteria - bbResponse:', result.bbResponse);
 			// console.log('Combining all search criteria - toolResponse:', result.toolResponse);
@@ -526,7 +526,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -593,7 +593,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -660,7 +660,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -726,7 +726,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -773,7 +773,7 @@ Deno.test({
 					contentPattern: '[', // Invalid regex pattern
 				},
 			};
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Error handling for invalid search pattern - bbResponse:', result.bbResponse);
 			// console.log('Error handling for invalid search pattern - toolResponse:', result.toolResponse);
@@ -830,7 +830,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -896,7 +896,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -968,7 +968,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			//console.log('Search with specific content and resource pattern - bbResponse:', result.bbResponse);
 			//console.log('Search with specific content and resource pattern - toolResponse:', result.toolResponse);
@@ -1044,7 +1044,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1089,7 +1089,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1133,7 +1133,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1177,7 +1177,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1221,7 +1221,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1266,7 +1266,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Search with regex using quantifiers - case-sensitive - bbResponse:', result.bbResponse);
 			// console.log('Search with regex using quantifiers - case-sensitive - toolResponse:', result.toolResponse);
@@ -1314,7 +1314,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Search with regex using quantifiers - case-insensitive - bbResponse:', result.bbResponse);
 			// console.log('Search with regex using quantifiers - case-insensitive - toolResponse:', result.toolResponse);
@@ -1361,7 +1361,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1405,7 +1405,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
@@ -1449,7 +1449,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Search with negative lookahead regex - bbResponse:', result.bbResponse);
 			// console.log('Search with negative lookahead regex - toolResponse:', result.toolResponse);
@@ -1514,7 +1514,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Case-sensitive search - bbResponse:', result.bbResponse);
 			// console.log('Case-sensitive search - toolResponse:', result.toolResponse);
@@ -1580,7 +1580,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Case-insensitive search - bbResponse:', result.bbResponse);
 			// console.log('Case-insensitive search - toolResponse:', result.toolResponse);
@@ -1641,7 +1641,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('complex pattern with multiple extensions - bbResponse:', result.bbResponse);
 			// console.log('complex pattern with multiple extensions - toolResponse:', result.toolResponse);
@@ -1702,7 +1702,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('complex pattern with different directories - bbResponse:', result.bbResponse);
 			// console.log('complex pattern with different directories - toolResponse:', result.toolResponse);
@@ -1763,7 +1763,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('deep directory traversal with Kubernetes resources - bbResponse:', result.bbResponse);
 			// console.log('deep directory traversal with Kubernetes resources - toolResponse:', result.toolResponse);
@@ -1838,7 +1838,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			console.log('deep directory traversal with double-star pattern - bbResponse:', result.bbResponse);
 			console.log('deep directory traversal with double-star pattern - toolResponse:', result.toolResponse);
@@ -1914,7 +1914,7 @@ Deno.test({
 				},
 			};
 
-			const interaction = await projectEditor.initCollaboration('test-interaction-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('deep directory traversal with dual double-star pattern - bbResponse:', result.bbResponse);
 			// console.log('deep directory traversal with dual double-star pattern - toolResponse:', result.toolResponse);

@@ -105,7 +105,11 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('collaboration-concurrent-writes', 'concurrent-writes', projectEditor);
+			const interaction = await createTestInteraction(
+				'collaboration-concurrent-writes',
+				'concurrent-writes',
+				projectEditor,
+			);
 
 			// Create records with same messageId but different content
 			const baseRecord = createMockTokenUsageRecord('assistant', 'conversation', {

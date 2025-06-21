@@ -1,19 +1,19 @@
 import { fireEvent, render } from '@testing-library/preact';
-import { ConversationTrigger } from '../components/ConversationSelector/ConversationTrigger.tsx';
+import { CollaborationTrigger } from '../components/CollaborationSelector/CollaborationTrigger.tsx';
 import { describe, expect, it } from '../test_deps.ts';
 
-describe('ConversationTrigger', () => {
-	const mockConversation = {
+describe('CollaborationTrigger', () => {
+	const mockCollaboration = {
 		id: 'conv-123',
 		title: 'Test Conversation',
 		updatedAt: new Date().toISOString(),
 		createdAt: new Date().toISOString(),
 	};
 
-	it('renders default state with no conversation', () => {
+	it('renders default state with no collaboration', () => {
 		const { getByText } = render(
-			<ConversationTrigger
-				conversation={undefined}
+			<CollaborationTrigger
+				collaboration={undefined}
 				isOpen={false}
 				onClick={() => {}}
 			/>,
@@ -22,10 +22,10 @@ describe('ConversationTrigger', () => {
 		expect(getByText('Select Conversation')).toBeTruthy();
 	});
 
-	it('renders conversation title and ID when provided', () => {
+	it('renders collaboration title and ID when provided', () => {
 		const { getByText } = render(
-			<ConversationTrigger
-				conversation={mockConversation}
+			<CollaborationTrigger
+				collaboration={mockCollaboration}
 				isOpen={false}
 				onClick={() => {}}
 			/>,
@@ -35,15 +35,15 @@ describe('ConversationTrigger', () => {
 		expect(getByText('conv-123')).toBeTruthy();
 	});
 
-	it('handles untitled conversations', () => {
-		const untitledConversation = {
-			...mockConversation,
+	it('handles untitled collaborations', () => {
+		const untitledCollaboration = {
+			...mockCollaboration,
 			title: undefined,
 		};
 
 		const { getByText } = render(
-			<ConversationTrigger
-				conversation={untitledConversation}
+			<CollaborationTrigger
+				collaboration={untitledCollaboration}
 				isOpen={false}
 				onClick={() => {}}
 			/>,
@@ -55,8 +55,8 @@ describe('ConversationTrigger', () => {
 
 	it('applies correct styles when open', () => {
 		const { container } = render(
-			<ConversationTrigger
-				conversation={mockConversation}
+			<CollaborationTrigger
+				collaboration={mockCollaboration}
 				isOpen={true}
 				onClick={() => {}}
 			/>,
@@ -74,8 +74,8 @@ describe('ConversationTrigger', () => {
 		};
 
 		const { container } = render(
-			<ConversationTrigger
-				conversation={mockConversation}
+			<CollaborationTrigger
+				collaboration={mockCollaboration}
 				isOpen={false}
 				onClick={handleClick}
 			/>,

@@ -53,16 +53,16 @@ function isCacheValid(timestamp: number): boolean {
  */
 export function initializeModelState(client: ApiClient, projectId: string): void {
 	console.log('useModelState: Initializing with project:', projectId);
-	
+
 	apiClient = client;
 	currentProjectId = projectId;
-	
+
 	// Reset error state
 	modelState.value = {
 		...modelState.value,
 		error: null,
 	};
-	
+
 	// Load defaults immediately
 	loadDefaultModels();
 }
@@ -78,8 +78,8 @@ async function loadDefaultModels(): Promise<void> {
 
 	// Check if we have valid cached defaults
 	if (
-		modelState.value.defaultRolesModelConfig && 
-		modelState.value.defaultsTimestamp && 
+		modelState.value.defaultRolesModelConfig &&
+		modelState.value.defaultsTimestamp &&
 		isCacheValid(modelState.value.defaultsTimestamp)
 	) {
 		console.log('useModelState: Using cached default models');
@@ -87,7 +87,7 @@ async function loadDefaultModels(): Promise<void> {
 	}
 
 	console.log('useModelState: Loading default models from API');
-	
+
 	modelState.value = {
 		...modelState.value,
 		isLoadingDefaults: true,
@@ -96,7 +96,7 @@ async function loadDefaultModels(): Promise<void> {
 
 	try {
 		const defaults = await apiClient.getCollaborationDefaults(currentProjectId);
-		
+
 		if (!defaults) {
 			throw new Error('Failed to load default models from API');
 		}
@@ -123,17 +123,16 @@ async function loadDefaultModels(): Promise<void> {
 
 		// Remove duplicates
 		const uniqueModelIds = [...new Set(defaultModelIds)];
-		
+
 		// Load capabilities for default models in background
-		uniqueModelIds.forEach(modelId => {
-			loadModelCapabilities(modelId).catch(error => {
+		uniqueModelIds.forEach((modelId) => {
+			loadModelCapabilities(modelId).catch((error) => {
 				console.warn(`useModelState: Failed to preload capabilities for ${modelId}:`, error);
 			});
 		});
-
 	} catch (error) {
 		console.error('useModelState: Failed to load default models:', error);
-		
+
 		modelState.value = {
 			...modelState.value,
 			isLoadingDefaults: false,
@@ -177,7 +176,7 @@ async function loadModelCapabilities(modelId: string): Promise<ModelDetails | nu
 
 	try {
 		const response = await apiClient.getModelCapabilities(modelId);
-		
+
 		if (!response || !response.model) {
 			throw new Error(`No model data returned for ${modelId}`);
 		}
@@ -206,10 +205,9 @@ async function loadModelCapabilities(modelId: string): Promise<ModelDetails | nu
 
 		console.log(`useModelState: Successfully loaded capabilities for ${modelId}`);
 		return modelDetails;
-
 	} catch (error) {
 		console.error(`useModelState: Failed to load capabilities for ${modelId}:`, error);
-		
+
 		// Clear loading state
 		modelState.value = {
 			...modelState.value,
@@ -217,7 +215,9 @@ async function loadModelCapabilities(modelId: string): Promise<ModelDetails | nu
 				...modelState.value.isLoadingCapabilities,
 				[modelId]: false,
 			},
-			error: `Failed to load model capabilities for ${modelId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+			error: `Failed to load model capabilities for ${modelId}: ${
+				error instanceof Error ? error.message : 'Unknown error'
+			}`,
 		};
 
 		return null;
@@ -263,7 +263,7 @@ export function useModelState() {
 		 * Ensure model capabilities are loaded for multiple models
 		 */
 		ensureModelCapabilities: async (modelIds: string[]): Promise<void> => {
-			const promises = modelIds.map(modelId => loadModelCapabilities(modelId));
+			const promises = modelIds.map((modelId) => loadModelCapabilities(modelId));
 			await Promise.allSettled(promises);
 		},
 
@@ -280,7 +280,7 @@ export function useModelState() {
 		 */
 		refreshCache: async (): Promise<void> => {
 			console.log('useModelState: Refreshing cache');
-			
+
 			modelState.value = {
 				...modelState.value,
 				modelCapabilities: {},

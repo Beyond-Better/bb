@@ -1,5 +1,5 @@
 import { Command } from 'cliffy/command';
-import type { InteractionMetadata } from 'shared/types.ts';
+import type { InteractionMetadata, ProjectId } from 'shared/types.ts';
 import { resolve } from '@std/path';
 import ApiClient from 'cli/apiClient.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
@@ -16,7 +16,7 @@ export const collaborationList = new Command()
 		// 		startSpinner(spinner, 'Fetching saved collaborations...');
 
 		try {
-			let projectId: string | undefined;
+			let projectId: ProjectId | undefined;
 			try {
 				const startDir = resolve(directory);
 				const workingRoot = await getWorkingRootFromStartDir(startDir);
@@ -48,15 +48,21 @@ export const collaborationList = new Command()
 						(collaboration: any, index: number) => {
 							const createdAt = new Date(collaboration.createdAt).toLocaleString();
 							const updatedAt = new Date(collaboration.updatedAt).toLocaleString();
-							console.log(`${index + 1}. ID: ${collaboration.id} | Title: ${collaboration.title} | Type: ${collaboration.type}`);
 							console.log(
-								`   Interactions: ${collaboration.totalInteractions || 0} | Created: ${createdAt} | Updated: ${updatedAt}`,
+								`${
+									index + 1
+								}. ID: ${collaboration.id} | Title: ${collaboration.title} | Type: ${collaboration.type}`,
+							);
+							console.log(
+								`   Interactions: ${
+									collaboration.totalInteractions || 0
+								} | Created: ${createdAt} | Updated: ${updatedAt}`,
 							);
 							if (collaboration.lastInteractionMetadata) {
 								console.log(
-									`   Last Provider: ${collaboration.lastInteractionMetadata.llmProviderName || 'N/A'} | Model: ${
-										collaboration.lastInteractionMetadata.model || 'N/A'
-									}`,
+									`   Last Provider: ${
+										collaboration.lastInteractionMetadata.llmProviderName || 'N/A'
+									} | Model: ${collaboration.lastInteractionMetadata.model || 'N/A'}`,
 								);
 							}
 						},

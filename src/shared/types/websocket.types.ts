@@ -1,18 +1,19 @@
 import type {
 	CollaborationContinue,
 	CollaborationDeleted,
-	InteractionId,
 	CollaborationLogEntry,
 	CollaborationNew,
 	CollaborationResponse,
 	CollaborationStart,
+	InteractionId,
 	InteractionStats,
+	ProjectId,
 	TokenUsage,
 } from '../types.ts';
 
 export interface WebSocketMessage {
 	collaborationId: string;
-	projectId: string;
+	projectId: ProjectId;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement?: string;
 }

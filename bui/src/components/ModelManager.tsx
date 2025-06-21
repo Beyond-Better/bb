@@ -28,7 +28,7 @@ export interface ModelSelectionValue {
 }
 
 // Context type for different use cases
-export type ModelSelectorContext = 'global' | 'project' | 'conversation';
+export type ModelSelectorContext = 'global' | 'project' | 'collaboration';
 
 // Role type for different model purposes
 export type ModelRole = 'orchestrator' | 'agent' | 'chat';
@@ -37,12 +37,12 @@ interface ModelSelectorProps {
 	apiClient: ApiClient;
 	context: ModelSelectorContext;
 	role: ModelRole;
-	value: ModelSelectionValue | string; // string for conversation context, ModelSelectionValue for global/project
+	value: ModelSelectionValue | string; // string for collaboration context, ModelSelectionValue for global/project
 	onChange: (value: ModelSelectionValue | string) => void;
 	label: string | JSX.Element;
 	description?: string;
 	className?: string;
-	compact?: boolean; // For conversation context
+	compact?: boolean; // For collaboration context
 	disabled?: boolean;
 }
 
@@ -369,8 +369,8 @@ export function ModelSelector({
 	// Get current value for display
 	const currentValue = useComputed(() => {
 		if (typeof value === 'string') {
-			//console.log('ModelSelector: currentValue (conversation context):', value);
-			return value; // Conversation context
+			//console.log('ModelSelector: currentValue (collaboration context):', value);
+			return value; // Collaboration context
 		}
 		// Global/project context
 		return (value as ModelSelectionValue).project ?? (value as ModelSelectionValue).global ?? '';
@@ -382,7 +382,7 @@ export function ModelSelector({
 	// Handle selection change
 	const handleChange = (newValue: string) => {
 		if (typeof value === 'string') {
-			// Conversation context
+			// Collaboration context
 			onChange(newValue);
 		} else {
 			// Global/project context

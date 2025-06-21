@@ -10,6 +10,7 @@ import {
 	CollaborationStart,
 	InteractionId,
 	InteractionStats,
+	ProjectId,
 } from 'shared/types.ts';
 import { VersionInfo } from '../types/version.types.ts';
 import { logger } from 'shared/logger.ts';
@@ -21,7 +22,7 @@ export type EventMap = {
 		speakWith: {
 			collaborationId: CollaborationId;
 			interactionId: InteractionId;
-			projectId: string;
+			projectId: ProjectId;
 			prompt: string;
 		};
 		collaborationReady: CollaborationStart & { versionInfo: VersionInfo };

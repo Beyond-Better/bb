@@ -2,6 +2,7 @@ import { getConfigManager } from 'shared/config/configManager.ts';
 import { logger } from 'shared/logger.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import type { ApiConfig } from 'shared/config/types.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 export default class ApiClient {
 	private baseUrl: string;
@@ -19,7 +20,7 @@ export default class ApiClient {
 	}
 
 	static async create(
-		projectId: string | undefined,
+		projectId: ProjectId | undefined,
 		hostname?: string,
 		port?: number,
 		useTls?: boolean,
@@ -70,10 +71,10 @@ export default class ApiClient {
 		}
 	}
 
-	async listCollaborations(projectId: string, page = 1, limit = 10) {
+	async listCollaborations(projectId: ProjectId, page = 1, limit = 10) {
 		try {
 			const response = await this.get(
-				`/api/v1/collaborations?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`
+				`/api/v1/collaborations?projectId=${encodeURIComponent(projectId)}&page=${page}&limit=${limit}`,
 			);
 			return await response.json();
 		} catch (error) {
@@ -82,7 +83,7 @@ export default class ApiClient {
 		}
 	}
 
-	async createCollaboration(title: string, type: string, projectId: string) {
+	async createCollaboration(title: string, type: string, projectId: ProjectId) {
 		try {
 			const response = await this.post('/api/v1/collaborations', {
 				title,
@@ -96,10 +97,10 @@ export default class ApiClient {
 		}
 	}
 
-	async getCollaboration(collaborationId: string, projectId: string) {
+	async getCollaboration(collaborationId: string, projectId: ProjectId) {
 		try {
 			const response = await this.get(
-				`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`
+				`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`,
 			);
 			return await response.json();
 		} catch (error) {
@@ -108,7 +109,7 @@ export default class ApiClient {
 		}
 	}
 
-	async createInteraction(collaborationId: string, projectId: string, parentInteractionId?: string) {
+	async createInteraction(collaborationId: string, projectId: ProjectId, parentInteractionId?: string) {
 		try {
 			const response = await this.post(`/api/v1/collaborations/${collaborationId}/interactions`, {
 				projectId,
@@ -121,13 +122,22 @@ export default class ApiClient {
 		}
 	}
 
-	async chatInteraction(collaborationId: string, interactionId: string, statement: string, projectId: string, maxTurns?: number) {
+	async chatInteraction(
+		collaborationId: string,
+		interactionId: string,
+		statement: string,
+		projectId: ProjectId,
+		maxTurns?: number,
+	) {
 		try {
-			const response = await this.post(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}`, {
-				statement,
-				projectId,
-				maxTurns,
-			});
+			const response = await this.post(
+				`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}`,
+				{
+					statement,
+					projectId,
+					maxTurns,
+				},
+			);
 			return await response.json();
 		} catch (error) {
 			logger.error(`APIClient: Chat interaction failed: ${(error as Error).message}`);

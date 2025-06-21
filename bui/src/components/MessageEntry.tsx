@@ -4,6 +4,7 @@ import { ApiClient } from '../utils/apiClient.utils.ts';
 import type {
 	CollaborationLogDataEntry,
 	//CollaborationLogEntry
+	ProjectId,
 } from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getDefaultTokenUsage, logDataEntryHasChildren, logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
@@ -24,8 +25,8 @@ interface MessageEntryProps {
 	index: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;
-	projectId: string;
-	conversationId: string;
+	projectId: ProjectId;
+	collaborationId: string;
 }
 
 marked.setOptions({
@@ -61,12 +62,12 @@ export function MessageEntry({
 	onCopy,
 	apiClient,
 	projectId,
-	conversationId,
+	collaborationId,
 }: MessageEntryProps & { allEntries?: CollaborationLogDataEntry[] }): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(
-			conversationId,
+			collaborationId,
 			logDataEntry.agentInteractionId || null,
 			index,
 			logDataEntryHasLogEntry(logDataEntry) ? logDataEntry.logEntry.entryType : 'auxiliary',
@@ -85,7 +86,7 @@ export function MessageEntry({
 					logDataEntry.logEntry.entryType,
 					logDataEntry.logEntry,
 					projectId,
-					conversationId,
+					collaborationId,
 				);
 				if (response) {
 					setFormatted(response);
@@ -96,7 +97,7 @@ export function MessageEntry({
 		};
 
 		fetchFormatted();
-	}, [logDataEntry, apiClient, projectId, conversationId]);
+	}, [logDataEntry, apiClient, projectId, collaborationId]);
 
 	// Handle code block truncation
 	useEffect(() => {
@@ -183,10 +184,10 @@ export function MessageEntry({
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => {
 			const newState = !prev;
-			saveCollapseState(conversationId, logDataEntry.agentInteractionId || null, index, newState);
+			saveCollapseState(collaborationId, logDataEntry.agentInteractionId || null, index, newState);
 			return newState;
 		});
-	}, [conversationId, logDataEntry.agentInteractionId, index]);
+	}, [collaborationId, logDataEntry.agentInteractionId, index]);
 
 	const toggleMetadata = useCallback(() => {
 		setShowMetadata((prev) => !prev);
@@ -454,7 +455,7 @@ export function MessageEntry({
 						content={logDataEntry.logEntry.content}
 						apiClient={apiClient}
 						projectId={projectId}
-						conversationId={conversationId}
+						collaborationId={collaborationId}
 						logEntry={logDataEntry.logEntry}
 					/>
 					<div className='agent-tasks-container mt-4'>
@@ -485,7 +486,7 @@ export function MessageEntry({
 									onCopy={onCopy}
 									apiClient={apiClient}
 									projectId={projectId}
-									conversationId={conversationId}
+									collaborationId={collaborationId}
 								/>
 							))}
 
@@ -509,7 +510,7 @@ export function MessageEntry({
 					//onCopy={handleCopy}
 					apiClient={apiClient}
 					projectId={projectId}
-					conversationId={conversationId}
+					collaborationId={collaborationId}
 					logEntry={logDataEntry.logEntry}
 				/>
 			);

@@ -43,7 +43,10 @@ Deno.test({
 			// Create test resources and add them to the interaction
 			await Deno.writeTextFile(join(testProjectRoot, 'file1.txt'), 'Content of file1');
 			await Deno.writeTextFile(join(testProjectRoot, 'file2.txt'), 'Content of file2');
-			const initialInteraction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-collaboration-id',
+				'test-interaction-id',
+			);
 			initialInteraction.addResourceForMessage(primaryDsConnection!.getUriForResource('file:./file1.txt'), {
 				contentType: 'text',
 				type: 'file',

@@ -6,6 +6,7 @@ import type {
 	ClientProjectWithConfigSources,
 	//ConfigValue,
 } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type { MCPServerConfig } from 'shared/config/types.ts';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 //import MCPServersOverview from '../MCPServersOverview.tsx';
@@ -15,15 +16,15 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import {
 	ModelCombinations,
-	ModelRoleExplanationsContentChat,
 	ModelRoleExplanationsContentAgent,
+	ModelRoleExplanationsContentChat,
 	ModelRoleExplanationsContentOrchestrator,
 	ModelSelectHelp,
 	type ModelSelectionValue,
 	ModelSelector,
 	ModelSystemCardsLink,
 } from '../ModelManager.tsx';
-import { ChatIcon, AgentIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
+import { AgentIcon, ChatIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
 //import { FileBrowser } from '../FileBrowser.tsx';
 
 // Helper function to format YAML with proper array syntax
@@ -154,7 +155,7 @@ interface ProjectEditorProps {
 	className?: string;
 	//onCreateProject: (projectWithSources: ClientProjectWithConfigForUpdates) => Promise<void>;
 	onUpdateProject: (
-		projectId: string,
+		projectId: ProjectId,
 		updates: Partial<ClientProjectWithConfigForUpdates>,
 	) => Promise<void>;
 }

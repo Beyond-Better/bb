@@ -1,6 +1,6 @@
 //import { crypto } from '@std/crypto';
 import { ulid } from '@std/ulid';
-import { InteractionId, CollaborationId } from 'shared/types.ts';
+import { CollaborationId, InteractionId } from 'shared/types.ts';
 
 export function generateInteractionId(): InteractionId {
 	//const uuid = crypto.randomUUID();

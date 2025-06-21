@@ -1,7 +1,7 @@
 import { eventManager } from 'shared/eventManager.ts';
 import type { EventName, EventPayloadMap } from 'shared/eventManager.ts';
 //import type { ApiStatus, CollaborationId, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
-import type { CollaborationId } from 'shared/types.ts';
+import type { CollaborationId, ProjectId } from 'shared/types.ts';
 import ApiClient from 'cli/apiClient.ts';
 import { getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 
@@ -16,7 +16,7 @@ export default class WebsocketManager {
 
 	async setupWebsocket(
 		collaborationId: CollaborationId,
-		projectId: string,
+		projectId: ProjectId,
 		hostname?: string,
 		port?: number,
 	): Promise<void> {
@@ -115,7 +115,10 @@ export default class WebsocketManager {
 			case 'collaborationContinue':
 				eventManager.emit(
 					'cli:collaborationContinue',
-					{ ...msgData.data, expectingMoreInput: true } as EventPayloadMap['cli']['cli:collaborationContinue'],
+					{
+						...msgData.data,
+						expectingMoreInput: true,
+					} as EventPayloadMap['cli']['cli:collaborationContinue'],
 				);
 				break;
 			case 'collaborationAnswer':

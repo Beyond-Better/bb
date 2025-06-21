@@ -17,10 +17,10 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
+	LLMToolFileMetrics,
 	LLMToolInteractionMetricsInput,
 	LLMToolInteractionMetricsResponseData,
 	LLMToolInteractionMetricsResultData,
-	LLMToolFileMetrics,
 	LLMToolToolMetrics,
 } from './types.ts';
 

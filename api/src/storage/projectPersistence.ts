@@ -20,7 +20,7 @@ import type {
 } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
-import type { FileMetadata } from 'shared/types.ts';
+import type { FileMetadata, ProjectId } from 'shared/types.ts';
 //import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
 
 /**
@@ -30,7 +30,7 @@ import type { FileMetadata } from 'shared/types.ts';
  */
 class ProjectPersistence implements ProjectData {
 	private initialized = false;
-	private _projectId: string;
+	private _projectId: ProjectId;
 	private _projectRegistry!: ProjectRegistry;
 
 	// Core project properties
@@ -58,7 +58,7 @@ class ProjectPersistence implements ProjectData {
 	 * Create a new ProjectPersistence instance
 	 * @param projectId The ID of the project to manage
 	 */
-	constructor(projectId: string) {
+	constructor(projectId: ProjectId) {
 		this._projectId = projectId;
 	}
 
@@ -376,7 +376,11 @@ class ProjectPersistence implements ProjectData {
 
 					// Check and migrate project data version if needed
 					if (!serializedData.version || serializedData.version < 4) {
-						logger.info(`ProjectPersistence: Migrating project data from version ${serializedData.version || 'unknown'} to version 4`);
+						logger.info(
+							`ProjectPersistence: Migrating project data from version ${
+								serializedData.version || 'unknown'
+							} to version 4`,
+						);
 						serializedData.version = 4;
 						// Save the migrated version
 						await Deno.writeTextFile(projectDataPath, JSON.stringify(serializedData, null, 2));
@@ -822,7 +826,7 @@ class ProjectPersistence implements ProjectData {
 	 * Migrate project data from config.yaml to project.json
 	 */
 	private async migrateDataFromConfig(
-		registryProject: { projectId: string; name: string; dataSourcePaths: string[] },
+		registryProject: { projectId: ProjectId; name: string; dataSourcePaths: string[] },
 	): Promise<void> {
 		// Get config data from ConfigManager
 		const configManager = await getConfigManager();

@@ -1,6 +1,6 @@
 import { JSX } from 'preact';
 
-interface ConversationStateEmptyProps {
+interface CollaborationStateEmptyProps {
 	setInputWithTracking: (value: string) => void;
 	chatInputRef: React.RefObject<{
 		textarea: HTMLTextAreaElement;
@@ -8,10 +8,10 @@ interface ConversationStateEmptyProps {
 	}>;
 }
 
-export function ConversationStateEmpty({
+export function CollaborationStateEmpty({
 	setInputWithTracking,
 	chatInputRef,
-}: ConversationStateEmptyProps): JSX.Element {
+}: CollaborationStateEmptyProps): JSX.Element {
 	// Function to create template buttons
 	const renderTemplateButtons = (templates: string[]) => {
 		return templates.map((template, i) => (

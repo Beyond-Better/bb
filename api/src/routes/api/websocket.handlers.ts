@@ -2,7 +2,7 @@ import type { Context, RouterContext } from '@oak/oak';
 
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { CollaborationId,InteractionId } from 'shared/types.ts';
+import type { CollaborationId, InteractionId, ProjectId } from 'shared/types.ts';
 //import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import EventManager from 'shared/eventManager.ts';
@@ -50,7 +50,9 @@ class WebSocketChatHandler {
 			}, this.LOAD_TIMEOUT);
 
 			ws.onopen = () => {
-				logger.info(`WebSocketChatHandler: WebSocket connection opened for collaborationId: ${collaborationId}`);
+				logger.info(
+					`WebSocketChatHandler: WebSocket connection opened for collaborationId: ${collaborationId}`,
+				);
 			};
 
 			ws.onmessage = async (event) => {
@@ -72,7 +74,9 @@ class WebSocketChatHandler {
 			ws.onclose = () => {
 				// Clear load timeout on close
 				clearTimeout(loadTimeout);
-				logger.info(`WebSocketChatHandler: WebSocket connection closed for collaborationId: ${collaborationId}`);
+				logger.info(
+					`WebSocketChatHandler: WebSocket connection closed for collaborationId: ${collaborationId}`,
+				);
 				this.removeConnection(ws, collaborationId);
 			};
 
@@ -97,8 +101,8 @@ class WebSocketChatHandler {
 		message: {
 			task: string;
 			statement: string;
-			projectId: string;
-			interactionId: InteractionId,
+			projectId: ProjectId;
+			interactionId: InteractionId;
 			options?: { maxTurns?: number }; // statement options
 			statementParams: StatementParams; // LLM request params
 			filesToAttach?: string[]; // Array of file IDs to include in message
@@ -107,8 +111,16 @@ class WebSocketChatHandler {
 		sessionManager: SessionManager,
 	) {
 		try {
-			const { task, statement, projectId, interactionId, options, statementParams, filesToAttach, dataSourceIdForAttach } =
-				message;
+			const {
+				task,
+				statement,
+				projectId,
+				interactionId,
+				options,
+				statementParams,
+				filesToAttach,
+				dataSourceIdForAttach,
+			} = message;
 			logger.info(`WebSocketChatHandler: handleMessage for collaborationId ${collaborationId}, task: ${task}`);
 			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
 
@@ -146,9 +158,10 @@ class WebSocketChatHandler {
 			if (task === 'greeting') {
 				try {
 					const versionInfo = await getVersionInfo();
-					const collaboration = projectEditor.orchestratorController.collaborationManager.getCollaborationStrict(
-						collaborationId,
-					);
+					const collaboration = projectEditor.orchestratorController.collaborationManager
+						.getCollaborationStrict(
+							collaborationId,
+						);
 					this.eventManager.emit('projectEditor:collaborationReady', {
 						collaborationId: collaborationId,
 						collaborationTitle: collaboration.title,

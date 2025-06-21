@@ -13,11 +13,11 @@ export const config: RouteConfig = {
 };
 
 const initialState: ChatState = {
-	conversationId: null,
+	collaborationId: null,
 	projectData: null,
 	apiClient: null,
 	wsManager: null,
-	conversations: [],
+	collaborations: [],
 	logDataEntries: [],
 	status: {
 		isConnecting: false,

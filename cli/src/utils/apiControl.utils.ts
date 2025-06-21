@@ -16,6 +16,7 @@ import ApiClient from 'cli/apiClient.ts';
 import { watchLogs } from 'shared/logViewer.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ApiConfig } from 'shared/config/types.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { apiFileLogPath } from 'api/utils/fileLogger.ts';
 
 /* ******************
@@ -30,7 +31,7 @@ import { apiFileLogPath } from 'api/utils/fileLogger.ts';
  ****************** */
 
 export async function startApiServer(
-	projectId: string | undefined,
+	projectId: ProjectId | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,
@@ -178,7 +179,7 @@ export async function stopApiServer(projectId?: string): Promise<void> {
 }
 
 export async function restartApiServer(
-	projectId: string | undefined,
+	projectId: ProjectId | undefined,
 	apiHostname?: string,
 	apiPort?: string,
 	apiUseTls?: boolean,

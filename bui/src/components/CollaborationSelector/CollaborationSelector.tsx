@@ -1,11 +1,11 @@
 import { Signal, useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
-import { ConversationTrigger } from './ConversationTrigger.tsx';
-import { ConversationList } from './ConversationList.tsx';
-import type { InteractionMetadata } from 'shared/types.ts';
-import type { ChatState, ConversationListState } from '../../types/chat.types.ts';
+import { CollaborationTrigger } from './CollaborationTrigger.tsx';
+import { CollaborationList } from './CollaborationList.tsx';
+import type { CollaborationValues } from 'shared/types.ts';
+import type { ChatState, CollaborationListState } from '../../types/chat.types.ts';
 
-interface ConversationSelectorProps {
+interface CollaborationSelectorProps {
 	chatState: Signal<ChatState>;
 	onSelect: (id: string) => void;
 	onNew: () => void;
@@ -15,7 +15,7 @@ interface ConversationSelectorProps {
 	triggerClassName?: string;
 }
 
-export function ConversationSelector({
+export function CollaborationSelector({
 	chatState,
 	onSelect,
 	onNew,
@@ -23,33 +23,33 @@ export function ConversationSelector({
 	className = '',
 	placement = 'bottom',
 	triggerClassName = '',
-}: ConversationSelectorProps) {
+}: CollaborationSelectorProps) {
 	const isOpen = useSignal(false);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 	const popoverRef = useRef<HTMLDivElement>(null);
 	const selectedIndex = useSignal(0);
 	const searchQuery = useSignal('');
 
-	// Always keep a sorted list of conversations
-	const sortedConversations = useComputed(() =>
-		[...chatState.value.conversations].sort((a, b) =>
+	// Always keep a sorted list of collaborations
+	const sortedCollaborations = useComputed(() =>
+		[...chatState.value.collaborations].sort((a, b) =>
 			new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 		)
 	);
 
-	// Filter conversations based on search query
-	const displayedConversations = useComputed(() => {
+	// Filter collaborations based on search query
+	const displayedCollaborations = useComputed(() => {
 		const query = searchQuery.value.toLowerCase().trim();
-		if (!query) return sortedConversations.value;
+		if (!query) return sortedCollaborations.value;
 
-		return sortedConversations.value.filter((conv) =>
-			conv.title?.toLowerCase().includes(query) ||
-			conv.id.toLowerCase().includes(query)
+		return sortedCollaborations.value.filter((collab) =>
+			collab.title?.toLowerCase().includes(query) ||
+			collab.id.toLowerCase().includes(query)
 		);
 	});
 
-	const currentConversation = useComputed<InteractionMetadata | undefined>(() =>
-		chatState.value.conversations.find((c: InteractionMetadata) => c.id === chatState.value.conversationId)
+	const currentCollaboration = useComputed<CollaborationValues | undefined>(() =>
+		chatState.value.collaborations.find((c: CollaborationValues) => c.id === chatState.value.collaborationId)
 	);
 
 	// Handle keyboard navigation
@@ -60,21 +60,21 @@ export function ConversationSelector({
 			switch (e.key) {
 				case 'ArrowDown': {
 					e.preventDefault();
-					selectedIndex.value = (selectedIndex.value + 1) % displayedConversations.value.length;
+					selectedIndex.value = (selectedIndex.value + 1) % displayedCollaborations.value.length;
 					break;
 				}
 				case 'ArrowUp': {
 					e.preventDefault();
 					selectedIndex.value = selectedIndex.value - 1 < 0
-						? displayedConversations.value.length - 1
+						? displayedCollaborations.value.length - 1
 						: selectedIndex.value - 1;
 					break;
 				}
 				case 'Enter': {
 					e.preventDefault();
-					const selectedConversation = displayedConversations.value[selectedIndex.value];
-					if (selectedConversation) {
-						onSelect(selectedConversation.id);
+					const selectedCollaboration = displayedCollaborations.value[selectedIndex.value];
+					if (selectedCollaboration) {
+						onSelect(selectedCollaboration.id);
 						isOpen.value = false;
 					}
 					break;
@@ -90,7 +90,7 @@ export function ConversationSelector({
 
 		globalThis.addEventListener('keydown', handleKeyDown);
 		return () => globalThis.removeEventListener('keydown', handleKeyDown);
-	}, [isOpen.value, displayedConversations.value, selectedIndex.value]);
+	}, [isOpen.value, displayedCollaborations.value, selectedIndex.value]);
 
 	// Handle click outside
 	useEffect(() => {
@@ -112,13 +112,13 @@ export function ConversationSelector({
 
 	return (
 		<div className='flex items-center gap-3'>
-			{/* Conversation Selector Container */}
+			{/* Collaboration Selector Container */}
 			<div className={`relative w-[300px] ${className}`}>
 				{/* Trigger */}
-				<ConversationTrigger
+				<CollaborationTrigger
 					ref={triggerRef}
 					isOpen={isOpen.value}
-					conversation={currentConversation.value}
+					collaboration={currentCollaboration.value}
 					onClick={() => isOpen.value = !isOpen.value}
 					className={triggerClassName}
 				/>
@@ -147,11 +147,11 @@ export function ConversationSelector({
 							/>
 						</div>
 
-						{/* Conversation List */}
-						<ConversationList
-							conversations={displayedConversations.value}
+						{/* Collaboration List */}
+						<CollaborationList
+							collaborations={displayedCollaborations.value}
 							selectedIndex={selectedIndex.value}
-							currentInteractionId={chatState.value.conversationId}
+							currentInteractionId={chatState.value.collaborationId}
 							onSelect={async (id) => {
 								isOpen.value = false;
 								await onSelect(id);
@@ -162,7 +162,7 @@ export function ConversationSelector({
 				)}
 			</div>
 
-			{/* New Conversation Button */}
+			{/* New Collaboration Button */}
 			<button
 				type='button'
 				onClick={onNew}

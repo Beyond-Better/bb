@@ -347,7 +347,7 @@ class AnthropicLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-		const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
 			maxTokens = registryService.resolveMaxTokens(
 				model,

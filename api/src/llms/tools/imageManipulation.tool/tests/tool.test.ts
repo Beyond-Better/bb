@@ -150,11 +150,11 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('Format conversion (PNG to JPEG) - bbResponse:', result.bbResponse);
-			console.log('Format conversion (PNG to JPEG) - toolResponse:', result.toolResponse);
-			console.log('Format conversion (PNG to JPEG) - toolResults:', result.toolResults);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
+			// console.log('Format conversion (PNG to JPEG) - bbResponse:', result.bbResponse);
+			// console.log('Format conversion (PNG to JPEG) - toolResponse:', result.toolResponse);
+			// console.log('Format conversion (PNG to JPEG) - toolResults:', result.toolResults);
 			displayImage(pngPath, result.toolResults as LLMMessageContentParts);
 
 			// Check basic response structure
@@ -252,8 +252,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Format conversion (JPEG to PNG) - bbResponse:', result.bbResponse);
 			// console.log('Format conversion (JPEG to PNG) - toolResponse:', result.toolResponse);
 			// console.log('Format conversion (JPEG to PNG) - toolResults:', result.toolResults);
@@ -336,8 +336,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Resize operation - bbResponse:', result.bbResponse);
 			// console.log('Resize operation - toolResponse:', result.toolResponse);
 			// console.log('Resize operation - toolResults:', result.toolResults);
@@ -440,8 +440,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Multiple operations (resize + format + grayscale) - bbResponse:', result.bbResponse);
 			// console.log('Multiple operations (resize + format + grayscale) - toolResponse:', result.toolResponse);
 			// console.log('Multiple operations (resize + format + grayscale) - toolResults:', result.toolResults);
@@ -518,9 +518,9 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			try {
-				await tool.runTool(conversation, toolUse, projectEditor);
+				await tool.runTool(interaction, toolUse, projectEditor);
 				assert(false, 'Should have thrown an error for path outside project');
 			} catch (error: unknown) {
 				if (isError(error)) {
@@ -570,8 +570,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Error: File already exists (no overwrite) - bbResponse:', result.bbResponse);
 			// console.log('Error: File already exists (no overwrite) - toolResponse:', result.toolResponse);
 			// console.log('Error: File already exists (no overwrite) - toolResults:', result.toolResults);
@@ -633,8 +633,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Error: Invalid input file - bbResponse:', result.bbResponse);
 			// console.log('Error: Invalid input file - toolResponse:', result.toolResponse);
 			// console.log('Error: Invalid input file - toolResults:', result.toolResults);
@@ -690,10 +690,10 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 
 			try {
-				const result = await tool.runTool(conversation, toolUse, projectEditor);
+				const result = await tool.runTool(interaction, toolUse, projectEditor);
 				// console.log('Remote URL as input - bbResponse:', result.bbResponse);
 				// console.log('Remote URL as input - toolResponse:', result.toolResponse);
 				// console.log('Remote URL as input - toolResults:', result.toolResults);
@@ -782,8 +782,8 @@ Deno.test({
 				toolInput,
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Formatter tests (toolUseInputFormatter and toolRunResultFormatter) - bbResponse:', result.bbResponse);
 			// console.log('Formatter tests (toolUseInputFormatter and toolRunResultFormatter) - toolResponse:', result.toolResponse);
 			// console.log('Formatter tests (toolUseInputFormatter and toolRunResultFormatter) - toolResults:', result.toolResults);
@@ -862,8 +862,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -936,8 +936,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1010,8 +1010,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1084,8 +1084,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1158,8 +1158,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1240,8 +1240,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1317,8 +1317,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1392,8 +1392,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(
@@ -1467,8 +1467,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initCollaboration('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			// Check basic response structure
 			assert(

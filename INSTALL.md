@@ -223,7 +223,7 @@ If you encounter any issues during installation or use:
 
 1. Check the chat logs: `bb logs`
 2. Check the API logs: `bb logs --api`
-3. Inspect the JSON files under `.bb/data/conversations` for more detailed information
+3. Inspect the JSON files under `.bb/data/collaborations` for more detailed information
 
 As BB is still in beta, please take necessary precautions when using it with important projects. If you encounter any problems, please create an issue on the [BB GitHub repository](https://github.com/Beyond-Better/bb).
 

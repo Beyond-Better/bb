@@ -29,10 +29,12 @@ import type {
 	CollaborationLogEntry,
 	//InteractionMetrics,
 	CollaborationResponse,
+	CollaborationType,
 	//CollaborationLogDataEntry,
 	InteractionId,
 	//CollaborationStart,
 	InteractionStats,
+	ProjectId,
 	//ObjectivesData,
 	TokenUsage,
 	TokenUsageStats,
@@ -302,14 +304,14 @@ class BaseController {
 		try {
 			const persistence = await new CollaborationPersistence(collaborationId, this.projectEditor).init();
 
-			const collaborationData = await persistence.loadCollaboration();
-			if (!collaborationData) {
+			const collaborationValues = await persistence.loadCollaboration();
+			if (!collaborationValues) {
 				logger.warn(`BaseController: No collaboration found for ID: ${collaborationId}`);
 				return null;
 			}
 			logger.info(`BaseController: Loaded existing collaboration: ${collaborationId}`);
-			
-			const collaboration = Collaboration.fromMetadata(collaborationData);
+
+			const collaboration = Collaboration.fromJSON(collaborationValues);
 			this.collaborationManager.addCollaboration(collaboration);
 
 			return collaboration;
@@ -325,8 +327,8 @@ class BaseController {
 
 	async createCollaboration(
 		collaborationId: CollaborationId,
-		projectId: string,
-		type: 'project' | 'workflow' | 'research' = 'project',
+		projectId: ProjectId,
+		type: CollaborationType = 'project',
 		title?: string,
 		collaborationParams?: CollaborationParams,
 	): Promise<Collaboration> {
@@ -342,10 +344,14 @@ class BaseController {
 		return collaboration as Collaboration;
 	}
 
-	protected async loadInteraction(collaboration: Collaboration, interactionId: InteractionId): Promise<LLMConversationInteraction | null> {
+	protected async loadInteraction(
+		collaboration: Collaboration,
+		interactionId: InteractionId,
+	): Promise<LLMConversationInteraction | null> {
 		//logger.info(`BaseController: Attempting to load existing interaction: ${interactionId} for collaboration ${collaboration.id}`);
 		try {
-			const persistence = await new InteractionPersistence(collaboration.id, interactionId, this.projectEditor, ).init();
+			const persistence = await new InteractionPersistence(collaboration.id, interactionId, this.projectEditor)
+				.init();
 
 			const interaction = await persistence.loadInteraction(collaboration, this.getInteractionCallbacks());
 			if (!interaction) {
@@ -422,7 +428,11 @@ class BaseController {
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new InteractionPersistence(interaction.collaboration.id, interaction.id, this.projectEditor, ).init();
+			const persistence = await new InteractionPersistence(
+				interaction.collaboration.id,
+				interaction.id,
+				this.projectEditor,
+			).init();
 			await persistence.saveInteraction(interaction);
 
 			// Save system prompt and project info if running in local development
@@ -446,7 +456,11 @@ class BaseController {
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new InteractionPersistence(interaction.collaboration.id, interaction.id, this.projectEditor, ).init();
+			const persistence = await new InteractionPersistence(
+				interaction.collaboration.id,
+				interaction.id,
+				this.projectEditor,
+			).init();
 
 			// Include the latest stats and usage in the saved interaction
 			//interaction.interactionStats = this.interactionStats.get(interaction.id),
@@ -495,7 +509,8 @@ class BaseController {
 			this.updateTotalStats();
 
 			// Clean up persistence
-			const persistence = await new InteractionPersistence(collaborationId, interactionId, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(collaborationId, interactionId, this.projectEditor)
+				.init();
 			await persistence.deleteInteraction();
 
 			logger.info(`BaseController: Successfully deleted interaction: ${interactionId}`);
@@ -626,9 +641,16 @@ class BaseController {
 				if (logEntry.entryType === 'answer') {
 					const statementAnswer: CollaborationResponse = {
 						timestamp,
-						collaborationId: logEntryInteraction.collaboration.id, // TODO: Get from collaboration context
+						collaborationId: logEntryInteraction.collaboration.id,
+						projectId: logEntryInteraction.collaboration.projectId,
+						collaborationTitle: logEntryInteraction.collaboration.title,
+						collaborationType: logEntryInteraction.collaboration.type,
+						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
+						createdAt: logEntryInteraction.collaboration.createdAt,
+						updatedAt: logEntryInteraction.collaboration.updatedAt,
+						totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						interactionIds: logEntryInteraction.collaboration.interactionIds,
 						interactionId: logEntryInteraction.id,
-						collaborationTitle: logEntryInteraction.title,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
@@ -644,9 +666,16 @@ class BaseController {
 				} else {
 					const collaborationContinue: CollaborationContinue = {
 						timestamp,
-						collaborationId: logEntryInteraction.collaboration.id, // TODO: Get from collaboration context
+						collaborationId: logEntryInteraction.collaboration.id,
+						projectId: logEntryInteraction.collaboration.projectId,
+						collaborationTitle: logEntryInteraction.collaboration.title,
+						collaborationType: logEntryInteraction.collaboration.type,
+						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
+						createdAt: logEntryInteraction.collaboration.createdAt,
+						updatedAt: logEntryInteraction.collaboration.updatedAt,
+						totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						interactionIds: logEntryInteraction.collaboration.interactionIds,
 						interactionId: logEntryInteraction.id,
-						collaborationTitle: logEntryInteraction.title,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
@@ -726,7 +755,11 @@ class BaseController {
 		filePath: string | string[],
 		change: string | string[],
 	): Promise<void> {
-		const persistence = await new InteractionPersistence(interaction.collaboration.id, interaction.id, this.projectEditor, ).init();
+		const persistence = await new InteractionPersistence(
+			interaction.collaboration.id,
+			interaction.id,
+			this.projectEditor,
+		).init();
 
 		if (Array.isArray(filePath) && Array.isArray(change)) {
 			if (filePath.length !== change.length) {
@@ -760,7 +793,11 @@ class BaseController {
 	}
 
 	async revertLastChange(interaction: LLMConversationInteraction): Promise<void> {
-		const persistence = await new InteractionPersistence(interaction.collaboration.id, interaction.id, this.projectEditor, ).init();
+		const persistence = await new InteractionPersistence(
+			interaction.collaboration.id,
+			interaction.id,
+			this.projectEditor,
+		).init();
 		const changeLog = await persistence.getChangeLog();
 
 		if (changeLog.length === 0) {
