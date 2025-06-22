@@ -792,9 +792,9 @@ export function MessageEntry({
 												</span>
 												<span title='Total conversation tokens (input/output)'>
 													Conversation:{' '}
-													{tokenUsageInteraction.inputTokens?.toLocaleString() || 0}↑ /{' '}
-													{tokenUsageInteraction.outputTokens?.toLocaleString() || 0}↓
-													({tokenUsageInteraction.totalTokens?.toLocaleString() || 0})
+													{tokenUsageInteraction?.inputTokens?.toLocaleString() || 0}↑ /{' '}
+													{tokenUsageInteraction?.outputTokens?.toLocaleString() || 0}↓
+													({tokenUsageInteraction?.totalTokens?.toLocaleString() || 0})
 												</span>
 											</>
 										)

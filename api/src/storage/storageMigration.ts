@@ -384,8 +384,8 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version === 2) {
-				result.version.from = 2;
+			if (metadata.version >= 2) {
+				result.version.from = metadata.version;
 				return result;
 			}
 
@@ -425,8 +425,8 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version === 3) {
-				result.version.from = 3;
+			if (metadata.version >= 3) {
+				result.version.from = metadata.version;
 				return result;
 			}
 
@@ -531,7 +531,6 @@ export class StorageMigration {
 
 	/**
 	 * Migrate from version 3 to version 4
-	 * Handles conversation.log and conversation.jsonl file moves and renames
 	 */
 	private static async migrateV3toV4(_projectId: ProjectId, interactionDir: string): Promise<EntityMigrationResult> {
 		const result: EntityMigrationResult = {
@@ -546,45 +545,146 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version === 4) {
-				result.version.from = 4;
+			if (metadata.version >= 4) {
+				result.version.from = metadata.version;
 				return result;
-			}
-
-			// Handle legacy conversation.log and conversation.jsonl files
-			const conversationLogPath = join(interactionDir, 'conversation.log');
-			const conversationJsonlPath = join(interactionDir, 'conversation.jsonl');
-
-			// Check if this is part of a collaboration structure
-			const parentDir = interactionDir.split('/').slice(0, -2).join('/'); // Remove /interactions/interactionId
-			const collaborationDir = parentDir;
-
-			if (conversationLogPath.includes('/collaborations/') && await exists(conversationLogPath)) {
-				// Move conversation.log to collaboration directory and rename
-				const collaborationLogPath = join(collaborationDir, 'collaboration.log');
-				await ensureDir(collaborationDir);
-				await Deno.rename(conversationLogPath, collaborationLogPath);
-				result.changes.push({
-					type: 'file_move',
-					path: conversationLogPath,
-					details: `Moved and renamed to ${collaborationLogPath}`,
-				});
-			}
-
-			if (conversationJsonlPath.includes('/collaborations/') && await exists(conversationJsonlPath)) {
-				// Move conversation.jsonl to collaboration directory and rename
-				const collaborationJsonlPath = join(collaborationDir, 'collaboration.jsonl');
-				await ensureDir(collaborationDir);
-				await Deno.rename(conversationJsonlPath, collaborationJsonlPath);
-				result.changes.push({
-					type: 'file_move',
-					path: conversationJsonlPath,
-					details: `Moved and renamed to ${collaborationJsonlPath}`,
-				});
 			}
 
 			// Update metadata version
 			metadata.version = 4;
+
+			if (metadata.conversationStats) {
+				metadata.interactionStats = {
+					...metadata.conversationStats,
+					interactionTurnCount: metadata.conversationStats.conversationTurnCount,
+				};
+				delete metadata.interactionStats.conversationTurnCount;
+				delete metadata.conversationStats;
+			} else {
+				metadata.interactionStats = {
+					statementTurnCount: 0,
+					interactionTurnCount: 0,
+					statementCount: 0,
+				};
+				// logger.warn(`StorageMigration: Missing conversationStats in metadata for interaction ${metadata.id} - skipping values`);
+				result.changes.push({
+					type: 'metadata',
+					path: 'metadata.json',
+					details:
+						`Missing conversationStats in metadata for interaction ${metadata.id} - setting values to 0`,
+				});
+			}
+
+			if (metadata.tokenUsageConversation && !metadata.tokenUsageStats) {
+				metadata.tokenUsageStats = {
+					tokenUsageInteraction: { ...metadata.tokenUsageConversation },
+					tokenUsageStatement: {
+						...(metadata.tokenUsageStatement || {
+							totalTokens: 0,
+							inputTokens: 0,
+							outputTokens: 0,
+							cacheCreationInputTokens: 0,
+							cacheReadInputTokens: 0,
+							thoughtTokens: 0,
+							totalAllTokens: 0,
+						}),
+					},
+					tokenUsageTurn: {
+						...(metadata.tokenUsageTurn || {
+							inputTokens: 0,
+							outputTokens: 0,
+							totalTokens: 0,
+							cacheCreationInputTokens: 0,
+							cacheReadInputTokens: 0,
+							thoughtTokens: 0,
+							totalAllTokens: 0,
+						}),
+					},
+				};
+				//metadata.tokenUsageStats.tokenUsageInteraction = { ...metadata.tokenUsageConversation };
+				delete metadata.tokenUsageConversation;
+				delete metadata.tokenUsageStatement;
+				delete metadata.tokenUsageTurn;
+			}
+
+			if (metadata.tokenUsageStats?.tokenUsageConversation) {
+				metadata.tokenUsageStats.tokenUsageInteraction = {
+					...metadata.tokenUsageStats.tokenUsageConversation,
+				};
+				delete metadata.tokenUsageStats.tokenUsageConversation;
+			} else if (!metadata.tokenUsageStats) {
+				metadata.tokenUsageStats = {
+					tokenUsageInteraction: {
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
+						cacheCreationInputTokens: 0,
+						cacheReadInputTokens: 0,
+						thoughtTokens: 0,
+						totalAllTokens: 0,
+					},
+					tokenUsageStatement: {
+						totalTokens: 0,
+						inputTokens: 0,
+						outputTokens: 0,
+						cacheCreationInputTokens: 0,
+						cacheReadInputTokens: 0,
+						thoughtTokens: 0,
+						totalAllTokens: 0,
+					},
+					tokenUsageTurn: {
+						inputTokens: 0,
+						outputTokens: 0,
+						totalTokens: 0,
+						cacheCreationInputTokens: 0,
+						cacheReadInputTokens: 0,
+						thoughtTokens: 0,
+						totalAllTokens: 0,
+					},
+				};
+				// logger.warn(`StorageMigration: Missing tokenUsageStats.tokenUsageConversation in metadata for interaction ${metadata.id} - skipping values`);
+				result.changes.push({
+					type: 'metadata',
+					path: 'metadata.json',
+					details:
+						`Missing tokenUsageStats.tokenUsageConversation in metadata for interaction ${metadata.id} - setting values to 0`,
+				});
+			}
+
+			if (metadata.conversationMetrics) {
+				metadata.interactionMetrics = {
+					...metadata.conversationMetrics,
+					interactionTurnCount: metadata.conversationMetrics?.conversationTurnCount || 0, // rename to interactionTurnCount
+				};
+				delete metadata.conversationMetrics.conversationTurnCount;
+				delete metadata.conversationMetrics;
+			} else {
+				metadata.interactionMetrics = {
+					statementTurnCount: 0,
+					interactionTurnCount: 0,
+					statementCount: 0,
+					objectives: {
+						statement: [],
+						timestamp: '',
+					},
+					resources: {
+						accessed: {},
+						modified: {},
+						active: {},
+					},
+					toolUsage: {
+						toolStats: {},
+					},
+				};
+				// logger.warn(`StorageMigration: Missing conversationStats in metadata for interaction ${metadata.id} - skipping values`);
+				result.changes.push({
+					type: 'metadata',
+					path: 'metadata.json',
+					details:
+						`Missing conversationMetrics in metadata for interaction ${metadata.id} - setting values to 0`,
+				});
+			}
+
 			await StorageMigration.saveMetadata(join(interactionDir, 'metadata.json'), metadata);
 			result.changes.push({
 				type: 'metadata',
@@ -880,8 +980,9 @@ export class StorageMigration {
 	/**
 	 * Migrate conversations to collaborations structure
 	 * Enhanced version of the function from conversationMigration.ts
+	 * Handles conversation.log and conversation.jsonl file moves and renames
 	 */
-	static async migrateConversationsToCollaborations(projectId: ProjectId): Promise<void> {
+	static async migrateConversationsToCollaborations(projectId: ProjectId): Promise<EntityMigrationResult> {
 		const projectAdminDataDir = await getProjectAdminDataDir(projectId);
 		if (!projectAdminDataDir) {
 			throw new Error(`Failed to get project admin data directory for ${projectId}`);
@@ -890,6 +991,7 @@ export class StorageMigration {
 		const conversationsDir = join(projectAdminDataDir, 'conversations');
 		const collaborationsDir = join(projectAdminDataDir, 'collaborations');
 		const cleanupDir = join(projectAdminDataDir, 'cleanup');
+		const corruptedDir = join(projectAdminDataDir, 'corrupted');
 		const conversationsJsonPath = join(projectAdminDataDir, 'conversations.json');
 		const collaborationsJsonPath = join(projectAdminDataDir, 'collaborations.json');
 
@@ -908,22 +1010,33 @@ export class StorageMigration {
 			`StorageMigration: Starting migration from conversations to collaborations for project ${projectId}`,
 		);
 
+		const result: EntityMigrationResult = {
+			success: true,
+			version: {
+				from: 3,
+				to: 4,
+			},
+			changes: [],
+			errors: [],
+		};
+
 		try {
 			// Ensure cleanup directory exists
 			await ensureDir(cleanupDir);
+			await ensureDir(corruptedDir);
 			await ensureDir(collaborationsDir);
 
-			// Read existing conversations.json if it exists
-			let conversations: InteractionMetadata[] = [];
-			if (await exists(conversationsJsonPath)) {
-				const content = await Deno.readTextFile(conversationsJsonPath);
-				const data = JSON.parse(content);
-				if (Array.isArray(data)) {
-					conversations = data;
-				} else if (data.version && Array.isArray(data.interactions || data.conversations)) {
-					conversations = data.interactions || data.conversations;
-				}
-			}
+			// // Read existing conversations.json if it exists
+			// let conversations: InteractionMetadata[] = [];
+			// if (await exists(conversationsJsonPath)) {
+			// 	const content = await Deno.readTextFile(conversationsJsonPath);
+			// 	const data = JSON.parse(content);
+			// 	if (Array.isArray(data)) {
+			// 		conversations = data;
+			// 	} else if (data.version && Array.isArray(data.interactions || data.conversations)) {
+			// 		conversations = data.interactions || data.conversations;
+			// 	}
+			// }
 
 			// Create collaborations from conversations
 			const collaborations: CollaborationMetadata[] = [];
@@ -944,15 +1057,105 @@ export class StorageMigration {
 					const cleanupPath = join(cleanupDir, `empty_conversation_${conversationId}`);
 					await Deno.rename(conversationPath, cleanupPath);
 					logger.info(`StorageMigration: Moved empty conversation directory ${conversationId} to cleanup`);
+					result.changes.push({
+						type: 'file_move',
+						path: conversationPath,
+						details: `Moved empty conversation directory ${conversationId} to cleanup`,
+					});
+					continue;
+				}
+				const isCorrupted = await StorageMigration.isCorruptedConversationDir(conversationPath);
+				if (isCorrupted) {
+					// Move corrupted directory to corrupted
+					const corruptedPath = join(corruptedDir, `corrupted_conversation_${conversationId}`);
+					await Deno.rename(conversationPath, corruptedPath);
+					logger.warn(
+						`StorageMigration: Moved corrupted conversation directory ${conversationId} to corrupted`,
+					);
+					result.changes.push({
+						type: 'file_move',
+						path: conversationPath,
+						details: `Moved corrupted conversation directory ${conversationId} to corrupted`,
+					});
 					continue;
 				}
 
 				// Find corresponding metadata
-				const conversationMetadata = conversations.find((c) => c.id === conversationId);
+				const conversationMetadataJsonPath = join(conversationsDir, conversationId, 'metadata.json');
+				let conversationMetadata;
+				if (await exists(conversationMetadataJsonPath)) {
+					const conversationMetadataContent = await Deno.readTextFile(conversationMetadataJsonPath);
+					conversationMetadata = JSON.parse(conversationMetadataContent);
+				} else {
+					logger.error(
+						`StorageMigration: No metadata file found for conversation ${conversationId}, skipping`,
+					);
+				}
+				//const conversationMetadata = conversations.find((c) => c.id === conversationId);
 				if (!conversationMetadata) {
-					logger.warn(`StorageMigration: No metadata found for conversation ${conversationId}, skipping`);
+					logger.error(`StorageMigration: No metadata found for conversation ${conversationId}, skipping`);
 					continue;
 				}
+
+				/*
+				if (!conversationMetadata.tokenUsageStats) {
+					logger.warn(
+						`StorageMigration: Missing tokenUsageStats in metadata for conversation ${conversationId} - setting values to 0`,
+					);
+					result.changes.push({
+						type: 'metadata',
+						path: 'metadata.json',
+						details:
+							`Missing tokenUsageStats in metadata for conversation ${conversationId} - setting values to 0`,
+					});
+				}
+				if (!conversationMetadata.conversationStats) {
+					logger.warn(
+						`StorageMigration: Missing conversationStats in metadata for conversation ${conversationId} - setting values to 0`,
+					);
+					result.changes.push({
+						type: 'metadata',
+						path: 'metadata.json',
+						details:
+							`Missing conversationStats in metadata for conversation ${conversationId} - setting values to 0`,
+					});
+				}
+				if (!conversationMetadata.conversationMetrics) {
+					logger.warn(
+						`StorageMigration: Missing conversationMetrics in metadata for conversation ${conversationId} - setting values to 0`,
+					);
+					result.changes.push({
+						type: 'metadata',
+						path: 'metadata.json',
+						details:
+							`Missing conversationMetrics in metadata for conversation ${conversationId} - setting values to 0`,
+					});
+				}
+				const interactionMetadata: InteractionMetadata = {
+					...conversationMetadata,
+					tokenUsageStats: {
+						tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
+						tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
+						tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+					},
+					interactionStats: {
+						...conversationMetadata.conversationStats,
+						interactionTurnCount: conversationMetadata.conversationStats?.conversationTurnCount || 0, // rename to interactionTurnCount
+					},
+					interactionMetrics: {
+						...conversationMetadata.conversationMetrics,
+						interactionTurnCount: conversationMetadata.conversationMetrics?.conversationTurnCount || 0, // rename to interactionTurnCount
+					},
+				};
+				// deno-lint-ignore no-explicit-any
+				delete (interactionMetadata as any).conversationStats.conversationTurnCount;
+				// deno-lint-ignore no-explicit-any
+				delete (interactionMetadata as any).conversationStats;
+				// deno-lint-ignore no-explicit-any
+				delete (interactionMetadata as any).conversationMetrics.conversationTurnCount;
+				// deno-lint-ignore no-explicit-any
+				delete (interactionMetadata as any).conversationMetrics;
+				 */
 
 				// Create collaboration using existing conversation ID
 				const collaborationId = conversationId;
@@ -969,8 +1172,9 @@ export class StorageMigration {
 
 				// Create collaboration metadata with version 4
 				const collaborationMetadata: CollaborationMetadata = {
-					id: collaborationId,
 					version: 4,
+					id: collaborationId,
+					projectId: projectId,
 					title: conversationMetadata.title || 'untitled',
 					type: 'project',
 					collaborationParams: conversationMetadata.collaborationParams || {
@@ -980,29 +1184,150 @@ export class StorageMigration {
 							chat: null,
 						},
 					},
+					tokenUsageStats: {
+						tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
+						tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
+						tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+					},
 					createdAt: conversationMetadata.createdAt,
 					updatedAt: conversationMetadata.updatedAt,
-					projectId: projectId,
 					totalInteractions: 1,
-					tokenUsageStats: conversationMetadata.tokenUsageStats,
+					interactionIds: [conversationId],
 					lastInteractionId: conversationId,
 					lastInteractionMetadata: {
 						id: conversationId,
 						llmProviderName: conversationMetadata.llmProviderName,
 						model: conversationMetadata.model,
 						interactionStats: conversationMetadata.interactionStats,
-						tokenUsageStats: conversationMetadata.tokenUsageStats,
+						tokenUsageStats: {
+							tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
+							tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
+							tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+						},
 						createdAt: conversationMetadata.createdAt,
 						updatedAt: conversationMetadata.updatedAt,
 					},
-					interactionIds: [conversationId],
 				};
+
+				result.changes.push({
+					type: 'metadata',
+					path: 'metadata.json',
+					details: `Created metadata for collaboration ${collaborationId}`,
+				});
 
 				// Save collaboration metadata
 				const collaborationMetadataPath = join(collaborationDir, 'metadata.json');
 				await Deno.writeTextFile(collaborationMetadataPath, JSON.stringify(collaborationMetadata, null, 2));
 
 				collaborations.push(collaborationMetadata);
+
+				// Handle legacy conversation.log and conversation.jsonl files
+				const conversationLogPath = join(interactionDir, 'conversation.log');
+				const conversationJsonlPath = join(interactionDir, 'conversation.jsonl');
+
+				if (await exists(conversationLogPath)) {
+					// Move conversation.log to collaboration directory and rename
+					const collaborationLogPath = join(collaborationDir, 'collaboration.log');
+					await Deno.rename(conversationLogPath, collaborationLogPath);
+					result.changes.push({
+						type: 'file_move',
+						path: conversationLogPath,
+						details: `Moved and renamed to ${collaborationLogPath}`,
+					});
+				}
+
+				if (await exists(conversationJsonlPath)) {
+					// Move conversation.jsonl to collaboration directory and rename
+					const collaborationJsonlPath = join(collaborationDir, 'collaboration.jsonl');
+					//await Deno.rename(conversationJsonlPath, collaborationJsonlPath);
+					const content = await Deno.readTextFile(conversationJsonlPath);
+					const transformedContent = content
+						.split('\n')
+						.filter((line) => line.trim())
+						.map((line) => {
+							const obj = JSON.parse(line);
+
+							if (obj.conversationStats) {
+								obj.interactionStats = {
+									...obj.conversationStats,
+									interactionTurnCount: obj.conversationStats.conversationTurnCount,
+								};
+								delete obj.interactionStats.conversationTurnCount;
+								delete obj.conversationStats;
+							} else {
+								obj.interactionStats = {
+									statementTurnCount: 0,
+									interactionTurnCount: 0,
+									statementCount: 0,
+								};
+								// logger.warn(`StorageMigration: Missing conversationStats in log entries for conversation ${conversationId} - skipping values`);
+								result.changes.push({
+									type: 'metadata',
+									path: 'conversation.jsonl',
+									details:
+										`Missing conversationStats in log entries for conversation ${conversationId} - setting values to 0`,
+								});
+							}
+
+							if (obj.tokenUsageStats?.tokenUsageConversation) {
+								obj.tokenUsageStats.tokenUsageInteraction = {
+									...obj.tokenUsageStats.tokenUsageConversation,
+								};
+								delete obj.tokenUsageStats.tokenUsageConversation;
+							} else {
+								obj.tokenUsageStats = {
+									...(obj.tokenUsageStats || {
+										tokenUsageTurn: {
+											inputTokens: 0,
+											outputTokens: 0,
+											totalTokens: 0,
+											cacheCreationInputTokens: 0,
+											cacheReadInputTokens: 0,
+											thoughtTokens: 0,
+											totalAllTokens: 0,
+										},
+										tokenUsageStatement: {
+											totalTokens: 0,
+											inputTokens: 0,
+											outputTokens: 0,
+											cacheCreationInputTokens: 0,
+											cacheReadInputTokens: 0,
+											thoughtTokens: 0,
+											totalAllTokens: 0,
+										},
+									}),
+									tokenUsageInteraction: {
+										totalTokens: 0,
+										inputTokens: 0,
+										outputTokens: 0,
+										cacheCreationInputTokens: 0,
+										cacheReadInputTokens: 0,
+										thoughtTokens: 0,
+										totalAllTokens: 0,
+									},
+								};
+								// logger.warn(`StorageMigration: Missing tokenUsageStats.tokenUsageConversation in log entries for conversation ${conversationId} - skipping values`);
+								result.changes.push({
+									type: 'metadata',
+									path: 'conversation.jsonl',
+									details:
+										`Missing tokenUsageStats.tokenUsageConversation in log entries for conversation ${conversationId} - setting values to 0`,
+								});
+							}
+
+							return JSON.stringify(obj);
+						})
+						.join('\n');
+
+					await Deno.writeTextFile(collaborationJsonlPath, transformedContent);
+					await Deno.remove(conversationJsonlPath);
+					result.changes.push({
+						type: 'file_move',
+						path: conversationJsonlPath,
+						details: `Moved and renamed to ${collaborationJsonlPath}`,
+					});
+				}
+
 				logger.info(`StorageMigration: Migrated conversation ${conversationId} to collaboration`);
 			}
 
@@ -1030,86 +1355,29 @@ export class StorageMigration {
 			logger.info(
 				`StorageMigration: Successfully migrated ${collaborations.length} conversations to collaborations for project ${projectId}`,
 			);
+
+			const resultsJsonPath = join(projectAdminDataDir, 'migrate-collaborations-results.json');
+			await Deno.writeTextFile(resultsJsonPath, JSON.stringify(result, null, 2));
+
+			return result;
 		} catch (error) {
 			logger.error(
 				`StorageMigration: Failed to migrate conversations to collaborations for project ${projectId}: ${
 					errorMessage(error)
 				}`,
 			);
-			throw error;
-		}
-	}
-
-	// Helper methods
-
-	private static async readMetadata(path: string): Promise<InteractionMetadata> {
-		try {
-			const content = await Deno.readTextFile(path);
-			try {
-				return JSON.parse(content);
-			} catch (error) {
-				throw new Error(`Invalid JSON in metadata file: ${errorMessage(error)}`);
-			}
-		} catch (error) {
-			if (error instanceof Deno.errors.NotFound) {
-				throw new Error('Legacy entity: metadata.json not found');
-			}
-			throw error;
-		}
-	}
-
-	private static async saveMetadata(path: string, metadata: InteractionMetadata): Promise<void> {
-		await Deno.writeTextFile(path, JSON.stringify(metadata, null, 2));
-	}
-
-	private static async readConversationsJson(dataDir: string): Promise<InteractionMetadata[]> {
-		const path = join(dataDir, 'conversations.json');
-		try {
-			const content = await Deno.readTextFile(path);
-			const data = JSON.parse(content);
-			if (Array.isArray(data)) {
-				return data;
-			} else if (data.version && Array.isArray(data.conversations)) {
-				return data.conversations;
-			} else {
-				return [];
-			}
-		} catch (error) {
-			if (error instanceof Deno.errors.NotFound) {
-				return [];
-			}
-			throw error;
-		}
-	}
-
-	/**
-	 * Check if a conversation directory is empty or only contains empty resource_revisions
-	 */
-	private static async isEmptyConversationDir(conversationPath: string): Promise<boolean> {
-		try {
-			const entries = [];
-			for await (const entry of Deno.readDir(conversationPath)) {
-				entries.push(entry);
-			}
-
-			if (entries.length === 0) {
-				return true;
-			}
-
-			// Check if only resource_revisions directory exists and is empty
-			if (entries.length === 1 && entries[0].name === 'resource_revisions' && entries[0].isDirectory) {
-				const resourceRevisionsPath = join(conversationPath, 'resource_revisions');
-				const revisionEntries = [];
-				for await (const entry of Deno.readDir(resourceRevisionsPath)) {
-					revisionEntries.push(entry);
-				}
-				return revisionEntries.length === 0;
-			}
-
-			return false;
-		} catch (_error) {
-			// If we can't read the directory, assume it's not empty
-			return false;
+			result.success = false;
+			result.errors.push({
+				message:
+					`Migration failed: Failed to migrate conversations to collaborations for project ${projectId}: ${
+						errorMessage(error)
+					}`,
+				details: error,
+			});
+			const resultsJsonPath = join(projectAdminDataDir, 'migrate-collaborations-results.json');
+			await Deno.writeTextFile(resultsJsonPath, JSON.stringify(result, null, 2));
+			return result;
+			//throw error;
 		}
 	}
 
@@ -1188,6 +1456,108 @@ export class StorageMigration {
 					projectId,
 				} as ProjectHandlingErrorOptions,
 			);
+		}
+	}
+
+	// Helper methods
+
+	private static async readMetadata(path: string): Promise<InteractionMetadata> {
+		try {
+			const content = await Deno.readTextFile(path);
+			try {
+				return JSON.parse(content);
+			} catch (error) {
+				throw new Error(`Invalid JSON in metadata file: ${errorMessage(error)}`);
+			}
+		} catch (error) {
+			if (error instanceof Deno.errors.NotFound) {
+				throw new Error('Legacy entity: metadata.json not found');
+			}
+			throw error;
+		}
+	}
+
+	private static async saveMetadata(path: string, metadata: InteractionMetadata): Promise<void> {
+		await Deno.writeTextFile(path, JSON.stringify(metadata, null, 2));
+	}
+
+	private static async readConversationsJson(dataDir: string): Promise<InteractionMetadata[]> {
+		const path = join(dataDir, 'conversations.json');
+		try {
+			const content = await Deno.readTextFile(path);
+			const data = JSON.parse(content);
+			if (Array.isArray(data)) {
+				return data;
+			} else if (data.version && Array.isArray(data.conversations)) {
+				return data.conversations;
+			} else {
+				return [];
+			}
+		} catch (error) {
+			if (error instanceof Deno.errors.NotFound) {
+				return [];
+			}
+			throw error;
+		}
+	}
+
+	/**
+	 * Check if a conversation directory is empty or only contains empty resource_revisions
+	 */
+	private static async isEmptyConversationDir(conversationPath: string): Promise<boolean> {
+		try {
+			const entries = [];
+			for await (const entry of Deno.readDir(conversationPath)) {
+				entries.push(entry);
+			}
+
+			if (entries.length === 0) {
+				return true;
+			}
+
+			// Check if only resource_revisions directory exists and is empty
+			if (entries.length === 1 && entries[0].name === 'resource_revisions' && entries[0].isDirectory) {
+				const resourceRevisionsPath = join(conversationPath, 'resource_revisions');
+				const revisionEntries = [];
+				for await (const entry of Deno.readDir(resourceRevisionsPath)) {
+					revisionEntries.push(entry);
+				}
+				return revisionEntries.length === 0;
+			}
+
+			return false;
+		} catch (_error) {
+			// If we can't read the directory, assume it's not empty
+			return false;
+		}
+	}
+
+	/**
+	 * Check if a conversation directory is corrupted - has file entries but no metadata.json
+	 */
+	private static async isCorruptedConversationDir(conversationPath: string): Promise<boolean> {
+		try {
+			const hasFiles = async (dirPath: string): Promise<boolean> => {
+				for await (const entry of Deno.readDir(dirPath)) {
+					if (entry.isFile) return true;
+					if (entry.isDirectory && await hasFiles(join(dirPath, entry.name))) return true;
+				}
+				return false;
+			};
+
+			const entries = Array.fromAsync(Deno.readDir(conversationPath));
+			const dirEntries = await entries;
+
+			const hasMetadata = dirEntries.some((entry) => entry.name === 'metadata.json' && entry.isFile);
+			//if (hasMetadata) return false;
+
+			const containsFiles = await hasFiles(conversationPath);
+
+			// Corrupted if files exist anywhere in tree but no metadata.json at root
+			return containsFiles && !hasMetadata;
+		} catch (_error) {
+			// If we can't read the directory, assume it's not corrupted
+			return false;
 		}
 	}
 }

@@ -304,8 +304,20 @@ export const getCollaboration = async (
 			return;
 		}
 
+		// Load log data entries for the interaction
+		let logDataEntries: Array<CollaborationLogDataEntry>;
+		try {
+			logDataEntries = await CollaborationLogger.getLogDataEntries(projectId, collaborationId);
+		} catch (_error) {
+			logDataEntries = [];
+		}
+
+
 		response.status = 200;
-		response.body = collaboration;
+		response.body = {
+			...collaboration,
+			logDataEntries,
+		};
 	} catch (error) {
 		logger.error(`CollaborationHandler: Error in getCollaboration: ${errorMessage(error)}`);
 		response.status = 500;
@@ -533,19 +545,9 @@ export const getInteraction = async (
 			return;
 		}
 
-		// Load log data entries for the interaction
-		let logDataEntries: Array<CollaborationLogDataEntry>;
-		try {
-			logDataEntries = await CollaborationLogger.getLogDataEntries(projectId, interactionId as InteractionId);
-		} catch (_error) {
-			logDataEntries = [];
-		}
 
 		response.status = 200;
-		response.body = {
-			...interaction,
-			logDataEntries,
-		};
+		response.body = interaction;
 	} catch (error) {
 		logger.error(`CollaborationHandler: Error in getInteraction: ${errorMessage(error)}`);
 		response.status = 500;

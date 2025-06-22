@@ -426,7 +426,7 @@ export default class CollaborationLogger {
 		agentInteractionId: InteractionId | null,
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
-		_conversationStats: InteractionStats,
+		_interactionStats: InteractionStats,
 		_tokenUsageStats: TokenUsageStats,
 		_modelConfig?: LLMModelConfig,
 	): Promise<string> {

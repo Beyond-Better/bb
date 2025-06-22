@@ -205,7 +205,7 @@ export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
 		};
 	};
 
-	const conversationStatsStub = createStub('interactionStats');
+	const interactionStatsStub = createStub('interactionStats');
 
 	// Implement chat stub that returns formatted summary response
 	const chatStub = (summaryText: string, usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 }) => {
@@ -253,7 +253,7 @@ export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
 
 	return {
 		chatInteraction,
-		conversationStatsStub,
+		interactionStatsStub,
 		chatStub,
 		chatErrorStub,
 	};

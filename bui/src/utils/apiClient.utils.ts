@@ -709,9 +709,9 @@ export class ApiClient {
 	async getCollaboration(
 		collaborationId: string,
 		projectId: ProjectId,
-	): Promise<CollaborationValues | null> {
+	): Promise<(CollaborationValues & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
 		//): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		return await this.get<CollaborationValues>(
+		return await this.get<CollaborationValues & { logDataEntries: CollaborationLogDataEntry[] }>(
 			`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);

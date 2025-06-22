@@ -285,16 +285,19 @@ export function useChatState(
 					)
 					: null;
 				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
-				const interaction = (collaboration && appState.value.projectId)
-					? await apiClient.getInteraction(
-						collaborationId,
-						collaboration.lastInteractionId || '',
-						appState.value.projectId,
-					)
-					: null;
-				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-interaction`, interaction);
-				const logDataEntries = createNestedLogDataEntries(interaction?.logDataEntries || []);
-				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await apiClient.getInteraction(
+				// 		collaborationId,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				// console.log(`useChatState: url/projectId effect[${effectId}]: initialize-interaction`, interaction);
+				const logDataEntries = createNestedLogDataEntries(collaboration?.logDataEntries || []);
+				// console.log(
+				// 	`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`,
+				// 	logDataEntries,
+				// );
 
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...collaborations];
@@ -941,14 +944,14 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
-				const interaction = (collaboration && appState.value.projectId)
-					? await chatState.value.apiClient.getInteraction(
-						id,
-						collaboration.lastInteractionId || '',
-						appState.value.projectId,
-					)
-					: null;
-				console.log(`useChatState: selectCollaboration for ${id}: loaded`, interaction?.logDataEntries);
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await chatState.value.apiClient.getInteraction(
+				// 		id,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				console.log(`useChatState: selectCollaboration for ${id}: loaded`, collaboration?.logDataEntries);
 
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...chatState.value.collaborations];
@@ -981,7 +984,7 @@ export function useChatState(
 					...chatState.value,
 					collaborationId: id,
 					collaborations: updatedCollaborations,
-					logDataEntries: interaction?.logDataEntries || [],
+					logDataEntries: collaboration?.logDataEntries || [],
 					//status: { ...chatState.value.status, isLoading: false, isReady: true },
 				};
 
