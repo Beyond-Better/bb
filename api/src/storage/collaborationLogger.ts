@@ -12,7 +12,7 @@ import type {
 	InteractionId,
 	InteractionStats,
 	ProjectId,
-	TokenUsageStats,
+	TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
@@ -92,7 +92,7 @@ export default class CollaborationLogger {
 			timestamp: string,
 			logEntry: CollaborationLogEntry,
 			interactionStats: InteractionStats,
-			tokenUsageStats: TokenUsageStats,
+			tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 			modelConfig?: LLMModelConfig,
 		) => Promise<void>,
 	) {
@@ -162,7 +162,7 @@ export default class CollaborationLogger {
 		agentInteractionId: InteractionId | null,
 		logEntry: CollaborationLogEntry,
 		interactionStats: InteractionStats = { statementCount: 0, statementTurnCount: 0, interactionTurnCount: 0 },
-		tokenUsageStats: TokenUsageStats = {
+		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration = {
 			tokenUsageTurn: {
 				inputTokens: 0,
 				outputTokens: 0,
@@ -178,6 +178,13 @@ export default class CollaborationLogger {
 				totalAllTokens: 0,
 			},
 			tokenUsageInteraction: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				thoughtTokens: 0,
+				totalAllTokens: 0,
+			},
+			tokenUsageCollaboration: {
 				inputTokens: 0,
 				outputTokens: 0,
 				totalTokens: 0,
@@ -200,7 +207,7 @@ export default class CollaborationLogger {
 				timestamp,
 				logEntry,
 				interactionStats,
-				tokenUsageStats,
+				tokenUsageStatsForCollaboration,
 				modelConfig,
 			);
 		} catch (error) {
@@ -214,7 +221,7 @@ export default class CollaborationLogger {
 			timestamp,
 			logEntry,
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		);
 		try {
@@ -231,7 +238,7 @@ export default class CollaborationLogger {
 			timestamp,
 			logEntry,
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		});
 		try {
@@ -275,7 +282,7 @@ export default class CollaborationLogger {
 		message: string,
 		thinking: string,
 		interactionStats: InteractionStats,
-		tokenUsageStats: TokenUsageStats,
+		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
@@ -289,7 +296,7 @@ export default class CollaborationLogger {
 				thinking: thinking,
 			},
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		);
 	}
@@ -302,7 +309,7 @@ export default class CollaborationLogger {
 		answer: string,
 		assistantThinking: string,
 		interactionStats: InteractionStats,
-		tokenUsageStats: TokenUsageStats,
+		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
@@ -316,7 +323,7 @@ export default class CollaborationLogger {
 				thinking: assistantThinking,
 			},
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		);
 	}
@@ -328,7 +335,7 @@ export default class CollaborationLogger {
 		agentInteractionId: InteractionId | null,
 		message: string | AuxiliaryChatContent,
 		interactionStats?: InteractionStats,
-		tokenUsageStats?: TokenUsageStats,
+		tokenUsageStatsForCollaboration?: TokenUsageStatsForCollaboration,
 		modelConfig?: LLMModelConfig,
 	) {
 		await this.logEntry(
@@ -338,7 +345,7 @@ export default class CollaborationLogger {
 			agentInteractionId,
 			{ entryType: 'auxiliary', content: message },
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		);
 	}
@@ -351,7 +358,7 @@ export default class CollaborationLogger {
 		toolName: string,
 		toolInput: LLMToolInputSchema,
 		interactionStats: InteractionStats,
-		tokenUsageStats: TokenUsageStats,
+		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 		modelConfig?: LLMModelConfig,
 	) {
 		try {
@@ -362,7 +369,7 @@ export default class CollaborationLogger {
 				agentInteractionId,
 				{ entryType: 'tool_use', content: toolInput, toolName },
 				interactionStats,
-				tokenUsageStats,
+				tokenUsageStatsForCollaboration,
 				modelConfig,
 			);
 		} catch (error) {
@@ -427,7 +434,7 @@ export default class CollaborationLogger {
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
 		_interactionStats: InteractionStats,
-		_tokenUsageStats: TokenUsageStats,
+		_tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 		_modelConfig?: LLMModelConfig,
 	): Promise<string> {
 		// [TODO] add token usage to header line
@@ -455,7 +462,7 @@ export default class CollaborationLogger {
 		timestamp: string,
 		logEntry: CollaborationLogEntry,
 		interactionStats: InteractionStats,
-		tokenUsageStats: TokenUsageStats,
+		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 		modelConfig?: LLMModelConfig,
 	): Promise<string> {
 		let rawEntry = await this.createRawEntry(
@@ -465,7 +472,7 @@ export default class CollaborationLogger {
 			timestamp,
 			logEntry,
 			interactionStats,
-			tokenUsageStats,
+			tokenUsageStatsForCollaboration,
 			modelConfig,
 		);
 		// Ensure entry ends with a single newline and the separator

@@ -4,7 +4,7 @@ import type {
 	InteractionId,
 	InteractionMetadata,
 	ProjectId,
-	TokenUsageStats,
+	TokenUsage,
 } from 'shared/types.ts';
 import type { CollaborationParams, CollaborationSummary, CollaborationValues } from 'shared/types/collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
@@ -34,7 +34,7 @@ export default class Collaboration {
 	private _loadedInteractions: Map<InteractionId, LLMInteraction> = new Map();
 
 	// Usage tracking
-	public tokenUsageStats: TokenUsageStats;
+	public tokenUsageCollaboration: TokenUsage;
 
 	constructor(
 		id: CollaborationId,
@@ -49,7 +49,7 @@ export default class Collaboration {
 			lastInteractionId?: InteractionId;
 			lastInteractionMetadata?: InteractionMetadata;
 			interactionIds?: InteractionId[];
-			tokenUsageStats?: TokenUsageStats;
+			tokenUsageCollaboration?: TokenUsage;
 		} = {},
 	) {
 		this.id = id;
@@ -65,7 +65,7 @@ export default class Collaboration {
 		this.lastInteractionId = options.lastInteractionId;
 		this.lastInteractionMetadata = options.lastInteractionMetadata;
 		this._interactionIds = options.interactionIds || [];
-		this.tokenUsageStats = options.tokenUsageStats || this.getDefaultTokenUsageStats();
+		this.tokenUsageCollaboration = options.tokenUsageCollaboration || this.getDefaultTokenUsage();
 	}
 
 	async init(): Promise<Collaboration> {
@@ -82,29 +82,15 @@ export default class Collaboration {
 		};
 	}
 
-	private getDefaultTokenUsageStats(): TokenUsageStats {
+	private getDefaultTokenUsage(): TokenUsage {
 		return {
-			tokenUsageInteraction: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
-			tokenUsageStatement: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
-			tokenUsageTurn: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
+			inputTokens: 0,
+			outputTokens: 0,
+			totalTokens: 0,
+			cacheCreationInputTokens: 0,
+			cacheReadInputTokens: 0,
+			thoughtTokens: 0,
+			totalAllTokens: 0,
 		};
 	}
 
@@ -195,8 +181,8 @@ export default class Collaboration {
 		this.updatedAt = new Date().toISOString();
 	}
 
-	updateTokenUsageStats(stats: Partial<TokenUsageStats>): void {
-		this.tokenUsageStats = { ...this.tokenUsageStats, ...stats };
+	updateTokenUsageCollaboration(usage: Partial<TokenUsage>): void {
+		this.tokenUsageCollaboration = { ...this.tokenUsageCollaboration, ...usage };
 		this.updatedAt = new Date().toISOString();
 	}
 
@@ -217,7 +203,7 @@ export default class Collaboration {
 			interactionIds: this.interactionIds,
 			lastInteractionId: this.lastInteractionId,
 			lastInteractionMetadata: this.lastInteractionMetadata,
-			tokenUsageStats: this.tokenUsageStats,
+			tokenUsageCollaboration: this.tokenUsageCollaboration,
 			createdAt: this.createdAt,
 			updatedAt: this.updatedAt,
 		};
@@ -232,7 +218,7 @@ export default class Collaboration {
 			interactionIds: values.interactionIds,
 			lastInteractionId: values.lastInteractionId,
 			lastInteractionMetadata: values.lastInteractionMetadata,
-			tokenUsageStats: values.tokenUsageStats,
+			tokenUsageCollaboration: values.tokenUsageCollaboration,
 			createdAt: values.createdAt,
 			updatedAt: values.updatedAt,
 		});

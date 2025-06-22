@@ -229,7 +229,7 @@ export function CollaborationList({
 															.interactionTurnCount} turns
 													</p>
 												)}
-												{collab.tokenUsageStats.tokenUsageInteraction && (
+												{collab.tokenUsageCollaboration && (
 													<p className='flex items-center text-purple-600 dark:text-purple-400 dark:text-purple-400'>
 														<svg
 															className='w-3.5 h-3.5 mr-1'
@@ -244,9 +244,9 @@ export function CollaborationList({
 																d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 															/>
 														</svg>
-														{collab.tokenUsageStats.tokenUsageInteraction.totalTokens
+														{collab.tokenUsageCollaboration.totalTokens
 															?.toLocaleString() ||
-															collab.tokenUsageStats.tokenUsageInteraction
+															collab.tokenUsageCollaboration
 																.totalTokensTotal
 																?.toLocaleString() ||
 															0} tokens

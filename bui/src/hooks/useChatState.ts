@@ -503,7 +503,7 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logDataEntry: CollaborationLogDataEntry }) => {
+		const handleMessage = async (data: { msgType: string; logDataEntry: CollaborationLogDataEntry }) => {
 			const startTime = performance.now();
 			// console.debug('useChatState: wsManager effect: Processing message:', {
 			// 	type: data.msgType,
@@ -536,40 +536,64 @@ export function useChatState(
 				//	lastAccessed: new Date().toISOString(),
 				//});
 
+				// Load collaboration data first
+				if (!chatState.value.apiClient) {
+					console.error('useChatState: selectCollaboration: apiClient is null before getCollaboration');
+					throw new Error('Chat API client was lost during collaboration load');
+				}
+				const collaboration = (data.logDataEntry.collaborationId && appState.value.projectId)
+					? await chatState.value.apiClient.getCollaboration(
+						data.logDataEntry.collaborationId,
+						appState.value.projectId,
+					)
+					: null;
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await chatState.value.apiClient.getInteraction(
+				// 		id,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				console.log(
+					`useChatState: collaborationNew for ${data.logDataEntry.collaborationId}: loaded`,
+					collaboration,
+				);
+
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...chatState.value.collaborations];
-				if (data.logDataEntry.collaborationId) {
+				//if (data.logDataEntry.collaborationId) {
+				if (collaboration) {
 					const existingIndex = updatedCollaborations.findIndex((c) =>
 						c.id === data.logDataEntry.collaborationId
 					);
-					const collaborationData = {
-						id: data.logDataEntry.collaborationId,
-						title: data.logDataEntry.collaborationTitle,
-						type: data.logDataEntry.collaborationType,
-						collaborationParams: data.logDataEntry.collaborationParams,
-						projectId: data.logDataEntry.projectId,
-						totalInteractions: data.logDataEntry.totalInteractions,
-						interactionIds: data.logDataEntry.interactionIds,
-						tokenUsageStats: data.logDataEntry.tokenUsageStats,
-						createdAt: data.logDataEntry.createdAt,
-						updatedAt: data.logDataEntry.updatedAt,
-						// lastInteractionMetadata: {
-						// 	tokenUsageStats: data.logDataEntry.tokenUsageStats,
-						// 	modelConfig: data.logDataEntry.modelConfig,
-						// 	interactionStats: data.logDataEntry.interactionStats,
-						// 	createdAt: data.logDataEntry.timestamp,
-						// 	updatedAt: data.logDataEntry.timestamp,
-						// 	llmProviderName: 'anthropic', // Default provider
-						// 	model: 'claude-sonnet-4-20250514', // Default model
-						// },
-					};
+					// const collaborationData = {
+					// 	id: data.logDataEntry.collaborationId,
+					// 	title: data.logDataEntry.collaborationTitle,
+					// 	type: data.logDataEntry.collaborationType,
+					// 	collaborationParams: data.logDataEntry.collaborationParams,
+					// 	projectId: data.logDataEntry.projectId,
+					// 	totalInteractions: 0, //data.logDataEntry.totalInteractions,
+					// 	interactionIds: [], //data.logDataEntry.interactionIds,
+					// 	tokenUsageCollaboration: data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration,
+					// 	createdAt: data.logDataEntry.createdAt,
+					// 	updatedAt: data.logDataEntry.updatedAt,
+					// 	// lastInteractionMetadata: {
+					// 	// 	tokenUsageStats: data.logDataEntry.tokenUsageStats,
+					// 	// 	modelConfig: data.logDataEntry.modelConfig,
+					// 	// 	interactionStats: data.logDataEntry.interactionStats,
+					// 	// 	createdAt: data.logDataEntry.timestamp,
+					// 	// 	updatedAt: data.logDataEntry.timestamp,
+					// 	// 	llmProviderName: 'anthropic', // Default provider
+					// 	// 	model: 'claude-sonnet-4-20250514', // Default model
+					// 	// },
+					// };
 
 					if (existingIndex >= 0) {
 						// Update existing collaboration
-						updatedCollaborations[existingIndex] = collaborationData;
+						updatedCollaborations[existingIndex] = collaboration;
 					} else {
 						// Add new collaboration
-						updatedCollaborations.push(collaborationData);
+						updatedCollaborations.push(collaboration);
 					}
 				}
 
@@ -624,7 +648,8 @@ export function useChatState(
 					if (collab.id === data.logDataEntry.collaborationId) {
 						return {
 							...collab,
-							//collaborationParams: data.logDataEntry.collaborationParams,
+							collaborationParams: data.logDataEntry.collaborationParams,
+							tokenUsageStatsForCollaboration: data.logDataEntry.tokenUsageStatsForCollaboration,
 							// lastInteractionMetadata: {
 							// 	...collab.lastInteractionMetadata,
 							// 	id: collab.lastInteractionMetadata?.id || '',

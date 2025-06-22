@@ -51,6 +51,7 @@ interface ChatInputProps {
 	maxLength?: number;
 	collaborationId: string | null;
 	onHeightChange?: (height: number) => void;
+	chatState?: Signal<any>; // For accessing collaboration data
 }
 
 enum TabState {
@@ -117,6 +118,27 @@ const inputMetrics = signal({
 });
 const collaborationIdSignal = signal<string | null>(null);
 
+// Token Progress Indicator Component
+const TokenProgressIndicator = ({ percentage }: { percentage: number }) => {
+	const getProgressColor = (pct: number): string => {
+		if (pct < 30) return 'bg-green-500';
+		if (pct < 70) return 'bg-yellow-500';
+		return 'bg-red-500';
+	};
+
+	// Only show if there's meaningful progress (> 1%)
+	if (percentage <= 1) return null;
+
+	return (
+		<div className="w-full h-0.5 bg-gray-200 dark:bg-gray-700">
+			<div
+				className={`h-full transition-all duration-300 ${getProgressColor(percentage)}`}
+				style={{ width: `${Math.min(100, percentage)}%` }}
+			/>
+		</div>
+	);
+};
+
 export function ChatInput({
 	apiClient,
 	chatInputText,
@@ -132,6 +154,7 @@ export function ChatInput({
 	primaryDataSourceName,
 	collaborationId,
 	onHeightChange,
+	chatState,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
@@ -192,6 +215,36 @@ export function ChatInput({
 		getSavedInput,
 		clearCurrentInput,
 	} = useChatInputHistory(collaborationIdSignal);
+
+	// Calculate token usage percentage
+	const tokenPercentage = useComputed(() => {
+		if (!chatState?.value || !collaborationId) return 0;
+		
+		// Find current collaboration
+		const currentCollaboration = chatState.value.collaborations?.find(
+			(collab: any) => collab.id === collaborationId
+		);
+		
+		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
+			return 0;
+		}
+		
+		// Get orchestrator model from current options
+		const orchestratorModel = chatInputOptions.value.rolesModelConfig?.orchestrator?.model;
+		if (!orchestratorModel) return 0;
+		
+		// Get model capabilities
+		const modelCapabilities = modelState.value.modelCapabilities[orchestratorModel];
+		if (!modelCapabilities?.capabilities?.contextWindow) return 0;
+		
+		// Extract token usage (same logic as ModelInfoPanel)
+		const tokenUsageTurn = currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
+		const contextWindow = modelCapabilities.capabilities.contextWindow;
+		const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
+		const tokenLimit = contextWindow;
+		
+		return tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
+	});
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
 		console.debug('ChatInput: fetchSuggestions called', { searchPath, tabState: tabState.value, forceShow });
@@ -1352,6 +1405,9 @@ export function ChatInput({
 
 	return (
 		<div ref={containerRef} className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
+			{/* Token Progress Indicator */}
+			<TokenProgressIndicator percentage={tokenPercentage.value} />
+			
 			<InputStatusBar
 				visible={statusInfo.value.visible}
 				message={statusInfo.value.message}

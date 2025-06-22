@@ -120,7 +120,7 @@ export const listCollaborations = async (
 				totalInteractions: collab.totalInteractions,
 				lastInteractionId: collab.lastInteractionId,
 				lastInteractionMetadata: collab.lastInteractionMetadata,
-				tokenUsageStats: collab.tokenUsageStats,
+				tokenUsageCollaboration: collab.tokenUsageCollaboration,
 				collaborationParams: {
 					...(collab.collaborationParams || {}),
 					rolesModelConfig: {
@@ -311,7 +311,6 @@ export const getCollaboration = async (
 		} catch (_error) {
 			logDataEntries = [];
 		}
-
 
 		response.status = 200;
 		response.body = {
@@ -545,7 +544,6 @@ export const getInteraction = async (
 			return;
 		}
 
-
 		response.status = 200;
 		response.body = interaction;
 	} catch (error) {
@@ -673,7 +671,7 @@ export const chatInteraction = async (
 			logEntry: result.logEntry,
 			collaborationTitle: result.collaborationTitle,
 			interactionStats: result.interactionStats,
-			tokenUsageStats: result.tokenUsageStats,
+			tokenUsageStatsForCollaboration: result.tokenUsageStatsForCollaboration,
 		};
 	} catch (error) {
 		logger.error(
@@ -875,29 +873,43 @@ export const getCollaborationDefaults = async (
 			},
 			totalInteractions: 0,
 			interactionIds: [],
-			tokenUsageStats: {
-				tokenUsageInteraction: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
-				tokenUsageStatement: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
-				tokenUsageTurn: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
+			tokenUsageCollaboration: {
+				inputTokens: 0,
+				outputTokens: 0,
+				totalTokens: 0,
+				thoughtTokens: 0,
+				totalAllTokens: 0,
 			},
+			// tokenUsageStatsForCollaboration: {
+			// 	tokenUsageCollaboration: {
+			// 		inputTokens: 0,
+			// 		outputTokens: 0,
+			// 		totalTokens: 0,
+			// 		thoughtTokens: 0,
+			// 		totalAllTokens: 0,
+			// 	},
+			// 	tokenUsageInteraction: {
+			// 		inputTokens: 0,
+			// 		outputTokens: 0,
+			// 		totalTokens: 0,
+			// 		thoughtTokens: 0,
+			// 		totalAllTokens: 0,
+			// 	},
+			// 	tokenUsageStatement: {
+			// 		inputTokens: 0,
+			// 		outputTokens: 0,
+			// 		totalTokens: 0,
+			// 		thoughtTokens: 0,
+			// 		totalAllTokens: 0,
+			// 	},
+			// 	tokenUsageTurn: {
+			// 		inputTokens: 0,
+			// 		outputTokens: 0,
+			// 		totalTokens: 0,
+			// 		thoughtTokens: 0,
+			// 		totalAllTokens: 0,
+			// 	},
+			// },
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),
 		};

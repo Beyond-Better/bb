@@ -67,7 +67,10 @@ class LLMChatInteraction extends LLMInteraction {
 			null,
 			auxiliaryContent,
 			this.interactionStats,
-			this.tokenUsageStats,
+			{
+				...this.tokenUsageStatsForInteraction,
+				tokenUsageCollaboration: this.collaboration.tokenUsageCollaboration,
+			},
 		);
 
 		return response;

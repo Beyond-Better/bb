@@ -398,7 +398,7 @@ export class TerminalHandler {
 				statementTurnCount: 1,
 				interactionTurnCount: 1,
 			},
-			tokenUsageStats = {
+			tokenUsageStatsForCollaboration = {
 				tokenUsageStatement: {
 					inputTokens: 0,
 					outputTokens: 0,
@@ -435,7 +435,7 @@ export class TerminalHandler {
 					formattedContent,
 					formattedResult,
 					interactionStats,
-					tokenUsageStats.tokenUsageStatement,
+					tokenUsageStatsForCollaboration.tokenUsageStatement,
 					logEntry.toolName,
 				);
 
@@ -471,13 +471,13 @@ export class TerminalHandler {
 		const {
 			collaborationTitle,
 			interactionStats = data.interactionStats, //{ statementCount: 1, statementTurnCount: 1, interactionTurnCount: 1 },
-			tokenUsageStats = {
+			tokenUsageStatsForCollaboration = {
 				tokenUsageStatement: {
-					inputTokens: data.tokenUsageStats.tokenUsageStatement.inputTokens,
-					outputTokens: data.tokenUsageStats.tokenUsageStatement.outputTokens,
-					totalTokens: data.tokenUsageStats.tokenUsageStatement.totalTokens,
-					thoughtTokens: data.tokenUsageStats.tokenUsageStatement.thoughtTokens,
-					totalAllTokens: data.tokenUsageStats.tokenUsageStatement.totalAllTokens,
+					inputTokens: data.tokenUsageStatsForCollaboration.tokenUsageStatement.inputTokens,
+					outputTokens: data.tokenUsageStatsForCollaboration.tokenUsageStatement.outputTokens,
+					totalTokens: data.tokenUsageStatsForCollaboration.tokenUsageStatement.totalTokens,
+					thoughtTokens: data.tokenUsageStatsForCollaboration.tokenUsageStatement.thoughtTokens,
+					totalAllTokens: data.tokenUsageStatsForCollaboration.tokenUsageStatement.totalAllTokens,
 				},
 			},
 		} = data;
@@ -492,7 +492,7 @@ export class TerminalHandler {
 			content,
 			{ title: '', content },
 			interactionStats,
-			tokenUsageStats.tokenUsageStatement,
+			tokenUsageStatsForCollaboration.tokenUsageStatement,
 		);
 		console.log(formattedEntry);
 
@@ -502,7 +502,7 @@ export class TerminalHandler {
 		const idShort = collaborationId?.substring(0, 8) || '';
 		const titleShort = collaborationTitle?.substring(0, isNarrow ? 10 : 20) || '';
 
-		//logger.debug(`Preparing summary line with interactionStats: ${JSON.stringify(interactionStats)}, tokenUsage: ${JSON.stringify(tokenUsageStats.tokenUsageStatement)}`);
+		//logger.debug(`Preparing summary line with interactionStats: ${JSON.stringify(interactionStats)}, tokenUsage: ${JSON.stringify(tokenUsageStatsForCollaboration.tokenUsageStatement)}`);
 		const summaryLine = [
 			colors.cyan(isNarrow ? 'C' : 'Conv'),
 			colors.yellow(isNarrow ? `${idShort}` : `ID:${idShort}`),
@@ -515,18 +515,18 @@ export class TerminalHandler {
 			),
 			colors.red(
 				isNarrow
-					? `↓${tokenUsageStats.tokenUsageStatement.inputTokens}`
-					: `In:${tokenUsageStats.tokenUsageStatement.inputTokens}`,
+					? `↓${tokenUsageStatsForCollaboration.tokenUsageStatement.inputTokens}`
+					: `In:${tokenUsageStatsForCollaboration.tokenUsageStatement.inputTokens}`,
 			),
 			colors.yellow(
 				isNarrow
-					? `↑${tokenUsageStats.tokenUsageStatement.outputTokens}`
-					: `Out:${tokenUsageStats.tokenUsageStatement.outputTokens}`,
+					? `↑${tokenUsageStatsForCollaboration.tokenUsageStatement.outputTokens}`
+					: `Out:${tokenUsageStatsForCollaboration.tokenUsageStatement.outputTokens}`,
 			),
 			colors.green(
 				isNarrow
-					? `Σ${tokenUsageStats.tokenUsageStatement.totalTokens}`
-					: `Tot:${tokenUsageStats.tokenUsageStatement.totalTokens}`,
+					? `Σ${tokenUsageStatsForCollaboration.tokenUsageStatement.totalTokens}`
+					: `Tot:${tokenUsageStatsForCollaboration.tokenUsageStatement.totalTokens}`,
 			),
 			colors.cyan(isNarrow ? `${titleShort}` : `Title:${titleShort}`),
 		].join('  '); // Two spaces between each item
@@ -548,11 +548,11 @@ export class TerminalHandler {
 		const { collaborationId, interactionStats, collaborationTitle } = response;
 		//const tokenUsageStatement = response.response.usage;
 		const tokenUsageInteraction: TokenUsage = {
-			inputTokens: response.tokenUsageStats.tokenUsageStatement.inputTokens,
-			outputTokens: response.tokenUsageStats.tokenUsageStatement.outputTokens,
-			totalTokens: response.tokenUsageStats.tokenUsageStatement.totalTokens,
-			thoughtTokens: response.tokenUsageStats.tokenUsageStatement.thoughtTokens,
-			totalAllTokens: response.tokenUsageStats.tokenUsageStatement.totalAllTokens,
+			inputTokens: response.tokenUsageStatsForCollaboration.tokenUsageStatement.inputTokens,
+			outputTokens: response.tokenUsageStatsForCollaboration.tokenUsageStatement.outputTokens,
+			totalTokens: response.tokenUsageStatsForCollaboration.tokenUsageStatement.totalTokens,
+			thoughtTokens: response.tokenUsageStatsForCollaboration.tokenUsageStatement.thoughtTokens,
+			totalAllTokens: response.tokenUsageStatsForCollaboration.tokenUsageStatement.totalAllTokens,
 		};
 
 		if (options.json) {

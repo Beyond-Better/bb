@@ -330,11 +330,11 @@ export function MessageEntry({
 			? logDataEntry.logEntry.entryType
 			: 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
-	const tokenUsageTurn = 'tokenUsageStats' in logDataEntry
-		? logDataEntry.tokenUsageStats.tokenUsageTurn
+	const tokenUsageTurn = 'tokenUsageStatsForCollaboration' in logDataEntry
+		? logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn
 		: getDefaultTokenUsage();
-	const tokenUsageInteraction = 'tokenUsageStats' in logDataEntry
-		? logDataEntry.tokenUsageStats.tokenUsageInteraction
+	const tokenUsageInteraction = 'tokenUsageStatsForCollaboration' in logDataEntry
+		? logDataEntry.tokenUsageStatsForCollaboration.tokenUsageInteraction
 		: getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons

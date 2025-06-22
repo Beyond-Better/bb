@@ -5,7 +5,7 @@ import type {
 	InteractionId,
 	InteractionMetadata,
 	ProjectId,
-	TokenUsageStats,
+	TokenUsage,
 } from 'shared/types.ts';
 
 // Full collaboration interface matching the Collaboration class
@@ -27,7 +27,7 @@ export interface CollaborationInterface {
 	lastInteractionMetadata?: InteractionMetadata;
 
 	// Usage tracking
-	tokenUsageStats: TokenUsageStats;
+	tokenUsageCollaboration: TokenUsage;
 
 	// Timestamps
 	readonly createdAt: string;
@@ -41,11 +41,11 @@ export interface CollaborationValues {
 	title: string;
 	type: CollaborationType;
 	collaborationParams: CollaborationParams;
+	tokenUsageCollaboration: TokenUsage;
 	totalInteractions: number;
+	interactionIds: InteractionId[];
 	lastInteractionId?: InteractionId;
 	lastInteractionMetadata?: InteractionMetadata;
-	interactionIds: InteractionId[];
-	tokenUsageStats: TokenUsageStats;
 	createdAt: string;
 	updatedAt: string;
 }

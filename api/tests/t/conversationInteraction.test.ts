@@ -19,7 +19,7 @@ import type {
 	InteractionStats,
 	ProjectId,
 	//ObjectivesData,
-	TokenUsageStats,
+	TokenUsageStatsForInteraction,
 } from 'shared/types.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
@@ -53,7 +53,7 @@ const mockInteractionCallbacks: LLMCallbacks = {
 		_timestamp: string,
 		_logEntry: CollaborationLogEntry,
 		_interactionStats: InteractionStats,
-		_tokenUsageStats: TokenUsageStats,
+		_tokenUsageStatsForInteraction: TokenUsageStatsForInteraction,
 		_modelConfig?: LLMModelConfig,
 	): Promise<void> => {
 	},

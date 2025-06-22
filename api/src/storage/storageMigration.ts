@@ -183,11 +183,11 @@ export class StorageMigration {
 				}
 			}
 
-			// Migrate conversations to collaborations structure (v3 to v4)
-			await StorageMigration.migrateConversationsToCollaborations(projectId);
-
 			// Migrate individual interactions through version progression
 			await StorageMigration.migrateProjectInteractions(projectId, projectAdminDataDir);
+
+			// Migrate conversations to collaborations structure (v3 to v4)
+			await StorageMigration.migrateConversationsToCollaborations(projectId);
 
 			// Create/update migration state file
 			const migrationState: ProjectMigrationState = {
@@ -384,7 +384,7 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version >= 2) {
+			if (metadata?.version && metadata.version >= 2) {
 				result.version.from = metadata.version;
 				return result;
 			}
@@ -425,7 +425,7 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version >= 3) {
+			if (metadata?.version && metadata.version >= 3) {
 				result.version.from = metadata.version;
 				return result;
 			}
@@ -438,6 +438,14 @@ export class StorageMigration {
 			for (const record of tokenUsageRecords) {
 				// Skip if totalAllTokens already exists
 				if (record.rawUsage.totalAllTokens !== undefined) continue;
+
+				// update savings fields
+				if ((record as any).cacheImpact.savings !== undefined) {
+					record.cacheImpact.savingsTotal = (record as any).cacheImpact.savings;
+					record.cacheImpact.savingsPercentage =
+						(record.cacheImpact.savingsTotal / record.cacheImpact.potentialCost) * 100;
+					delete (record as any).cacheImpact.savings;
+				}
 
 				// Calculate totalAllTokens
 				const totalAllTokens = (record.rawUsage.totalTokens ?? 0) +
@@ -458,7 +466,7 @@ export class StorageMigration {
 
 			// Update interaction metadata with token analysis
 			const tokenAnalysis: TokenUsageAnalysis = await tokenUsagePersistence.analyzeUsage('conversation');
-			if (!metadata.tokenUsageStats) {
+			if (!(metadata as any).tokenUsageStats) {
 				const defaultInteractionTokenUsage: TokenUsage = {
 					inputTokens: 0,
 					outputTokens: 0,
@@ -466,13 +474,13 @@ export class StorageMigration {
 					thoughtTokens: 0,
 					totalAllTokens: 0,
 				};
-				metadata.tokenUsageStats = {
+				(metadata as any).tokenUsageStats = {
 					tokenUsageTurn: defaultInteractionTokenUsage,
 					tokenUsageStatement: defaultInteractionTokenUsage,
 					tokenUsageInteraction: defaultInteractionTokenUsage,
 				};
 			}
-			metadata.tokenUsageStats.tokenUsageInteraction = {
+			(metadata as any).tokenUsageStats.tokenUsageInteraction = {
 				inputTokens: tokenAnalysis.totalUsage.input,
 				outputTokens: tokenAnalysis.totalUsage.output,
 				totalTokens: tokenAnalysis.totalUsage.total,
@@ -545,7 +553,7 @@ export class StorageMigration {
 
 		try {
 			const metadata = await StorageMigration.readMetadata(join(interactionDir, 'metadata.json'));
-			if (metadata.version >= 4) {
+			if (metadata?.version && metadata.version >= 4) {
 				result.version.from = metadata.version;
 				return result;
 			}
@@ -553,13 +561,13 @@ export class StorageMigration {
 			// Update metadata version
 			metadata.version = 4;
 
-			if (metadata.conversationStats) {
+			if ((metadata as any).conversationStats) {
 				metadata.interactionStats = {
-					...metadata.conversationStats,
-					interactionTurnCount: metadata.conversationStats.conversationTurnCount,
+					...(metadata as any).conversationStats,
+					interactionTurnCount: (metadata as any).conversationStats.conversationTurnCount,
 				};
-				delete metadata.interactionStats.conversationTurnCount;
-				delete metadata.conversationStats;
+				if ((metadata as any).interactionStats) delete (metadata as any).interactionStats.conversationTurnCount;
+				delete (metadata as any).conversationStats;
 			} else {
 				metadata.interactionStats = {
 					statementTurnCount: 0,
@@ -574,73 +582,59 @@ export class StorageMigration {
 						`Missing conversationStats in metadata for interaction ${metadata.id} - setting values to 0`,
 				});
 			}
+			const emptyTokenUsage = {
+				totalTokens: 0,
+				inputTokens: 0,
+				outputTokens: 0,
+				cacheCreationInputTokens: undefined,
+				cacheReadInputTokens: undefined,
+				thoughtTokens: undefined,
+				totalAllTokens: undefined,
+			};
 
-			if (metadata.tokenUsageConversation && !metadata.tokenUsageStats) {
-				metadata.tokenUsageStats = {
-					tokenUsageInteraction: { ...metadata.tokenUsageConversation },
+			if ((metadata as any).tokenUsageConversation && !(metadata as any).tokenUsageStats) {
+				metadata.tokenUsageStatsForInteraction = {
+					tokenUsageInteraction: { ...emptyTokenUsage, ...(metadata as any).tokenUsageConversation },
 					tokenUsageStatement: {
-						...(metadata.tokenUsageStatement || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-							cacheCreationInputTokens: 0,
-							cacheReadInputTokens: 0,
-							thoughtTokens: 0,
-							totalAllTokens: 0,
-						}),
+						...emptyTokenUsage,
+						...(metadata as any).tokenUsageStatement,
 					},
-					tokenUsageTurn: {
-						...(metadata.tokenUsageTurn || {
-							inputTokens: 0,
-							outputTokens: 0,
-							totalTokens: 0,
-							cacheCreationInputTokens: 0,
-							cacheReadInputTokens: 0,
-							thoughtTokens: 0,
-							totalAllTokens: 0,
-						}),
-					},
+					tokenUsageTurn: { ...emptyTokenUsage, ...(metadata as any).tokenUsageTurn },
 				};
-				//metadata.tokenUsageStats.tokenUsageInteraction = { ...metadata.tokenUsageConversation };
-				delete metadata.tokenUsageConversation;
-				delete metadata.tokenUsageStatement;
-				delete metadata.tokenUsageTurn;
+				//metadata.tokenUsageStatsForInteraction.tokenUsageInteraction = { ...(metadata as any).tokenUsageConversation };
+				if ((metadata as any).tokenUsageInteraction?.tokenUsageConversation) {
+					delete (metadata as any).tokenUsageInteraction.tokenUsageConversation;
+				}
+				if ((metadata as any).tokenUsageStatsForInteraction) {
+					delete (metadata as any).tokenUsageStatsForInteraction.tokenUsageConversation;
+				}
+				delete (metadata as any).tokenUsageConversation;
+				delete (metadata as any).tokenUsageStatement;
+				delete (metadata as any).tokenUsageTurn;
 			}
 
-			if (metadata.tokenUsageStats?.tokenUsageConversation) {
-				metadata.tokenUsageStats.tokenUsageInteraction = {
-					...metadata.tokenUsageStats.tokenUsageConversation,
-				};
-				delete metadata.tokenUsageStats.tokenUsageConversation;
-			} else if (!metadata.tokenUsageStats) {
-				metadata.tokenUsageStats = {
+			if ((metadata as any).tokenUsageStats?.tokenUsageConversation) {
+				metadata.tokenUsageStatsForInteraction = {
+					...(metadata.tokenUsageStatsForInteraction || {}),
+					...((metadata as any).tokenUsageStats || {}),
 					tokenUsageInteraction: {
-						totalTokens: 0,
-						inputTokens: 0,
-						outputTokens: 0,
-						cacheCreationInputTokens: 0,
-						cacheReadInputTokens: 0,
-						thoughtTokens: 0,
-						totalAllTokens: 0,
+						...emptyTokenUsage,
+						...(metadata as any).tokenUsageStats.tokenUsageConversation,
 					},
-					tokenUsageStatement: {
-						totalTokens: 0,
-						inputTokens: 0,
-						outputTokens: 0,
-						cacheCreationInputTokens: 0,
-						cacheReadInputTokens: 0,
-						thoughtTokens: 0,
-						totalAllTokens: 0,
-					},
-					tokenUsageTurn: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-						cacheCreationInputTokens: 0,
-						cacheReadInputTokens: 0,
-						thoughtTokens: 0,
-						totalAllTokens: 0,
-					},
+				};
+				if ((metadata as any).tokenUsageInteraction?.tokenUsageConversation) {
+					delete (metadata as any).tokenUsageInteraction.tokenUsageConversation;
+				}
+				if ((metadata as any).tokenUsageStatsForInteraction) {
+					delete (metadata as any).tokenUsageStatsForInteraction.tokenUsageConversation;
+				}
+				if ((metadata as any).tokenUsageStats) delete (metadata as any).tokenUsageStats.tokenUsageConversation;
+				delete (metadata as any).tokenUsageStats;
+			} else if (!metadata.tokenUsageStatsForInteraction) {
+				metadata.tokenUsageStatsForInteraction = {
+					tokenUsageInteraction: emptyTokenUsage,
+					tokenUsageStatement: emptyTokenUsage,
+					tokenUsageTurn: emptyTokenUsage,
 				};
 				// logger.warn(`StorageMigration: Missing tokenUsageStats.tokenUsageConversation in metadata for interaction ${metadata.id} - skipping values`);
 				result.changes.push({
@@ -651,13 +645,18 @@ export class StorageMigration {
 				});
 			}
 
-			if (metadata.conversationMetrics) {
+			if ((metadata as any).conversationMetrics) {
 				metadata.interactionMetrics = {
-					...metadata.conversationMetrics,
-					interactionTurnCount: metadata.conversationMetrics?.conversationTurnCount || 0, // rename to interactionTurnCount
+					...(metadata as any).conversationMetrics,
+					interactionTurnCount: (metadata as any).conversationMetrics?.conversationTurnCount || 0, // rename to interactionTurnCount
 				};
-				delete metadata.conversationMetrics.conversationTurnCount;
-				delete metadata.conversationMetrics;
+				if ((metadata as any).interactionMetrics) {
+					delete (metadata as any).interactionMetrics.conversationTurnCount;
+				}
+				if ((metadata as any).conversationMetrics) {
+					delete (metadata as any).conversationMetrics.conversationTurnCount;
+				}
+				delete (metadata as any).conversationMetrics;
 			} else {
 				metadata.interactionMetrics = {
 					statementTurnCount: 0,
@@ -668,12 +667,12 @@ export class StorageMigration {
 						timestamp: '',
 					},
 					resources: {
-						accessed: {},
-						modified: {},
-						active: {},
+						accessed: new Set(),
+						modified: new Set(),
+						active: new Set(),
 					},
 					toolUsage: {
-						toolStats: {},
+						toolStats: new Map(),
 					},
 				};
 				// logger.warn(`StorageMigration: Missing conversationStats in metadata for interaction ${metadata.id} - skipping values`);
@@ -995,21 +994,6 @@ export class StorageMigration {
 		const conversationsJsonPath = join(projectAdminDataDir, 'conversations.json');
 		const collaborationsJsonPath = join(projectAdminDataDir, 'collaborations.json');
 
-		// Check if migration is needed
-		if (await exists(collaborationsJsonPath) && await exists(collaborationsDir)) {
-			// Already migrated
-			return;
-		}
-
-		if (!await exists(conversationsDir)) {
-			// No conversations to migrate
-			return;
-		}
-
-		logger.info(
-			`StorageMigration: Starting migration from conversations to collaborations for project ${projectId}`,
-		);
-
 		const result: EntityMigrationResult = {
 			success: true,
 			version: {
@@ -1019,6 +1003,21 @@ export class StorageMigration {
 			changes: [],
 			errors: [],
 		};
+
+		// Check if migration is needed
+		if (await exists(collaborationsJsonPath) && await exists(collaborationsDir)) {
+			// Already migrated
+			return result;
+		}
+
+		if (!await exists(conversationsDir)) {
+			// No conversations to migrate
+			return result;
+		}
+
+		logger.info(
+			`StorageMigration: Starting migration from conversations to collaborations for project ${projectId}`,
+		);
 
 		try {
 			// Ensure cleanup directory exists
@@ -1097,6 +1096,16 @@ export class StorageMigration {
 					continue;
 				}
 
+				const emptyTokenUsage = {
+					totalTokens: 0,
+					inputTokens: 0,
+					outputTokens: 0,
+					cacheCreationInputTokens: undefined,
+					cacheReadInputTokens: undefined,
+					thoughtTokens: undefined,
+					totalAllTokens: undefined,
+				};
+
 				/*
 				if (!conversationMetadata.tokenUsageStats) {
 					logger.warn(
@@ -1133,10 +1142,10 @@ export class StorageMigration {
 				}
 				const interactionMetadata: InteractionMetadata = {
 					...conversationMetadata,
-					tokenUsageStats: {
-						tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
-						tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
-						tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+					tokenUsageStatsForInteraction: {
+						tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || emptyTokenUsage, // rename to tokenUsageInteraction
+						tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || emptyTokenUsage,
+						tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || emptyTokenUsage,
 					},
 					interactionStats: {
 						...conversationMetadata.conversationStats,
@@ -1151,6 +1160,8 @@ export class StorageMigration {
 				delete (interactionMetadata as any).conversationStats.conversationTurnCount;
 				// deno-lint-ignore no-explicit-any
 				delete (interactionMetadata as any).conversationStats;
+				// deno-lint-ignore no-explicit-any
+				// if ((interactionMetadata as any).interactionMetrics) delete (interactionMetadata as any).interactionMetrics.conversationTurnCount;
 				// deno-lint-ignore no-explicit-any
 				delete (interactionMetadata as any).conversationMetrics.conversationTurnCount;
 				// deno-lint-ignore no-explicit-any
@@ -1184,10 +1195,11 @@ export class StorageMigration {
 							chat: null,
 						},
 					},
-					tokenUsageStats: {
-						tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
-						tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
-						tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+					tokenUsageCollaboration: {
+						...emptyTokenUsage,
+						...(conversationMetadata.tokenUsageStatsForInteraction?.tokenUsageInteraction ||
+							conversationMetadata.tokenUsageStats?.tokenUsageConversation ||
+							conversationMetadata.tokenUsageConversation), // rename to tokenUsageInteraction
 					},
 					createdAt: conversationMetadata.createdAt,
 					updatedAt: conversationMetadata.updatedAt,
@@ -1199,10 +1211,29 @@ export class StorageMigration {
 						llmProviderName: conversationMetadata.llmProviderName,
 						model: conversationMetadata.model,
 						interactionStats: conversationMetadata.interactionStats,
-						tokenUsageStats: {
-							tokenUsageInteraction: conversationMetadata.tokenUsageStats?.tokenUsageConversation || 0, // rename to tokenUsageInteraction
-							tokenUsageStatement: conversationMetadata.tokenUsageStats?.tokenUsageStatement || 0,
-							tokenUsageTurn: conversationMetadata.tokenUsageStats?.tokenUsageTurn || 0,
+						tokenUsageStatsForInteraction: {
+							tokenUsageInteraction: {
+								...emptyTokenUsage,
+								...(
+									conversationMetadata.tokenUsageStatsForInteraction?.tokenUsageInteraction ||
+									conversationMetadata.tokenUsageStats?.tokenUsageConversation ||
+									conversationMetadata.tokenUsageConversation
+								), // rename to tokenUsageInteraction
+							},
+							tokenUsageStatement: {
+								...emptyTokenUsage,
+								...(
+									conversationMetadata.tokenUsageStatsForInteraction?.tokenUsageStatement ||
+									conversationMetadata.tokenUsageStats?.tokenUsageStatement ||
+									conversationMetadata.tokenUsageStatement
+								),
+							},
+							tokenUsageTurn: {
+								...emptyTokenUsage,
+								...(conversationMetadata.tokenUsageStatsForInteraction?.tokenUsageTurn ||
+									conversationMetadata.tokenUsageStats?.tokenUsageTurn ||
+									conversationMetadata.tokenUsageTurn),
+							},
 						},
 						createdAt: conversationMetadata.createdAt,
 						updatedAt: conversationMetadata.updatedAt,
@@ -1252,7 +1283,7 @@ export class StorageMigration {
 									...obj.conversationStats,
 									interactionTurnCount: obj.conversationStats.conversationTurnCount,
 								};
-								delete obj.interactionStats.conversationTurnCount;
+								if (obj.interactionStats) delete obj.interactionStats.conversationTurnCount;
 								delete obj.conversationStats;
 							} else {
 								obj.interactionStats = {
@@ -1269,43 +1300,59 @@ export class StorageMigration {
 								});
 							}
 
-							if (obj.tokenUsageStats?.tokenUsageConversation) {
-								obj.tokenUsageStats.tokenUsageInteraction = {
-									...obj.tokenUsageStats.tokenUsageConversation,
-								};
-								delete obj.tokenUsageStats.tokenUsageConversation;
-							} else {
-								obj.tokenUsageStats = {
-									...(obj.tokenUsageStats || {
-										tokenUsageTurn: {
-											inputTokens: 0,
-											outputTokens: 0,
-											totalTokens: 0,
-											cacheCreationInputTokens: 0,
-											cacheReadInputTokens: 0,
-											thoughtTokens: 0,
-											totalAllTokens: 0,
-										},
-										tokenUsageStatement: {
-											totalTokens: 0,
-											inputTokens: 0,
-											outputTokens: 0,
-											cacheCreationInputTokens: 0,
-											cacheReadInputTokens: 0,
-											thoughtTokens: 0,
-											totalAllTokens: 0,
-										},
-									}),
+							// if (obj.tokenUsageStatsForInteraction?.tokenUsageConversation) {
+							// 	obj.tokenUsageStatsForInteraction.tokenUsageInteraction = {
+							// 		...obj.tokenUsageStatsForInteraction.tokenUsageConversation,
+							// 	};
+							// 	delete obj.tokenUsageStatsForInteraction.tokenUsageConversation;
+							// } else {
+							// 	obj.tokenUsageStatsForInteraction = {
+							// 		...(obj.tokenUsageStatsForInteraction || {
+							// 			tokenUsageTurn: emptyTokenUsage,
+							// 			tokenUsageStatement: emptyTokenUsage,
+							// 		}),
+							// 		tokenUsageInteraction: emptyTokenUsage,
+							// 	};
+							// 	// logger.warn(`StorageMigration: Missing tokenUsageStatsForInteraction.tokenUsageConversation in log entries for conversation ${conversationId} - skipping values`);
+							// 	result.changes.push({
+							// 		type: 'metadata',
+							// 		path: 'conversation.jsonl',
+							// 		details:
+							// 			`Missing tokenUsageStatsForInteraction.tokenUsageConversation in log entries for conversation ${conversationId} - setting values to 0`,
+							// 	});
+							// }
+
+							if (obj.tokenUsageStats) {
+								obj.tokenUsageStatsForInteraction = {
+									...obj.tokenUsageStats,
 									tokenUsageInteraction: {
-										totalTokens: 0,
-										inputTokens: 0,
-										outputTokens: 0,
-										cacheCreationInputTokens: 0,
-										cacheReadInputTokens: 0,
-										thoughtTokens: 0,
-										totalAllTokens: 0,
+										...emptyTokenUsage,
+										...obj.tokenUsageStats.tokenUsageConversation,
 									},
+									...(obj.tokenUsageStatsForInteraction || {}),
 								};
+								if (obj.tokenUsageStatsForInteraction) {
+									delete obj.tokenUsageStatsForInteraction.tokenUsageConversation;
+								}
+								if (obj.tokenUsageInteraction) delete obj.tokenUsageInteraction.tokenUsageConversation;
+								if (obj.tokenUsageStats) delete obj.tokenUsageStats.tokenUsageConversation;
+								delete obj.tokenUsageStats;
+							} else {
+								obj.tokenUsageStatsForInteraction = {
+									tokenUsageTurn: { ...emptyTokenUsage, ...obj.tokenUsageTurn },
+									tokenUsageStatement: {
+										...emptyTokenUsage,
+										...obj.tokenUsageStatement,
+									},
+									tokenUsageInteraction: {
+										...emptyTokenUsage,
+										...(obj.tokenUsageInteraction || obj.tokenUsageConversation),
+									},
+									...(obj.tokenUsageStatsForInteraction || {}),
+								};
+								if (obj.tokenUsageStatsForInteraction) {
+									delete obj.tokenUsageStatsForInteraction.tokenUsageConversation;
+								}
 								// logger.warn(`StorageMigration: Missing tokenUsageStats.tokenUsageConversation in log entries for conversation ${conversationId} - skipping values`);
 								result.changes.push({
 									type: 'metadata',
@@ -1314,6 +1361,10 @@ export class StorageMigration {
 										`Missing tokenUsageStats.tokenUsageConversation in log entries for conversation ${conversationId} - setting values to 0`,
 								});
 							}
+							delete obj.tokenUsageTurn;
+							delete obj.tokenUsageStatement;
+							delete obj.tokenUsageInteraction;
+							delete obj.tokenUsageConversation;
 
 							return JSON.stringify(obj);
 						})

@@ -89,16 +89,17 @@ export function CollaborationHeader({
 
 		// Find the most recent logDataEntry with tokenUsageTurn
 		const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) =>
-			logDataEntry.tokenUsageStats?.tokenUsageTurn
+			logDataEntry.tokenUsageStatsForCollaboration?.tokenUsageTurn
 		);
 
 		return {
 			model: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator?.model || 'Unknown',
 			provider: currentCollaboration.value.lastInteractionMetadata?.llmProviderName || 'Unknown',
 			modelConfig: currentCollaboration.value.lastInteractionMetadata?.modelConfig,
-			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStats?.tokenUsageTurn,
-			tokenUsageInteraction: currentCollaboration.value.lastInteractionMetadata?.tokenUsageStats
-				?.tokenUsageInteraction,
+			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStatsForCollaboration?.tokenUsageTurn,
+			tokenUsageCollaboration: currentCollaboration.value.tokenUsageCollaboration,
+			//tokenUsageInteraction: currentCollaboration.value.tokenUsageStatsForCollaboration
+			//	?.tokenUsageInteraction,
 		};
 	};
 
@@ -228,7 +229,7 @@ export function CollaborationHeader({
 												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 											/>
 										</svg>
-										{currentCollaboration.value.tokenUsageStats?.tokenUsageInteraction
+										{currentCollaboration.value.tokenUsageCollaboration
 											?.totalAllTokens
 											?.toLocaleString() ||
 											0} tokens

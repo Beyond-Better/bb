@@ -35,7 +35,7 @@ import type {
 	InteractionStats,
 	ObjectivesData,
 	//TokenUsage,
-	//TokenUsageStats,
+	//TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
@@ -267,17 +267,19 @@ class OrchestratorController extends BaseController {
 							collaborationType: collaboration.type,
 							collaborationParams: collaboration.collaborationParams,
 							projectId: collaboration.projectId,
-							totalInteractions: collaboration.totalInteractions,
-							interactionIds: collaboration.interactionIds,
+							// totalInteractions: collaboration.totalInteractions,
+							// interactionIds: collaboration.interactionIds,
 							createdAt: collaboration.createdAt,
 							updatedAt: collaboration.updatedAt,
 							timestamp: new Date().toISOString(),
-							tokenUsageStats: {
-								//tokenUsageInteraction: this.tokenUsageInteraction,
-								tokenUsageInteraction: interaction.tokenUsageInteraction,
-								tokenUsageStatement: interaction.tokenUsageStatement,
+							tokenUsageStatsForCollaboration: {
 								tokenUsageTurn: interaction.tokenUsageTurn,
+								tokenUsageStatement: interaction.tokenUsageStatement,
+								tokenUsageInteraction: interaction.tokenUsageInteraction,
+								tokenUsageCollaboration: collaboration.tokenUsageCollaboration,
 							},
+							//tokenUsageCollaboration:  collaboration.tokenUsageCollaboration,
+							//tokenUsageCollaboration: interaction.tokenUsageInteraction,
 							interactionStats: interaction.interactionStats,
 						} as EventPayloadMap['projectEditor']['projectEditor:collaborationNew'],
 					);
@@ -394,8 +396,8 @@ class OrchestratorController extends BaseController {
 				//version: collaboration.version,
 				collaborationType: collaboration.type,
 				collaborationParams: collaboration.collaborationParams,
-				totalInteractions: collaboration.totalInteractions,
-				interactionIds: collaboration.interactionIds,
+				// totalInteractions: collaboration.totalInteractions,
+				// interactionIds: collaboration.interactionIds,
 				createdAt: collaboration.createdAt,
 				updatedAt: collaboration.updatedAt,
 
@@ -405,12 +407,14 @@ class OrchestratorController extends BaseController {
 					statementTurnCount: interaction.statementTurnCount,
 					interactionTurnCount: interaction.interactionTurnCount,
 				},
-				tokenUsageStats: {
-					//tokenUsageInteraction: this.tokenUsageInteraction,
-					tokenUsageInteraction: interaction.tokenUsageInteraction,
-					tokenUsageStatement: interaction.tokenUsageStatement,
+				tokenUsageStatsForCollaboration: {
 					tokenUsageTurn: interaction.tokenUsageTurn,
+					tokenUsageStatement: interaction.tokenUsageStatement,
+					tokenUsageInteraction: interaction.tokenUsageInteraction,
+					tokenUsageCollaboration: collaboration.tokenUsageCollaboration,
 				},
+				//tokenUsageCollaboration: collaboration.tokenUsageCollaboration,
+				//tokenUsageCollaboration: interaction.tokenUsageCollaboration,
 				collaborationHistory: [], //this.getCollaborationHistory(interaction),
 				versionInfo,
 			};
@@ -539,6 +543,7 @@ class OrchestratorController extends BaseController {
 									tokenUsageTurn: interaction.tokenUsageTurn,
 									tokenUsageStatement: interaction.tokenUsageStatement,
 									tokenUsageInteraction: interaction.tokenUsageInteraction,
+									tokenUsageCollaboration: collaboration.tokenUsageCollaboration,
 								},
 								currentResponse.messageMeta.llmRequestParams.modelConfig,
 							);
@@ -797,8 +802,8 @@ class OrchestratorController extends BaseController {
 				collaborationParams: collaboration.collaborationParams,
 				createdAt: collaboration.createdAt,
 				updatedAt: collaboration.updatedAt,
-				totalInteractions: collaboration.totalInteractions,
-				interactionIds: collaboration.interactionIds,
+				// totalInteractions: collaboration.totalInteractions,
+				// interactionIds: collaboration.interactionIds,
 				parentMessageId: null,
 				agentInteractionId: null,
 				timestamp: new Date().toISOString(),
@@ -807,13 +812,14 @@ class OrchestratorController extends BaseController {
 					statementTurnCount: interaction.statementTurnCount,
 					interactionTurnCount: interaction.interactionTurnCount,
 				},
-				tokenUsageStats: {
+				tokenUsageStatsForCollaboration: {
 					tokenUsageTurn: interaction.tokenUsageTurn,
 					tokenUsageStatement: interaction.tokenUsageStatement,
 					tokenUsageInteraction: interaction.tokenUsageInteraction,
+					tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
 				},
 			};
-			//logger.info(`OrchestratorController: statementAnswer-tokenUsageStats:`, statementAnswer.tokenUsageStats);
+			//logger.info(`OrchestratorController: statementAnswer-tokenUsageStatsForCollaboration:`, statementAnswer.tokenUsageStatsForCollaboration);
 
 			interaction.collaborationLogger.logAnswerMessage(
 				interaction.getLastMessageId(),
@@ -822,7 +828,7 @@ class OrchestratorController extends BaseController {
 				answer,
 				assistantThinking,
 				statementAnswer.interactionStats,
-				statementAnswer.tokenUsageStats,
+				statementAnswer.tokenUsageStatsForCollaboration,
 				currentResponse.messageMeta.llmRequestParams.modelConfig,
 			);
 
@@ -842,8 +848,8 @@ class OrchestratorController extends BaseController {
 				collaborationParams: collaboration.collaborationParams,
 				createdAt: collaboration.createdAt,
 				updatedAt: collaboration.updatedAt,
-				totalInteractions: collaboration.totalInteractions,
-				interactionIds: collaboration.interactionIds,
+				// totalInteractions: collaboration.totalInteractions,
+				// interactionIds: collaboration.interactionIds,
 				parentMessageId: null,
 				agentInteractionId: null,
 				timestamp: new Date().toISOString(),
@@ -852,10 +858,11 @@ class OrchestratorController extends BaseController {
 					statementTurnCount: interaction.statementTurnCount,
 					interactionTurnCount: interaction.interactionTurnCount,
 				},
-				tokenUsageStats: {
+				tokenUsageStatsForCollaboration: {
 					tokenUsageTurn: interaction.tokenUsageTurn,
 					tokenUsageStatement: interaction.tokenUsageStatement,
 					tokenUsageInteraction: interaction.tokenUsageInteraction,
+					tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
 				},
 			};
 			this.resetStatus(collaboration.id);

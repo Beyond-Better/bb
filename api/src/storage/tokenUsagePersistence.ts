@@ -149,7 +149,10 @@ export class TokenUsagePersistence {
 		if (
 			typeof record.rawUsage.inputTokens !== 'number' ||
 			typeof record.rawUsage.outputTokens !== 'number' ||
-			typeof record.rawUsage.totalTokens !== 'number'
+			typeof record.rawUsage.totalTokens !== 'number' ||
+			(record.rawUsage.cacheCreationInputTokens &&
+				typeof record.rawUsage.cacheCreationInputTokens !== 'number') ||
+			(record.rawUsage.cacheCreationInputTokens && typeof record.rawUsage.cacheReadInputTokens !== 'number')
 		) {
 			throw new TokenUsageValidationError(
 				'Invalid rawUsage field types',
@@ -293,8 +296,19 @@ export class TokenUsagePersistence {
 	 * 3. Write all records back
 	 */
 	async updateRecord(record: TokenUsageRecord): Promise<void> {
-		// Validate the record
-		this.validateRecord(record);
+		try {
+			// Validate the record
+			this.validateRecord(record);
+		} catch (error) {
+			//logger.warn('TokenUsagePersistence: Could not update record', { record });
+			throw new PersistenceError(
+				`Failed to validate token usage record: ${(error as Error).message}`,
+				{
+					name: 'TokenUsagePersistenceError',
+					operation: 'validate',
+				},
+			);
+		}
 
 		await this.ensureDirectory();
 		const filePath = record.type === 'conversation' ? this.conversationFile : this.chatsFile;
@@ -314,6 +328,7 @@ export class TokenUsagePersistence {
 			const content = records.map((r) => JSON.stringify(r)).join('\n') + '\n';
 			await Deno.writeTextFile(filePath, content);
 		} catch (error) {
+			//logger.warn('TokenUsagePersistence: Could not update record', { record });
 			throw new PersistenceError(
 				`Failed to update token usage record: ${(error as Error).message}`,
 				{

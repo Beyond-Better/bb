@@ -10,7 +10,7 @@ import type {
 	ProjectId,
 	TokenUsage,
 	TokenUsageAnalysis,
-	//TokenUsageStats,
+	//TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
@@ -277,14 +277,8 @@ class CollaborationPersistence {
 				...collab,
 				collaborationParams: collab.collaborationParams ||
 					CollaborationPersistence.defaultCollaborationParams(),
-				tokenUsageStats: {
-					tokenUsageInteraction: collab.tokenUsageStats?.tokenUsageInteraction ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageStatement: collab.tokenUsageStats?.tokenUsageStatement ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageTurn: collab.tokenUsageStats?.tokenUsageTurn ||
-						CollaborationPersistence.defaultTokenUsage(),
-				},
+				tokenUsageCollaboration: collab.tokenUsageCollaboration ||
+					CollaborationPersistence.defaultTokenUsage(),
 			})),
 			totalCount,
 		};
@@ -319,15 +313,12 @@ class CollaborationPersistence {
 				createdAt: collaborationMetadata.createdAt || new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 				projectId: this.projectEditor.projectId,
+				tokenUsageCollaboration: collaborationMetadata.tokenUsageCollaboration ||
+					CollaborationPersistence.defaultTokenUsage(),
 				totalInteractions: collaborationMetadata.totalInteractions || 0,
-				tokenUsageStats: collaborationMetadata.tokenUsageStats || {
-					tokenUsageInteraction: CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageStatement: CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageTurn: CollaborationPersistence.defaultTokenUsage(),
-				},
+				interactionIds: collaborationMetadata.interactionIds || [],
 				lastInteractionId: collaborationMetadata.lastInteractionId,
 				lastInteractionMetadata: collaborationMetadata.lastInteractionMetadata,
-				interactionIds: collaborationMetadata.interactionIds || [],
 			};
 
 			await this.updateCollaborationsMetadata(metadata);
@@ -339,19 +330,14 @@ class CollaborationPersistence {
 			const detailedMetadata: CollaborationDetailedMetadata = {
 				...metadata,
 				// Store analyzed token usage in metadata
-				tokenUsageStats: {
-					tokenUsageInteraction: {
-						inputTokens: tokenAnalysis.combined.totalUsage.input,
-						outputTokens: tokenAnalysis.combined.totalUsage.output,
-						totalTokens: tokenAnalysis.combined.totalUsage.total,
-						cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
-						cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
-						thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
-						totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
-					},
-					// Keep turn and statement level metrics
-					tokenUsageTurn: metadata.tokenUsageStats.tokenUsageTurn,
-					tokenUsageStatement: metadata.tokenUsageStats.tokenUsageStatement,
+				tokenUsageCollaboration: {
+					inputTokens: tokenAnalysis.combined.totalUsage.input,
+					outputTokens: tokenAnalysis.combined.totalUsage.output,
+					totalTokens: tokenAnalysis.combined.totalUsage.total,
+					cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+					cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+					thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
+					totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 				},
 			};
 
@@ -381,7 +367,7 @@ class CollaborationPersistence {
 			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Update metadata with analyzed values
-			metadata.tokenUsageStats.tokenUsageInteraction = {
+			metadata.tokenUsageCollaboration = {
 				inputTokens: tokenAnalysis.combined.totalUsage.input,
 				outputTokens: tokenAnalysis.combined.totalUsage.output,
 				totalTokens: tokenAnalysis.combined.totalUsage.total,
@@ -495,28 +481,16 @@ class CollaborationPersistence {
 				...collaboration,
 				collaborationParams: collaboration.collaborationParams ||
 					CollaborationPersistence.defaultCollaborationParams(),
-				tokenUsageStats: {
-					tokenUsageInteraction: collaboration.tokenUsageStats.tokenUsageInteraction ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageStatement: collaboration.tokenUsageStats.tokenUsageStatement ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageTurn: collaboration.tokenUsageStats.tokenUsageTurn ||
-						CollaborationPersistence.defaultTokenUsage(),
-				},
+				tokenUsageCollaboration: collaboration.tokenUsageCollaboration ||
+					CollaborationPersistence.defaultTokenUsage(),
 			};
 		} else {
 			collaborationsData.collaborations.push({
 				...collaboration,
 				collaborationParams: collaboration.collaborationParams ||
 					CollaborationPersistence.defaultCollaborationParams(),
-				tokenUsageStats: {
-					tokenUsageInteraction: collaboration.tokenUsageStats.tokenUsageInteraction ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageStatement: collaboration.tokenUsageStats.tokenUsageStatement ||
-						CollaborationPersistence.defaultTokenUsage(),
-					tokenUsageTurn: collaboration.tokenUsageStats.tokenUsageTurn ||
-						CollaborationPersistence.defaultTokenUsage(),
-				},
+				tokenUsageCollaboration: collaboration.tokenUsageCollaboration ||
+					CollaborationPersistence.defaultTokenUsage(),
 			});
 		}
 
@@ -679,18 +653,14 @@ class CollaborationPersistence {
 			version: 4,
 			id: '',
 			title: '',
+			projectId: '',
 			type: 'project',
 			collaborationParams: CollaborationPersistence.defaultCollaborationParams(),
+			tokenUsageCollaboration: CollaborationPersistence.defaultTokenUsage(),
+			totalInteractions: 0,
+			interactionIds: [],
 			createdAt: '',
 			updatedAt: '',
-			projectId: '',
-			totalInteractions: 0,
-			tokenUsageStats: {
-				tokenUsageTurn: CollaborationPersistence.defaultTokenUsage(),
-				tokenUsageStatement: CollaborationPersistence.defaultTokenUsage(),
-				tokenUsageInteraction: CollaborationPersistence.defaultTokenUsage(),
-			},
-			interactionIds: [],
 		};
 	}
 

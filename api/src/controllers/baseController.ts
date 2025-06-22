@@ -37,7 +37,7 @@ import type {
 	ProjectId,
 	//ObjectivesData,
 	TokenUsage,
-	TokenUsageStats,
+	TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import { ApiStatus } from 'shared/types.ts';
@@ -566,7 +566,10 @@ class BaseController {
 			toolUse.toolName,
 			toolUse.toolInput,
 			interaction.interactionStats,
-			interaction.tokenUsageStats,
+			{
+				...interaction.tokenUsageStatsForInteraction,
+				tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
+			} as TokenUsageStatsForCollaboration,
 		);
 
 		const {
@@ -625,10 +628,10 @@ class BaseController {
 				timestamp: string,
 				logEntry: CollaborationLogEntry,
 				interactionStats: InteractionStats,
-				tokenUsageStats: TokenUsageStats,
+				tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
-				//logger.info(`BaseController: LOG_ENTRY_HANDLER-modelConfig - ${logEntry.entryType}`, {tokenUsageStats, modelConfig});
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER-modelConfig - ${logEntry.entryType}`, {tokenUsageStatsForCollaboration, modelConfig});
 				const logEntryInteraction = this.logEntryInteraction(parentInteractionId || agentInteractionId || '');
 				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
 				//const useParent = logEntryInteraction.id !== agentInteractionId;
@@ -648,15 +651,15 @@ class BaseController {
 						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
 						createdAt: logEntryInteraction.collaboration.createdAt,
 						updatedAt: logEntryInteraction.collaboration.updatedAt,
-						totalInteractions: logEntryInteraction.collaboration.totalInteractions,
-						interactionIds: logEntryInteraction.collaboration.interactionIds,
+						// totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						// interactionIds: logEntryInteraction.collaboration.interactionIds,
 						interactionId: logEntryInteraction.id,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
 						logEntry,
 						interactionStats,
-						tokenUsageStats,
+						tokenUsageStatsForCollaboration,
 						modelConfig,
 					};
 					this.eventManager.emit(
@@ -673,15 +676,15 @@ class BaseController {
 						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
 						createdAt: logEntryInteraction.collaboration.createdAt,
 						updatedAt: logEntryInteraction.collaboration.updatedAt,
-						totalInteractions: logEntryInteraction.collaboration.totalInteractions,
-						interactionIds: logEntryInteraction.collaboration.interactionIds,
+						// totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						// interactionIds: logEntryInteraction.collaboration.interactionIds,
 						interactionId: logEntryInteraction.id,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
 						logEntry,
 						interactionStats,
-						tokenUsageStats,
+						tokenUsageStatsForCollaboration,
 						modelConfig,
 					};
 					this.eventManager.emit(

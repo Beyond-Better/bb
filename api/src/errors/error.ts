@@ -431,8 +431,8 @@ export const isToolHandlingError = (value: unknown): value is ToolHandlingError 
 };
 
 export interface PersistenceErrorOptions extends ErrorOptions {
-	filePath: string;
-	operation: 'read' | 'write' | 'append';
+	filePath?: string;
+	operation: 'read' | 'write' | 'append' | 'validate';
 }
 
 export class PersistenceError extends Error {

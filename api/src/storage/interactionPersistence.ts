@@ -23,7 +23,7 @@ import type {
 	TokenUsage,
 	TokenUsageAnalysis,
 	TokenUsageRecord,
-	TokenUsageStats,
+	TokenUsageStatsForInteraction,
 } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 import type {
@@ -338,12 +338,14 @@ class InteractionPersistence {
 					InteractionPersistence.defaultInteractionStats(),
 				modelConfig: (conv as InteractionMetadata).modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				tokenUsageStats: {
-					tokenUsageInteraction: (conv as InteractionMetadata).tokenUsageStats?.tokenUsageInteraction ||
+				tokenUsageStatsForInteraction: {
+					tokenUsageInteraction:
+						(conv as InteractionMetadata).tokenUsageStatsForInteraction?.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
-					tokenUsageStatement: (conv as InteractionMetadata).tokenUsageStats?.tokenUsageStatement ||
+					tokenUsageStatement:
+						(conv as InteractionMetadata).tokenUsageStatsForInteraction?.tokenUsageStatement ||
 						InteractionPersistence.defaultTokenUsage(),
-					tokenUsageTurn: (conv as InteractionMetadata).tokenUsageStats?.tokenUsageTurn ||
+					tokenUsageTurn: (conv as InteractionMetadata).tokenUsageStatsForInteraction?.tokenUsageTurn ||
 						InteractionPersistence.defaultTokenUsage(),
 				},
 			})),
@@ -408,7 +410,7 @@ class InteractionPersistence {
 				//title: interaction.title,
 				interactionStats: interaction.interactionStats,
 				interactionMetrics: interaction.interactionMetrics,
-				tokenUsageStats: interaction.tokenUsageStats,
+				tokenUsageStatsForInteraction: interaction.tokenUsageStatsForInteraction,
 				modelConfig: interaction.modelConfig,
 				llmProviderName: interaction.llmProviderName,
 				model: interaction.model,
@@ -437,7 +439,7 @@ class InteractionPersistence {
 				modelConfig: interaction.modelConfig,
 
 				// Store analyzed token usage in metadata
-				tokenUsageStats: {
+				tokenUsageStatsForInteraction: {
 					tokenUsageInteraction: {
 						inputTokens: tokenAnalysis.combined.totalUsage.input,
 						outputTokens: tokenAnalysis.combined.totalUsage.output,
@@ -449,8 +451,8 @@ class InteractionPersistence {
 					},
 
 					// Keep turn and statement level metrics
-					tokenUsageTurn: interaction.tokenUsageStats.tokenUsageTurn,
-					tokenUsageStatement: interaction.tokenUsageStats.tokenUsageStatement,
+					tokenUsageTurn: interaction.tokenUsageStatsForInteraction.tokenUsageTurn,
+					tokenUsageStatement: interaction.tokenUsageStatsForInteraction.tokenUsageStatement,
 				},
 
 				totalProviderRequests: interaction.totalProviderRequests,
@@ -550,7 +552,7 @@ class InteractionPersistence {
 			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Update interaction with analyzed values
-			interaction.tokenUsageStats.tokenUsageInteraction = {
+			interaction.tokenUsageStatsForInteraction.tokenUsageInteraction = {
 				inputTokens: tokenAnalysis.combined.totalUsage.input,
 				outputTokens: tokenAnalysis.combined.totalUsage.output,
 				totalTokens: tokenAnalysis.combined.totalUsage.total,
@@ -561,9 +563,11 @@ class InteractionPersistence {
 			};
 
 			// Keep turn and statement usage from metadata for backward compatibility
-			interaction.tokenUsageStats.tokenUsageTurn = metadata.tokenUsageStats?.tokenUsageTurn ||
+			interaction.tokenUsageStatsForInteraction.tokenUsageTurn =
+				metadata.tokenUsageStatsForInteraction?.tokenUsageTurn ||
 				InteractionPersistence.defaultTokenUsage();
-			interaction.tokenUsageStats.tokenUsageStatement = metadata.tokenUsageStats?.tokenUsageStatement ||
+			interaction.tokenUsageStatsForInteraction.tokenUsageStatement =
+				metadata.tokenUsageStatsForInteraction?.tokenUsageStatement ||
 				InteractionPersistence.defaultTokenUsage();
 
 			interaction.statementTurnCount = metadata.interactionMetrics?.statementTurnCount || 0;
@@ -666,7 +670,7 @@ class InteractionPersistence {
 			const tokenAnalysis = await this.getTokenUsageAnalysis();
 
 			// Update interaction with analyzed values
-			interaction.tokenUsageStats.tokenUsageInteraction = {
+			interaction.tokenUsageStatsForInteraction.tokenUsageInteraction = {
 				inputTokens: tokenAnalysis.combined.totalUsage.input,
 				outputTokens: tokenAnalysis.combined.totalUsage.output,
 				totalTokens: tokenAnalysis.combined.totalUsage.total,
@@ -727,7 +731,7 @@ class InteractionPersistence {
 		interaction: InteractionMetadata & {
 			interactionStats?: InteractionStats;
 			interactionMetrics?: InteractionMetrics;
-			tokenUsageStats?: TokenUsageStats;
+			tokenUsageStatsForInteraction?: TokenUsageStatsForInteraction;
 		},
 	): Promise<void> {
 		await this.ensureInitialized();
@@ -771,12 +775,12 @@ class InteractionPersistence {
 					InteractionPersistence.defaultInteractionMetrics(),
 				modelConfig: interaction.modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				tokenUsageStats: {
-					tokenUsageInteraction: interaction.tokenUsageStats.tokenUsageInteraction ||
+				tokenUsageStatsForInteraction: {
+					tokenUsageInteraction: interaction.tokenUsageStatsForInteraction.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
-					tokenUsageStatement: interaction.tokenUsageStats.tokenUsageStatement ||
+					tokenUsageStatement: interaction.tokenUsageStatsForInteraction.tokenUsageStatement ||
 						InteractionPersistence.defaultTokenUsage(),
-					tokenUsageTurn: interaction.tokenUsageStats.tokenUsageTurn ||
+					tokenUsageTurn: interaction.tokenUsageStatsForInteraction.tokenUsageTurn ||
 						InteractionPersistence.defaultTokenUsage(),
 				},
 			};
@@ -789,12 +793,12 @@ class InteractionPersistence {
 					InteractionPersistence.defaultInteractionMetrics(),
 				modelConfig: interaction.modelConfig ||
 					InteractionPersistence.defaultModelConfig(),
-				tokenUsageStats: {
-					tokenUsageInteraction: interaction.tokenUsageStats.tokenUsageInteraction ||
+				tokenUsageStatsForInteraction: {
+					tokenUsageInteraction: interaction.tokenUsageStatsForInteraction.tokenUsageInteraction ||
 						InteractionPersistence.defaultInteractionTokenUsage(),
-					tokenUsageStatement: interaction.tokenUsageStats.tokenUsageStatement ||
+					tokenUsageStatement: interaction.tokenUsageStatsForInteraction.tokenUsageStatement ||
 						InteractionPersistence.defaultTokenUsage(),
-					tokenUsageTurn: interaction.tokenUsageStats.tokenUsageTurn ||
+					tokenUsageTurn: interaction.tokenUsageStatsForInteraction.tokenUsageTurn ||
 						InteractionPersistence.defaultTokenUsage(),
 				},
 			});
@@ -1119,7 +1123,7 @@ class InteractionPersistence {
 
 			totalProviderRequests: 0,
 
-			tokenUsageStats: {
+			tokenUsageStatsForInteraction: {
 				tokenUsageTurn: InteractionPersistence.defaultTokenUsage(),
 				tokenUsageStatement: InteractionPersistence.defaultTokenUsage(),
 				tokenUsageInteraction: InteractionPersistence.defaultInteractionTokenUsage(),

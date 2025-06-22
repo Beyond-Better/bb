@@ -56,10 +56,11 @@ interface WebSocketResponse {
 		messageId: string;
 		parentMessageId: string | null;
 		agentInteractionId: string | null;
-		tokenUsageStats: {
+		tokenUsageStatsForCollaboration: {
 			tokenUsageTurn?: TokenUsage;
 			tokenUsageStatement?: TokenUsage;
 			tokenUsageInteraction?: TokenUsage;
+			tokenUsageCollaboration?: TokenUsage;
 		};
 		interactionStats?: InteractionStats;
 		statementParams: StatementParams;
@@ -207,22 +208,28 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
 					statementParams: msgData.data.statementParams,
-					tokenUsageStats: {
-						tokenUsageTurn: msgData.data.tokenUsageStats.tokenUsageTurn || {
+					tokenUsageStatsForCollaboration: {
+						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn || {
 							totalTokens: 0,
 							inputTokens: 0,
 							outputTokens: 0,
 						},
-						tokenUsageStatement: msgData.data.tokenUsageStats.tokenUsageStatement || {
+						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement || {
 							totalTokens: 0,
 							inputTokens: 0,
 							outputTokens: 0,
 						},
-						tokenUsageInteraction: msgData.data.tokenUsageStats.tokenUsageInteraction || {
+						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction || {
 							totalTokens: 0,
 							inputTokens: 0,
 							outputTokens: 0,
 						},
+						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||
+							{
+								totalTokens: 0,
+								inputTokens: 0,
+								outputTokens: 0,
+							},
 					},
 					interactionStats: msgData.data.interactionStats || {
 						statementCount: 0,

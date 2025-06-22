@@ -19,7 +19,8 @@ import type {
 	TokenUsage,
 	TokenUsageDifferential,
 	TokenUsageRecord,
-	TokenUsageStats,
+	TokenUsageStatsForCollaboration,
+	TokenUsageStatsForInteraction,
 	ToolStats,
 } from 'shared/types.ts';
 import type {
@@ -174,7 +175,7 @@ class LLMInteraction {
 				timestamp: string,
 				logEntry: CollaborationLogEntry,
 				interactionStats: InteractionStats,
-				tokenUsageStats: TokenUsageStats,
+				tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
 				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
 				await this.llm.invoke(
@@ -186,7 +187,7 @@ class LLMInteraction {
 					timestamp,
 					logEntry,
 					interactionStats,
-					tokenUsageStats,
+					tokenUsageStatsForCollaboration,
 					modelConfig,
 				);
 			};
@@ -244,14 +245,14 @@ class LLMInteraction {
 		this._interactionTurnCount = stats.interactionTurnCount;
 	}
 
-	public get tokenUsageStats(): TokenUsageStats {
+	public get tokenUsageStatsForInteraction(): TokenUsageStatsForInteraction {
 		return {
 			tokenUsageTurn: this._tokenUsageTurn,
 			tokenUsageStatement: this._tokenUsageStatement,
 			tokenUsageInteraction: this._tokenUsageInteraction,
 		};
 	}
-	public set tokenUsageStats(stats: TokenUsageStats) {
+	public set tokenUsageStatsForInteraction(stats: TokenUsageStatsForInteraction) {
 		this._tokenUsageTurn = stats.tokenUsageTurn;
 		this._tokenUsageStatement = stats.tokenUsageStatement;
 		this._tokenUsageInteraction = stats.tokenUsageInteraction;

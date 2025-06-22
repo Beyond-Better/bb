@@ -412,6 +412,7 @@ class AgentController extends BaseController {
 									tokenUsageTurn: interaction.tokenUsageTurn,
 									tokenUsageStatement: interaction.tokenUsageStatement,
 									tokenUsageInteraction: interaction.tokenUsageInteraction,
+									tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
 								},
 							);
 						}
@@ -656,6 +657,7 @@ class AgentController extends BaseController {
 					tokenUsageTurn: interaction.tokenUsageTurn,
 					tokenUsageStatement: interaction.tokenUsageStatement,
 					tokenUsageInteraction: interaction.tokenUsageInteraction,
+					tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
 				},
 				currentResponse.messageMeta.llmRequestParams.modelConfig,
 			);
