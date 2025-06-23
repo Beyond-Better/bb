@@ -45,7 +45,7 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 const {
 	//modelState,
 	getDefaultRolesModelConfig,
-	//getModelCapabilities,
+	getModelCapabilities,
 } = useModelState();
 
 const defaultChatConfig: ChatConfig = {
@@ -411,45 +411,45 @@ export default function Chat({
 			chatInputOptions.value = getInputOptionsFromCollaboration(id, chatState.value.collaborations);
 			console.info('ChatIsland: Updated options for selected collaboration', id, chatInputOptions.value);
 
-			// // Fetch model capabilities for all models in the collaboration
-			// const rolesConfig = chatInputOptions.value.rolesModelConfig;
-			// if (rolesConfig) {
-			// 	const modelIds = [
-			// 		rolesConfig.orchestrator?.model,
-			// 		rolesConfig.agent?.model,
-			// 		rolesConfig.chat?.model,
-			// 	].filter((model): model is string => Boolean(model));
-			//
-			// 	// Remove duplicates
-			// 	const uniqueModelIds = [...new Set(modelIds)];
-			//
-			// 	// Load capabilities for all models used in this collaboration
-			// 	if (uniqueModelIds.length > 0) {
-			// 		try {
-			// 			// Load capabilities for the primary model (orchestrator) for backward compatibility
-			// 			if (rolesConfig.orchestrator?.model) {
-			// 				const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
-			// 				if (capabilities) {
-			// 					modelData.value = capabilities;
-			// 					console.info(
-			// 						'Chat: Updated model capabilities for orchestrator:',
-			// 						capabilities.displayName,
-			// 					);
-			// 				}
-			// 			}
-			// 			// Preload other model capabilities in background
-			// 			uniqueModelIds.forEach((modelId) => {
-			// 				if (modelId !== rolesConfig.orchestrator?.model) {
-			// 					getModelCapabilities(modelId).catch((error) => {
-			// 						console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
-			// 					});
-			// 				}
-			// 			});
-			// 		} catch (error) {
-			// 			console.error('Chat: Failed to fetch model capabilities', error);
-			// 		}
-			// 	}
-			// }
+			// Fetch model capabilities for all models in the collaboration
+			const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			if (rolesConfig) {
+				const modelIds = [
+					rolesConfig.orchestrator?.model,
+					rolesConfig.agent?.model,
+					rolesConfig.chat?.model,
+				].filter((model): model is string => Boolean(model));
+			
+				// Remove duplicates
+				const uniqueModelIds = [...new Set(modelIds)];
+			
+				// Load capabilities for all models used in this collaboration
+				if (uniqueModelIds.length > 0) {
+					try {
+						// Load capabilities for the primary model (orchestrator) for backward compatibility
+						if (rolesConfig.orchestrator?.model) {
+							const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
+							if (capabilities) {
+								modelData.value = capabilities;
+								console.info(
+									'Chat: Updated model capabilities for orchestrator:',
+									capabilities.displayName,
+								);
+							}
+						}
+						// Preload other model capabilities in background
+						uniqueModelIds.forEach((modelId) => {
+							if (modelId !== rolesConfig.orchestrator?.model) {
+								getModelCapabilities(modelId).catch((error) => {
+									console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
+								});
+							}
+						});
+					} catch (error) {
+						console.error('Chat: Failed to fetch model capabilities', error);
+					}
+				}
+			}
 
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
@@ -492,18 +492,18 @@ export default function Chat({
 			);
 			//console.info(`ChatIsland: Initialized chatInputOptions from collaboration: ${chatState.value.collaborationId}`, chatInputOptions.value);
 
-			// // Fetch model capabilities for the current collaboration models
-			// const rolesConfig = chatInputOptions.value.rolesModelConfig;
-			// if (rolesConfig?.orchestrator?.model) {
-			// 	getModelCapabilities(rolesConfig.orchestrator.model)
-			// 		.then((capabilities) => {
-			// 			if (capabilities) {
-			// 				modelData.value = capabilities;
-			// 				console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
-			// 			}
-			// 		})
-			// 		.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
-			// }
+			// Fetch model capabilities for the current collaboration models
+			const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			if (rolesConfig?.orchestrator?.model) {
+				getModelCapabilities(rolesConfig.orchestrator.model)
+					.then((capabilities) => {
+						if (capabilities) {
+							modelData.value = capabilities;
+							console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
+						}
+					})
+					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
+			}
 		}
 
 		const handlePopState = async () => {
@@ -915,6 +915,7 @@ export default function Chat({
 										maxLength={INPUT_MAX_CHAR_LENGTH}
 										collaborationId={chatState.value.collaborationId}
 										onHeightChange={setInputAreaHeight}
+										chatState={chatState}
 									/>
 								</div>
 							</main>
