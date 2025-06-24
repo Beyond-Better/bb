@@ -15,6 +15,12 @@ import { websocketApp, websocketCollaboration } from './api/websocket.handlers.t
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';
 import { getModelCapabilities, listModels } from './api/model.handlers.ts';
+import {
+	getValidationRuleSets,
+	getValidationRuleSet,
+	validateParameters,
+	previewValidationConstraints,
+} from './api/validation.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
@@ -48,6 +54,11 @@ apiRouter
 	// Model capabilities endpoints
 	.get('/v1/model', listModels)
 	.get('/v1/model/:modelId', getModelCapabilities)
+	// Validation endpoints
+	.get('/v1/validation/rule-sets', getValidationRuleSets)
+	.get('/v1/validation/rule-sets/:ruleSetId', getValidationRuleSet)
+	.post('/v1/validation/validate', validateParameters)
+	.post('/v1/validation/preview', previewValidationConstraints)
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
 	.get('/v1/ws/collaboration/:id', websocketCollaboration)
