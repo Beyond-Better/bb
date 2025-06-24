@@ -146,7 +146,7 @@
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
 		"api/tests/testSetup.ts": "./api/tests/lib/testSetup.ts",
-		"api/tests/mockData.ts": "./api/tests/lib/mockData.ts",
+		"api/tests/mockData.ts": "./api/tests/mockData.ts",
 
 		"bui/utils/fileLogger.ts": "./bui/src/utils/fileLogger.utils.ts",
 

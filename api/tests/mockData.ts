@@ -1,14 +1,18 @@
 import type { TokenUsageRecord } from 'shared/types.ts';
+import LLMMessage from 'api/llms/llmMessage.ts';
 
 interface MockTokenUsageRecordOptions {
+	interactionId?: string;
 	messageId?: string;
 	inputTokens?: number;
 	outputTokens?: number;
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
+	thoughtTokens?: number;
 }
 
 interface MockTokenUsageRecordSequenceOptions {
+	interactionId?: string;
 	startMessageId?: string;
 	alternateRoles?: boolean;
 	type?: 'conversation' | 'chat';
@@ -23,6 +27,7 @@ export function createMockTokenUsageRecord(
 	options: MockTokenUsageRecordOptions = {},
 ): TokenUsageRecord {
 	const {
+		interactionId = 'test-interaction',
 		messageId = 'test-message',
 		inputTokens = 100,
 		outputTokens = 50,
@@ -37,6 +42,7 @@ export function createMockTokenUsageRecord(
 	const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 	return {
+		interactionId,
 		messageId,
 		role,
 		type,
@@ -66,6 +72,48 @@ export function createMockTokenUsageRecord(
 }
 
 /**
+ * Creates a sequence of mock LLMMessage records for testing
+ */
+export function createMockMessageRecordSequence(
+	count: number,
+	options: {
+		startMessageId?: string;
+		baseTimestamp?: string;
+		alternateRoles?: boolean;
+	} = {},
+): LLMMessage[] {
+	const messages: LLMMessage[] = [];
+
+	for (let i = 0; i < count; i++) {
+		const messageId = options.startMessageId ? `${options.startMessageId}-${i + 1}` : crypto.randomUUID();
+
+		let role: 'user' | 'assistant';
+		if (options.alternateRoles) {
+			role = i % 2 === 0 ? 'user' : 'assistant';
+		} else {
+			role = 'assistant';
+		}
+
+		const message = new LLMMessage(
+			role,
+			[{ type: 'text', text: `Test message ${i + 1}` }],
+			{
+				statementCount: Math.floor(i / 2) + 1,
+				statementTurnCount: (i % 2) + 1,
+				interactionTurnCount: i + 1,
+			},
+			undefined,
+			undefined,
+			messageId,
+		);
+
+		messages.push(message);
+	}
+
+	return messages;
+}
+
+/**
  * Creates a sequence of mock TokenUsageRecords for testing
  */
 export function createMockTokenUsageRecordSequence(
@@ -73,6 +121,7 @@ export function createMockTokenUsageRecordSequence(
 	options: MockTokenUsageRecordSequenceOptions = {},
 ): TokenUsageRecord[] {
 	const {
+		interactionId = 'test-interaction-sequence',
 		startMessageId = 'test-sequence',
 		alternateRoles = false,
 		type = 'conversation',
@@ -81,6 +130,7 @@ export function createMockTokenUsageRecordSequence(
 	return Array.from({ length: count }, (_, i) => {
 		const role = alternateRoles ? (i % 2 === 0 ? 'assistant' : 'user') : 'assistant';
 		return createMockTokenUsageRecord(role, type, {
+			interactionId: `${interactionId}-${i + 1}`,
 			messageId: `${startMessageId}-${i + 1}`,
 			inputTokens: 100 + i * 10,
 			outputTokens: 50 + i * 5,
@@ -123,6 +173,7 @@ export function createMockTokenUsageRecordWithHistory(
 	const savingsPercentage = (savingsTotal / potentialCost) * 100;
 
 	return {
+		interactionId: previous.interactionId,
 		messageId,
 		role: current.role,
 		type,
