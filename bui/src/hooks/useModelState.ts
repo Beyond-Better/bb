@@ -41,6 +41,9 @@ const modelState = signal<ModelState>({
 let apiClient: ApiClient | null = null;
 let currentProjectId: string | null = null;
 
+// Track pending capability requests to avoid duplicate API calls
+const pendingCapabilityRequests: Map<string, Promise<ModelDetails | null>> = new Map();
+
 /**
  * Check if cached data is still valid
  */
@@ -142,7 +145,7 @@ async function loadDefaultModels(): Promise<void> {
 }
 
 /**
- * Load model capabilities from API with caching
+ * Load model capabilities from API with caching and promise-based deduplication
  */
 async function loadModelCapabilities(modelId: string): Promise<ModelDetails | null> {
 	if (!apiClient) {
@@ -157,14 +160,40 @@ async function loadModelCapabilities(modelId: string): Promise<ModelDetails | nu
 		return cached.data;
 	}
 
-	// Check if already loading
-	if (modelState.value.isLoadingCapabilities[modelId]) {
-		console.log(`useModelState: Already loading capabilities for ${modelId}`);
-		return null;
+	// Implement promise-based locking to prevent duplicate requests
+	let capabilityRequest = pendingCapabilityRequests.get(modelId);
+
+	if (!capabilityRequest) {
+		// Only create a new request if one doesn't exist yet
+		console.log(`useModelState: Loading capabilities for ${modelId}`);
+		capabilityRequest = loadModelCapabilitiesWithLock(modelId);
+		pendingCapabilityRequests.set(modelId, capabilityRequest);
+
+		// Set up cleanup for the promise
+		const cleanup = async () => {
+			try {
+				await capabilityRequest;
+			} finally {
+				// Only delete if our promise is still the one in the map
+				if (pendingCapabilityRequests.get(modelId) === capabilityRequest) {
+					pendingCapabilityRequests.delete(modelId);
+				}
+			}
+		};
+		// Start cleanup process but don't wait for it
+		cleanup();
+	} else {
+		console.log(`useModelState: Using existing request for capabilities for ${modelId}`);
 	}
 
-	console.log(`useModelState: Loading capabilities for ${modelId}`);
+	// Everyone waits on the same promise, whether we just created it or found an existing one
+	return await capabilityRequest;
+}
 
+/**
+ * Internal function to load model capabilities with proper state management
+ */
+async function loadModelCapabilitiesWithLock(modelId: string): Promise<ModelDetails | null> {
 	// Set loading state
 	modelState.value = {
 		...modelState.value,
@@ -175,7 +204,7 @@ async function loadModelCapabilities(modelId: string): Promise<ModelDetails | nu
 	};
 
 	try {
-		const response = await apiClient.getModelCapabilities(modelId);
+		const response = await apiClient!.getModelCapabilities(modelId);
 
 		if (!response || !response.model) {
 			throw new Error(`No model data returned for ${modelId}`);
@@ -235,13 +264,7 @@ export function useModelState() {
 		 * Get model capabilities, loading if necessary
 		 */
 		getModelCapabilities: async (modelId: string): Promise<ModelDetails | null> => {
-			// Return cached if available and valid
-			const cached = modelState.value.capabilitiesCache[modelId];
-			if (cached && isCacheValid(cached.timestamp)) {
-				return cached.data;
-			}
-
-			// Load from API
+			// loadModelCapabilities now handles caching and deduplication internally
 			return await loadModelCapabilities(modelId);
 		},
 
@@ -280,6 +303,9 @@ export function useModelState() {
 		 */
 		refreshCache: async (): Promise<void> => {
 			console.log('useModelState: Refreshing cache');
+
+			// Clear pending requests
+			pendingCapabilityRequests.clear();
 
 			modelState.value = {
 				...modelState.value,

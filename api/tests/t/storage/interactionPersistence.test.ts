@@ -2,6 +2,7 @@ import {
 	assert,
 	assertEquals,
 	//assertRejects,
+	assertObjectMatch,
 } from 'api/tests/deps.ts';
 //import { join } from '@std/path';
 //import { ensureDir } from '@std/fs';
@@ -23,6 +24,103 @@ import {
 // 	//LLMMessageProviderResponse,
 // } from 'api/llms/llmMessage.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
+import type {
+	ResourceMetrics,
+	//InteractionMetrics,
+} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE, DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
+
+Deno.test('InteractionPersistence.defaultTokenUsage returns correct structure', () => {
+	const tokenUsage = InteractionPersistence.defaultTokenUsage();
+
+	assertObjectMatch(tokenUsage, DEFAULT_TOKEN_USAGE_REQUIRED() as unknown as Record<PropertyKey, unknown>);
+});
+
+Deno.test('InteractionPersistence.defaultInteractionStats returns correct structure', () => {
+	const stats = InteractionPersistence.defaultInteractionStats();
+
+	assertObjectMatch(stats, {
+		statementCount: 0,
+		statementTurnCount: 0,
+		interactionTurnCount: 0,
+	});
+});
+
+Deno.test('InteractionPersistence.defaultInteractionMetrics returns correct structure', () => {
+	const metrics = InteractionPersistence.defaultInteractionMetrics();
+
+	assertObjectMatch(metrics, {
+		statementCount: 0,
+		statementTurnCount: 0,
+		interactionTurnCount: 0,
+		objectives: { collaboration: '', statement: [], timestamp: '' },
+		resources: { accessed: new Set(), modified: new Set(), active: new Set() },
+		toolUsage: {
+			currentToolSet: '',
+			toolStats: new Map(),
+		},
+	});
+});
+
+Deno.test('InteractionPersistence.defaultMetadata returns correct structure', () => {
+	const metadata = InteractionPersistence.defaultMetadata();
+
+	// Check version defaults to 1
+	assertEquals(metadata.version, 4, 'Default version should be 4');
+
+	// Check required fields exist with correct types
+	assertEquals(typeof metadata.id, 'string', 'id should be string');
+	assertEquals(typeof metadata.title, 'string', 'title should be string');
+	assertEquals(typeof metadata.llmProviderName, 'string', 'llmProviderName should be string');
+	assertEquals(typeof metadata.model, 'string', 'model should be string');
+	assertEquals(typeof metadata.createdAt, 'string', 'createdAt should be string');
+	assertEquals(typeof metadata.updatedAt, 'string', 'updatedAt should be string');
+
+	// Check token usage structure
+	assertEquals(
+		metadata.tokenUsageStatsForInteraction.tokenUsageTurn,
+		DEFAULT_TOKEN_USAGE(),
+		'tokenUsageTurn should have correct structure and defaults',
+	);
+
+	assertEquals(
+		metadata.tokenUsageStatsForInteraction.tokenUsageStatement,
+		DEFAULT_TOKEN_USAGE(),
+		'tokenUsageStatement should have correct structure and defaults',
+	);
+
+	assertEquals(
+		metadata.tokenUsageStatsForInteraction.tokenUsageInteraction,
+		DEFAULT_TOKEN_USAGE(),
+		'tokenUsageInteraction should have correct structure and defaults',
+	);
+
+	// Check conversation stats
+	assertEquals(metadata.interactionStats, {
+		statementCount: 0,
+		statementTurnCount: 0,
+		interactionTurnCount: 0,
+	}, 'interactionStats should have correct structure and defaults');
+
+	// Check conversation metrics
+	assertObjectMatch(metadata.interactionMetrics, {
+		statementCount: 0,
+		statementTurnCount: 0,
+		interactionTurnCount: 0,
+		objectives: { collaboration: '', statement: [], timestamp: '' },
+		resources: { accessed: new Set(), modified: new Set(), active: new Set() } as ResourceMetrics,
+		toolUsage: {
+			currentToolSet: '',
+			toolStats: new Map(),
+		},
+	}, 'interactionMetrics should have correct structure and defaults');
+
+	// Check numeric fields
+	assertEquals(metadata.temperature, 0, 'temperature should default to 0');
+	assertEquals(metadata.maxTokens, 4096, 'maxTokens should default to 4096');
+	assertEquals(metadata.totalProviderRequests, 0, 'totalProviderRequests should default to 0');
+});
 
 Deno.test({
 	name: 'InteractionPersistence - Token usage integration initialization',
