@@ -130,8 +130,9 @@ const TokenProgressIndicator = ({ percentage }: { percentage: number }) => {
 	if (percentage <= 1) return null;
 
 	return (
-		<div className="w-full h-0.5 bg-gray-200 dark:bg-gray-700">
+		<div className='w-full h-0.5 bg-gray-200 dark:bg-gray-700'>
 			<div
+				title={`Conversation context used: ${percentage}%`}
 				className={`h-full transition-all duration-300 ${getProgressColor(percentage)}`}
 				style={{ width: `${Math.min(100, percentage)}%` }}
 			/>
@@ -185,6 +186,7 @@ export function ChatInput({
 	// 	return modelCapabilities;
 	// });
 	const currentRoleModelCapabilities = useSignal<ModelDetails | null>(null);
+	//console.info('ChatInput: chatInputOptions', { chatInputOptions: chatInputOptions.value });
 
 	useSignalEffect(() => {
 		const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
@@ -204,6 +206,25 @@ export function ChatInput({
 		});
 	});
 
+	const orchestratorModelCapabilities = useSignal<ModelDetails | null>(null);
+
+	useSignalEffect(() => {
+		const orchestratorModel = chatInputOptions.value.rolesModelConfig?.orchestrator?.model;
+		if (!orchestratorModel) {
+			orchestratorModelCapabilities.value = null;
+			return;
+		}
+
+		const cached = modelState.value.modelCapabilities[orchestratorModel];
+		if (cached) {
+			orchestratorModelCapabilities.value = cached;
+			return;
+		}
+
+		getModelCapabilities(orchestratorModel).then((capabilities) => {
+			orchestratorModelCapabilities.value = capabilities || null;
+		});
+	});
 	const {
 		history,
 		pinnedEntries,
@@ -219,30 +240,26 @@ export function ChatInput({
 	// Calculate token usage percentage
 	const tokenPercentage = useComputed(() => {
 		if (!chatState?.value || !collaborationId) return 0;
-		
-		// Find current collaboration
+
 		const currentCollaboration = chatState.value.collaborations?.find(
-			(collab: any) => collab.id === collaborationId
+			(collab: any) => collab.id === collaborationId,
 		);
-		
+
 		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
 			return 0;
 		}
-		
-		// Get orchestrator model from current options
-		const orchestratorModel = chatInputOptions.value.rolesModelConfig?.orchestrator?.model;
-		if (!orchestratorModel) return 0;
-		
-		// Get model capabilities
-		const modelCapabilities = modelState.value.modelCapabilities[orchestratorModel];
-		if (!modelCapabilities?.capabilities?.contextWindow) return 0;
-		
-		// Extract token usage (same logic as ModelInfoPanel)
-		const tokenUsageTurn = currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
-		const contextWindow = modelCapabilities.capabilities.contextWindow;
+
+		// Use the reactive signal instead of direct access
+		if (!orchestratorModelCapabilities.value?.capabilities?.contextWindow) return 0;
+
+		const tokenUsageTurn =
+			currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
+		const contextWindow = orchestratorModelCapabilities.value.capabilities.contextWindow;
+		console.info('ChatInput: signal-tokenPercentage: contextWindow', contextWindow);
+		console.info('ChatInput: signal-tokenPercentage: tokenUsageTurn', tokenUsageTurn);
 		const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
 		const tokenLimit = contextWindow;
-		
+
 		return tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
 	});
 
@@ -1404,703 +1421,717 @@ export function ChatInput({
 	});
 
 	return (
-		<div ref={containerRef} className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
+		<div className='bg-white dark:bg-gray-900 w-full relative'>
 			{/* Token Progress Indicator */}
 			<TokenProgressIndicator percentage={tokenPercentage.value} />
-			
-			<InputStatusBar
-				visible={statusInfo.value.visible}
-				message={statusInfo.value.message}
-				status={statusInfo.value.status || ApiStatus.IDLE}
-				action={statusInfo.value.action as Action}
-				statusState={statusState}
-				className='mx-0'
-			/>
 
-			{errorState.value && (
-				<div className='text-sm text-red-500 dark:text-red-400 mb-2 flex items-center justify-between'>
-					<span>{errorState.value.message}</span>
-					<div className='flex items-center'>
-						{errorState.value.recoveryAction && (
+			<div ref={containerRef} className='px-3 py-2 w-full relative'>
+				<InputStatusBar
+					visible={statusInfo.value.visible}
+					message={statusInfo.value.message}
+					status={statusInfo.value.status || ApiStatus.IDLE}
+					action={statusInfo.value.action as Action}
+					statusState={statusState}
+					className='mx-0'
+				/>
+
+				{errorState.value && (
+					<div className='text-sm text-red-500 dark:text-red-400 mb-2 flex items-center justify-between'>
+						<span>{errorState.value.message}</span>
+						<div className='flex items-center'>
+							{errorState.value.recoveryAction && (
+								<button
+									type='button'
+									onClick={() => {
+										errorState.value?.recoveryAction?.();
+										errorState.value = null;
+									}}
+									className='ml-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+								>
+									{errorState.value.recoveryMessage || 'Retry'}
+								</button>
+							)}
 							<button
 								type='button'
-								onClick={() => {
-									errorState.value?.recoveryAction?.();
-									errorState.value = null;
-								}}
-								className='ml-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+								onClick={() => errorState.value = null}
+								className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
+								title='Dismiss'
 							>
-								{errorState.value.recoveryMessage || 'Retry'}
+								✕
 							</button>
-						)}
-						<button
-							type='button'
-							onClick={() => errorState.value = null}
-							className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
-							title='Dismiss'
-						>
-							✕
-						</button>
+						</div>
 					</div>
-				</div>
-			)}
+				)}
 
-			{attachedFiles.value.length > 0 && (
-				<div className='mt-0 flex flex-wrap gap-2 max-w-full overflow-x-auto pt-2 pb-2'>
-					{attachedFiles.value.map((file) => (
-						<div key={file.id} className='relative group'>
-							{file.type.startsWith('image/') && file.previewUrl
-								? (
-									// Image preview
-									<div className='relative'>
-										<img
-											src={file.previewUrl}
-											alt={file.name}
-											className='h-16 w-auto rounded border border-gray-300 dark:border-gray-700 object-cover'
-										/>
-										<div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate'>
-											{(file.size / 1024).toFixed(0)} KB
+				{attachedFiles.value.length > 0 && (
+					<div className='mt-0 flex flex-wrap gap-2 max-w-full overflow-x-auto pt-2 pb-2'>
+						{attachedFiles.value.map((file) => (
+							<div key={file.id} className='relative group'>
+								{file.type.startsWith('image/') && file.previewUrl
+									? (
+										// Image preview
+										<div className='relative'>
+											<img
+												src={file.previewUrl}
+												alt={file.name}
+												className='h-16 w-auto rounded border border-gray-300 dark:border-gray-700 object-cover'
+											/>
+											<div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate'>
+												{(file.size / 1024).toFixed(0)} KB
+											</div>
 										</div>
-									</div>
-								)
-								: (
-									// Generic file preview (for future non-image support)
-									<div className='h-16 w-16 flex flex-col items-center justify-center rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'>
-										<div className='text-2xl'>📄</div>
-										<div className='text-xs truncate max-w-full px-1'>
-											{(file.size / 1024).toFixed(0)} KB
+									)
+									: (
+										// Generic file preview (for future non-image support)
+										<div className='h-16 w-16 flex flex-col items-center justify-center rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'>
+											<div className='text-2xl'>📄</div>
+											<div className='text-xs truncate max-w-full px-1'>
+												{(file.size / 1024).toFixed(0)} KB
+											</div>
+										</div>
+									)}
+
+								{/* Upload progress indicator */}
+								{file.uploadStatus === 'uploading' && (
+									<div className='absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center'>
+										<div className='w-full px-2'>
+											<div className='h-1 bg-gray-300 rounded-full overflow-hidden'>
+												<div
+													className='h-full bg-blue-500'
+													style={{ width: `${file.uploadProgress}%` }}
+												/>
+											</div>
+											<div className='text-white text-xs mt-1 text-center'>
+												{file.uploadProgress}%
+											</div>
 										</div>
 									</div>
 								)}
 
-							{/* Upload progress indicator */}
-							{file.uploadStatus === 'uploading' && (
-								<div className='absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center'>
-									<div className='w-full px-2'>
-										<div className='h-1 bg-gray-300 rounded-full overflow-hidden'>
-											<div
-												className='h-full bg-blue-500'
-												style={{ width: `${file.uploadProgress}%` }}
-											/>
-										</div>
-										<div className='text-white text-xs mt-1 text-center'>
-											{file.uploadProgress}%
+								{/* Error indicator */}
+								{file.uploadStatus === 'error' && (
+									<div className='absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center'>
+										<div className='text-white text-xs text-center'>
+											Upload failed
 										</div>
 									</div>
-								</div>
-							)}
+								)}
 
-							{/* Error indicator */}
-							{file.uploadStatus === 'error' && (
-								<div className='absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center'>
-									<div className='text-white text-xs text-center'>
-										Upload failed
-									</div>
-								</div>
-							)}
+								{/* Remove button */}
+								<button
+									type='button'
+									onClick={() => {
+										// Release object URL if it exists
+										if (file.previewUrl) {
+											URL.revokeObjectURL(file.previewUrl);
+										}
+										// Remove from state
+										attachedFiles.value = attachedFiles.value.filter((f) => f.id !== file.id);
+									}}
+									className='absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 dark:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center'
+									title='Remove file'
+								>
+									×
+								</button>
+							</div>
+						))}
+					</div>
+				)}
 
-							{/* Remove button */}
-							<button
-								type='button'
-								onClick={() => {
-									// Release object URL if it exists
-									if (file.previewUrl) {
-										URL.revokeObjectURL(file.previewUrl);
-									}
-									// Remove from state
-									attachedFiles.value = attachedFiles.value.filter((f) => f.id !== file.id);
-								}}
-								className='absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 dark:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center'
-								title='Remove file'
-							>
-								×
-							</button>
-						</div>
-					))}
-				</div>
-			)}
-
-			<div className='flex items-end space-x-3'>
-				<div className='flex-grow relative'>
-					<textarea
-						ref={internalTextareaRef}
-						value={chatInputText.value}
-						onInput={handleInput}
-						onKeyDown={handleKeyPress}
-						onSelect={handleSelect}
-						onClick={() => {
-							if (isDropdownOpen.value) {
-								isDropdownOpen.value = false;
-							}
-							if (isOptionsOpen.value) {
-								isOptionsOpen.value = false;
-							}
-						}}
-						className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
+				<div className='flex items-end space-x-3'>
+					<div className='flex-grow relative'>
+						<textarea
+							ref={internalTextareaRef}
+							value={chatInputText.value}
+							onInput={handleInput}
+							onKeyDown={handleKeyPress}
+							onSelect={handleSelect}
+							onClick={() => {
+								if (isDropdownOpen.value) {
+									isDropdownOpen.value = false;
+								}
+								if (isOptionsOpen.value) {
+									isOptionsOpen.value = false;
+								}
+							}}
+							className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
 						  dark:bg-gray-800 dark:text-gray-100 
 						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
 						  ${disabled.value ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
 						  ${
-							isProcessing(statusState.value)
-								? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800'
-								: ''
-						}`}
-						placeholder={isProcessing(statusState.value)
-							? 'Type your message... (Statement in progress)'
-							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
-						rows={1}
-						maxLength={maxLength}
-						disabled={disabled.value}
-						aria-label='Message input'
-						aria-expanded={isShowingSuggestions.value}
-						aria-haspopup='listbox'
-						aria-controls={isShowingSuggestions.value ? 'suggestions-list' : undefined}
-						aria-activedescendant={selectedIndex.value >= 0
-							? `suggestion-${selectedIndex.value}`
-							: undefined}
-					/>
+								isProcessing(statusState.value)
+									? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800'
+									: ''
+							}`}
+							placeholder={isProcessing(statusState.value)
+								? 'Type your message... (Statement in progress)'
+								: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
+							rows={1}
+							maxLength={maxLength}
+							disabled={disabled.value}
+							aria-label='Message input'
+							aria-expanded={isShowingSuggestions.value}
+							aria-haspopup='listbox'
+							aria-controls={isShowingSuggestions.value ? 'suggestions-list' : undefined}
+							aria-activedescendant={selectedIndex.value >= 0
+								? `suggestion-${selectedIndex.value}`
+								: undefined}
+						/>
 
-					{(isShowingSuggestions.value || isLoadingSuggestions.value || suggestionsError.value) && (
-						<div
-							className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
-							style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
-						>
-							{isLoadingSuggestions.value && (
-								<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
-									<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
-									<span className='ml-2 text-gray-600 dark:text-gray-300'>
-										Loading suggestions...
-									</span>
-								</div>
-							)}
+						{(isShowingSuggestions.value || isLoadingSuggestions.value || suggestionsError.value) && (
+							<div
+								className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
+								style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
+							>
+								{isLoadingSuggestions.value && (
+									<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
+										<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
+										<span className='ml-2 text-gray-600 dark:text-gray-300'>
+											Loading suggestions...
+										</span>
+									</div>
+								)}
 
-							{suggestionsError.value && (
-								<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
-									Error: {suggestionsError.value}
-								</div>
-							)}
+								{suggestionsError.value && (
+									<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
+										Error: {suggestionsError.value}
+									</div>
+								)}
 
-							{!isLoadingSuggestions.value && !suggestionsError.value && suggestions.value.length > 0 && (
-								<ul
-									id='suggestions-list'
-									role='listbox'
-								>
-									{suggestions.value.map((suggestion, index) => (
-										<li
-											id={`suggestion-${index}`}
-											key={suggestion.dataSourceName
-												? `${suggestion.dataSourceName}:${suggestion.path}`
-												: suggestion.path}
-											role='option'
-											aria-selected={index === selectedIndex.value}
-											className={`cursor-pointer py-2 pl-3 pr-9 ${
-												index === selectedIndex.value
-													? 'bg-blue-600 text-white'
-													: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
-											}`}
-											onClick={() => {
-												if (suggestion.isDirectory) {
-													// For directories: complete and show contents
-													applySuggestion(suggestion, true, true);
-													// Reset selection and fetch directory contents
-													selectedIndex.value = -1;
-													fetchSuggestions(suggestion.path + '/', true);
-												} else {
-													// For files: apply and close
-													applySuggestion(suggestion, false, false);
-													tabState.value = TabState.INITIAL;
-												}
-											}}
-										>
-											<div className='flex items-center'>
-												<span className='truncate'>
-													{suggestion.display}
-													{suggestion.isDirectory && '/'}
-												</span>
-												<span
-													className={`ml-2 truncate text-sm ${
-														index === selectedIndex.value
-															? 'text-blue-200'
-															: 'text-gray-500'
-													}`}
-												>
-													({suggestion.parent}){' '}
-													{shouldShowDataSourceInfo.value && suggestion.dataSourceName
-														? <span className='ml-1'>[{suggestion.dataSourceName}]</span>
-														: ''}
-												</span>
-											</div>
-										</li>
-									))}
-								</ul>
-							)}
+								{!isLoadingSuggestions.value && !suggestionsError.value &&
+									suggestions.value.length > 0 && (
+									<ul
+										id='suggestions-list'
+										role='listbox'
+									>
+										{suggestions.value.map((suggestion, index) => (
+											<li
+												id={`suggestion-${index}`}
+												key={suggestion.dataSourceName
+													? `${suggestion.dataSourceName}:${suggestion.path}`
+													: suggestion.path}
+												role='option'
+												aria-selected={index === selectedIndex.value}
+												className={`cursor-pointer py-2 pl-3 pr-9 ${
+													index === selectedIndex.value
+														? 'bg-blue-600 text-white'
+														: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
+												}`}
+												onClick={() => {
+													if (suggestion.isDirectory) {
+														// For directories: complete and show contents
+														applySuggestion(suggestion, true, true);
+														// Reset selection and fetch directory contents
+														selectedIndex.value = -1;
+														fetchSuggestions(suggestion.path + '/', true);
+													} else {
+														// For files: apply and close
+														applySuggestion(suggestion, false, false);
+														tabState.value = TabState.INITIAL;
+													}
+												}}
+											>
+												<div className='flex items-center'>
+													<span className='truncate'>
+														{suggestion.display}
+														{suggestion.isDirectory && '/'}
+													</span>
+													<span
+														className={`ml-2 truncate text-sm ${
+															index === selectedIndex.value
+																? 'text-blue-200'
+																: 'text-gray-500'
+														}`}
+													>
+														({suggestion.parent}){' '}
+														{shouldShowDataSourceInfo.value && suggestion.dataSourceName
+															? (
+																<span className='ml-1'>
+																	[{suggestion.dataSourceName}]
+																</span>
+															)
+															: ''}
+													</span>
+												</div>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						)}
+
+						<ChatHistoryDropdown
+							pinnedEntries={pinnedEntries}
+							recentEntries={recentEntries}
+							isOpen={isDropdownOpen}
+							onSelect={(value) => {
+								console.info('ChatInput: History entry selected', { valueLength: value.length });
+								onChange(value);
+								isDropdownOpen.value = false;
+							}}
+							onTogglePin={togglePin}
+						/>
+
+						<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
+							<button
+								type='button'
+								onClick={() => {
+									const newValue = !isDropdownOpen.value;
+									console.info('ChatInput: History toggled', {
+										wasOpen: isDropdownOpen.value,
+										nowOpen: newValue,
+										hasHistory: history.value.length > 0,
+										pinnedCount: pinnedEntries.value.length,
+										recentCount: recentEntries.value.length,
+									});
+									isDropdownOpen.value = newValue;
+								}}
+								className='p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+								title='Show history'
+							>
+								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+									/>
+								</svg>
+							</button>
+							<span
+								className={`text-xs ${
+									chatInputText.value.length > maxLength * 0.9
+										? 'text-red-500 dark:text-red-400'
+										: 'text-gray-400 dark:text-gray-500'
+								}`}
+							>
+								{chatInputText.value.length} / {maxLength}
+							</span>
 						</div>
-					)}
-
-					<ChatHistoryDropdown
-						pinnedEntries={pinnedEntries}
-						recentEntries={recentEntries}
-						isOpen={isDropdownOpen}
-						onSelect={(value) => {
-							console.info('ChatInput: History entry selected', { valueLength: value.length });
-							onChange(value);
-							isDropdownOpen.value = false;
-						}}
-						onTogglePin={togglePin}
-					/>
-
-					<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
+					</div>
+					<div className='flex items-center'>
 						<button
 							type='button'
-							onClick={() => {
-								const newValue = !isDropdownOpen.value;
-								console.info('ChatInput: History toggled', {
-									wasOpen: isDropdownOpen.value,
-									nowOpen: newValue,
-									hasHistory: history.value.length > 0,
-									pinnedCount: pinnedEntries.value.length,
-									recentCount: recentEntries.value.length,
-								});
-								isDropdownOpen.value = newValue;
-							}}
-							className='p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
-							title='Show history'
+							onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
+							className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
+							title='Chat Options'
+							aria-label='Chat Options'
 						>
-							<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='h-5 w-5'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
 								<path
 									strokeLinecap='round'
 									strokeLinejoin='round'
 									strokeWidth={2}
-									d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+									d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+								/>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
 								/>
 							</svg>
 						</button>
-						<span
-							className={`text-xs ${
-								chatInputText.value.length > maxLength * 0.9
-									? 'text-red-500 dark:text-red-400'
-									: 'text-gray-400 dark:text-gray-500'
-							}`}
-						>
-							{chatInputText.value.length} / {maxLength}
-						</span>
-					</div>
-				</div>
-				<div className='flex items-center'>
-					<button
-						type='button'
-						onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
-						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
-						title='Chat Options'
-						aria-label='Chat Options'
-					>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							className='h-5 w-5'
-							fill='none'
-							viewBox='0 0 24 24'
-							stroke='currentColor'
-						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth={2}
-								d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
-							/>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth={2}
-								d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
-							/>
-						</svg>
-					</button>
-					<button
-						type='button'
-						onClick={handleSend}
-						className={`px-4 py-2 mb-1 rounded-md transition-colors 
+						<button
+							type='button'
+							onClick={handleSend}
+							className={`px-4 py-2 mb-1 rounded-md transition-colors 
 							focus:outline-none focus:ring-2 focus:ring-blue-500 
 							focus:ring-opacity-50 min-w-[60px] ml-2
 							${
-							isProcessing(statusState.value)
-								? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-								: disabled.value
-								? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
-								: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
-						}`}
-						disabled={statusState.value.isLoading || disabled.value || isProcessing(statusState.value)}
-						aria-label={statusState.value.isLoading ? 'Sending message...' : 'Send message'}
-					>
-						{statusState.value.isLoading
-							? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
-							: 'Send'}
-					</button>
-				</div>
-			</div>
-
-			{/* LLM Options Panel */}
-			{isOptionsOpen.value && (
-				<div
-					ref={optionsModalRef}
-					className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
-				>
-					<div className='flex justify-between items-center mb-3'>
-						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
-						<button
-							type='button'
-							onClick={() => isOptionsOpen.value = false}
-							className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+								isProcessing(statusState.value)
+									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+									: disabled.value
+									? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+									: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
+							}`}
+							disabled={statusState.value.isLoading || disabled.value || isProcessing(statusState.value)}
+							aria-label={statusState.value.isLoading ? 'Sending message...' : 'Send message'}
 						>
-							<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M6 18L18 6M6 6l12 12'
-								/>
-							</svg>
+							{statusState.value.isLoading
+								? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
+								: 'Send'}
 						</button>
 					</div>
+				</div>
 
-					<div className='space-y-3'>
-						{/* Role Tabs */}
-						<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
-							{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
-								const isSelected = selectedModelRole.value === role;
-
-								return (
-									<button
-										type='button'
-										key={role}
-										onClick={() => selectedModelRole.value = role}
-										className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
-											isSelected
-												? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 shadow-sm'
-												: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
-										}`}
-									>
-										{getControllerRoleIcon(role, {
-											className: 'mr-1 w-4 h-4',
-											'aria-label': `${role} model`,
-										})}
-										<span className='hidden sm:inline'>{ROLE_LABEL_MAPPING[role]}</span>
-									</button>
-								);
-							})}
-						</div>
-
-						{/* Model Selector for Selected Role */}
-						<ModelSelector
-							key={`model-selector-${selectedModelRole.value}-${
-								chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
-							}`}
-							apiClient={apiClient}
-							context='collaboration'
-							role={selectedModelRole.value}
-							value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}
-							onChange={(modelId: string | ModelSelectionValue) => {
-								console.log(
-									'ChatInput: Model changed for role',
-									selectedModelRole.value,
-									'to',
-									modelId,
-								);
-								const newOptions = { ...chatInputOptions.value };
-								if (!newOptions.rolesModelConfig) {
-									newOptions.rolesModelConfig = {
-										orchestrator: null,
-										agent: null,
-										chat: null,
-									};
-								}
-								const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
-									model: '',
-									temperature: 0.7,
-									maxTokens: 4000,
-									usePromptCaching: true,
-								};
-								newOptions.rolesModelConfig[selectedModelRole.value] = {
-									...currentModelConfig,
-									model: modelId as string,
-								};
-								chatInputOptions.value = newOptions;
-								console.log(
-									'ChatInput: Changed model config for role',
-									selectedModelRole.value,
-									newOptions.rolesModelConfig[selectedModelRole.value],
-								);
-							}}
-							label={`${ROLE_LABEL_MAPPING[selectedModelRole.value]} Model`}
-							compact
-						/>
-
-						{/* Max Tokens slider */}
-						<div className='space-y-1'>
-							<div className='flex justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Max Tokens:{' '}
-									{chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens ||
-										4000}
-								</label>
-							</div>
-							<input
-								type='range'
-								min='1000'
-								max={currentRoleModelCapabilities.value?.capabilities?.maxOutputTokens || 100000}
-								step='1000'
-								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.maxTokens ||
-									4000}
-								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
-									if (!e.target) return;
-									const input = e.target as HTMLInputElement;
-									const newOptions = { ...chatInputOptions.value };
-									if (!newOptions.rolesModelConfig) {
-										newOptions.rolesModelConfig = {
-											orchestrator: null,
-											agent: null,
-											chat: null,
-										};
-									}
-									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
-										model: '',
-										temperature: 0.7,
-										maxTokens: 4000,
-										usePromptCaching: true,
-									};
-									newOptions.rolesModelConfig[selectedModelRole.value] = {
-										...currentModelConfig,
-										maxTokens: parseInt(input.value, 10),
-									};
-									chatInputOptions.value = newOptions;
-								}}
-								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
-							/>
-						</div>
-
-						{/* Temperature slider */}
-						<div className='space-y-1'>
-							<div className='flex justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Temperature:{' '}
-									{(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.temperature ||
-										0.7).toFixed(1)}
-								</label>
-							</div>
-							<input
-								type='range'
-								min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.min ||
-									0}
-								max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature?.max ||
-									1}
-								step='0.1'
-								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
-									?.temperature || 0.7}
-								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
-									if (!e.target) return;
-									const input = e.target as HTMLInputElement;
-									const newOptions = { ...chatInputOptions.value };
-									if (!newOptions.rolesModelConfig) {
-										newOptions.rolesModelConfig = {
-											orchestrator: null,
-											agent: null,
-											chat: null,
-										};
-									}
-									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
-										model: '',
-										temperature: 0.7,
-										maxTokens: 4000,
-										usePromptCaching: true,
-									};
-									newOptions.rolesModelConfig[selectedModelRole.value] = {
-										...currentModelConfig,
-										temperature: parseFloat(input.value),
-									};
-									chatInputOptions.value = newOptions;
-								}}
-								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
-							/>
-						</div>
-
-						{/* Extended Thinking Toggle */}
-						<div>
-							<div className='flex items-center justify-between'>
-								<label
-									className={`text-sm ${
-										!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
-													?.extendedThinking === false
-											? 'text-gray-400 dark:text-gray-500'
-											: 'text-gray-700 dark:text-gray-300'
-									}`}
-								>
-									Extended Thinking
-								</label>
-								<div className='relative inline-block w-12 align-middle select-none'>
-									<input
-										type='checkbox'
-										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
-											?.extendedThinking?.enabled || false}
-										disabled={!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
-													?.extendedThinking === false}
-										onChange={(e) => {
-											if (!e.target) return;
-											const input = e.target as HTMLInputElement;
-											const newOptions = { ...chatInputOptions.value };
-											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {chatInputOptions: chatInputOptions.value});
-											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {newOptions});
-											if (!newOptions.rolesModelConfig) {
-												newOptions.rolesModelConfig = {
-													orchestrator: null,
-													agent: null,
-													chat: null,
-												};
-											}
-											const currentModelConfig =
-												newOptions.rolesModelConfig[selectedModelRole.value] || {
-													model: '',
-													temperature: 0.7,
-													maxTokens: 4000,
-													usePromptCaching: true,
-												};
-											//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {currentModelConfig});
-											if (!currentModelConfig.extendedThinking) {
-												currentModelConfig.extendedThinking = {
-													enabled: input.checked,
-													budgetTokens: 4096,
-												};
-											} else {
-												currentModelConfig.extendedThinking.enabled = input.checked;
-											}
-											newOptions.rolesModelConfig[selectedModelRole.value] = currentModelConfig;
-											chatInputOptions.value = newOptions;
-										}}
-										className='sr-only'
-										id='toggle-extended-thinking'
+				{/* LLM Options Panel */}
+				{isOptionsOpen.value && (
+					<div
+						ref={optionsModalRef}
+						className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
+					>
+						<div className='flex justify-between items-center mb-3'>
+							<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
+							<button
+								type='button'
+								onClick={() => isOptionsOpen.value = false}
+								className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+							>
+								<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M6 18L18 6M6 6l12 12'
 									/>
+								</svg>
+							</button>
+						</div>
+
+						<div className='space-y-3'>
+							{/* Role Tabs */}
+							<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
+								{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
+									const isSelected = selectedModelRole.value === role;
+
+									return (
+										<button
+											type='button'
+											key={role}
+											onClick={() => selectedModelRole.value = role}
+											className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
+												isSelected
+													? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 shadow-sm'
+													: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+											}`}
+										>
+											{getControllerRoleIcon(role, {
+												className: 'mr-1 w-4 h-4',
+												'aria-label': `${role} model`,
+											})}
+											<span className='hidden sm:inline'>{ROLE_LABEL_MAPPING[role]}</span>
+										</button>
+									);
+								})}
+							</div>
+
+							{/* Model Selector for Selected Role */}
+							<ModelSelector
+								key={`model-selector-${selectedModelRole.value}-${
+									chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
+								}`}
+								apiClient={apiClient}
+								context='collaboration'
+								role={selectedModelRole.value}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}
+								onChange={(modelId: string | ModelSelectionValue) => {
+									console.log(
+										'ChatInput: Model changed for role',
+										selectedModelRole.value,
+										'to',
+										modelId,
+									);
+									const newOptions = { ...chatInputOptions.value };
+									if (!newOptions.rolesModelConfig) {
+										newOptions.rolesModelConfig = {
+											orchestrator: null,
+											agent: null,
+											chat: null,
+										};
+									}
+									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
+										model: '',
+										temperature: 0.7,
+										maxTokens: 4000,
+										usePromptCaching: true,
+									};
+									newOptions.rolesModelConfig[selectedModelRole.value] = {
+										...currentModelConfig,
+										model: modelId as string,
+									};
+									chatInputOptions.value = newOptions;
+									console.log(
+										'ChatInput: Changed model config for role',
+										selectedModelRole.value,
+										newOptions.rolesModelConfig[selectedModelRole.value],
+									);
+								}}
+								label={`${ROLE_LABEL_MAPPING[selectedModelRole.value]} Model`}
+								compact
+							/>
+
+							{/* Max Tokens slider */}
+							<div className='space-y-1'>
+								<div className='flex justify-between'>
+									<label className='text-sm text-gray-700 dark:text-gray-300'>
+										Max Tokens: {chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.maxTokens ||
+											4000}
+									</label>
+								</div>
+								<input
+									type='range'
+									min='1000'
+									max={currentRoleModelCapabilities.value?.capabilities?.maxOutputTokens || 100000}
+									step='1000'
+									value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+										?.maxTokens ||
+										4000}
+									onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+										if (!e.target) return;
+										const input = e.target as HTMLInputElement;
+										const newOptions = { ...chatInputOptions.value };
+										if (!newOptions.rolesModelConfig) {
+											newOptions.rolesModelConfig = {
+												orchestrator: null,
+												agent: null,
+												chat: null,
+											};
+										}
+										const currentModelConfig =
+											newOptions.rolesModelConfig[selectedModelRole.value] || {
+												model: '',
+												temperature: 0.7,
+												maxTokens: 4000,
+												usePromptCaching: true,
+											};
+										newOptions.rolesModelConfig[selectedModelRole.value] = {
+											...currentModelConfig,
+											maxTokens: parseInt(input.value, 10),
+										};
+										chatInputOptions.value = newOptions;
+									}}
+									className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+								/>
+							</div>
+
+							{/* Temperature slider */}
+							<div className='space-y-1'>
+								<div className='flex justify-between'>
+									<label className='text-sm text-gray-700 dark:text-gray-300'>
+										Temperature:{' '}
+										{(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.temperature ||
+											0.7).toFixed(1)}
+									</label>
+								</div>
+								<input
+									type='range'
+									min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature
+										?.min ||
+										0}
+									max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature
+										?.max ||
+										1}
+									step='0.1'
+									value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+										?.temperature || 0.7}
+									onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+										if (!e.target) return;
+										const input = e.target as HTMLInputElement;
+										const newOptions = { ...chatInputOptions.value };
+										if (!newOptions.rolesModelConfig) {
+											newOptions.rolesModelConfig = {
+												orchestrator: null,
+												agent: null,
+												chat: null,
+											};
+										}
+										const currentModelConfig =
+											newOptions.rolesModelConfig[selectedModelRole.value] || {
+												model: '',
+												temperature: 0.7,
+												maxTokens: 4000,
+												usePromptCaching: true,
+											};
+										newOptions.rolesModelConfig[selectedModelRole.value] = {
+											...currentModelConfig,
+											temperature: parseFloat(input.value),
+										};
+										chatInputOptions.value = newOptions;
+									}}
+									className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+								/>
+							</div>
+
+							{/* Extended Thinking Toggle */}
+							<div>
+								<div className='flex items-center justify-between'>
 									<label
-										htmlFor='toggle-extended-thinking'
-										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+										className={`text-sm ${
 											!currentRoleModelCapabilities?.value ||
 												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
 														?.extendedThinking === false
-												? 'cursor-not-allowed opacity-50'
-												: 'cursor-pointer'
-										} ${
-											chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
-													?.extendedThinking?.enabled
-												? 'bg-blue-500'
-												: 'bg-gray-300 dark:bg-gray-600'
+												? 'text-gray-400 dark:text-gray-500'
+												: 'text-gray-700 dark:text-gray-300'
 										}`}
 									>
-										<span
-											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+										Extended Thinking
+									</label>
+									<div className='relative inline-block w-12 align-middle select-none'>
+										<input
+											type='checkbox'
+											checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+												?.extendedThinking?.enabled || false}
+											disabled={!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.extendedThinking === false}
+											onChange={(e) => {
+												if (!e.target) return;
+												const input = e.target as HTMLInputElement;
+												const newOptions = { ...chatInputOptions.value };
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {chatInputOptions: chatInputOptions.value});
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {newOptions});
+												if (!newOptions.rolesModelConfig) {
+													newOptions.rolesModelConfig = {
+														orchestrator: null,
+														agent: null,
+														chat: null,
+													};
+												}
+												const currentModelConfig =
+													newOptions.rolesModelConfig[selectedModelRole.value] || {
+														model: '',
+														temperature: 0.7,
+														maxTokens: 4000,
+														usePromptCaching: true,
+													};
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {currentModelConfig});
+												if (!currentModelConfig.extendedThinking) {
+													currentModelConfig.extendedThinking = {
+														enabled: input.checked,
+														budgetTokens: 4096,
+													};
+												} else {
+													currentModelConfig.extendedThinking.enabled = input.checked;
+												}
+												newOptions.rolesModelConfig[selectedModelRole.value] =
+													currentModelConfig;
+												chatInputOptions.value = newOptions;
+											}}
+											className='sr-only'
+											id='toggle-extended-thinking'
+										/>
+										<label
+											htmlFor='toggle-extended-thinking'
+											className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+												!currentRoleModelCapabilities?.value ||
+													currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+															?.extendedThinking === false
+													? 'cursor-not-allowed opacity-50'
+													: 'cursor-pointer'
+											} ${
 												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
 														?.extendedThinking?.enabled
-													? 'translate-x-6'
-													: 'translate-x-0'
+													? 'bg-blue-500'
+													: 'bg-gray-300 dark:bg-gray-600'
 											}`}
-										/>
-									</label>
+										>
+											<span
+												className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+													chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+															?.extendedThinking?.enabled
+														? 'translate-x-6'
+														: 'translate-x-0'
+												}`}
+											/>
+										</label>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						{/* Prompt Caching Toggle */}
-						<div>
-							<div className='flex items-center justify-between'>
-								<label
-									className={`text-sm ${
-										!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
-													?.promptCaching === false
-											? 'text-gray-400 dark:text-gray-500'
-											: 'text-gray-700 dark:text-gray-300'
-									}`}
-								>
-									Use Prompt Caching
-								</label>
-								<div className='relative inline-block w-12 align-middle select-none'>
-									<input
-										type='checkbox'
-										checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
-											?.usePromptCaching !== false}
-										disabled={!currentRoleModelCapabilities?.value ||
-											currentRoleModelCapabilities.value.capabilities?.supportedFeatures
-													?.promptCaching === false}
-										onChange={(e) => {
-											if (!e.target) return;
-											const input = e.target as HTMLInputElement;
-											const newOptions = { ...chatInputOptions.value };
-											if (!newOptions.rolesModelConfig) {
-												newOptions.rolesModelConfig = {
-													orchestrator: null,
-													agent: null,
-													chat: null,
-												};
-											}
-											const currentModelConfig =
-												newOptions.rolesModelConfig[selectedModelRole.value] || {
-													model: '',
-													temperature: 0.7,
-													maxTokens: 4000,
-													usePromptCaching: true,
-												};
-											newOptions.rolesModelConfig[selectedModelRole.value] = {
-												...currentModelConfig,
-												usePromptCaching: input.checked,
-											};
-											chatInputOptions.value = newOptions;
-										}}
-										className='sr-only'
-										id='toggle-prompt-caching'
-									/>
+							{/* Prompt Caching Toggle */}
+							<div>
+								<div className='flex items-center justify-between'>
 									<label
-										htmlFor='toggle-prompt-caching'
-										className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+										className={`text-sm ${
 											!currentRoleModelCapabilities?.value ||
 												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
 														?.promptCaching === false
-												? 'cursor-not-allowed opacity-50'
-												: 'cursor-pointer'
-										} ${
-											chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
-													?.usePromptCaching !== false
-												? 'bg-blue-500'
-												: 'bg-gray-300 dark:bg-gray-600'
+												? 'text-gray-400 dark:text-gray-500'
+												: 'text-gray-700 dark:text-gray-300'
 										}`}
 									>
-										<span
-											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+										Use Prompt Caching
+									</label>
+									<div className='relative inline-block w-12 align-middle select-none'>
+										<input
+											type='checkbox'
+											checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+												?.usePromptCaching !== false}
+											disabled={!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.promptCaching === false}
+											onChange={(e) => {
+												if (!e.target) return;
+												const input = e.target as HTMLInputElement;
+												const newOptions = { ...chatInputOptions.value };
+												if (!newOptions.rolesModelConfig) {
+													newOptions.rolesModelConfig = {
+														orchestrator: null,
+														agent: null,
+														chat: null,
+													};
+												}
+												const currentModelConfig =
+													newOptions.rolesModelConfig[selectedModelRole.value] || {
+														model: '',
+														temperature: 0.7,
+														maxTokens: 4000,
+														usePromptCaching: true,
+													};
+												newOptions.rolesModelConfig[selectedModelRole.value] = {
+													...currentModelConfig,
+													usePromptCaching: input.checked,
+												};
+												chatInputOptions.value = newOptions;
+											}}
+											className='sr-only'
+											id='toggle-prompt-caching'
+										/>
+										<label
+											htmlFor='toggle-prompt-caching'
+											className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+												!currentRoleModelCapabilities?.value ||
+													currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+															?.promptCaching === false
+													? 'cursor-not-allowed opacity-50'
+													: 'cursor-pointer'
+											} ${
 												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
 														?.usePromptCaching !== false
-													? 'translate-x-6'
-													: 'translate-x-0'
+													? 'bg-blue-500'
+													: 'bg-gray-300 dark:bg-gray-600'
 											}`}
-										/>
-									</label>
+										>
+											<span
+												className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+													chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+															?.usePromptCaching !== false
+														? 'translate-x-6'
+														: 'translate-x-0'
+												}`}
+											/>
+										</label>
+									</div>
 								</div>
 							</div>
-						</div>
 
-						{/* Model information - display context window and provider info */}
-						{currentRoleModelCapabilities?.value && (
-							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Context window: {currentRoleModelCapabilities.value.capabilities?.contextWindow
-										? (currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000)
-											.toFixed(
-												0,
-											)
-										: '--'}K tokens
+							{/* Model information - display context window and provider info */}
+							{currentRoleModelCapabilities?.value && (
+								<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
+									<div className='text-xs text-gray-500 dark:text-gray-400'>
+										Context window: {currentRoleModelCapabilities.value.capabilities?.contextWindow
+											? (currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000)
+												.toFixed(
+													0,
+												)
+											: '--'}K tokens
+									</div>
 								</div>
-							</div>
-						)}
+							)}
+						</div>
 					</div>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 }

@@ -32,6 +32,7 @@ import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 import { LLMRolesModelConfig } from 'api/types.ts';
+import { focusChatInputSync } from '../utils/focusManagement.utils.ts';
 
 // Helper functions for URL parameters
 const getCollaborationId = () => {
@@ -419,10 +420,10 @@ export default function Chat({
 					rolesConfig.agent?.model,
 					rolesConfig.chat?.model,
 				].filter((model): model is string => Boolean(model));
-			
+
 				// Remove duplicates
 				const uniqueModelIds = [...new Set(modelIds)];
-			
+
 				// Load capabilities for all models used in this collaboration
 				if (uniqueModelIds.length > 0) {
 					try {
@@ -456,6 +457,9 @@ export default function Chat({
 			//url.searchParams.set('collaborationId', id);
 			//const hash = globalThis.location.hash;
 			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
+			
+			// Focus the chat input after selecting a collaboration
+			focusChatInputSync(chatInputRef);
 		} catch (error) {
 			console.error('Failed to switch collaboration:', error);
 			setToastMessage('Failed to switch conversation');
@@ -479,24 +483,30 @@ export default function Chat({
 	}, [handlers]);
 
 	useEffect(() => {
-		//console.log('Chat: Navigation useEffect', { chatState: chatState.value });
+		console.log('Chat: collaborationId useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
 
 		// Initialize options from current collaboration
 		if (chatState.value.collaborationId) {
-			chatInputOptions.value = getInputOptionsFromCollaboration(
+			const inputOptionsFromCollaboration = getInputOptionsFromCollaboration(
 				chatState.value.collaborationId,
 				chatState.value.collaborations,
 			);
-			//console.info(`ChatIsland: Initialized chatInputOptions from collaboration: ${chatState.value.collaborationId}`, chatInputOptions.value);
+			chatInputOptions.value = inputOptionsFromCollaboration;
+			console.info(
+				`Chat: Initialized chatInputOptions from collaboration: ${chatState.value.collaborationId}`,
+				inputOptionsFromCollaboration,
+			);
 
 			// Fetch model capabilities for the current collaboration models
-			const rolesConfig = chatInputOptions.value.rolesModelConfig;
+			const rolesConfig = inputOptionsFromCollaboration.rolesModelConfig;
 			if (rolesConfig?.orchestrator?.model) {
+				console.info('Chat: Getting model capabilities for orchestrator:', rolesConfig.orchestrator.model);
 				getModelCapabilities(rolesConfig.orchestrator.model)
 					.then((capabilities) => {
+						console.info('Chat: Got capabilities for orchestrator:', capabilities);
 						if (capabilities) {
 							modelData.value = capabilities;
 							console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);

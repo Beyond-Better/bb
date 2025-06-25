@@ -4,16 +4,21 @@ import { Signal, signal, useComputed } from '@preact/signals';
 import { useState } from 'preact/hooks';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { ChatState, ChatStatus } from '../types/chat.types.ts';
-import { isProcessing } from '../types/chat.types.ts';
-import { ApiStatus } from 'shared/types.ts';
-import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
-import type { CollaborationValues, ProjectId } from 'shared/types.ts';
+//import { isProcessing } from '../types/chat.types.ts';
+//import { ApiStatus } from 'shared/types.ts';
+//import { CacheStatusIndicator } from './CacheStatusIndicator.tsx';
+import type {
+	//CollaborationValues,
+	ProjectId,
+} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import type { ApiClient, ModelDetails } from '../utils/apiClient.utils.ts';
 import { CollaborationSelector } from './CollaborationSelector/index.ts';
 import { ToolBar } from './ToolBar.tsx';
-import { ModelInfoPanel } from './ModelInfoPanel.tsx';
-import { DataSourceSummary } from './DataSourceSummary.tsx';
+import { type ModelInfo, ModelInfoPanel } from './ModelInfoPanel.tsx';
+//import { DataSourceSummary } from './DataSourceSummary.tsx';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import { focusChatInputSync } from '../utils/focusManagement.utils.ts';
 
 // Initialize collapse state signal from localStorage if available, otherwise default to true
 const getInitialCollapsedState = () => {
@@ -50,8 +55,8 @@ interface CollaborationHeaderProps {
 }
 
 export function CollaborationHeader({
-	cacheStatus,
-	status,
+	//cacheStatus,
+	//status,
 	onSelect,
 	onNew,
 	onDelete,
@@ -63,43 +68,54 @@ export function CollaborationHeader({
 	chatInputRef,
 	disabled,
 	projectId,
-	apiClient,
-	currentProject,
+	//apiClient,
+	//currentProject,
 }: CollaborationHeaderProps): JSX.Element {
 	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
 	const currentCollaboration = useComputed(() =>
 		chatState.value.collaborations.find((c) => c.id === chatState.value.collaborationId)
 	);
+	//console.log('CollaborationHeader: ', currentCollaboration.value);
 
 	// Find the latest assistant message that might have request params
-	const getModelInfo = () => {
+	const getModelInfo = (): ModelInfo => {
 		if (!currentCollaboration.value) {
 			return {
 				model: 'Unknown',
 				provider: 'Unknown',
+				modelConfig: { model: 'unknown', temperature: 1, maxTokens: 0 },
+				tokenUsageTurn: DEFAULT_TOKEN_USAGE_REQUIRED(),
+				tokenUsageInteraction: DEFAULT_TOKEN_USAGE_REQUIRED(),
+				tokenUsageCollaboration: DEFAULT_TOKEN_USAGE_REQUIRED(),
 			};
 		}
+		//console.log('CollaborationHeader: currentCollaboration', currentCollaboration.value);
 
-		const logDataEntries = chatState.value.logDataEntries || [];
-		//console.log('CollaborationHeader: getModelInfo', {logDataEntries});
-		const assistantEntries = logDataEntries.filter((logDataEntry) =>
-			logDataEntry.logEntry?.entryType === 'assistant' || logDataEntry.logEntry?.entryType === 'tool_use' ||
-			logDataEntry.logEntry?.entryType === 'answer'
-		);
-
+		// const logDataEntries = chatState.value.logDataEntries || [];
+		// //console.log('CollaborationHeader: getModelInfo', {logDataEntries});
+		// const assistantEntries = logDataEntries.filter((logDataEntry) =>
+		// 	logDataEntry.logEntry?.entryType === 'assistant' || logDataEntry.logEntry?.entryType === 'tool_use' ||
+		// 	logDataEntry.logEntry?.entryType === 'answer'
+		// );
+		//
 		// Find the most recent logDataEntry with tokenUsageTurn
-		const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) =>
-			logDataEntry.tokenUsageStatsForCollaboration?.tokenUsageTurn
-		);
+		// const entryWithTokenUsageTurn = assistantEntries.findLast((logDataEntry) =>
+		// 	logDataEntry.tokenUsageStatsForCollaboration?.tokenUsageTurn
+		// );
 
 		return {
 			model: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator?.model || 'Unknown',
 			provider: currentCollaboration.value.lastInteractionMetadata?.llmProviderName || 'Unknown',
-			modelConfig: currentCollaboration.value.lastInteractionMetadata?.modelConfig,
-			tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStatsForCollaboration?.tokenUsageTurn,
-			tokenUsageCollaboration: currentCollaboration.value.tokenUsageCollaboration,
-			//tokenUsageInteraction: currentCollaboration.value.tokenUsageStatsForCollaboration
-			//	?.tokenUsageInteraction,
+			//modelConfig: currentCollaboration.value.lastInteractionMetadata?.modelConfig,
+			modelConfig: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator ||
+				{ model: 'unknown', temperature: 1, maxTokens: 0 },
+			//tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStatsForCollaboration?.tokenUsageTurn,
+			tokenUsageTurn: currentCollaboration.value.lastInteractionMetadata?.tokenUsageStatsForInteraction
+				?.tokenUsageTurn || DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageInteraction: currentCollaboration.value.lastInteractionMetadata?.tokenUsageStatsForInteraction
+				?.tokenUsageInteraction || DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageCollaboration: currentCollaboration.value.tokenUsageCollaboration ||
+				DEFAULT_TOKEN_USAGE_REQUIRED(),
 		};
 	};
 
@@ -143,8 +159,16 @@ export function CollaborationHeader({
 					{/* Collaboration Selector */}
 					<CollaborationSelector
 						chatState={chatState}
-						onSelect={onSelect}
-						onNew={onNew}
+						onSelect={(id) => {
+							onSelect(id);
+							// Focus the chat input after selecting a conversation
+							focusChatInputSync(chatInputRef);
+						}}
+						onNew={() => {
+							onNew();
+							// Focus the chat input after creating a new conversation
+							focusChatInputSync(chatInputRef);
+						}}
 						onDelete={onDelete}
 						placement='bottom'
 						className='w-96'
@@ -229,9 +253,10 @@ export function CollaborationHeader({
 												d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 											/>
 										</svg>
-										{currentCollaboration.value.tokenUsageCollaboration
-											?.totalAllTokens
+										{currentCollaboration.value.tokenUsageCollaboration.totalAllTokens
 											?.toLocaleString() ||
+											currentCollaboration.value.tokenUsageCollaboration.totalTokensTotal
+												?.toLocaleString() ||
 											0} tokens
 									</div>
 									<div className='flex items-center mr-4'>
