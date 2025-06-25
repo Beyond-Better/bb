@@ -18,11 +18,15 @@ const GITHUB_CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
 #[derive(Debug, Deserialize)]
 struct GithubRelease {
     tag_name: String,
+    body: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 struct VersionCache {
     version: String,
+    release_notes: Option<String>,
+    has_breaking_changes: Option<bool>,
+    critical_notice: Option<String>,
     timestamp: Instant,
 }
 
@@ -48,6 +52,12 @@ pub struct VersionCompatibility {
     update_available: bool,
     #[serde(rename = "latestVersion")]
     latest_version: Option<String>,
+    #[serde(rename = "releaseNotes")]
+    release_notes: Option<String>,
+    #[serde(rename = "hasBreakingChanges")]
+    has_breaking_changes: Option<bool>,
+    #[serde(rename = "criticalNotice")]
+    critical_notice: Option<String>,
 }
 
 fn compare_versions(current: &str, required: &str) -> bool {
@@ -70,12 +80,12 @@ fn clean_version_string(s: &str) -> String {
         .collect::<String>()
 }
 
-async fn fetch_latest_version() -> Option<String> {
+async fn fetch_latest_version() -> Option<VersionCache> {
     // Check cache first
     if let Ok(cache) = GITHUB_VERSION_CACHE.lock() {
         if let Some(cached) = cache.as_ref() {
             if cached.timestamp.elapsed() < GITHUB_CACHE_DURATION {
-                return Some(cached.version.clone());
+                return Some(cached.clone());
             }
         }
     }
@@ -110,15 +120,53 @@ async fn fetch_latest_version() -> Option<String> {
             match response.json::<GithubRelease>().await {
                 Ok(release) => {
                     let version = release.tag_name.trim_start_matches('v').to_string();
+                    
+                    // Parse release notes and detect breaking changes
+                    let (release_notes, has_breaking_changes, critical_notice) = if let Some(body) = release.body {
+                        let has_breaking = body.contains("🚨 **BREAKING CHANGES") || body.to_lowercase().contains("breaking");
+                        
+                        // Extract critical notice (text between warning emoji and installation instructions)
+                        let critical_notice = if has_breaking {
+                            if let Some(start) = body.find("🚨 **BREAKING CHANGES") {
+                                if let Some(end) = body[start..].find("Installation Instructions") {
+                                    Some(body[start..start + end].trim().to_string())
+                                } else {
+                                    Some("🚨 **BREAKING CHANGES DETECTED** - Please backup your projects before upgrading.".to_string())
+                                }
+                            } else {
+                                Some("⚠️ This release contains breaking changes. Please backup your projects before upgrading.".to_string())
+                            }
+                        } else {
+                            None
+                        };
+                        
+                        // Extract release notes (text after "Changes in this Release:")
+                        let release_notes = if let Some(start) = body.find("Changes in this Release:") {
+                            let notes_start = start + "Changes in this Release:".len();
+                            Some(body[notes_start..].trim().to_string())
+                        } else {
+                            Some(body.clone())
+                        };
+                        
+                        (release_notes, Some(has_breaking), critical_notice)
+                    } else {
+                        (None, Some(false), None)
+                    };
+                    
+                    let version_cache = VersionCache {
+                        version: version.clone(),
+                        release_notes,
+                        has_breaking_changes,
+                        critical_notice,
+                        timestamp: Instant::now(),
+                    };
+                    
                     // Update cache
                     debug!("Successfully fetched latest version: {}", version);
                     if let Ok(mut cache) = GITHUB_VERSION_CACHE.lock() {
-                        *cache = Some(VersionCache {
-                            version: version.clone(),
-                            timestamp: Instant::now(),
-                        });
+                        *cache = Some(version_cache.clone());
                     }
-                    Some(version)
+                    Some(version_cache)
                 }
                 Err(e) => {
                     error!("Failed to parse GitHub API response: {}", e);
@@ -251,13 +299,19 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
         "API installed: {}, compatible with minimum version: {}",
         api_installed, compatible
     );
-    // Only check GitHub if we're not compatible with required version
-    let latest_version = if !compatible {
-        None // Skip GitHub check if we already know we need to update
+    // Fetch latest release info from GitHub
+    let latest_release = fetch_latest_version().await;
+    debug!("Latest release from GitHub: {:?}", latest_release);
+    
+    let (latest_version, release_notes, has_breaking_changes, critical_notice) = if let Some(release) = latest_release {
+        (
+            Some(release.version),
+            release.release_notes,
+            release.has_breaking_changes,
+            release.critical_notice,
+        )
     } else {
-        let latest = fetch_latest_version().await;
-        debug!("Latest version from GitHub: {:?}", latest);
-        latest
+        (None, None, None, None)
     };
 
     // Check if update is available
@@ -300,5 +354,8 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
         } else {
             latest_version // Only show latest version when we're compatible but there's a newer version
         },
+        release_notes,
+        has_breaking_changes,
+        critical_notice,
     })
 }

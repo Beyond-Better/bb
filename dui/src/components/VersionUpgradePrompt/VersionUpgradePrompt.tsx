@@ -188,31 +188,81 @@ export function VersionUpgradePrompt(): JSX.Element {
 
   // Version incompatible or update available
   if (!versionCompatibility.compatible || versionCompatibility.updateAvailable) {
+    const hasBreakingChanges = versionCompatibility.hasBreakingChanges;
+    const criticalNotice = versionCompatibility.criticalNotice;
+    const releaseNotes = versionCompatibility.releaseNotes;
+    
+    // Use red/warning colors for breaking changes, blue for regular updates
+    const colorScheme = hasBreakingChanges ? {
+      bg: 'bg-red-50 dark:bg-red-900/30',
+      border: 'border-red-200 dark:border-red-700',
+      icon: 'text-red-400',
+      title: 'text-red-800 dark:text-red-200',
+      text: 'text-red-700 dark:text-red-300',
+      button: 'bg-red-600 hover:bg-red-500 focus-visible:outline-red-600'
+    } : {
+      bg: 'bg-blue-50 dark:bg-blue-900/30',
+      border: 'border-blue-200 dark:border-blue-700',
+      icon: 'text-blue-400',
+      title: 'text-blue-800 dark:text-blue-200',
+      text: 'text-blue-700 dark:text-blue-300',
+      button: 'bg-blue-600 hover:bg-blue-500 focus-visible:outline-blue-600'
+    };
+    
     return (
-      <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+      <div className={`${colorScheme.bg} border ${colorScheme.border} rounded-lg p-4 mb-4`}>
         <div className="flex items-start">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
-            </svg>
+            {hasBreakingChanges ? (
+              <svg className={`h-5 w-5 ${colorScheme.icon}`} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+            ) : (
+              <svg className={`h-5 w-5 ${colorScheme.icon}`} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 17a.75.75 0 01-.75-.75V5.612L5.29 9.77a.75.75 0 01-1.08-1.04l5.25-5.5a.75.75 0 011.08 0l5.25 5.5a.75.75 0 11-1.08 1.04l-3.96-4.158V16.25A.75.75 0 0110 17z" clipRule="evenodd" />
+              </svg>
+            )}
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              {!versionCompatibility.compatible ? 'Update Required' : 'Update Available'}
+            <h3 className={`text-sm font-medium ${colorScheme.title}`}>
+              {hasBreakingChanges ? 'Critical Update Required' : (!versionCompatibility.compatible ? 'Update Required' : 'Update Available')}
             </h3>
-            <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+            
+            {/* Critical Notice */}
+            {criticalNotice && (
+              <div className={`mt-2 p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700`}>
+                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                  {criticalNotice}
+                </p>
+              </div>
+            )}
+            
+            <div className={`mt-2 text-sm ${colorScheme.text}`}>
               <p>
                 {!versionCompatibility.compatible
-                  ? `BB Server version ${versionCompatibility.requiredVersion} or higher is required. Would you like to update now?`
-                  : `A new version of BB Server is available (${versionCompatibility.latestVersion}). Would you like to update now?`}
+                  ? `BB Server version ${versionCompatibility.requiredVersion} or higher is required. ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`
+                  : `A new version of BB Server is available (${versionCompatibility.latestVersion}). ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`}
               </p>
+              
+              {/* Release Notes */}
+              {releaseNotes && (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-sm font-medium hover:underline">
+                    View Release Notes
+                  </summary>
+                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    <pre className="text-xs whitespace-pre-wrap font-mono">{releaseNotes}</pre>
+                  </div>
+                </details>
+              )}
             </div>
+            
             <div className="mt-4">
               <button
                 type="button"
                 onClick={handleUpgrade}
                 disabled={upgradeState.isInstalling}
-                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50"
+                className={`inline-flex items-center rounded-md ${colorScheme.button} px-3 py-2 text-sm font-semibold text-white shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50`}
               >
                 {upgradeState.isInstalling ? (
                   <>
@@ -223,7 +273,7 @@ export function VersionUpgradePrompt(): JSX.Element {
                     Updating...
                   </>
                 ) : (
-                  'Update BB Server'
+                  hasBreakingChanges ? 'Update with Caution' : 'Update BB Server'
                 )}
               </button>
               {upgradeState.isInstalling && renderProgressBar()}

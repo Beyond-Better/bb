@@ -19,6 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.8.5] - 2025-06-25
+
+### BREAKING CHANGES
+- Enhanced release notes system with critical notices
+- Updated DUI to display breaking change warnings
+
+### Added
+- Critical notice support in update notifications
+- Release notes parsing from GitHub releases
+- Breaking changes detection in DUI
+
+### Changed
+- GitHub release workflow now extracts changelog information
+- DUI update prompts show enhanced release information
+
+### Fixed
+
+
 
 ## [0.8.4] - 2025-06-13
 

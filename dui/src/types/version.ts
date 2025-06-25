@@ -11,6 +11,9 @@ export interface VersionCompatibility {
   requiredVersion: string;
   updateAvailable: boolean;
   latestVersion?: string;
+  releaseNotes?: string;
+  hasBreakingChanges?: boolean;
+  criticalNotice?: string;
 }
 
 export interface InstallProgress {
