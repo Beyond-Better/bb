@@ -143,7 +143,7 @@ class CollaborationManager {
 
 	getCollaborationSummaries(): Array<{
 		id: CollaborationId;
-		title: string;
+		title: string | null;
 		type: string;
 		totalInteractions: number;
 		projectId: ProjectId;
@@ -154,7 +154,7 @@ class CollaborationManager {
 	// Find collaborations by criteria
 	findCollaborationsByTitle(title: string): Collaboration[] {
 		return Array.from(this.collaborations.values()).filter(
-			(collaboration) => collaboration.title.toLowerCase().includes(title.toLowerCase()),
+			(collaboration) => collaboration.title && collaboration.title.toLowerCase().includes(title.toLowerCase()),
 		);
 	}
 

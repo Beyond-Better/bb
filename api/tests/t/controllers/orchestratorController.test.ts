@@ -49,7 +49,7 @@ Deno.test('OrchestratorController - initializePrimaryInteraction with existing i
 	orchestrator.toolManager = new MockLLMToolManager();
 
 	const existingInteractionId = 'existing-id' as InteractionId;
-	const existingInteraction = new LLMConversationInteraction(new MockLLMProvider(), existingInteractionId);
+	const existingInteraction = new LLMConversationInteraction(collaboration, new MockLLMProvider(), existingInteractionId);
 	orchestrator.interactionManager.addInteraction(existingInteraction);
 
 	const result = await orchestrator.initializePrimaryInteraction(existingInteractionId);

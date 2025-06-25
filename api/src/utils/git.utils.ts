@@ -108,7 +108,7 @@ export async function generateCommitMessage(
 	const chat: LLMChatInteraction = await projectEditor.orchestratorController.createChatInteraction(
 		interaction.collaboration,
 		interaction.id,
-		'Generate Commit Message',
+		'Generate Change Summary for Tool Operations',
 	);
 	const response = await chat.chat(prompt);
 	const msg = response.messageResponse.answer;

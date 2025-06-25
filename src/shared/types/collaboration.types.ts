@@ -38,7 +38,7 @@ export interface CollaborationInterface {
 export interface CollaborationValues {
 	id: CollaborationId;
 	projectId: ProjectId;
-	title: string;
+	title: string | null;
 	type: CollaborationType;
 	collaborationParams: CollaborationParams;
 	tokenUsageCollaboration: TokenUsage;
@@ -79,7 +79,7 @@ export interface CollaborationCreateOptions {
 // Summary information for listing collaborations
 export interface CollaborationSummary {
 	id: CollaborationId;
-	title: string;
+	title: string | null;
 	type: CollaborationType;
 	projectId: ProjectId;
 	totalInteractions: number;

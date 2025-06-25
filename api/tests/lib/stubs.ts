@@ -70,6 +70,7 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 	//const stageAndCommitAfterChangingStub = createStub('stageAndCommitAfterChanging');
 	const revertLastChangeStub = createStub('revertLastChange');
 	const logChangeAndCommitStub = createStub('logChangeAndCommit');
+	const saveCollaborationStub = createStub('saveCollaboration');
 	const saveInitialInteractionWithResponseStub = createStub('saveInitialInteractionWithResponse');
 	const saveInteractionAfterStatementStub = createStub('saveInteractionAfterStatement');
 	const createChatInteractionStub = createStub('createChatInteraction');
@@ -132,6 +133,7 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 		//stageAndCommitAfterChangingStub,
 		revertLastChangeStub,
 		logChangeAndCommitStub,
+		saveCollaborationStub,
 		saveInitialInteractionWithResponseStub,
 		saveInteractionAfterStatementStub,
 		createChatInteractionStub,

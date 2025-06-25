@@ -10,8 +10,8 @@ import {
 } from '@std/testing/mock';
 
 import { NotionProvider } from 'api/dataSources/notionProvider.ts';
-import { NotionAccessor } from '../../../src/dataSources/notion/notionAccessor.ts';
-import { NotionClient } from '../../../src/dataSources/notion/notionClient.ts';
+import { NotionAccessor } from '../../../../src/dataSources/notion/notionAccessor.ts';
+import { NotionClient } from '../../../../src/dataSources/notion/notionClient.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 //import { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';

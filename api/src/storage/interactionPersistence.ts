@@ -7,6 +7,8 @@ import {
 	isProjectMigrated,
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
+import LLMInteraction from 'api/llms/baseInteraction.ts';
+import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type Collaboration from 'api/collaborations/collaboration.ts';
 import type {
@@ -25,6 +27,7 @@ import type {
 	TokenUsageRecord,
 	TokenUsageStatsForInteraction,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 import type {
 	LLMModelConfig,
@@ -33,8 +36,9 @@ import type {
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { InteractionResourcesMetadata } from 'shared/types/dataSourceResource.ts';
 import { logger } from 'shared/logger.ts';
-import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-import { LLMRequestPersistence } from './llmRequestPersistence.ts';
+import TokenUsagePersistence from './tokenUsagePersistence.ts';
+import LLMRequestPersistence from './llmRequestPersistence.ts';
+import CollaborationPersistence from './collaborationPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { isTokenUsageValidationError } from 'api/errors/error.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -74,6 +78,7 @@ class InteractionPersistence {
 	private initialized: boolean = false;
 	private tokenUsagePersistence!: TokenUsagePersistence;
 	private llmRequestPersistence!: LLMRequestPersistence;
+	private collaborationPersistence!: CollaborationPersistence;
 	private ensuredDirs: Set<string> = new Set();
 
 	constructor(
@@ -138,12 +143,10 @@ class InteractionPersistence {
 		// Use collaborations structure
 		const collaborationsDir = join(projectAdminDataDir, 'collaborations');
 
-		// If no collaboration ID provided, use interaction ID (for backward compatibility)
-		const effectiveCollaborationId = this._collaborationId; // || this._interactionId;
-		const collaborationDir = join(collaborationsDir, effectiveCollaborationId);
+		const collaborationDir = join(collaborationsDir, this._collaborationId);
 		const interactionsDir = join(collaborationDir, 'interactions');
-		//logger.info(`InteractionPersistence: Using collaborationDir for ${effectiveCollaborationId}: ${collaborationDir}`);
-		//logger.info(`InteractionPersistence: Using interactionsDir for ${effectiveCollaborationId}: ${interactionsDir}`);
+		//logger.info(`InteractionPersistence: Using collaborationDir for ${this._collaborationId}: ${collaborationDir}`);
+		//logger.info(`InteractionPersistence: Using interactionsDir for ${this._collaborationId}: ${interactionsDir}`);
 
 		this.interactionsMetadataPath = join(collaborationDir, 'interactions.json');
 
@@ -162,8 +165,6 @@ class InteractionPersistence {
 
 		this.resourcesMetadataPath = join(this.interactionDir, 'resources_metadata.json');
 		this.resourceRevisionsDir = join(this.interactionDir, 'resource_revisions');
-		// For backwards compatibility, ensure the resource_revisions directory exists
-		await ensureDir(this.resourceRevisionsDir);
 
 		this.projectInfoPath = join(this.interactionDir, 'project_info.json');
 
@@ -178,6 +179,8 @@ class InteractionPersistence {
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.interactionParentDir ?? this.interactionDir)
 			.init();
 		this.llmRequestPersistence = await new LLMRequestPersistence(this.interactionParentDir ?? this.interactionDir)
+			.init();
+		this.collaborationPersistence = await new CollaborationPersistence(this._collaborationId, this.projectEditor)
 			.init();
 
 		return this;
@@ -367,7 +370,10 @@ class InteractionPersistence {
 	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
 		await this.ensureInitialized();
 		try {
-			await this.tokenUsagePersistence.writeUsage(record, type);
+			await Promise.all([
+				this.collaborationPersistence.writeTokenUsage(record, type),
+				this.tokenUsagePersistence.writeUsage(record, type),
+			]);
 		} catch (error) {
 			if (isTokenUsageValidationError(error)) {
 				logger.error(
@@ -399,7 +405,7 @@ class InteractionPersistence {
 		return this.llmRequestPersistence.getLLMRequest();
 	}
 
-	async saveInteraction(interaction: LLMConversationInteraction): Promise<void> {
+	async saveInteraction(interaction: LLMInteraction): Promise<void> {
 		try {
 			await this.ensureInitialized();
 			logger.debug(`InteractionPersistence: Ensure directory for saveInteraction: ${this.interactionDir}`);
@@ -407,7 +413,7 @@ class InteractionPersistence {
 
 			const metadata: InteractionMetadata = {
 				id: interaction.id,
-				//title: interaction.title,
+				title: interaction.title,
 				interactionStats: interaction.interactionStats,
 				interactionMetrics: interaction.interactionMetrics,
 				tokenUsageStatsForInteraction: interaction.tokenUsageStatsForInteraction,
@@ -486,23 +492,32 @@ class InteractionPersistence {
 			await Deno.writeTextFile(this.messagesPath, messagesContent);
 			logger.debug(`InteractionPersistence: Saved messages for interaction: ${interaction.id}`);
 
-			// Save resources metadata
-			const resourcesMetadata: InteractionResourcesMetadata = {};
-			for (const [key, value] of interaction.getResources()) {
-				resourcesMetadata[key] = value;
-			}
-			await this.saveResourcesMetadata(resourcesMetadata);
-			logger.debug(`InteractionPersistence: Saved resourcesMetadata for interaction: ${interaction.id}`);
+			if (interaction.interactionType === 'conversation') {
+				const interactionConversation = interaction as LLMConversationInteraction;
+				// Save resources metadata
+				const resourcesMetadata: InteractionResourcesMetadata = {};
+				for (const [key, value] of interactionConversation.getResources()) {
+					resourcesMetadata[key] = value;
+				}
+				await this.saveResourcesMetadata(resourcesMetadata);
+				logger.debug(
+					`InteractionPersistence: Saved resourcesMetadata for interaction: ${interactionConversation.id}`,
+				);
 
-			// Save objectives and resources
-			const metrics = interaction.interactionMetrics;
-			if (metrics.objectives) {
-				await this.saveObjectives(metrics.objectives);
-				logger.debug(`InteractionPersistence: Saved objectives for interaction: ${interaction.id}`);
-			}
-			if (metrics.resources) {
-				await this.saveResources(metrics.resources);
-				logger.debug(`InteractionPersistence: Saved resources for interaction: ${interaction.id}`);
+				// Save objectives and resources
+				const metrics = interactionConversation.interactionMetrics;
+				if (metrics.objectives) {
+					await this.saveObjectives(metrics.objectives);
+					logger.debug(
+						`InteractionPersistence: Saved objectives for interaction: ${interactionConversation.id}`,
+					);
+				}
+				if (metrics.resources) {
+					await this.saveResources(metrics.resources);
+					logger.debug(
+						`InteractionPersistence: Saved resources for interaction: ${interactionConversation.id}`,
+					);
+				}
 			}
 		} catch (error) {
 			logger.error(`InteractionPersistence: Error saving interaction: ${errorMessage(error)}`);
@@ -513,7 +528,7 @@ class InteractionPersistence {
 	async loadInteraction(
 		collaboration: Collaboration,
 		interactionCallbacks: LLMCallbacks,
-	): Promise<LLMConversationInteraction | null> {
+	): Promise<LLMChatInteraction | LLMConversationInteraction | null> {
 		try {
 			await this.ensureInitialized();
 
@@ -527,7 +542,7 @@ class InteractionPersistence {
 			await interaction.init(metadata.model, interactionCallbacks);
 
 			interaction.id = metadata.id;
-			//interaction.title = metadata.title;
+			interaction.title = metadata.title || null;
 			//interaction.baseSystem = metadata.system;
 			//interaction.model = metadata.model; // set during init
 			interaction.maxTokens = metadata.maxTokens;
@@ -543,7 +558,7 @@ class InteractionPersistence {
 			// 	id: '',
 			// 	type: 'project',
 			// 	collaborationParams: metadata.collaborationParams ||
-			// 		await this.getCollaborationParams(interaction), //InteractionPersistence.defaultCollaborationParams(),
+			// 		await this.getCollaborationParams(interaction), //await CollaborationPersistence.defaultCollaborationParams(this.projectId),
 			// };
 
 			interaction.totalProviderRequests = metadata.totalProviderRequests;
@@ -812,7 +827,6 @@ class InteractionPersistence {
 		logger.debug(`InteractionPersistence: Saved metadata to project level for interaction: ${interaction.id}`);
 	}
 
-	/*
 	async getInteractionIdByTitle(title: string): Promise<string | null> {
 		if (await exists(this.interactionsMetadataPath)) {
 			const content = await Deno.readTextFile(this.interactionsMetadataPath);
@@ -833,9 +847,7 @@ class InteractionPersistence {
 		}
 		return null;
 	}
- */
 
-	/*
 	async getInteractionTitleById(id: string): Promise<string | null> {
 		if (await exists(this.interactionsMetadataPath)) {
 			const content = await Deno.readTextFile(this.interactionsMetadataPath);
@@ -856,7 +868,6 @@ class InteractionPersistence {
 		}
 		return null;
 	}
- */
 
 	async getAllInteractions(): Promise<{ id: string; title: string }[]> {
 		if (await exists(this.interactionsMetadataPath)) {
@@ -988,7 +999,7 @@ class InteractionPersistence {
 	}
 
 	async saveMetadata(metadata: Partial<InteractionDetailedMetadata>): Promise<void> {
-		// Set version 4 for new collaborationParams and modelConfig format
+		// Set version 4 for new modelConfig format
 		metadata.version = 4;
 		await this.ensureInitialized();
 		logger.debug(`InteractionPersistence: Ensure directory for saveMetadata: ${this.metadataPath}`);
@@ -1068,24 +1079,11 @@ class InteractionPersistence {
 		};
 	}
 	static defaultInteractionTokenUsage(): TokenUsage {
-		return {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			thoughtTokens: 0,
-			totalAllTokens: 0,
-		};
+		return DEFAULT_TOKEN_USAGE();
 	}
 	static defaultTokenUsage(): TokenUsage {
-		return {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			thoughtTokens: 0,
-			totalAllTokens: 0,
-		};
+		return DEFAULT_TOKEN_USAGE();
 	}
-	// for interaction storage
 	static defaultModelConfig(): LLMModelConfig {
 		return {
 			model: '',
@@ -1095,16 +1093,7 @@ class InteractionPersistence {
 			usePromptCaching: false,
 		};
 	}
-	// for collaboration storage
-	static defaultCollaborationParams(): CollaborationParams {
-		return {
-			rolesModelConfig: {
-				orchestrator: null, //InteractionPersistence.defaultModelConfig(),
-				agent: null, //InteractionPersistence.defaultModelConfig(),
-				chat: null, //InteractionPersistence.defaultModelConfig(),
-			},
-		};
-	}
+
 	static defaultMetadata(): InteractionDetailedMetadata {
 		const metadata = {
 			version: 4, // default version for new interactions with rolesModelConfig
@@ -1452,13 +1441,8 @@ class InteractionPersistence {
 		const resourceKey = generateResourceRevisionKey(resourceUri, revisionId);
 		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
 
-		// // For backwards compatibility, also check the old file_revisions directory
-		// const oldFileRevisionsDir = join(dirname(this.resourceRevisionsDir), 'file_revisions');
-		// const oldRevisionPath = join(oldFileRevisionsDir, resourceKey);
-
 		logger.info(`InteractionPersistence: Reading revision resource: ${revisionResourcePath}`);
 
-		// First try the new location
 		if (await exists(revisionResourcePath)) {
 			const resourceInfo = await Deno.stat(revisionResourcePath);
 			if (resourceInfo.isFile) {
@@ -1469,18 +1453,6 @@ class InteractionPersistence {
 				}
 			}
 		}
-
-		// // If not found in new location, try the old location
-		// if (await exists(oldRevisionPath)) {
-		// 	const resourceInfo = await Deno.stat(oldRevisionPath);
-		// 	if (resourceInfo.isFile) {
-		// 		if (resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-		// 			return await Deno.readFile(oldRevisionPath);
-		// 		} else {
-		// 			return await Deno.readTextFile(oldRevisionPath);
-		// 		}
-		// 	}
-		// }
 
 		throw createError(
 			ErrorType.ResourceHandling,

@@ -5,6 +5,7 @@ import type {
 	CollaborationStart,
 	TokenUsage,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 
 /**
  * Type guard to check if an entry is a CollaborationStart
@@ -45,11 +46,5 @@ export function logDataEntryHasChildren(
  * Get default token usage for when it's missing
  */
 export function getDefaultTokenUsage(): TokenUsage {
-	return {
-		inputTokens: 0,
-		outputTokens: 0,
-		totalTokens: 0,
-		thoughtTokens: 0,
-		totalAllTokens: 0,
-	};
+	return DEFAULT_TOKEN_USAGE();
 }

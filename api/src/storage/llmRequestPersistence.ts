@@ -6,7 +6,7 @@ import type { LLMRequestRecord } from 'shared/types.ts';
 /**
  * Handles persistence for llm request records.
  */
-export class LLMRequestPersistence {
+export default class LLMRequestPersistence {
 	private readonly llmRequestFile: string;
 
 	constructor(private conversationDir: string) {

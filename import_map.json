@@ -124,6 +124,7 @@
 		"api/llms/conversationInteraction.ts": "./api/src/llms/interactions/conversationInteraction.ts",
 		"api/llms/modelCapabilitiesManager.ts": "./api/src/llms/modelCapabilitiesManager.ts",
 		"api/llms/modelRegistryService.ts": "./api/src/llms/modelRegistryService.ts",
+		"api/llms/validationRuleService.ts": "./api/src/llms/validationRuleService.ts",
 		"api/mcp/mcpManager.ts": "./api/src/mcp/mcpManager.ts",
 		"api/dataSources/interfaces/dataSourceProvider.ts": "./api/src/dataSources/interfaces/dataSourceProvider.ts",
 		"api/dataSources/interfaces/dataSourceConnection.ts": "./api/src/dataSources/interfaces/dataSourceConnection.ts",
@@ -146,7 +147,7 @@
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
 		"api/tests/testSetup.ts": "./api/tests/lib/testSetup.ts",
-		"api/tests/mockData.ts": "./api/tests/mockData.ts",
+		"api/tests/mockData.ts": "./api/tests/lib/mockData.ts",
 
 		"bui/utils/fileLogger.ts": "./bui/src/utils/fileLogger.utils.ts",
 

@@ -14,6 +14,7 @@ import type {
 	ProjectId,
 	TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
@@ -163,34 +164,10 @@ export default class CollaborationLogger {
 		logEntry: CollaborationLogEntry,
 		interactionStats: InteractionStats = { statementCount: 0, statementTurnCount: 0, interactionTurnCount: 0 },
 		tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration = {
-			tokenUsageTurn: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
-			tokenUsageStatement: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
-			tokenUsageInteraction: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
-			tokenUsageCollaboration: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
+			tokenUsageTurn: DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageStatement: DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageInteraction: DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageCollaboration: DEFAULT_TOKEN_USAGE_REQUIRED(),
 		},
 		modelConfig?: LLMModelConfig,
 	) {

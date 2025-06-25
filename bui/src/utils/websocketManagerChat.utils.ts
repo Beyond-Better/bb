@@ -9,6 +9,7 @@ import type {
 	ProjectId,
 	TokenUsage,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
@@ -209,27 +210,10 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					logEntry: msgData.data.logEntry,
 					statementParams: msgData.data.statementParams,
 					tokenUsageStatsForCollaboration: {
-						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||
-							{
-								totalTokens: 0,
-								inputTokens: 0,
-								outputTokens: 0,
-							},
+						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn ||DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement ||DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction ||DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||DEFAULT_TOKEN_USAGE_REQUIRED(),
 					},
 					interactionStats: msgData.data.interactionStats || {
 						statementCount: 0,

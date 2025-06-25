@@ -111,6 +111,7 @@ export async function generateObjective(
 	}
 		No additional text.`;
 
+	//logger.info('CollaborationUtils: generateObjective', { title: chat.title });
 	const response = await chat.chat(objectivePrompt);
 	return response.messageResponse.answer;
 }

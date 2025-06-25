@@ -19,6 +19,7 @@ import type {
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types/llms.ts';
+import { DEFAULT_TOKEN_USAGE} from 'shared/types.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
@@ -242,15 +243,13 @@ class OllamaLLM extends LLM {
 					stopReason: response.done_reason as LLMMessageStop['stopReason'], //response.message.tool_calls ? 'tool_calls' : 'stop',
 					stopSequence: null,
 				},
-				usage: {
-					inputTokens: 0, //response.usage?.prompt_tokens ?? 0,
-					outputTokens: 0, //response.usage?.completion_tokens ?? 0,
-					totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
-					cacheCreationInputTokens: 0, // Ollama doesn't support caching
-					cacheReadInputTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
+				usage: DEFAULT_TOKEN_USAGE(),
+				// {
+				// 	inputTokens: 0, //response.usage?.prompt_tokens ?? 0,
+				// 	outputTokens: 0, //response.usage?.completion_tokens ?? 0,
+				// 	totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
+				// 	cacheCreationInputTokens: 0, // Ollama doesn't support caching
+				// },
 				rateLimit: {
 					requestsRemaining: 0,
 					requestsLimit: 0,

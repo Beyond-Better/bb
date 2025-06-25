@@ -37,6 +37,7 @@ import type {
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
 } from 'api/types/llms.ts';
+import { DEFAULT_TOKEN_USAGE} from 'shared/types.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
@@ -68,15 +69,7 @@ class GoogleLLM extends LLM {
 
 	private transformUsage(usageMetadata?: UsageMetadata): LLMTokenUsage {
 		if (!usageMetadata) {
-			return {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				cacheCreationInputTokens: 0,
-				cacheReadInputTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			};
+			return DEFAULT_TOKEN_USAGE();
 		}
 		// The new SDK uses outputTokenCount and inputTokenCount
 		const outputTokens = (usageMetadata as any).outputTokenCount || 0;

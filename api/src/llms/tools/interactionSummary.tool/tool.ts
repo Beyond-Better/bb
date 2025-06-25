@@ -944,7 +944,7 @@ Ensure your summary accurately captures all important context from the removed m
 			const chat = await projectEditor.orchestratorController.createChatInteraction(
 				interaction.collaboration,
 				interaction.id,
-				'Generate interaction summary and truncate',
+				'Generate conversation summary and truncate',
 			);
 			const response = await chat.chat(summaryPrompt);
 			//const answer = response.messageResponse.answer || 'no answer from LLM';

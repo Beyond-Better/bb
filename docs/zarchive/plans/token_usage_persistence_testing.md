@@ -195,6 +195,7 @@ Deno.test('InteractionPersistence - Token usage analysis', async (t) => {
 #### 5.1 Mock Data Generation
 ```typescript
 // api/tests/lib/mockData.ts
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 export function createMockTokenUsageRecord(
   role: 'user' | 'assistant' | 'system' = 'assistant',
   type: 'conversation' | 'chat' = 'conversation'
@@ -211,16 +212,8 @@ export function createMockTokenUsageRecord(
       cacheCreationInputTokens: Math.floor(Math.random() * 100),
       cacheReadInputTokens: Math.floor(Math.random() * 100)
     },
-    differentialUsage: {
-      inputTokens: 0, // Will be calculated
-      outputTokens: 0, // Will be calculated
-      totalTokens: 0  // Will be calculated
-    },
-    cacheImpact: {
-      potentialCost: 0, // Will be calculated
-      actualCost: 0,    // Will be calculated
-      savings: 0        // Will be calculated
-    }
+    differentialUsage: DEFAULT_TOKEN_USAGE(), // Will be calculated
+    cacheImpact: DEFAULT_TOKEN_USAGE(), // Will be calculated
   };
 }
 ```

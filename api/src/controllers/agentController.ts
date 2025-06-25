@@ -265,6 +265,9 @@ class AgentController extends BaseController {
 				throw new Error('Missing instructions');
 			}
 
+			collaboration.updateLastInteraction(interaction);
+			//collaboration.updateCollaborationParams({ rolesModelConfig: statementParams.rolesModelConfig });
+
 			const statement = `Instructions:\n${task.instructions}\n\nResponse format:\n${task.requirements}`;
 
 			/*
@@ -372,6 +375,8 @@ class AgentController extends BaseController {
 			logger.info(
 				`AgentController: Saving interaction at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 			);
+
+			await this.saveCollaboration(collaboration);
 			await this.saveInitialInteractionWithResponse(interaction, currentResponse);
 
 			const modelCapabilities = await interaction.getModelCapabilities();

@@ -51,6 +51,8 @@ export function CollaborationSelector({
 	const currentCollaboration = useComputed<CollaborationValues | undefined>(() =>
 		chatState.value.collaborations.find((c: CollaborationValues) => c.id === chatState.value.collaborationId)
 	);
+	//console.log('CollaborationSelector: currentCollaboration', currentCollaboration.value);
+	//console.log('CollaborationSelector: sortedCollaborations', sortedCollaborations.value);
 
 	// Handle keyboard navigation
 	useEffect(() => {

@@ -338,7 +338,7 @@ class ProjectEditor {
 			`ProjectEditor: Initializing a interaction with ID: ${interactionId}`,
 		);
 		const collaboration = await this.orchestratorController.initializeCollaboration(collaborationId);
-		return await this.orchestratorController.initializeInteraction(collaboration, interactionId);
+		return await this.orchestratorController.initializeInteraction(collaboration, interactionId ?? collaboration.lastInteractionId);
 	}
 
 	async handleStatement(
@@ -350,15 +350,15 @@ class ProjectEditor {
 		filesToAttach?: string[],
 		dsConnectionIdForAttach?: string,
 	): Promise<CollaborationResponse> {
-		await this.initInteraction(collaborationId, interactionId);
+		const interaction = await this.initInteraction(collaborationId, interactionId);
 		logger.info(
-			`ProjectEditor: Initialized collaboration with ID: ${collaborationId}, handling statement`,
+			`ProjectEditor: Initialized collaboration with ID: ${collaborationId} using interaction with ID ${interaction.id}, handling statement`,
 			//{options, statementParams}
 		);
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,
 			collaborationId,
-			interactionId,
+			interaction.id,
 			options,
 			statementParams,
 			filesToAttach,

@@ -32,7 +32,7 @@ export interface CollaborationMetadata {
 	id: CollaborationId;
 	version: number; // Version 4 for collaboration format
 	projectId: ProjectId;
-	title: string;
+	title: string | null;
 	type: CollaborationType;
 	collaborationParams: CollaborationParams;
 	totalInteractions: number;
@@ -54,7 +54,7 @@ export interface InteractionMetadata {
 	//projectId: ProjectId;
 	version?: number;
 	id: InteractionId;
-	title?: string;
+	title: string | null;
 
 	interactionStats: InteractionStats;
 	interactionMetrics?: InteractionMetrics;
@@ -62,7 +62,7 @@ export interface InteractionMetadata {
 	tokenUsageStatsForInteraction: TokenUsageStatsForInteraction;
 
 	// for interaction storage
-	collaborationParams?: CollaborationParams;
+	//collaborationParams?: CollaborationParams;
 	// for collaboration storage
 	modelConfig?: LLMModelConfig;
 
@@ -191,6 +191,36 @@ export interface TokenUsage {
 	totalAllTokens?: number; // totalTokens + cacheCreationInputTokens + cacheReadInputTokens + thoughtTokens
 }
 
+export const _DEFAULT_TOKEN_USAGE_REQUIRED = Object.freeze(
+	{
+		inputTokens: 0,
+		outputTokens: 0,
+		totalTokens: 0,
+	} as const,
+);
+export const _DEFAULT_TOKEN_USAGE_EMPTY = Object.freeze(
+	{
+		..._DEFAULT_TOKEN_USAGE_REQUIRED,
+		cacheCreationInputTokens: undefined,
+		cacheReadInputTokens: undefined,
+		thoughtTokens: undefined,
+		totalAllTokens: undefined,
+	} as const,
+);
+export const _DEFAULT_TOKEN_USAGE = Object.freeze(
+	{
+		..._DEFAULT_TOKEN_USAGE_REQUIRED,
+		cacheCreationInputTokens: 0,
+		cacheReadInputTokens: 0,
+		thoughtTokens: 0,
+		totalAllTokens: 0,
+	} as const,
+);
+
+export const DEFAULT_TOKEN_USAGE_REQUIRED = (): TokenUsage => ({ ..._DEFAULT_TOKEN_USAGE_REQUIRED });
+export const DEFAULT_TOKEN_USAGE_EMPTY = (): TokenUsage => ({ ..._DEFAULT_TOKEN_USAGE_EMPTY });
+export const DEFAULT_TOKEN_USAGE = (): TokenUsage => ({ ..._DEFAULT_TOKEN_USAGE });
+
 export interface TokenUsageDifferential {
 	inputTokens: number; // Current - Previous for user messages
 	outputTokens: number; // Direct from LLM for assistant messages
@@ -213,7 +243,8 @@ export interface LLMRequestRecord {
 }
 
 export interface TokenUsageRecord {
-	messageId: string; // Links to message in messages.jsonl
+	interactionId: string; // Links to interactions in interactions.jsonl (for collaboration level token usage)
+	messageId: string; // Links to message in messages.jsonl in the relevant interaction
 	statementCount: number; // Links to log entry
 	statementTurnCount: number; // Links to log entry
 	timestamp: string; // ISO timestamp

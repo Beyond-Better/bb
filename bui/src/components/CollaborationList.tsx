@@ -55,6 +55,7 @@ export function CollaborationList({
 					<div className='flex items-center gap-2 w-full'>
 						{/* Close Button */}
 						<button
+							type='button'
 							onClick={onNew}
 							className='flex-grow bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600'
 							disabled={isLoading}
@@ -85,6 +86,7 @@ export function CollaborationList({
 						</button>
 						{onClose && (
 							<button
+								type='button'
 								onClick={onClose}
 								className='p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors shrink-0'
 								title='Close conversation list'
@@ -244,10 +246,9 @@ export function CollaborationList({
 																d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'
 															/>
 														</svg>
-														{collab.tokenUsageCollaboration.totalTokens
+														{collab.tokenUsageCollaboration.totalAllTokens
 															?.toLocaleString() ||
-															collab.tokenUsageCollaboration
-																.totalTokensTotal
+															collab.tokenUsageCollaboration.totalTokensTotal
 																?.toLocaleString() ||
 															0} tokens
 													</p>

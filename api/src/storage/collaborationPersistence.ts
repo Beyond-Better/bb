@@ -10,20 +10,26 @@ import type {
 	ProjectId,
 	TokenUsage,
 	TokenUsageAnalysis,
+	TokenUsageRecord,
 	//TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 import type { CollaborationParams, CollaborationValues } from 'shared/types/collaboration.ts';
 import { logger } from 'shared/logger.ts';
-import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
-//import { LLMRequestPersistence } from './llmRequestPersistence.ts';
+import TokenUsagePersistence from './tokenUsagePersistence.ts';
+//import LLMRequestPersistence from './llmRequestPersistence.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
 import type { FileHandlingErrorOptions, ProjectHandlingErrorOptions } from 'api/errors/error.ts';
+import { isTokenUsageValidationError } from 'api/errors/error.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import InteractionPersistence from 'api/storage/interactionPersistence.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 // Ensure ProjectInfo includes projectId
 type ExtendedProjectInfo = ProjectInfo & { projectId: ProjectId };
@@ -107,8 +113,6 @@ class CollaborationPersistence {
 
 		this.resourcesMetadataPath = join(this.collaborationDir, 'resources_metadata.json');
 		this.resourceRevisionsDir = join(this.collaborationDir, 'resource_revisions');
-		// Ensure the resource_revisions directory exists
-		await ensureDir(this.resourceRevisionsDir);
 
 		this.projectInfoPath = join(this.collaborationDir, 'project_info.json');
 
@@ -272,13 +276,13 @@ class CollaborationPersistence {
 		const startIndex = (options.page - 1) * options.limit;
 		collaborations = collaborations.slice(startIndex, startIndex + options.limit);
 
+		const defaultCollaborationParams = await CollaborationPersistence.defaultCollaborationParams(options.projectId);
+		const defaultTokenUsage = CollaborationPersistence.defaultTokenUsage();
 		return {
 			collaborations: collaborations.map((collab) => ({
 				...collab,
-				collaborationParams: collab.collaborationParams ||
-					CollaborationPersistence.defaultCollaborationParams(),
-				tokenUsageCollaboration: collab.tokenUsageCollaboration ||
-					CollaborationPersistence.defaultTokenUsage(),
+				collaborationParams: collab.collaborationParams || defaultCollaborationParams,
+				tokenUsageCollaboration: collab.tokenUsageCollaboration || defaultTokenUsage,
 			})),
 			totalCount,
 		};
@@ -296,7 +300,7 @@ class CollaborationPersistence {
 	}
 
 	async saveCollaboration(
-		collaborationMetadata: Partial<CollaborationDetailedMetadata>,
+		collaborationValues: Partial<CollaborationValues>,
 	): Promise<void> {
 		try {
 			await this.ensureInitialized();
@@ -306,19 +310,19 @@ class CollaborationPersistence {
 			const metadata: CollaborationMetadata = {
 				id: this.collaborationId,
 				version: 4,
-				title: collaborationMetadata.title || 'New Collaboration',
-				type: collaborationMetadata.type || 'project',
-				collaborationParams: collaborationMetadata.collaborationParams ||
-					CollaborationPersistence.defaultCollaborationParams(),
-				createdAt: collaborationMetadata.createdAt || new Date().toISOString(),
+				title: collaborationValues.title || 'New Collaboration',
+				type: collaborationValues.type || 'project',
+				collaborationParams: collaborationValues.collaborationParams ||
+					await CollaborationPersistence.defaultCollaborationParams(this.projectEditor.projectId),
+				createdAt: collaborationValues.createdAt || new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 				projectId: this.projectEditor.projectId,
-				tokenUsageCollaboration: collaborationMetadata.tokenUsageCollaboration ||
+				tokenUsageCollaboration: collaborationValues.tokenUsageCollaboration ||
 					CollaborationPersistence.defaultTokenUsage(),
-				totalInteractions: collaborationMetadata.totalInteractions || 0,
-				interactionIds: collaborationMetadata.interactionIds || [],
-				lastInteractionId: collaborationMetadata.lastInteractionId,
-				lastInteractionMetadata: collaborationMetadata.lastInteractionMetadata,
+				totalInteractions: collaborationValues.totalInteractions || 0,
+				interactionIds: collaborationValues.interactionIds || [],
+				lastInteractionId: collaborationValues.lastInteractionId,
+				lastInteractionMetadata: collaborationValues.lastInteractionMetadata,
 			};
 
 			await this.updateCollaborationsMetadata(metadata);
@@ -363,19 +367,19 @@ class CollaborationPersistence {
 
 			metadata.id = this.collaborationId;
 
-			// Get token usage analysis
-			const tokenAnalysis = await this.getTokenUsageAnalysis();
-
-			// Update metadata with analyzed values
-			metadata.tokenUsageCollaboration = {
-				inputTokens: tokenAnalysis.combined.totalUsage.input,
-				outputTokens: tokenAnalysis.combined.totalUsage.output,
-				totalTokens: tokenAnalysis.combined.totalUsage.total,
-				cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
-				cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
-				thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
-				totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
-			};
+			// // Get token usage analysis
+			// const tokenAnalysis = await this.getTokenUsageAnalysis();
+			//
+			// // Update metadata with analyzed values
+			// metadata.tokenUsageCollaboration = {
+			// 	inputTokens: tokenAnalysis.combined.totalUsage.input,
+			// 	outputTokens: tokenAnalysis.combined.totalUsage.output,
+			// 	totalTokens: tokenAnalysis.combined.totalUsage.total,
+			// 	cacheCreationInputTokens: tokenAnalysis.combined.totalUsage.cacheCreationInput,
+			// 	cacheReadInputTokens: tokenAnalysis.combined.totalUsage.cacheReadInput,
+			// 	thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
+			// 	totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
+			// };
 
 			return metadata;
 		} catch (error) {
@@ -480,7 +484,7 @@ class CollaborationPersistence {
 				...collaborationsData.collaborations[index],
 				...collaboration,
 				collaborationParams: collaboration.collaborationParams ||
-					CollaborationPersistence.defaultCollaborationParams(),
+					await CollaborationPersistence.defaultCollaborationParams(collaboration.projectId),
 				tokenUsageCollaboration: collaboration.tokenUsageCollaboration ||
 					CollaborationPersistence.defaultTokenUsage(),
 			};
@@ -488,7 +492,7 @@ class CollaborationPersistence {
 			collaborationsData.collaborations.push({
 				...collaboration,
 				collaborationParams: collaboration.collaborationParams ||
-					CollaborationPersistence.defaultCollaborationParams(),
+					await CollaborationPersistence.defaultCollaborationParams(collaboration.projectId),
 				tokenUsageCollaboration: collaboration.tokenUsageCollaboration ||
 					CollaborationPersistence.defaultTokenUsage(),
 			});
@@ -597,6 +601,26 @@ class CollaborationPersistence {
 		};
 	}
 
+	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
+		await this.ensureInitialized();
+		try {
+				this.tokenUsagePersistence.writeUsage(record, type);
+		} catch (error) {
+			if (isTokenUsageValidationError(error)) {
+				logger.error(
+					`CollaborationPersistence: TokenUsage validation failed: ${error.options.field} - ${error.options.constraint}`,
+				);
+			} else {
+				logger.error(
+					`CollaborationPersistence: TokenUsage validation failed - Unknown error type: ${
+						(error instanceof Error) ? error.message : error
+					}`,
+				);
+				throw error;
+			}
+		}
+	}
+
 	async saveMetadata(metadata: Partial<CollaborationDetailedMetadata>): Promise<void> {
 		// Set version 4 for new collaboration format
 		metadata.version = 4;
@@ -629,21 +653,38 @@ class CollaborationPersistence {
 	}
 
 	static defaultTokenUsage(): TokenUsage {
-		return {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			thoughtTokens: 0,
-			totalAllTokens: 0,
-		};
+		return DEFAULT_TOKEN_USAGE();
 	}
 
-	static defaultCollaborationParams(): CollaborationParams {
+	static async defaultCollaborationParams(projectId?: ProjectId): Promise<CollaborationParams> {
+		if (!projectId) {
+			return {
+				rolesModelConfig: {
+					orchestrator: null,
+					agent: null,
+					chat: null,
+				},
+			};
+		}
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.getProjectConfig(projectId);
+
+		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+		const registryService = await ModelRegistryService.getInstance(projectConfig);
+
+		const orchestratorConfig = registryService.getModelConfig(
+			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
+		);
+		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
+		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+
 		return {
 			rolesModelConfig: {
-				orchestrator: null,
-				agent: null,
-				chat: null,
+				orchestrator: orchestratorConfig,
+				agent: agentConfig,
+				chat: chatConfig,
 			},
 		};
 	}
@@ -655,7 +696,13 @@ class CollaborationPersistence {
 			title: '',
 			projectId: '',
 			type: 'project',
-			collaborationParams: CollaborationPersistence.defaultCollaborationParams(),
+			collaborationParams: {
+				rolesModelConfig: {
+					orchestrator: null,
+					agent: null,
+					chat: null,
+				},
+			},
 			tokenUsageCollaboration: CollaborationPersistence.defaultTokenUsage(),
 			totalInteractions: 0,
 			interactionIds: [],

@@ -8,14 +8,14 @@ import { logger } from 'shared/logger.ts';
  * Handles persistence and analysis of token usage records in the new token usage tracking system.
  * Manages separate files for conversation and chat token usage.
  */
-export class TokenUsagePersistence {
+export default class TokenUsagePersistence {
 	private readonly tokenUsageDir: string;
 	private readonly conversationFile: string;
 	private readonly chatsFile: string;
 	private ensuredDir: boolean = false;
 
 	constructor(private conversationDir: string) {
-		this.tokenUsageDir = join(this.conversationDir, 'tokenUsage');
+		this.tokenUsageDir = join(this.conversationDir, 'token_usage');
 		this.conversationFile = join(this.tokenUsageDir, 'conversation.jsonl');
 		this.chatsFile = join(this.tokenUsageDir, 'chats.jsonl');
 	}

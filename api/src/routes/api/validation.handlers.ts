@@ -7,7 +7,6 @@ import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { ValidationRuleService } from 'api/llms/validationRuleService.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
-import { createError } from 'api/utils/error.ts';
 
 /**
  * @openapi
@@ -243,18 +242,13 @@ export const validateParameters = async (
 		logger.info('ValidationHandler: validateParameters called');
 
 		// Parse request body
-		const body = await request.body();
-		let requestData;
-
-		if (body.type === 'json') {
-			requestData = await body.value;
-		} else {
-			throw createError(400, 'Request body must be JSON');
-		}
+		const body = await request.body.json();
 
 		// Validate required fields
-		if (!requestData.model || !requestData.parameters) {
-			throw createError(400, 'Missing required fields: model, parameters');
+		if (!body.model || !body.parameters) {
+			response.status = 400;
+			response.body = { error: `Missing required fields: model, parameters` };
+			return;
 		}
 
 		const {
@@ -264,7 +258,7 @@ export const validateParameters = async (
 			context,
 			trigger = 'on_change',
 			additionalContext = {},
-		} = requestData;
+		} = body;
 
 		// Initialize services
 		const validationService = ValidationRuleService.getInstance();
@@ -275,7 +269,9 @@ export const validateParameters = async (
 		// Get model capabilities
 		const modelCapabilities = modelRegistryService.getModelCapabilities(model);
 		if (!modelCapabilities) {
-			throw createError(404, `Model not found: ${model}`);
+			response.status = 404;
+			response.body = { error: `Model not found: ${model}` };
+			return;
 		}
 
 		// Validate parameters
@@ -302,7 +298,9 @@ export const validateParameters = async (
 				additionalContext,
 			);
 		} else {
-			throw createError(400, 'Either ruleSetId or context must be provided');
+			response.status = 400;
+			response.body = { error: `Either ruleSetId or context must be provided` };
+			return;
 		}
 
 		response.status = 200;
@@ -380,21 +378,16 @@ export const previewValidationConstraints = async (
 		logger.info('ValidationHandler: previewValidationConstraints called');
 
 		// Parse request body
-		const body = await request.body();
-		let requestData;
-
-		if (body.type === 'json') {
-			requestData = await body.value;
-		} else {
-			throw createError(400, 'Request body must be JSON');
-		}
+		const body = await request.body.json();
 
 		// Validate required fields
-		if (!requestData.model) {
-			throw createError(400, 'Missing required field: model');
+		if (!body.model) {
+			response.status = 400
+			response.body = { error: `Missing required field: model` };
+			return;
 		}
 
-		const { model, context = 'chat_input' } = requestData;
+		const { model, context = 'chat_input' } = body;
 
 		// Initialize services
 		const validationService = ValidationRuleService.getInstance();
@@ -405,7 +398,9 @@ export const previewValidationConstraints = async (
 		// Get model capabilities
 		const modelCapabilities = modelRegistryService.getModelCapabilities(model);
 		if (!modelCapabilities) {
-			throw createError(404, `Model not found: ${model}`);
+			response.status = 404;
+			response.body = { error: `Model not found: ${model}` };
+			return;
 		}
 
 		// Run validation with empty parameters to get initial constraints

@@ -294,7 +294,7 @@ class ProjectPersistenceManager {
 
 	async deleteProject(projectId: ProjectId): Promise<void> {
 		const project = await this.getProject(projectId);
-		if (project) project.delete();
+		if (project) await project.delete();
 	}
 
 	/**

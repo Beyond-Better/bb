@@ -269,7 +269,7 @@ export function useChatState(
 					throw new Error('Failed to load collaborations');
 				}
 				const collaborations = collaborationResponse.collaborations;
-				console.log(`useChatState: url/projectId effect[${effectId}]: collaborations`, collaborations);
+				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaborations`, collaborations);
 
 				// Get collaboration ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -645,22 +645,23 @@ export function useChatState(
 			chatState.value = {
 				...chatState.value,
 				collaborations: chatState.value.collaborations.map((collab) => {
-					if (collab.id === data.logDataEntry.collaborationId) {
+					if (data.logDataEntry.logEntry && data.logDataEntry.logEntry.entryType !== 'auxiliary' && collab.id === data.logDataEntry.collaborationId) {
 						return {
 							...collab,
 							collaborationParams: data.logDataEntry.collaborationParams,
 							tokenUsageStatsForCollaboration: data.logDataEntry.tokenUsageStatsForCollaboration,
-							// lastInteractionMetadata: {
-							// 	...collab.lastInteractionMetadata,
-							// 	id: collab.lastInteractionMetadata?.id || '',
-							// 	tokenUsageStats: data.logDataEntry.tokenUsageStats,
-							// 	interactionStats: data.logDataEntry.interactionStats,
-							// 	modelConfig: data.logDataEntry.modelConfig,
-							// 	// llmProviderName: data.logDataEntry.llmProviderName ||
-							// 	// 	collab.lastInteractionMetadata?.llmProviderName,
-							// 	//model: data.logDataEntry.model || collab.lastInteractionMetadata?.model,
-							// 	updatedAt: data.logDataEntry.timestamp,
-							// },
+							lastInteractionMetadata: {
+								...collab.lastInteractionMetadata,
+								id: collab.lastInteractionMetadata?.id || '',
+								title: collab.lastInteractionMetadata?.title || '',
+								tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
+								interactionStats: data.logDataEntry.interactionStats,
+								modelConfig: data.logDataEntry.modelConfig,
+								llmProviderName: collab.lastInteractionMetadata?.llmProviderName || 'unknown',
+								model: collab.lastInteractionMetadata?.model || 'unknown',
+								createdAt: data.logDataEntry.createdAt,
+								updatedAt: data.logDataEntry.updatedAt,
+							},
 						};
 					}
 					return collab;
@@ -976,7 +977,7 @@ export function useChatState(
 				// 		appState.value.projectId,
 				// 	)
 				// 	: null;
-				console.log(`useChatState: selectCollaboration for ${id}: loaded`, collaboration?.logDataEntries);
+				//console.log(`useChatState: selectCollaboration for ${id}: loaded`, collaboration);
 
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...chatState.value.collaborations];

@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- major refactor to storage format for conversations - foundation for improved multi-agent support, model selection, and token reporting
+- progress bar for token usage of context window
+- chat input receives focus when creating new conversation
 
 ### Fixed
 

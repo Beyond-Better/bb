@@ -15,7 +15,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 export interface InteractionInstanceInfo {
 	id: string;
 	type: string;
-	title?: string;
+	title: string | null;
 	model: string;
 	llmProvider: {
 		name: string;
@@ -67,7 +67,7 @@ export interface EditorInstanceInfo {
 export interface InteractionInfo {
 	id: string;
 	type: string;
-	title?: string;
+	title: string | null;
 	model?: string;
 	statementCount: number;
 	hasParent: boolean;

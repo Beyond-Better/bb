@@ -3,6 +3,7 @@ import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 //import type Collaboration from 'api/collaborations/collaboration.ts';
 import type { CollaborationId, CollaborationLogDataEntry, CollaborationResponse, InteractionId } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE} from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import type { CollaborationValues } from 'shared/types/collaboration.ts';
@@ -11,9 +12,7 @@ import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
 //import { getLLMModelToProvider } from 'api/types/llms.ts';
-import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 
 /**
@@ -96,18 +95,7 @@ export const listCollaborations = async (
 			projectId: projectId,
 		});
 
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const projectConfig = await configManager.getProjectConfig(projectId);
-
-		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-
-		const registryService = await ModelRegistryService.getInstance(projectConfig);
-		const orchestratorConfig = registryService.getModelConfig(
-			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
-		);
-		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
-		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+		const defaultCollaborationParams = await CollaborationPersistence.defaultCollaborationParams(projectId);
 
 		response.status = 200;
 		response.body = {
@@ -123,11 +111,7 @@ export const listCollaborations = async (
 				tokenUsageCollaboration: collab.tokenUsageCollaboration,
 				collaborationParams: {
 					...(collab.collaborationParams || {}),
-					rolesModelConfig: {
-						orchestrator: collab.collaborationParams?.rolesModelConfig.orchestrator || orchestratorConfig,
-						agent: collab.collaborationParams?.rolesModelConfig.agent || agentConfig,
-						chat: collab.collaborationParams?.rolesModelConfig.chat || chatConfig,
-					} as LLMRolesModelConfig,
+					...defaultCollaborationParams,
 				},
 			})),
 			pagination: {
@@ -298,6 +282,7 @@ export const getCollaboration = async (
 		await collaborationPersistence.init();
 
 		const collaboration = await collaborationPersistence.loadCollaboration() as CollaborationValues;
+		//logger.info(`CollaborationHandler: getCollaboration for: ${collaborationId}`, {collaboration});
 		if (!collaboration) {
 			response.status = 404;
 			response.body = { error: 'Collaboration not found' };
@@ -846,69 +831,23 @@ export const getCollaborationDefaults = async (
 		}
 
 		logger.info('CollaborationHandler: Loading project configuration for collaboration defaults');
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const projectConfig = await configManager.getProjectConfig(projectId);
 
-		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
-
-		const registryService = await ModelRegistryService.getInstance(projectConfig);
-		const orchestratorConfig = registryService.getModelConfig(
-			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
-		);
-		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
-		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+		const defaultCollaborationParams = await CollaborationPersistence.defaultCollaborationParams(projectId);
 
 		const collaborationDefaults: CollaborationValues = {
 			id: '' as CollaborationId, // Empty ID for defaults
 			projectId: projectId,
 			title: 'New Collaboration',
 			type: 'project',
-			collaborationParams: {
-				rolesModelConfig: {
-					orchestrator: orchestratorConfig,
-					agent: agentConfig,
-					chat: chatConfig,
-				} as LLMRolesModelConfig,
-			},
+			collaborationParams: defaultCollaborationParams,
 			totalInteractions: 0,
 			interactionIds: [],
-			tokenUsageCollaboration: {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			},
+			tokenUsageCollaboration: DEFAULT_TOKEN_USAGE(),
 			// tokenUsageStatsForCollaboration: {
-			// 	tokenUsageCollaboration: {
-			// 		inputTokens: 0,
-			// 		outputTokens: 0,
-			// 		totalTokens: 0,
-			// 		thoughtTokens: 0,
-			// 		totalAllTokens: 0,
-			// 	},
-			// 	tokenUsageInteraction: {
-			// 		inputTokens: 0,
-			// 		outputTokens: 0,
-			// 		totalTokens: 0,
-			// 		thoughtTokens: 0,
-			// 		totalAllTokens: 0,
-			// 	},
-			// 	tokenUsageStatement: {
-			// 		inputTokens: 0,
-			// 		outputTokens: 0,
-			// 		totalTokens: 0,
-			// 		thoughtTokens: 0,
-			// 		totalAllTokens: 0,
-			// 	},
-			// 	tokenUsageTurn: {
-			// 		inputTokens: 0,
-			// 		outputTokens: 0,
-			// 		totalTokens: 0,
-			// 		thoughtTokens: 0,
-			// 		totalAllTokens: 0,
-			// 	},
+			// 	tokenUsageCollaboration: DEFAULT_TOKEN_USAGE(),
+			// 	tokenUsageInteraction: DEFAULT_TOKEN_USAGE(),
+			// 	tokenUsageStatement: DEFAULT_TOKEN_USAGE(),
+			// 	tokenUsageTurn: DEFAULT_TOKEN_USAGE(),
 			// },
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString(),

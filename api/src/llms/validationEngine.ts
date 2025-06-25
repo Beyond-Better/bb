@@ -14,7 +14,7 @@ import type {
 	ValidationRuleAction,
 	ValidationEngineConfig,
 	ConditionOperator,
-	LogicalOperator,
+	//LogicalOperator,
 } from 'api/types/validationRules.types.ts';
 
 /**
@@ -61,9 +61,9 @@ export class ValidationEngine {
 
 		// Filter rules by trigger and enabled status
 		const applicableRules = ruleSet.rules
-			.filter(rule => rule.enabled !== false)
-			.filter(rule => rule.trigger === trigger)
-			.sort((a, b) => (b.priority || 0) - (a.priority || 0)); // Sort by priority (highest first)
+			.filter((rule:ValidationRule) => rule.enabled !== false)
+			.filter((rule:ValidationRule) => rule.trigger === trigger)
+			.sort((a:ValidationRule, b:ValidationRule) => (b.priority || 0) - (a.priority || 0)); // Sort by priority (highest first)
 
 		if (this.debug) {
 			logger.info(`ValidationEngine: Found ${applicableRules.length} applicable rules`);
@@ -148,15 +148,15 @@ export class ValidationEngine {
 		context: ValidationContext,
 		depth: number,
 	): boolean {
-		const results = group.conditions.map(condition => 
+		const results = group.conditions.map((condition:ValidationCondition) => 
 			this.evaluateCondition(condition, context, depth)
 		);
 
 		switch (group.logic) {
 			case 'AND':
-				return results.every(result => result === true);
+				return results.every((result:boolean) => result === true);
 			case 'OR':
-				return results.some(result => result === true);
+				return results.some((result:boolean) => result === true);
 			case 'NOT':
 				// For NOT, we expect exactly one condition
 				if (results.length !== 1) {

@@ -6,18 +6,22 @@ import type {
 	ProjectId,
 	TokenUsage,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import type { CollaborationParams, CollaborationSummary, CollaborationValues } from 'shared/types/collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
+import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 export default class Collaboration {
 	// Core identification
 	public readonly id: CollaborationId;
-	public title: string;
+	public title: string | null;
 	public type: CollaborationType;
 
 	// Configuration
-	public collaborationParams: CollaborationParams;
+	public collaborationParams!: CollaborationParams;
 
 	// Timestamps
 	public readonly createdAt: string;
@@ -40,7 +44,7 @@ export default class Collaboration {
 		id: CollaborationId,
 		projectId: ProjectId,
 		options: {
-			title?: string;
+			title?: string | null;
 			type?: CollaborationType;
 			collaborationParams?: CollaborationParams;
 			createdAt?: string;
@@ -56,9 +60,9 @@ export default class Collaboration {
 		this.projectId = projectId;
 
 		// Initialize with provided options or defaults
-		this.title = options.title || 'New Collaboration';
+		this.title = options.title ?? null;
 		this.type = options.type || 'project';
-		this.collaborationParams = options.collaborationParams || this.getDefaultCollaborationParams();
+		if (options.collaborationParams) this.collaborationParams = options.collaborationParams;
 		this.createdAt = options.createdAt || new Date().toISOString();
 		this.updatedAt = options.updatedAt || new Date().toISOString();
 		this.totalInteractions = options.totalInteractions || 0;
@@ -69,29 +73,36 @@ export default class Collaboration {
 	}
 
 	async init(): Promise<Collaboration> {
+		if (!this.collaborationParams) this.collaborationParams = await this.getDefaultCollaborationParams();
 		return this;
 	}
 
-	private getDefaultCollaborationParams(): CollaborationParams {
+	private async getDefaultCollaborationParams(): Promise<CollaborationParams> {
+		const configManager = await getConfigManager();
+		const globalConfig = await configManager.getGlobalConfig();
+		const projectConfig = await configManager.getProjectConfig(this.projectId);
+
+		const defaultModels = projectConfig.defaultModels || globalConfig.defaultModels;
+
+		const registryService = await ModelRegistryService.getInstance(projectConfig);
+
+		const orchestratorConfig = registryService.getModelConfig(
+			defaultModels.orchestrator || DefaultModelsConfigDefaults.orchestrator,
+		);
+		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
+		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+
 		return {
 			rolesModelConfig: {
-				orchestrator: null,
-				agent: null,
-				chat: null,
+				orchestrator: orchestratorConfig,
+				agent: agentConfig,
+				chat: chatConfig,
 			},
 		};
 	}
 
 	private getDefaultTokenUsage(): TokenUsage {
-		return {
-			inputTokens: 0,
-			outputTokens: 0,
-			totalTokens: 0,
-			cacheCreationInputTokens: 0,
-			cacheReadInputTokens: 0,
-			thoughtTokens: 0,
-			totalAllTokens: 0,
-		};
+		return DEFAULT_TOKEN_USAGE();
 	}
 
 	public get interactionIds(): InteractionId[] {
@@ -106,9 +117,8 @@ export default class Collaboration {
 		if (!this._interactionIds.includes(interactionId)) {
 			this._interactionIds.push(interactionId);
 			this.totalInteractions = this._interactionIds.length;
-			this.lastInteractionId = interactionId;
-			this.updatedAt = new Date().toISOString();
 		}
+		this.updatedAt = new Date().toISOString();
 	}
 
 	removeInteractionId(interactionId: InteractionId): boolean {
@@ -170,6 +180,29 @@ export default class Collaboration {
 		return Array.from(this._loadedInteractions.keys());
 	}
 
+	updateLastInteraction(interaction: LLMInteraction): void {
+		const metadata = {
+			id: interaction.id,
+			title: interaction.title,
+
+			interactionStats: interaction.interactionStats,
+			interactionMetrics: interaction.interactionMetrics,
+			tokenUsageStatsForInteraction: interaction.tokenUsageStatsForInteraction,
+			modelConfig: interaction.modelConfig,
+
+			llmProviderName: interaction.llmProviderName,
+
+			model: interaction.model,
+			createdAt: interaction.createdAt.toISOString(),
+			updatedAt: interaction.updatedAt.toISOString(),
+		};
+		this.updateLastInteractionMetadata(metadata);
+
+		this.lastInteractionId = interaction.id;
+
+		this.addLoadedInteraction(interaction);
+	}
+
 	// State management methods
 	updateTitle(title: string): void {
 		this.title = title;
@@ -179,10 +212,34 @@ export default class Collaboration {
 	updateCollaborationParams(params: Partial<CollaborationParams>): void {
 		this.collaborationParams = { ...this.collaborationParams, ...params };
 		this.updatedAt = new Date().toISOString();
+		//logger.info(`Collaboration: Updated collaborationParms for ${this.id}`, this.collaborationParams);
 	}
 
 	updateTokenUsageCollaboration(usage: Partial<TokenUsage>): void {
 		this.tokenUsageCollaboration = { ...this.tokenUsageCollaboration, ...usage };
+		this.updatedAt = new Date().toISOString();
+	}
+
+	addTokenUsageCollaboration(tokenUsage: TokenUsage): void {
+		if (this.tokenUsageCollaboration.cacheCreationInputTokens === undefined) {
+			this.tokenUsageCollaboration.cacheCreationInputTokens = 0;
+		}
+		if (this.tokenUsageCollaboration.cacheReadInputTokens === undefined) {
+			this.tokenUsageCollaboration.cacheReadInputTokens = 0;
+		}
+		if (this.tokenUsageCollaboration.thoughtTokens === undefined) this.tokenUsageCollaboration.thoughtTokens = 0;
+		if (this.tokenUsageCollaboration.totalAllTokens === undefined) this.tokenUsageCollaboration.totalAllTokens = 0;
+
+		this.tokenUsageCollaboration.totalTokens += tokenUsage.totalTokens;
+		this.tokenUsageCollaboration.inputTokens += tokenUsage.inputTokens;
+		this.tokenUsageCollaboration.outputTokens += tokenUsage.outputTokens;
+		this.tokenUsageCollaboration.cacheCreationInputTokens += tokenUsage.cacheCreationInputTokens || 0;
+		this.tokenUsageCollaboration.cacheReadInputTokens += tokenUsage.cacheReadInputTokens || 0;
+		this.tokenUsageCollaboration.thoughtTokens += tokenUsage.thoughtTokens || 0;
+		this.tokenUsageCollaboration.totalAllTokens += tokenUsage.totalTokens +
+			(tokenUsage.cacheCreationInputTokens || 0) +
+			(tokenUsage.cacheReadInputTokens || 0) + (tokenUsage.thoughtTokens || 0);
+
 		this.updatedAt = new Date().toISOString();
 	}
 
@@ -195,7 +252,7 @@ export default class Collaboration {
 	toJSON(): CollaborationValues {
 		return {
 			id: this.id,
-			title: this.title,
+			title: this.title || null,
 			type: this.type,
 			projectId: this.projectId,
 			collaborationParams: this.collaborationParams,
@@ -211,7 +268,7 @@ export default class Collaboration {
 
 	static fromJSON(values: CollaborationValues): Collaboration {
 		return new Collaboration(values.id, values.projectId, {
-			title: values.title,
+			title: values.title || null,
 			type: values.type,
 			collaborationParams: values.collaborationParams,
 			totalInteractions: values.totalInteractions,
@@ -228,7 +285,7 @@ export default class Collaboration {
 	getSummary(): CollaborationSummary {
 		return {
 			id: this.id,
-			title: this.title,
+			title: this.title || null,
 			type: this.type,
 			projectId: this.projectId,
 			totalInteractions: this.totalInteractions,

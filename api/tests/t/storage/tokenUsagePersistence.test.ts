@@ -9,6 +9,7 @@ import {
 } from 'api/tests/mockData.ts';
 import { TokenUsageValidationError } from 'api/errors/error.ts';
 import type { TokenUsageRecord } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
 
 // Helper function to set up test directory structure
 // async function setupTestDir(testProjectRoot: string, interactionId: string) {
@@ -361,16 +362,8 @@ Deno.test({
 					role: 'assistant',
 					type: 'conversation',
 					timestamp: new Date().toISOString(),
-					rawUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					rawUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: 0,
 						actualCost: 0,
@@ -390,11 +383,7 @@ Deno.test({
 						outputTokens: 1,
 						totalTokens: 2,
 					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: 1,
 						actualCost: 1,
@@ -414,11 +403,7 @@ Deno.test({
 						outputTokens: Number.MAX_SAFE_INTEGER,
 						totalTokens: Number.MAX_SAFE_INTEGER,
 					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: Number.MAX_SAFE_INTEGER,
 						actualCost: Number.MAX_SAFE_INTEGER,
@@ -593,11 +578,7 @@ Deno.test({
 					outputTokens: -2,
 					totalTokens: -3,
 				},
-				differentialUsage: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-				},
+				differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 				cacheImpact: {
 					potentialCost: 10,
 					actualCost: 20, // Invalid: actual > potential

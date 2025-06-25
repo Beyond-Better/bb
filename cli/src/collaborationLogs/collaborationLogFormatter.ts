@@ -8,6 +8,7 @@ import { colors } from 'cliffy/ansi/colors';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
 import type { CollaborationLogEntryType, InteractionId, InteractionStats, TokenUsage } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 
 const configManager = await getConfigManager();
@@ -223,13 +224,7 @@ export default class CollaborationLogFormatter {
 				statementTurnCount: 0,
 				interactionTurnCount: 0,
 			};
-			const tokenUsage: TokenUsage = {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			};
+			const tokenUsage: TokenUsage = DEFAULT_TOKEN_USAGE();
 			if (typeof typeString !== 'undefined' && typeof timestamp !== 'undefined') {
 				const type = typeString as CollaborationLogEntryType;
 				const content = messageLines.join('\n').trim();

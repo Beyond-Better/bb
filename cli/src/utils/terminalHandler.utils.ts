@@ -1,5 +1,6 @@
 import { Input } from 'cliffy/prompt';
 import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { colors } from 'cliffy/ansi/colors';
 import { tty } from 'cliffy/ansi/tty';
@@ -399,13 +400,7 @@ export class TerminalHandler {
 				interactionTurnCount: 1,
 			},
 			tokenUsageStatsForCollaboration = {
-				tokenUsageStatement: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
+				tokenUsageStatement: DEFAULT_TOKEN_USAGE(),
 			},
 		} = data;
 		collaborationId = data.collaborationId;

@@ -1,9 +1,10 @@
+// deno-lint-ignore-file no-explicit-any
+
 import { join } from '@std/path';
 import { ensureDir, exists } from '@std/fs';
 import { logger } from 'shared/logger.ts';
 import { getProjectRegistry } from 'shared/projectRegistry.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
-import { TokenUsagePersistence } from './tokenUsagePersistence.ts';
 import { generateResourceRevisionKey, generateResourceUriKey } from 'shared/dataSource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -15,9 +16,12 @@ import type {
 	TokenUsage,
 	TokenUsageAnalysis,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_EMPTY } from 'shared/types.ts';
 //import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { ResourceMetadata, ResourceRevisionMetadata } from 'shared/types/dataSourceResource.ts';
 import ProjectPersistence from 'api/storage/projectPersistence.ts';
+import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
+import TokenUsagePersistence from './tokenUsagePersistence.ts';
 
 /**
  * Current unified storage version
@@ -148,7 +152,7 @@ export class StorageMigration {
 	 * Designed to support both startup migration and future per-project import feature
 	 */
 	static async migrateProjectStorage(projectId: ProjectId): Promise<void> {
-		logger.info(`StorageMigration: Checking storage migration for project ${projectId}`);
+		logger.debug(`StorageMigration: Checking storage migration for project ${projectId}`);
 
 		try {
 			const projectAdminDataDir = await getProjectAdminDataDir(projectId);
@@ -467,13 +471,7 @@ export class StorageMigration {
 			// Update interaction metadata with token analysis
 			const tokenAnalysis: TokenUsageAnalysis = await tokenUsagePersistence.analyzeUsage('conversation');
 			if (!(metadata as any).tokenUsageStats) {
-				const defaultInteractionTokenUsage: TokenUsage = {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				};
+				const defaultInteractionTokenUsage: TokenUsage = DEFAULT_TOKEN_USAGE_EMPTY();
 				(metadata as any).tokenUsageStats = {
 					tokenUsageTurn: defaultInteractionTokenUsage,
 					tokenUsageStatement: defaultInteractionTokenUsage,
@@ -582,15 +580,7 @@ export class StorageMigration {
 						`Missing conversationStats in metadata for interaction ${metadata.id} - setting values to 0`,
 				});
 			}
-			const emptyTokenUsage = {
-				totalTokens: 0,
-				inputTokens: 0,
-				outputTokens: 0,
-				cacheCreationInputTokens: undefined,
-				cacheReadInputTokens: undefined,
-				thoughtTokens: undefined,
-				totalAllTokens: undefined,
-			};
+			const emptyTokenUsage = DEFAULT_TOKEN_USAGE_EMPTY();
 
 			if ((metadata as any).tokenUsageConversation && !(metadata as any).tokenUsageStats) {
 				metadata.tokenUsageStatsForInteraction = {
@@ -690,6 +680,27 @@ export class StorageMigration {
 				path: 'metadata.json',
 				details: 'Updated version to 4 for collaboration format',
 			});
+
+			const oldPathTokenUsage = join(interactionDir, 'tokenUsage');
+			const newPathTokenUsage = join(interactionDir, 'token_usage');
+
+			if (await exists(oldPathTokenUsage)) {
+				try {
+					await Deno.rename(oldPathTokenUsage, newPathTokenUsage);
+					logger.debug(`StorageMigration: Moved directory from ${oldPathTokenUsage} to ${newPathTokenUsage}`);
+				} catch (moveError) {
+					logger.warn(
+						`StorageMigration: Could not rename tokenUsage directory: ${errorMessage(moveError)}`,
+					);
+					result.changes.push({
+						type: 'file_move',
+						path: 'tokenUsage',
+						details: `Could not rename tokenUsage directory: ${errorMessage(moveError)}`,
+					});
+				}
+			} else {
+				logger.warn(`StorageMigration: Could not find original directory at ${oldPathTokenUsage}`);
+			}
 
 			return result;
 		} catch (error) {
@@ -1041,6 +1052,8 @@ export class StorageMigration {
 			const collaborations: CollaborationMetadata[] = [];
 			const processedDirs = new Set<string>();
 
+			const defaultCollaborationParams = await CollaborationPersistence.defaultCollaborationParams(projectId);
+
 			// Process each conversation directory
 			for await (const entry of Deno.readDir(conversationsDir)) {
 				if (!entry.isDirectory) continue;
@@ -1096,15 +1109,7 @@ export class StorageMigration {
 					continue;
 				}
 
-				const emptyTokenUsage = {
-					totalTokens: 0,
-					inputTokens: 0,
-					outputTokens: 0,
-					cacheCreationInputTokens: undefined,
-					cacheReadInputTokens: undefined,
-					thoughtTokens: undefined,
-					totalAllTokens: undefined,
-				};
+				const emptyTokenUsage = DEFAULT_TOKEN_USAGE_EMPTY();
 
 				/*
 				if (!conversationMetadata.tokenUsageStats) {
@@ -1188,13 +1193,7 @@ export class StorageMigration {
 					projectId: projectId,
 					title: conversationMetadata.title || 'untitled',
 					type: 'project',
-					collaborationParams: conversationMetadata.collaborationParams || {
-						rolesModelConfig: {
-							orchestrator: null,
-							agent: null,
-							chat: null,
-						},
-					},
+					collaborationParams: conversationMetadata.collaborationParams || defaultCollaborationParams,
 					tokenUsageCollaboration: {
 						...emptyTokenUsage,
 						...(conversationMetadata.tokenUsageStatsForInteraction?.tokenUsageInteraction ||
@@ -1208,6 +1207,7 @@ export class StorageMigration {
 					lastInteractionId: conversationId,
 					lastInteractionMetadata: {
 						id: conversationId,
+						title: conversationMetadata.title,
 						llmProviderName: conversationMetadata.llmProviderName,
 						model: conversationMetadata.model,
 						interactionStats: conversationMetadata.interactionStats,

@@ -53,12 +53,15 @@ class LLMChatInteraction extends LLMInteraction {
 		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
 
+		//logger.info(`ChatInteraction: saving chat interaction`, { id: this.id, title: this.title, answer: response.messageResponse.answer  });
+		await this.saveInteraction(response);
+
 		//const msg = extractTextFromContent(response.messageResponse.answerContent);
 		//const msg = `<prompt>${prompt}</prompt>\n${response.messageResponse.answer}`;
 		const auxiliaryContent: AuxiliaryChatContent = {
 			prompt,
 			message: response.messageResponse.answer,
-			purpose: this.title,
+			purpose: this.title || '',
 		};
 
 		this.collaborationLogger.logAuxiliaryMessage(

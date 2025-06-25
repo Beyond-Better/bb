@@ -29,7 +29,7 @@ class InteractionManager {
 		//const interactionId = shortenInteractionId(generateInteractionId());
 		let interaction: LLMInteraction;
 
-		logger.info('InteractionManager: Creating interaction of type: ', type);
+		logger.info(`InteractionManager: Creating interaction ${interactionId} of type: ${type}` );
 
 		if (type === 'conversation') {
 			interaction = await new LLMConversationInteraction(collaboration, interactionId).init(
@@ -47,6 +47,8 @@ class InteractionManager {
 
 		this.interactions.set(interactionId, interaction);
 
+		collaboration.addLoadedInteraction(interaction);
+
 		if (parentInteractionId) {
 			this.interactionHierarchy.set(interactionId, parentInteractionId);
 		}
@@ -57,6 +59,8 @@ class InteractionManager {
 	addInteraction(interaction: LLMInteraction, parentInteractionId?: string): void {
 		const interactionId = interaction.id;
 		this.interactions.set(interactionId, interaction);
+
+		interaction.collaboration.addLoadedInteraction(interaction);
 
 		if (parentInteractionId) {
 			this.interactionHierarchy.set(interactionId, parentInteractionId);
