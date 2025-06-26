@@ -269,7 +269,7 @@ A summary of the removed messages has been added to the start of the conversatio
 					interaction.id,
 					'Generate conversation summary',
 				);
-				const response = await chat.chat(summaryPrompt);
+				const response = await chat.chat(summaryPrompt, interaction.collaboration.collaborationParams.rolesModelConfig.chat);
 				// Validate response structure
 				if (!response.messageResponse?.answerContent) {
 					throw createError(
@@ -946,7 +946,7 @@ Ensure your summary accurately captures all important context from the removed m
 				interaction.id,
 				'Generate conversation summary and truncate',
 			);
-			const response = await chat.chat(summaryPrompt);
+			const response = await chat.chat(summaryPrompt, interaction.collaboration.collaborationParams.rolesModelConfig.chat);
 			//const answer = response.messageResponse.answer || 'no answer from LLM';
 			const answer = extractTextFromContent(response.messageResponse.answerContent);
 

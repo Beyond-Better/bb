@@ -1,9 +1,14 @@
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 //import type { ObjectivesData } from 'shared/types.ts';
 import { stripIndents } from 'common-tags';
+import type { LLMModelConfig, LLMRolesModelConfig } from 'api/types/llms.ts';
 //import { logger } from 'shared/logger.ts';
 
-export async function generateCollaborationTitle(chat: LLMChatInteraction, prompt: string): Promise<string> {
+export async function generateCollaborationTitle(
+	chat: LLMChatInteraction,
+	prompt: string,
+	modelConfig?: LLMModelConfig | null,
+): Promise<string> {
 	const titlePrompt = stripIndents`
         Create a very short title (max 5 words) for a conversation based on the following prompt:
 
@@ -12,22 +17,34 @@ export async function generateCollaborationTitle(chat: LLMChatInteraction, promp
         </prompt>
         
         Respond with the title only, no additional text.`;
-	const response = await chat.chat(titlePrompt);
+	const response = await chat.chat(titlePrompt, modelConfig);
 	return response.messageResponse.answer;
 }
 
-export async function generateCollaborationObjective(chat: LLMChatInteraction, prompt: string): Promise<string> {
-	return generateObjective(chat, prompt, 'collaboration');
+export async function generateCollaborationObjective(
+	chat: LLMChatInteraction,
+	prompt: string,
+	modelConfig?: LLMModelConfig | null,
+): Promise<string> {
+	return generateObjective(chat, prompt, 'collaboration', modelConfig);
 }
 
 export async function generateStatementObjective(
 	chat: LLMChatInteraction,
 	prompt: string,
+	modelConfig?: LLMModelConfig | null,
 	collaborationGoal?: string,
 	previousAssistantResponse?: string,
 	previousObjective?: string,
 ): Promise<string> {
-	const objective = await generateObjective(chat, prompt, 'statement', collaborationGoal, previousAssistantResponse);
+	const objective = await generateObjective(
+		chat,
+		prompt,
+		'statement',
+		modelConfig,
+		collaborationGoal,
+		previousAssistantResponse,
+	);
 
 	// Check if more context is needed
 	if (objective.startsWith('NEED_CONTEXT:')) {
@@ -69,6 +86,7 @@ export async function generateObjective(
 	chat: LLMChatInteraction,
 	prompt: string,
 	type: 'collaboration' | 'statement',
+	modelConfig?: LLMModelConfig | null,
 	collaborationGoal?: string,
 	previousAssistantResponse?: string,
 ): Promise<string> {
@@ -112,6 +130,6 @@ export async function generateObjective(
 		No additional text.`;
 
 	//logger.info('CollaborationUtils: generateObjective', { title: chat.title });
-	const response = await chat.chat(objectivePrompt);
+	const response = await chat.chat(objectivePrompt, modelConfig);
 	return response.messageResponse.answer;
 }

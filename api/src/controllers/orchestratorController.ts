@@ -214,13 +214,16 @@ class OrchestratorController extends BaseController {
 		logger.info('OrchestratorController: handleStatement: ', { collaborationId, interactionId });
 		const collaboration = this.collaborationManager.getCollaboration(collaborationId) as Collaboration;
 		const interaction = this.interactionManager.getInteraction(interactionId) as LLMConversationInteraction;
-		// const interaction = this.interactionManager.getInteraction(
-		// 	interactionId ?? collaboration.lastInteractionId!,
-		// ) as LLMConversationInteraction;
+
 		collaboration.updateLastInteraction(interaction);
-		if (statementParams) {
+		//logger.info(`OrchestratorController: handleStatement. statementParams: `, statementParams);
+		if (
+			statementParams?.rolesModelConfig &&
+			Object.values(statementParams.rolesModelConfig).some((config) => config !== null)
+		) {
 			collaboration.updateCollaborationParams({ rolesModelConfig: statementParams.rolesModelConfig });
 		}
+
 		try {
 			if (!interaction) {
 				throw new Error(`No interaction found for ID: ${interactionId ?? collaboration.lastInteractionId}`);
@@ -308,6 +311,7 @@ class OrchestratorController extends BaseController {
 							//`Generate collaboration objective for interaction ${interaction.id}`,
 						),
 						statement,
+						collaboration.collaborationParams.rolesModelConfig.chat,
 					);
 					interaction.setObjectives(collaborationObjective);
 					logger.debug('Set collaboration objective:', collaborationObjective);
@@ -336,6 +340,7 @@ class OrchestratorController extends BaseController {
 							//`Generate statement objective for statement ${currentMetrics.statementCount + 1} of interaction ${interaction.id}`,
 						),
 						statement,
+						collaboration.collaborationParams.rolesModelConfig.chat,
 						currentMetrics.objectives?.collaboration,
 						previousResponse,
 						previousObjective,

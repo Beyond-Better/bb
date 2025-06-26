@@ -198,7 +198,7 @@ Deno.test('InteractionPersistence - Token usage analysis', async (t) => {
 import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 export function createMockTokenUsageRecord(
   role: 'user' | 'assistant' | 'system' = 'assistant',
-  type: 'conversation' | 'chat' = 'conversation'
+  type: InteractionType = 'conversation'
 ): TokenUsageRecord {
   return {
     messageId: crypto.randomUUID(),

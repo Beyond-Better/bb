@@ -155,6 +155,7 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				.filter(Boolean)
 			: [];
 		//console.log('WebSocketManagerChat: sendConverse-filesToAttach', filesToAttach);
+		//console.log('WebSocketManagerChat: sendConverse-statementParams', statementParams);
 
 		const wsMessage: WebSocketMessage = {
 			collaborationId: this.collaborationId,

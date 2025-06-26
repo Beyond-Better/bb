@@ -358,6 +358,7 @@ export interface LLMSpeakWithOptions {
 	temperature?: number;
 	validateResponseCallback?: LLMValidateResponseCallback;
 	extendedThinking?: LLMExtendedThinkingOptions;
+	usePromptCaching?: boolean;
 }
 
 export interface Task {

@@ -94,7 +94,7 @@ interface TokenUsageRecord {
   messageId: string;        // Links to message in messages.jsonl
   timestamp: string;        // ISO timestamp
   role: 'user' | 'assistant' | 'system';  // Message role
-  type: 'conversation' | 'chat';          // Interaction type
+  type: InteractionType;          // Interaction type
   
   // Raw Usage from LLM
   rawUsage: {

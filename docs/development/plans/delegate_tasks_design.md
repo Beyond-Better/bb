@@ -68,7 +68,7 @@ class InteractionManager {
     this.interactionHierarchy = new Map();
   }
 
-  createInteraction(type: 'conversation' | 'chat', parentInteractionId?: string): string {
+  createInteraction(type: InteractionType, parentInteractionId?: string): string {
     // Implementation details
   }
 

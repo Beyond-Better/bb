@@ -1,10 +1,11 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { join, dirname } from '@std/path';
-import { ensureDir, exists, copy } from '@std/fs';
+import { join } from '@std/path';
+import { copy, ensureDir, exists } from '@std/fs';
 import { logger } from 'shared/logger.ts';
 import { getProjectRegistry } from 'shared/projectRegistry.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';
+import { getGlobalConfigDir } from 'shared/dataDir.ts';
 import { generateResourceRevisionKey, generateResourceUriKey } from 'shared/dataSource.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -118,87 +119,6 @@ export class StorageMigration {
 	private static backupDir: string | null = null;
 
 	/**
-	 * Gets or creates the global backup directory for all projects
-	 * The backup directory is created once per migration session with timestamp
-	 */
-	private static async getOrCreateBackupDirectory(): Promise<string> {
-		if (StorageMigration.backupDir) {
-			return StorageMigration.backupDir;
-		}
-
-		try {
-			// Get any project's admin data dir to find the parent projects directory
-			const registry = await getProjectRegistry();
-			const projects = await registry.listProjects();
-			
-			if (projects.length === 0) {
-				throw new Error('No projects found to determine backup location');
-			}
-
-			// Get the parent directory of all projects (e.g., ~/.config/bb/projects)
-			const firstProjectDataDir = await getProjectAdminDataDir(projects[0].projectId);
-			if (!firstProjectDataDir) {
-				throw new Error('Failed to get project data directory');
-			}
-			
-			const projectsParentDir = dirname(firstProjectDataDir);
-			
-			// Create timestamped backup directory at parent level
-			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-			const backupDirName = `projects-backup-${timestamp}`;
-			StorageMigration.backupDir = join(projectsParentDir, backupDirName);
-
-			// Ensure backup directory exists
-			await ensureDir(StorageMigration.backupDir);
-
-			logger.info(`StorageMigration: Created global backup directory at ${StorageMigration.backupDir}`);
-			return StorageMigration.backupDir;
-		} catch (error) {
-			logger.error(`StorageMigration: Failed to create global backup directory: ${errorMessage(error)}`);
-			throw createError(
-				ErrorType.ProjectHandling,
-				`Failed to create global backup directory: ${errorMessage(error)}`,
-				{} as ProjectHandlingErrorOptions,
-			);
-		}
-	}
-
-	/**
-	 * Creates a backup copy of a specific project directory
-	 * Copies the project to the global timestamped backup directory
-	 */
-	static async createProjectBackup(projectId: ProjectId): Promise<string> {
-		logger.info(`StorageMigration: Creating backup for project ${projectId}`);
-
-		try {
-			const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-			if (!projectAdminDataDir) {
-				throw new Error(`Failed to get project admin data directory for ${projectId}`);
-			}
-
-			// Get or create the global backup directory
-			const globalBackupDir = await StorageMigration.getOrCreateBackupDirectory();
-			
-			// Create backup path for this specific project
-			const projectBackupPath = join(globalBackupDir, projectId);
-
-			// Copy the entire project directory to the backup location
-			await copy(projectAdminDataDir, projectBackupPath, { overwrite: true });
-
-			logger.info(`StorageMigration: Created backup for project ${projectId} at ${projectBackupPath}`);
-			return projectBackupPath;
-		} catch (error) {
-			logger.error(`StorageMigration: Failed to create backup for project ${projectId}: ${errorMessage(error)}`);
-			throw createError(
-				ErrorType.ProjectHandling,
-				`Failed to create project backup: ${errorMessage(error)}`,
-				{
-					projectId,
-				} as ProjectHandlingErrorOptions,
-			);
-		}
-	}
-	/**
 	 * Main entry point for storage migration - called once at API startup
 	 * Migrates all projects found in the registry to the current storage version
 	 */
@@ -278,7 +198,9 @@ export class StorageMigration {
 				await StorageMigration.createProjectBackup(projectId);
 			} catch (error) {
 				logger.error(
-					`StorageMigration: Failed to create backup for project ${projectId}, proceeding with migration: ${errorMessage(error)}`,
+					`StorageMigration: Failed to create backup for project ${projectId}, proceeding with migration: ${
+						errorMessage(error)
+					}`,
 				);
 				// Continue with migration even if backup fails, but log the error
 			}
@@ -1303,6 +1225,7 @@ export class StorageMigration {
 					lastInteractionId: conversationId,
 					lastInteractionMetadata: {
 						id: conversationId,
+						interactionType: conversationMetadata.interactionType,
 						title: conversationMetadata.title,
 						llmProviderName: conversationMetadata.llmProviderName,
 						model: conversationMetadata.model,
@@ -1645,6 +1568,75 @@ export class StorageMigration {
 				return [];
 			}
 			throw error;
+		}
+	}
+
+	/**
+	 * Gets or creates the global backup directory for all projects
+	 * The backup directory is created once per migration session with timestamp
+	 */
+	private static async getOrCreateBackupDirectory(): Promise<string> {
+		if (StorageMigration.backupDir) {
+			return StorageMigration.backupDir;
+		}
+
+		try {
+			// Get the config directory containing all projects (e.g., ~/.config/bb)
+			const globalConfigDir = await getGlobalConfigDir();
+
+			// Create timestamped backup directory in config directory
+			const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+			const backupDirName = `projects-backup-${timestamp}`;
+			StorageMigration.backupDir = join(globalConfigDir, backupDirName);
+
+			// Ensure backup directory exists
+			await ensureDir(StorageMigration.backupDir);
+
+			logger.info(`StorageMigration: Created global backup directory at ${StorageMigration.backupDir}`);
+			return StorageMigration.backupDir;
+		} catch (error) {
+			logger.error(`StorageMigration: Failed to create global backup directory: ${errorMessage(error)}`);
+			throw createError(
+				ErrorType.ProjectHandling,
+				`Failed to create global backup directory: ${errorMessage(error)}`,
+				{} as ProjectHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Creates a backup copy of a specific project directory
+	 * Copies the project to the global timestamped backup directory
+	 */
+	static async createProjectBackup(projectId: ProjectId): Promise<string> {
+		logger.info(`StorageMigration: Creating backup for project ${projectId}`);
+
+		try {
+			const projectAdminDataDir = await getProjectAdminDataDir(projectId);
+			if (!projectAdminDataDir) {
+				throw new Error(`Failed to get project admin data directory for ${projectId}`);
+			}
+
+			// Get or create the global backup directory
+			const globalBackupDir = await StorageMigration.getOrCreateBackupDirectory();
+
+			// Create backup path for this specific project
+			const projectBackupPath = join(globalBackupDir, projectId);
+
+			// Copy the entire project directory to the backup location
+			await copy(projectAdminDataDir, projectBackupPath, { overwrite: true });
+
+			logger.info(`StorageMigration: Created backup for project ${projectId} at ${projectBackupPath}`);
+			return projectBackupPath;
+		} catch (error) {
+			logger.error(`StorageMigration: Failed to create backup for project ${projectId}: ${errorMessage(error)}`);
+			throw createError(
+				ErrorType.ProjectHandling,
+				`Failed to create project backup: ${errorMessage(error)}`,
+				{
+					projectId,
+				} as ProjectHandlingErrorOptions,
+			);
 		}
 	}
 

@@ -269,7 +269,10 @@ export function useChatState(
 					throw new Error('Failed to load collaborations');
 				}
 				const collaborations = collaborationResponse.collaborations;
-				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaborations`, collaborations);
+				console.log(
+					`useChatState: url/projectId effect[${effectId}]: initialize-collaborations`,
+					collaborations,
+				);
 
 				// Get collaboration ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -645,24 +648,52 @@ export function useChatState(
 			chatState.value = {
 				...chatState.value,
 				collaborations: chatState.value.collaborations.map((collab) => {
-					if (data.logDataEntry.logEntry && data.logDataEntry.logEntry.entryType !== 'auxiliary' && collab.id === data.logDataEntry.collaborationId) {
-						return {
-							...collab,
-							collaborationParams: data.logDataEntry.collaborationParams,
-							tokenUsageStatsForCollaboration: data.logDataEntry.tokenUsageStatsForCollaboration,
-							lastInteractionMetadata: {
-								...collab.lastInteractionMetadata,
-								id: collab.lastInteractionMetadata?.id || '',
-								title: collab.lastInteractionMetadata?.title || '',
-								tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
+					if (
+						collab.id === data.logDataEntry.collaborationId && // only update the current collaboration
+						collab.lastInteractionId === data.logDataEntry.interactionId && // and only if this logDataEntry is for the top-level interaction (not a chat interaction)
+						!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
+						data.logDataEntry.logEntry // and only if we have a valid logEntry
+					) {
+						const newCollab = { ...collab };
+						if (
+							// update collaborationParams if there is a rolesModelConfig and all the roles are not null
+							data.logDataEntry.collaborationParams?.rolesModelConfig &&
+							Object.values(data.logDataEntry.collaborationParams.rolesModelConfig).some((config) =>
+								config !== null
+							)
+						) newCollab.collaborationParams = data.logDataEntry.collaborationParams;
+						if (
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration
+						) {
+							newCollab.tokenUsageCollaboration =
+								data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
+						}
+						if (
+							// update the common values for lastInteractionMetadata - in particular the counts in interactionStats
+							newCollab.lastInteractionMetadata &&
+							data.logDataEntry.logEntry.entryType !== 'auxiliary' // but not if it's an auxiliary logEntry
+						) {
+							newCollab.lastInteractionMetadata = {
+								...newCollab.lastInteractionMetadata,
 								interactionStats: data.logDataEntry.interactionStats,
 								modelConfig: data.logDataEntry.modelConfig,
-								llmProviderName: collab.lastInteractionMetadata?.llmProviderName || 'unknown',
-								model: collab.lastInteractionMetadata?.model || 'unknown',
-								createdAt: data.logDataEntry.createdAt,
+								//createdAt: data.logDataEntry.createdAt,
 								updatedAt: data.logDataEntry.updatedAt,
-							},
-						};
+							};
+						}
+						if (
+							// update the tokenUsageStats
+							newCollab.lastInteractionMetadata &&
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens &&
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens > 0 && // but only if the values are not zero
+							['assistant', 'tool_use', 'answer'].includes(data.logDataEntry.logEntry.entryType) // and only if a "token usage" type turn
+						) {
+							newCollab.lastInteractionMetadata = {
+								...newCollab.lastInteractionMetadata,
+								tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
+							};
+						}
+						return newCollab;
 					}
 					return collab;
 				}),
@@ -688,63 +719,72 @@ export function useChatState(
 				};
 			}
 
-			// If this is an answer, end processing and set idle state
+			// If this is an answer from top-level interaction, end processing and set idle state
 			if (data.msgType === 'answer') {
-				// Update project stats for token usage
-				// const tokenUsage = data.logDataEntry.tokenUsageStats.tokenUsage?.totalTokens || 0;
-				// await updateProjectStats(currentProject.projectId, {
-				// 	collaborationCount: currentProject.stats?.collaborationCount || 1,
-				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
-				// 	lastAccessed: new Date().toISOString(),
-				// });
+				// const collaboration = chatState.value.collaborations.find((collab) =>
+				// 	collab.id === data.logDataEntry.collaborationId
+				// );
+				// if (
+				// 	collaboration?.lastInteractionId &&
+				// 	collaboration.lastInteractionId === data.logDataEntry.interactionId // only if this logDataEntry is for the top-level interaction
+				// ) {
+				if (!data.logDataEntry.agentInteractionId) { // this is not logDataEntry for agentInteraction, so finalize the statement
+					// Update project stats for token usage
+					// const tokenUsage = data.logDataEntry.tokenUsageStats.tokenUsage?.totalTokens || 0;
+					// await updateProjectStats(currentProject.projectId, {
+					// 	collaborationCount: currentProject.stats?.collaborationCount || 1,
+					// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
+					// 	lastAccessed: new Date().toISOString(),
+					// });
 
-				// Update chatInputOptions with the request parameters from the response if available
-				// if (chatInputOptions && data.logDataEntry.collaborationParams) {
-				// 	console.info(
-				// 		'useChatState: wsManager effect: Updating options from message response',
-				// 		data.logDataEntry.collaborationParams,
-				// 	);
-				// 	chatInputOptions.value = {
-				// 		...chatInputOptions.value,
-				// 		rolesModelConfig: {
-				// 			...chatInputOptions.value.rolesModelConfig,
-				// 			...data.logDataEntry.collaborationParams.rolesModelConfig,
-				// 		},
-				// 	};
-				// }
+					// Update chatInputOptions with the request parameters from the response if available
+					// if (chatInputOptions && data.logDataEntry.collaborationParams) {
+					// 	console.info(
+					// 		'useChatState: wsManager effect: Updating options from message response',
+					// 		data.logDataEntry.collaborationParams,
+					// 	);
+					// 	chatInputOptions.value = {
+					// 		...chatInputOptions.value,
+					// 		rolesModelConfig: {
+					// 			...chatInputOptions.value.rolesModelConfig,
+					// 			...data.logDataEntry.collaborationParams.rolesModelConfig,
+					// 		},
+					// 	};
+					// }
 
-				chatState.value = {
-					...chatState.value,
-					status: {
-						...chatState.value.status,
-						isLoading: false,
-					},
-				};
-				// Handle scroll indicator for answer messages
-				if (scrollIndicatorState.value.isVisible) {
-					scrollIndicatorState.value = {
-						...scrollIndicatorState.value,
-						isAnswerMessage: true,
+					chatState.value = {
+						...chatState.value,
+						status: {
+							...chatState.value.status,
+							isLoading: false,
+						},
 					};
+					// Handle scroll indicator for answer messages
+					if (scrollIndicatorState.value.isVisible) {
+						scrollIndicatorState.value = {
+							...scrollIndicatorState.value,
+							isAnswerMessage: true,
+						};
+					}
+
+					// **TRIGGER NOTIFICATION** - Statement processing complete!
+					console.info('useChatState: Sending Completion to notification manager');
+					notificationManager.notifyStatementComplete(
+						'Your statement has been processed and is ready for review',
+					).then(() => {
+						console.info('useChatState: Completion notification sent successfully');
+					}).catch((error) => {
+						console.warn('useChatState: Failed to send completion notification:', error);
+					});
+
+					// Clear queue and force immediate IDLE status
+					statusQueue.reset({
+						status: ApiStatus.IDLE,
+						timestamp: Date.now(),
+						statementCount: data.logDataEntry.interactionStats.statementCount,
+						sequence: Number.MAX_SAFE_INTEGER,
+					});
 				}
-
-				// **TRIGGER NOTIFICATION** - Statement processing complete!
-				console.info('useChatState: Sending Completion to notification manager');
-				notificationManager.notifyStatementComplete(
-					'Your statement has been processed and is ready for review',
-				).then(() => {
-					console.info('useChatState: Completion notification sent successfully');
-				}).catch((error) => {
-					console.warn('useChatState: Failed to send completion notification:', error);
-				});
-
-				// Clear queue and force immediate IDLE status
-				statusQueue.reset({
-					status: ApiStatus.IDLE,
-					timestamp: Date.now(),
-					statementCount: data.logDataEntry.interactionStats.statementCount,
-					sequence: Number.MAX_SAFE_INTEGER,
-				});
 			}
 		};
 
@@ -927,6 +967,7 @@ export function useChatState(
 					console.error('useChatState: sendConverse: wsManager is null before sending message');
 					throw new Error('Chat WebSocket manager was lost during message send');
 				}
+				console.log(`useChatState: sendConverse statementParams: `, statementParams);
 				await chatState.value.wsManager.sendConverse(message, statementParams, attachedFiles);
 			} catch (error) {
 				console.error('useChatState: sendConverse: Failed to send message:', error);

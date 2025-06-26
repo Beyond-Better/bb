@@ -171,7 +171,7 @@ class AgentController extends BaseController {
 		errorHandler: ErrorHandler,
 	): Promise<Array<CompletedTask>> {
 		let completedTasks: CompletedTask[] = [];
-		logger.info('AgentController: executeSyncTasks ', { tasks });
+		//logger.info('AgentController: executeSyncTasks ', { tasks });
 		//tasks.forEach((task) => this.taskQueue.addTask(task));
 		try {
 			completedTasks = await Promise.all(
@@ -265,7 +265,7 @@ class AgentController extends BaseController {
 				throw new Error('Missing instructions');
 			}
 
-			collaboration.updateLastInteraction(interaction);
+			//collaboration.updateLastInteraction(interaction);
 			//collaboration.updateCollaborationParams({ rolesModelConfig: statementParams.rolesModelConfig });
 
 			const statement = `Instructions:\n${task.instructions}\n\nResponse format:\n${task.requirements}`;
@@ -314,6 +314,7 @@ class AgentController extends BaseController {
 		 */
 
 			const speakOptions: LLMSpeakWithOptions = {
+				...collaboration.collaborationParams?.rolesModelConfig.agent,
 				//temperature: 0.7,
 				//maxTokens: 1000,
 			};
@@ -376,7 +377,7 @@ class AgentController extends BaseController {
 				`AgentController: Saving interaction at beginning of statement: ${interaction.id}[${interaction.statementCount}][${interaction.statementTurnCount}]`,
 			);
 
-			await this.saveCollaboration(collaboration);
+			//await this.saveCollaboration(collaboration); // no changes made to collaboration
 			await this.saveInitialInteractionWithResponse(interaction, currentResponse);
 
 			const modelCapabilities = await interaction.getModelCapabilities();

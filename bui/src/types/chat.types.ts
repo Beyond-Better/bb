@@ -36,6 +36,7 @@ export interface ChatStatus extends WebSocketStatus {
 
 export interface ChatState {
 	collaborationId: string | null;
+	//interactionId: string | null; // the same as collaboration.lastInterationId, so use that instead
 	projectData: ClientProjectData | null;
 	apiClient: ApiClient | null;
 	wsManager: WebSocketManager | null;

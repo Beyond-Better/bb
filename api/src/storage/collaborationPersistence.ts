@@ -7,6 +7,7 @@ import type {
 	CollaborationId,
 	CollaborationMetadata,
 	InteractionId,
+	InteractionType,
 	ProjectId,
 	TokenUsage,
 	TokenUsageAnalysis,
@@ -601,7 +602,7 @@ class CollaborationPersistence {
 		};
 	}
 
-	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
+	async writeTokenUsage(record: TokenUsageRecord, type:InteractionType): Promise<void> {
 		await this.ensureInitialized();
 		try {
 				this.tokenUsagePersistence.writeUsage(record, type);

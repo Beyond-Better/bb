@@ -25,6 +25,7 @@ export type InteractionId = string;
 export type CollaborationId = string;
 
 export type CollaborationType = 'project' | 'workflow' | 'research';
+export type InteractionType =  'base' | 'chat' | 'conversation';
 
 export type VectorId = string;
 
@@ -54,6 +55,8 @@ export interface InteractionMetadata {
 	//projectId: ProjectId;
 	version?: number;
 	id: InteractionId;
+	parentInteractionId?: InteractionId;
+	interactionType: InteractionType;
 	title: string | null;
 
 	interactionStats: InteractionStats;
@@ -101,8 +104,6 @@ export interface InteractionDetailedMetadata extends InteractionMetadata {
 	// 	tokenUsageInteraction: TokenUsage;
 
 	interactionMetrics: InteractionMetrics;
-
-	parentInteractionId?: InteractionId;
 
 	//tools?: Array<{ name: string; description: string }>;
 }
@@ -249,7 +250,7 @@ export interface TokenUsageRecord {
 	statementTurnCount: number; // Links to log entry
 	timestamp: string; // ISO timestamp
 	role: 'user' | 'assistant' | 'tool' | 'system'; // Message role
-	type: 'conversation' | 'chat' | 'base'; // Interaction type
+	type: InteractionType; // Interaction type
 	model: string;
 
 	// Raw usage from LLM

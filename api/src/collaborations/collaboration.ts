@@ -183,6 +183,7 @@ export default class Collaboration {
 	updateLastInteraction(interaction: LLMInteraction): void {
 		const metadata = {
 			id: interaction.id,
+			interactionType: interaction.interactionType,
 			title: interaction.title,
 
 			interactionStats: interaction.interactionStats,

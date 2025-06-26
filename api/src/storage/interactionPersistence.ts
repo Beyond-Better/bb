@@ -18,6 +18,7 @@ import type {
 	InteractionMetadata,
 	InteractionMetrics,
 	InteractionStats,
+	InteractionType,
 	LLMRequestRecord,
 	ObjectivesData,
 	ProjectId,
@@ -367,7 +368,7 @@ class InteractionPersistence {
 		}
 	}
 
-	async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
+	async writeTokenUsage(record: TokenUsageRecord, type: InteractionType): Promise<void> {
 		await this.ensureInitialized();
 		try {
 			await Promise.all([
@@ -390,7 +391,7 @@ class InteractionPersistence {
 		}
 	}
 
-	async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]> {
+	async getTokenUsage(type: InteractionType): Promise<TokenUsageRecord[]> {
 		await this.ensureInitialized();
 		return this.tokenUsagePersistence.getUsage(type);
 	}
@@ -413,6 +414,7 @@ class InteractionPersistence {
 
 			const metadata: InteractionMetadata = {
 				id: interaction.id,
+				interactionType: interaction.interactionType,
 				title: interaction.title,
 				interactionStats: interaction.interactionStats,
 				interactionMetrics: interaction.interactionMetrics,
@@ -433,7 +435,7 @@ class InteractionPersistence {
 			// Create metadata with analyzed token usage
 			const detailedMetadata: InteractionDetailedMetadata = {
 				...metadata,
-				parentInteractionId: this.parentInteractionId,
+				parentInteractionId: interaction.parentInteractionId,
 
 				//system: interaction.baseSystem,
 				temperature: interaction.temperature,
@@ -538,8 +540,10 @@ class InteractionPersistence {
 			}
 
 			const metadata: InteractionDetailedMetadata = await this.getMetadata();
-			const interaction = new LLMConversationInteraction(collaboration, this._interactionId);
-			await interaction.init(metadata.model, interactionCallbacks);
+			const interaction = metadata.interactionType === 'chat'
+				? new LLMChatInteraction(collaboration, this._interactionId)
+				: new LLMConversationInteraction(collaboration, this._interactionId);
+			await interaction.init(metadata.model, interactionCallbacks, metadata.parentInteractionId);
 
 			interaction.id = metadata.id;
 			interaction.title = metadata.title || null;
@@ -644,16 +648,21 @@ class InteractionPersistence {
 				}
 			}
 
-			// Load resourcesMetadata
-			const resourcesMetadata = await this.getResourcesMetadata();
-			for (const [resourceRevisionKey, resourceMetadata] of Object.entries(resourcesMetadata)) {
-				//const { resourceUri, resourceRevision } = extractResourceKeyAndRevision(resourceRevisionKey);
+			if (metadata.interactionType === 'conversation') {
+				// Load resourcesMetadata
+				const resourcesMetadata = await this.getResourcesMetadata();
+				for (const [resourceRevisionKey, resourceMetadata] of Object.entries(resourcesMetadata)) {
+					//const { resourceUri, resourceRevision } = extractResourceKeyAndRevision(resourceRevisionKey);
 
-				interaction.setResourceRevisionMetadata(resourceRevisionKey, resourceMetadata);
+					(interaction as LLMConversationInteraction).setResourceRevisionMetadata(
+						resourceRevisionKey,
+						resourceMetadata,
+					);
 
-				// if (fileMetadata.inSystemPrompt) {
-				// 	interaction.addResourceForSystemPrompt(filePath, fileMetadata);
-				// }
+					// if (fileMetadata.inSystemPrompt) {
+					// 	interaction.addResourceForSystemPrompt(filePath, fileMetadata);
+					// }
+				}
 			}
 
 			return interaction;
@@ -1100,6 +1109,7 @@ class InteractionPersistence {
 			//projectId: this.projectEditor.projectInfo.projectId,
 			id: '',
 			parentInteractionId: undefined,
+			interactionType: 'conversation' as InteractionType,
 			title: '',
 			llmProviderName: '',
 			model: '',

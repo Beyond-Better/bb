@@ -39,7 +39,7 @@ interface TokenUsageRecord {
   messageId: string;        // Links to message in messages.jsonl
   timestamp: string;        // ISO timestamp
   role: 'user' | 'assistant' | 'system';  // Message role
-  type: 'conversation' | 'chat';          // Interaction type
+  type: InteractionType;          // Interaction type
   
   // Raw usage from LLM
   rawUsage: {
@@ -89,8 +89,8 @@ class TokenUsagePersistence {
   private async readRecords(filePath: string): Promise<TokenUsageRecord[]>;
   
   // Public API
-  async writeUsage(record: TokenUsageRecord, type: 'conversation' | 'chat'): Promise<void>;
-  async getUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]>;
+  async writeUsage(record: TokenUsageRecord, type: InteractionType): Promise<void>;
+  async getUsage(type: InteractionType): Promise<TokenUsageRecord[]>;
 }
 
 // Update InteractionPersistence to use TokenUsageWriter
@@ -103,8 +103,8 @@ class InteractionPersistence {
   }
 
   // Token usage methods
-  async writeTokenUsage(record: TokenUsageRecord, type: 'conversation' | 'chat'): Promise<void>;
-  async getTokenUsage(type: 'conversation' | 'chat'): Promise<TokenUsageRecord[]>;
+  async writeTokenUsage(record: TokenUsageRecord, type: InteractionType): Promise<void>;
+  async getTokenUsage(type: InteractionType): Promise<TokenUsageRecord[]>;
 }
 ```
 
@@ -141,7 +141,7 @@ Update interaction classes to use the new token usage tracking:
 ```typescript
 class BaseInteraction {
   // Update token usage handling to use new system
-  protected async recordTokenUsage(usage: TokenUsage, type: 'conversation' | 'chat'): Promise<void> {
+  protected async recordTokenUsage(usage: TokenUsage, type: InteractionType): Promise<void> {
     const record = this.createTokenUsageRecord(usage);
     await this.interactionPersistence.writeTokenUsage(record, type);
   }

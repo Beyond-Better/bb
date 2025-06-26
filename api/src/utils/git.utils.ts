@@ -110,7 +110,7 @@ export async function generateCommitMessage(
 		interaction.id,
 		'Generate Change Summary for Tool Operations',
 	);
-	const response = await chat.chat(prompt);
+	const response = await chat.chat(prompt, interaction.collaboration.collaborationParams.rolesModelConfig.chat);
 	const msg = response.messageResponse.answer;
 
 	return stripIndents`${msg}

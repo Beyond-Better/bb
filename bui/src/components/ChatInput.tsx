@@ -13,7 +13,7 @@ import type {
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
-import { ChatStatus, isProcessing } from '../types/chat.types.ts';
+import { ChatState, ChatStatus, isProcessing } from '../types/chat.types.ts';
 import { ApiStatus, ProjectId } from 'shared/types.ts';
 import { ApiClient, type ModelDetails } from '../utils/apiClient.utils.ts';
 import { formatPathForInsertion, getTextPositions, processSuggestions } from '../utils/textHandling.utils.ts';
@@ -23,6 +23,7 @@ import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
 import { getControllerRoleIcon } from 'shared/svgImages.tsx';
 import { useModelState } from '../hooks/useModelState.ts';
+import type { CollaborationValues } from 'shared/types.ts';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -51,7 +52,7 @@ interface ChatInputProps {
 	maxLength?: number;
 	collaborationId: string | null;
 	onHeightChange?: (height: number) => void;
-	chatState?: Signal<any>; // For accessing collaboration data
+	chatState?: Signal<ChatState>; // For accessing collaboration data
 }
 
 enum TabState {
@@ -161,6 +162,7 @@ export function ChatInput({
 	const internalRef = useRef<ChatInputRef | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const optionsModalRef = useRef<HTMLDivElement>(null);
+	const optionsButtonRef = useRef<HTMLButtonElement>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
@@ -242,7 +244,7 @@ export function ChatInput({
 		if (!chatState?.value || !collaborationId) return 0;
 
 		const currentCollaboration = chatState.value.collaborations?.find(
-			(collab: any) => collab.id === collaborationId,
+			(collab: CollaborationValues) => collab.id === collaborationId,
 		);
 
 		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
@@ -255,8 +257,7 @@ export function ChatInput({
 		const tokenUsageTurn =
 			currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
 		const contextWindow = orchestratorModelCapabilities.value.capabilities.contextWindow;
-		console.info('ChatInput: signal-tokenPercentage: contextWindow', contextWindow);
-		console.info('ChatInput: signal-tokenPercentage: tokenUsageTurn', tokenUsageTurn);
+		//console.info('ChatInput: signal-tokenPercentage:', { contextWindow, tokenUsageTurn });
 		const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
 		const tokenLimit = contextWindow;
 
@@ -1218,7 +1219,9 @@ export function ChatInput({
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
 				optionsModalRef.current &&
-				!optionsModalRef.current.contains(event.target as Node)
+				!optionsModalRef.current.contains(event.target as Node) &&
+				optionsButtonRef.current &&
+				!optionsButtonRef.current.contains(event.target as Node)
 			) {
 				isOptionsOpen.value = false;
 			}
@@ -1554,8 +1557,7 @@ export function ChatInput({
 									isOptionsOpen.value = false;
 								}
 							}}
-							className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
-						  dark:bg-gray-800 dark:text-gray-100 
+							className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto dark:bg-gray-800 dark:text-gray-100 
 						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
 						  ${disabled.value ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
@@ -1673,7 +1675,7 @@ export function ChatInput({
 							onTogglePin={togglePin}
 						/>
 
-						<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
+						<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-0.5'>
 							<button
 								type='button'
 								onClick={() => {
@@ -1712,11 +1714,20 @@ export function ChatInput({
 					</div>
 					<div className='flex items-center'>
 						<button
+							ref={optionsButtonRef}
 							type='button'
-							onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
-							className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
-							title='Chat Options'
-							aria-label='Chat Options'
+							onClick={(e) => {
+								e.stopPropagation();
+								isOptionsOpen.value = !isOptionsOpen.value;
+							}}
+							className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+								isOptionsOpen.value 
+									? 'bg-blue-500 dark:bg-blue-600 text-white' 
+									: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+							}`}
+							title={isOptionsOpen.value ? 'Close Chat Options' : 'Open Chat Options'}
+							aria-label={isOptionsOpen.value ? 'Close Chat Options' : 'Open Chat Options'}
+							aria-expanded={isOptionsOpen.value}
 						>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'

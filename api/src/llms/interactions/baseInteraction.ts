@@ -15,6 +15,7 @@ import type {
 	InteractionId,
 	InteractionMetrics,
 	InteractionStats,
+	InteractionType,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
@@ -53,10 +54,11 @@ import type { LLMSpeakWithResponse } from 'api/types.ts';
 
 class LLMInteraction {
 	public id: string;
+	public parentInteractionId?: string;
 	public title: string | null = null;
 	public createdAt: Date = new Date();
 	public updatedAt: Date = new Date();
-	protected _interactionType: 'base' | 'chat' | 'conversation';
+	protected _interactionType: InteractionType;
 
 	private _totalProviderRequests: number = 0;
 	// count of turns for most recent statement
@@ -131,6 +133,7 @@ class LLMInteraction {
 		try {
 			this._model = interactionModel;
 			this._interactionCallbacks = interactionCallbacks;
+			this.parentInteractionId = parentInteractionId;
 			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			this._localMode = globalConfig.api.localMode ?? false;
@@ -226,7 +229,7 @@ class LLMInteraction {
 		this.collaborationRef = new WeakRef(collaboration);
 	}
 
-	public get interactionType(): 'chat' | 'conversation' | 'base' {
+	public get interactionType():InteractionType {
 		return this._interactionType;
 	}
 

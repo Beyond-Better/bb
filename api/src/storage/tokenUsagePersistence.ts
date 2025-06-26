@@ -1,7 +1,7 @@
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { PersistenceError, TokenUsageValidationError } from 'api/errors/error.ts';
-import type { TokenUsageAnalysis, TokenUsageRecord } from 'shared/types.ts';
+import type { InteractionType, TokenUsageAnalysis, TokenUsageRecord } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 /**
@@ -252,7 +252,7 @@ export default class TokenUsagePersistence {
 	 * Writes a token usage record to the appropriate file based on type.
 	 * Validates the record before writing.
 	 */
-	async writeUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
+	async writeUsage(record: TokenUsageRecord, type: Omit<InteractionType, 'base'>): Promise<void> {
 		// Validate type parameter matches record type
 		if (record.type !== type) {
 			throw new TokenUsageValidationError(
@@ -340,7 +340,7 @@ export default class TokenUsagePersistence {
 		}
 	}
 
-	async getUsage(type: 'conversation' | 'chat' | 'base'): Promise<TokenUsageRecord[]> {
+	async getUsage(type: Omit<InteractionType, 'base'>): Promise<TokenUsageRecord[]> {
 		try {
 			await this.ensureDirectory();
 			const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
@@ -365,7 +365,7 @@ export default class TokenUsagePersistence {
 		}
 	}
 
-	async analyzeUsage(type: 'conversation' | 'chat'): Promise<TokenUsageAnalysis> {
+	async analyzeUsage(type: Omit<InteractionType, 'base'>): Promise<TokenUsageAnalysis> {
 		const records = await this.getUsage(type);
 
 		const analysis: TokenUsageAnalysis = {

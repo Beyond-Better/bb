@@ -1,4 +1,4 @@
-import type { TokenUsageRecord } from 'shared/types.ts';
+import type { InteractionType, TokenUsageRecord } from 'shared/types.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 
 interface MockTokenUsageRecordOptions {
@@ -15,7 +15,7 @@ interface MockTokenUsageRecordSequenceOptions {
 	interactionId?: string;
 	startMessageId?: string;
 	alternateRoles?: boolean;
-	type?: 'conversation' | 'chat';
+	type?: InteractionType;
 }
 
 /**
@@ -23,7 +23,7 @@ interface MockTokenUsageRecordSequenceOptions {
  */
 export function createMockTokenUsageRecord(
 	role: 'assistant' | 'user' | 'tool' | 'system',
-	type: 'conversation' | 'chat',
+	type: InteractionType,
 	options: MockTokenUsageRecordOptions = {},
 ): TokenUsageRecord {
 	const {

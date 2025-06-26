@@ -30,7 +30,7 @@ class LLMChatInteraction extends LLMInteraction {
 
 	public async chat(
 		prompt: string,
-		speakOptions?: LLMSpeakWithOptions,
+		speakOptions?: LLMSpeakWithOptions | null,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
 			speakOptions = {
@@ -52,6 +52,9 @@ class LLMChatInteraction extends LLMInteraction {
 		if (!this.model) this.model = this.projectConfig.defaultModels!.chat || DefaultModelsConfigDefaults.chat;
 		logger.debug(`ChatInteraction: chat - calling llm.speakWithRetry for ${messageId}`);
 		const response = await this.llm.speakWithRetry(this, speakOptions);
+
+		// Include the latest modelConfig in the saved interaction
+		this.modelConfig = response.messageMeta.llmRequestParams.modelConfig;
 
 		//logger.info(`ChatInteraction: saving chat interaction`, { id: this.id, title: this.title, answer: response.messageResponse.answer  });
 		await this.saveInteraction(response);

@@ -1,4 +1,4 @@
-import { type LLMRolesModelConfig } from 'api/types/llms.ts';
+import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
 	CollaborationId,
 	CollaborationType,
