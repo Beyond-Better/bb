@@ -44,7 +44,7 @@ const INPUT_MAX_CHAR_LENGTH = 25000;
 
 // Model state hook for centralized model management
 const {
-	//modelState,
+	modelState,
 	getDefaultRolesModelConfig,
 	getModelCapabilities,
 } = useModelState();
@@ -89,12 +89,55 @@ const getInputOptionsFromCollaboration = (
 			},
 		};
 	}
-	//console.log('ChatIsland: getInputOptionsFromCollaboration - collaboration.collaborationParams:', collaboration.collaborationParams);
 
 	// Return collaboration params
 	return {
 		rolesModelConfig: collaboration.collaborationParams.rolesModelConfig,
 	};
+};
+
+// Dedicated function to initialize chat input options
+const initializeChatInputOptions = async (collaborationId: string | null, collaborations: CollaborationValues[]) => {
+	// Get options from collaboration or defaults
+	const inputOptions = getInputOptionsFromCollaboration(collaborationId, collaborations);
+	chatInputOptions.value = inputOptions;
+
+	// Fetch model capabilities for all models in the configuration
+	const rolesConfig = inputOptions.rolesModelConfig;
+	if (rolesConfig) {
+		const modelIds = [
+			rolesConfig.orchestrator?.model,
+			rolesConfig.agent?.model,
+			rolesConfig.chat?.model,
+		].filter((model): model is string => Boolean(model));
+
+		// Remove duplicates
+		const uniqueModelIds = [...new Set(modelIds)];
+
+		// Load capabilities for all models used in this collaboration
+		if (uniqueModelIds.length > 0) {
+			try {
+				// Load capabilities for the primary model (orchestrator) for backward compatibility
+				if (rolesConfig.orchestrator?.model) {
+					const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
+					if (capabilities) {
+						modelData.value = capabilities;
+						console.info('Chat: Updated model capabilities for orchestrator:', capabilities.displayName);
+					}
+				}
+				// Preload other model capabilities in background
+				uniqueModelIds.forEach((modelId) => {
+					if (modelId !== rolesConfig.orchestrator?.model) {
+						getModelCapabilities(modelId).catch((error) => {
+							console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
+						});
+					}
+				});
+			} catch (error) {
+				console.error('Chat: Failed to fetch model capabilities', error);
+			}
+		}
+	}
 };
 
 interface ChatProps {
@@ -295,9 +338,35 @@ export default function Chat({
 		if (!projectId || !chatState.value.apiClient) return;
 
 		// Initialize model state with API client and project ID
-		console.log('Chat: Initializing model state for project:', projectId);
 		initializeModelState(chatState.value.apiClient, projectId);
 	}, [projectId, chatState.value.apiClient]);
+
+	// Re-initialize chat input options when model state becomes available
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+		if (!chatState.value.collaborationId) return;
+		
+		// Check if model state is available
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		if (!defaultRolesConfig || modelState.value.isLoadingDefaults) {
+			return;
+		}
+		
+		// If we have a blank collaboration and no valid options, reinitialize
+		const currentConfig = chatInputOptions.value.rolesModelConfig;
+		const hasValidConfig = currentConfig && (
+			currentConfig.orchestrator?.model || 
+			currentConfig.agent?.model || 
+			currentConfig.chat?.model
+		);
+		
+		if (!hasValidConfig) {
+			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+				.catch((error) => {
+					console.error('Chat: Failed to reinitialize chat input options:', error);
+				});
+		}
+	}, [chatState.value.collaborationId, modelState.value.defaultRolesModelConfig, modelState.value.isLoadingDefaults]);
 
 	// Utility functions
 
@@ -328,6 +397,7 @@ export default function Chat({
 		const maxRetries = 3;
 
 		try {
+			console.info('Chat: sendConverse - chatInputOptions', chatInputOptions.value);
 			// Pass the options from the signal to the handler
 			await handlers.sendConverse(trimmedInput, chatInputOptions.value, attachedFiles.value);
 			const duration = performance.now() - startTime;
@@ -408,49 +478,8 @@ export default function Chat({
 			await handlers.selectCollaboration(id);
 			setCollaboration(id);
 
-			// Update options based on the selected collaboration
-			chatInputOptions.value = getInputOptionsFromCollaboration(id, chatState.value.collaborations);
-			console.info('ChatIsland: Updated options for selected collaboration', id, chatInputOptions.value);
-
-			// Fetch model capabilities for all models in the collaboration
-			const rolesConfig = chatInputOptions.value.rolesModelConfig;
-			if (rolesConfig) {
-				const modelIds = [
-					rolesConfig.orchestrator?.model,
-					rolesConfig.agent?.model,
-					rolesConfig.chat?.model,
-				].filter((model): model is string => Boolean(model));
-
-				// Remove duplicates
-				const uniqueModelIds = [...new Set(modelIds)];
-
-				// Load capabilities for all models used in this collaboration
-				if (uniqueModelIds.length > 0) {
-					try {
-						// Load capabilities for the primary model (orchestrator) for backward compatibility
-						if (rolesConfig.orchestrator?.model) {
-							const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
-							if (capabilities) {
-								modelData.value = capabilities;
-								console.info(
-									'Chat: Updated model capabilities for orchestrator:',
-									capabilities.displayName,
-								);
-							}
-						}
-						// Preload other model capabilities in background
-						uniqueModelIds.forEach((modelId) => {
-							if (modelId !== rolesConfig.orchestrator?.model) {
-								getModelCapabilities(modelId).catch((error) => {
-									console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
-								});
-							}
-						});
-					} catch (error) {
-						console.error('Chat: Failed to fetch model capabilities', error);
-					}
-				}
-			}
+			// Initialize chat input options with the selected collaboration
+			await initializeChatInputOptions(id, chatState.value.collaborations);
 
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
@@ -483,37 +512,23 @@ export default function Chat({
 	}, [handlers]);
 
 	useEffect(() => {
-		console.log('Chat: collaborationId useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
 
 		// Initialize options from current collaboration
 		if (chatState.value.collaborationId) {
-			const inputOptionsFromCollaboration = getInputOptionsFromCollaboration(
-				chatState.value.collaborationId,
-				chatState.value.collaborations,
-			);
-			chatInputOptions.value = inputOptionsFromCollaboration;
-			console.info(
-				`Chat: Initialized chatInputOptions from collaboration: ${chatState.value.collaborationId}`,
-				inputOptionsFromCollaboration,
-			);
-
-			// Fetch model capabilities for the current collaboration models
-			const rolesConfig = inputOptionsFromCollaboration.rolesModelConfig;
-			if (rolesConfig?.orchestrator?.model) {
-				console.info('Chat: Getting model capabilities for orchestrator:', rolesConfig.orchestrator.model);
-				getModelCapabilities(rolesConfig.orchestrator.model)
-					.then((capabilities) => {
-						console.info('Chat: Got capabilities for orchestrator:', capabilities);
-						if (capabilities) {
-							modelData.value = capabilities;
-							console.info('Chat: Loaded model capabilities for orchestrator:', capabilities.displayName);
-						}
-					})
-					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
-			}
+			// Use the centralized initialization function
+			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+				.catch((error) => {
+					console.error('Chat: Failed to initialize chat input options:', error);
+					// Fallback to basic initialization
+					const fallbackOptions = getInputOptionsFromCollaboration(
+						chatState.value.collaborationId,
+						chatState.value.collaborations,
+					);
+					chatInputOptions.value = fallbackOptions;
+				});
 		}
 
 		const handlePopState = async () => {
