@@ -42,6 +42,7 @@ export interface ChatState {
 	wsManager: WebSocketManager | null;
 	logDataEntries: CollaborationLogDataEntry[];
 	collaborations: CollaborationValues[];
+	selectedCollaboration: CollaborationValues | null; // Dedicated signal for current collaboration to ensure reactivity
 	status: ChatStatus;
 }
 

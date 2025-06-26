@@ -18,6 +18,7 @@ const initialState: ChatState = {
 	apiClient: null,
 	wsManager: null,
 	collaborations: [],
+	selectedCollaboration: null,
 	logDataEntries: [],
 	status: {
 		isConnecting: false,

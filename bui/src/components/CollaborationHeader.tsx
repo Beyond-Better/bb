@@ -72,9 +72,8 @@ export function CollaborationHeader({
 	//currentProject,
 }: CollaborationHeaderProps): JSX.Element {
 	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
-	const currentCollaboration = useComputed(() =>
-		chatState.value.collaborations.find((c) => c.id === chatState.value.collaborationId)
-	);
+	// Use selectedCollaboration from chatState for better reactivity
+	const currentCollaboration = useComputed(() => chatState.value.selectedCollaboration);
 	//console.log('CollaborationHeader: ', currentCollaboration.value);
 
 	// Find the latest assistant message that might have request params

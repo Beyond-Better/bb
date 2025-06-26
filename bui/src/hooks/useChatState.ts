@@ -342,6 +342,7 @@ export function useChatState(
 					wsManager,
 					collaborationId,
 					collaborations: updatedCollaborations,
+					selectedCollaboration: collaboration, // Set selected collaboration directly
 					logDataEntries,
 				};
 
@@ -430,6 +431,7 @@ export function useChatState(
 					...chatState.value,
 					wsManager: null,
 					apiClient: null,
+					selectedCollaboration: null,
 					status: {
 						isConnecting: false,
 						isLoading: false,
@@ -513,7 +515,7 @@ export function useChatState(
 			// 	currentLogEntries: chatState.value.logDataEntries.length,
 			// 	timestamp: new Date().toISOString(),
 			// });
-			console.debug('useChatState: wsManager effect: Processing message:', data.msgType);
+			console.debug('useChatState: handleMessage: Processing message:', data.msgType);
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) =>
 				p.data.projectId === appState.value.projectId
@@ -541,7 +543,7 @@ export function useChatState(
 
 				// Load collaboration data first
 				if (!chatState.value.apiClient) {
-					console.error('useChatState: selectCollaboration: apiClient is null before getCollaboration');
+					console.error('useChatState: handleMessage: apiClient is null before getCollaboration');
 					throw new Error('Chat API client was lost during collaboration load');
 				}
 				const collaboration = (data.logDataEntry.collaborationId && appState.value.projectId)
@@ -558,7 +560,7 @@ export function useChatState(
 				// 	)
 				// 	: null;
 				console.log(
-					`useChatState: collaborationNew for ${data.logDataEntry.collaborationId}: loaded`,
+					`useChatState: handleMessage: collaborationNew for ${data.logDataEntry.collaborationId}: loaded`,
 					collaboration,
 				);
 
@@ -600,9 +602,15 @@ export function useChatState(
 					}
 				}
 
+				// Update selectedCollaboration if it's the current collaboration being created
+				const updatedSelectedCollaboration = data.logDataEntry.collaborationId === chatState.value.collaborationId
+					? collaboration
+					: chatState.value.selectedCollaboration;
+
 				chatState.value = {
 					...chatState.value,
 					collaborations: updatedCollaborations,
+					selectedCollaboration: updatedSelectedCollaboration,
 				};
 				return;
 			}
@@ -632,6 +640,10 @@ export function useChatState(
 					collaborationId: chatState.value.collaborationId === deletedId
 						? null
 						: chatState.value.collaborationId,
+					// Clear selectedCollaboration if it was deleted
+					selectedCollaboration: chatState.value.selectedCollaboration?.id === deletedId
+						? null
+						: chatState.value.selectedCollaboration,
 					// Clear log entries if current collaboration was deleted
 					logDataEntries: chatState.value.collaborationId === deletedId ? [] : chatState.value.logDataEntries,
 				};
@@ -645,34 +657,41 @@ export function useChatState(
 			if (data.logDataEntry.collaborationId !== chatState.value.collaborationId) return;
 
 			// Update log entries and collaboration stats
-			chatState.value = {
-				...chatState.value,
-				collaborations: chatState.value.collaborations.map((collab) => {
-					if (
-						collab.id === data.logDataEntry.collaborationId && // only update the current collaboration
-						collab.lastInteractionId === data.logDataEntry.interactionId && // and only if this logDataEntry is for the top-level interaction (not a chat interaction)
-						!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
-						data.logDataEntry.logEntry // and only if we have a valid logEntry
-					) {
-						const newCollab = { ...collab };
+			const updatedCollaborations = chatState.value.collaborations.map((collab) => {
+				if (
+					collab.id === data.logDataEntry.collaborationId && // only update the current collaboration
+					data.logDataEntry.logEntry // and only if we have a valid logEntry
+				) {
+					const newCollab = { ...collab };
 						if (
 							// update collaborationParams if there is a rolesModelConfig and all the roles are not null
 							data.logDataEntry.collaborationParams?.rolesModelConfig &&
 							Object.values(data.logDataEntry.collaborationParams.rolesModelConfig).some((config) =>
 								config !== null
 							)
-						) newCollab.collaborationParams = data.logDataEntry.collaborationParams;
+						) {
+							console.info('useChatState: handleMessage: Updating newCollab.collaborationParams');
+							newCollab.collaborationParams = data.logDataEntry.collaborationParams;
+						}
+
 						if (
 							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration
 						) {
+							console.info('useChatState: handleMessage: Updating newCollab.tokenUsageCollaboration');
 							newCollab.tokenUsageCollaboration =
 								data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
 						}
+
 						if (
 							// update the common values for lastInteractionMetadata - in particular the counts in interactionStats
+							collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+							!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
 							newCollab.lastInteractionMetadata &&
 							data.logDataEntry.logEntry.entryType !== 'auxiliary' // but not if it's an auxiliary logEntry
 						) {
+							console.info(
+								'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [general]',data.logDataEntry.interactionStats
+							);
 							newCollab.lastInteractionMetadata = {
 								...newCollab.lastInteractionMetadata,
 								interactionStats: data.logDataEntry.interactionStats,
@@ -681,22 +700,38 @@ export function useChatState(
 								updatedAt: data.logDataEntry.updatedAt,
 							};
 						}
+
 						if (
 							// update the tokenUsageStats
+							collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+							!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
 							newCollab.lastInteractionMetadata &&
 							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens &&
 							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens > 0 && // but only if the values are not zero
 							['assistant', 'tool_use', 'answer'].includes(data.logDataEntry.logEntry.entryType) // and only if a "token usage" type turn
 						) {
+							console.info(
+								'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [tokenUsageStatsForInteraction]',data.logDataEntry.tokenUsageStatsForCollaboration
+							);
 							newCollab.lastInteractionMetadata = {
 								...newCollab.lastInteractionMetadata,
 								tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
 							};
 						}
-						return newCollab;
-					}
-					return collab;
-				}),
+					return newCollab;
+				}
+				return collab;
+			});
+
+			// Update selectedCollaboration if it's the current collaboration being updated
+			const updatedSelectedCollaboration = data.logDataEntry.collaborationId === chatState.value.collaborationId
+				? updatedCollaborations.find(c => c.id === data.logDataEntry.collaborationId) || chatState.value.selectedCollaboration
+				: chatState.value.selectedCollaboration;
+
+			chatState.value = {
+				...chatState.value,
+				collaborations: updatedCollaborations,
+				selectedCollaboration: updatedSelectedCollaboration,
 				logDataEntries: (() => {
 					const newEntries = addLogDataEntry(chatState.value.logDataEntries, data.logDataEntry);
 					console.debug('useChatState: wsManager effect: Updated logDataEntries', {
@@ -1051,6 +1086,7 @@ export function useChatState(
 					...chatState.value,
 					collaborationId: id,
 					collaborations: updatedCollaborations,
+					selectedCollaboration: collaboration, // Set selected collaboration directly
 					logDataEntries: collaboration?.logDataEntries || [],
 					//status: { ...chatState.value.status, isLoading: false, isReady: true },
 				};
@@ -1080,6 +1116,7 @@ export function useChatState(
 		clearCollaboration: () => {
 			chatState.value = {
 				...chatState.value,
+				selectedCollaboration: null,
 				logDataEntries: [],
 				status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
 			};

@@ -48,8 +48,9 @@ export function CollaborationSelector({
 		);
 	});
 
+	// Use selectedCollaboration from chatState for better reactivity
 	const currentCollaboration = useComputed<CollaborationValues | undefined>(() =>
-		chatState.value.collaborations.find((c: CollaborationValues) => c.id === chatState.value.collaborationId)
+		chatState.value.selectedCollaboration || undefined
 	);
 	//console.log('CollaborationSelector: currentCollaboration', currentCollaboration.value);
 	//console.log('CollaborationSelector: sortedCollaborations', sortedCollaborations.value);
