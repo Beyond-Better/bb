@@ -10,8 +10,8 @@ import type {
 	ValidationResult,
 	ValidationContext,
 	ValidationEngineConfig,
-} from 'api/types/validationRules.types.ts';
-import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
+} from 'api/types/validationRules.ts';
+import type { ModelCapabilities } from 'api/types/modelCapabilities.ts';
 
 /**
  * Service for managing validation rules
@@ -204,14 +204,14 @@ export class ValidationRuleService {
 					condition: {
 						field: 'parameters.maxTokens',
 						operator: 'greater_than',
-						value: 'modelCapabilities.maxOutputTokens',
+						value: 100000, // TODO: This should be resolved dynamically from modelCapabilities.maxOutputTokens
 						description: 'Max tokens exceeds model limit',
 					},
 					actions: [
 						{
 							action: 'set_constraint',
 							target: 'maxTokens',
-							value: { max: 'modelCapabilities.maxOutputTokens' },
+							value: { max: 100000 }, // TODO: This should be resolved dynamically from modelCapabilities.maxOutputTokens
 						},
 						{
 							action: 'show_error',
@@ -411,6 +411,8 @@ export class ValidationRuleService {
 		this.ruleSets.set(ruleSet.id, {
 			...ruleSet,
 			metadata: {
+				createdAt: ruleSet.metadata?.createdAt || new Date().toISOString(),
+				author: ruleSet.metadata?.author,
 				...ruleSet.metadata,
 				updatedAt: new Date().toISOString(),
 			},

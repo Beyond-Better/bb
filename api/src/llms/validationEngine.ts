@@ -15,7 +15,7 @@ import type {
 	ValidationEngineConfig,
 	ConditionOperator,
 	//LogicalOperator,
-} from 'api/types/validationRules.types.ts';
+} from 'api/types/validationRules.ts';
 
 /**
  * Engine for evaluating validation rules
@@ -148,7 +148,7 @@ export class ValidationEngine {
 		context: ValidationContext,
 		depth: number,
 	): boolean {
-		const results = group.conditions.map((condition:ValidationCondition) => 
+		const results = group.conditions.map(condition => 
 			this.evaluateCondition(condition, context, depth)
 		);
 
@@ -343,7 +343,6 @@ export class ValidationEngine {
 
 			case 'show_warning':
 			case 'show_error':
-			case 'show_info':
 				if (action.message) {
 					const severity = action.severity || (action.action === 'show_error' ? 'error' : action.action === 'show_warning' ? 'warning' : 'info');
 					result.messages[severity === 'error' ? 'errors' : severity === 'warning' ? 'warnings' : 'info'].push(action.message);
@@ -373,7 +372,7 @@ export class ValidationEngine {
 	 */
 	public static createContext(
 		model: string,
-		modelCapabilities: import('api/types/modelCapabilities.types.ts').ModelCapabilities,
+		modelCapabilities: import('api/types/modelCapabilities.ts').ModelCapabilities,
 		parameters: Record<string, unknown>,
 		additionalContext: Record<string, unknown> = {},
 	): ValidationContext {
