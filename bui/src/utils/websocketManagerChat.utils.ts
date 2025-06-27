@@ -13,7 +13,7 @@ import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
 import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
-import type { StatementParams } from 'shared/types/collaborationParams.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 
 interface WebSocketMessage {
 	collaborationId: string;
