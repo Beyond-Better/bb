@@ -17,6 +17,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.6] - 2025-06-27
+
+### Notes
+
+This is a quick fix. Including change notes from v0.8.5 as well.
+
+### BREAKING CHANGES
+
+- Major refactor to storage format for conversations 
+
+### Added
+
+- refactored storage format as foundation for improved multi-agent support, model selection, and token reporting - new Collaboration class
+- model selection for all AI roles (orchestrator/agent/admin)
+- backup project before migration
+- Enhanced release notes system with critical notices
+- Release notes parsing from GitHub releases
+- Breaking changes detection in DUI
+
+### Changed
+
+- progress bar for token usage of context window
+- validate model config options
+- chat input receives focus when creating new conversation
+- GitHub release workflow now extracts changelog information
+- DUI update prompts show enhanced release information
+
+### Fixed
+
+- updates for token and stats reporting in BUI
+- passing model config between API and BUI
+- o3 model params
+- cleanup duplicate tests
+- cleanup storage migration functions
+- validation for extended thinking budget in global project defaults
+- ensure allowedCommand for run_command tool has at least one command
+- ensure user and assistant name are loaded from project config
+
+
 ## [0.8.5] - 2025-06-27
 
 ### BREAKING CHANGES
