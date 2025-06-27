@@ -127,7 +127,8 @@ export function ProjectMetadata({
 							</span>
 						</div>
 
-						<div className='flex items-center text-purple-600'>
+						{
+							/* <div className='flex items-center text-purple-600'>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								className='h-5 w-5 mr-1.5'
@@ -144,7 +145,8 @@ export function ProjectMetadata({
 							</svg>
 							<span>{chatState.value.projectData?.stats?.totalTokens.toLocaleString() || '--'}</span>
 							<span className='text-gray-500 dark:text-gray-400 ml-1'>tokens used</span>
-						</div>
+						</div> */
+						}
 
 						{chatState.value.projectData?.stats?.lastAccessed && (
 							<div className='flex items-center text-gray-500 dark:text-gray-400'>
