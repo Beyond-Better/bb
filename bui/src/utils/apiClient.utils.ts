@@ -9,7 +9,7 @@ import type {
 	ClientProjectWithConfigSources,
 } from 'shared/types/project.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
-import type { CollaborationParams } from 'shared/types/collaboration.types.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
