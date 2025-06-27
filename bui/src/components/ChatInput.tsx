@@ -24,6 +24,7 @@ import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
 import { getControllerRoleIcon } from 'shared/svgImages.tsx';
 import { useModelState } from '../hooks/useModelState.ts';
 import type { CollaborationValues } from 'shared/types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -53,6 +54,7 @@ interface ChatInputProps {
 	collaborationId: string | null;
 	onHeightChange?: (height: number) => void;
 	chatState?: Signal<ChatState>; // For accessing collaboration data
+	projectConfig?: ProjectConfig | null; // Project configuration
 }
 
 enum TabState {
@@ -157,6 +159,7 @@ export function ChatInput({
 	collaborationId,
 	onHeightChange,
 	chatState,
+	projectConfig,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
@@ -1362,9 +1365,10 @@ export function ChatInput({
 
 		// Then handle specific API states
 		switch (status.apiStatus) {
-			case ApiStatus.LLM_PROCESSING:
+			case ApiStatus.LLM_PROCESSING: {
+				const assistantName = projectConfig?.myAssistantsName || 'Assistant';
 				return {
-					message: 'Assistant is thinking...',
+					message: `${assistantName} is thinking...`,
 					type: 'info' as const,
 					status: status.apiStatus,
 					visible: true,
@@ -1376,6 +1380,7 @@ export function ChatInput({
 						}
 						: undefined,
 				};
+			}
 
 			case ApiStatus.TOOL_HANDLING:
 				return {

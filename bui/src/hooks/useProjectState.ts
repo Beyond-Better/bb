@@ -9,13 +9,14 @@ import type {
 } from 'shared/types/project.ts';
 import type { ProjectId } from 'shared/types.ts';
 //import { toProject } from 'shared/types/project.ts';
-import { MCPServerConfig } from 'shared/config/types.ts';
+import { MCPServerConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 
 export interface ProjectState {
 	projects: ClientProjectWithConfigSources[];
 	dsProviders: DataSourceProviderInfo[]; // Add data source types
 	mcpServers: MCPServerConfig[];
+	projectConfig: ProjectConfig | null; // Add project configuration
 	loading: boolean;
 	error: string | null;
 }
@@ -24,6 +25,7 @@ const initialState: ProjectState = {
 	projects: [],
 	dsProviders: [], // Initialize empty data source types array
 	mcpServers: [], // Initialize empty MCP servers array
+	projectConfig: null, // Initialize empty project config
 	loading: false,
 	error: null,
 };
@@ -68,6 +70,25 @@ export function useProjectState(appState: Signal<AppState>) {
 	// Compute selectedProjectId from appState
 	const selectedProjectId = computed(() => appState.value.projectId);
 	// functions for managing ProjectState
+	async function loadProjectConfig(projectId: ProjectId | null) {
+		if (!projectId) {
+			projectState.value = { ...projectState.value, projectConfig: null };
+			return;
+		}
+
+		const apiClient = appState.value.apiClient;
+		if (!apiClient) return;
+
+		try {
+			const config = await apiClient.getProjectConfig(projectId);
+			projectState.value = { ...projectState.value, projectConfig: config };
+		} catch (error) {
+			console.error('useProjectState: Failed to load project config:', error);
+			// Don't update error state since this is a background operation
+			projectState.value = { ...projectState.value, projectConfig: null };
+		}
+	}
+
 	async function loadProjects() {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
@@ -255,6 +276,9 @@ export function useProjectState(appState: Signal<AppState>) {
 		// Update URL and localStorage
 		updateUrlParams(projectId);
 		updateLocalStorage(projectId);
+
+		// Load project configuration for the selected project
+		loadProjectConfig(projectId);
 
 		// If we have a projectId and an API client, fetch the filtered data source types
 		if (projectId && appState.value.apiClient) {
@@ -493,6 +517,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		state: projectState,
 		selectedProjectId,
 		loadProjects,
+		loadProjectConfig,
 		getBlankProject,
 		createProject,
 		updateProject,

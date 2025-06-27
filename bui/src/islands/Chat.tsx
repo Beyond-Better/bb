@@ -161,8 +161,7 @@ export default function Chat({
 	const appState = useAppState();
 
 	// Get project state and selectedProjectId signal
-	//const { state: projectState, selectedProjectId } = useProjectState(appState);
-	const { selectedProjectId } = useProjectState(appState);
+	const { state: projectState, selectedProjectId, loadProjectConfig } = useProjectState(appState);
 	// Use projectId from selectedProjectId signal
 	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
@@ -339,7 +338,10 @@ export default function Chat({
 
 		// Initialize model state with API client and project ID
 		initializeModelState(chatState.value.apiClient, projectId);
-	}, [projectId, chatState.value.apiClient]);
+
+		// Load project configuration for the selected project
+		loadProjectConfig(projectId);
+	}, [projectId, chatState.value.apiClient, loadProjectConfig]);
 
 	// Re-initialize chat input options when model state becomes available
 	useEffect(() => {
@@ -941,6 +943,7 @@ export default function Chat({
 										collaborationId={chatState.value.collaborationId}
 										onHeightChange={setInputAreaHeight}
 										chatState={chatState}
+										projectConfig={projectState.value.projectConfig}
 									/>
 								</div>
 							</main>
