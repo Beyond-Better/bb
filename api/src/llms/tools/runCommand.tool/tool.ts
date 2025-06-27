@@ -34,6 +34,8 @@ export default class LLMToolRunCommand extends LLMTool {
 	constructor(name: string, description: string, toolConfig: LLMToolRunCommandConfig) {
 		super(name, description, toolConfig);
 		this.allowedCommands = toolConfig.allowedCommands || [];
+		// add at least one allowedCommand to avoid schema validation error: data/properties/command/enum must NOT have fewer than 1 items
+		if (!Array.isArray(this.allowedCommands) || this.allowedCommands.length === 0) this.allowedCommands = ['ls'];
 		logger.debug(
 			`LLMToolRunCommand: Initialized with allowed commands:\n${
 				this.allowedCommands.map((cmd) => `  - ${cmd}`).join('\n')

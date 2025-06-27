@@ -49,34 +49,34 @@ export default class LogEntryFormatterManager {
 		switch (logEntry.entryType as CollaborationLogEntryType) {
 			case 'user':
 				formatted = destination === 'console'
-					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myPersonsName || 'User')
-					: this.formatLogEntryBasicBrowser(logEntry, this.globalConfig.myPersonsName || 'User');
+					? this.formatLogEntryBasicConsole(logEntry, this.projectConfig.myPersonsName || 'User')
+					: this.formatLogEntryBasicBrowser(logEntry, this.projectConfig.myPersonsName || 'User');
 				break;
 			case 'orchestrator':
 				formatted = destination === 'console'
 					? this.formatLogEntryBasicConsole(
 						logEntry,
-						`${this.globalConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
+						`${this.projectConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
 					)
 					: this.formatLogEntryBasicBrowser(
 						logEntry,
-						`${this.globalConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
+						`${this.projectConfig.myAssistantsName || 'Assistant'} as Orchestrator`,
 					);
 				break;
 			case 'assistant':
 				formatted = destination === 'console'
-					? this.formatLogEntryBasicConsole(logEntry, this.globalConfig.myAssistantsName || 'Assistant')
-					: this.formatLogEntryBasicBrowser(logEntry, this.globalConfig.myAssistantsName || 'Assistant');
+					? this.formatLogEntryBasicConsole(logEntry, this.projectConfig.myAssistantsName || 'Assistant')
+					: this.formatLogEntryBasicBrowser(logEntry, this.projectConfig.myAssistantsName || 'Assistant');
 				break;
 			case 'answer':
 				formatted = destination === 'console'
 					? this.formatLogEntryBasicConsole(
 						logEntry,
-						`Answer from ${this.globalConfig.myAssistantsName || 'Assistant'}`,
+						`Answer from ${this.projectConfig.myAssistantsName || 'Assistant'}`,
 					)
 					: this.formatLogEntryBasicBrowser(
 						logEntry,
-						`Answer from ${this.globalConfig.myAssistantsName || 'Assistant'}`,
+						`Answer from ${this.projectConfig.myAssistantsName || 'Assistant'}`,
 					);
 				break;
 			case 'auxiliary':
