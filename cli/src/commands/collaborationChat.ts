@@ -18,7 +18,7 @@ import { checkApiStatus } from '../utils/apiStatus.utils.ts';
 import { getApiStatus, startApiServer, stopApiServer } from '../utils/apiControl.utils.ts';
 import { getBbDir, getProjectId, getWorkingRootFromStartDir } from 'shared/dataDir.ts';
 import { addToStatementHistory } from '../utils/statementHistory.utils.ts';
-import { generateCollaborationId, shortenCollaborationId } from 'shared/utils/generateIds.utils.ts';
+import { generateCollaborationId, shortenCollaborationId } from 'shared/generateIds.ts';
 import { eventManager } from 'shared/eventManager.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ApiConfig } from 'shared/config/types.ts';
