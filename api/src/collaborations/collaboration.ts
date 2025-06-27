@@ -91,6 +91,7 @@ export default class Collaboration {
 		);
 		const agentConfig = registryService.getModelConfig(defaultModels.agent || DefaultModelsConfigDefaults.agent);
 		const chatConfig = registryService.getModelConfig(defaultModels.chat || DefaultModelsConfigDefaults.chat);
+		//logger.info(`Collaboration: getDefaultCollaborationParams`, { orchestratorConfig, agentConfig, chatConfig });
 
 		return {
 			rolesModelConfig: {

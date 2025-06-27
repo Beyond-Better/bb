@@ -25,7 +25,7 @@ export type InteractionId = string;
 export type CollaborationId = string;
 
 export type CollaborationType = 'project' | 'workflow' | 'research';
-export type InteractionType =  'base' | 'chat' | 'conversation';
+export type InteractionType = 'base' | 'chat' | 'conversation';
 
 export type VectorId = string;
 
@@ -336,6 +336,7 @@ export interface TokenUsageStatsForInteraction {
 	tokenUsageTurn: TokenUsage;
 	tokenUsageStatement: TokenUsage;
 	tokenUsageInteraction: TokenUsage;
+	tokenUsageCollaboration?: TokenUsage;
 }
 export interface TokenUsageStatsForCollaboration {
 	tokenUsageTurn: TokenUsage;

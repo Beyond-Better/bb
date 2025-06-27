@@ -7,14 +7,14 @@ import { useCallback, useEffect, useRef } from 'preact/hooks';
 import { batch, computed, signal, useSignal, useSignalEffect } from '@preact/signals';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import {
-	ValidationClient,
 	aggregateValidationResults,
 	applyConstraintsToField,
 	getFieldMessages,
 	getSuggestedValue,
 	shouldHighlightField,
-	type ValidationResult,
+	ValidationClient,
 	type ValidationPreview,
+	type ValidationResult,
 } from '../utils/validationClient.utils.ts';
 
 // Shared validation client instance
@@ -119,7 +119,7 @@ export function useValidation(
 				});
 
 				const previewData = await validationClient.current!.previewConstraints(model, context);
-				
+
 				batch(() => {
 					preview.value = previewData;
 					isLoadingPreview.value = false;

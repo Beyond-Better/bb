@@ -10,7 +10,18 @@ import type { ApiClient } from './apiClient.utils.ts';
  */
 export interface ValidationCondition {
 	field: string;
-	operator: 'equals' | 'not_equals' | 'contains' | 'not_contains' | 'matches_pattern' | 'in' | 'not_in' | 'greater_than' | 'less_than' | 'greater_equal' | 'less_equal';
+	operator:
+		| 'equals'
+		| 'not_equals'
+		| 'contains'
+		| 'not_contains'
+		| 'matches_pattern'
+		| 'in'
+		| 'not_in'
+		| 'greater_than'
+		| 'less_than'
+		| 'greater_equal'
+		| 'less_equal';
 	value: string | number | boolean | Array<string | number | boolean>;
 	description?: string;
 }
@@ -22,7 +33,15 @@ export interface ValidationConditionGroup {
 }
 
 export interface ValidationRuleAction {
-	action: 'set_value' | 'set_constraint' | 'disable_feature' | 'enable_feature' | 'show_warning' | 'show_error' | 'suggest_value' | 'require_feature';
+	action:
+		| 'set_value'
+		| 'set_constraint'
+		| 'disable_feature'
+		| 'enable_feature'
+		| 'show_warning'
+		| 'show_error'
+		| 'suggest_value'
+		| 'require_feature';
 	target: string;
 	value?: string | number | boolean | { min?: number; max?: number };
 	message?: string;
@@ -279,7 +298,7 @@ export function applyConstraintsToField(
 	pattern?: string;
 } {
 	const constraint = constraints[fieldName];
-	
+
 	if (!constraint) {
 		return {
 			disabled: false,
@@ -365,7 +384,7 @@ export function shouldHighlightField(
 	message?: string;
 } {
 	const fieldMessages = getFieldMessages(fieldName, validationResult.triggeredRules);
-	
+
 	if (fieldMessages.errors.length > 0) {
 		return {
 			highlight: true,
@@ -373,7 +392,7 @@ export function shouldHighlightField(
 			message: fieldMessages.errors[0],
 		};
 	}
-	
+
 	if (fieldMessages.warnings.length > 0) {
 		return {
 			highlight: true,
@@ -381,7 +400,7 @@ export function shouldHighlightField(
 			message: fieldMessages.warnings[0],
 		};
 	}
-	
+
 	if (fieldMessages.info.length > 0) {
 		return {
 			highlight: true,

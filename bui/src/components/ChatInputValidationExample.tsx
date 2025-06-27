@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'preact/hooks';
 import { batch, type Signal, signal, useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { TargetedEvent } from 'preact/compat';
 import type { LLMRequestParams } from '../types/llm.types.ts';
-import { useValidation, useFieldValidation, useSubmitValidation } from '../hooks/useValidation.ts';
+import { useFieldValidation, useSubmitValidation, useValidation } from '../hooks/useValidation.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 
 interface ValidationExampleProps {
@@ -24,7 +24,7 @@ export function ChatInputValidationExample({
 	onSend,
 }: ValidationExampleProps) {
 	// Get current model and parameters for validation
-	const currentModel = useComputed(() => 
+	const currentModel = useComputed(() =>
 		chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
 	);
 
@@ -52,7 +52,7 @@ export function ChatInputValidationExample({
 			validateOnChange: true,
 			debounceMs: 300,
 			fetchInitialConstraints: true,
-		}
+		},
 	);
 
 	// Field-specific validation hooks for individual parameters
@@ -60,21 +60,21 @@ export function ChatInputValidationExample({
 		apiClient,
 		currentModel.value,
 		currentParameters.value,
-		'temperature'
+		'temperature',
 	);
 
 	const maxTokensValidation = useFieldValidation(
 		apiClient,
 		currentModel.value,
 		currentParameters.value,
-		'maxTokens'
+		'maxTokens',
 	);
 
 	const extendedThinkingValidation = useFieldValidation(
 		apiClient,
 		currentModel.value,
 		currentParameters.value,
-		'extendedThinking.enabled'
+		'extendedThinking.enabled',
 	);
 
 	// Submit validation hook
@@ -82,14 +82,14 @@ export function ChatInputValidationExample({
 		apiClient,
 		currentModel.value,
 		currentParameters.value,
-		'chat_input'
+		'chat_input',
 	);
 
 	// Handle form submission with validation
 	const handleSend = async () => {
 		// Run submit validation
 		const isValid = await submitValidation.validateSubmission();
-		
+
 		if (!isValid) {
 			console.warn('Form submission blocked by validation');
 			return;
@@ -131,17 +131,26 @@ export function ChatInputValidationExample({
 			{validationState.result && (
 				<div className='space-y-2 mb-4'>
 					{validationState.result.messages.errors.map((error, index) => (
-						<div key={index} className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2'>
+						<div
+							key={index}
+							className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-2'
+						>
 							<div className='text-red-800 dark:text-red-200 text-sm'>{error}</div>
 						</div>
 					))}
 					{validationState.result.messages.warnings.map((warning, index) => (
-						<div key={index} className='bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-2'>
+						<div
+							key={index}
+							className='bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-2'
+						>
 							<div className='text-yellow-800 dark:text-yellow-200 text-sm'>{warning}</div>
 						</div>
 					))}
 					{validationState.result.messages.info.map((info, index) => (
-						<div key={index} className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-2'>
+						<div
+							key={index}
+							className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-2'
+						>
 							<div className='text-blue-800 dark:text-blue-200 text-sm'>{info}</div>
 						</div>
 					))}
@@ -152,11 +161,13 @@ export function ChatInputValidationExample({
 				{/* Temperature Slider with Validation */}
 				<div className='space-y-2'>
 					<div className='flex justify-between items-center'>
-						<label className={`text-sm ${
-							temperatureValidation.field.disabled 
-								? 'text-gray-400 dark:text-gray-500' 
-								: 'text-gray-700 dark:text-gray-300'
-						}`}>
+						<label
+							className={`text-sm ${
+								temperatureValidation.field.disabled
+									? 'text-gray-400 dark:text-gray-500'
+									: 'text-gray-700 dark:text-gray-300'
+							}`}
+						>
 							Temperature: {currentParameters.value.temperature.toFixed(1)}
 							{temperatureValidation.field.suggestion !== currentParameters.value.temperature && (
 								<span className='ml-2 text-blue-600 dark:text-blue-400 text-xs'>
@@ -165,18 +176,20 @@ export function ChatInputValidationExample({
 							)}
 						</label>
 						{temperatureValidation.field.highlight && (
-							<span className={`text-xs px-2 py-1 rounded ${
-								temperatureValidation.field.severity === 'error' 
-									? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-									: temperatureValidation.field.severity === 'warning'
-									? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-									: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-							}`}>
+							<span
+								className={`text-xs px-2 py-1 rounded ${
+									temperatureValidation.field.severity === 'error'
+										? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+										: temperatureValidation.field.severity === 'warning'
+										? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+										: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+								}`}
+							>
 								{temperatureValidation.field.severity}
 							</span>
 						)}
 					</div>
-					
+
 					<input
 						type='range'
 						min={temperatureValidation.field.min ?? 0}
@@ -195,8 +208,8 @@ export function ChatInputValidationExample({
 							}
 						}}
 						className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
-							temperatureValidation.field.disabled 
-								? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed' 
+							temperatureValidation.field.disabled
+								? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed'
 								: temperatureValidation.field.highlight
 								? temperatureValidation.field.severity === 'error'
 									? 'bg-red-200 dark:bg-red-800'
@@ -206,16 +219,18 @@ export function ChatInputValidationExample({
 								: 'bg-gray-200 dark:bg-gray-700'
 						}`}
 					/>
-					
+
 					{/* Field-specific messages */}
 					{temperatureValidation.field.message && (
-						<div className={`text-xs ${
-							temperatureValidation.field.severity === 'error' 
-								? 'text-red-600 dark:text-red-400'
-								: temperatureValidation.field.severity === 'warning'
-								? 'text-yellow-600 dark:text-yellow-400'
-								: 'text-blue-600 dark:text-blue-400'
-						}`}>
+						<div
+							className={`text-xs ${
+								temperatureValidation.field.severity === 'error'
+									? 'text-red-600 dark:text-red-400'
+									: temperatureValidation.field.severity === 'warning'
+									? 'text-yellow-600 dark:text-yellow-400'
+									: 'text-blue-600 dark:text-blue-400'
+							}`}
+						>
 							{temperatureValidation.field.message}
 						</div>
 					)}
@@ -224,26 +239,30 @@ export function ChatInputValidationExample({
 				{/* Max Tokens Slider with Validation */}
 				<div className='space-y-2'>
 					<div className='flex justify-between items-center'>
-						<label className={`text-sm ${
-							maxTokensValidation.field.disabled 
-								? 'text-gray-400 dark:text-gray-500' 
-								: 'text-gray-700 dark:text-gray-300'
-						}`}>
+						<label
+							className={`text-sm ${
+								maxTokensValidation.field.disabled
+									? 'text-gray-400 dark:text-gray-500'
+									: 'text-gray-700 dark:text-gray-300'
+							}`}
+						>
 							Max Tokens: {currentParameters.value.maxTokens}
 						</label>
 						{maxTokensValidation.field.highlight && (
-							<span className={`text-xs px-2 py-1 rounded ${
-								maxTokensValidation.field.severity === 'error' 
-									? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-									: maxTokensValidation.field.severity === 'warning'
-									? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-									: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-							}`}>
+							<span
+								className={`text-xs px-2 py-1 rounded ${
+									maxTokensValidation.field.severity === 'error'
+										? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+										: maxTokensValidation.field.severity === 'warning'
+										? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+										: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+								}`}
+							>
 								{maxTokensValidation.field.severity}
 							</span>
 						)}
 					</div>
-					
+
 					<input
 						type='range'
 						min={maxTokensValidation.field.min ?? 1000}
@@ -262,8 +281,8 @@ export function ChatInputValidationExample({
 							}
 						}}
 						className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${
-							maxTokensValidation.field.disabled 
-								? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed' 
+							maxTokensValidation.field.disabled
+								? 'bg-gray-200 dark:bg-gray-700 cursor-not-allowed'
 								: maxTokensValidation.field.highlight
 								? maxTokensValidation.field.severity === 'error'
 									? 'bg-red-200 dark:bg-red-800'
@@ -273,15 +292,17 @@ export function ChatInputValidationExample({
 								: 'bg-gray-200 dark:bg-gray-700'
 						}`}
 					/>
-					
+
 					{maxTokensValidation.field.message && (
-						<div className={`text-xs ${
-							maxTokensValidation.field.severity === 'error' 
-								? 'text-red-600 dark:text-red-400'
-								: maxTokensValidation.field.severity === 'warning'
-								? 'text-yellow-600 dark:text-yellow-400'
-								: 'text-blue-600 dark:text-blue-400'
-						}`}>
+						<div
+							className={`text-xs ${
+								maxTokensValidation.field.severity === 'error'
+									? 'text-red-600 dark:text-red-400'
+									: maxTokensValidation.field.severity === 'warning'
+									? 'text-yellow-600 dark:text-yellow-400'
+									: 'text-blue-600 dark:text-blue-400'
+							}`}
+						>
 							{maxTokensValidation.field.message}
 						</div>
 					)}
@@ -290,22 +311,26 @@ export function ChatInputValidationExample({
 				{/* Extended Thinking Toggle with Validation */}
 				<div className='space-y-2'>
 					<div className='flex items-center justify-between'>
-						<label className={`text-sm ${
-							extendedThinkingValidation.field.disabled 
-								? 'text-gray-400 dark:text-gray-500' 
-								: 'text-gray-700 dark:text-gray-300'
-						}`}>
+						<label
+							className={`text-sm ${
+								extendedThinkingValidation.field.disabled
+									? 'text-gray-400 dark:text-gray-500'
+									: 'text-gray-700 dark:text-gray-300'
+							}`}
+						>
 							Extended Thinking
 						</label>
 						<div className='flex items-center space-x-2'>
 							{extendedThinkingValidation.field.highlight && (
-								<span className={`text-xs px-2 py-1 rounded ${
-									extendedThinkingValidation.field.severity === 'error' 
-										? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-										: extendedThinkingValidation.field.severity === 'warning'
-										? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-										: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-								}`}>
+								<span
+									className={`text-xs px-2 py-1 rounded ${
+										extendedThinkingValidation.field.severity === 'error'
+											? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+											: extendedThinkingValidation.field.severity === 'warning'
+											? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+											: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+									}`}
+								>
 									{extendedThinkingValidation.field.severity}
 								</span>
 							)}
@@ -318,7 +343,8 @@ export function ChatInputValidationExample({
 										if (!e.target) return;
 										const input = e.target as HTMLInputElement;
 										const newOptions = { ...chatInputOptions.value };
-										const currentModelConfig = newOptions.rolesModelConfig?.[selectedModelRole.value];
+										const currentModelConfig = newOptions.rolesModelConfig
+											?.[selectedModelRole.value];
 										if (currentModelConfig) {
 											if (!currentModelConfig.extendedThinking) {
 												currentModelConfig.extendedThinking = {
@@ -342,7 +368,8 @@ export function ChatInputValidationExample({
 											: 'cursor-pointer'
 									} ${
 										currentParameters.value.extendedThinking.enabled
-											? extendedThinkingValidation.field.highlight && extendedThinkingValidation.field.severity === 'error'
+											? extendedThinkingValidation.field.highlight &&
+													extendedThinkingValidation.field.severity === 'error'
 												? 'bg-red-500'
 												: 'bg-blue-500'
 											: 'bg-gray-300 dark:bg-gray-600'
@@ -359,15 +386,17 @@ export function ChatInputValidationExample({
 							</div>
 						</div>
 					</div>
-					
+
 					{extendedThinkingValidation.field.message && (
-						<div className={`text-xs ${
-							extendedThinkingValidation.field.severity === 'error' 
-								? 'text-red-600 dark:text-red-400'
-								: extendedThinkingValidation.field.severity === 'warning'
-								? 'text-yellow-600 dark:text-yellow-400'
-								: 'text-blue-600 dark:text-blue-400'
-						}`}>
+						<div
+							className={`text-xs ${
+								extendedThinkingValidation.field.severity === 'error'
+									? 'text-red-600 dark:text-red-400'
+									: extendedThinkingValidation.field.severity === 'warning'
+									? 'text-yellow-600 dark:text-yellow-400'
+									: 'text-blue-600 dark:text-blue-400'
+							}`}
+						>
 							{extendedThinkingValidation.field.message}
 						</div>
 					)}
@@ -378,11 +407,9 @@ export function ChatInputValidationExample({
 					<button
 						type='button'
 						onClick={handleSend}
-						disabled={
-							submitValidation.isValidating || 
+						disabled={submitValidation.isValidating ||
 							validationState.isValidating ||
-							(validationState.result && validationState.result.blockSubmission)
-						}
+							(validationState.result && validationState.result.blockSubmission)}
 						className={`px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
 							validationState.result && validationState.result.blockSubmission
 								? 'bg-red-300 dark:bg-red-700 text-red-800 dark:text-red-200 cursor-not-allowed'

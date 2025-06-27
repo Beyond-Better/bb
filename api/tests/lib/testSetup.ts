@@ -14,7 +14,9 @@ import { getProjectPersistenceManager } from 'api/storage/projectPersistenceMana
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
-export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: ProjectId }> {
+export async function setupTestProject(): Promise<
+	{ dataSourceRoot: string; projectId: ProjectId; globalConfigDir: string; projectAdminDir: string }
+> {
 	Deno.env.set('BB_UNIT_TESTS', '1');
 	// Set custom global config directory
 	const globalConfigDir = await Deno.makeTempDir();
@@ -59,7 +61,7 @@ export async function setupTestProject(): Promise<{ dataSourceRoot: string; proj
 	Deno.env.set('BB_PROJECT_ADMIN_DIR', projectAdminDir);
 	//console.log('setupTestProject', { dataSourceRoot, projectId });
 
-	return { dataSourceRoot, projectId };
+	return { dataSourceRoot, projectId, globalConfigDir, projectAdminDir };
 }
 
 export async function cleanupTestProject(projectId: ProjectId, _dataSourceRoot: string) {

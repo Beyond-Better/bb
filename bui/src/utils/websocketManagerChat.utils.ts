@@ -211,10 +211,14 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					logEntry: msgData.data.logEntry,
 					statementParams: msgData.data.statementParams,
 					tokenUsageStatsForCollaboration: {
-						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn ||DEFAULT_TOKEN_USAGE_REQUIRED(),
-						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement ||DEFAULT_TOKEN_USAGE_REQUIRED(),
-						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction ||DEFAULT_TOKEN_USAGE_REQUIRED(),
-						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
 					},
 					interactionStats: msgData.data.interactionStats || {
 						statementCount: 0,

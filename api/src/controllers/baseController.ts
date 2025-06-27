@@ -553,7 +553,11 @@ class BaseController {
 			`Create title for conversation`,
 			//`Create title for collaboration using interaction ${interactionId}`,
 		);
-		return generateCollaborationTitle(chatInteraction, statement, collaboration.collaborationParams.rolesModelConfig.chat);
+		return generateCollaborationTitle(
+			chatInteraction,
+			statement,
+			collaboration.collaborationParams.rolesModelConfig.chat,
+		);
 	}
 
 	protected async addToolsToInteraction(interaction: LLMConversationInteraction): Promise<void> {

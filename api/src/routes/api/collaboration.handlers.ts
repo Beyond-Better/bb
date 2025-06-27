@@ -3,7 +3,7 @@ import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 //import type Collaboration from 'api/collaborations/collaboration.ts';
 import type { CollaborationId, CollaborationLogDataEntry, CollaborationResponse, InteractionId } from 'shared/types.ts';
-import { DEFAULT_TOKEN_USAGE} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import type { CollaborationValues } from 'shared/types/collaboration.ts';

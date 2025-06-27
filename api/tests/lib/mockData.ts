@@ -38,7 +38,7 @@ export function createMockTokenUsageRecord(
 
 	const totalTokens = inputTokens + outputTokens;
 	const totalAllTokens = totalTokens + cacheCreationInputTokens + cacheReadInputTokens + thoughtTokens;
-	
+
 	// Calculate cache impact like the canonical implementation
 	const potentialCost = inputTokens + outputTokens + cacheReadInputTokens + cacheCreationInputTokens;
 	const actualCost = cacheReadInputTokens + cacheCreationInputTokens;
@@ -168,9 +168,9 @@ export function createMockTokenUsageRecordWithHistory(
 	const type = previous.type;
 
 	// Calculate totalAllTokens like canonical implementation
-	const totalAllTokens = current.rawUsage.totalTokens + 
-		(current.rawUsage.cacheCreationInputTokens || 0) + 
-		(current.rawUsage.cacheReadInputTokens || 0) + 
+	const totalAllTokens = current.rawUsage.totalTokens +
+		(current.rawUsage.cacheCreationInputTokens || 0) +
+		(current.rawUsage.cacheReadInputTokens || 0) +
 		(current.rawUsage.thoughtTokens || 0);
 
 	// Calculate differential usage based on role like canonical implementation
@@ -202,7 +202,7 @@ export function createMockTokenUsageRecordWithHistory(
 	};
 
 	// Calculate cache impact like canonical implementation
-	const potentialCost = current.rawUsage.inputTokens + current.rawUsage.outputTokens + 
+	const potentialCost = current.rawUsage.inputTokens + current.rawUsage.outputTokens +
 		(current.rawUsage.cacheReadInputTokens || 0) + (current.rawUsage.cacheCreationInputTokens || 0);
 	const actualCost = (current.rawUsage.cacheReadInputTokens || 0) + (current.rawUsage.cacheCreationInputTokens || 0);
 	const savingsTotal = Math.max(0, potentialCost - actualCost);

@@ -6,17 +6,17 @@
 /**
  * Condition operators for rule evaluation
  */
-export type ConditionOperator = 
-	| 'equals' 
-	| 'not_equals' 
-	| 'contains' 
-	| 'not_contains' 
-	| 'matches_pattern' 
-	| 'in' 
-	| 'not_in' 
-	| 'greater_than' 
-	| 'less_than' 
-	| 'greater_equal' 
+export type ConditionOperator =
+	| 'equals'
+	| 'not_equals'
+	| 'contains'
+	| 'not_contains'
+	| 'matches_pattern'
+	| 'in'
+	| 'not_in'
+	| 'greater_than'
+	| 'less_than'
+	| 'greater_equal'
 	| 'less_equal';
 
 /**
@@ -53,15 +53,15 @@ export interface ValidationConditionGroup {
 /**
  * Action types that can be applied when a rule matches
  */
-export type ValidationAction = 
-	| 'set_value'           // Force a parameter to a specific value
-	| 'set_constraint'      // Apply min/max constraints to a parameter
-	| 'disable_feature'     // Disable a feature/parameter
-	| 'enable_feature'      // Enable a feature/parameter
-	| 'show_warning'        // Display a warning message
-	| 'show_error'          // Display an error message and prevent submission
-	| 'suggest_value'       // Suggest a value without forcing it
-	| 'require_feature';    // Require another feature to be enabled
+export type ValidationAction =
+	| 'set_value' // Force a parameter to a specific value
+	| 'set_constraint' // Apply min/max constraints to a parameter
+	| 'disable_feature' // Disable a feature/parameter
+	| 'enable_feature' // Enable a feature/parameter
+	| 'show_warning' // Display a warning message
+	| 'show_error' // Display an error message and prevent submission
+	| 'suggest_value' // Suggest a value without forcing it
+	| 'require_feature'; // Require another feature to be enabled
 
 /**
  * Action to take when a validation rule matches

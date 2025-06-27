@@ -287,6 +287,10 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
+				// if (collaboration?.lastInteractionMetadata) {
+				// 	collaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageCollaboration =
+				// 		collaboration.tokenUsageCollaboration;
+				// }
 				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
 				// const interaction = (collaboration && appState.value.projectId)
 				// 	? await apiClient.getInteraction(
@@ -307,19 +311,6 @@ export function useChatState(
 				if (collaboration) {
 					//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
 					const existingIndex = updatedCollaborations.findIndex((c) => c.id === collaboration.id);
-					// const collaborationData = {
-					// 	id: collaboration.id,
-					// 	title: collaboration.title || 'Untitled Conversation',
-					// 	collaborationParams: collaboration.collaborationParams,
-					// 	tokenUsageStats: collaboration.lastInteractionMetadata?.tokenUsageStats,
-					// 	modelConfig: collaboration.lastInteractionMetadata?.modelConfig,
-					// 	interactionStats: collaboration.lastInteractionMetadata?.interactionStats,
-					// 	llmProviderName: collaboration.lastInteractionMetadata?.llmProviderName || 'anthropic',
-					// 	model: collaboration.lastInteractionMetadata?.model || 'claude-sonnet-4-20250514',
-					// 	createdAt: collaboration.lastInteractionMetadata?.createdAt || new Date().toISOString(),
-					// 	updatedAt: collaboration.lastInteractionMetadata?.updatedAt || new Date().toISOString(),
-					// };
-
 					if (existingIndex >= 0) {
 						// Update existing collaboration
 						updatedCollaborations[existingIndex] = collaboration;
@@ -552,6 +543,10 @@ export function useChatState(
 						appState.value.projectId,
 					)
 					: null;
+				// if (collaboration?.lastInteractionMetadata) {
+				// 	collaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageCollaboration =
+				// 		collaboration.tokenUsageCollaboration;
+				// }
 				// const interaction = (collaboration && appState.value.projectId)
 				// 	? await chatState.value.apiClient.getInteraction(
 				// 		id,
@@ -571,27 +566,6 @@ export function useChatState(
 					const existingIndex = updatedCollaborations.findIndex((c) =>
 						c.id === data.logDataEntry.collaborationId
 					);
-					// const collaborationData = {
-					// 	id: data.logDataEntry.collaborationId,
-					// 	title: data.logDataEntry.collaborationTitle,
-					// 	type: data.logDataEntry.collaborationType,
-					// 	collaborationParams: data.logDataEntry.collaborationParams,
-					// 	projectId: data.logDataEntry.projectId,
-					// 	totalInteractions: 0, //data.logDataEntry.totalInteractions,
-					// 	interactionIds: [], //data.logDataEntry.interactionIds,
-					// 	tokenUsageCollaboration: data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration,
-					// 	createdAt: data.logDataEntry.createdAt,
-					// 	updatedAt: data.logDataEntry.updatedAt,
-					// 	// lastInteractionMetadata: {
-					// 	// 	tokenUsageStats: data.logDataEntry.tokenUsageStats,
-					// 	// 	modelConfig: data.logDataEntry.modelConfig,
-					// 	// 	interactionStats: data.logDataEntry.interactionStats,
-					// 	// 	createdAt: data.logDataEntry.timestamp,
-					// 	// 	updatedAt: data.logDataEntry.timestamp,
-					// 	// 	llmProviderName: 'anthropic', // Default provider
-					// 	// 	model: 'claude-sonnet-4-20250514', // Default model
-					// 	// },
-					// };
 
 					if (existingIndex >= 0) {
 						// Update existing collaboration
@@ -603,9 +577,10 @@ export function useChatState(
 				}
 
 				// Update selectedCollaboration if it's the current collaboration being created
-				const updatedSelectedCollaboration = data.logDataEntry.collaborationId === chatState.value.collaborationId
-					? collaboration
-					: chatState.value.selectedCollaboration;
+				const updatedSelectedCollaboration =
+					data.logDataEntry.collaborationId === chatState.value.collaborationId
+						? collaboration
+						: chatState.value.selectedCollaboration;
 
 				chatState.value = {
 					...chatState.value,
@@ -663,61 +638,70 @@ export function useChatState(
 					data.logDataEntry.logEntry // and only if we have a valid logEntry
 				) {
 					const newCollab = { ...collab };
-						if (
-							// update collaborationParams if there is a rolesModelConfig and all the roles are not null
-							data.logDataEntry.collaborationParams?.rolesModelConfig &&
-							Object.values(data.logDataEntry.collaborationParams.rolesModelConfig).some((config) =>
-								config !== null
-							)
-						) {
-							console.info('useChatState: handleMessage: Updating newCollab.collaborationParams');
-							newCollab.collaborationParams = data.logDataEntry.collaborationParams;
-						}
+					if (
+						// update collaborationParams if there is a rolesModelConfig and all the roles are not null
+						data.logDataEntry.collaborationParams?.rolesModelConfig &&
+						Object.values(data.logDataEntry.collaborationParams.rolesModelConfig).some((config) =>
+							config !== null
+						)
+					) {
+						console.info('useChatState: handleMessage: Updating newCollab.collaborationParams');
+						newCollab.collaborationParams = data.logDataEntry.collaborationParams;
+					}
 
-						if (
-							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration
-						) {
-							console.info('useChatState: handleMessage: Updating newCollab.tokenUsageCollaboration');
-							newCollab.tokenUsageCollaboration =
-								data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
-						}
+					if (
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration?.totalAllTokens &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration.totalAllTokens > 0 // but only if the values are not zero
+					) {
+						console.info(
+							'useChatState: handleMessage: Updating newCollab.tokenUsageStatsForCollaboration',
+							data.logDataEntry.tokenUsageStatsForCollaboration,
+						);
+						newCollab.tokenUsageCollaboration =
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
+					}
 
-						if (
-							// update the common values for lastInteractionMetadata - in particular the counts in interactionStats
-							collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
-							!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
-							newCollab.lastInteractionMetadata &&
-							data.logDataEntry.logEntry.entryType !== 'auxiliary' // but not if it's an auxiliary logEntry
-						) {
-							console.info(
-								'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [general]',data.logDataEntry.interactionStats
-							);
-							newCollab.lastInteractionMetadata = {
-								...newCollab.lastInteractionMetadata,
-								interactionStats: data.logDataEntry.interactionStats,
-								modelConfig: data.logDataEntry.modelConfig,
-								//createdAt: data.logDataEntry.createdAt,
-								updatedAt: data.logDataEntry.updatedAt,
-							};
-						}
+					// if (
+					// 	// update the common values for lastInteractionMetadata - in particular the counts in interactionStats
+					// 	collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+					// 	!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
+					// 	newCollab.lastInteractionMetadata &&
+					// 	data.logDataEntry.logEntry.entryType !== 'auxiliary' // but not if it's an auxiliary logEntry
+					// ) {
+					// 	console.info(
+					// 		'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [general]',
+					// 		data.logDataEntry.interactionStats,
+					// 	);
+					// 	newCollab.lastInteractionMetadata = {
+					// 		...newCollab.lastInteractionMetadata,
+					// 		interactionStats: data.logDataEntry.interactionStats,
+					// 		modelConfig: data.logDataEntry.modelConfig,
+					// 		//createdAt: data.logDataEntry.createdAt,
+					// 		updatedAt: data.logDataEntry.updatedAt,
+					// 	};
+					// }
 
-						if (
-							// update the tokenUsageStats
-							collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
-							!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
-							newCollab.lastInteractionMetadata &&
-							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens &&
-							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens > 0 && // but only if the values are not zero
-							['assistant', 'tool_use', 'answer'].includes(data.logDataEntry.logEntry.entryType) // and only if a "token usage" type turn
-						) {
-							console.info(
-								'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [tokenUsageStatsForInteraction]',data.logDataEntry.tokenUsageStatsForCollaboration
-							);
-							newCollab.lastInteractionMetadata = {
-								...newCollab.lastInteractionMetadata,
-								tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
-							};
-						}
+					if (
+						// update the tokenUsageStats
+						collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+						!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
+						newCollab.lastInteractionMetadata &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens > 0 && // but only if the values are not zero
+						['assistant', 'tool_use', 'answer'].includes(data.logDataEntry.logEntry.entryType) // and only if a "token usage" type turn
+					) {
+						newCollab.tokenUsageCollaboration =
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
+						newCollab.lastInteractionMetadata = {
+							...newCollab.lastInteractionMetadata,
+							tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
+							interactionStats: data.logDataEntry.interactionStats,
+							modelConfig: data.logDataEntry.modelConfig,
+							//createdAt: data.logDataEntry.createdAt,
+							updatedAt: data.logDataEntry.updatedAt,
+						};
+						console.info('useChatState: handleMessage: Updating newCollab', newCollab);
+					}
 					return newCollab;
 				}
 				return collab;
@@ -725,7 +709,8 @@ export function useChatState(
 
 			// Update selectedCollaboration if it's the current collaboration being updated
 			const updatedSelectedCollaboration = data.logDataEntry.collaborationId === chatState.value.collaborationId
-				? updatedCollaborations.find(c => c.id === data.logDataEntry.collaborationId) || chatState.value.selectedCollaboration
+				? updatedCollaborations.find((c) => c.id === data.logDataEntry.collaborationId) ||
+					chatState.value.selectedCollaboration
 				: chatState.value.selectedCollaboration;
 
 			chatState.value = {

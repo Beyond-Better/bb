@@ -14,7 +14,7 @@ import type {
 	ProjectId,
 	TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
-import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import type { LLMModelConfig } from 'api/types/llms.ts';
 import { getProjectAdminDataDir } from 'shared/projectPath.ts';

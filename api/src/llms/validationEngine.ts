@@ -5,15 +5,15 @@
 
 import { logger } from 'shared/logger.ts';
 import type {
-	ValidationRule,
-	ValidationRuleSet,
+	ConditionOperator,
 	ValidationCondition,
 	ValidationConditionGroup,
-	ValidationResult,
 	ValidationContext,
-	ValidationRuleAction,
 	ValidationEngineConfig,
-	ConditionOperator,
+	ValidationResult,
+	ValidationRule,
+	ValidationRuleAction,
+	ValidationRuleSet,
 	//LogicalOperator,
 } from 'api/types/validationRules.ts';
 
@@ -61,9 +61,9 @@ export class ValidationEngine {
 
 		// Filter rules by trigger and enabled status
 		const applicableRules = ruleSet.rules
-			.filter((rule:ValidationRule) => rule.enabled !== false)
-			.filter((rule:ValidationRule) => rule.trigger === trigger)
-			.sort((a:ValidationRule, b:ValidationRule) => (b.priority || 0) - (a.priority || 0)); // Sort by priority (highest first)
+			.filter((rule: ValidationRule) => rule.enabled !== false)
+			.filter((rule: ValidationRule) => rule.trigger === trigger)
+			.sort((a: ValidationRule, b: ValidationRule) => (b.priority || 0) - (a.priority || 0)); // Sort by priority (highest first)
 
 		if (this.debug) {
 			logger.info(`ValidationEngine: Found ${applicableRules.length} applicable rules`);
@@ -73,7 +73,7 @@ export class ValidationEngine {
 		for (const rule of applicableRules) {
 			try {
 				const ruleMatches = this.evaluateRule(rule, context);
-				
+
 				if (ruleMatches) {
 					if (this.debug) {
 						logger.info(`ValidationEngine: Rule "${rule.name}" (${rule.id}) matched`);
@@ -89,8 +89,12 @@ export class ValidationEngine {
 					});
 				}
 			} catch (error) {
-				logger.error(`ValidationEngine: Error evaluating rule "${rule.id}": ${error instanceof Error ? error.message : error}`);
-				
+				logger.error(
+					`ValidationEngine: Error evaluating rule "${rule.id}": ${
+						error instanceof Error ? error.message : error
+					}`,
+				);
+
 				if (!this.config.continueOnError) {
 					throw error;
 				}
@@ -101,7 +105,9 @@ export class ValidationEngine {
 		result.valid = result.messages.errors.length === 0 && !result.blockSubmission;
 
 		if (this.debug) {
-			logger.info(`ValidationEngine: Evaluation complete. Valid: ${result.valid}, Triggered rules: ${result.triggeredRules.length}`);
+			logger.info(
+				`ValidationEngine: Evaluation complete. Valid: ${result.valid}, Triggered rules: ${result.triggeredRules.length}`,
+			);
 		}
 
 		return result;
@@ -114,7 +120,11 @@ export class ValidationEngine {
 		try {
 			return this.evaluateCondition(rule.condition, context, 0);
 		} catch (error) {
-			logger.error(`ValidationEngine: Error evaluating condition for rule "${rule.id}": ${error instanceof Error ? error.message : error}`);
+			logger.error(
+				`ValidationEngine: Error evaluating condition for rule "${rule.id}": ${
+					error instanceof Error ? error.message : error
+				}`,
+			);
 			return false;
 		}
 	}
@@ -148,15 +158,13 @@ export class ValidationEngine {
 		context: ValidationContext,
 		depth: number,
 	): boolean {
-		const results = group.conditions.map(condition => 
-			this.evaluateCondition(condition, context, depth)
-		);
+		const results = group.conditions.map((condition) => this.evaluateCondition(condition, context, depth));
 
 		switch (group.logic) {
 			case 'AND':
-				return results.every((result:boolean) => result === true);
+				return results.every((result: boolean) => result === true);
 			case 'OR':
-				return results.some((result:boolean) => result === true);
+				return results.some((result: boolean) => result === true);
 			case 'NOT':
 				// For NOT, we expect exactly one condition
 				if (results.length !== 1) {
@@ -173,9 +181,13 @@ export class ValidationEngine {
 	 */
 	private evaluateSimpleCondition(condition: ValidationCondition, context: ValidationContext): boolean {
 		const fieldValue = this.getFieldValue(condition.field, context);
-		
+
 		if (this.debug) {
-			logger.info(`ValidationEngine: Evaluating condition: ${condition.field} ${condition.operator} ${JSON.stringify(condition.value)} (actual: ${JSON.stringify(fieldValue)})`);
+			logger.info(
+				`ValidationEngine: Evaluating condition: ${condition.field} ${condition.operator} ${
+					JSON.stringify(condition.value)
+				} (actual: ${JSON.stringify(fieldValue)})`,
+			);
 		}
 
 		// Check for custom evaluators
@@ -215,10 +227,10 @@ export class ValidationEngine {
 		switch (operator) {
 			case 'equals':
 				return fieldValue === conditionValue;
-			
+
 			case 'not_equals':
 				return fieldValue !== conditionValue;
-			
+
 			case 'contains':
 				if (typeof fieldValue === 'string' && typeof conditionValue === 'string') {
 					return fieldValue.includes(conditionValue);
@@ -227,7 +239,7 @@ export class ValidationEngine {
 					return fieldValue.includes(conditionValue);
 				}
 				return false;
-			
+
 			case 'not_contains':
 				if (typeof fieldValue === 'string' && typeof conditionValue === 'string') {
 					return !fieldValue.includes(conditionValue);
@@ -236,50 +248,50 @@ export class ValidationEngine {
 					return !fieldValue.includes(conditionValue);
 				}
 				return true;
-			
+
 			case 'matches_pattern':
 				if (typeof fieldValue === 'string' && typeof conditionValue === 'string') {
 					const regex = new RegExp(conditionValue);
 					return regex.test(fieldValue);
 				}
 				return false;
-			
+
 			case 'in':
 				if (Array.isArray(conditionValue)) {
 					return conditionValue.includes(fieldValue as string | number | boolean);
 				}
 				return false;
-			
+
 			case 'not_in':
 				if (Array.isArray(conditionValue)) {
 					return !conditionValue.includes(fieldValue as string | number | boolean);
 				}
 				return true;
-			
+
 			case 'greater_than':
 				if (typeof fieldValue === 'number' && typeof conditionValue === 'number') {
 					return fieldValue > conditionValue;
 				}
 				return false;
-			
+
 			case 'less_than':
 				if (typeof fieldValue === 'number' && typeof conditionValue === 'number') {
 					return fieldValue < conditionValue;
 				}
 				return false;
-			
+
 			case 'greater_equal':
 				if (typeof fieldValue === 'number' && typeof conditionValue === 'number') {
 					return fieldValue >= conditionValue;
 				}
 				return false;
-			
+
 			case 'less_equal':
 				if (typeof fieldValue === 'number' && typeof conditionValue === 'number') {
 					return fieldValue <= conditionValue;
 				}
 				return false;
-			
+
 			default:
 				throw new Error(`Unknown operator: ${operator}`);
 		}
@@ -293,7 +305,11 @@ export class ValidationEngine {
 			try {
 				this.applyRuleAction(action, result);
 			} catch (error) {
-				logger.error(`ValidationEngine: Error applying action for rule "${rule.id}": ${error instanceof Error ? error.message : error}`);
+				logger.error(
+					`ValidationEngine: Error applying action for rule "${rule.id}": ${
+						error instanceof Error ? error.message : error
+					}`,
+				);
 			}
 		}
 	}
@@ -344,9 +360,15 @@ export class ValidationEngine {
 			case 'show_warning':
 			case 'show_error':
 				if (action.message) {
-					const severity = action.severity || (action.action === 'show_error' ? 'error' : action.action === 'show_warning' ? 'warning' : 'info');
-					result.messages[severity === 'error' ? 'errors' : severity === 'warning' ? 'warnings' : 'info'].push(action.message);
-					
+					const severity = action.severity ||
+						(action.action === 'show_error'
+							? 'error'
+							: action.action === 'show_warning'
+							? 'warning'
+							: 'info');
+					result.messages[severity === 'error' ? 'errors' : severity === 'warning' ? 'warnings' : 'info']
+						.push(action.message);
+
 					if (action.blocking || severity === 'error') {
 						result.blockSubmission = true;
 					}

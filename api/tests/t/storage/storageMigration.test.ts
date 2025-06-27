@@ -12,7 +12,7 @@ import type {
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { cleanupTestProject, setupTestProject } from 'api/tests/testSetup.ts';
-import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 
 // const TEST_DATA_DIR = './test_data';
 //
@@ -29,8 +29,10 @@ import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
 // 	}
 // }
 
+//globalConfigDir, projectAdminDir
+
 Deno.test('StorageMigration.readMetadata', async (t) => {
-	const { projectId, dataSourceRoot: testDir } = await setupTestProject();
+	const { projectId, projectAdminDir: testDir } = await setupTestProject();
 	try {
 		await t.step('returns defaultMetadata when file does not exist', async () => {
 			await assertRejects(
@@ -76,7 +78,7 @@ Deno.test('StorageMigration.readMetadata', async (t) => {
 });
 
 Deno.test('StorageMigration.migrateV1toV2', async (t) => {
-	const { projectId, dataSourceRoot: testDir } = await setupTestProject();
+	const { projectId, projectAdminDir: testDir } = await setupTestProject();
 	try {
 		const conversationDir = join(testDir, 'test_conversation');
 		await ensureDir(conversationDir);
@@ -119,7 +121,7 @@ Deno.test('StorageMigration.migrateV1toV2', async (t) => {
 });
 
 Deno.test('StorageMigration.migrateV1toV2', async (t) => {
-	const { projectId, dataSourceRoot: testDir } = await setupTestProject();
+	const { projectId, projectAdminDir: testDir } = await setupTestProject();
 	try {
 		const conversationDir = join(testDir, 'test_conversation');
 		await ensureDir(conversationDir);

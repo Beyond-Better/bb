@@ -338,7 +338,10 @@ class ProjectEditor {
 			`ProjectEditor: Initializing a interaction with ID: ${interactionId}`,
 		);
 		const collaboration = await this.orchestratorController.initializeCollaboration(collaborationId);
-		return await this.orchestratorController.initializeInteraction(collaboration, interactionId ?? collaboration.lastInteractionId);
+		return await this.orchestratorController.initializeInteraction(
+			collaboration,
+			interactionId ?? collaboration.lastInteractionId,
+		);
 	}
 
 	async handleStatement(

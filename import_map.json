@@ -97,6 +97,7 @@
 		"api/types.ts": "./api/src/types.ts",
 		"api/types/llms.ts": "./api/src/types/llms.types.ts",
 		"api/types/modelCapabilities.ts": "./api/src/types/modelCapabilities.types.ts",
+		"api/types/validationRules.ts": "./api/src/types/validationRules.types.ts",
 		"api/auth/config.ts": "./api/src/auth/config.ts",
 		"api/auth/session.ts": "./api/src/auth/session.ts",
 		"api/editor/projectEditor.ts": "./api/src/editor/projectEditor.ts",

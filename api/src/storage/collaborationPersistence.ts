@@ -602,10 +602,10 @@ class CollaborationPersistence {
 		};
 	}
 
-	async writeTokenUsage(record: TokenUsageRecord, type:InteractionType): Promise<void> {
+	async writeTokenUsage(record: TokenUsageRecord, type: InteractionType): Promise<void> {
 		await this.ensureInitialized();
 		try {
-				this.tokenUsagePersistence.writeUsage(record, type);
+			this.tokenUsagePersistence.writeUsage(record, type);
 		} catch (error) {
 			if (isTokenUsageValidationError(error)) {
 				logger.error(

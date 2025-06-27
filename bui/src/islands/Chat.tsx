@@ -345,21 +345,21 @@ export default function Chat({
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 		if (!chatState.value.collaborationId) return;
-		
+
 		// Check if model state is available
 		const defaultRolesConfig = getDefaultRolesModelConfig();
 		if (!defaultRolesConfig || modelState.value.isLoadingDefaults) {
 			return;
 		}
-		
+
 		// If we have a blank collaboration and no valid options, reinitialize
 		const currentConfig = chatInputOptions.value.rolesModelConfig;
 		const hasValidConfig = currentConfig && (
-			currentConfig.orchestrator?.model || 
-			currentConfig.agent?.model || 
+			currentConfig.orchestrator?.model ||
+			currentConfig.agent?.model ||
 			currentConfig.chat?.model
 		);
-		
+
 		if (!hasValidConfig) {
 			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
 				.catch((error) => {
@@ -486,7 +486,7 @@ export default function Chat({
 			//url.searchParams.set('collaborationId', id);
 			//const hash = globalThis.location.hash;
 			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
-			
+
 			// Focus the chat input after selecting a collaboration
 			focusChatInputSync(chatInputRef);
 		} catch (error) {

@@ -14,8 +14,8 @@ export default class TokenUsagePersistence {
 	private readonly chatsFile: string;
 	private ensuredDir: boolean = false;
 
-	constructor(private conversationDir: string) {
-		this.tokenUsageDir = join(this.conversationDir, 'token_usage');
+	constructor(private conversationDir: string, legacyPath?: string) {
+		this.tokenUsageDir = join(this.conversationDir, legacyPath ?? 'token_usage');
 		this.conversationFile = join(this.tokenUsageDir, 'conversation.jsonl');
 		this.chatsFile = join(this.tokenUsageDir, 'chats.jsonl');
 	}

@@ -453,7 +453,7 @@ export class StorageMigration {
 			}
 
 			// Create TokenUsagePersistence instance
-			const tokenUsagePersistence = await new TokenUsagePersistence(interactionDir).init();
+			const tokenUsagePersistence = await new TokenUsagePersistence(interactionDir, 'tokenUsage').init();
 
 			// Update token usage records
 			const tokenUsageRecords = await tokenUsagePersistence.getUsage('conversation');

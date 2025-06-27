@@ -6,10 +6,10 @@
 import { logger } from 'shared/logger.ts';
 import { ValidationEngine } from './validationEngine.ts';
 import type {
-	ValidationRuleSet,
-	ValidationResult,
 	ValidationContext,
 	ValidationEngineConfig,
+	ValidationResult,
+	ValidationRuleSet,
 } from 'api/types/validationRules.ts';
 import type { ModelCapabilities } from 'api/types/modelCapabilities.ts';
 
@@ -55,7 +55,9 @@ export class ValidationRuleService {
 			this.initialized = true;
 			logger.info(`ValidationRuleService: Initialized with ${this.ruleSets.size} rule sets`);
 		} catch (error) {
-			logger.error(`ValidationRuleService: Failed to initialize: ${error instanceof Error ? error.message : error}`);
+			logger.error(
+				`ValidationRuleService: Failed to initialize: ${error instanceof Error ? error.message : error}`,
+			);
 			throw error;
 		}
 	}
@@ -101,7 +103,8 @@ export class ValidationRuleService {
 				{
 					id: 'claude_extended_thinking_temperature',
 					name: 'Claude Extended Thinking Temperature Requirement',
-					description: 'When Claude Opus or Sonnet models have extended thinking enabled, temperature must be 1.0',
+					description:
+						'When Claude Opus or Sonnet models have extended thinking enabled, temperature must be 1.0',
 					trigger: 'on_change',
 					priority: 100,
 					condition: {
@@ -141,7 +144,8 @@ export class ValidationRuleService {
 				{
 					id: 'vision_model_image_requirement',
 					name: 'Vision Model Image Requirement',
-					description: 'Models with vision capabilities should have image attachments for optimal performance',
+					description:
+						'Models with vision capabilities should have image attachments for optimal performance',
 					trigger: 'on_submit',
 					priority: 50,
 					condition: {
@@ -165,7 +169,8 @@ export class ValidationRuleService {
 						{
 							action: 'show_warning',
 							target: 'attachedFiles',
-							message: 'This model supports vision capabilities. Consider attaching images for better results.',
+							message:
+								'This model supports vision capabilities. Consider attaching images for better results.',
 							severity: 'warning',
 						},
 					],
@@ -345,7 +350,7 @@ export class ValidationRuleService {
 			return [];
 		}
 
-		return Array.from(this.ruleSets.values()).filter(ruleSet => ruleSet.context === context);
+		return Array.from(this.ruleSets.values()).filter((ruleSet) => ruleSet.context === context);
 	}
 
 	/**
@@ -386,8 +391,8 @@ export class ValidationRuleService {
 		additionalContext?: Record<string, unknown>,
 	): ValidationResult[] {
 		const ruleSets = this.getRuleSetsByContext(context);
-		
-		return ruleSets.map(ruleSet => 
+
+		return ruleSets.map((ruleSet) =>
 			this.validate(ruleSet.id, model, modelCapabilities, parameters, trigger, additionalContext)
 		);
 	}

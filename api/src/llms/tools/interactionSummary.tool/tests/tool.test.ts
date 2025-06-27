@@ -46,18 +46,43 @@ async function setupCollaborationDir(projectId: ProjectId, collaborationId: stri
   "id": "",
   "title": "",
   "type": "project",
-  "collaborationParams": {},
+  "collaborationParams": {
+    "rolesModelConfig": {
+      "orchestrator": {
+        "model": "claude-sonnet-4-20250514",
+        "extendedThinking": { "enabled": true, "budgetTokens": 4096 },
+        "maxTokens": 16384,
+        "temperature": 0.7,
+        "usePromptCaching": true
+      },
+      "agent": {
+        "model": "claude-sonnet-4-20250514",
+        "extendedThinking": { "enabled": true, "budgetTokens": 4096 },
+        "maxTokens": 16384,
+        "temperature": 0.7,
+        "usePromptCaching": true
+      },
+      "chat": {
+        "model": "claude-3-5-haiku-20241022",
+        "extendedThinking": { "enabled": false, "budgetTokens": 4096 },
+        "maxTokens": 4096,
+        "temperature": 0.7,
+        "usePromptCaching": true
+      }
+    }
+  },
   "createdAt": "",
   "updatedAt": "",
   "projectId": "",
   "totalInteractions": 0,
   "tokenUsageStats": {
-	"tokenUsageTurn": {},
-	"tokenUsageStatement": {},
-	"tokenUsageInteraction": {}
+    "tokenUsageTurn": {},
+    "tokenUsageStatement": {},
+    "tokenUsageInteraction": {}
   },
   "interactionIds": []
-}`,
+}
+`,
 	);
 	return collaborationDir;
 }

@@ -540,9 +540,14 @@ class InteractionPersistence {
 			}
 
 			const metadata: InteractionDetailedMetadata = await this.getMetadata();
-			const interaction = metadata.interactionType === 'chat'
-				? new LLMChatInteraction(collaboration, this._interactionId)
-				: new LLMConversationInteraction(collaboration, this._interactionId);
+			const interaction = new LLMConversationInteraction(collaboration, this._interactionId);
+			// the following syntax triggers error:
+			// error: Uncaught (in promise) ReferenceError: Cannot access 'LLMInteraction' before initialization
+			// class LLMChatInteraction extends LLMInteraction {
+			//     at file:///Users/cng/working/bb/api/src/llms/interactions/chatInteraction.ts:14:34
+			//const interaction = metadata.interactionType === 'chat'
+			//	? new LLMChatInteraction(collaboration, this._interactionId)
+			//	: new LLMConversationInteraction(collaboration, this._interactionId);
 			await interaction.init(metadata.model, interactionCallbacks, metadata.parentInteractionId);
 
 			interaction.id = metadata.id;

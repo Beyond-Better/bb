@@ -75,10 +75,12 @@ export const getValidationRuleSets = async (
 			ruleSets,
 		};
 	} catch (error) {
-		logger.error(`ValidationHandler: Error in getValidationRuleSets: ${error instanceof Error ? error.message : error}`);
+		logger.error(
+			`ValidationHandler: Error in getValidationRuleSets: ${error instanceof Error ? error.message : error}`,
+		);
 		response.status = 500;
-		response.body = { 
-			error: 'Failed to get validation rule sets', 
+		response.body = {
+			error: 'Failed to get validation rule sets',
 			details: error instanceof Error ? error.message : String(error),
 		};
 	}
@@ -137,10 +139,12 @@ export const getValidationRuleSet = async (
 			ruleSet,
 		};
 	} catch (error) {
-		logger.error(`ValidationHandler: Error in getValidationRuleSet: ${error instanceof Error ? error.message : error}`);
+		logger.error(
+			`ValidationHandler: Error in getValidationRuleSet: ${error instanceof Error ? error.message : error}`,
+		);
 		response.status = 500;
-		response.body = { 
-			error: 'Failed to get validation rule set', 
+		response.body = {
+			error: 'Failed to get validation rule set',
 			details: error instanceof Error ? error.message : String(error),
 		};
 	}
@@ -308,17 +312,19 @@ export const validateParameters = async (
 			results,
 		};
 	} catch (error) {
-		logger.error(`ValidationHandler: Error in validateParameters: ${error instanceof Error ? error.message : error}`);
-		
+		logger.error(
+			`ValidationHandler: Error in validateParameters: ${error instanceof Error ? error.message : error}`,
+		);
+
 		if (error instanceof Error && 'status' in error) {
 			response.status = (error as unknown as { status: number }).status;
-			response.body = { 
+			response.body = {
 				error: error.message,
 			};
 		} else {
 			response.status = 500;
-			response.body = { 
-				error: 'Failed to validate parameters', 
+			response.body = {
+				error: 'Failed to validate parameters',
 				details: error instanceof Error ? error.message : String(error),
 			};
 		}
@@ -382,7 +388,7 @@ export const previewValidationConstraints = async (
 
 		// Validate required fields
 		if (!body.model) {
-			response.status = 400
+			response.status = 400;
 			response.body = { error: `Missing required field: model` };
 			return;
 		}
@@ -432,17 +438,21 @@ export const previewValidationConstraints = async (
 			},
 		};
 	} catch (error) {
-		logger.error(`ValidationHandler: Error in previewValidationConstraints: ${error instanceof Error ? error.message : error}`);
-		
+		logger.error(
+			`ValidationHandler: Error in previewValidationConstraints: ${
+				error instanceof Error ? error.message : error
+			}`,
+		);
+
 		if (error instanceof Error && 'status' in error) {
 			response.status = (error as unknown as { status: number }).status;
-			response.body = { 
+			response.body = {
 				error: error.message,
 			};
 		} else {
 			response.status = 500;
-			response.body = { 
-				error: 'Failed to preview validation constraints', 
+			response.body = {
+				error: 'Failed to preview validation constraints',
 				details: error instanceof Error ? error.message : String(error),
 			};
 		}

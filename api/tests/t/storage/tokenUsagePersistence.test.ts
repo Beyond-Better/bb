@@ -9,7 +9,7 @@ import {
 } from 'api/tests/mockData.ts';
 import { TokenUsageValidationError } from 'api/errors/error.ts';
 import type { TokenUsageRecord } from 'shared/types.ts';
-import { DEFAULT_TOKEN_USAGE_REQUIRED} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 
 // Helper function to set up test directory structure
 // async function setupTestDir(testProjectRoot: string, interactionId: string) {

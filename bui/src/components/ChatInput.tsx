@@ -122,8 +122,8 @@ const collaborationIdSignal = signal<string | null>(null);
 // Token Progress Indicator Component
 const TokenProgressIndicator = ({ percentage }: { percentage: number }) => {
 	const getProgressColor = (pct: number): string => {
-		if (pct < 30) return 'bg-green-500';
-		if (pct < 70) return 'bg-yellow-500';
+		if (pct < 50) return 'bg-green-500';
+		if (pct < 75) return 'bg-yellow-500';
 		return 'bg-red-500';
 	};
 
@@ -1721,8 +1721,8 @@ export function ChatInput({
 								isOptionsOpen.value = !isOptionsOpen.value;
 							}}
 							className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
-								isOptionsOpen.value 
-									? 'bg-blue-500 dark:bg-blue-600 text-white' 
+								isOptionsOpen.value
+									? 'bg-blue-500 dark:bg-blue-600 text-white'
 									: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
 							}`}
 							title={isOptionsOpen.value ? 'Close Chat Options' : 'Open Chat Options'}

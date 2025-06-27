@@ -19,7 +19,7 @@ import type {
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types/llms.ts';
-import { DEFAULT_TOKEN_USAGE} from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';

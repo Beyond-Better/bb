@@ -2,7 +2,13 @@ import type OpenAI from 'openai';
 import ms from 'ms';
 
 import { LLMProvider, OpenAIModel } from 'api/types.ts';
-import type { LLMCallbacks, LLMProviderMessageResponse, LLMRateLimit, LLMTokenUsage, LLMProviderMessageRequest } from 'api/types.ts';
+import type {
+	LLMCallbacks,
+	LLMProviderMessageRequest,
+	LLMProviderMessageResponse,
+	LLMRateLimit,
+	LLMTokenUsage,
+} from 'api/types.ts';
 import OpenAICompatLLM from './openAICompatLLM.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 // import { createError } from 'api/utils/error.ts';
@@ -104,16 +110,17 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 	): Promise<OpenAI.Chat.ChatCompletionCreateParams> {
 		// Get the base request from the parent class
 		const baseRequest = await super.asProviderMessageRequest(messageRequest, interaction);
-		
+
 		// For o3 models, we need to use max_completion_tokens instead of max_tokens
 		if (this.isO3Model(baseRequest.model)) {
 			const { max_tokens, ...requestWithoutMaxTokens } = baseRequest;
 			return {
 				...requestWithoutMaxTokens,
 				max_completion_tokens: max_tokens,
+				temperature: 1,
 			};
 		}
-		
+
 		// For other OpenAI models, use the original request
 		return baseRequest;
 	}

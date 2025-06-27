@@ -29,7 +29,7 @@ class InteractionManager {
 		//const interactionId = shortenInteractionId(generateInteractionId());
 		let interaction: LLMInteraction;
 
-		logger.info(`InteractionManager: Creating interaction ${interactionId} of type: ${type}` );
+		logger.info(`InteractionManager: Creating interaction ${interactionId} of type: ${type}`);
 
 		if (type === 'conversation') {
 			interaction = await new LLMConversationInteraction(collaboration, interactionId).init(

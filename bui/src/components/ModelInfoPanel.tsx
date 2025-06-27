@@ -43,8 +43,8 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 
 	// Determine the progress bar color based on usage percentage
 	const getProgressColor = (percentage: number): string => {
-		if (percentage < 30) return 'bg-green-500';
-		if (percentage < 70) return 'bg-yellow-500';
+		if (percentage < 50) return 'bg-green-500';
+		if (percentage < 75) return 'bg-yellow-500';
 		return 'bg-red-500';
 	};
 
@@ -60,7 +60,8 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 				<div className='flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-3'>
 					<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
 						Model: {modelData.value?.displayName} ({modelData.value?.providerLabel}) -{' '}
-						{(contextWindow / 1000).toFixed(0)}K tokens <span className="text-sm font-normal">(limit per turn)</span>
+						{(contextWindow / 1000).toFixed(0)}K tokens{' '}
+						<span className='text-sm font-normal'>(limit per turn)</span>
 					</h3>
 					<button
 						type='button'

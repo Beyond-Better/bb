@@ -229,7 +229,7 @@ class LLMInteraction {
 		this.collaborationRef = new WeakRef(collaboration);
 	}
 
-	public get interactionType():InteractionType {
+	public get interactionType(): InteractionType {
 		return this._interactionType;
 	}
 
@@ -493,11 +493,11 @@ class LLMInteraction {
 
 		this.collaboration.addTokenUsageCollaboration(tokenUsage);
 
-		logger.error('LLMInteraction: updateTotals - ', {
-			tokenUsageInteraction: this.tokenUsageInteraction,
-			tokenUsageStatement: this.tokenUsageStatement,
-			tokenUsageTurn: this.tokenUsageTurn,
-		});
+		// logger.error('LLMInteraction: updateTotals - ', {
+		// 	tokenUsageInteraction: this.tokenUsageInteraction,
+		// 	tokenUsageStatement: this.tokenUsageStatement,
+		// 	tokenUsageTurn: this.tokenUsageTurn,
+		// });
 
 		this.statementTurnCount++;
 		this.interactionTurnCount++;
