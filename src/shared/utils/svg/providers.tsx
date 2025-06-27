@@ -7,7 +7,7 @@
  */
 
 import { JSX } from 'preact';
-import type { SvgRenderOptions } from 'shared/svgImages.ts';
+import type { SvgRenderOptions } from 'shared/svgImages.tsx';
 
 /**
  * Common SVG props for provider icons
