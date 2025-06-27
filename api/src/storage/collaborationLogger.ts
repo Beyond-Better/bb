@@ -65,7 +65,7 @@ export default class CollaborationLogger {
 	private collaborationLogsDir!: string;
 	private ensuredDir: boolean = false;
 	private static readonly ENTRY_SEPARATOR = '<<<BB_LOG_ENTRY_SEPARATOR>>>';
-	private static readonly entryTypeLabels: Record<
+	private entryTypeLabels: Record<
 		CollaborationLogEntryType,
 		string
 	> = {
@@ -108,8 +108,11 @@ export default class CollaborationLogger {
 		this.logFileRaw = await CollaborationLogger.getLogFileRawPath(this.projectId, this.collaborationId);
 		this.logFileJson = await CollaborationLogger.getLogFileJsonPath(this.projectId, this.collaborationId);
 
-		CollaborationLogger.entryTypeLabels.user = globalConfig.myPersonsName || 'Person';
-		CollaborationLogger.entryTypeLabels.assistant = globalConfig.myAssistantsName || 'Assistant';
+		const projectConfig = await configManager.getProjectConfig(this.projectId);
+		this.entryTypeLabels.user = projectConfig.myPersonsName || 'Person';
+		this.entryTypeLabels.orchestrator = `${projectConfig.myAssistantsName || 'Assistant'} as Orchestrator`;
+		this.entryTypeLabels.assistant = projectConfig.myAssistantsName || 'Assistant';
+		this.entryTypeLabels.answer = `Answer from ${projectConfig.myAssistantsName || 'Assistant'}`;
 
 		return this;
 	}
@@ -426,7 +429,7 @@ export default class CollaborationLogger {
 			? formattedContent
 			: renderToString(formattedContent.content as JSX.Element);
 
-		const label = CollaborationLogger.entryTypeLabels[logEntry.entryType] || 'Unknown';
+		const label = this.entryTypeLabels[logEntry.entryType] || 'Unknown';
 		return `## ${label} [${timestamp}] [CollaborationId: ${this.collaborationId || '--'}][AgentId: ${
 			agentInteractionId || '--'
 		}][Parent MessageId:${parentMessageId || '--'}]\n${rawEntryContent.trim()}`;

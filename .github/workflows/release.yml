@@ -228,14 +228,12 @@ jobs:
         with:
           projectPath: './dui'
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
-          #args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }} --debug
 
       # Process and upload build artifacts
       - name: Process build artifacts
         shell: bash
         run: |
           BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/release/bundle"
-          #BUNDLE_DIR="dui/src-tauri/target/${{ matrix.target }}/debug/bundle"
           echo "Build output directory contents:"
           ls -R "$BUNDLE_DIR" || echo "No bundle directory found"
 
@@ -318,18 +316,16 @@ jobs:
             RELEASE_NOTES=$(echo "$RELEASE_SECTION" | tail -n +2 | head -20)
           fi
           
-          # Escape for GitHub output
-          RELEASE_NOTES="${RELEASE_NOTES//'%'/'%25'}"
-          RELEASE_NOTES="${RELEASE_NOTES//$'\n'/'%0A'}"
-          RELEASE_NOTES="${RELEASE_NOTES//$'\r'/'%0D'}"
+          # Store unescaped versions for release body
+          echo "RELEASE_NOTES_RAW<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT  
+          echo "EOF" >> $GITHUB_OUTPUT
           
-          CRITICAL_NOTICE="${CRITICAL_NOTICE//'%'/'%25'}"
-          CRITICAL_NOTICE="${CRITICAL_NOTICE//$'\n'/'%0A'}"
-          CRITICAL_NOTICE="${CRITICAL_NOTICE//$'\r'/'%0D'}"
+          echo "CRITICAL_NOTICE_RAW<<EOF" >> $GITHUB_OUTPUT
+          echo "$CRITICAL_NOTICE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           
-          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_OUTPUT
           echo "HAS_BREAKING=$HAS_BREAKING" >> $GITHUB_OUTPUT
-          echo "CRITICAL_NOTICE=$CRITICAL_NOTICE" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -362,7 +358,7 @@ jobs:
           body: |
             Beyond Better v${{ steps.get_version.outputs.VERSION }}
 
-            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE || '' }}
+            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
 
             Installation Instructions:
 
@@ -390,7 +386,7 @@ jobs:
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
-            ${{ steps.extract_changelog.outputs.RELEASE_NOTES }}
+            ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}
           draft: false
           prerelease: false
 
@@ -462,8 +458,6 @@ jobs:
                 platform_name="windows"
                 arch_name="x64" ;;
             esac
-            
-
 
             if [ "$platform" = "macos" ]; then
               # Upload DMG files

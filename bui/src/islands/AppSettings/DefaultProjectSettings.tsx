@@ -612,7 +612,7 @@ export default function DefaultProjectSettings() {
 											type='number'
 											id='extendedThinkingBudget'
 											min='1024'
-											step='1000'
+											max='16384'
 											value={formState.extendedThinkingBudget}
 											onChange={(e) => {
 												handleInputChange(e, 'extendedThinkingBudget');
