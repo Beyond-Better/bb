@@ -113,7 +113,7 @@ interface CollaborationResponse {
 		tokenUsageInteraction: TokenUsage;
 		tokenUsageTurn: TokenUsage;
 		tokenUsageStatement: TokenUsage;
-		totalTokensTotal?: TokenUsage;
+		//totalTokensTotal?: TokenUsage;
 	};
 	modelConfig?: LLMModelConfig;
 	collaborationParams?: CollaborationParams;
@@ -660,7 +660,7 @@ export class ApiClient {
 	}
 
 	// Collaboration Management Methods
-	async listCollaborations(projectId: ProjectId, page = 1, limit = 200): Promise<
+	async listCollaborations(projectId: ProjectId, page = 1, limit = 500): Promise<
 		{
 			collaborations: CollaborationValues[];
 			pagination: {
@@ -885,7 +885,7 @@ export class ApiClient {
 
 	async getProjectConfig(projectId: ProjectId): Promise<ProjectConfig | null> {
 		const result = await this.get<ProjectConfig>(`/api/v1/config/project/${projectId}`);
-		console.log('APIClient.getProjectConfig response:', JSON.stringify(result, null, 2));
+		//console.log('APIClient.getProjectConfig response:', JSON.stringify(result, null, 2));
 		return result;
 	}
 

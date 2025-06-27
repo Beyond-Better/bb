@@ -14,7 +14,7 @@ const markdownEntry = {
 	},
 	timestamp: new Date().toISOString(),
 	tokenUsageInteraction: {
-		totalTokensTotal: 100,
+		totalAllTokens: 100,
 	},
 };
 
@@ -34,7 +34,7 @@ const toolEntry = {
 	},
 	timestamp: new Date().toISOString(),
 	tokenUsageInteraction: {
-		totalTokensTotal: 100,
+		totalAllTokens: 100,
 	},
 };
 
@@ -152,7 +152,7 @@ Deno.test('Message Formatting Integration', () => {
 		},
 		timestamp: new Date().toISOString(),
 		tokenUsageInteraction: {
-			totalTokensTotal: 100,
+			totalAllTokens: 100,
 		},
 	};
 

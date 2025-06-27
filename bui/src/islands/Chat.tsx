@@ -62,10 +62,12 @@ const defaultChatConfig: ChatConfig = {
 // Helper to get options from collaboration or defaults
 // For new collaborations, this will use the default models from the model state hook
 const getInputOptionsFromCollaboration = (
-	collaborationId: string | null,
-	collaborations: CollaborationValues[],
+	selectedCollaboration: CollaborationValues | null,
+	//collaborationId: string | null,
+	//collaborations: CollaborationValues[],
 ): LLMRequestParams => {
-	if (!collaborationId) {
+	//if (!collaborationId) {
+	if (!selectedCollaboration) {
 		// Use defaults from model state hook
 		const defaultRolesConfig = getDefaultRolesModelConfig();
 		return {
@@ -77,8 +79,9 @@ const getInputOptionsFromCollaboration = (
 		};
 	}
 
-	const collaboration = collaborations.find((collab) => collab.id === collaborationId);
-	if (!collaboration || !collaboration.collaborationParams || !collaboration.collaborationParams.rolesModelConfig) {
+	// const collaboration = collaborations.find((collab) => collab.id === collaborationId);
+	// if (!collaboration || !collaboration.collaborationParams || !collaboration.collaborationParams.rolesModelConfig) {
+	if (!selectedCollaboration.collaborationParams || !selectedCollaboration.collaborationParams.rolesModelConfig) {
 		// Fallback to defaults from model state hook
 		const defaultRolesConfig = getDefaultRolesModelConfig();
 		return {
@@ -92,14 +95,17 @@ const getInputOptionsFromCollaboration = (
 
 	// Return collaboration params
 	return {
-		rolesModelConfig: collaboration.collaborationParams.rolesModelConfig,
+		rolesModelConfig: selectedCollaboration.collaborationParams.rolesModelConfig,
 	};
 };
 
 // Dedicated function to initialize chat input options
-const initializeChatInputOptions = async (collaborationId: string | null, collaborations: CollaborationValues[]) => {
+const initializeChatInputOptions = async (
+	selectedCollaboration: CollaborationValues | null,
+	//collaborationId: string | null, collaborations: CollaborationValues[]
+) => {
 	// Get options from collaboration or defaults
-	const inputOptions = getInputOptionsFromCollaboration(collaborationId, collaborations);
+	const inputOptions = getInputOptionsFromCollaboration(selectedCollaboration);
 	chatInputOptions.value = inputOptions;
 
 	// Fetch model capabilities for all models in the configuration
@@ -147,7 +153,7 @@ interface ChatProps {
 // Initialize collaboration list visibility state
 const isCollaborationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>(getInputOptionsFromCollaboration(null, []));
+const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>(getInputOptionsFromCollaboration(null));
 const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
@@ -161,8 +167,7 @@ export default function Chat({
 	const appState = useAppState();
 
 	// Get project state and selectedProjectId signal
-	//const { state: projectState, selectedProjectId } = useProjectState(appState);
-	const { selectedProjectId } = useProjectState(appState);
+	const { state: projectState, selectedProjectId, loadProjectConfig } = useProjectState(appState);
 	// Use projectId from selectedProjectId signal
 	const projectId = selectedProjectId.value || null;
 	const [showToast, setShowToast] = useState(false);
@@ -339,7 +344,11 @@ export default function Chat({
 
 		// Initialize model state with API client and project ID
 		initializeModelState(chatState.value.apiClient, projectId);
+
+		// Load project configuration for the selected project
+		loadProjectConfig(projectId);
 	}, [projectId, chatState.value.apiClient]);
+	//}, [projectId, chatState.value.apiClient, loadProjectConfig]);
 
 	// Re-initialize chat input options when model state becomes available
 	useEffect(() => {
@@ -361,7 +370,7 @@ export default function Chat({
 		);
 
 		if (!hasValidConfig) {
-			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+			initializeChatInputOptions(chatState.value.selectedCollaboration)
 				.catch((error) => {
 					console.error('Chat: Failed to reinitialize chat input options:', error);
 				});
@@ -479,7 +488,7 @@ export default function Chat({
 			setCollaboration(id);
 
 			// Initialize chat input options with the selected collaboration
-			await initializeChatInputOptions(id, chatState.value.collaborations);
+			await initializeChatInputOptions(chatState.value.selectedCollaboration);
 
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
@@ -519,13 +528,14 @@ export default function Chat({
 		// Initialize options from current collaboration
 		if (chatState.value.collaborationId) {
 			// Use the centralized initialization function
-			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+			initializeChatInputOptions(chatState.value.selectedCollaboration)
 				.catch((error) => {
 					console.error('Chat: Failed to initialize chat input options:', error);
 					// Fallback to basic initialization
 					const fallbackOptions = getInputOptionsFromCollaboration(
-						chatState.value.collaborationId,
-						chatState.value.collaborations,
+						chatState.value.selectedCollaboration,
+						//chatState.value.collaborationId,
+						//chatState.value.collaborations,
 					);
 					chatInputOptions.value = fallbackOptions;
 				});
@@ -941,6 +951,7 @@ export default function Chat({
 										collaborationId={chatState.value.collaborationId}
 										onHeightChange={setInputAreaHeight}
 										chatState={chatState}
+										projectConfig={projectState.value.projectConfig}
 									/>
 								</div>
 							</main>

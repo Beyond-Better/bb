@@ -37,6 +37,7 @@ export const viewLogs = new Command()
 				if (!options.api && options.id) {
 					// Use the CollaborationLogFormatter for conversation logs
 					await displayFormattedLogs(
+						projectId,
 						options.id,
 						(formattedEntry: string) => {
 							console.log(formattedEntry);

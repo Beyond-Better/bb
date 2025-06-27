@@ -17,6 +17,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.7] - 2025-06-27
+
+### Notes
+
+This is a quick fix. See release notes for v0.8.6 for full list of recent changes.
+- https://github.com/Beyond-Better/bb/releases/tag/v0.8.6
+
+### Added
+
+
+### Changed
+
+- formatting and parsing of release notes
+
+### Fixed
+
+- loading and using assistant and person name from project config
+- token usage progress display was doubled
+
+
 ## [0.8.6] - 2025-06-27
 
 ### Notes

@@ -5,7 +5,6 @@ import { renderToString } from 'preact-render-to-string';
 
 import LogEntryFormatterManager from '../logEntries/logEntryFormatterManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-//import CollaborationLogFormatter from 'cli/collaborationLogFormatter.ts';
 import type {
 	CollaborationId,
 	CollaborationLogDataEntry,

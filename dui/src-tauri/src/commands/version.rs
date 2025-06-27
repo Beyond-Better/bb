@@ -128,7 +128,7 @@ async fn fetch_latest_version() -> Option<VersionCache> {
                         // Extract critical notice (text between warning emoji and installation instructions)
                         let critical_notice = if has_breaking {
                             if let Some(start) = body.find("🚨 **BREAKING CHANGES") {
-                                if let Some(end) = body[start..].find("Installation Instructions") {
+                                if let Some(end) = body[start..].find("## Installation Instructions") {
                                     Some(body[start..start + end].trim().to_string())
                                 } else {
                                     Some("🚨 **BREAKING CHANGES DETECTED** - Please backup your projects before upgrading.".to_string())
@@ -141,8 +141,8 @@ async fn fetch_latest_version() -> Option<VersionCache> {
                         };
                         
                         // Extract release notes (text after "Changes in this Release:")
-                        let release_notes = if let Some(start) = body.find("Changes in this Release:") {
-                            let notes_start = start + "Changes in this Release:".len();
+                        let release_notes = if let Some(start) = body.find("## Changes in this Release:") {
+                            let notes_start = start + "## Changes in this Release:".len();
                             Some(body[notes_start..].trim().to_string())
                         } else {
                             Some(body.clone())
