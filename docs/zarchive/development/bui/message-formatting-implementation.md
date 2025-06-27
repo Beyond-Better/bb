@@ -128,7 +128,7 @@ const messageTypeStyles = {
         },
         timestamp: new Date().toISOString(),
         tokenUsageInteraction: {
-            totalTokensTotal: 100
+            totalAllTokens: 100
         }
     }}
     index={0}

@@ -688,10 +688,7 @@ export function MessageEntry({
 													className='mr-2 text-xs text-gray-500 dark:text-gray-400'
 													title='Total token usage'
 												>
-													{((tokenUsageTurn?.totalTokens ?? 0) +
-														(tokenUsageTurn.cacheCreationInputTokens ?? 0) +
-														(tokenUsageTurn.cacheReadInputTokens ?? 0))
-														.toLocaleString()} tokens
+													{(tokenUsageTurn?.totalAllTokens ?? 0).toLocaleString()} tokens
 												</span>
 												<span className='mr-2 text-xs text-gray-500 dark:text-gray-400'>
 													|
@@ -794,10 +791,11 @@ export function MessageEntry({
 																	(tokenUsageTurn.cacheReadInputTokens ??
 																		0)).toLocaleString() ?? 0})
 														</span>
-														<span title='Combined (turn + cache)'>
+														<span title='Combined (turn + cache + thought)'>
 															Combined: {((tokenUsageTurn?.totalTokens ?? 0) +
 																(tokenUsageTurn.cacheCreationInputTokens ?? 0) +
-																(tokenUsageTurn.cacheReadInputTokens ?? 0))
+																(tokenUsageTurn.cacheReadInputTokens ?? 0) +
+																(tokenUsageTurn.thoughtTokens ?? 0))
 																.toLocaleString()}
 														</span>
 													</>

@@ -248,8 +248,6 @@ export function CollaborationList({
 														</svg>
 														{collab.tokenUsageCollaboration.totalAllTokens
 															?.toLocaleString() ||
-															collab.tokenUsageCollaboration.totalTokensTotal
-																?.toLocaleString() ||
 															0} tokens
 													</p>
 												)}

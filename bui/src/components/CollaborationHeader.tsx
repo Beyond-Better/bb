@@ -254,8 +254,6 @@ export function CollaborationHeader({
 										</svg>
 										{currentCollaboration.value.tokenUsageCollaboration?.totalAllTokens
 											?.toLocaleString() ||
-											currentCollaboration.value.tokenUsageCollaboration?.totalTokensTotal
-												?.toLocaleString() ||
 											0} tokens
 									</div>
 									<div className='flex items-center mr-4'>

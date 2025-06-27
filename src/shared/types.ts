@@ -185,7 +185,7 @@ export interface TokenUsage {
 	inputTokens: number;
 	outputTokens: number;
 	totalTokens: number; // inputTokens + outputTokens
-	totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
+	//totalTokensTotal?: number; // [TODO] this is a deprecated key - we want to remove it eventually
 	cacheCreationInputTokens?: number;
 	cacheReadInputTokens?: number;
 	thoughtTokens?: number;

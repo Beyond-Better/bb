@@ -489,7 +489,7 @@ class BbLLM extends LLM {
 					totalAllTokens: (bbResponseMessage.usage.inputTokens + bbResponseMessage.usage.outputTokens +
 						(bbResponseMessage.usage.cacheCreationInputTokens || 0) +
 						(bbResponseMessage.usage.cacheReadInputTokens || 0) +
-						(bbResponseMessage.usage.cacheReadInputTokens || 0)),
+						(bbResponseMessage.usage.thoughtTokens || 0)),
 				},
 				rateLimit: bbResponseMessage.rateLimit,
 				providerMessageResponseMeta: bbResponseMessage.status,
