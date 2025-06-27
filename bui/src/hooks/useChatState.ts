@@ -273,6 +273,8 @@ export function useChatState(
 					`useChatState: url/projectId effect[${effectId}]: initialize-collaborations`,
 					collaborations,
 				);
+				const totalCollaborations = collaborationResponse.pagination.totalItems; // Total number of saved collaborations - collaborations array is a paginated subset
+				const collaborationsPagination = collaborationResponse.pagination;
 
 				// Get collaboration ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
@@ -334,6 +336,8 @@ export function useChatState(
 					collaborationId,
 					collaborations: updatedCollaborations,
 					selectedCollaboration: collaboration, // Set selected collaboration directly
+					totalCollaborations,
+					collaborationsPagination,
 					logDataEntries,
 				};
 

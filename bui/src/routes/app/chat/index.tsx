@@ -17,6 +17,13 @@ const initialState: ChatState = {
 	wsManager: null,
 	collaborations: [],
 	selectedCollaboration: null,
+	totalCollaborations: 0,
+	collaborationsPagination: {
+		page: 1,
+		pageSize: 500,
+		totalPages: 1,
+		totalItems: 0,
+	},
 	logDataEntries: [],
 	status: {
 		isConnecting: false,

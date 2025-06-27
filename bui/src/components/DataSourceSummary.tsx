@@ -77,7 +77,7 @@ export function DataSourceSummary({ project, showAdditionalCount = true, classNa
 		<span className={`${className} flex items-center`}>
 			{icon}
 			{showAdditionalCount && additionalSourcesCount > 0 && (
-				<span className='additional-sources-count ml-1 text-gray-500'>
+				<span className='additional-sources-count ml-1 text-gray-400 dark:text-gray-500'>
 					plus {additionalSourcesCount} other data source{additionalSourcesCount > 1 ? 's' : ''}
 				</span>
 			)}

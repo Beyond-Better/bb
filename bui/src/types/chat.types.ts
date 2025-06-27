@@ -43,6 +43,13 @@ export interface ChatState {
 	logDataEntries: CollaborationLogDataEntry[];
 	collaborations: CollaborationValues[];
 	selectedCollaboration: CollaborationValues | null; // Dedicated signal for current collaboration to ensure reactivity
+	totalCollaborations: number; // Total number of saved collaborations - collaborations array is a paginated subset
+	collaborationsPagination: {
+		page: number;
+		pageSize: number;
+		totalPages: number;
+		totalItems: number;
+	};
 	status: ChatStatus;
 }
 

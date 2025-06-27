@@ -246,9 +246,11 @@ export function ChatInput({
 	const tokenPercentage = useComputed(() => {
 		if (!chatState?.value || !collaborationId) return 0;
 
-		const currentCollaboration = chatState.value.collaborations?.find(
-			(collab: CollaborationValues) => collab.id === collaborationId,
-		);
+		//const currentCollaboration = chatState.value.collaborations?.find(
+		//	(collab: CollaborationValues) => collab.id === collaborationId,
+		//);
+		const currentCollaboration = chatState.value.selectedCollaboration;
+		//console.info('ChatInput: signal-tokenPercentage:', { currentCollaboration });
 
 		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
 			return 0;
@@ -260,9 +262,14 @@ export function ChatInput({
 		const tokenUsageTurn =
 			currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
 		const contextWindow = orchestratorModelCapabilities.value.capabilities.contextWindow;
-		//console.info('ChatInput: signal-tokenPercentage:', { contextWindow, tokenUsageTurn });
+		// console.info('ChatInput: signal-tokenPercentage:', {
+		// 	contextWindow,
+		// 	tokenUsageTurn,
+		// 	orchestratorModelCapabilities: orchestratorModelCapabilities.value,
+		// });
 		const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
 		const tokenLimit = contextWindow;
+		//const tokenPercentage = tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
 
 		return tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
 	});
