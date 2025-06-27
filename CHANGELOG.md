@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.8.5] - 2025-06-27
+
 ### BREAKING CHANGES
 
 - Major refactor to storage format for conversations 
