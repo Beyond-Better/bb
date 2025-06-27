@@ -7,7 +7,13 @@ import { colors } from 'cliffy/ansi/colors';
 
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
 //import { getBbDataDir } from 'shared/dataDir.ts';
-import type { CollaborationLogEntryType, InteractionId, InteractionStats, TokenUsage } from 'shared/types.ts';
+import type {
+	CollaborationLogEntryType,
+	InteractionId,
+	InteractionStats,
+	ProjectId,
+	TokenUsage,
+} from 'shared/types.ts';
 import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 
@@ -33,7 +39,7 @@ const UNKNOWN_ICON = '❓';
 export default class CollaborationLogFormatter {
 	private _maxLineLength: number;
 
-	private static readonly iconColorMap: Record<
+	private iconColorMap: Record<
 		CollaborationLogEntryType,
 		{ icon: string; color: (text: string) => string; label: string }
 	> = {
@@ -59,7 +65,13 @@ export default class CollaborationLogFormatter {
 		this._maxLineLength = CollaborationLogFormatter.getMaxLineLength(maxLineLength);
 	}
 
-	public async init(): Promise<CollaborationLogFormatter> {
+	public async init(projectId: ProjectId): Promise<CollaborationLogFormatter> {
+		const projectConfig = await configManager.getProjectConfig(projectId);
+		this.iconColorMap.user.label = projectConfig.myPersonsName || 'Person';
+		this.iconColorMap.orchestrator.label = `${projectConfig.myAssistantsName || 'Assistant'} as Orchestrator`;
+		this.iconColorMap.assistant.label = projectConfig.myAssistantsName || 'Assistant';
+		this.iconColorMap.answer.label = `Answer from ${projectConfig.myAssistantsName || 'Assistant'}`;
+
 		return this;
 	}
 
@@ -149,7 +161,7 @@ export default class CollaborationLogFormatter {
 		tokenUsage: TokenUsage,
 		toolName?: string,
 	): Promise<string> {
-		const { icon, color, label } = CollaborationLogFormatter.iconColorMap[type] ||
+		const { icon, color, label } = this.iconColorMap[type] ||
 			{ icon: UNKNOWN_ICON, color: colors.reset, label: 'Unknown' };
 		//const label = type === 'user' || type === 'assistant' ? rawLabel : rawLabel + ' Message';
 		const subtitle = formattedResult.subtitle ? colors.bold(' | ' + formattedResult.subtitle) : '';
@@ -250,11 +262,12 @@ export default class CollaborationLogFormatter {
 }
 
 export async function displayFormattedLogs(
+	projectId: ProjectId,
 	interactionId: InteractionId,
 	callback?: (formattedEntry: string) => void,
 	follow = false,
 ): Promise<void> {
-	const formatter = await new CollaborationLogFormatter().init();
+	const formatter = await new CollaborationLogFormatter().init(projectId);
 	const rawLogFile = await CollaborationLogger.getLogFileRawPath(Deno.cwd(), interactionId);
 
 	const processEntry = async (entry: string) => {

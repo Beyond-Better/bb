@@ -28,6 +28,7 @@ import type {
 	ProjectId,
 	TokenUsage,
 } from 'shared/types.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
 //import { logger } from 'shared/logger.ts';
 
 type Spinner = Kia;
@@ -70,6 +71,7 @@ export class TerminalHandler {
 	private history: string[] = [];
 	private spinner!: Spinner;
 	private currentStatus: StatusMessage | null = null;
+	private assistantName: string = 'Assistant';
 	private statusQueue: StatusMessage[] = [];
 	private lastStatusUpdateTime: number = 0;
 	private readonly minStatusDisplayTime: number = 500; // ms
@@ -102,7 +104,7 @@ export class TerminalHandler {
 	private getStatusMessage(status: ApiStatus, metadata?: { toolName?: string; error?: string }): string {
 		switch (status) {
 			case ApiStatus.LLM_PROCESSING:
-				return 'Assistant is thinking...';
+				return `${this.assistantName || 'Assistant'} is thinking...`;
 			case ApiStatus.TOOL_HANDLING:
 				return `Running tool: ${metadata?.toolName || 'unknown'}`;
 			case ApiStatus.API_BUSY:
@@ -205,7 +207,12 @@ export class TerminalHandler {
 	public async init(): Promise<TerminalHandler> {
 		this.bbDir = await getBbDir(this.projectId);
 		this.loadHistory();
-		this.formatter = await new CollaborationLogFormatter().init();
+		this.formatter = await new CollaborationLogFormatter().init(this.projectId);
+
+		const configManager = await getConfigManager();
+		const projectConfig = await configManager.getProjectConfig(this.projectId);
+		if (projectConfig.myAssistantsName) this.assistantName = projectConfig.myAssistantsName;
+
 		return this;
 	}
 
@@ -381,7 +388,7 @@ export class TerminalHandler {
 		console.log('');
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Assistant is thinking...');
+			this.startSpinner(`${this.assistantName} is thinking...`);
 		}
 	}
 
@@ -445,7 +452,7 @@ export class TerminalHandler {
 		}
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Assistant is thinking...');
+			this.startSpinner(`${this.assistantName} is thinking...`);
 		}
 	}
 
@@ -529,7 +536,7 @@ export class TerminalHandler {
 		console.log(summaryLine);
 
 		if (expectingMoreInput && this.spinner) {
-			this.startSpinner('Assistant is thinking...');
+			this.startSpinner(`${this.assistantName} is thinking...`);
 		}
 	}
 

@@ -48,11 +48,11 @@ export const collaborationChat = new Command()
 		const configManager = await getConfigManager();
 		const globalConfig = await configManager.getGlobalConfig();
 
-		let apiConfig: ApiConfig;
+		//let apiConfig: ApiConfig;
 
 		await configManager.ensureLatestProjectConfig(projectId);
 		const projectConfig = await configManager.getProjectConfig(projectId);
-		apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
+		const apiConfig = projectConfig.api as ApiConfig || globalConfig.api;
 		//console.log(`CollaborationChat: projectId: ${projectId}`);
 
 		const bbDir = projectId ? await getBbDir(projectId) : (Deno.env.get('HOME') || '');
@@ -62,6 +62,8 @@ export const collaborationChat = new Command()
 		const apiUseTls = typeof apiConfig.tls?.useTls !== 'undefined' ? apiConfig.tls.useTls : false;
 		const apiClient = await ApiClient.create(projectId, apiHostname, apiPort, apiUseTls);
 		const websocketManager = new WebsocketManager();
+
+		const assistantName = projectConfig.myAssistantsName || 'Assistant';
 
 		let terminalHandler: TerminalHandler | null = null;
 		let collaborationId: CollaborationId;
@@ -75,7 +77,7 @@ export const collaborationChat = new Command()
 				} else {
 					console.log("\nCan't cancel without collaboration ID...");
 				}
-				terminalHandler?.cancelStatement('Waiting for Assistant to finish speaking...');
+				terminalHandler?.cancelStatement(`Waiting for ${assistantName} to finish speaking...`);
 			} else {
 				console.log('\nCleaning up...');
 				await exit();
@@ -380,6 +382,7 @@ export const collaborationChat = new Command()
 						await processStatement(
 							projectId,
 							bbDir,
+							assistantName,
 							websocketManager,
 							terminalHandler,
 							collaborationId!,
@@ -424,6 +427,7 @@ function handleWebsocketReconnection() {
 const processStatement = async (
 	projectId: ProjectId,
 	bbDir: string,
+	assistantName: string,
 	websocketManager: WebsocketManager,
 	terminalHandler: TerminalHandler,
 	collaborationId: CollaborationId,
@@ -432,13 +436,13 @@ const processStatement = async (
 ): Promise<void> => {
 	await addToStatementHistory(bbDir, statement);
 	const task = 'converse';
-	terminalHandler.startStatement('Assistant is thinking...');
+	terminalHandler.startStatement(`${assistantName} is thinking...`);
 	try {
 		websocketManager.ws?.send(
 			JSON.stringify({ collaborationId, projectId, task, statement, options: { maxTurns: options?.maxTurns } }),
 		);
 		await websocketManager.waitForAnswer(collaborationId);
 	} finally {
-		terminalHandler.stopStatement('Assistant is finished');
+		terminalHandler.stopStatement(`${assistantName} is finished`);
 	}
 };
