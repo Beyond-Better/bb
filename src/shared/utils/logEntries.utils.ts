@@ -1,6 +1,6 @@
-import type { ConversationLogDataEntry } from 'shared/types.ts';
+import type { CollaborationLogDataEntry } from 'shared/types.ts';
 
-export function createNestedLogDataEntries(entries: ConversationLogDataEntry[]): ConversationLogDataEntry[] {
+export function createNestedLogDataEntries(entries: CollaborationLogDataEntry[]): CollaborationLogDataEntry[] {
 	const childMessageIds = new Set<string>();
 
 	const result = entries.map((entry) => {
@@ -24,7 +24,7 @@ export function createNestedLogDataEntries(entries: ConversationLogDataEntry[]):
 			}
 			acc[interactionId].push(child);
 			return acc;
-		}, {} as Record<string, ConversationLogDataEntry[]>);
+		}, {} as Record<string, CollaborationLogDataEntry[]>);
 
 		return {
 			...entry,
@@ -41,9 +41,9 @@ export function createNestedLogDataEntries(entries: ConversationLogDataEntry[]):
 }
 
 export function addLogDataEntry(
-	nestedEntries: ConversationLogDataEntry[],
-	newEntry: ConversationLogDataEntry,
-): ConversationLogDataEntry[] {
+	nestedEntries: CollaborationLogDataEntry[],
+	newEntry: CollaborationLogDataEntry,
+): CollaborationLogDataEntry[] {
 	if (!newEntry.parentMessageId || !newEntry.agentInteractionId) {
 		return [...nestedEntries, newEntry];
 	}

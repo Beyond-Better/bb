@@ -2,8 +2,9 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 import { signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import type { WebSocketConfigApp, WebSocketStatus } from '../types/websocket.types.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type { SystemMeta, VersionInfo } from 'shared/types/version.ts';
-import {} from 'shared/types/version.ts';
+//import {} from 'shared/types/version.ts';
 import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/websocketManagerApp.utils.ts';
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
@@ -16,29 +17,29 @@ export interface AppState {
 	status: WebSocketStatus;
 	error: string | null;
 	versionInfo: VersionInfo | undefined;
-	projectId: string | null;
-	conversationId: string | null;
+	projectId: ProjectId | null;
+	collaborationId: string | null;
 	path: string;
 }
 
 // Load initial state from localStorage and URL
 const loadStoredState = () => {
 	let projectId = null;
-	let conversationId = null;
+	let collaborationId = null;
 	let path = '/';
 
 	if (IS_BROWSER && typeof globalThis !== 'undefined') {
 		// Check URL parameters first
 		const params = new URLSearchParams(globalThis.location.search);
 		projectId = params.get('projectId');
-		conversationId = params.get('conversationId');
+		collaborationId = params.get('collaborationId');
 
 		// If not in URL, check localStorage
 		if (!projectId) {
 			projectId = localStorage.getItem('bb_projectId');
 		}
-		if (!conversationId) {
-			conversationId = localStorage.getItem('bb_conversationId');
+		if (!collaborationId) {
+			collaborationId = localStorage.getItem('bb_collaborationId');
 		}
 		// Get current path from location
 		path = globalThis.location.pathname;
@@ -46,7 +47,7 @@ const loadStoredState = () => {
 
 	return {
 		projectId,
-		conversationId,
+		collaborationId,
 		path,
 	};
 };
@@ -67,7 +68,7 @@ const appState = signal<AppState>({
 });
 
 // Function to update URL parameters
-const updateUrlParams = (projectId: string | null, conversationId: string | null) => {
+const updateUrlParams = (projectId: ProjectId | null, collaborationId: string | null) => {
 	if (!IS_BROWSER || typeof globalThis === 'undefined') return;
 
 	const url = new URL(globalThis.location.href);
@@ -76,17 +77,17 @@ const updateUrlParams = (projectId: string | null, conversationId: string | null
 	} else {
 		url.searchParams.delete('projectId');
 	}
-	if (conversationId) {
-		url.searchParams.set('conversationId', conversationId);
+	if (collaborationId) {
+		url.searchParams.set('collaborationId', collaborationId);
 	} else {
-		url.searchParams.delete('conversationId');
+		url.searchParams.delete('collaborationId');
 	}
 
 	globalThis.history.replaceState({}, '', url.toString());
 };
 
 // Function to update localStorage
-const updateLocalStorage = (projectId: string | null, conversationId: string | null) => {
+const updateLocalStorage = (projectId: ProjectId | null, collaborationId: string | null) => {
 	if (typeof localStorage === 'undefined') return;
 
 	if (projectId) {
@@ -94,10 +95,10 @@ const updateLocalStorage = (projectId: string | null, conversationId: string | n
 	} else {
 		localStorage.removeItem('bb_projectId');
 	}
-	if (conversationId) {
-		localStorage.setItem('bb_conversationId', conversationId);
+	if (collaborationId) {
+		localStorage.setItem('bb_collaborationId', collaborationId);
 	} else {
-		localStorage.removeItem('bb_conversationId');
+		localStorage.removeItem('bb_collaborationId');
 	}
 };
 
@@ -196,23 +197,23 @@ export function setPath(path: string) {
 	};
 }
 
-export function setProject(projectId: string | null) {
+export function setProject(projectId: ProjectId | null) {
 	console.log('AppState: setProject', projectId);
 	appState.value = {
 		...appState.value,
 		projectId,
 	};
-	updateLocalStorage(projectId, appState.value.conversationId);
-	updateUrlParams(projectId, appState.value.conversationId);
+	updateLocalStorage(projectId, appState.value.collaborationId);
+	updateUrlParams(projectId, appState.value.collaborationId);
 }
 
-export function setConversation(conversationId: string | null) {
+export function setCollaboration(collaborationId: string | null) {
 	appState.value = {
 		...appState.value,
-		conversationId,
+		collaborationId,
 	};
-	updateLocalStorage(appState.value.projectId, conversationId);
-	updateUrlParams(appState.value.projectId, conversationId);
+	updateLocalStorage(appState.value.projectId, collaborationId);
+	updateUrlParams(appState.value.projectId, collaborationId);
 }
 
 export function initializeAppState(config: WebSocketConfigApp): void {
@@ -348,8 +349,8 @@ export function cleanupAppState(): void {
 		wsManager.disconnect();
 	}
 
-	// Preserve project and conversation IDs during cleanup
-	const { projectId, conversationId } = appState.value;
+	// Preserve project and collaboration IDs during cleanup
+	const { projectId, collaborationId } = appState.value;
 
 	appState.value = {
 		wsManager: null,
@@ -364,7 +365,7 @@ export function cleanupAppState(): void {
 		error: null,
 		versionInfo: undefined,
 		projectId,
-		conversationId,
+		collaborationId,
 		path: '/',
 	};
 }

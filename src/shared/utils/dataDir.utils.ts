@@ -4,6 +4,7 @@ import { parse as parseYaml } from '@std/yaml';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getProjectRegistry } from 'shared/projectRegistry.ts';
 import { logger } from 'shared/logger.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 export async function getProjectId(startDir: string): Promise<string | undefined> {
 	const workingRoot = await getWorkingRootFromStartDir(startDir);
@@ -18,7 +19,7 @@ export async function getProjectId(startDir: string): Promise<string | undefined
 	return undefined;
 }
 
-export async function getWorkingRoot(projectId: string): Promise<string> {
+export async function getWorkingRoot(projectId: ProjectId): Promise<string> {
 	// Use ProjectRegistry to get project by ID
 	const registry = await getProjectRegistry();
 	const project = await registry.getProject(projectId);
@@ -53,10 +54,10 @@ export async function getWorkingRootFromStartDir(startDir: string): Promise<stri
 	throw new Error('No .bb directory found in project hierarchy');
 }
 
-export async function getBbDir(projectId: string): Promise<string> {
+export async function getBbDir(projectId: ProjectId): Promise<string> {
 	return await getBbDirFromProjectId(projectId);
 }
-export async function getBbDirFromProjectId(projectId: string): Promise<string> {
+export async function getBbDirFromProjectId(projectId: ProjectId): Promise<string> {
 	const workingRoot = await getWorkingRoot(projectId);
 	return await getBbDirFromWorkingRoot(workingRoot);
 }
@@ -87,7 +88,7 @@ export async function getGlobalConfigDir(): Promise<string> {
 	return globalConfigDir;
 }
 
-export async function getBbDataDir(projectId: string): Promise<string> {
+export async function getBbDataDir(projectId: ProjectId): Promise<string> {
 	const bbDir = await getBbDir(projectId);
 	const repoCacheDir = join(bbDir, 'data');
 	await ensureDir(repoCacheDir);
@@ -170,13 +171,13 @@ Thumbs.db
 `;
 }
 
-export async function writeToBbDir(projectId: string, filename: string, content: string): Promise<void> {
+export async function writeToBbDir(projectId: ProjectId, filename: string, content: string): Promise<void> {
 	const bbDir = await getBbDir(projectId);
 	const filePath = join(bbDir, filename);
 	await Deno.writeTextFile(filePath, content);
 }
 
-export async function readFromBbDir(projectId: string, filename: string): Promise<string | null> {
+export async function readFromBbDir(projectId: ProjectId, filename: string): Promise<string | null> {
 	const bbDir = await getBbDir(projectId);
 	const filePath = join(bbDir, filename);
 	try {
@@ -189,7 +190,7 @@ export async function readFromBbDir(projectId: string, filename: string): Promis
 	}
 }
 
-export async function removeFromBbDir(projectId: string, filename: string): Promise<void> {
+export async function removeFromBbDir(projectId: ProjectId, filename: string): Promise<void> {
 	const bbDir = await getBbDir(projectId);
 	const filePath = join(bbDir, filename);
 	try {
@@ -232,13 +233,13 @@ export async function removeFromGlobalConfigDir(filename: string): Promise<void>
 	}
 }
 
-export async function writeToBbDataDir(projectId: string, filename: string, content: string): Promise<void> {
+export async function writeToBbDataDir(projectId: ProjectId, filename: string, content: string): Promise<void> {
 	const dataDir = await getBbDataDir(projectId);
 	const filePath = join(dataDir, filename);
 	await Deno.writeTextFile(filePath, content);
 }
 
-export async function readFromBbDataDir(projectId: string, filename: string): Promise<string | null> {
+export async function readFromBbDataDir(projectId: ProjectId, filename: string): Promise<string | null> {
 	const dataDir = await getBbDataDir(projectId);
 	const filePath = join(dataDir, filename);
 	try {
@@ -251,7 +252,7 @@ export async function readFromBbDataDir(projectId: string, filename: string): Pr
 	}
 }
 
-export async function removeFromBbDataDir(projectId: string, filename: string): Promise<void> {
+export async function removeFromBbDataDir(projectId: ProjectId, filename: string): Promise<void> {
 	const dataDir = await getBbDataDir(projectId);
 	const filePath = join(dataDir, filename);
 	try {

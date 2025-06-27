@@ -1,4 +1,4 @@
-import { Context } from '@oak/oak';
+import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';

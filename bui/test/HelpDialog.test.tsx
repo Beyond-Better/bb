@@ -31,11 +31,11 @@ describe('HelpDialog', () => {
     delete: vi.fn(),
     request: vi.fn(),
 
-    // Conversation methods
-    createConversation: vi.fn(),
-    getConversations: vi.fn(),
-    getConversation: vi.fn(),
-    deleteConversation: vi.fn(),
+    // Collaboration methods
+    createCollaboration: vi.fn(),
+    listCollaborations: vi.fn(),
+    getCollaboration: vi.fn(),
+    deleteInteraction: vi.fn(),
     formatLogEntry: vi.fn(),
   };
   it('renders nothing when not visible', () => {

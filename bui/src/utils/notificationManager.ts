@@ -75,16 +75,16 @@ class NotificationManager {
 	public async initialize(): Promise<void> {
 		if (!IS_BROWSER) return;
 		if (this.isInitialized) return;
-		console.log('NotificationManager: Initializing');
+		//console.log('NotificationManager: Initializing');
 
 		// Check and request notification permission - update this section
 		const hasPermission = await notificationBridge.isPermissionGranted();
-		console.log(
-			'NotificationManager: Environment:',
-			notificationBridge.getEnvironmentType(),
-			'Permission granted:',
-			hasPermission,
-		);
+		//console.log(
+		//	'NotificationManager: Environment:',
+		//	notificationBridge.getEnvironmentType(),
+		//	'Permission granted:',
+		//	hasPermission,
+		//);
 
 		// Store original page state and set hasPermission
 		this.state.value = {
@@ -107,7 +107,7 @@ class NotificationManager {
 		this.startUserActivityTracking();
 
 		this.isInitialized = true;
-		console.log('NotificationManager: Initialized successfully');
+		//console.log('NotificationManager: Initialized successfully');
 	}
 
 	/**
@@ -124,13 +124,13 @@ class NotificationManager {
 		message: string = 'Statement processing complete',
 		shouldNotifyOverride?: boolean,
 	): Promise<void> {
-		console.log('NotificationManager: Statement complete notification triggered');
+		//console.log('NotificationManager: Statement complete notification triggered');
 
 		const preferences = userPersistenceManager.getNotificationPreferences();
-		console.log('NotificationManager: preferences', preferences);
+		//console.log('NotificationManager: preferences', preferences);
 
 		if (!this.state.value.enabled) {
-			console.log('NotificationManager: Notifications disabled');
+			//console.log('NotificationManager: Notifications disabled');
 			return;
 		}
 
@@ -138,7 +138,7 @@ class NotificationManager {
 		const shouldNotify = shouldNotifyOverride !== undefined ? shouldNotifyOverride : this.shouldSendNotification();
 
 		if (!shouldNotify) {
-			console.log('NotificationManager: User appears to be active, skipping intrusive notifications');
+			//console.log('NotificationManager: User appears to be active, skipping intrusive notifications');
 			// Still show subtle visual indicator
 			if (preferences.visualIndicators) {
 				this.showSubtleVisualIndicator();
@@ -146,7 +146,7 @@ class NotificationManager {
 			return;
 		}
 
-		console.log('NotificationManager: User appears away, sending notifications');
+		//console.log('NotificationManager: User appears away, sending notifications');
 
 		// Execute all enabled notification types
 		const promises: Promise<void>[] = [];
@@ -172,7 +172,7 @@ class NotificationManager {
 	 * Clear all visual indicators when user returns
 	 */
 	public clearNotifications(): void {
-		console.log('NotificationManager: Clearing notifications');
+		//console.log('NotificationManager: Clearing notifications');
 
 		// Clear timeouts
 		if (this.indicatorTimeout) {
@@ -207,12 +207,12 @@ class NotificationManager {
 				hasPermission,
 			};
 
-			console.log(
-				'NotificationManager: Permission status:',
-				permission,
-				'Environment:',
-				notificationBridge.getEnvironmentType(),
-			);
+			//console.log(
+			//	'NotificationManager: Permission status:',
+			//	permission,
+			//	'Environment:',
+			//	notificationBridge.getEnvironmentType(),
+			//);
 			return hasPermission;
 		} catch (error) {
 			console.error('NotificationManager: Failed to request permission:', error);
@@ -251,7 +251,7 @@ class NotificationManager {
 	 */
 	private async playAudioNotification(preferences: StatementCompletionNotifications): Promise<void> {
 		try {
-			console.log('NotificationManager: Playing audio notification');
+			//console.log('NotificationManager: Playing audio notification');
 
 			const audioUrl = preferences.customAudioUrl || this.config.defaultAudioPath;
 			const audioVolume = preferences.audioVolume || 0.5;
@@ -264,7 +264,7 @@ class NotificationManager {
 				await this.playAudioWithHTMLAudio(audioUrl, audioVolume);
 			}
 
-			console.log('NotificationManager: Audio notification played successfully');
+			//console.log('NotificationManager: Audio notification played successfully');
 		} catch (error) {
 			console.error('NotificationManager: Failed to play audio:', error);
 			throw new Error('Audio notification failed');
@@ -329,7 +329,7 @@ class NotificationManager {
 	 */
 	private async showBrowserNotification(message: string): Promise<void> {
 		try {
-			console.log('NotificationManager: Showing notification via bridge');
+			//console.log('NotificationManager: Showing notification via bridge');
 
 			const notificationOptions: NotificationOptions = {
 				title: 'Beyond Better',
@@ -345,7 +345,7 @@ class NotificationManager {
 			};
 
 			await notificationBridge.sendNotification(notificationOptions);
-			console.log('NotificationManager: Notification sent via bridge');
+			//console.log('NotificationManager: Notification sent via bridge');
 		} catch (error) {
 			console.error('NotificationManager: Failed to show notification:', error);
 			throw error;
@@ -356,7 +356,7 @@ class NotificationManager {
 	 * Show prominent visual indicators
 	 */
 	private async showVisualIndicators(): Promise<void> {
-		console.log('NotificationManager: Showing visual indicators');
+		//console.log('NotificationManager: Showing visual indicators');
 
 		// Update unread count
 		this.state.value = {
@@ -384,7 +384,7 @@ class NotificationManager {
 	 * Show subtle visual indicator for active users
 	 */
 	private showSubtleVisualIndicator(): void {
-		console.log('NotificationManager: Showing subtle visual indicator');
+		//console.log('NotificationManager: Showing subtle visual indicator');
 
 		// Brief title flash
 		const originalTitle = document.title;
@@ -422,7 +422,7 @@ class NotificationManager {
 			if (link) {
 				// For now, just ensure we can revert later
 				// A more advanced implementation would draw a badge on the favicon
-				console.log('NotificationManager: Favicon update placeholder');
+				//console.log('NotificationManager: Favicon update placeholder');
 			}
 		} catch (error) {
 			console.warn('NotificationManager: Failed to update favicon:', error);
@@ -469,7 +469,7 @@ class NotificationManager {
 				this.updateUserActivity();
 			}
 
-			console.log('NotificationManager: Page visibility changed:', isVisible);
+			//console.log('NotificationManager: Page visibility changed:', isVisible);
 		});
 
 		// Window focus
@@ -496,7 +496,7 @@ class NotificationManager {
 			if (!this.audioContext) {
 				try {
 					this.audioContext = new (globalThis.AudioContext || (globalThis as any).webkitAudioContext)();
-					console.log('NotificationManager: AudioContext created');
+					//console.log('NotificationManager: AudioContext created');
 				} catch (error) {
 					console.warn('NotificationManager: Failed to create AudioContext:', error);
 				}
@@ -533,7 +533,7 @@ class NotificationManager {
 					...this.state.value,
 					isUserAway: isAway,
 				};
-				console.log('NotificationManager: User away status changed:', isAway);
+				//console.log('NotificationManager: User away status changed:', isAway);
 			}
 		}, 5000); // Check every 5 seconds
 	}

@@ -82,8 +82,8 @@ Deno.test({
 					},
 				};
 
-				const conversation = await projectEditor.initConversation('test-conversation-id');
-				const result = await tool.runTool(conversation, toolUse, projectEditor);
+				const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+				const result = await tool.runTool(interaction, toolUse, projectEditor);
 				// console.log('successful query - bbResponse:', result.bbResponse);
 				// console.log('successful query - toolResponse:', result.toolResponse);
 				// console.log('successful query - toolResults:', result.toolResults);
@@ -180,8 +180,8 @@ Deno.test({
 					},
 				};
 
-				const conversation = await projectEditor.initConversation('test-conversation-id');
-				const result = await tool.runTool(conversation, toolUse, projectEditor);
+				const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+				const result = await tool.runTool(interaction, toolUse, projectEditor);
 				// console.log('invalid provider - bbResponse:', result.bbResponse);
 				// console.log('invalid provider - toolResponse:', result.toolResponse);
 				// console.log('invalid provider - toolResults:', result.toolResults);
@@ -275,8 +275,8 @@ Deno.test({
 					},
 				};
 
-				const conversation = await projectEditor.initConversation('test-conversation-id');
-				const result = await tool.runTool(conversation, toolUse, projectEditor);
+				const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+				const result = await tool.runTool(interaction, toolUse, projectEditor);
 				//console.log('API error handling - bbResponse:', result.bbResponse);
 				//console.log('API error handling - toolResponse:', result.toolResponse);
 				//console.log('API error handling - toolResults:', result.toolResults);

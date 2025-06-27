@@ -185,7 +185,7 @@ class BatchStyleManager extends DynamicStyleManager {
 ```typescript
 // dynamicTool/formatter.browser.tsx
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult
+  resultContent: CollaborationLogEntryContentToolResult
 ): LLMToolLogEntryFormattedResult => {
   // Styles must be included in Tailwind config or they won't work
   const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
@@ -208,7 +208,7 @@ export const formatLogEntryToolResult = (
 ```typescript
 // dynamicTool/formatter.browser.tsx
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult,
+  resultContent: CollaborationLogEntryContentToolResult,
   styleManager: DynamicStyleManager
 ): LLMToolLogEntryFormattedResult => {
   // Styles are generated at runtime

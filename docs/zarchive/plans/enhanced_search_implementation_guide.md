@@ -154,7 +154,7 @@ The current browser formatter:
 **Implementation Approach:**
 ```typescript
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult,
+  resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
   const { toolResult, bbResponse } = resultContent;
   
@@ -203,7 +203,7 @@ The current console formatter:
 **Implementation Approach:**
 ```typescript
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult,
+  resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
   // Similar mode detection as browser formatter
   // Use TOOL_STYLES_CONSOLE for consistent styling

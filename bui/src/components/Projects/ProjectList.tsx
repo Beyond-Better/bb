@@ -1,6 +1,7 @@
 import { Signal } from '@preact/signals';
 import { setPath } from '../../hooks/useAppState.ts';
 import { ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 //import { formatPathForDisplay } from '../../utils/path.utils.ts';
 //import { useAppState } from '../../hooks/useAppState.ts';
@@ -8,9 +9,9 @@ import { DataSourceSummary } from '../DataSourceSummary.tsx';
 
 interface ProjectListProps {
 	projectsWithSources: Signal<ClientProjectWithConfigSources[]>;
-	setSelectedProject: (projectId: string | null) => void;
-	handleEdit: (projectId: string) => void;
-	handleDelete: (projectId: string) => void;
+	setSelectedProject: (projectId: ProjectId | null) => void;
+	handleEdit: (projectId: ProjectId) => void;
+	handleDelete: (projectId: ProjectId) => void;
 }
 
 export function ProjectList({

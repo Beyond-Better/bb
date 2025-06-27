@@ -26,7 +26,7 @@ interface LogEntryFormattedResult {
 interface LogEntrySourceData {
   title: string;
   subtitle?: string;
-  content: string | LLMToolInputSchema | ConversationLogEntryContent;
+  content: string | LLMToolInputSchema | CollaborationLogEntryContent;
   preview?: string;
 }
 ```
@@ -48,7 +48,7 @@ formatLogEntryToolUse(
 ): LogEntryFormattedResult;
 
 formatLogEntryToolResult(
-  resultContent: ConversationLogEntryContent,
+  resultContent: CollaborationLogEntryContent,
   format: LLMToolFormatterDestination
 ): LogEntryFormattedResult;
 ```

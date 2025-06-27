@@ -1015,6 +1015,26 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 								<div className='grid grid-cols-6 gap-y-4 mt-4'>
 									<div className='col-span-6 font-bold text-lg mb-1'>Log Files</div>
 									<div className='grid grid-cols-6 gap-y-3 col-span-6 bg-gray-100 dark:bg-gray-700/30 p-3 rounded'>
+										{duiLogPath && (
+											<>
+												<div className='font-medium text-gray-700 dark:text-gray-300'>Application:</div>
+												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
+												<div className='col-span-1 text-right'>
+													<button
+														onClick={async () => {
+															try {
+																await openLogFile(duiLogPath);
+															} catch (err) {
+																console.error('Failed to open DUI log file:', err);
+															}
+														}}
+														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
+													>
+														Open
+													</button>
+												</div>
+											</>
+										)}
 										{apiLogPath && (
 											<>
 												<div className='font-medium text-gray-700 dark:text-gray-300'>API:</div>
@@ -1046,26 +1066,6 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 																await openLogFile(buiLogPath);
 															} catch (err) {
 																console.error('Failed to open BUI log file:', err);
-															}
-														}}
-														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'
-													>
-														Open
-													</button>
-												</div>
-											</>
-										)}
-										{duiLogPath && (
-											<>
-												<div className='font-medium text-gray-700 dark:text-gray-300'>Application:</div>
-												<div className='col-span-4 font-mono text-sm text-gray-600 dark:text-gray-400 break-all'>{duiLogPath}</div>
-												<div className='col-span-1 text-right'>
-													<button
-														onClick={async () => {
-															try {
-																await openLogFile(duiLogPath);
-															} catch (err) {
-																console.error('Failed to open DUI log file:', err);
 															}
 														}}
 														className='px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700'

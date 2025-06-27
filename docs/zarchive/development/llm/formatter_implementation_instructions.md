@@ -89,7 +89,7 @@ export const formatLogEntryToolUse = (
 };
 
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult,
+  resultContent: CollaborationLogEntryContentToolResult,
   format: LLMToolFormatterDestination = 'browser'
 ): JSX.Element => {
   // Implementation
@@ -120,7 +120,7 @@ export const formatLogEntryToolUse = (
 };
 
 export const formatLogEntryToolResult = (
-  resultContent: ConversationLogEntryContentToolResult,
+  resultContent: CollaborationLogEntryContentToolResult,
   format: LLMToolFormatterDestination = 'console'
 ): string => {
   // Implementation

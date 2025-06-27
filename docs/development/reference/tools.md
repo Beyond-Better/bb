@@ -326,7 +326,7 @@ Perform vector similarity searches.
 - Configurable similarity thresholds
 - Support for various content types
 
-### conversation_summary
+### collaboration_summary
 
 Summarize and manage conversation context.
 

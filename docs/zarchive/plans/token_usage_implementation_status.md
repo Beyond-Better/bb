@@ -7,7 +7,7 @@
 - New token usage directory structure
 - TokenUsageRecord interface and types
 - TokenUsagePersistence class
-- Integration with ConversationPersistence
+- Integration with InteractionPersistence
 - Basic error handling and validation
 - Separation of conversation and chat tracking
 
@@ -26,7 +26,7 @@ New endpoints needed in `api/src/routes/api/token.handlers.ts`:
 
 ```typescript
 // Get token usage for a conversation
-GET /api/v1/token-usage/{conversationId}
+GET /api/v1/token-usage/{collaborationId}
 Response: {
   conversation: TokenUsageAnalysis;
   chat: TokenUsageAnalysis;
@@ -47,7 +47,7 @@ Response: {
 }
 
 // Get detailed token usage metrics
-GET /api/v1/token-usage/{conversationId}/metrics
+GET /api/v1/token-usage/{collaborationId}/metrics
 Query params:
   - includeTools?: boolean
   - includeCache?: boolean

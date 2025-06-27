@@ -2,6 +2,9 @@ import * as diff from 'diff';
 
 import type InteractionManager from 'api/llms/interactionManager.ts';
 import { interactionManager } from 'api/llms/interactionManager.ts';
+import type CollaborationManager from 'api/collaborations/collaborationManager.ts';
+import { collaborationManager } from 'api/collaborations/collaborationManager.ts';
+import Collaboration from 'api/collaborations/collaboration.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
@@ -14,22 +17,30 @@ import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import PromptManager from '../prompts/promptManager.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventPayloadMap } from 'shared/eventManager.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
+import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
+import type { CollaborationParams } from 'shared/types/collaboration.ts';
 //import type { ErrorHandlingConfig, LLMProviderMessageResponse, Task } from 'api/types/llms.ts';
-import type { LLMProviderMessageResponse, LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMModelConfig, LLMProviderMessageResponse, LLMRolesModelConfig } from 'api/types/llms.ts';
 import type {
-	ConversationContinue,
-	//ConversationLogDataEntry,
-	ConversationId,
-	ConversationLogEntry,
-	//ConversationMetrics,
-	ConversationResponse,
-	//ConversationStart,
-	ConversationStats,
+	//Collaboration,
+	CollaborationContinue,
+	CollaborationId,
+	CollaborationLogEntry,
+	//InteractionMetrics,
+	CollaborationResponse,
+	CollaborationType,
+	//CollaborationLogDataEntry,
+	InteractionId,
+	//CollaborationStart,
+	InteractionStats,
+	ProjectId,
 	//ObjectivesData,
 	TokenUsage,
-	TokenUsageStats,
+	TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
+//import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import { ApiStatus } from 'shared/types.ts';
 import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { createError } from 'api/utils/error.ts';
@@ -41,11 +52,11 @@ import { extractThinkingFromContent } from 'api/utils/llms.ts';
 import { readFileContent } from 'api/utils/fileHandling.ts';
 import type { LLMCallbacks, LLMSpeakWithResponse } from 'api/types.ts';
 import {
-	//generateConversationObjective,
-	generateConversationTitle,
+	//generateCollaborationObjective,
+	generateCollaborationTitle,
 	//generateStatementObjective,
-} from '../utils/conversation.utils.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+} from '../utils/collaboration.utils.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 //import { runFormatCommand } from '../utils/project.utils.ts';
 import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 //import { getVersionInfo } from 'shared/version.ts';
@@ -53,24 +64,18 @@ import { stageAndCommitAfterChanging } from '../utils/git.utils.ts';
 class BaseController {
 	protected _controllerType: 'base' | 'orchestrator' | 'agent';
 	public projectConfig!: ProjectConfig;
+	public collaborationManager: CollaborationManager;
 	public interactionManager: InteractionManager;
 	public promptManager!: PromptManager;
 	public toolManager!: LLMToolManager;
 	public eventManager!: EventManager;
 	protected projectEditorRef!: WeakRef<ProjectEditor>;
 	//protected _providerRequestCount: number = 0;
-	protected interactionStats: Map<ConversationId, ConversationStats> = new Map();
-	//protected interactionMetrics: Map<ConversationId, ConversationMetrics> = new Map();
-	protected interactionTokenUsage: Map<ConversationId, TokenUsage> = new Map();
-
-	// Accessor methods for instance inspection
-	public getInteractionStatsCount(): number {
-		return this.interactionStats.size;
-	}
-
-	public getInteractionTokenUsageCount(): number {
-		return this.interactionTokenUsage.size;
-	}
+	protected interactionStats: Map<InteractionId, InteractionStats> = new Map();
+	//protected interactionMetrics: Map<InteractionId, InteractionMetrics> = new Map();
+	protected interactionTokenUsage: Map<InteractionId, TokenUsage> = new Map();
+	// Role-based model configurations
+	protected rolesModelConfig: LLMRolesModelConfig | null = null;
 	protected isCancelled: boolean = false;
 	//protected currentStatus: ApiStatus = ApiStatus.IDLE;
 	protected statusSequence: number = 0;
@@ -78,7 +83,8 @@ class BaseController {
 	constructor(projectEditor: ProjectEditor & { projectInfo: ProjectInfo }) {
 		this._controllerType = 'base';
 		this.projectEditorRef = new WeakRef(projectEditor);
-		this.interactionManager = interactionManager; //new InteractionManager();
+		this.collaborationManager = collaborationManager;
+		this.interactionManager = interactionManager;
 	}
 
 	async init(): Promise<BaseController> {
@@ -91,7 +97,60 @@ class BaseController {
 		return this;
 	}
 
-	protected handleLLMError(error: Error, interaction: LLMConversationInteraction): LLMError {
+	// Accessor methods for instance inspection
+	public getInteractionStatsCount(): number {
+		return this.interactionStats.size;
+	}
+
+	public getInteractionTokenUsageCount(): number {
+		return this.interactionTokenUsage.size;
+	}
+
+	// Role configuration management
+	protected setRolesModelConfig(configs: LLMRolesModelConfig | undefined): void {
+		this.rolesModelConfig = configs || null;
+	}
+
+	protected getModelConfigForRole(role: 'orchestrator' | 'agent' | 'chat'): LLMModelConfig {
+		if (this.rolesModelConfig?.[role]) {
+			return this.rolesModelConfig[role]!;
+		}
+		return this.getDefaultModelConfigForRole(role);
+	}
+
+	protected getDefaultModelConfigForRole(role: 'orchestrator' | 'agent' | 'chat'): LLMModelConfig {
+		const defaultModel = this.projectConfig?.defaultModels?.[role];
+		if (!defaultModel) {
+			throw new Error(`No default model configured for role: ${role}`);
+		}
+
+		return {
+			model: defaultModel,
+			temperature: 0.7,
+			maxTokens: 4000,
+			extendedThinking: this.projectConfig.api?.extendedThinking,
+			usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+		};
+	}
+
+	protected extractModelConfigForRole(
+		statementParams: StatementParams | undefined,
+		role: 'orchestrator' | 'agent' | 'chat',
+	): LLMModelConfig {
+		// Handle new rolesModelConfig structure
+		if (statementParams?.rolesModelConfig?.[role]) {
+			return statementParams.rolesModelConfig[role]!;
+		}
+
+		// Fallback to project defaults
+		return this.getDefaultModelConfigForRole(role);
+	}
+
+	protected handleLLMError(
+		error: Error,
+		collaboration: Collaboration,
+		interaction: LLMConversationInteraction,
+	): LLMError {
 		logger.error(`BaseController: handleLLMError:`, error);
 
 		if (isLLMError(error)) {
@@ -108,21 +167,22 @@ class BaseController {
 			const logEntryInteraction = this.logEntryInteraction(interaction.id);
 			const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
 			this.eventManager.emit(
-				'projectEditor:conversationError',
+				'projectEditor:collaborationError',
 				{
-					conversationId: interaction.id,
-					conversationTitle: interaction.title || '',
+					collaborationId: collaboration.id,
+					interactionId: interaction.id,
+					collaborationTitle: collaboration.title || '',
 					agentInteractionId: agentInteractionId,
 					timestamp: new Date().toISOString(),
-					conversationStats: {
+					interactionStats: {
 						statementCount: interaction.statementCount,
 						statementTurnCount: interaction.statementTurnCount,
-						conversationTurnCount: interaction.conversationTurnCount,
+						interactionTurnCount: interaction.interactionTurnCount,
 					},
 					error: errorDetails.message,
 					code: errorDetails.code,
 					details: errorDetails.args || {},
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationError'],
+				} as EventPayloadMap['projectEditor']['projectEditor:collaborationError'],
 			);
 			return error;
 		} else {
@@ -134,7 +194,8 @@ class BaseController {
 				{
 					model: interaction.model,
 					//provider: this.llmProviderName,
-					conversationId: interaction.id,
+					collaborationId: collaboration.id,
+					interactionId: interaction.id,
 					args: {},
 				} as LLMErrorOptions,
 			);
@@ -142,37 +203,42 @@ class BaseController {
 	}
 
 	protected emitStatus(
-		interactionId: ConversationId | null,
+		collaborationId: CollaborationId | null,
 		status: ApiStatus,
 		metadata?: { toolName?: string; error?: string },
 	) {
-		if (!interactionId) {
-			logger.warn('BaseController: No interactionId set, cannot emit status');
+		if (!collaborationId) {
+			logger.warn('BaseController: No collaborationId set, cannot emit status');
 			return;
 		}
-		const interaction = this.interactionManager.getInteractionStrict(interactionId);
+		const collaboration = this.collaborationManager.getCollaborationStrict(collaborationId);
 		//this.currentStatus = status;
 		this.statusSequence++;
 		this.eventManager.emit('projectEditor:progressStatus', {
 			type: 'progress_status',
-			conversationId: interactionId,
+			collaborationId: collaborationId,
 			status,
 			timestamp: new Date().toISOString(),
-			statementCount: interaction.statementCount,
+			statementCount: collaboration.lastInteractionMetadata?.interactionStats.statementCount || 0,
 			sequence: this.statusSequence,
 			metadata,
 		});
 		logger.warn(`BaseController: Emitted progress_status: ${status}`);
 	}
 
-	protected emitPromptCacheTimer(interactionId: ConversationId | null) {
-		if (!interactionId) {
-			logger.warn('BaseController: No interactionId set, cannot emit timer');
+	protected resetStatus(collaborationId: CollaborationId | null) {
+		this.statusSequence = 0;
+		this.emitStatus(collaborationId, ApiStatus.IDLE);
+	}
+
+	protected emitPromptCacheTimer(collaborationId: CollaborationId | null) {
+		if (!collaborationId) {
+			logger.warn('BaseController: No collaborationId set, cannot emit timer');
 			return;
 		}
 		this.eventManager.emit('projectEditor:promptCacheTimer', {
 			type: 'prompt_cache_timer',
-			conversationId: interactionId,
+			collaborationId: collaborationId,
 			startTimestamp: Date.now(),
 			duration: 300000, // 5 minutes in milliseconds
 		});
@@ -185,14 +251,14 @@ class BaseController {
 		return projectEditor;
 	}
 
-	public logEntryInteraction(interactionId: ConversationId): LLMConversationInteraction {
+	public logEntryInteraction(interactionId: InteractionId): LLMConversationInteraction {
 		const logEntryInteraction = this.interactionManager.getParentInteraction(interactionId) ??
 			this.interactionManager.getInteractionStrict(interactionId);
 		return logEntryInteraction as LLMConversationInteraction;
 	}
 
-	public getAllStats(): { [key: string]: ConversationStats } {
-		const allStats: { [key: string]: ConversationStats } = {};
+	public getAllStats(): { [key: string]: InteractionStats } {
+		const allStats: { [key: string]: InteractionStats } = {};
 		for (const [id, stats] of this.interactionStats) {
 			allStats[id] = stats;
 		}
@@ -206,8 +272,8 @@ class BaseController {
 		return allTokenUsage;
 	}
 
-	protected updateStats(conversationId: ConversationId, interactionStats: ConversationStats): void {
-		this.interactionStats.set(conversationId, interactionStats);
+	protected updateStats(interactionId: InteractionId, interactionStats: InteractionStats): void {
+		this.interactionStats.set(interactionId, interactionStats);
 		this.updateTotalStats();
 	}
 
@@ -217,49 +283,42 @@ class BaseController {
 		//
 		// //this._providerRequestCount = 0;
 		// this.statementTurnCount = 0;
-		// this.conversationTurnCount = 0;
+		// this.interactionTurnCount = 0;
 		// this.statementCount = 0;
-		// //this._tokenUsageConversation = { totalTokens: 0, inputTokens: 0, outputTokens: 0 };
+		// //this._tokenUsageInteraction = DEFAULT_TOKEN_USAGE();
 		//
 		// for (const stats of this.interactionStats.values()) {
 		// 	//this._providerRequestCount += stats.providerRequestCount;
 		// 	this.statementTurnCount += stats.statementTurnCount;
-		// 	this.conversationTurnCount += stats.conversationTurnCount;
+		// 	this.interactionTurnCount += stats.interactionTurnCount;
 		// 	this.statementCount += stats.statementCount;
 		// }
 		// //for (const usage of this.interactionTokenUsage.values()) {
-		// //	this._tokenUsageConversation.totalTokens += usage.totalTokens;
-		// //	this._tokenUsageConversation.inputTokens += usage.inputTokens;
-		// //	this._tokenUsageConversation.outputTokens += usage.outputTokens;
+		// //	this._tokenUsageInteraction.totalTokens += usage.totalTokens;
+		// //	this._tokenUsageInteraction.inputTokens += usage.inputTokens;
+		// //	this._tokenUsageInteraction.outputTokens += usage.outputTokens;
 		// //}
 	}
 
-	protected async loadInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction | null> {
-		logger.info(`BaseController: Attempting to load existing conversation: ${conversationId}`);
+	protected async loadCollaboration(collaborationId: CollaborationId): Promise<Collaboration | null> {
+		//logger.info(`BaseController: Attempting to load existing collaboration: ${collaborationId}`);
 		try {
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
+			const persistence = await new CollaborationPersistence(collaborationId, this.projectEditor).init();
 
-			const conversation = await persistence.loadConversation(this.getInteractionCallbacks());
-			if (!conversation) {
-				logger.warn(`BaseController: No conversation found for ID: ${conversationId}`);
+			const collaborationValues = await persistence.loadCollaboration();
+			if (!collaborationValues) {
+				logger.warn(`BaseController: No collaboration found for ID: ${collaborationId}`);
 				return null;
 			}
-			logger.info(`BaseController: Loaded existing conversation: ${conversationId}`);
+			logger.info(`BaseController: Loaded existing collaboration: ${collaborationId}`);
 
-			//const metadata = await persistence.getMetadata();
+			const collaboration = Collaboration.fromJSON(collaborationValues);
+			this.collaborationManager.addCollaboration(collaboration);
 
-			this.interactionManager.addInteraction(conversation);
-
-			// //this._providerRequestCount = conversation.providerRequestCount;
-			// this.statementTurnCount = conversation.conversationStats.statementTurnCount;
-			// this.conversationTurnCount = conversation.conversationStats.conversationTurnCount;
-			// this.statementCount = conversation.conversationStats.statementCount;
-			// this.tokenUsageInteraction = conversation.tokenUsageInteraction;
-
-			return conversation;
+			return collaboration;
 		} catch (error) {
 			logger.warn(
-				`BaseController: Failed to load conversation ${conversationId}: ${(error as Error).message}`,
+				`BaseController: Failed to load collaboration ${collaborationId}: ${(error as Error).message}`,
 			);
 			logger.error(`BaseController: Error details:`, error);
 			logger.debug(`BaseController: Stack trace:`, (error as Error).stack);
@@ -267,12 +326,74 @@ class BaseController {
 		}
 	}
 
-	async createInteraction(conversationId: ConversationId): Promise<LLMConversationInteraction> {
-		logger.info(`BaseController: Creating new conversation: ${conversationId}`);
+	async createCollaboration(
+		collaborationId: CollaborationId,
+		projectId: ProjectId,
+		type: CollaborationType = 'project',
+		title?: string,
+		collaborationParams?: CollaborationParams,
+	): Promise<Collaboration> {
+		logger.info(`BaseController: Creating new collaboration: ${collaborationId}`);
+		const collaboration = await this.collaborationManager.createCollaboration(
+			collaborationId,
+			projectId,
+			type,
+			title,
+			collaborationParams,
+		);
+		//logger.info(`BaseController: set system prompt for: ${typeof collaboration}`, collaboration.baseSystem);
+		return collaboration as Collaboration;
+	}
+
+	protected async loadInteraction(
+		collaboration: Collaboration,
+		interactionId: InteractionId,
+	): Promise<LLMChatInteraction | LLMConversationInteraction | null> {
+		//logger.info(`BaseController: Attempting to load existing interaction: ${interactionId} for collaboration ${collaboration.id}`);
+		try {
+			const persistence = await new InteractionPersistence(collaboration.id, interactionId, this.projectEditor)
+				.init();
+
+			const interaction = await persistence.loadInteraction(collaboration, this.getInteractionCallbacks());
+			if (!interaction) {
+				logger.warn(`BaseController: No interaction found for ID: ${interactionId}`);
+				return null;
+			}
+			logger.info(
+				`BaseController: Loaded existing interaction ${interactionId} for collaboration ${collaboration.id}`,
+			);
+
+			//const metadata = await persistence.getMetadata();
+
+			this.interactionManager.addInteraction(interaction);
+
+			// //this._providerRequestCount = interaction.providerRequestCount;
+			// this.statementTurnCount = interaction.interactionStats.statementTurnCount;
+			// this.interactionTurnCount = interaction.interactionStats.interactionTurnCount;
+			// this.statementCount = interaction.interactionStats.statementCount;
+			// this.tokenUsageInteraction = interaction.tokenUsageInteraction;
+
+			return interaction;
+		} catch (error) {
+			logger.warn(
+				`BaseController: Failed to load interaction ${interactionId}: ${(error as Error).message}`,
+			);
+			logger.error(`BaseController: Error details:`, error);
+			logger.debug(`BaseController: Stack trace:`, (error as Error).stack);
+			return null;
+		}
+	}
+
+	async createInteraction(
+		collaboration: Collaboration,
+		interactionId: InteractionId,
+	): Promise<LLMConversationInteraction> {
+		logger.info(`BaseController: Creating new interaction: ${interactionId}`);
 		const interactionModel = this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514';
 		const interaction = await this.interactionManager.createInteraction(
+			collaboration,
 			'conversation',
-			conversationId,
+			interactionId,
 			interactionModel,
 			this.getInteractionCallbacks(),
 		);
@@ -286,10 +407,15 @@ class BaseController {
 		return interaction as LLMConversationInteraction;
 	}
 
-	async createChatInteraction(parentInteractionId: ConversationId, title: string): Promise<LLMChatInteraction> {
-		const interactionId = shortenConversationId(generateConversationId());
+	async createChatInteraction(
+		collaboration: Collaboration,
+		parentInteractionId: InteractionId,
+		title: string,
+	): Promise<LLMChatInteraction> {
+		const interactionId = shortenInteractionId(generateInteractionId());
 		const interactionModel = this.projectConfig.defaultModels?.chat ?? 'claude-3-5-haiku-20241022';
 		const chatInteraction = await this.interactionManager.createInteraction(
+			collaboration,
 			'chat',
 			interactionId,
 			interactionModel,
@@ -297,16 +423,39 @@ class BaseController {
 			parentInteractionId,
 		) as LLMChatInteraction;
 		chatInteraction.title = title;
+		//logger.info(`BaseController: createChatInteraction:`, { title: chatInteraction.title });
 		return chatInteraction;
 	}
 
-	async saveInitialConversationWithResponse(
+	async saveCollaboration(
+		collaboration: Collaboration,
+		//interaction: LLMConversationInteraction,
+	): Promise<void> {
+		try {
+			const persistence = await new CollaborationPersistence(
+				collaboration.id,
+				this.projectEditor,
+			).init();
+			await persistence.saveCollaboration(collaboration);
+
+			logger.info(`BaseController: Saved collaboration: ${collaboration.id}`);
+		} catch (error) {
+			logger.error(`BaseController: Error persisting the collaboration:`, error);
+			throw error;
+		}
+	}
+
+	async saveInitialInteractionWithResponse(
 		interaction: LLMConversationInteraction,
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
-			await persistence.saveConversation(interaction);
+			const persistence = await new InteractionPersistence(
+				interaction.collaboration.id,
+				interaction.id,
+				this.projectEditor,
+			).init();
+			await persistence.saveInteraction(interaction);
 
 			// Save system prompt and project info if running in local development
 			if (this.projectConfig.api?.environment === 'localdev') {
@@ -317,28 +466,32 @@ class BaseController {
 				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 
-			logger.info(`BaseController: Saved conversation: ${interaction.id}`);
+			logger.info(`BaseController: Saved interaction: ${interaction.id}`);
 		} catch (error) {
-			logger.error(`BaseController: Error persisting the conversation:`, error);
+			logger.error(`BaseController: Error persisting the interaction:`, error);
 			throw error;
 		}
 	}
 
-	async saveConversationAfterStatement(
+	async saveInteractionAfterStatement(
 		interaction: LLMConversationInteraction,
 		currentResponse: LLMSpeakWithResponse,
 	): Promise<void> {
 		try {
-			const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+			const persistence = await new InteractionPersistence(
+				interaction.collaboration.id,
+				interaction.id,
+				this.projectEditor,
+			).init();
 
-			// Include the latest stats and usage in the saved conversation
-			//interaction.conversationStats = this.interactionStats.get(interaction.id),
+			// Include the latest stats and usage in the saved interaction
+			//interaction.interactionStats = this.interactionStats.get(interaction.id),
 			//interaction.tokenUsageInteraction = this.interactionTokenUsage.get(interaction.id),
 
-			// Include the latest requestParams in the saved conversation
-			interaction.requestParams = currentResponse.messageMeta.requestParams;
+			// Include the latest modelConfig in the saved interaction
+			interaction.modelConfig = currentResponse.messageMeta.llmRequestParams.modelConfig;
 
-			await persistence.saveConversation(interaction);
+			await persistence.saveInteraction(interaction);
 
 			// Save system prompt and project info if running in local development
 			if (this.projectConfig.api?.environment === 'localdev') {
@@ -349,14 +502,62 @@ class BaseController {
 				await persistence.dumpProjectInfo(this.projectEditor.projectInfo);
 			}
 		} catch (error) {
-			logger.error(`BaseController: Error persisting the conversation:`, error);
+			logger.error(`BaseController: Error persisting the interaction:`, error);
 			throw error;
 		}
 	}
 
-	public async generateConversationTitle(statement: string, interactionId: string): Promise<string> {
-		const chatInteraction = await this.createChatInteraction(interactionId, 'Create title for conversation');
-		return generateConversationTitle(chatInteraction, statement);
+	async deleteInteraction(collaborationId: CollaborationId, interactionId: InteractionId): Promise<void> {
+		logger.info(`BaseController: Deleting interaction: ${interactionId}`);
+
+		try {
+			// Emit deletion event before cleanup
+			this.eventManager.emit(
+				'projectEditor:collaborationDeleted',
+				{
+					collaborationId: interactionId,
+					timestamp: new Date().toISOString(),
+				} as EventPayloadMap['projectEditor']['projectEditor:collaborationDeleted'],
+			);
+
+			// Clean up interaction
+			this.interactionManager.removeInteraction(interactionId);
+
+			// Clean up stats and usage tracking
+			this.interactionStats.delete(interactionId);
+			this.interactionTokenUsage.delete(interactionId);
+
+			// Update total stats
+			this.updateTotalStats();
+
+			// Clean up persistence
+			const persistence = await new InteractionPersistence(collaborationId, interactionId, this.projectEditor)
+				.init();
+			await persistence.deleteInteraction();
+
+			logger.info(`BaseController: Successfully deleted interaction: ${interactionId}`);
+		} catch (error) {
+			logger.error(`BaseController: Error deleting interaction: ${interactionId}`, error);
+			throw error;
+		}
+	}
+
+	public async generateCollaborationTitle(
+		statement: string,
+		collaboration: Collaboration,
+		interactionId: string,
+	): Promise<string> {
+		const chatInteraction = await this.createChatInteraction(
+			collaboration,
+			interactionId,
+			`Create title for conversation`,
+			//`Create title for collaboration using interaction ${interactionId}`,
+		);
+		return generateCollaborationTitle(
+			chatInteraction,
+			statement,
+			collaboration.collaborationParams.rolesModelConfig.chat,
+		);
 	}
 
 	protected async addToolsToInteraction(interaction: LLMConversationInteraction): Promise<void> {
@@ -385,14 +586,25 @@ class BaseController {
 
 		const logEntryInteraction = this.logEntryInteraction(interaction.id);
 		const agentInteractionId = interaction.id !== logEntryInteraction.id ? interaction.id : null;
-		await interaction.conversationLogger.logToolUse(
+		// logger.info(`OrchestratorController: logToolUse`, {
+		// 	...interaction.tokenUsageStatsForInteraction,
+		// 	tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
+		// 	//tokenUsageTurn: interaction.tokenUsageTurn,
+		// 	//tokenUsageStatement: interaction.tokenUsageStatement,
+		// 	//tokenUsageInteraction: interaction.tokenUsageInteraction,
+		// 	//tokenUsageCollaboration: collaboration.tokenUsageCollaboration,
+		// });
+		await interaction.collaborationLogger.logToolUse(
 			interaction.getLastMessageId(),
 			parentMessageId,
 			agentInteractionId,
 			toolUse.toolName,
 			toolUse.toolInput,
-			interaction.conversationStats,
-			interaction.tokenUsageStats,
+			interaction.interactionStats,
+			{
+				...interaction.tokenUsageStatsForInteraction,
+				tokenUsageCollaboration: interaction.collaboration.tokenUsageCollaboration,
+			} as TokenUsageStatsForCollaboration,
 		);
 
 		const {
@@ -408,7 +620,7 @@ class BaseController {
 			this.projectEditor,
 		);
 		if (isError) {
-			interaction.conversationLogger.logError(
+			interaction.collaborationLogger.logError(
 				messageId,
 				parentMessageId,
 				agentInteractionId,
@@ -416,7 +628,7 @@ class BaseController {
 			);
 		}
 
-		await interaction.conversationLogger.logToolResult(
+		await interaction.collaborationLogger.logToolResult(
 			messageId,
 			parentMessageId,
 			agentInteractionId,
@@ -426,11 +638,6 @@ class BaseController {
 		);
 
 		return { toolResponse };
-	}
-
-	protected resetStatus(interactionId: ConversationId | null) {
-		this.statusSequence = 0;
-		this.emitStatus(interactionId, ApiStatus.IDLE);
 	}
 
 	protected getInteractionCallbacks(): LLMCallbacks {
@@ -451,17 +658,24 @@ class BaseController {
 			LOG_ENTRY_HANDLER: async (
 				messageId: string,
 				parentMessageId: string | null,
-				parentInteractionId: ConversationId,
-				agentInteractionId: ConversationId | null,
+				collaborationId: CollaborationId,
+				//parentInteractionId: InteractionId,
+				agentInteractionId: InteractionId | null,
 				timestamp: string,
-				logEntry: ConversationLogEntry,
-				conversationStats: ConversationStats,
-				tokenUsageStats: TokenUsageStats,
-				requestParams?: LLMRequestParams,
+				logEntry: CollaborationLogEntry,
+				interactionStats: InteractionStats,
+				tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
+				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
-				//logger.info(`BaseController: LOG_ENTRY_HANDLER-requestParams - ${logEntry.entryType}`, {tokenUsageStats, requestParams});
-				const logEntryInteraction = this.logEntryInteraction(parentInteractionId || agentInteractionId || '');
-				//logger.info(`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`);
+				//logger.info(`BaseController: LOG_ENTRY_HANDLER-modelConfig - ${logEntry.entryType}`, {tokenUsageStatsForCollaboration, modelConfig});
+				const collaboration = this.collaborationManager.getCollaborationStrict(collaborationId);
+				const logEntryInteraction = this.logEntryInteraction(
+					collaboration.lastInteractionId || agentInteractionId || '',
+				);
+				//const logEntryInteraction = this.logEntryInteraction(parentInteractionId || agentInteractionId || '');
+				logger.info(
+					`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} for ${logEntryInteraction.id} ${logEntryInteraction.title}`,
+				);
 				//const useParent = logEntryInteraction.id !== agentInteractionId;
 				//logger.info(
 				//	`BaseController: LOG_ENTRY_HANDLER - emit event - ${logEntry.entryType} using parent: ${
@@ -470,38 +684,56 @@ class BaseController {
 				//);
 				//if(useParent) logEntry.agentInteractionId = agentInteractionId!;
 				if (logEntry.entryType === 'answer') {
-					const statementAnswer: ConversationResponse = {
+					const statementAnswer: CollaborationResponse = {
 						timestamp,
-						conversationId: logEntryInteraction.id,
-						conversationTitle: logEntryInteraction.title,
+						collaborationId: logEntryInteraction.collaboration.id,
+						projectId: logEntryInteraction.collaboration.projectId,
+						collaborationTitle: logEntryInteraction.collaboration.title || '--',
+						collaborationType: logEntryInteraction.collaboration.type,
+						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
+						createdAt: logEntryInteraction.collaboration.createdAt,
+						updatedAt: logEntryInteraction.collaboration.updatedAt,
+						// totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						// interactionIds: logEntryInteraction.collaboration.interactionIds,
+						interactionId: logEntryInteraction.id,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
 						logEntry,
-						conversationStats,
-						tokenUsageStats,
-						requestParams,
+						interactionStats,
+						tokenUsageStatsForCollaboration,
+						modelConfig,
 					};
 					this.eventManager.emit(
-						'projectEditor:conversationAnswer',
-						statementAnswer as EventPayloadMap['projectEditor']['projectEditor:conversationAnswer'],
+						'projectEditor:collaborationAnswer',
+						statementAnswer as EventPayloadMap['projectEditor']['projectEditor:collaborationAnswer'],
 					);
 				} else {
-					const conversationContinue: ConversationContinue = {
+					const collaborationContinue: CollaborationContinue = {
 						timestamp,
-						conversationId: logEntryInteraction.id,
-						conversationTitle: logEntryInteraction.title,
+						collaborationId: logEntryInteraction.collaboration.id,
+						projectId: logEntryInteraction.collaboration.projectId,
+						collaborationTitle: logEntryInteraction.collaboration.title || '--',
+						collaborationType: logEntryInteraction.collaboration.type,
+						collaborationParams: logEntryInteraction.collaboration.collaborationParams,
+						createdAt: logEntryInteraction.collaboration.createdAt,
+						updatedAt: logEntryInteraction.collaboration.updatedAt,
+						// totalInteractions: logEntryInteraction.collaboration.totalInteractions,
+						// interactionIds: logEntryInteraction.collaboration.interactionIds,
+						interactionId: logEntryInteraction.id,
 						messageId,
 						parentMessageId,
 						agentInteractionId,
 						logEntry,
-						conversationStats,
-						tokenUsageStats,
-						requestParams,
+						interactionStats,
+						tokenUsageStatsForCollaboration,
+						modelConfig,
 					};
 					this.eventManager.emit(
-						'projectEditor:conversationContinue',
-						conversationContinue as EventPayloadMap['projectEditor']['projectEditor:conversationContinue'],
+						'projectEditor:collaborationContinue',
+						collaborationContinue as EventPayloadMap['projectEditor'][
+							'projectEditor:collaborationContinue'
+						],
 					);
 				}
 			},
@@ -523,8 +755,8 @@ class BaseController {
 		};
 	}
 
-	cancelCurrentOperation(conversationId: ConversationId): void {
-		logger.info(`BaseController: Cancelling operation for conversation: ${conversationId}`);
+	cancelCurrentOperation(interactionId: InteractionId): void {
+		logger.info(`BaseController: Cancelling operation for interaction: ${interactionId}`);
 		this.isCancelled = true;
 		// TODO: Implement cancellation of current LLM call if possible
 		// This might involve using AbortController or similar mechanism
@@ -532,32 +764,20 @@ class BaseController {
 	}
 
 	/*
-	private getConversationHistory(interaction: LLMConversationInteraction): ConversationLogDataEntry[] {
+	private getCollaborationHistory(interaction: LLMConversationInteraction): CollaborationLogDataEntry[] {
 		const history = interaction.getMessageHistory();
 		return history.map((message: LLMMessage) => ({
 			type: message.role,
 			timestamp: message.timestamp,
 			content: message.content,
-			conversationStats: message.conversationStats || {
+			interactionStats: message.interactionStats || {
 				statementCount: 0,
 				statementTurnCount: 0,
-				conversationTurnCount: 0
+				interactionTurnCount: 0
 			},
-			tokenUsageTurn: message.tokenUsageTurn || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			},
-			tokenUsageStatement: message.tokenUsageStatement || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			},
-			tokenUsageConversation: message.tokenUsageConversation || {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0
-			}
+			tokenUsageTurn: message.tokenUsageTurn || DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageStatement: message.tokenUsageStatement || DEFAULT_TOKEN_USAGE_REQUIRED(),
+			tokenUsageInteraction: message.tokenUsageInteraction || DEFAULT_TOKEN_USAGE_REQUIRED()
 		}));
 	}
 	 */
@@ -568,7 +788,11 @@ class BaseController {
 		filePath: string | string[],
 		change: string | string[],
 	): Promise<void> {
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+		const persistence = await new InteractionPersistence(
+			interaction.collaboration.id,
+			interaction.id,
+			this.projectEditor,
+		).init();
 
 		if (Array.isArray(filePath) && Array.isArray(change)) {
 			if (filePath.length !== change.length) {
@@ -601,42 +825,12 @@ class BaseController {
 		this.projectEditor.changeContents.clear();
 	}
 
-	async deleteConversation(conversationId: ConversationId): Promise<void> {
-		logger.info(`BaseController: Deleting conversation: ${conversationId}`);
-
-		try {
-			// Emit deletion event before cleanup
-			this.eventManager.emit(
-				'projectEditor:conversationDeleted',
-				{
-					conversationId,
-					timestamp: new Date().toISOString(),
-				} as EventPayloadMap['projectEditor']['projectEditor:conversationDeleted'],
-			);
-
-			// Clean up interaction
-			this.interactionManager.removeInteraction(conversationId);
-
-			// Clean up stats and usage tracking
-			this.interactionStats.delete(conversationId);
-			this.interactionTokenUsage.delete(conversationId);
-
-			// Update total stats
-			this.updateTotalStats();
-
-			// Clean up persistence
-			const persistence = await new ConversationPersistence(conversationId, this.projectEditor).init();
-			await persistence.deleteConversation();
-
-			logger.info(`BaseController: Successfully deleted conversation: ${conversationId}`);
-		} catch (error) {
-			logger.error(`BaseController: Error deleting conversation: ${conversationId}`, error);
-			throw error;
-		}
-	}
-
 	async revertLastChange(interaction: LLMConversationInteraction): Promise<void> {
-		const persistence = await new ConversationPersistence(interaction.id, this.projectEditor).init();
+		const persistence = await new InteractionPersistence(
+			interaction.collaboration.id,
+			interaction.id,
+			this.projectEditor,
+		).init();
 		const changeLog = await persistence.getChangeLog();
 
 		if (changeLog.length === 0) {

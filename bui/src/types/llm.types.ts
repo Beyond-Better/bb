@@ -1,3 +1,5 @@
+import type { LLMRolesModelConfig } from 'shared/types.ts';
+
 /**
  * Parameters used in LLM requests
  */
@@ -14,33 +16,23 @@ export interface LLMExtendedThinkingOptions {
 	budgetTokens: number;
 }
 
+// Re-export types from shared for consistency
+export type { LLMModelConfig, LLMRolesModelConfig } from 'shared/types.ts';
+
 /**
  * Request parameters used when calling the LLM provider
  */
 export interface LLMRequestParams {
 	/**
-	 * The model identifier used for the request
+	 * Role-specific model configurations
 	 */
-	model: string;
+	rolesModelConfig: LLMRolesModelConfig;
 
-	/**
-	 * Temperature setting used for the request (controls randomness)
-	 */
-	temperature: number;
-
-	/**
-	 * Maximum tokens the model can generate in response
-	 */
-	maxTokens: number;
-
-	/**
-	 * Extended thinking options for supported models
-	 */
+	// Legacy fields for migration - will be removed eventually
+	model?: string;
+	temperature?: number;
+	maxTokens?: number;
 	extendedThinking?: LLMExtendedThinkingOptions;
-
-	/**
-	 * Whether prompt caching was enabled for this request
-	 */
 	usePromptCaching?: boolean;
 }
 

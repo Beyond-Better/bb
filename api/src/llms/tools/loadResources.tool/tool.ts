@@ -13,7 +13,7 @@ import {
 } from './formatter.console.ts';
 import type { LLMToolLoadResourcesInput } from './types.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { DataSourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
@@ -74,7 +74,7 @@ export default class LLMToolLoadResources extends LLMTool {
 	}
 
 	formatLogEntryToolResult(
-		resultContent: ConversationLogEntryContentToolResult,
+		resultContent: CollaborationLogEntryContentToolResult,
 		format: 'console' | 'browser',
 	): LLMToolLogEntryFormattedResult {
 		return format === 'console'
@@ -155,7 +155,7 @@ export default class LLMToolLoadResources extends LLMTool {
 					dsConnectionToUse.getUriForResource(uri)
 				);
 			//logger.error(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
-			const resourcesAdded = await projectEditor.prepareResourcesForConversation(
+			const resourcesAdded = await projectEditor.prepareResourcesForInteraction(
 				resourceUris,
 			);
 

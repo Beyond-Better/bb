@@ -19,14 +19,15 @@ import type {
 } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
-	ResourceForConversation,
+	ResourceForInteraction,
 	ResourceRevisionMetadata,
 	//ResourceMetadata,
-	ResourcesForConversation,
+	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
-import type { ConversationId, ConversationResponse } from 'shared/types.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
+import type { CollaborationId, CollaborationResponse, InteractionId, ProjectId } from 'shared/types.ts';
+//import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
 import {
@@ -36,10 +37,11 @@ import {
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
 import EventManager from 'shared/eventManager.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 
 // Extend ProjectInfo to include projectId
 export interface ProjectInfo extends BaseProjectInfo {
-	projectId: string;
+	projectId: ProjectId;
 }
 
 class ProjectEditor {
@@ -51,7 +53,7 @@ class ProjectEditor {
 	public mcpManager!: MCPManager;
 	public resourceManager!: ResourceManager;
 	public sessionManager: SessionManager;
-	public projectId: string;
+	public projectId: ProjectId;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
 	public changedResources: Set<string> = new Set();
@@ -63,7 +65,7 @@ class ProjectEditor {
 		//tier: null,
 	};
 
-	constructor(projectId: string, sessionManager: SessionManager) {
+	constructor(projectId: ProjectId, sessionManager: SessionManager) {
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
 		this.sessionManager = sessionManager;
@@ -319,47 +321,61 @@ class ProjectEditor {
 		this.projectInfo = projectInfo;
 	}
 
-	public async initConversation(
-		conversationId: ConversationId,
+	public async initCollaboration(
+		collaborationId: CollaborationId,
+	): Promise<Collaboration> {
+		logger.info(
+			`ProjectEditor: Initializing a collaboration with ID: ${collaborationId}`,
+		);
+		return await this.orchestratorController.initializeCollaboration(collaborationId);
+	}
+
+	public async initInteraction(
+		collaborationId: CollaborationId,
+		interactionId?: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		logger.info(
-			`ProjectEditor: Initializing a conversation with ID: ${conversationId}`,
+			`ProjectEditor: Initializing a interaction with ID: ${interactionId}`,
 		);
+		const collaboration = await this.orchestratorController.initializeCollaboration(collaborationId);
 		return await this.orchestratorController.initializeInteraction(
-			conversationId,
+			collaboration,
+			interactionId ?? collaboration.lastInteractionId,
 		);
 	}
 
 	async handleStatement(
 		statement: string,
-		conversationId: ConversationId,
+		collaborationId: CollaborationId,
+		interactionId?: InteractionId,
 		options?: { maxTurns?: number },
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		filesToAttach?: string[],
 		dsConnectionIdForAttach?: string,
-	): Promise<ConversationResponse> {
-		await this.initConversation(conversationId);
+	): Promise<CollaborationResponse> {
+		const interaction = await this.initInteraction(collaborationId, interactionId);
 		logger.info(
-			`ProjectEditor: Initialized conversation with ID: ${conversationId}, handling statement`,
-			//{options, requestParams}
+			`ProjectEditor: Initialized collaboration with ID: ${collaborationId} using interaction with ID ${interaction.id}, handling statement`,
+			//{options, statementParams}
 		);
 		const statementAnswer = await this.orchestratorController.handleStatement(
 			statement,
-			conversationId,
+			collaborationId,
+			interaction.id,
 			options,
-			requestParams,
+			statementParams,
 			filesToAttach,
 			dsConnectionIdForAttach,
 		);
 		return statementAnswer;
 	}
 
-	// prepareResourcesForConversation is called by load_resources tool
+	// prepareResourcesForInteraction is called by load_resources tool
 	// only existing resources can be prepared and added, otherwise call write_resource tools with createIfMissing:true
-	async prepareResourcesForConversation(
+	async prepareResourcesForInteraction(
 		resourceUris: string[],
-	): Promise<ResourcesForConversation> {
-		const resourcesAdded: Array<ResourceForConversation> = [];
+	): Promise<ResourcesForInteraction> {
+		const resourcesAdded: Array<ResourceForInteraction> = [];
 
 		for (const resourceUri of resourceUris) {
 			try {

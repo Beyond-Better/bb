@@ -1,8 +1,9 @@
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMChatInteraction from 'api/llms/chatInteraction.ts';
-//import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
+//import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
+import type { InteractionId, InteractionType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 
@@ -18,25 +19,26 @@ class InteractionManager {
 	}
 
 	async createInteraction(
-		type: 'conversation' | 'chat',
-		interactionId: ConversationId,
+		collaboration: Collaboration,
+		type: InteractionType,
+		interactionId: InteractionId,
 		interactionModel: string,
 		interactionCallbacks: LLMCallbacks,
 		parentInteractionId?: string,
 	): Promise<LLMInteraction> {
-		//const interactionId = shortenConversationId(generateConversationId());
+		//const interactionId = shortenInteractionId(generateInteractionId());
 		let interaction: LLMInteraction;
 
-		logger.info('InteractionManager: Creating interaction of type: ', type);
+		logger.info(`InteractionManager: Creating interaction ${interactionId} of type: ${type}`);
 
 		if (type === 'conversation') {
-			interaction = await new LLMConversationInteraction(interactionId).init(
+			interaction = await new LLMConversationInteraction(collaboration, interactionId).init(
 				interactionModel,
 				interactionCallbacks,
 				parentInteractionId,
 			);
 		} else {
-			interaction = await new LLMChatInteraction(interactionId).init(
+			interaction = await new LLMChatInteraction(collaboration, interactionId).init(
 				interactionModel,
 				interactionCallbacks,
 				parentInteractionId,
@@ -44,6 +46,8 @@ class InteractionManager {
 		}
 
 		this.interactions.set(interactionId, interaction);
+
+		collaboration.addLoadedInteraction(interaction);
 
 		if (parentInteractionId) {
 			this.interactionHierarchy.set(interactionId, parentInteractionId);
@@ -55,6 +59,8 @@ class InteractionManager {
 	addInteraction(interaction: LLMInteraction, parentInteractionId?: string): void {
 		const interactionId = interaction.id;
 		this.interactions.set(interactionId, interaction);
+
+		interaction.collaboration.addLoadedInteraction(interaction);
 
 		if (parentInteractionId) {
 			this.interactionHierarchy.set(interactionId, parentInteractionId);
@@ -71,6 +77,14 @@ class InteractionManager {
 
 	getInteractionStrict(id: string): LLMInteraction {
 		return this.getInteractionOrThrow(id);
+	}
+
+	private getInteractionOrThrow(id: string): LLMInteraction {
+		const interaction = this.getInteraction(id);
+		if (!interaction) {
+			throw new Error(`Interaction with id ${id} not found`);
+		}
+		return interaction;
 	}
 
 	removeInteraction(id: string): boolean {
@@ -146,14 +160,6 @@ class InteractionManager {
 			throw new Error('Interaction or new parent does not exist');
 		}
 		this.interactionHierarchy.set(interactionId, newParentId);
-	}
-
-	private getInteractionOrThrow(id: string): LLMInteraction {
-		const interaction = this.getInteraction(id);
-		if (!interaction) {
-			throw new Error(`Interaction with id ${id} not found`);
-		}
-		return interaction;
 	}
 }
 

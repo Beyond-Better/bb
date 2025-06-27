@@ -7,6 +7,7 @@ import type {
 	ClientProjectWithConfigSources,
 	//ProjectWithSources,
 } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 //import { toProject } from 'shared/types/project.ts';
 import { MCPServerConfig } from 'shared/config/types.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
@@ -33,7 +34,7 @@ const loadStoredState = () => {
 };
 
 // Update URL parameters
-const updateUrlParams = (projectId: string | null) => {
+const updateUrlParams = (projectId: ProjectId | null) => {
 	if (typeof globalThis === 'undefined') return;
 
 	const url = new URL(globalThis.location.href);
@@ -47,7 +48,7 @@ const updateUrlParams = (projectId: string | null) => {
 };
 
 // Update localStorage
-const updateLocalStorage = (projectId: string | null) => {
+const updateLocalStorage = (projectId: ProjectId | null) => {
 	if (typeof localStorage === 'undefined') return;
 
 	if (projectId) {
@@ -161,7 +162,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	async function updateProject(projectId: string, updates: Partial<ClientProjectWithConfigForUpdates>) {
+	async function updateProject(projectId: ProjectId, updates: Partial<ClientProjectWithConfigForUpdates>) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
@@ -186,7 +187,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	async function deleteProject(projectId: string) {
+	async function deleteProject(projectId: ProjectId) {
 		const apiClient = appState.value.apiClient;
 		projectState.value = { ...projectState.value, loading: true, error: null };
 		try {
@@ -244,7 +245,7 @@ export function useProjectState(appState: Signal<AppState>) {
 		}
 	}
 
-	function setSelectedProject(projectId: string | null) {
+	function setSelectedProject(projectId: ProjectId | null) {
 		// Update appState instead of projectState
 		appState.value = {
 			...appState.value,
@@ -330,7 +331,7 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Data source management methods
-	async function addDsConnection(projectId: string, dsConnection: ClientDataSourceConnection): Promise<void> {
+	async function addDsConnection(projectId: ProjectId, dsConnection: ClientDataSourceConnection): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
@@ -360,7 +361,7 @@ export function useProjectState(appState: Signal<AppState>) {
 
 	// Update an existing data source
 	async function updateDsConnection(
-		projectId: string,
+		projectId: ProjectId,
 		dsConnectionId: string,
 		updates: Partial<ClientDataSourceConnection>,
 	): Promise<void> {
@@ -392,7 +393,7 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Remove a data source
-	async function removeDsConnection(projectId: string, dsConnectionId: string): Promise<void> {
+	async function removeDsConnection(projectId: ProjectId, dsConnectionId: string): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
@@ -421,7 +422,7 @@ export function useProjectState(appState: Signal<AppState>) {
 	}
 
 	// Set a data source as primary
-	async function setPrimaryDsConnection(projectId: string, dsConnectionId: string): Promise<void> {
+	async function setPrimaryDsConnection(projectId: ProjectId, dsConnectionId: string): Promise<void> {
 		const apiClient = appState.value.apiClient;
 		if (!apiClient) return;
 
@@ -451,7 +452,7 @@ export function useProjectState(appState: Signal<AppState>) {
 
 	// Update project stats
 	/*
-	async function updateProjectStats(projectId: string, stats: ProjectStats) {
+	async function updateProjectStats(projectId: ProjectId, stats: ProjectStats) {
 		const apiClient = appState.value.apiClient;
 		let retryCount = 0;
 		const maxRetries = 3;

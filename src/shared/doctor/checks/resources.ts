@@ -11,10 +11,10 @@ interface DiskSpace {
 	used: number;
 }
 
-interface ConversationStats {
+interface InteractionStats {
 	count: number;
 	totalSize: number;
-	largestConversation: {
+	largestInteraction: {
 		id: string;
 		size: number;
 	};
@@ -61,42 +61,42 @@ async function getDiskSpace(path: string): Promise<DiskSpace> {
 }
 
 /**
- * Gets statistics about stored conversations
+ * Gets statistics about stored interactions
  */
-async function getConversationStats(conversationsDir: string): Promise<ConversationStats> {
-	const stats: ConversationStats = {
+async function getInteractionStats(interactionsDir: string): Promise<InteractionStats> {
+	const stats: InteractionStats = {
 		count: 0,
 		totalSize: 0,
-		largestConversation: {
+		largestInteraction: {
 			id: '',
 			size: 0,
 		},
 	};
 
 	try {
-		if (!await exists(conversationsDir)) {
+		if (!await exists(interactionsDir)) {
 			return stats;
 		}
 
-		for await (const entry of Deno.readDir(conversationsDir)) {
+		for await (const entry of Deno.readDir(interactionsDir)) {
 			if (!entry.isFile || !entry.name.endsWith('.json')) continue;
 
-			const path = join(conversationsDir, entry.name);
+			const path = join(interactionsDir, entry.name);
 			const fileStat = await Deno.stat(path);
 
 			stats.count++;
 			stats.totalSize += fileStat.size;
 
-			if (fileStat.size > stats.largestConversation.size) {
-				stats.largestConversation = {
+			if (fileStat.size > stats.largestInteraction.size) {
+				stats.largestInteraction = {
 					id: entry.name.replace('.json', ''),
 					size: fileStat.size,
 				};
 			}
 		}
 	} catch (error) {
-		logger.error('Failed to get conversation stats:', error);
-		throw new Error('Could not analyze conversations: ' + error.message);
+		logger.error('Failed to get interaction stats:', error);
+		throw new Error('Could not analyze interactions: ' + error.message);
 	}
 
 	return stats;
@@ -141,8 +141,8 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 		}
 
 		// Check conversations directory
-		const conversationsDir = join(globalDir, 'conversations');
-		const convStats = await getConversationStats(conversationsDir);
+		const interactionsDir = join(globalDir, 'interactions');
+		const convStats = await getInteractionStats(interactionsDir);
 
 		// Warn if total conversation size is over 1GB
 		const totalSizeGB = convStats.totalSize / (1024 * 1024 * 1024);
@@ -153,13 +153,13 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 				message: 'Large conversation storage',
 				details: `Total size: ${
 					totalSizeGB.toFixed(2)
-				}GB\nLargest conversation: ${convStats.largestConversation.id} (${
-					(convStats.largestConversation.size / (1024 * 1024)).toFixed(2)
+				}GB\nLargest conversation: ${convStats.largestInteraction.id} (${
+					(convStats.largestInteraction.size / (1024 * 1024)).toFixed(2)
 				}MB)`,
 				fix: {
 					description: 'Consider archiving or removing old conversations',
 					command: 'bb conversation clean',
-					apiEndpoint: '/api/v1/conversations/clean',
+					apiEndpoint: '/api/v1/collaborations/clean',
 				},
 			});
 		}
@@ -185,7 +185,7 @@ export async function checkResources(): Promise<DiagnosticResult[]> {
 				category: 'resources',
 				status: 'ok',
 				message: 'Resource usage is healthy',
-				details: `Free space: ${freeSpaceGB.toFixed(2)}GB\nConversations: ${convStats.count} (${
+				details: `Free space: ${freeSpaceGB.toFixed(2)}GB\nInteractions: ${convStats.count} (${
 					totalSizeGB.toFixed(2)
 				}GB total)`,
 			});

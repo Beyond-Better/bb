@@ -262,7 +262,7 @@ class LLM {
 								model: interaction.model,
 								provider: this.llmProviderName,
 								args: { status: statusCode, reason: 'Request is invalid' },
-								conversationId: interaction.id,
+								interactionId: interaction.id,
 							} as LLMErrorOptions,
 						);
 					} else if (statusCode === 413) {
@@ -277,7 +277,7 @@ class LLM {
 								model: interaction.model,
 								provider: this.llmProviderName,
 								args: { status: statusCode, reason: 'Request is too large' },
-								conversationId: interaction.id,
+								interactionId: interaction.id,
 							} as LLMErrorOptions,
 						);
 					} else if (statusCode === 429) {
@@ -305,7 +305,7 @@ class LLM {
 								model: interaction.model,
 								provider: this.llmProviderName,
 								args: { status: statusCode },
-								conversationId: interaction.id,
+								interactionId: interaction.id,
 							} as LLMErrorOptions,
 						);
 					}
@@ -322,7 +322,7 @@ class LLM {
 							model: interaction.model,
 							provider: this.llmProviderName,
 							args: { ...args, reason: (error as Error).message },
-							conversationId: interaction.id,
+							interactionId: interaction.id,
 						} as LLMErrorOptions,
 					);
 				}
@@ -339,7 +339,7 @@ class LLM {
 							retries: { max: maxRetries, current: retries },
 							reason: 'Max retries reached when calling LLM service',
 						},
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 					} as LLMErrorOptions,
 				);
 			}
@@ -600,7 +600,7 @@ class LLM {
 				model: interaction.model,
 				provider: this.llmProviderName,
 				args: { reason: failReason, retries: { max: maxRetries, current: retries }, ...failDetails },
-				conversationId: interaction.id,
+				interactionId: interaction.id,
 			} as LLMErrorOptions,
 		);
 	}

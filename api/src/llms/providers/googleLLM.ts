@@ -32,13 +32,15 @@ import type {
 	//LLMMessageStop,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 	LLMTokenUsage,
 } from 'api/types/llms.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -67,15 +69,7 @@ class GoogleLLM extends LLM {
 
 	private transformUsage(usageMetadata?: UsageMetadata): LLMTokenUsage {
 		if (!usageMetadata) {
-			return {
-				inputTokens: 0,
-				outputTokens: 0,
-				totalTokens: 0,
-				cacheCreationInputTokens: 0,
-				cacheReadInputTokens: 0,
-				thoughtTokens: 0,
-				totalAllTokens: 0,
-			};
+			return DEFAULT_TOKEN_USAGE();
 		}
 		// The new SDK uses outputTokenCount and inputTokenCount
 		const outputTokens = (usageMetadata as any).outputTokenCount || 0;
@@ -218,7 +212,7 @@ class GoogleLLM extends LLM {
 				const newUserMessage = new LLMMessage(
 					'user',
 					[toolUseParts[i]],
-					userMessageWithMultipleToolUse.conversationStats,
+					userMessageWithMultipleToolUse.interactionStats,
 					userMessageWithMultipleToolUse.tool_call_id,
 					userMessageWithMultipleToolUse.providerResponse,
 					userMessageWithMultipleToolUse.id,
@@ -226,7 +220,7 @@ class GoogleLLM extends LLM {
 				const newAssistantMessage = new LLMMessage(
 					'assistant',
 					[toolResultParts[i]],
-					assistantMessage.conversationStats,
+					assistantMessage.interactionStats,
 					assistantMessage.tool_call_id,
 					assistantMessage.providerResponse,
 					assistantMessage.id,
@@ -416,13 +410,13 @@ class GoogleLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			maxTokens = capabilitiesManager.resolveMaxTokens(
+			maxTokens = registryService.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
 			);
-			temperature = capabilitiesManager.resolveTemperature(
+			temperature = registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -471,7 +465,7 @@ class GoogleLLM extends LLM {
 			//logger.debug(`LlmProvider[${this.llmProviderName}]: speakWith-messageRequest`, JSON.stringify(messageRequest, null, 2));
 
 			const providerMessageRequest = await this.asProviderMessageRequest(messageRequest, interaction);
-			const model = messageRequest.model || GoogleModel.GOOGLE_GEMINI_2_5_FLASH;
+			const model = providerMessageRequest.model;
 			logger.info(`LlmProvider[${this.llmProviderName}]: Complete request with model:`, { model });
 
 			const result = await this.google.models.generateContent(providerMessageRequest);
@@ -486,7 +480,7 @@ class GoogleLLM extends LLM {
 					{
 						model: model,
 						provider: this.llmProviderName,
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 						name: 'GoogleLLMError',
 						args: {
 							reason: result.promptFeedback.blockReason,
@@ -504,7 +498,7 @@ class GoogleLLM extends LLM {
 					{
 						model: model,
 						provider: this.llmProviderName,
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 						name: 'GoogleLLMError',
 						args: { promptFeedback: result.promptFeedback, usageMetadata: result.usageMetadata },
 					} as LLMErrorOptions,
@@ -579,8 +573,18 @@ class GoogleLLM extends LLM {
 				};
 			}
 
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.config!.maxOutputTokens!,
+					temperature: providerMessageRequest.config!.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
+			};
+
 			//logger.info(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			return { messageResponse, messageMeta: { system: messageRequest.system, llmRequestParams } };
 		} catch (err) {
 			logger.error(`LlmProvider[${this.llmProviderName}]: Error calling Google API`, err);
 			throw createError(

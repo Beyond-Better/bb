@@ -49,7 +49,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -143,7 +143,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -239,7 +239,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -283,7 +283,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -443,7 +443,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -531,7 +531,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -576,7 +576,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);
@@ -673,7 +673,7 @@ Deno.test({
 	async fn() {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 			const orchestratorControllerStubMaker = makeOrchestratorControllerStub(
 				projectEditor.orchestratorController,
 			);

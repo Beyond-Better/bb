@@ -54,11 +54,11 @@ Manages chat-specific functionality and maintains its own independent connection
 #### Implementation
 ```typescript
 interface ChatState {
-    conversationId: string | null;
+    collaborationId: string | null;
     apiClient: ApiClient | null;
     wsManager: WebSocketManager | null;
-    logDataEntries: ConversationLogDataEntry[];
-    conversations: ConversationMetadata[];
+    logDataEntries: CollaborationLogDataEntry[];
+    conversations: InteractionMetadata[];
     status: ChatStatus;
     error: string | null;
 }
@@ -116,10 +116,10 @@ class WebSocketManagerApp extends WebSocketManagerBaseImpl {
 Handles chat-level WebSocket communication:
 ```typescript
 class WebSocketManagerChat extends WebSocketManagerBaseImpl {
-    private conversationId: ConversationId | null = null;
+    private collaborationId: CollaborationId | null = null;
 
     protected getWebSocketUrl(): string {
-        return `${this.wsUrl}/conversation/${this.conversationId}`;
+        return `${this.wsUrl}/conversation/${this.collaborationId}`;
     }
 
     protected override onSocketOpen(): void {

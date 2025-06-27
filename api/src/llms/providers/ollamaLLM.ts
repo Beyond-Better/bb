@@ -15,12 +15,14 @@ import type {
 	LLMMessageStop,
 	LLMProviderMessageRequest,
 	LLMProviderMessageResponse,
+	LLMRequestParams,
 	LLMSpeakWithOptions,
 	LLMSpeakWithResponse,
 } from 'api/types/llms.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import LLM from './baseLLM.ts';
 import { logger } from 'shared/logger.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { createError } from 'api/utils/error.ts';
 import { ErrorType, type LLMErrorOptions } from 'api/errors/error.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -193,9 +195,9 @@ class OllamaLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			temperature = capabilitiesManager.resolveTemperature(
+			temperature = registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -241,15 +243,13 @@ class OllamaLLM extends LLM {
 					stopReason: response.done_reason as LLMMessageStop['stopReason'], //response.message.tool_calls ? 'tool_calls' : 'stop',
 					stopSequence: null,
 				},
-				usage: {
-					inputTokens: 0, //response.usage?.prompt_tokens ?? 0,
-					outputTokens: 0, //response.usage?.completion_tokens ?? 0,
-					totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
-					cacheCreationInputTokens: 0, // Ollama doesn't support caching
-					cacheReadInputTokens: 0,
-					thoughtTokens: 0,
-					totalAllTokens: 0,
-				},
+				usage: DEFAULT_TOKEN_USAGE(),
+				// {
+				// 	inputTokens: 0, //response.usage?.prompt_tokens ?? 0,
+				// 	outputTokens: 0, //response.usage?.completion_tokens ?? 0,
+				// 	totalTokens: 0, //(response.usage?.prompt_tokens ?? 0) + (response.usage?.completion_tokens ?? 0),
+				// 	cacheCreationInputTokens: 0, // Ollama doesn't support caching
+				// },
 				rateLimit: {
 					requestsRemaining: 0,
 					requestsLimit: 0,
@@ -264,8 +264,18 @@ class OllamaLLM extends LLM {
 				},
 			};
 
+			const llmRequestParams: LLMRequestParams = {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: 0, //providerMessageRequest.max_tokens!,
+					temperature: providerMessageRequest.options!.temperature!,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: this.projectConfig.api?.usePromptCaching ?? true,
+				},
+			};
+
 			//logger.debug(`LlmProvider[${this.llmProviderName}]: messageResponse`, messageResponse);
-			return { messageResponse, messageMeta: { system: messageRequest.system } };
+			return { messageResponse, messageMeta: { system: messageRequest.system, llmRequestParams } };
 		} catch (err) {
 			logger.error('Error calling Ollama API', err);
 			throw createError(

@@ -365,7 +365,7 @@ classDiagram
         +resourceManager: ResourceManager
         +mcpManager: MCPManager
         +getDataSource(id)
-        +prepareResourcesForConversation()
+        +prepareResourcesForInteraction()
     }
     
     class ProjectData {
@@ -410,7 +410,7 @@ classDiagram
     }
     
     class ConversationInteraction {
-        +prepareResourcesForConversation()
+        +prepareResourcesForInteraction()
         +addResourcesForMessage()
     }
     

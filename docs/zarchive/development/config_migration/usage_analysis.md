@@ -70,7 +70,7 @@ const configManager = await getConfigManager();
 - Line 114 (read)
   Context:
   ```typescript
-  	public primaryInteractionId: ConversationId | null = null;
+  	public primaryInteractionId: InteractionId | null = null;
   	private agentControllers: Map<string, AgentController> = new Map();
   	public fullConfig!: FullConfigSchema;
   	public promptManager!: PromptManager;
@@ -349,8 +349,8 @@ const configManager = await getConfigManager();
 - Line 77 (read)
   Context:
   ```typescript
-  	public conversationPersistence!: ConversationPersistence;
-  	public conversationLogger!: ConversationLogger;
+  	public interactionPersistence!: InteractionPersistence;
+  	public collaborationLogger!: CollaborationLogger;
   	protected fullConfig!: FullConfigSchema;
   
   	private _model: string = '';
@@ -359,7 +359,7 @@ const configManager = await getConfigManager();
 - Line 122 (write)
   Context:
   ```typescript
-  			this.conversationLogger = await new ConversationLogger(projectRoot, parentInteractionId ?? this.id, logEntryHandler)
+  			this.collaborationLogger = await new CollaborationLogger(projectRoot, parentInteractionId ?? this.id, logEntryHandler)
   				.init();
   			this.fullConfig = projectEditor.fullConfig;
   		} catch (error) {
@@ -690,7 +690,7 @@ const configManager = await getConfigManager();
   				{
   					role: 'assistant',
   					content: [{ type: 'tool_use', text: 'Using request_files to get config.ts' }],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   					providerResponse: { usage: { totalTokens: 2050 } },
   ```
 
@@ -713,7 +713,7 @@ const configManager = await getConfigManager();
   						text:
   							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1000,\n  "last_modified": "2024-01-01T00:00:00.000Z",\n  "revision": "abc123"\n}\n\nconst config = {\n  // Config file contents\n};',
   					}],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   ```
 
 - Line 1154 (read)
@@ -723,7 +723,7 @@ const configManager = await getConfigManager();
   				{
   					role: 'assistant',
   					content: [{ type: 'tool_use', text: 'Using search_and_replace to modify config.ts' }],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   					providerResponse: { usage: { totalTokens: 1950 } },
   ```
 
@@ -746,7 +746,7 @@ const configManager = await getConfigManager();
   						text:
   							'---bb-file-metadata---\n{\n  "path": "src/config.ts",\n  "type": "text",\n  "size": 1100,\n  "last_modified": "2024-01-01T00:00:01.000Z",\n  "revision": "def456"\n}\n\nconst config = {\n  // Updated config file contents\n};',
   					}],
-  					conversationStats: incrementConversationStats(conversationStats),
+  					interactionStats: incrementInteractionStats(interactionStats),
   ```
 
 - Line 1193 (read)
@@ -1865,7 +1865,7 @@ const configManager = await getConfigManager();
   			`BB (Beyond Better) is an advanced AI-powered assistant designed to revolutionize how you work with text-based projects. Whether you're coding, writing, or managing complex documentation, BB is here to help you "be better" at every step.`,
   ```
 
-### api/src/storage/conversationLogger.ts
+### api/src/storage/collaborationLogger.ts
 - Line 47 (write)
   Context:
   ```typescript
@@ -1873,7 +1873,7 @@ const configManager = await getConfigManager();
   
   const globalConfig = await ConfigManager.globalConfig();
   
-  export default class ConversationLogger {
+  export default class CollaborationLogger {
   ```
 
 - Line 47 (write)
@@ -1883,7 +1883,7 @@ const configManager = await getConfigManager();
   
   const globalConfig = await ConfigManager.globalConfig();
   
-  export default class ConversationLogger {
+  export default class CollaborationLogger {
   ```
 
 - Line 59 (read)
@@ -1923,7 +1923,7 @@ const configManager = await getConfigManager();
   Context:
   ```typescript
   
-  	async init(): Promise<ConversationLogger> {
+  	async init(): Promise<CollaborationLogger> {
   		const fullConfig = await ConfigManager.fullConfig(this.startDir);
   		this.logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
   
@@ -1933,7 +1933,7 @@ const configManager = await getConfigManager();
   Context:
   ```typescript
   
-  	async init(): Promise<ConversationLogger> {
+  	async init(): Promise<CollaborationLogger> {
   		const fullConfig = await ConfigManager.fullConfig(this.startDir);
   		this.logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
   
@@ -1942,21 +1942,21 @@ const configManager = await getConfigManager();
 - Line 84 (write)
   Context:
   ```typescript
-  	async init(): Promise<ConversationLogger> {
+  	async init(): Promise<CollaborationLogger> {
   		const fullConfig = await ConfigManager.fullConfig(this.startDir);
   		this.logEntryFormatterManager = await new LogEntryFormatterManager(fullConfig).init();
   
-  		this.conversationLogsDir = await ConversationLogger.getLogFileDirPath(this.startDir, this.conversationId);
+  		this.collaborationLogsDir = await CollaborationLogger.getLogFileDirPath(this.startDir, this.conversationId);
   ```
 
 - Line 91 (write)
   Config path: myPersonsName
   Context:
   ```typescript
-  		this.logFileJson = await ConversationLogger.getLogFileJsonPath(this.startDir, this.conversationId);
+  		this.logFileJson = await CollaborationLogger.getLogFileJsonPath(this.startDir, this.conversationId);
   
-  		ConversationLogger.entryTypeLabels.user = fullConfig.myPersonsName || 'Person';
-  		ConversationLogger.entryTypeLabels.assistant = fullConfig.myAssistantsName || 'Assistant';
+  		CollaborationLogger.entryTypeLabels.user = fullConfig.myPersonsName || 'Person';
+  		CollaborationLogger.entryTypeLabels.assistant = fullConfig.myAssistantsName || 'Assistant';
   
   ```
 
@@ -1965,8 +1965,8 @@ const configManager = await getConfigManager();
   Context:
   ```typescript
   
-  		ConversationLogger.entryTypeLabels.user = fullConfig.myPersonsName || 'Person';
-  		ConversationLogger.entryTypeLabels.assistant = fullConfig.myAssistantsName || 'Assistant';
+  		CollaborationLogger.entryTypeLabels.user = fullConfig.myPersonsName || 'Person';
+  		CollaborationLogger.entryTypeLabels.assistant = fullConfig.myAssistantsName || 'Assistant';
   
   		return this;
   ```
@@ -4164,7 +4164,7 @@ const configManager = await getConfigManager();
   			const keyPath = join(globalDir, keyFile);
   ```
 
-### cli/src/conversationLogs/conversationLogFormatter.ts
+### cli/src/collaborationLogs/collaborationLogFormatter.ts
 - Line 13 (read)
   Context:
   ```typescript
@@ -6016,7 +6016,7 @@ const configManager = await getConfigManager();
   export async function getLogFilePath(startDir: string, isApiLog: boolean, conversationId?: string): Promise<string> {
   	const fullConfig = await ConfigManager.fullConfig(startDir);
   	return !isApiLog && conversationId
-  		? await ConversationLogger.getLogFileRawPath(startDir, conversationId)
+  		? await CollaborationLogger.getLogFileRawPath(startDir, conversationId)
   ```
 
 - Line 61 (write)
@@ -6026,7 +6026,7 @@ const configManager = await getConfigManager();
   export async function getLogFilePath(startDir: string, isApiLog: boolean, conversationId?: string): Promise<string> {
   	const fullConfig = await ConfigManager.fullConfig(startDir);
   	return !isApiLog && conversationId
-  		? await ConversationLogger.getLogFileRawPath(startDir, conversationId)
+  		? await CollaborationLogger.getLogFileRawPath(startDir, conversationId)
   ```
 
 - Line 64 (read)
@@ -6034,7 +6034,7 @@ const configManager = await getConfigManager();
   Context:
   ```typescript
   	return !isApiLog && conversationId
-  		? await ConversationLogger.getLogFileRawPath(startDir, conversationId)
+  		? await CollaborationLogger.getLogFileRawPath(startDir, conversationId)
   		: join(await getBbDir(startDir), fullConfig.api?.logFile ?? 'api.log');
   }
   

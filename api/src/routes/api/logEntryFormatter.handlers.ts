@@ -2,7 +2,7 @@ import type { RouterContext } from '@oak/oak';
 import { renderToString } from 'preact-render-to-string';
 import type { JSX } from 'preact';
 import type { LLMToolFormatterDestination } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryType } from 'shared/types.ts';
+import type { CollaborationLogEntryType } from 'shared/types.ts';
 import type { LogEntryFormattedResult } from 'api/logEntries/types.ts';
 import LogEntryFormatterManager from '../../logEntries/logEntryFormatterManager.ts';
 import { logger } from 'shared/logger.ts';
@@ -12,13 +12,13 @@ import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 export const logEntryFormatter = async (
 	{ params, request, response, app }: RouterContext<
 		'/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType',
-		{ logEntryDestination: LLMToolFormatterDestination; logEntryFormatterType: ConversationLogEntryType }
+		{ logEntryDestination: LLMToolFormatterDestination; logEntryFormatterType: CollaborationLogEntryType }
 	>,
 ) => {
 	const { logEntryDestination, logEntryFormatterType } = params;
 
 	try {
-		const { logEntry, projectId, conversationId } = await request.body.json();
+		const { logEntry, projectId, collaborationId } = await request.body.json();
 		// logger.info(
 		// 	`HandlerLogEntryFormatter for ${logEntryDestination} destination, type: ${logEntryFormatterType}, for Tool: ${
 		// 		logEntry.toolName || 'N/A'
@@ -37,8 +37,8 @@ export const logEntryFormatter = async (
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
-			conversationId,
 			projectId,
+			collaborationId,
 			sessionManager,
 		);
 		const logEntryFormatterManager = await new LogEntryFormatterManager(

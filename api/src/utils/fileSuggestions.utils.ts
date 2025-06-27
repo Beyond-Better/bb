@@ -4,6 +4,7 @@ import { relative } from '@std/path';
 import { createExcludeRegexPatterns, getExcludeOptions } from 'api/utils/fileHandling.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
+import type { ProjectId } from 'shared/types.ts';
 //import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 
@@ -14,7 +15,7 @@ export interface PatternOptions {
 
 export interface FileSuggestionsOptions {
 	partialPath: string;
-	projectId: string;
+	projectId: ProjectId;
 	limit?: number;
 	caseSensitive?: boolean;
 	type?: 'all' | 'file' | 'directory';

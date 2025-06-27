@@ -1,11 +1,11 @@
 import { useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
-import { setConversation, setProject, useAppState } from '../../hooks/useAppState.ts';
+import { setCollaboration, setProject, useAppState } from '../../hooks/useAppState.ts';
 import { useProjectState } from '../../hooks/useProjectState.ts';
 import { ProjectList } from './ProjectList.tsx';
 import { ProjectTrigger } from './ProjectTrigger.tsx';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { generateCollaborationId, shortenCollaborationId } from 'shared/generateIds.ts';
 
 interface ProjectSelectorProps {
 	isCollapsed?: boolean;
@@ -97,7 +97,7 @@ export function ProjectSelector({
 
 	const handleProjectSelect = (project: ClientProjectWithConfigSources) => {
 		setProject(project.data.projectId);
-		setConversation(shortenConversationId(generateConversationId()));
+		setCollaboration(shortenCollaborationId(generateCollaborationId()));
 		isOpen.value = false;
 		triggerRef.current?.focus();
 	};

@@ -1,20 +1,29 @@
 import { useEffect, useRef } from 'preact/hooks';
-import { batch, type Signal, signal, useComputed } from '@preact/signals';
+import { batch, type Signal, signal, useComputed, useSignal, useSignalEffect } from '@preact/signals';
 import type { RefObject } from 'preact/compat';
 import type { TargetedEvent } from 'preact/compat';
-import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
-import type { ModelDetails } from '../utils/apiClient.utils.ts';
+import type {
+	LLMAttachedFile,
+	LLMAttachedFiles,
+	LLMModelConfig,
+	LLMRequestParams,
+	LLMRolesModelConfig,
+} from '../types/llm.types.ts';
+//import type { ModelDetails } from '../utils/apiClient.utils.ts';
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
-import { ChatStatus, isProcessing } from '../types/chat.types.ts';
-import { ApiStatus } from 'shared/types.ts';
-import { ApiClient } from '../utils/apiClient.utils.ts';
+import { ChatState, ChatStatus, isProcessing } from '../types/chat.types.ts';
+import { ApiStatus, ProjectId } from 'shared/types.ts';
+import { ApiClient, type ModelDetails } from '../utils/apiClient.utils.ts';
 import { formatPathForInsertion, getTextPositions, processSuggestions } from '../utils/textHandling.utils.ts';
 import { type DisplaySuggestion } from '../types/suggestions.types.ts';
 import { useChatInputHistory } from '../hooks/useChatInputHistory.ts';
 import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
-import { type ModelSelectionValue, ModelSelector } from './ModelSelector.tsx';
+import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
+import { getControllerRoleIcon } from 'shared/svgImages.tsx';
+import { useModelState } from '../hooks/useModelState.ts';
+import type { CollaborationValues } from 'shared/types.ts';
 
 interface ChatInputRef {
 	textarea: HTMLTextAreaElement;
@@ -30,20 +39,20 @@ interface ErrorState {
 
 interface ChatInputProps {
 	apiClient: ApiClient;
-	projectId: string;
+	projectId: ProjectId;
 	primaryDataSourceName?: string;
 	onCancelProcessing?: () => void;
 	chatInputText: Signal<string>;
 	chatInputOptions: Signal<LLMRequestParams>;
 	attachedFiles: Signal<LLMAttachedFiles>;
-	modelData?: Signal<ModelDetails | null>;
 	onChange: (value: string, source?: 'user' | 'restore' | 'clear' | 'programmatic') => void;
 	onSend: () => Promise<void>;
 	textareaRef?: RefObject<ChatInputRef>;
 	statusState: Signal<ChatStatus>;
 	maxLength?: number;
-	conversationId: string | null;
+	collaborationId: string | null;
 	onHeightChange?: (height: number) => void;
+	chatState?: Signal<ChatState>; // For accessing collaboration data
 }
 
 enum TabState {
@@ -88,20 +97,55 @@ const shouldShowDataSourceInfo = signal<boolean>(false);
 
 // State for options panel visibility
 const isOptionsOpen = signal<boolean>(false);
+const selectedModelRole = signal<'orchestrator' | 'agent' | 'chat'>('orchestrator');
+
+const ROLE_LABEL_MAPPING = {
+	orchestrator: 'Orchestrator',
+	agent: 'Agent',
+	chat: 'Admin',
+};
+
+// Use centralized model state hook
+const {
+	modelState,
+	//hasModelCapabilities, isLoadingModel
+	getModelCapabilities,
+} = useModelState();
 
 const inputMetrics = signal({
 	lastUpdateTime: 0,
 	updateCount: 0,
 	slowUpdates: 0,
 });
-const conversationIdSignal = signal<string | null>(null);
+const collaborationIdSignal = signal<string | null>(null);
+
+// Token Progress Indicator Component
+const TokenProgressIndicator = ({ percentage }: { percentage: number }) => {
+	const getProgressColor = (pct: number): string => {
+		if (pct < 50) return 'bg-green-500';
+		if (pct < 75) return 'bg-yellow-500';
+		return 'bg-red-500';
+	};
+
+	// Only show if there's meaningful progress (> 1%)
+	if (percentage <= 1) return null;
+
+	return (
+		<div className='w-full h-0.5 bg-gray-200 dark:bg-gray-700'>
+			<div
+				title={`Conversation context used: ${percentage}%`}
+				className={`h-full transition-all duration-300 ${getProgressColor(percentage)}`}
+				style={{ width: `${Math.min(100, percentage)}%` }}
+			/>
+		</div>
+	);
+};
 
 export function ChatInput({
 	apiClient,
 	chatInputText,
 	chatInputOptions,
 	attachedFiles,
-	modelData,
 	onChange,
 	onSend,
 	textareaRef: externalRef,
@@ -110,13 +154,15 @@ export function ChatInput({
 	onCancelProcessing,
 	projectId,
 	primaryDataSourceName,
-	conversationId,
+	collaborationId,
 	onHeightChange,
+	chatState,
 }: ChatInputProps) {
 	const internalTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const internalRef = useRef<ChatInputRef | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const optionsModalRef = useRef<HTMLDivElement>(null);
+	const optionsButtonRef = useRef<HTMLButtonElement>(null);
 	const suggestionDebounceRef = useRef<number | null>(null);
 	const inputDebounceRef = useRef<number | null>(null);
 	const saveDebounceRef = useRef<number | null>(null);
@@ -129,6 +175,58 @@ export function ChatInput({
 	// 		 isProcessing(statusState.value);
 	// });
 
+	// Computed signal for current role's model capabilities
+	// const currentRoleModelCapabilities = useComputed(() => {
+	// 	const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
+	// 	if (!currentModel) return null;
+	// 	const modelCapabilities = modelState.value.modelCapabilities[currentModel] ||
+	// 		await getModelCapabilities(currentModel) || null;
+	// 	console.info('ChatInput: currentRoleModelCapabilities called', {
+	// 		selectedModelRole: selectedModelRole.value,
+	// 		modelCapabilities,
+	// 	});
+	// 	return modelCapabilities;
+	// });
+	const currentRoleModelCapabilities = useSignal<ModelDetails | null>(null);
+	//console.info('ChatInput: chatInputOptions', { chatInputOptions: chatInputOptions.value });
+
+	useSignalEffect(() => {
+		const currentModel = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model;
+		if (!currentModel) {
+			currentRoleModelCapabilities.value = null;
+			return;
+		}
+
+		const cached = modelState.value.modelCapabilities[currentModel];
+		if (cached) {
+			currentRoleModelCapabilities.value = cached;
+			return;
+		}
+
+		getModelCapabilities(currentModel).then((capabilities) => {
+			currentRoleModelCapabilities.value = capabilities || null;
+		});
+	});
+
+	const orchestratorModelCapabilities = useSignal<ModelDetails | null>(null);
+
+	useSignalEffect(() => {
+		const orchestratorModel = chatInputOptions.value.rolesModelConfig?.orchestrator?.model;
+		if (!orchestratorModel) {
+			orchestratorModelCapabilities.value = null;
+			return;
+		}
+
+		const cached = modelState.value.modelCapabilities[orchestratorModel];
+		if (cached) {
+			orchestratorModelCapabilities.value = cached;
+			return;
+		}
+
+		getModelCapabilities(orchestratorModel).then((capabilities) => {
+			orchestratorModelCapabilities.value = capabilities || null;
+		});
+	});
 	const {
 		history,
 		pinnedEntries,
@@ -139,7 +237,32 @@ export function ChatInput({
 		saveCurrentInput,
 		getSavedInput,
 		clearCurrentInput,
-	} = useChatInputHistory(conversationIdSignal);
+	} = useChatInputHistory(collaborationIdSignal);
+
+	// Calculate token usage percentage
+	const tokenPercentage = useComputed(() => {
+		if (!chatState?.value || !collaborationId) return 0;
+
+		const currentCollaboration = chatState.value.collaborations?.find(
+			(collab: CollaborationValues) => collab.id === collaborationId,
+		);
+
+		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
+			return 0;
+		}
+
+		// Use the reactive signal instead of direct access
+		if (!orchestratorModelCapabilities.value?.capabilities?.contextWindow) return 0;
+
+		const tokenUsageTurn =
+			currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
+		const contextWindow = orchestratorModelCapabilities.value.capabilities.contextWindow;
+		//console.info('ChatInput: signal-tokenPercentage:', { contextWindow, tokenUsageTurn });
+		const usedTokens = tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
+		const tokenLimit = contextWindow;
+
+		return tokenLimit > 0 ? Math.min(100, Math.round((usedTokens / tokenLimit) * 100)) : 0;
+	});
 
 	const fetchSuggestions = async (searchPath: string, forceShow: boolean = false) => {
 		console.debug('ChatInput: fetchSuggestions called', { searchPath, tabState: tabState.value, forceShow });
@@ -507,28 +630,51 @@ export function ChatInput({
 		};
 	}, []);
 
-	// Initialize conversation ID signal and handle saved input
+	// Initialize collaboration ID signal and handle saved input
 	useEffect(() => {
-		// Skip if no conversation ID
-		if (!conversationId) {
-			console.info('ChatInput: No conversation ID to initialize');
+		// Skip if no collaboration ID
+		if (!collaborationId) {
+			console.info('ChatInput: No collaboration ID to initialize');
 			return;
 		}
 
 		// Update signal immediately
-		conversationIdSignal.value = conversationId;
+		collaborationIdSignal.value = collaborationId;
 
-		// Handle conversation change
-		const isConversationChange = conversationIdSignal.value !== conversationId;
+		// Handle collaboration change
+		const isCollaborationChange = collaborationIdSignal.value !== collaborationId;
 
-		// Reset initial mount flag for conversation changes
-		if (isConversationChange) {
+		// Reset initial mount flag for collaboration changes
+		if (isCollaborationChange) {
 			isInitialMount.current = true;
+		}
+
+		// Auto-migrate from legacy single model to role structure
+		if (chatInputOptions.value.model && !chatInputOptions.value.rolesModelConfig) {
+			const legacyConfig: LLMModelConfig = {
+				model: chatInputOptions.value.model,
+				temperature: chatInputOptions.value.temperature || 0.7,
+				maxTokens: chatInputOptions.value.maxTokens || 4000,
+				extendedThinking: chatInputOptions.value.extendedThinking,
+				usePromptCaching: chatInputOptions.value.usePromptCaching,
+			};
+
+			const newOptions = {
+				...chatInputOptions.value,
+				rolesModelConfig: {
+					orchestrator: legacyConfig,
+					agent: legacyConfig,
+					chat: legacyConfig,
+				} as LLMRolesModelConfig,
+			};
+
+			chatInputOptions.value = newOptions;
+			console.info('ChatInput: Migrated legacy model config to role-based structure');
 		}
 
 		// Check for saved input
 		// console.info('ChatInput: Checking for saved input', {
-		// 	conversationId,
+		// 	collaborationId,
 		// 	hasInputText: !!chatInputText.value,
 		// 	inputTextLength: chatInputText.value.length,
 		// });
@@ -538,7 +684,7 @@ export function ChatInput({
 		// 	savedLength: saved?.length || 0,
 		// 	savedContent: saved ? saved.substring(0, 50) + '...' : 'none',
 		// });
-		// Only restore on initial mount or conversation change, not when user clears input
+		// Only restore on initial mount or collaboration change, not when user clears input
 		if (saved && !chatInputText.value && isInitialMount.current) {
 			//console.info('ChatInput: Found saved input to restore', {
 			//	savedLength: saved.length,
@@ -550,9 +696,26 @@ export function ChatInput({
 		if (isInitialMount.current) {
 			isInitialMount.current = false;
 		}
-	}, [conversationId, chatInputText.value]);
+	}, [collaborationId, chatInputText.value]);
 
-	// Note: Initial mount handling moved to conversation ID effect for proper restore timing
+	// Load model capabilities when role or model changes
+	// useEffect(() => {
+	// 	const currentModelConfig = chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value];
+	// 	if (currentModelConfig?.model) {
+	// 		// Load capabilities using the centralized hook
+	// 		getModelCapabilities(currentModelConfig.model)
+	// 			.then(capabilities => {
+	// 				if (capabilities) {
+	// 					console.info(`ChatInput: Loaded capabilities for ${selectedModelRole.value} model: ${currentModelConfig.model}`);
+	// 				}
+	// 			})
+	// 			.catch(error => {
+	// 				console.warn(`ChatInput: Failed to load capabilities for ${currentModelConfig.model}:`, error);
+	// 			});
+	// 	}
+	// }, [selectedModelRole.value, chatInputOptions.value.rolesModelConfig]);
+
+	// Note: Initial mount handling moved to collaboration ID effect for proper restore timing
 
 	// Safe operation wrapper with rate limit handling
 	const safeOperation = async (operation: () => Promise<void> | void, errorMessage: string) => {
@@ -619,7 +782,7 @@ export function ChatInput({
 		console.info('ChatInput: Sending message', {
 			hasValue: !!chatInputText.value.trim(),
 			length: chatInputText.value.length,
-			conversationId,
+			collaborationId,
 			chatInputOptions: chatInputOptions.value,
 			hasFiles: fileIds.length > 0,
 			fileCount: fileIds.length,
@@ -690,8 +853,8 @@ export function ChatInput({
 	};
 
 	const handleInput = (e: Event) => {
-		if (!conversationId) {
-			console.info('ChatInput: No conversation ID, input will not be saved');
+		if (!collaborationId) {
+			console.info('ChatInput: No collaboration ID, input will not be saved');
 		}
 		// Reset the message sent flag when user starts typing again
 		isMessageSentRef.current = false;
@@ -752,8 +915,8 @@ export function ChatInput({
 
 		// Handle auto-save
 		const handleAutoSave = () => {
-			if (!conversationId) {
-				console.info('ChatInput: No conversation ID for auto-save');
+			if (!collaborationId) {
+				console.info('ChatInput: No collaboration ID for auto-save');
 				return;
 			}
 
@@ -775,7 +938,7 @@ export function ChatInput({
 			// console.info('ChatInput: Auto-save triggered', {
 			// 	hasValue: !!newValue.trim(),
 			// 	length: newValue.length,
-			// 	conversationId,
+			// 	collaborationId,
 			// 	valuePreview: newValue.substring(0, 50) + '...',
 			// });
 
@@ -1039,9 +1202,6 @@ export function ChatInput({
 			if (chatInputText.value.trim()) {
 				console.info('ChatInput: Preventing page reload with unsaved content');
 				e.preventDefault();
-				// Modern browsers require returnValue to be set
-				e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-				return e.returnValue;
 			}
 		};
 
@@ -1059,7 +1219,9 @@ export function ChatInput({
 		const handleClickOutside = (event: MouseEvent) => {
 			if (
 				optionsModalRef.current &&
-				!optionsModalRef.current.contains(event.target as Node)
+				!optionsModalRef.current.contains(event.target as Node) &&
+				optionsButtonRef.current &&
+				!optionsButtonRef.current.contains(event.target as Node)
 			) {
 				isOptionsOpen.value = false;
 			}
@@ -1232,7 +1394,7 @@ export function ChatInput({
 
 			case ApiStatus.API_BUSY:
 				return {
-					message: 'API is processing...',
+					message: 'Beyond Better is processing...',
 					type: 'info' as const,
 					visible: true,
 					status: status.apiStatus,
@@ -1262,534 +1424,725 @@ export function ChatInput({
 	});
 
 	return (
-		<div ref={containerRef} className='bg-white dark:bg-gray-900 px-3 py-2 w-full relative'>
-			<InputStatusBar
-				visible={statusInfo.value.visible}
-				message={statusInfo.value.message}
-				status={statusInfo.value.status || ApiStatus.IDLE}
-				action={statusInfo.value.action as Action}
-				statusState={statusState}
-				className='mx-0'
-			/>
+		<div className='bg-white dark:bg-gray-900 w-full relative'>
+			{/* Token Progress Indicator */}
+			<TokenProgressIndicator percentage={tokenPercentage.value} />
 
-			{errorState.value && (
-				<div className='text-sm text-red-500 dark:text-red-400 mb-2 flex items-center justify-between'>
-					<span>{errorState.value.message}</span>
-					<div className='flex items-center'>
-						{errorState.value.recoveryAction && (
+			<div ref={containerRef} className='px-3 py-2 w-full relative'>
+				<InputStatusBar
+					visible={statusInfo.value.visible}
+					message={statusInfo.value.message}
+					status={statusInfo.value.status || ApiStatus.IDLE}
+					action={statusInfo.value.action as Action}
+					statusState={statusState}
+					className='mx-0'
+				/>
+
+				{errorState.value && (
+					<div className='text-sm text-red-500 dark:text-red-400 mb-2 flex items-center justify-between'>
+						<span>{errorState.value.message}</span>
+						<div className='flex items-center'>
+							{errorState.value.recoveryAction && (
+								<button
+									type='button'
+									onClick={() => {
+										errorState.value?.recoveryAction?.();
+										errorState.value = null;
+									}}
+									className='ml-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+								>
+									{errorState.value.recoveryMessage || 'Retry'}
+								</button>
+							)}
 							<button
 								type='button'
-								onClick={() => {
-									errorState.value?.recoveryAction?.();
-									errorState.value = null;
-								}}
-								className='ml-4 text-sm text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300'
+								onClick={() => errorState.value = null}
+								className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
+								title='Dismiss'
 							>
-								{errorState.value.recoveryMessage || 'Retry'}
+								✕
 							</button>
-						)}
-						<button
-							type='button'
-							onClick={() => errorState.value = null}
-							className='ml-4 text-red-700 hover:text-red-800 dark:text-red-300 dark:hover:text-red-200'
-							title='Dismiss'
-						>
-							✕
-						</button>
+						</div>
 					</div>
-				</div>
-			)}
+				)}
 
-			{attachedFiles.value.length > 0 && (
-				<div className='mt-0 flex flex-wrap gap-2 max-w-full overflow-x-auto pt-2 pb-2'>
-					{attachedFiles.value.map((file) => (
-						<div key={file.id} className='relative group'>
-							{file.type.startsWith('image/') && file.previewUrl
-								? (
-									// Image preview
-									<div className='relative'>
-										<img
-											src={file.previewUrl}
-											alt={file.name}
-											className='h-16 w-auto rounded border border-gray-300 dark:border-gray-700 object-cover'
-										/>
-										<div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate'>
-											{(file.size / 1024).toFixed(0)} KB
+				{attachedFiles.value.length > 0 && (
+					<div className='mt-0 flex flex-wrap gap-2 max-w-full overflow-x-auto pt-2 pb-2'>
+						{attachedFiles.value.map((file) => (
+							<div key={file.id} className='relative group'>
+								{file.type.startsWith('image/') && file.previewUrl
+									? (
+										// Image preview
+										<div className='relative'>
+											<img
+												src={file.previewUrl}
+												alt={file.name}
+												className='h-16 w-auto rounded border border-gray-300 dark:border-gray-700 object-cover'
+											/>
+											<div className='absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs px-1 truncate'>
+												{(file.size / 1024).toFixed(0)} KB
+											</div>
 										</div>
-									</div>
-								)
-								: (
-									// Generic file preview (for future non-image support)
-									<div className='h-16 w-16 flex flex-col items-center justify-center rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'>
-										<div className='text-2xl'>📄</div>
-										<div className='text-xs truncate max-w-full px-1'>
-											{(file.size / 1024).toFixed(0)} KB
+									)
+									: (
+										// Generic file preview (for future non-image support)
+										<div className='h-16 w-16 flex flex-col items-center justify-center rounded border border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800'>
+											<div className='text-2xl'>📄</div>
+											<div className='text-xs truncate max-w-full px-1'>
+												{(file.size / 1024).toFixed(0)} KB
+											</div>
+										</div>
+									)}
+
+								{/* Upload progress indicator */}
+								{file.uploadStatus === 'uploading' && (
+									<div className='absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center'>
+										<div className='w-full px-2'>
+											<div className='h-1 bg-gray-300 rounded-full overflow-hidden'>
+												<div
+													className='h-full bg-blue-500'
+													style={{ width: `${file.uploadProgress}%` }}
+												/>
+											</div>
+											<div className='text-white text-xs mt-1 text-center'>
+												{file.uploadProgress}%
+											</div>
 										</div>
 									</div>
 								)}
 
-							{/* Upload progress indicator */}
-							{file.uploadStatus === 'uploading' && (
-								<div className='absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center'>
-									<div className='w-full px-2'>
-										<div className='h-1 bg-gray-300 rounded-full overflow-hidden'>
-											<div
-												className='h-full bg-blue-500'
-												style={{ width: `${file.uploadProgress}%` }}
-											/>
-										</div>
-										<div className='text-white text-xs mt-1 text-center'>
-											{file.uploadProgress}%
+								{/* Error indicator */}
+								{file.uploadStatus === 'error' && (
+									<div className='absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center'>
+										<div className='text-white text-xs text-center'>
+											Upload failed
 										</div>
 									</div>
-								</div>
-							)}
+								)}
 
-							{/* Error indicator */}
-							{file.uploadStatus === 'error' && (
-								<div className='absolute inset-0 bg-red-500 bg-opacity-30 flex items-center justify-center'>
-									<div className='text-white text-xs text-center'>
-										Upload failed
-									</div>
-								</div>
-							)}
+								{/* Remove button */}
+								<button
+									type='button'
+									onClick={() => {
+										// Release object URL if it exists
+										if (file.previewUrl) {
+											URL.revokeObjectURL(file.previewUrl);
+										}
+										// Remove from state
+										attachedFiles.value = attachedFiles.value.filter((f) => f.id !== file.id);
+									}}
+									className='absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 dark:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center'
+									title='Remove file'
+								>
+									×
+								</button>
+							</div>
+						))}
+					</div>
+				)}
 
-							{/* Remove button */}
-							<button
-								type='button'
-								onClick={() => {
-									// Release object URL if it exists
-									if (file.previewUrl) {
-										URL.revokeObjectURL(file.previewUrl);
-									}
-									// Remove from state
-									attachedFiles.value = attachedFiles.value.filter((f) => f.id !== file.id);
-								}}
-								className='absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 dark:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center'
-								title='Remove file'
-							>
-								×
-							</button>
-						</div>
-					))}
-				</div>
-			)}
-
-			<div className='flex items-end space-x-3'>
-				<div className='flex-grow relative'>
-					<textarea
-						ref={internalTextareaRef}
-						value={chatInputText.value}
-						onInput={handleInput}
-						onKeyDown={handleKeyPress}
-						onSelect={handleSelect}
-						onClick={() => {
-							if (isDropdownOpen.value) {
-								isDropdownOpen.value = false;
-							}
-							if (isOptionsOpen.value) {
-								isOptionsOpen.value = false;
-							}
-						}}
-						className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto 
-						  dark:bg-gray-800 dark:text-gray-100 
+				<div className='flex items-end space-x-3'>
+					<div className='flex-grow relative'>
+						<textarea
+							ref={internalTextareaRef}
+							value={chatInputText.value}
+							onInput={handleInput}
+							onKeyDown={handleKeyPress}
+							onSelect={handleSelect}
+							onClick={() => {
+								if (isDropdownOpen.value) {
+									isDropdownOpen.value = false;
+								}
+								if (isOptionsOpen.value) {
+									isOptionsOpen.value = false;
+								}
+							}}
+							className={`w-full px-3 py-2 pr-14 border dark:border-gray-700 rounded-md resize-none overflow-y-auto dark:bg-gray-800 dark:text-gray-100 
 						  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:focus:ring-blue-400 focus:border-transparent
 						  transition-all duration-200 max-h-[200px]
 						  ${disabled.value ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
 						  ${
-							isProcessing(statusState.value)
-								? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800'
-								: ''
-						}`}
-						placeholder={isProcessing(statusState.value)
-							? 'Type your message... (Statement in progress)'
-							: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
-						rows={1}
-						maxLength={maxLength}
-						disabled={disabled.value}
-						aria-label='Message input'
-						aria-expanded={isShowingSuggestions.value}
-						aria-haspopup='listbox'
-						aria-controls={isShowingSuggestions.value ? 'suggestions-list' : undefined}
-						aria-activedescendant={selectedIndex.value >= 0
-							? `suggestion-${selectedIndex.value}`
-							: undefined}
-					/>
+								isProcessing(statusState.value)
+									? 'border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-800'
+									: ''
+							}`}
+							placeholder={isProcessing(statusState.value)
+								? 'Type your message... (Statement in progress)'
+								: 'Type your message... (Enter for new line, Cmd/Ctrl + Enter to send, Tab for file suggestions)'}
+							rows={1}
+							maxLength={maxLength}
+							disabled={disabled.value}
+							aria-label='Message input'
+							aria-expanded={isShowingSuggestions.value}
+							aria-haspopup='listbox'
+							aria-controls={isShowingSuggestions.value ? 'suggestions-list' : undefined}
+							aria-activedescendant={selectedIndex.value >= 0
+								? `suggestion-${selectedIndex.value}`
+								: undefined}
+						/>
 
-					{(isShowingSuggestions.value || isLoadingSuggestions.value || suggestionsError.value) && (
-						<div
-							className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
-							style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
-						>
-							{isLoadingSuggestions.value && (
-								<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
-									<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
-									<span className='ml-2 text-gray-600 dark:text-gray-300'>
-										Loading suggestions...
-									</span>
-								</div>
-							)}
+						{(isShowingSuggestions.value || isLoadingSuggestions.value || suggestionsError.value) && (
+							<div
+								className='absolute z-10 w-full bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm bottom-full mb-1'
+								style={{ maxHeight: 'min(300px, calc(100vh - 120px))' }}
+							>
+								{isLoadingSuggestions.value && (
+									<div className='flex items-center justify-center py-4 text-gray-600 dark:text-gray-300'>
+										<LoadingSpinner size='small' color='text-blue-500 dark:text-blue-400' />
+										<span className='ml-2 text-gray-600 dark:text-gray-300'>
+											Loading suggestions...
+										</span>
+									</div>
+								)}
 
-							{suggestionsError.value && (
-								<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
-									Error: {suggestionsError.value}
-								</div>
-							)}
+								{suggestionsError.value && (
+									<div className='text-red-500 dark:text-red-400 p-3 text-sm'>
+										Error: {suggestionsError.value}
+									</div>
+								)}
 
-							{!isLoadingSuggestions.value && !suggestionsError.value && suggestions.value.length > 0 && (
-								<ul
-									id='suggestions-list'
-									role='listbox'
-								>
-									{suggestions.value.map((suggestion, index) => (
-										<li
-											id={`suggestion-${index}`}
-											key={suggestion.dataSourceName
-												? `${suggestion.dataSourceName}:${suggestion.path}`
-												: suggestion.path}
-											role='option'
-											aria-selected={index === selectedIndex.value}
-											className={`cursor-pointer py-2 pl-3 pr-9 ${
-												index === selectedIndex.value
-													? 'bg-blue-600 text-white'
-													: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
-											}`}
-											onClick={() => {
-												if (suggestion.isDirectory) {
-													// For directories: complete and show contents
-													applySuggestion(suggestion, true, true);
-													// Reset selection and fetch directory contents
-													selectedIndex.value = -1;
-													fetchSuggestions(suggestion.path + '/', true);
-												} else {
-													// For files: apply and close
-													applySuggestion(suggestion, false, false);
-													tabState.value = TabState.INITIAL;
-												}
-											}}
-										>
-											<div className='flex items-center'>
-												<span className='truncate'>
-													{suggestion.display}
-													{suggestion.isDirectory && '/'}
-												</span>
-												<span
-													className={`ml-2 truncate text-sm ${
-														index === selectedIndex.value
-															? 'text-blue-200'
-															: 'text-gray-500'
-													}`}
-												>
-													({suggestion.parent}){' '}
-													{shouldShowDataSourceInfo.value && suggestion.dataSourceName
-														? <span className='ml-1'>[{suggestion.dataSourceName}]</span>
-														: ''}
-												</span>
-											</div>
-										</li>
-									))}
-								</ul>
-							)}
-						</div>
-					)}
+								{!isLoadingSuggestions.value && !suggestionsError.value &&
+									suggestions.value.length > 0 && (
+									<ul
+										id='suggestions-list'
+										role='listbox'
+									>
+										{suggestions.value.map((suggestion, index) => (
+											<li
+												id={`suggestion-${index}`}
+												key={suggestion.dataSourceName
+													? `${suggestion.dataSourceName}:${suggestion.path}`
+													: suggestion.path}
+												role='option'
+												aria-selected={index === selectedIndex.value}
+												className={`cursor-pointer py-2 pl-3 pr-9 ${
+													index === selectedIndex.value
+														? 'bg-blue-600 text-white'
+														: 'text-gray-900 dark:text-gray-100 hover:bg-blue-600 hover:text-white'
+												}`}
+												onClick={() => {
+													if (suggestion.isDirectory) {
+														// For directories: complete and show contents
+														applySuggestion(suggestion, true, true);
+														// Reset selection and fetch directory contents
+														selectedIndex.value = -1;
+														fetchSuggestions(suggestion.path + '/', true);
+													} else {
+														// For files: apply and close
+														applySuggestion(suggestion, false, false);
+														tabState.value = TabState.INITIAL;
+													}
+												}}
+											>
+												<div className='flex items-center'>
+													<span className='truncate'>
+														{suggestion.display}
+														{suggestion.isDirectory && '/'}
+													</span>
+													<span
+														className={`ml-2 truncate text-sm ${
+															index === selectedIndex.value
+																? 'text-blue-200'
+																: 'text-gray-500'
+														}`}
+													>
+														({suggestion.parent}){' '}
+														{shouldShowDataSourceInfo.value && suggestion.dataSourceName
+															? (
+																<span className='ml-1'>
+																	[{suggestion.dataSourceName}]
+																</span>
+															)
+															: ''}
+													</span>
+												</div>
+											</li>
+										))}
+									</ul>
+								)}
+							</div>
+						)}
 
-					<ChatHistoryDropdown
-						pinnedEntries={pinnedEntries}
-						recentEntries={recentEntries}
-						isOpen={isDropdownOpen}
-						onSelect={(value) => {
-							console.info('ChatInput: History entry selected', { valueLength: value.length });
-							onChange(value);
-							isDropdownOpen.value = false;
-						}}
-						onTogglePin={togglePin}
-					/>
-
-					<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-1'>
-						<button
-							type='button'
-							onClick={() => {
-								const newValue = !isDropdownOpen.value;
-								console.info('ChatInput: History toggled', {
-									wasOpen: isDropdownOpen.value,
-									nowOpen: newValue,
-									hasHistory: history.value.length > 0,
-									pinnedCount: pinnedEntries.value.length,
-									recentCount: recentEntries.value.length,
-								});
-								isDropdownOpen.value = newValue;
+						<ChatHistoryDropdown
+							pinnedEntries={pinnedEntries}
+							recentEntries={recentEntries}
+							isOpen={isDropdownOpen}
+							onSelect={(value) => {
+								console.info('ChatInput: History entry selected', { valueLength: value.length });
+								onChange(value);
+								isDropdownOpen.value = false;
 							}}
-							className='p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
-							title='Show history'
+							onTogglePin={togglePin}
+						/>
+
+						<div className='absolute bottom-1.5 right-2.5 flex flex-col items-end space-y-0.5'>
+							<button
+								type='button'
+								onClick={() => {
+									const newValue = !isDropdownOpen.value;
+									console.info('ChatInput: History toggled', {
+										wasOpen: isDropdownOpen.value,
+										nowOpen: newValue,
+										hasHistory: history.value.length > 0,
+										pinnedCount: pinnedEntries.value.length,
+										recentCount: recentEntries.value.length,
+									});
+									isDropdownOpen.value = newValue;
+								}}
+								className='p-0.5 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
+								title='Show history'
+							>
+								<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+									/>
+								</svg>
+							</button>
+							<span
+								className={`text-xs ${
+									chatInputText.value.length > maxLength * 0.9
+										? 'text-red-500 dark:text-red-400'
+										: 'text-gray-400 dark:text-gray-500'
+								}`}
+							>
+								{chatInputText.value.length} / {maxLength}
+							</span>
+						</div>
+					</div>
+					<div className='flex items-center'>
+						<button
+							ref={optionsButtonRef}
+							type='button'
+							onClick={(e) => {
+								e.stopPropagation();
+								isOptionsOpen.value = !isOptionsOpen.value;
+							}}
+							className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 ${
+								isOptionsOpen.value
+									? 'bg-blue-500 dark:bg-blue-600 text-white'
+									: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+							}`}
+							title={isOptionsOpen.value ? 'Close Chat Options' : 'Open Chat Options'}
+							aria-label={isOptionsOpen.value ? 'Close Chat Options' : 'Open Chat Options'}
+							aria-expanded={isOptionsOpen.value}
 						>
-							<svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='h-5 w-5'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
 								<path
 									strokeLinecap='round'
 									strokeLinejoin='round'
 									strokeWidth={2}
-									d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+									d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
+								/>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={2}
+									d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
 								/>
 							</svg>
 						</button>
-						<span
-							className={`text-xs ${
-								chatInputText.value.length > maxLength * 0.9
-									? 'text-red-500 dark:text-red-400'
-									: 'text-gray-400 dark:text-gray-500'
-							}`}
-						>
-							{chatInputText.value.length} / {maxLength}
-						</span>
-					</div>
-				</div>
-				<div className='flex items-center'>
-					<button
-						type='button'
-						onClick={() => isOptionsOpen.value = !isOptionsOpen.value}
-						className={`p-2 mr-2 mb-1 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300`}
-						title='Chat Options'
-						aria-label='Chat Options'
-					>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							className='h-5 w-5'
-							fill='none'
-							viewBox='0 0 24 24'
-							stroke='currentColor'
-						>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth={2}
-								d='M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'
-							/>
-							<path
-								strokeLinecap='round'
-								strokeLinejoin='round'
-								strokeWidth={2}
-								d='M15 12a3 3 0 11-6 0 3 3 0 016 0z'
-							/>
-						</svg>
-					</button>
-					<button
-						type='button'
-						onClick={handleSend}
-						className={`px-4 py-2 mb-1 rounded-md transition-colors 
+						<button
+							type='button'
+							onClick={handleSend}
+							className={`px-4 py-2 mb-1 rounded-md transition-colors 
 							focus:outline-none focus:ring-2 focus:ring-blue-500 
 							focus:ring-opacity-50 min-w-[60px] ml-2
 							${
-							isProcessing(statusState.value)
-								? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-								: disabled.value
-								? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
-								: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
-						}`}
-						disabled={statusState.value.isLoading || disabled.value || isProcessing(statusState.value)}
-						aria-label={statusState.value.isLoading ? 'Sending message...' : 'Send message'}
-					>
-						{statusState.value.isLoading
-							? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
-							: 'Send'}
-					</button>
-				</div>
-			</div>
-
-			{/* LLM Options Panel */}
-			{isOptionsOpen.value && (
-				<div
-					ref={optionsModalRef}
-					className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
-				>
-					<div className='flex justify-between items-center mb-3'>
-						<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
-						<button
-							type='button'
-							onClick={() => isOptionsOpen.value = false}
-							className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+								isProcessing(statusState.value)
+									? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+									: disabled.value
+									? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
+									: 'bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700'
+							}`}
+							disabled={statusState.value.isLoading || disabled.value || isProcessing(statusState.value)}
+							aria-label={statusState.value.isLoading ? 'Sending message...' : 'Send message'}
 						>
-							<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-								<path
-									strokeLinecap='round'
-									strokeLinejoin='round'
-									strokeWidth={2}
-									d='M6 18L18 6M6 6l12 12'
-								/>
-							</svg>
+							{statusState.value.isLoading
+								? <LoadingSpinner size='small' color='text-white dark:text-gray-200' />
+								: 'Send'}
 						</button>
 					</div>
-
-					<div className='space-y-3'>
-						{/* Model Selector */}
-						<ModelSelector
-							key={`model-selector-${chatInputOptions.value.model}`}
-							apiClient={apiClient}
-							context='conversation'
-							role='chat'
-							value={chatInputOptions.value.model}
-							onChange={(modelId: string | ModelSelectionValue) => {
-								console.log(
-									'ChatInput: Model changed from',
-									chatInputOptions.value.model,
-									'to',
-									modelId,
-								);
-								const newOptions = { ...chatInputOptions.value };
-								newOptions.model = modelId as string;
-								chatInputOptions.value = newOptions;
-								console.log(
-									'ChatInput: Updated chatInputOptions.model to',
-									chatInputOptions.value.model,
-								);
-							}}
-							label='Model'
-							compact
-						/>
-
-						{/* Max Tokens slider */}
-						<div className='space-y-1'>
-							<div className='flex justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Max Tokens: {chatInputOptions.value.maxTokens}
-								</label>
-							</div>
-							<input
-								type='range'
-								min='1000'
-								max={modelData?.value?.capabilities.maxOutputTokens || 100000}
-								step='1000'
-								value={chatInputOptions.value.maxTokens}
-								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
-									if (!e.target) return;
-									const input = e.target as HTMLInputElement;
-									const newOptions = { ...chatInputOptions.value };
-									newOptions.maxTokens = parseInt(input.value, 10);
-									chatInputOptions.value = newOptions;
-								}}
-								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
-							/>
-						</div>
-
-						{/* Temperature slider */}
-						<div className='space-y-1'>
-							<div className='flex justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>
-									Temperature: {chatInputOptions.value.temperature.toFixed(1)}
-								</label>
-							</div>
-							<input
-								type='range'
-								min={modelData?.value?.capabilities.constraints?.temperature?.min || 0}
-								max={modelData?.value?.capabilities.constraints?.temperature?.max || 1}
-								step='0.1'
-								value={chatInputOptions.value.temperature}
-								onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
-									if (!e.target) return;
-									const input = e.target as HTMLInputElement;
-									const newOptions = { ...chatInputOptions.value };
-									newOptions.temperature = parseFloat(input.value);
-									chatInputOptions.value = newOptions;
-								}}
-								className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
-							/>
-						</div>
-
-						{/* Extended Thinking Toggle */}
-						{(!modelData?.value ||
-							modelData.value.capabilities.supportedFeatures?.extendedThinking !== false) && (
-							<div className='flex items-center justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>Extended Thinking</label>
-								<div className='relative inline-block w-12 align-middle select-none'>
-									<input
-										type='checkbox'
-										checked={chatInputOptions.value.extendedThinking?.enabled || false}
-										onChange={(e) => {
-											if (!e.target) return;
-											const input = e.target as HTMLInputElement;
-											const newOptions = { ...chatInputOptions.value };
-											if (!newOptions.extendedThinking) {
-												newOptions.extendedThinking = {
-													enabled: input.checked,
-													budgetTokens: 4096,
-												};
-											} else {
-												newOptions.extendedThinking.enabled = input.checked;
-											}
-											chatInputOptions.value = newOptions;
-										}}
-										className='sr-only'
-										id='toggle-extended-thinking'
-									/>
-									<label
-										htmlFor='toggle-extended-thinking'
-										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-											chatInputOptions.value.extendedThinking?.enabled
-												? 'bg-blue-500'
-												: 'bg-gray-300 dark:bg-gray-600'
-										}`}
-									>
-										<span
-											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-												chatInputOptions.value.extendedThinking?.enabled
-													? 'translate-x-6'
-													: 'translate-x-0'
-											}`}
-										/>
-									</label>
-								</div>
-							</div>
-						)}
-
-						{/* Prompt Caching Toggle */}
-						{(!modelData?.value ||
-							modelData.value.capabilities.supportedFeatures?.promptCaching !== false) && (
-							<div className='flex items-center justify-between'>
-								<label className='text-sm text-gray-700 dark:text-gray-300'>Use Prompt Caching</label>
-								<div className='relative inline-block w-12 align-middle select-none'>
-									<input
-										type='checkbox'
-										checked={chatInputOptions.value.usePromptCaching !== false}
-										onChange={(e) => {
-											if (!e.target) return;
-											const input = e.target as HTMLInputElement;
-											const newOptions = { ...chatInputOptions.value };
-											newOptions.usePromptCaching = input.checked;
-											chatInputOptions.value = newOptions;
-										}}
-										className='sr-only'
-										id='toggle-prompt-caching'
-									/>
-									<label
-										htmlFor='toggle-prompt-caching'
-										className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
-											chatInputOptions.value.usePromptCaching !== false
-												? 'bg-blue-500'
-												: 'bg-gray-300 dark:bg-gray-600'
-										}`}
-									>
-										<span
-											className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-												chatInputOptions.value.usePromptCaching !== false
-													? 'translate-x-6'
-													: 'translate-x-0'
-											}`}
-										/>
-									</label>
-								</div>
-							</div>
-						)}
-
-						{/* Model information - display context window and provider info */}
-						{modelData?.value && (
-							<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Context window:{' '}
-									{(modelData.value.capabilities.contextWindow / 1000).toFixed(0)}K tokens
-								</div>
-							</div>
-						)}
-					</div>
 				</div>
-			)}
+
+				{/* LLM Options Panel */}
+				{isOptionsOpen.value && (
+					<div
+						ref={optionsModalRef}
+						className='absolute bottom-16 mb-2 right-6 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 z-50'
+					>
+						<div className='flex justify-between items-center mb-3'>
+							<h3 className='font-medium text-gray-800 dark:text-gray-200'>Chat Options</h3>
+							<button
+								type='button'
+								onClick={() => isOptionsOpen.value = false}
+								className='text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+							>
+								<svg className='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+									<path
+										strokeLinecap='round'
+										strokeLinejoin='round'
+										strokeWidth={2}
+										d='M6 18L18 6M6 6l12 12'
+									/>
+								</svg>
+							</button>
+						</div>
+
+						<div className='space-y-3'>
+							{/* Role Tabs */}
+							<div className='flex rounded-md border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900'>
+								{(['orchestrator', 'agent', 'chat'] as const).map((role) => {
+									const isSelected = selectedModelRole.value === role;
+
+									return (
+										<button
+											type='button'
+											key={role}
+											onClick={() => selectedModelRole.value = role}
+											className={`flex-1 py-2 px-2 text-xs rounded transition-colors flex items-center justify-center gap-1 ${
+												isSelected
+													? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 shadow-sm'
+													: 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+											}`}
+										>
+											{getControllerRoleIcon(role, {
+												className: 'mr-1 w-4 h-4',
+												'aria-label': `${role} model`,
+											})}
+											<span className='hidden sm:inline'>{ROLE_LABEL_MAPPING[role]}</span>
+										</button>
+									);
+								})}
+							</div>
+
+							{/* Model Selector for Selected Role */}
+							<ModelSelector
+								key={`model-selector-${selectedModelRole.value}-${
+									chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
+								}`}
+								apiClient={apiClient}
+								context='collaboration'
+								role={selectedModelRole.value}
+								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}
+								onChange={(modelId: string | ModelSelectionValue) => {
+									console.log(
+										'ChatInput: Model changed for role',
+										selectedModelRole.value,
+										'to',
+										modelId,
+									);
+									const newOptions = { ...chatInputOptions.value };
+									if (!newOptions.rolesModelConfig) {
+										newOptions.rolesModelConfig = {
+											orchestrator: null,
+											agent: null,
+											chat: null,
+										};
+									}
+									const currentModelConfig = newOptions.rolesModelConfig[selectedModelRole.value] || {
+										model: '',
+										temperature: 0.7,
+										maxTokens: 4000,
+										usePromptCaching: true,
+									};
+									newOptions.rolesModelConfig[selectedModelRole.value] = {
+										...currentModelConfig,
+										model: modelId as string,
+									};
+									chatInputOptions.value = newOptions;
+									console.log(
+										'ChatInput: Changed model config for role',
+										selectedModelRole.value,
+										newOptions.rolesModelConfig[selectedModelRole.value],
+									);
+								}}
+								label={`${ROLE_LABEL_MAPPING[selectedModelRole.value]} Model`}
+								compact
+							/>
+
+							{/* Max Tokens slider */}
+							<div className='space-y-1'>
+								<div className='flex justify-between'>
+									<label className='text-sm text-gray-700 dark:text-gray-300'>
+										Max Tokens: {chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.maxTokens ||
+											4000}
+									</label>
+								</div>
+								<input
+									type='range'
+									min='1000'
+									max={currentRoleModelCapabilities.value?.capabilities?.maxOutputTokens || 100000}
+									step='1000'
+									value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+										?.maxTokens ||
+										4000}
+									onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+										if (!e.target) return;
+										const input = e.target as HTMLInputElement;
+										const newOptions = { ...chatInputOptions.value };
+										if (!newOptions.rolesModelConfig) {
+											newOptions.rolesModelConfig = {
+												orchestrator: null,
+												agent: null,
+												chat: null,
+											};
+										}
+										const currentModelConfig =
+											newOptions.rolesModelConfig[selectedModelRole.value] || {
+												model: '',
+												temperature: 0.7,
+												maxTokens: 4000,
+												usePromptCaching: true,
+											};
+										newOptions.rolesModelConfig[selectedModelRole.value] = {
+											...currentModelConfig,
+											maxTokens: parseInt(input.value, 10),
+										};
+										chatInputOptions.value = newOptions;
+									}}
+									className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+								/>
+							</div>
+
+							{/* Temperature slider */}
+							<div className='space-y-1'>
+								<div className='flex justify-between'>
+									<label className='text-sm text-gray-700 dark:text-gray-300'>
+										Temperature:{' '}
+										{(chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+											?.temperature ||
+											0.7).toFixed(1)}
+									</label>
+								</div>
+								<input
+									type='range'
+									min={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature
+										?.min ||
+										0}
+									max={currentRoleModelCapabilities.value?.capabilities?.constraints?.temperature
+										?.max ||
+										1}
+									step='0.1'
+									value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+										?.temperature || 0.7}
+									onChange={(e: TargetedEvent<HTMLInputElement, Event>) => {
+										if (!e.target) return;
+										const input = e.target as HTMLInputElement;
+										const newOptions = { ...chatInputOptions.value };
+										if (!newOptions.rolesModelConfig) {
+											newOptions.rolesModelConfig = {
+												orchestrator: null,
+												agent: null,
+												chat: null,
+											};
+										}
+										const currentModelConfig =
+											newOptions.rolesModelConfig[selectedModelRole.value] || {
+												model: '',
+												temperature: 0.7,
+												maxTokens: 4000,
+												usePromptCaching: true,
+											};
+										newOptions.rolesModelConfig[selectedModelRole.value] = {
+											...currentModelConfig,
+											temperature: parseFloat(input.value),
+										};
+										chatInputOptions.value = newOptions;
+									}}
+									className='w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer'
+								/>
+							</div>
+
+							{/* Extended Thinking Toggle */}
+							<div>
+								<div className='flex items-center justify-between'>
+									<label
+										className={`text-sm ${
+											!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.extendedThinking === false
+												? 'text-gray-400 dark:text-gray-500'
+												: 'text-gray-700 dark:text-gray-300'
+										}`}
+									>
+										Extended Thinking
+									</label>
+									<div className='relative inline-block w-12 align-middle select-none'>
+										<input
+											type='checkbox'
+											checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+												?.extendedThinking?.enabled || false}
+											disabled={!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.extendedThinking === false}
+											onChange={(e) => {
+												if (!e.target) return;
+												const input = e.target as HTMLInputElement;
+												const newOptions = { ...chatInputOptions.value };
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {chatInputOptions: chatInputOptions.value});
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {newOptions});
+												if (!newOptions.rolesModelConfig) {
+													newOptions.rolesModelConfig = {
+														orchestrator: null,
+														agent: null,
+														chat: null,
+													};
+												}
+												const currentModelConfig =
+													newOptions.rolesModelConfig[selectedModelRole.value] || {
+														model: '',
+														temperature: 0.7,
+														maxTokens: 4000,
+														usePromptCaching: true,
+													};
+												//console.log('ChatInput - ExtendedThinking Toggle - onChange:', {currentModelConfig});
+												if (!currentModelConfig.extendedThinking) {
+													currentModelConfig.extendedThinking = {
+														enabled: input.checked,
+														budgetTokens: 4096,
+													};
+												} else {
+													currentModelConfig.extendedThinking.enabled = input.checked;
+												}
+												newOptions.rolesModelConfig[selectedModelRole.value] =
+													currentModelConfig;
+												chatInputOptions.value = newOptions;
+											}}
+											className='sr-only'
+											id='toggle-extended-thinking'
+										/>
+										<label
+											htmlFor='toggle-extended-thinking'
+											className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+												!currentRoleModelCapabilities?.value ||
+													currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+															?.extendedThinking === false
+													? 'cursor-not-allowed opacity-50'
+													: 'cursor-pointer'
+											} ${
+												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+														?.extendedThinking?.enabled
+													? 'bg-blue-500'
+													: 'bg-gray-300 dark:bg-gray-600'
+											}`}
+										>
+											<span
+												className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+													chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+															?.extendedThinking?.enabled
+														? 'translate-x-6'
+														: 'translate-x-0'
+												}`}
+											/>
+										</label>
+									</div>
+								</div>
+							</div>
+
+							{/* Prompt Caching Toggle */}
+							<div>
+								<div className='flex items-center justify-between'>
+									<label
+										className={`text-sm ${
+											!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.promptCaching === false
+												? 'text-gray-400 dark:text-gray-500'
+												: 'text-gray-700 dark:text-gray-300'
+										}`}
+									>
+										Use Prompt Caching
+									</label>
+									<div className='relative inline-block w-12 align-middle select-none'>
+										<input
+											type='checkbox'
+											checked={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+												?.usePromptCaching !== false}
+											disabled={!currentRoleModelCapabilities?.value ||
+												currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+														?.promptCaching === false}
+											onChange={(e) => {
+												if (!e.target) return;
+												const input = e.target as HTMLInputElement;
+												const newOptions = { ...chatInputOptions.value };
+												if (!newOptions.rolesModelConfig) {
+													newOptions.rolesModelConfig = {
+														orchestrator: null,
+														agent: null,
+														chat: null,
+													};
+												}
+												const currentModelConfig =
+													newOptions.rolesModelConfig[selectedModelRole.value] || {
+														model: '',
+														temperature: 0.7,
+														maxTokens: 4000,
+														usePromptCaching: true,
+													};
+												newOptions.rolesModelConfig[selectedModelRole.value] = {
+													...currentModelConfig,
+													usePromptCaching: input.checked,
+												};
+												chatInputOptions.value = newOptions;
+											}}
+											className='sr-only'
+											id='toggle-prompt-caching'
+										/>
+										<label
+											htmlFor='toggle-prompt-caching'
+											className={`block overflow-hidden h-6 rounded-full transition-colors duration-200 ease-in-out ${
+												!currentRoleModelCapabilities?.value ||
+													currentRoleModelCapabilities.value.capabilities?.supportedFeatures
+															?.promptCaching === false
+													? 'cursor-not-allowed opacity-50'
+													: 'cursor-pointer'
+											} ${
+												chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+														?.usePromptCaching !== false
+													? 'bg-blue-500'
+													: 'bg-gray-300 dark:bg-gray-600'
+											}`}
+										>
+											<span
+												className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+													chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]
+															?.usePromptCaching !== false
+														? 'translate-x-6'
+														: 'translate-x-0'
+												}`}
+											/>
+										</label>
+									</div>
+								</div>
+							</div>
+
+							{/* Model information - display context window and provider info */}
+							{currentRoleModelCapabilities?.value && (
+								<div className='mt-4 pt-3 border-t border-gray-200 dark:border-gray-700'>
+									<div className='text-xs text-gray-500 dark:text-gray-400'>
+										Context window: {currentRoleModelCapabilities.value.capabilities?.contextWindow
+											? (currentRoleModelCapabilities.value.capabilities?.contextWindow / 1000)
+												.toFixed(
+													0,
+												)
+											: '--'}K tokens
+									</div>
+								</div>
+							)}
+						</div>
+					</div>
+				)}
+			</div>
 		</div>
 	);
 }

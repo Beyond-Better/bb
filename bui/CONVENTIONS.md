@@ -143,7 +143,7 @@ export function ExternalLink({
 ### Connection Setup
 ```typescript
 const ws = new WebSocket(
-  `ws://localhost:3162/ws/conversation/${conversationId}`
+  `ws://localhost:3162/ws/conversation/${collaborationId}`
 );
 
 // Reconnection attempts should use exponential backoff with jitter 

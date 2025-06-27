@@ -1,64 +1,78 @@
 import { WebSocketManagerBaseImpl } from './websocketManagerBase.utils.ts';
 import type {
-	ConversationContinue,
-	ConversationId,
-	ConversationResponse,
-	ConversationStats,
+	CollaborationContinue,
+	CollaborationParams,
+	CollaborationResponse,
+	CollaborationType,
+	InteractionId,
+	InteractionStats,
+	ProjectId,
 	TokenUsage,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 import type { LLMAttachedFile, LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 import type { WebSocketConfigChat } from '../types/websocket.types.ts';
-import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
+import type { StatementParams } from 'shared/types/collaborationParams.ts';
 
 interface WebSocketMessage {
-	conversationId: string;
-	projectId: string;
+	collaborationId: string;
+	projectId: ProjectId;
 	task: 'greeting' | 'converse' | 'cancel';
 	statement: string;
 	options?: { maxTurns?: number };
-	requestParams?: LLMRequestParams;
+	statementParams?: StatementParams;
 	filesToAttach?: string[];
 }
 
 // interface WebSocketLogEntry {
 // 	timestamp: string;
-// 	logEntry: ConversationLogEntry;
+// 	logEntry: CollaborationLogEntry;
 // 	formattedContent: string;
 // }
 
 interface WebSocketResponse {
 	type:
-		| 'conversationNew'
-		| 'conversationDeleted'
-		| 'conversationReady'
-		| 'conversationContinue'
-		| 'conversationAnswer'
-		| 'conversationError'
-		| 'conversationCancelled'
+		| 'collaborationNew'
+		| 'collaborationDeleted'
+		| 'collaborationReady'
+		| 'collaborationContinue'
+		| 'collaborationAnswer'
+		| 'collaborationError'
+		| 'collaborationCancelled'
 		| 'progressStatus'
 		| 'promptCacheTimer';
 	data: {
-		logEntry?: ConversationLogEntry;
+		logEntry?: CollaborationLogEntry;
 		timestamp?: string;
-		conversationTitle?: string;
+		collaborationTitle?: string;
+		collaborationType: CollaborationType;
+		collaborationParams: CollaborationParams;
+		projectId: ProjectId;
+		createdAt: string;
+		updatedAt: string;
+		totalInteractions: number;
+		interactionIds: InteractionId[];
+		interactionId: string;
 		messageId: string;
 		parentMessageId: string | null;
 		agentInteractionId: string | null;
-		tokenUsageStats: {
+		tokenUsageStatsForCollaboration: {
 			tokenUsageTurn?: TokenUsage;
 			tokenUsageStatement?: TokenUsage;
-			tokenUsageConversation?: TokenUsage;
+			tokenUsageInteraction?: TokenUsage;
+			tokenUsageCollaboration?: TokenUsage;
 		};
-		conversationStats?: ConversationStats;
-		requestParams: LLMRequestParams;
+		interactionStats?: InteractionStats;
+		statementParams: StatementParams;
 		formattedContent?: string;
 		error?: string;
 	};
 }
 
 export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
-	private conversationId: ConversationId | null = null;
-	private projectId: string;
+	private collaborationId: InteractionId | null = null;
+	private projectId: ProjectId;
 
 	constructor(config: WebSocketConfigChat) {
 		super(config);
@@ -66,39 +80,39 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 		this.projectId = config.projectId;
 	}
 
-	async setConversationId(id: ConversationId) {
-		if (!id) throw new Error('Conversation ID cannot be empty');
+	async setCollaborationId(id: InteractionId) {
+		if (!id) throw new Error('Collaboration ID cannot be empty');
 
-		console.log('WebSocketManagerChat: Setting conversation ID:', {
+		console.log('WebSocketManagerChat: Setting collaboration ID:', {
 			newId: id,
-			currentId: this.conversationId,
+			currentId: this.collaborationId,
 			socketState: this.socket?.readyState,
 			isReady: this._status.isReady,
 		});
 
-		// If we're already connected to this conversation, do nothing
+		// If we're already connected to this collaboration, do nothing
 		if (
-			this.conversationId === id &&
+			this.collaborationId === id &&
 			this.socket?.readyState === WebSocket.OPEN &&
 			this._status.isReady
 		) {
-			console.log('WebSocketManagerChat: Already connected to this conversation');
+			console.log('WebSocketManagerChat: Already connected to this collaboration');
 			return;
 		}
 
 		// Reset connection state
 		this.retryCount = 0;
-		this.conversationId = id;
+		this.collaborationId = id;
 
 		// Start new connection
 		await this.connect();
 	}
 
 	protected getWebSocketUrl(): string {
-		if (!this.conversationId) {
-			throw new Error('No conversation ID set');
+		if (!this.collaborationId) {
+			throw new Error('No collaboration ID set');
 		}
-		return `${this.wsUrl}/conversation/${this.conversationId}`;
+		return `${this.wsUrl}/collaboration/${this.collaborationId}`;
 	}
 
 	protected override onSocketOpen(): void {
@@ -106,13 +120,13 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 	}
 
 	private sendGreeting(): void {
-		if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.conversationId) {
+		if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.collaborationId) {
 			console.log('WebSocketManagerChat: Cannot send greeting - socket not ready');
 			return;
 		}
 
 		const message: WebSocketMessage = {
-			conversationId: this.conversationId,
+			collaborationId: this.collaborationId,
 			projectId: this.projectId,
 			task: 'greeting',
 			statement: '',
@@ -125,10 +139,10 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 	// deno-lint-ignore require-await
 	async sendConverse(
 		message: string,
-		requestParams?: LLMRequestParams,
+		statementParams?: StatementParams,
 		attachedFiles?: LLMAttachedFiles,
 	): Promise<void> {
-		if (!this.socket || !this.conversationId || !this._status.isReady) {
+		if (!this.socket || !this.collaborationId || !this._status.isReady) {
 			throw new Error('WebSocket is not ready');
 		}
 		//console.log('WebSocketManagerChat: sendConverse-attachedFiles', attachedFiles);
@@ -141,14 +155,15 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 				.filter(Boolean)
 			: [];
 		//console.log('WebSocketManagerChat: sendConverse-filesToAttach', filesToAttach);
+		//console.log('WebSocketManagerChat: sendConverse-statementParams', statementParams);
 
 		const wsMessage: WebSocketMessage = {
-			conversationId: this.conversationId,
+			collaborationId: this.collaborationId,
 			projectId: this.projectId,
 			task: 'converse',
 			statement: message,
 			options: {}, // statement options
-			requestParams, // LLM request params
+			statementParams, // LLM request params
 			filesToAttach,
 		};
 
@@ -157,12 +172,12 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 
 	// deno-lint-ignore require-await
 	async sendCancellation(): Promise<void> {
-		if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.conversationId) {
+		if (!this.socket || this.socket.readyState !== WebSocket.OPEN || !this.collaborationId) {
 			throw new Error('WebSocket not ready to send cancellation');
 		}
 
 		this.socket.send(JSON.stringify({
-			conversationId: this.conversationId,
+			collaborationId: this.collaborationId,
 			projectId: this.projectId,
 			task: 'cancel',
 		}));
@@ -176,61 +191,62 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 			const generateLogDataEntry = (
 				msgData: WebSocketResponse,
 				_msgType: 'continue' | 'answer',
-			): ConversationContinue | ConversationResponse => {
+			): CollaborationContinue | CollaborationResponse => {
 				const baseEntry = {
-					conversationId: this.conversationId!,
-					conversationTitle: '',
+					collaborationId: this.collaborationId!,
+					collaborationTitle: '',
 					messageId: msgData.data.messageId,
 					parentMessageId: msgData.data.parentMessageId,
 					agentInteractionId: msgData.data.agentInteractionId,
+					interactionId: msgData.data.interactionId,
+					collaborationType: msgData.data.collaborationType,
+					collaborationParams: msgData.data.collaborationParams,
+					projectId: msgData.data.projectId,
+					createdAt: msgData.data.createdAt,
+					updatedAt: msgData.data.updatedAt,
+					totalInteractions: msgData.data.totalInteractions,
+					interactionIds: msgData.data.interactionIds,
 					//timestamp: msgData.data.logEntry?.timestamp || new Date().toISOString(),
 					timestamp: msgData.data.timestamp || new Date().toISOString(),
 					logEntry: msgData.data.logEntry,
-					requestParams: msgData.data.requestParams,
-					tokenUsageStats: {
-						tokenUsageTurn: msgData.data.tokenUsageStats.tokenUsageTurn || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageStatement: msgData.data.tokenUsageStats.tokenUsageStatement || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
-						tokenUsageConversation: msgData.data.tokenUsageStats.tokenUsageConversation || {
-							totalTokens: 0,
-							inputTokens: 0,
-							outputTokens: 0,
-						},
+					statementParams: msgData.data.statementParams,
+					tokenUsageStatsForCollaboration: {
+						tokenUsageTurn: msgData.data.tokenUsageStatsForCollaboration.tokenUsageTurn ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageStatement: msgData.data.tokenUsageStatsForCollaboration.tokenUsageStatement ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageInteraction: msgData.data.tokenUsageStatsForCollaboration.tokenUsageInteraction ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
+						tokenUsageCollaboration: msgData.data.tokenUsageStatsForCollaboration.tokenUsageCollaboration ||
+							DEFAULT_TOKEN_USAGE_REQUIRED(),
 					},
-					conversationStats: msgData.data.conversationStats || {
+					interactionStats: msgData.data.interactionStats || {
 						statementCount: 0,
 						statementTurnCount: 0,
-						conversationTurnCount: 0,
+						interactionTurnCount: 0,
 					},
 					formattedContent: msgData.data.formattedContent,
 				};
 
-				return baseEntry as ConversationContinue | ConversationResponse;
+				return baseEntry as CollaborationContinue | CollaborationResponse;
 			};
 
 			switch (msg.type) {
-				case 'conversationNew':
+				case 'collaborationNew':
 					this.emit('message', {
-						msgType: 'conversationNew',
+						msgType: 'collaborationNew',
 						logDataEntry: msg.data,
 					});
 					break;
 
-				case 'conversationDeleted':
+				case 'collaborationDeleted':
 					this.emit('message', {
-						msgType: 'conversationDeleted',
+						msgType: 'collaborationDeleted',
 						logDataEntry: msg.data,
 					});
 					break;
 
-				case 'conversationReady':
+				case 'collaborationReady':
 					this._status.isConnecting = false;
 					this._status.isReady = true;
 					this.emit('readyChange', true);
@@ -239,21 +255,21 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					this.startHealthCheck();
 					break;
 
-				case 'conversationContinue':
+				case 'collaborationContinue':
 					this.emit('message', {
 						msgType: 'continue',
-						logDataEntry: generateLogDataEntry(msg, 'continue') as ConversationContinue,
+						logDataEntry: generateLogDataEntry(msg, 'continue') as CollaborationContinue,
 					});
 					break;
 
-				case 'conversationAnswer':
+				case 'collaborationAnswer':
 					this.emit('message', {
 						msgType: 'answer',
-						logDataEntry: generateLogDataEntry(msg, 'answer') as ConversationResponse,
+						logDataEntry: generateLogDataEntry(msg, 'answer') as CollaborationResponse,
 					});
 					break;
 
-				case 'conversationCancelled':
+				case 'collaborationCancelled':
 					this._status.isReady = true;
 					this.emit('readyChange', true);
 					this.emit('cancelled', msg.data);
@@ -269,8 +285,8 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 					this.emit('promptCacheTimer', msg.data);
 					break;
 
-				case 'conversationError':
-					console.error('WebSocketManagerChat: Conversation error:', msg.data);
+				case 'collaborationError':
+					console.error('WebSocketManagerChat: Collaboration error:', msg.data);
 					if (msg.data.error) {
 						this.handleError(new Error(msg.data.error));
 					}
@@ -286,8 +302,8 @@ export class WebSocketManagerChat extends WebSocketManagerBaseImpl {
 	}
 
 	override disconnect(): void {
-		// Clear conversation ID before disconnect to prevent any late cleanup events
-		this.conversationId = null;
+		// Clear collaboration ID before disconnect to prevent any late cleanup events
+		this.collaborationId = null;
 		// Remove all event listeners before disconnecting
 		this.eventHandlers.clear();
 		super.disconnect();

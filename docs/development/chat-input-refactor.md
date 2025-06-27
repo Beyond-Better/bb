@@ -97,7 +97,7 @@ useEffect(() => {
 ### 1. State Management
 ```typescript
 // Keep state localized
-const useChatInputHistory = (conversationId: Signal<string | null>) => {
+const useChatInputHistory = (collaborationId: Signal<string | null>) => {
   const history = signal<ChatInputHistoryEntry[]>([]);
   // ... other state
 };

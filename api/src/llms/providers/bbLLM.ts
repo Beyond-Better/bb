@@ -25,7 +25,7 @@ import type {
 } from 'api/types.ts';
 import type { BBLLMResponse } from 'api/types/llms.ts';
 import { extractTextFromContent } from 'api/utils/llms.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 type LLMMessageContentPartOrString =
 	| string
@@ -243,19 +243,19 @@ class BbLLM extends LLM {
 		} else {
 			// Fallback if interaction is not provided
 			const projectEditor = await this.invoke(LLMCallbackType.PROJECT_EDITOR);
-			const capabilitiesManager = await ModelCapabilitiesManager.getInstance(projectEditor.projectConfig);
+			const registryService = await ModelRegistryService.getInstance(projectEditor.projectConfig);
 
-			maxTokens = capabilitiesManager.resolveMaxTokens(
+			maxTokens = registryService.resolveMaxTokens(
 				model,
 				messageRequest.maxTokens,
 			);
 
-			extendedThinking = capabilitiesManager.resolveExtendedThinking(
+			extendedThinking = registryService.resolveExtendedThinking(
 				model,
 				messageRequest.extendedThinking?.enabled,
 			);
 			// Resolve temperature, but prioritize explicitly setting to 1 for extended thinking
-			temperature = extendedThinking ? 1 : capabilitiesManager.resolveTemperature(
+			temperature = extendedThinking ? 1 : registryService.resolveTemperature(
 				model,
 				messageRequest.temperature,
 			);
@@ -290,7 +290,7 @@ class BbLLM extends LLM {
 	 */
 	private getBaseUrl(): string {
 		return this.projectConfig.api?.llmProviders?.beyondbetter?.baseUrl ||
-			'https://api.beyondbetter.dev/v1/llm-proxy';
+			'https://api.beyondbetter.dev/api/v1/llm-proxy';
 	}
 
 	/**
@@ -403,7 +403,7 @@ class BbLLM extends LLM {
 
 			const bbResponseMessage = data as BBLLMResponse;
 			//if (this.projectConfig.api?.logLevel === 'debug1') {
-			//	interaction.conversationPersistence.writeLLMRequest({
+			//	interaction.interactionPersistence.writeLLMRequest({
 			//		messageId: bbResponseMessage.metadata.requestId,
 			//		requestBody: messageRequest,
 			//		requestHeaders: { 'anthropic-beta': 'prompt-caching-2024-07-31,max-tokens-3-5-sonnet-2024-07-15' },
@@ -457,7 +457,7 @@ class BbLLM extends LLM {
 						model: messageRequest.model,
 						provider: this.llmProviderName,
 						args: { bbResponse: bbResponseMessage },
-						conversationId: interaction.id,
+						interactionId: interaction.id,
 					} as LLMErrorOptions,
 				);
 			}
@@ -502,19 +502,21 @@ class BbLLM extends LLM {
 			//logger.debug(`BbLLM:provider[${this.llmProviderName}]: llms-anthropic-messageResponse`, messageResponse);
 
 			// Include request parameters in messageMeta
-			const requestParams: LLMRequestParams = bbResponseMessage.metadata.requestParams || {
-				model: messageRequest.model,
-				maxTokens: providerMessageRequest.maxTokens,
-				temperature: providerMessageRequest.temperature,
-				extendedThinking: messageRequest.extendedThinking,
-				usePromptCaching: providerMessageRequest.usePromptCaching,
+			const llmRequestParams: LLMRequestParams = bbResponseMessage.metadata.llmRequestParams || {
+				modelConfig: {
+					model: messageRequest.model,
+					maxTokens: providerMessageRequest.maxTokens,
+					temperature: providerMessageRequest.temperature,
+					extendedThinking: messageRequest.extendedThinking,
+					usePromptCaching: providerMessageRequest.usePromptCaching,
+				},
 			};
 
 			return {
 				messageResponse,
 				messageMeta: {
 					system: messageRequest.system,
-					requestParams,
+					llmRequestParams,
 				},
 			};
 		} catch (err) {

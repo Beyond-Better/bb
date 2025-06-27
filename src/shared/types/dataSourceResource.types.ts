@@ -78,15 +78,15 @@ export interface ResourceRevisionMetadata extends ResourceMetadata {
 /**
  * Represents a resource for conversation context
  */
-export interface ResourceForConversation {
+export interface ResourceForInteraction {
 	resourceName: string;
 	resourceUri: string;
 	metadata: ResourceRevisionMetadata;
 }
 
-export type ResourcesForConversation = Array<ResourceForConversation>;
+export type ResourcesForInteraction = Array<ResourceForInteraction>;
 
-export type ConversationResourcesMetadata = Record<string, ResourceRevisionMetadata>;
+export type InteractionResourcesMetadata = Record<string, ResourceRevisionMetadata>;
 
 // ========================================================================
 // Resource Load Operation

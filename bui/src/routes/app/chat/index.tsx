@@ -7,15 +7,16 @@ import { ApiStatus } from 'shared/types.ts';
 
 interface ChatPageProps {
 	projectId?: string;
-	conversationId?: string;
+	collaborationId?: string;
 }
 
 const initialState: ChatState = {
-	conversationId: null,
+	collaborationId: null,
 	projectData: null,
 	apiClient: null,
 	wsManager: null,
-	conversations: [],
+	collaborations: [],
+	selectedCollaboration: null,
 	logDataEntries: [],
 	status: {
 		isConnecting: false,

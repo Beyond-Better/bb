@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
 import { useComputed } from '@preact/signals';
 import type { ClientDataSourceConnection, ClientProjectWithConfigSources } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { DataSourceItem } from './DataSourceItem.tsx';
 import { DataSourceModal } from './DataSourceModal.tsx';
 import type { AppState } from '../hooks/useAppState.ts';
@@ -11,7 +12,7 @@ import { generateId } from 'shared/projectData.ts';
 
 interface DataSourceListProps {
 	editingProject: Signal<ClientProjectWithConfigSources | undefined>;
-	onUpdate: (projectId: string, updatedProject: ClientProjectWithConfigSources) => Promise<void>;
+	onUpdate: (projectId: ProjectId, updatedProject: ClientProjectWithConfigSources) => Promise<void>;
 	appState: Signal<AppState>;
 }
 

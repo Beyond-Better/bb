@@ -371,8 +371,8 @@ class ModelCapabilitiesFetcher {
 				json: sourceModel.supportedFeatures.json,
 				streaming: sourceModel.supportedFeatures.streaming,
 				vision: sourceModel.supportedFeatures.vision,
-				promptCaching: sourceModel.supportedFeatures.promptCaching || false,
-				extendedThinking: sourceModel.supportedFeatures.extendedThinking || false,
+				promptCaching: sourceModel.supportedFeatures.promptCaching ?? false,
+				extendedThinking: sourceModel.supportedFeatures.extendedThinking ?? false,
 			},
 			defaults: {
 				temperature: sourceModel.defaults.temperature,

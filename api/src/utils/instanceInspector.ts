@@ -15,12 +15,12 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 export interface InteractionInstanceInfo {
 	id: string;
 	type: string;
-	title?: string;
+	title: string | null;
 	model: string;
 	llmProvider: {
 		name: string;
 	};
-	requestParams?: {
+	modelConfig?: {
 		model: string;
 		temperature?: number;
 		maxTokens?: number;
@@ -67,7 +67,7 @@ export interface EditorInstanceInfo {
 export interface InteractionInfo {
 	id: string;
 	type: string;
-	title?: string;
+	title: string | null;
 	model?: string;
 	statementCount: number;
 	hasParent: boolean;
@@ -112,13 +112,13 @@ function inspectInteractionForEditor(interaction: LLMInteraction): InteractionIn
 		llmProvider: {
 			name: interaction.llmProviderName,
 		},
-		requestParams: interaction.requestParams
+		modelConfig: interaction.modelConfig
 			? {
-				model: interaction.requestParams.model,
-				temperature: interaction.requestParams.temperature,
-				maxTokens: interaction.requestParams.maxTokens,
-				extendedThinking: interaction.requestParams.extendedThinking?.enabled,
-				usePromptCaching: interaction.requestParams.usePromptCaching,
+				model: interaction.modelConfig.model,
+				temperature: interaction.modelConfig.temperature,
+				maxTokens: interaction.modelConfig.maxTokens,
+				extendedThinking: interaction.modelConfig.extendedThinking?.enabled,
+				usePromptCaching: interaction.modelConfig.usePromptCaching,
 			}
 			: undefined,
 	};
@@ -211,9 +211,9 @@ export async function getInstanceOverview(_options: { detailed?: boolean } = {})
 	const rootInteractionIds: string[] = [];
 
 	// Track active conversation IDs to identify orphaned interactions
-	const activeConversationIds = new Set<string>();
+	const activeInteractionIds = new Set<string>();
 	for (const [conversationId] of projectEditors) {
-		activeConversationIds.add(conversationId);
+		activeInteractionIds.add(conversationId);
 	}
 
 	// Count orphaned interactions (not attached to active ProjectEditor)
@@ -232,7 +232,7 @@ export async function getInstanceOverview(_options: { detailed?: boolean } = {})
 			rootInteractionIds.push(interaction.id);
 
 			// Check if this root interaction is orphaned (not in an active ProjectEditor)
-			if (!activeConversationIds.has(interaction.id)) {
+			if (!activeInteractionIds.has(interaction.id)) {
 				orphanedCount++;
 			}
 		}
@@ -404,9 +404,9 @@ export async function formatInstanceOverview(options: { detailed?: boolean } = {
 						if (interaction.title) {
 							lines.push(`          Title: ${interaction.title}`);
 						}
-						if (interaction.requestParams) {
+						if (interaction.modelConfig) {
 							lines.push(
-								`          Params: temp=${interaction.requestParams.temperature}, maxTokens=${interaction.requestParams.maxTokens}, cache=${interaction.requestParams.usePromptCaching}`,
+								`          Params: temp=${interaction.modelConfig.temperature}, maxTokens=${interaction.modelConfig.maxTokens}, cache=${interaction.modelConfig.usePromptCaching}`,
 							);
 						}
 					}

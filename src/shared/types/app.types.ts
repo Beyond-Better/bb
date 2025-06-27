@@ -2,6 +2,7 @@
 // but it's not a trivial task
 
 import type { ApiConfig, BuiConfig, CliConfig, ConfigVersion, DefaultModels, DuiConfig } from 'shared/config/types.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 /**
  * Base application configuration interface
@@ -36,5 +37,5 @@ export interface GlobalConfig extends AppConfig {
  * Extends AppConfig with projectId
  */
 export interface ProjectConfig extends AppConfig {
-	projectId: string;
+	projectId: ProjectId;
 }

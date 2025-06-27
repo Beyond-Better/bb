@@ -1,36 +1,39 @@
 import { JSX } from 'preact';
-import { useState } from 'preact/hooks';
+//import { useState } from 'preact/hooks';
 import { Signal } from '@preact/signals';
 import type { ModelDetails } from '../utils/apiClient.utils.ts';
-import type { LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMModelConfig } from '../types/llm.types.ts';
 import type { TokenUsage } from 'shared/types.ts';
+
+export interface ModelInfo {
+	model: string;
+	provider: string;
+	modelConfig: LLMModelConfig;
+	tokenUsageTurn: TokenUsage;
+	tokenUsageInteraction: TokenUsage;
+	tokenUsageCollaboration: TokenUsage;
+}
 
 interface ModelInfoPanelProps {
 	isOpen: boolean;
 	onClose: () => void;
-	modelInfo: {
-		model: string;
-		provider: string;
-		requestParams?: LLMRequestParams;
-		tokenUsageConversation?: TokenUsage;
-		tokenUsageTurn?: TokenUsage;
-	};
+	modelInfo: ModelInfo;
 	modelData: Signal<ModelDetails | null>;
 }
 
-export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelInfoPanelProps): JSX.Element {
-	if (!isOpen) return <></>; // Don't render if not open
+export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelInfoPanelProps): JSX.Element | null {
+	if (!isOpen) return null; // Don't render if not open
 
 	//console.log(`ModelInfoPanel: ${isOpen ? 'Open' : 'Closed'}`);
-	//console.log(`ModelInfoPanel:`, {modelInfo});
-	console.log(`ModelInfoPanel:`, { modelData: modelData.value });
-	const { model, provider, requestParams, tokenUsageTurn, tokenUsageConversation } = modelInfo;
+	console.log(`ModelInfoPanel: modelInfo`, { modelInfo });
+	console.log(`ModelInfoPanel: modelData`, { modelData: modelData.value });
+	const { modelConfig, tokenUsageTurn } = modelInfo;
 
 	// Extract request parameters or use defaults
-	const temperature = requestParams?.temperature ?? 0;
-	const maxTokens = requestParams?.maxTokens ?? 0;
-	const extendedThinking = requestParams?.extendedThinking;
-	const promptCaching = requestParams?.usePromptCaching ?? false;
+	const temperature = modelConfig?.temperature ?? 0;
+	//const maxTokens = modelConfig?.maxTokens ?? 0;
+	const extendedThinking = modelConfig?.extendedThinking;
+	const promptCaching = modelConfig?.usePromptCaching ?? false;
 
 	// Extract token usage values
 	const contextWindow = modelData.value?.capabilities.contextWindow || 0;
@@ -40,8 +43,8 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 
 	// Determine the progress bar color based on usage percentage
 	const getProgressColor = (percentage: number): string => {
-		if (percentage < 30) return 'bg-green-500';
-		if (percentage < 70) return 'bg-yellow-500';
+		if (percentage < 50) return 'bg-green-500';
+		if (percentage < 75) return 'bg-yellow-500';
 		return 'bg-red-500';
 	};
 
@@ -57,7 +60,8 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 				<div className='flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 mb-3'>
 					<h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
 						Model: {modelData.value?.displayName} ({modelData.value?.providerLabel}) -{' '}
-						{(contextWindow / 1000).toFixed(0)}K tokens
+						{(contextWindow / 1000).toFixed(0)}K tokens{' '}
+						<span className='text-sm font-normal'>(limit per turn)</span>
 					</h3>
 					<button
 						type='button'
@@ -86,7 +90,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 						<div>
 							<div className='flex justify-between text-sm mb-1'>
 								<span className='font-medium text-gray-700 dark:text-gray-300'>
-									Tokens: {usedTokens.toLocaleString()} / {tokenLimit.toLocaleString()}
+									Context Used: {usedTokens.toLocaleString()} / {tokenLimit.toLocaleString()} tokens
 								</span>
 								<span className='text-gray-500 dark:text-gray-400'>{tokenPercentage}%</span>
 							</div>
@@ -191,7 +195,7 @@ export function ModelInfoPanel({ isOpen, onClose, modelInfo, modelData }: ModelI
 											/>
 										</svg>
 										<span>
-											Cache Impact:
+											Cache Impact:{' '}
 											{tokenUsageTurn.cacheReadInputTokens > 0 && (
 												<span className='font-medium'>
 													Saved {tokenUsageTurn.cacheReadInputTokens.toLocaleString()} tokens

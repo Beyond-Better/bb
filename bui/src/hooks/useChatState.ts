@@ -4,24 +4,23 @@ import { StatusQueue } from '../utils/statusQueue.utils.ts';
 import { notificationManager } from '../utils/notificationManager.ts';
 //import { userPersistenceManager } from '../storage/userPersistence.ts';
 import { ApiStatus } from 'shared/types.ts';
-import type { ConversationLogDataEntry } from 'shared/types.ts';
 //import { useVersion } from './useVersion.ts';
 import { useProjectState } from './useProjectState.ts';
 import { type AppState, useAppState } from '../hooks/useAppState.ts';
 
-import type { ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, ProgressStatusMessage, PromptCacheTimerMessage } from 'shared/types.ts';
 //import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type { ChatConfig, ChatHandlers, ChatState } from '../types/chat.types.ts';
 import type { LLMAttachedFiles, LLMRequestParams } from '../types/llm.types.ts';
 //import { isProcessing } from '../types/chat.types.ts';
-//import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
 import type { ApiClient } from '../utils/apiClient.utils.ts';
 import type { WebSocketManager } from '../utils/websocketManager.utils.ts';
 import { createApiClientManager } from '../utils/apiClient.utils.ts';
 import { createWebSocketManager } from '../utils/websocketManager.utils.ts';
+import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { VersionInfo } from 'shared/types/version.ts';
 
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import { generateCollaborationId, shortenCollaborationId } from 'shared/generateIds.ts';
 import { addLogDataEntry, createNestedLogDataEntries } from 'shared/utils/logEntries.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 
@@ -94,7 +93,7 @@ const randomStringForEffect = (length: number): string => {
 export function useChatState(
 	chatConfig: Signal<ChatConfig>,
 	chatState: Signal<ChatState>,
-	chatInputOptions?: Signal<LLMRequestParams>,
+	_chatInputOptions?: Signal<LLMRequestParams>,
 ): [ChatHandlers, Signal<ScrollIndicatorState>] {
 	// Get project state
 	const appState = useAppState();
@@ -118,7 +117,7 @@ export function useChatState(
 				},
 				// Note: Stats may need to be added elsewhere in the new structure
 				stats: {
-					conversationCount: 0,
+					collaborationCount: 0,
 					totalTokens: 0,
 					lastAccessed: new Date().toISOString(),
 				},
@@ -142,28 +141,28 @@ export function useChatState(
 	// Watch for project changes and reinitialize chat when needed
 	// 	useEffect(async () => {
 	// 		if (chatState.value.apiClient) {
-	// 			// Load conversation list before WebSocket setup
+	// 			// Load collaboration list before WebSocket setup
 	// 		console.log('useChatState: got useEffect for projectId', appState.value.projectId);
-	// 			const conversationResponse = await chatState.value.apiClient.getConversations(
+	// 			const collaborationResponse = await chatState.value.apiClient.listCollaborations(
 	// 				appState.value.projectId,
 	// 			);
-	// 			if (!conversationResponse) {
-	// 				throw new Error('Failed to load conversations');
+	// 			if (!collaborationResponse) {
+	// 				throw new Error('Failed to load collaborations');
 	// 			}
-	// 			const conversations = conversationResponse.conversations;
+	// 			const collaborations = collaborationResponse.collaborations;
 	//
-	// 			// Load conversation data first
-	// 			const conversation = await chatState.value.apiClient.getConversation(
-	// 				appState.value.conversationId,
+	// 			// Load collaboration data first
+	// 			const collaboration = await chatState.value.apiClient.getCollaboration(
+	// 				appState.value.collaborationId,
 	// 				appState.value.projectId,
 	// 			);
-	// 			const logDataEntries = conversation?.logDataEntries || [];
+	// 			const logDataEntries = collaboration?.logDataEntries || [];
 	// 			// Clear current chat state
 	// 			chatState.value = {
 	// 				...chatState.value,
-	// 				conversationId: appState.value.conversationId ||'',
+	// 				collaborationId: appState.value.collaborationId ||'',
 	// 				logDataEntries,
-	// 				conversations,
+	// 				collaborations,
 	// 				status: {
 	// 					...chatState.value.status,
 	// 					isLoading: false,
@@ -173,9 +172,9 @@ export function useChatState(
 	// 			// Clear current chat state
 	// 			chatState.value = {
 	// 				...chatState.value,
-	// 				conversationId: '',
+	// 				collaborationId: '',
 	// 				logDataEntries: [],
-	// 				conversations: [],
+	// 				collaborations: [],
 	// 				status: {
 	// 					...chatState.value.status,
 	// 					isLoading: true,
@@ -209,10 +208,10 @@ export function useChatState(
 			try {
 				if (!chatConfig.value.apiUrl || !chatConfig.value.wsUrl) {
 					// Auto-detect the working protocol
-					const originalApiUrl = chatConfig.value.apiUrl;
-					const originalWsUrl = chatConfig.value.wsUrl;
+					// const originalApiUrl = chatConfig.value.apiUrl;
+					// const originalWsUrl = chatConfig.value.wsUrl;
 
-					const { apiUrl, wsUrl, fallbackUsed } = await getWorkingApiUrl();
+					const { apiUrl, wsUrl, fallbackUsed: _fallbackUsed } = await getWorkingApiUrl();
 
 					chatConfig.value = {
 						...chatConfig.value,
@@ -262,54 +261,62 @@ export function useChatState(
 					wsManager = initResult.wsManager;
 				}
 
-				// Load conversation list before WebSocket setup
-				const conversationResponse = appState.value.projectId
-					? await apiClient.getConversations(appState.value.projectId)
+				// Load collaboration list before WebSocket setup
+				const collaborationResponse = appState.value.projectId
+					? await apiClient.listCollaborations(appState.value.projectId)
 					: null;
-				if (!conversationResponse) {
-					throw new Error('Failed to load conversations');
+				if (!collaborationResponse) {
+					throw new Error('Failed to load collaborations');
 				}
-				const conversations = conversationResponse.conversations;
-				//console.log(`useChatState: url/projectId effect[${effectId}]: conversations`, conversations);
+				const collaborations = collaborationResponse.collaborations;
+				console.log(
+					`useChatState: url/projectId effect[${effectId}]: initialize-collaborations`,
+					collaborations,
+				);
 
-				// Get conversation ID from URL if it exists, or create a new one
+				// Get collaboration ID from URL if it exists, or create a new one
 				const params = new URLSearchParams(globalThis.location.search);
-				const urlConversationId = params.get('conversationId');
-				const conversationId = urlConversationId || chatState.value.conversationId ||
-					appState.value.conversationId || shortenConversationId(generateConversationId());
+				const urlCollaborationId = params.get('collaborationId');
+				const collaborationId = urlCollaborationId || chatState.value.collaborationId ||
+					appState.value.collaborationId || shortenCollaborationId(generateCollaborationId());
 
-				// Load conversation data first
-				const conversation = (conversationId && appState.value.projectId)
-					? await apiClient.getConversation(
-						conversationId,
+				// Load collaboration data first
+				const collaboration = (collaborationId && appState.value.projectId)
+					? await apiClient.getCollaboration(
+						collaborationId,
 						appState.value.projectId,
 					)
 					: null;
-				const logDataEntries = createNestedLogDataEntries(conversation?.logDataEntries || []);
-				//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`, logDataEntries);
+				// if (collaboration?.lastInteractionMetadata) {
+				// 	collaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageCollaboration =
+				// 		collaboration.tokenUsageCollaboration;
+				// }
+				console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await apiClient.getInteraction(
+				// 		collaborationId,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				// console.log(`useChatState: url/projectId effect[${effectId}]: initialize-interaction`, interaction);
+				const logDataEntries = createNestedLogDataEntries(collaboration?.logDataEntries || []);
+				// console.log(
+				// 	`useChatState: url/projectId effect[${effectId}]: initialize-logDataEntries`,
+				// 	logDataEntries,
+				// );
 
-				// Update conversations array with the loaded conversation
-				const updatedConversations = [...conversations];
-				if (conversation) {
-					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
-					const conversationData = {
-						id: conversation.id,
-						title: conversation.title || 'Untitled Conversation',
-						tokenUsageStats: conversation.tokenUsageStats,
-						requestParams: conversation.requestParams,
-						conversationStats: conversation.conversationStats,
-						createdAt: conversation.createdAt || new Date().toISOString(),
-						updatedAt: conversation.updatedAt || new Date().toISOString(),
-						llmProviderName: conversation.llmProviderName || 'anthropic',
-						model: conversation.model || 'claude-sonnet-4-20250514',
-					};
-
+				// Update collaborations array with the loaded collaboration
+				const updatedCollaborations = [...collaborations];
+				if (collaboration) {
+					//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
+					const existingIndex = updatedCollaborations.findIndex((c) => c.id === collaboration.id);
 					if (existingIndex >= 0) {
-						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						// Update existing collaboration
+						updatedCollaborations[existingIndex] = collaboration;
 					} else {
-						// Add new conversation
-						updatedConversations.push(conversationData);
+						// Add new collaboration
+						updatedCollaborations.push(collaboration);
 					}
 				}
 
@@ -324,8 +331,9 @@ export function useChatState(
 					...chatState.value,
 					apiClient,
 					wsManager,
-					conversationId,
-					conversations: updatedConversations,
+					collaborationId,
+					collaborations: updatedCollaborations,
+					selectedCollaboration: collaboration, // Set selected collaboration directly
 					logDataEntries,
 				};
 
@@ -333,7 +341,7 @@ export function useChatState(
 
 				// Initialize WebSocket connection last and wait for ready state
 				try {
-					await wsManager.setConversationId(conversationId);
+					await wsManager.setCollaborationId(collaborationId);
 
 					// Wait for WebSocket to be ready with a longer timeout
 					await new Promise<void>((resolve, reject) => {
@@ -365,7 +373,7 @@ export function useChatState(
 				// console.debug(`useChatState: url/projectId effect[${effectId}]: Initialization complete`, {
 				// 	// duration: initDuration.toFixed(2) + 'ms',
 				// 	logDataEntriesCount: chatState.value.logDataEntries.length,
-				// 	conversationsCount: chatState.value.conversations.length,
+				// 	collaborationsCount: chatState.value.collaborations.length,
 				// });
 
 				// Update final status
@@ -374,7 +382,7 @@ export function useChatState(
 					status: {
 						...chatState.value.status,
 						isLoading: false,
-						// [TODO] we should be letting the `conversationReady` websocket event set isReady via the readyChange handler
+						// [TODO] we should be letting the `collaborationReady` websocket event set isReady via the readyChange handler
 						// but there is a race condition that needs to be resolved, so forcing it here for now
 						isReady: true,
 					},
@@ -414,6 +422,7 @@ export function useChatState(
 					...chatState.value,
 					wsManager: null,
 					apiClient: null,
+					selectedCollaboration: null,
 					status: {
 						isConnecting: false,
 						isLoading: false,
@@ -490,14 +499,14 @@ export function useChatState(
 			};
 		};
 
-		const handleMessage = (data: { msgType: string; logDataEntry: ConversationLogDataEntry }) => {
+		const handleMessage = async (data: { msgType: string; logDataEntry: CollaborationLogDataEntry }) => {
 			const startTime = performance.now();
 			// console.debug('useChatState: wsManager effect: Processing message:', {
 			// 	type: data.msgType,
 			// 	currentLogEntries: chatState.value.logDataEntries.length,
 			// 	timestamp: new Date().toISOString(),
 			// });
-			console.debug('useChatState: wsManager effect: Processing message:', data.msgType);
+			console.debug('useChatState: handleMessage: Processing message:', data.msgType);
 			// Get current project for stats updates
 			const currentProject = projectState.value.projects.find((p) =>
 				p.data.projectId === appState.value.projectId
@@ -514,76 +523,104 @@ export function useChatState(
 			};
 			if (!mounted) return;
 
-			// Handle new conversation message
-			if (data.msgType === 'conversationNew') {
-				// Update project stats for new conversation
+			// Handle new collaboration message
+			if (data.msgType === 'collaborationNew') {
+				// Update project stats for new collaboration
 				//await updateProjectStats(currentProject.projectId, {
-				//	conversationCount: (currentProject.stats?.conversationCount || 0) + 1,
+				//	collaborationCount: (currentProject.stats?.collaborationCount || 0) + 1,
 				//	totalTokens: currentProject.stats?.totalTokens || 0,
 				//	lastAccessed: new Date().toISOString(),
 				//});
 
-				// Update conversations array with the loaded conversation
-				const updatedConversations = [...chatState.value.conversations];
-				if (data.logDataEntry.conversationId) {
-					const existingIndex = updatedConversations.findIndex((c) =>
-						c.id === data.logDataEntry.conversationId
+				// Load collaboration data first
+				if (!chatState.value.apiClient) {
+					console.error('useChatState: handleMessage: apiClient is null before getCollaboration');
+					throw new Error('Chat API client was lost during collaboration load');
+				}
+				const collaboration = (data.logDataEntry.collaborationId && appState.value.projectId)
+					? await chatState.value.apiClient.getCollaboration(
+						data.logDataEntry.collaborationId,
+						appState.value.projectId,
+					)
+					: null;
+				// if (collaboration?.lastInteractionMetadata) {
+				// 	collaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageCollaboration =
+				// 		collaboration.tokenUsageCollaboration;
+				// }
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await chatState.value.apiClient.getInteraction(
+				// 		id,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				console.log(
+					`useChatState: handleMessage: collaborationNew for ${data.logDataEntry.collaborationId}: loaded`,
+					collaboration,
+				);
+
+				// Update collaborations array with the loaded collaboration
+				const updatedCollaborations = [...chatState.value.collaborations];
+				//if (data.logDataEntry.collaborationId) {
+				if (collaboration) {
+					const existingIndex = updatedCollaborations.findIndex((c) =>
+						c.id === data.logDataEntry.collaborationId
 					);
-					const conversationData = {
-						id: data.logDataEntry.conversationId,
-						title: data.logDataEntry.conversationTitle,
-						tokenUsageStats: data.logDataEntry.tokenUsageStats,
-						requestParams: data.logDataEntry.requestParams,
-						conversationStats: data.logDataEntry.conversationStats,
-						createdAt: data.logDataEntry.timestamp,
-						updatedAt: data.logDataEntry.timestamp,
-						llmProviderName: 'anthropic', // Default provider
-						model: 'claude-sonnet-4-20250514', // Default model
-					};
 
 					if (existingIndex >= 0) {
-						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						// Update existing collaboration
+						updatedCollaborations[existingIndex] = collaboration;
 					} else {
-						// Add new conversation
-						updatedConversations.push(conversationData);
+						// Add new collaboration
+						updatedCollaborations.push(collaboration);
 					}
 				}
 
+				// Update selectedCollaboration if it's the current collaboration being created
+				const updatedSelectedCollaboration =
+					data.logDataEntry.collaborationId === chatState.value.collaborationId
+						? collaboration
+						: chatState.value.selectedCollaboration;
+
 				chatState.value = {
 					...chatState.value,
-					conversations: updatedConversations,
+					collaborations: updatedCollaborations,
+					selectedCollaboration: updatedSelectedCollaboration,
 				};
 				return;
 			}
 
-			// Handle conversation deletion
-			if (data.msgType === 'conversationDeleted') {
-				// Update project stats for deleted conversation
-				const deletedConversation = chatState.value.conversations.find((c) =>
-					c.id === data.logDataEntry.conversationId
+			// Handle collaboration deletion
+			if (data.msgType === 'collaborationDeleted') {
+				// Update project stats for deleted collaboration
+				const deletedCollaboration = chatState.value.collaborations.find((c) =>
+					c.id === data.logDataEntry.collaborationId
 				);
-				if (deletedConversation) {
+				if (deletedCollaboration) {
 					// await updateProjectStats(currentProject.projectId, {
-					// 	conversationCount: Math.max(0, (currentProject.stats?.conversationCount || 1) - 1),
+					// 	collaborationCount: Math.max(0, (currentProject.stats?.collaborationCount || 1) - 1),
 					// 	totalTokens: Math.max(
 					// 		0,
 					// 		(currentProject.stats?.totalTokens || 0) -
-					// 			(deletedConversation.tokenUsageConversation?.totalTokens || 0),
+					// 			(deletedCollaboration.tokenUsageInteraction?.totalTokens || 0),
 					// 	),
 					// 	lastAccessed: new Date().toISOString(),
 					// });
 				}
-				const deletedId = data.logDataEntry.conversationId;
+				const deletedId = data.logDataEntry.collaborationId;
 				chatState.value = {
 					...chatState.value,
-					conversations: chatState.value.conversations.filter((conv) => conv.id !== deletedId),
-					// Clear current conversation if it was deleted
-					conversationId: chatState.value.conversationId === deletedId
+					collaborations: chatState.value.collaborations.filter((collab) => collab.id !== deletedId),
+					// Clear current collaboration if it was deleted
+					collaborationId: chatState.value.collaborationId === deletedId
 						? null
-						: chatState.value.conversationId,
-					// Clear log entries if current conversation was deleted
-					logDataEntries: chatState.value.conversationId === deletedId ? [] : chatState.value.logDataEntries,
+						: chatState.value.collaborationId,
+					// Clear selectedCollaboration if it was deleted
+					selectedCollaboration: chatState.value.selectedCollaboration?.id === deletedId
+						? null
+						: chatState.value.selectedCollaboration,
+					// Clear log entries if current collaboration was deleted
+					logDataEntries: chatState.value.collaborationId === deletedId ? [] : chatState.value.logDataEntries,
 				};
 				return;
 			}
@@ -591,24 +628,95 @@ export function useChatState(
 			// Handle continue/answer messages
 			if (!mounted) return;
 
-			// Only process messages for the current conversation
-			if (data.logDataEntry.conversationId !== chatState.value.conversationId) return;
+			// Only process messages for the current collaboration
+			if (data.logDataEntry.collaborationId !== chatState.value.collaborationId) return;
 
-			// Update log entries and conversation stats
+			// Update log entries and collaboration stats
+			const updatedCollaborations = chatState.value.collaborations.map((collab) => {
+				if (
+					collab.id === data.logDataEntry.collaborationId && // only update the current collaboration
+					data.logDataEntry.logEntry // and only if we have a valid logEntry
+				) {
+					const newCollab = { ...collab };
+					if (
+						// update collaborationParams if there is a rolesModelConfig and all the roles are not null
+						data.logDataEntry.collaborationParams?.rolesModelConfig &&
+						Object.values(data.logDataEntry.collaborationParams.rolesModelConfig).some((config) =>
+							config !== null
+						)
+					) {
+						console.info('useChatState: handleMessage: Updating newCollab.collaborationParams');
+						newCollab.collaborationParams = data.logDataEntry.collaborationParams;
+					}
+
+					if (
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration?.totalAllTokens &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration.totalAllTokens > 0 // but only if the values are not zero
+					) {
+						console.info(
+							'useChatState: handleMessage: Updating newCollab.tokenUsageStatsForCollaboration',
+							data.logDataEntry.tokenUsageStatsForCollaboration,
+						);
+						newCollab.tokenUsageCollaboration =
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
+					}
+
+					// if (
+					// 	// update the common values for lastInteractionMetadata - in particular the counts in interactionStats
+					// 	collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+					// 	!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
+					// 	newCollab.lastInteractionMetadata &&
+					// 	data.logDataEntry.logEntry.entryType !== 'auxiliary' // but not if it's an auxiliary logEntry
+					// ) {
+					// 	console.info(
+					// 		'useChatState: handleMessage: Updating newCollab.lastInteractionMetadata [general]',
+					// 		data.logDataEntry.interactionStats,
+					// 	);
+					// 	newCollab.lastInteractionMetadata = {
+					// 		...newCollab.lastInteractionMetadata,
+					// 		interactionStats: data.logDataEntry.interactionStats,
+					// 		modelConfig: data.logDataEntry.modelConfig,
+					// 		//createdAt: data.logDataEntry.createdAt,
+					// 		updatedAt: data.logDataEntry.updatedAt,
+					// 	};
+					// }
+
+					if (
+						// update the tokenUsageStats
+						collab.lastInteractionId === data.logDataEntry.interactionId && //  only if this logDataEntry is for the top-level interaction (not a chat interaction)
+						!data.logDataEntry.agentInteractionId && // and only if this logDataEntry is not an agent interaction
+						newCollab.lastInteractionMetadata &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens &&
+						data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn.totalAllTokens > 0 && // but only if the values are not zero
+						['assistant', 'tool_use', 'answer'].includes(data.logDataEntry.logEntry.entryType) // and only if a "token usage" type turn
+					) {
+						newCollab.tokenUsageCollaboration =
+							data.logDataEntry.tokenUsageStatsForCollaboration.tokenUsageCollaboration;
+						newCollab.lastInteractionMetadata = {
+							...newCollab.lastInteractionMetadata,
+							tokenUsageStatsForInteraction: data.logDataEntry.tokenUsageStatsForCollaboration,
+							interactionStats: data.logDataEntry.interactionStats,
+							modelConfig: data.logDataEntry.modelConfig,
+							//createdAt: data.logDataEntry.createdAt,
+							updatedAt: data.logDataEntry.updatedAt,
+						};
+						console.info('useChatState: handleMessage: Updating newCollab', newCollab);
+					}
+					return newCollab;
+				}
+				return collab;
+			});
+
+			// Update selectedCollaboration if it's the current collaboration being updated
+			const updatedSelectedCollaboration = data.logDataEntry.collaborationId === chatState.value.collaborationId
+				? updatedCollaborations.find((c) => c.id === data.logDataEntry.collaborationId) ||
+					chatState.value.selectedCollaboration
+				: chatState.value.selectedCollaboration;
+
 			chatState.value = {
 				...chatState.value,
-				conversations: chatState.value.conversations.map((conv) => {
-					if (conv.id === data.logDataEntry.conversationId) {
-						return {
-							...conv,
-							tokenUsageStats: data.logDataEntry.tokenUsageStats,
-							conversationStats: data.logDataEntry.conversationStats,
-							requestParams: data.logDataEntry.requestParams,
-							updatedAt: data.logDataEntry.timestamp,
-						};
-					}
-					return conv;
-				}),
+				collaborations: updatedCollaborations,
+				selectedCollaboration: updatedSelectedCollaboration,
 				logDataEntries: (() => {
 					const newEntries = addLogDataEntry(chatState.value.logDataEntries, data.logDataEntry);
 					console.debug('useChatState: wsManager effect: Updated logDataEntries', {
@@ -631,60 +739,72 @@ export function useChatState(
 				};
 			}
 
-			// If this is an answer, end processing and set idle state
+			// If this is an answer from top-level interaction, end processing and set idle state
 			if (data.msgType === 'answer') {
-				// Update project stats for token usage
-				// const tokenUsage = data.logDataEntry.tokenUsageStats.tokenUsage?.totalTokens || 0;
-				// await updateProjectStats(currentProject.projectId, {
-				// 	conversationCount: currentProject.stats?.conversationCount || 1,
-				// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
-				// 	lastAccessed: new Date().toISOString(),
-				// });
+				// const collaboration = chatState.value.collaborations.find((collab) =>
+				// 	collab.id === data.logDataEntry.collaborationId
+				// );
+				// if (
+				// 	collaboration?.lastInteractionId &&
+				// 	collaboration.lastInteractionId === data.logDataEntry.interactionId // only if this logDataEntry is for the top-level interaction
+				// ) {
+				if (!data.logDataEntry.agentInteractionId) { // this is not logDataEntry for agentInteraction, so finalize the statement
+					// Update project stats for token usage
+					// const tokenUsage = data.logDataEntry.tokenUsageStats.tokenUsage?.totalTokens || 0;
+					// await updateProjectStats(currentProject.projectId, {
+					// 	collaborationCount: currentProject.stats?.collaborationCount || 1,
+					// 	totalTokens: (currentProject.stats?.totalTokens || 0) + tokenUsage,
+					// 	lastAccessed: new Date().toISOString(),
+					// });
 
-				// Update chatInputOptions with the request parameters from the response if available
-				if (chatInputOptions && data.logDataEntry.requestParams) {
-					console.info(
-						'useChatState: wsManager effect: Updating options from message response',
-						data.logDataEntry.requestParams,
-					);
-					chatInputOptions.value = {
-						...chatInputOptions.value,
-						...data.logDataEntry.requestParams,
+					// Update chatInputOptions with the request parameters from the response if available
+					// if (chatInputOptions && data.logDataEntry.collaborationParams) {
+					// 	console.info(
+					// 		'useChatState: wsManager effect: Updating options from message response',
+					// 		data.logDataEntry.collaborationParams,
+					// 	);
+					// 	chatInputOptions.value = {
+					// 		...chatInputOptions.value,
+					// 		rolesModelConfig: {
+					// 			...chatInputOptions.value.rolesModelConfig,
+					// 			...data.logDataEntry.collaborationParams.rolesModelConfig,
+					// 		},
+					// 	};
+					// }
+
+					chatState.value = {
+						...chatState.value,
+						status: {
+							...chatState.value.status,
+							isLoading: false,
+						},
 					};
+					// Handle scroll indicator for answer messages
+					if (scrollIndicatorState.value.isVisible) {
+						scrollIndicatorState.value = {
+							...scrollIndicatorState.value,
+							isAnswerMessage: true,
+						};
+					}
+
+					// **TRIGGER NOTIFICATION** - Statement processing complete!
+					console.info('useChatState: Sending Completion to notification manager');
+					notificationManager.notifyStatementComplete(
+						'Your statement has been processed and is ready for review',
+					).then(() => {
+						console.info('useChatState: Completion notification sent successfully');
+					}).catch((error) => {
+						console.warn('useChatState: Failed to send completion notification:', error);
+					});
+
+					// Clear queue and force immediate IDLE status
+					statusQueue.reset({
+						status: ApiStatus.IDLE,
+						timestamp: Date.now(),
+						statementCount: data.logDataEntry.interactionStats.statementCount,
+						sequence: Number.MAX_SAFE_INTEGER,
+					});
 				}
-
-				chatState.value = {
-					...chatState.value,
-					status: {
-						...chatState.value.status,
-						isLoading: false,
-					},
-				};
-				// Handle scroll indicator for answer messages
-				if (scrollIndicatorState.value.isVisible) {
-					scrollIndicatorState.value = {
-						...scrollIndicatorState.value,
-						isAnswerMessage: true,
-					};
-				}
-
-				// **TRIGGER NOTIFICATION** - Statement processing complete!
-				console.info('useChatState: Sending Completion to notification manager');
-				notificationManager.notifyStatementComplete(
-					'Your statement has been processed and is ready for review',
-				).then(() => {
-					console.info('useChatState: Completion notification sent successfully');
-				}).catch((error) => {
-					console.warn('useChatState: Failed to send completion notification:', error);
-				});
-
-				// Clear queue and force immediate IDLE status
-				statusQueue.reset({
-					status: ApiStatus.IDLE,
-					timestamp: Date.now(),
-					statementCount: data.logDataEntry.conversationStats.statementCount,
-					sequence: Number.MAX_SAFE_INTEGER,
-				});
 			}
 		};
 
@@ -746,8 +866,8 @@ export function useChatState(
 				errorMessage = 'Lost connection to server. Attempting to reconnect...';
 			} else if (error.message.includes('timeout')) {
 				errorMessage = 'Request timed out. Please try again.';
-			} else if (error.message.includes('conversation')) {
-				errorMessage = 'Error with conversation. Please try refreshing the page.';
+			} else if (error.message.includes('collaboration')) {
+				errorMessage = 'Error with collaboration. Please try refreshing the page.';
 			}
 
 			console.error(`useChatState: wsManager effect: Error in chat websocket: ${errorMessage}`, error);
@@ -806,7 +926,7 @@ export function useChatState(
 		};
 	}, [chatState.value.wsManager]);
 
-	// Message and conversation handlers
+	// Message and collaboration handlers
 	const handlers: ChatHandlers = {
 		// Scroll indicator handlers
 		updateScrollVisibility: (isAtBottom: boolean) => {
@@ -848,7 +968,7 @@ export function useChatState(
 		},
 		 */
 
-		sendConverse: async (message: string, requestParams?: LLMRequestParams, attachedFiles?: LLMAttachedFiles) => {
+		sendConverse: async (message: string, statementParams?: StatementParams, attachedFiles?: LLMAttachedFiles) => {
 			if (!chatState.value.wsManager) {
 				console.error('useChatState: sendConverse: wsManager is null');
 				throw new Error('Chat system is not initialized');
@@ -867,7 +987,8 @@ export function useChatState(
 					console.error('useChatState: sendConverse: wsManager is null before sending message');
 					throw new Error('Chat WebSocket manager was lost during message send');
 				}
-				await chatState.value.wsManager.sendConverse(message, requestParams, attachedFiles);
+				console.log(`useChatState: sendConverse statementParams: `, statementParams);
+				await chatState.value.wsManager.sendConverse(message, statementParams, attachedFiles);
 			} catch (error) {
 				console.error('useChatState: sendConverse: Failed to send message:', error);
 				chatState.value = {
@@ -882,14 +1003,14 @@ export function useChatState(
 			}
 		},
 
-		selectConversation: async (id: string) => {
-			console.log(`useChatState: selectConversation for ${id}`);
+		selectCollaboration: async (id: string) => {
+			console.log(`useChatState: selectCollaboration for ${id}`);
 			if (!chatState.value.apiClient) {
-				console.error('useChatState: selectConversation: apiClient is null');
+				console.error('useChatState: selectCollaboration: apiClient is null');
 				throw new Error('Chat API client is not initialized');
 			}
 			if (!chatState.value.wsManager) {
-				console.error('useChatState: selectConversation: wsManager is null');
+				console.error('useChatState: selectCollaboration: wsManager is null');
 				throw new Error('Chat WebSocket manager is not initialized');
 			}
 
@@ -899,78 +1020,88 @@ export function useChatState(
 			};
 
 			try {
-				// Load conversation data first
+				// Load collaboration data first
 				if (!chatState.value.apiClient) {
-					console.error('useChatState: selectConversation: apiClient is null before getConversation');
-					throw new Error('Chat API client was lost during conversation load');
+					console.error('useChatState: selectCollaboration: apiClient is null before getCollaboration');
+					throw new Error('Chat API client was lost during collaboration load');
 				}
-				const conversation = (id && appState.value.projectId)
-					? await chatState.value.apiClient.getConversation(
+				const collaboration = (id && appState.value.projectId)
+					? await chatState.value.apiClient.getCollaboration(
 						id,
 						appState.value.projectId,
 					)
 					: null;
-				console.log(`useChatState: selectConversation for ${id}: loaded`, conversation?.logDataEntries);
+				// const interaction = (collaboration && appState.value.projectId)
+				// 	? await chatState.value.apiClient.getInteraction(
+				// 		id,
+				// 		collaboration.lastInteractionId || '',
+				// 		appState.value.projectId,
+				// 	)
+				// 	: null;
+				//console.log(`useChatState: selectCollaboration for ${id}: loaded`, collaboration);
 
-				// Update conversations array with the loaded conversation
-				const updatedConversations = [...chatState.value.conversations];
-				if (conversation) {
-					const existingIndex = updatedConversations.findIndex((c) => c.id === conversation.id);
-					const conversationData = {
-						id: conversation.id,
-						title: conversation.title || 'Untitled Conversation',
-						tokenUsageStats: conversation.tokenUsageStats,
-						requestParams: conversation.requestParams,
-						conversationStats: conversation.conversationStats,
-						createdAt: conversation.createdAt || new Date().toISOString(),
-						updatedAt: conversation.updatedAt || new Date().toISOString(),
-						llmProviderName: conversation.llmProviderName || 'anthropic',
-						model: conversation.model || 'claude-sonnet-4-20250514',
-					};
+				// Update collaborations array with the loaded collaboration
+				const updatedCollaborations = [...chatState.value.collaborations];
+				if (collaboration) {
+					const existingIndex = updatedCollaborations.findIndex((c) => c.id === collaboration.id);
+					// const collaborationData = {
+					// 	id: collaboration.id,
+					// 	title: collaboration.title || 'Untitled Conversation',
+					// 	collaborationParams: collaboration.collaborationParams,
+					// 	tokenUsageStats: collaboration.lastInteractionMetadata?.tokenUsageStats,
+					// 	modelConfig: collaboration.lastInteractionMetadata?.modelConfig,
+					// 	interactionStats: collaboration.lastInteractionMetadata?.interactionStats,
+					// 	llmProviderName: collaboration.lastInteractionMetadata?.llmProviderName || 'anthropic',
+					// 	model: collaboration.lastInteractionMetadata?.model || 'claude-sonnet-4-20250514',
+					// 	createdAt: collaboration.lastInteractionMetadata?.createdAt || new Date().toISOString(),
+					// 	updatedAt: collaboration.lastInteractionMetadata?.updatedAt || new Date().toISOString(),
+					// };
 
 					if (existingIndex >= 0) {
-						// Update existing conversation
-						updatedConversations[existingIndex] = conversationData;
+						// Update existing collaboration
+						updatedCollaborations[existingIndex] = collaboration;
 					} else {
-						// Add new conversation
-						updatedConversations.push(conversationData);
+						// Add new collaboration
+						updatedCollaborations.push(collaboration);
 					}
 				}
 
-				// Update conversation ID and logDataEntries
+				// Update collaboration ID and logDataEntries
 				chatState.value = {
 					...chatState.value,
-					conversationId: id,
-					conversations: updatedConversations,
-					logDataEntries: conversation?.logDataEntries || [],
+					collaborationId: id,
+					collaborations: updatedCollaborations,
+					selectedCollaboration: collaboration, // Set selected collaboration directly
+					logDataEntries: collaboration?.logDataEntries || [],
 					//status: { ...chatState.value.status, isLoading: false, isReady: true },
 				};
 
 				// Then set up WebSocket connection
-				console.log(`useChatState: selectConversation for ${id}: setting id for wsManager`);
+				console.log(`useChatState: selectCollaboration for ${id}: setting id for wsManager`);
 				if (!chatState.value.wsManager) {
-					console.error('useChatState: selectConversation: wsManager is null before setConversationId');
-					throw new Error('Chat WebSocket manager was lost during conversation selection');
+					console.error('useChatState: selectCollaboration: wsManager is null before setCollaborationId');
+					throw new Error('Chat WebSocket manager was lost during collaboration selection');
 				}
-				await chatState.value.wsManager.setConversationId(id);
+				await chatState.value.wsManager.setCollaborationId(id);
 			} catch (error) {
-				console.error('useChatState: Failed to switch conversation:', error);
+				console.error('useChatState: Failed to switch collaboration:', error);
 				chatState.value = {
 					...chatState.value,
 					status: {
 						...chatState.value.status,
 						isLoading: false,
 						apiStatus: ApiStatus.IDLE,
-						error: 'Failed to load conversation. Please try again.',
+						error: 'Failed to load collaboration. Please try again.',
 					},
 				};
 				throw error;
 			}
 		},
 
-		clearConversation: () => {
+		clearCollaboration: () => {
 			chatState.value = {
 				...chatState.value,
+				selectedCollaboration: null,
 				logDataEntries: [],
 				status: { ...chatState.value.status, apiStatus: ApiStatus.IDLE },
 			};

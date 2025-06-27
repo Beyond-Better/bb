@@ -2,6 +2,7 @@ import { Handlers } from '$fresh/server.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getCertificateInfo } from 'shared/tlsCerts.ts';
 import { readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
+import { getVersionInfo } from 'shared/version.ts';
 import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 
 type ExpiryStatus = 'valid' | 'expiring' | 'expired';
@@ -57,6 +58,7 @@ function getExpiryStatus(validTo: Date): ExpiryStatus {
 interface StatusData {
 	status: string;
 	message: string;
+	version: string;
 	platform: string;
 	platformDisplay: string;
 	trustStoreLocation?: string;
@@ -400,6 +402,7 @@ function getHtmlResponse(statusData: StatusData): string {
         <div class="platform-info">
           <h2>Environment</h2>
           <p>Platform: ${statusData.platformDisplay}</p>
+          <p>Version: <strong>${statusData.version}</strong></p>
           <p>Configuration: <span class="config-type"> ${statusData.configType} config${
 		statusData.projectName ? `: ${statusData.projectName}` : ''
 	}</span></p>
@@ -556,11 +559,13 @@ export const handler: Handlers = {
 		const projectConfig = projectId ? await configManager.getProjectConfig(projectId) : undefined;
 		const globalConfig = await configManager.getGlobalConfig();
 
+		const versionInfo = await getVersionInfo();
 		const tlsInfo = await getTlsInfo(projectConfig, globalConfig, projectId);
 
 		const statusData: StatusData = {
 			status: 'OK',
 			message: 'BUI is running',
+			version: versionInfo.version,
 			platform: Deno.build.os,
 			platformDisplay: ({
 				'darwin': 'macOS',

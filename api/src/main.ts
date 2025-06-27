@@ -17,6 +17,7 @@ import { SessionManager } from 'api/auth/session.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
 import { setApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+import { StorageMigration } from 'api/storage/storageMigration.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-api directly
 
@@ -101,6 +102,15 @@ const registryService = await ModelRegistryService.getInstance(projectConfig);
 //logger.info('APIStartup: Model Registry initialized', registryService.getAllModels());
 logger.info(`APIStartup: Model Registry initialized with ${registryService.getAllModels().length} models`);
 //logger.info('APIStartup: Model Registry Ollama models', registryService.getModelsByProvider('ollama'));
+
+// Run storage migration at startup
+try {
+	await StorageMigration.migrateAllProjectsAtStartup();
+	logger.info('APIStartup: Storage migration completed successfully');
+} catch (error) {
+	logger.error(`APIStartup: Storage migration failed: ${(error as Error).message}`);
+	// Continue startup even if migration fails - individual projects will retry migration as needed
+}
 
 const app = new Application<BbState>();
 

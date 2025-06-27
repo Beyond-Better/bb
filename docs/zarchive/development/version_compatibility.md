@@ -82,7 +82,7 @@ Migration process:
 - Format: semantic versioning (major.minor.patch)
 
 #### Version Exposure
-- API: Include version in conversationReady response
+- API: Include version in collaborationReady response
 - BUI: Display version in:
   - Help dialog "Version Information" section
   - Small muted text in top-right corner
@@ -194,7 +194,7 @@ const upgrade = new Command()
 
 1. Core Updates
    - ✅ Create version management system
-   - ✅ Add version to conversationReady response
+   - ✅ Add version to collaborationReady response
    - ✅ Implement version comparison logic
    - ⏳ Add installation location detection
    - ⏳ Create selfUpdate.ts utility
@@ -304,7 +304,7 @@ const upgrade = new Command()
    - Updated Help dialog with version section
 
 2. Component Integration
-   - Added version info to conversationReady response
+   - Added version info to collaborationReady response
    - Integrated version handling in useChatState
    - Connected WebSocket manager to version system
    - Implemented version compatibility checks

@@ -13,7 +13,7 @@ export type { InteractionPreferences, ModelCapabilities, UserModelPreferences } 
 
 // Model registry service will be used instead of enums
 // Import the service for runtime access
-import type { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+//import type { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 
 /**
  * Well-known model IDs as constants for easy reference
@@ -219,7 +219,7 @@ export async function getLLMModelToProvider(): Promise<Record<string, LLMProvide
 		const { ModelRegistryService } = await import('api/llms/modelRegistryService.ts');
 		const registryService = await ModelRegistryService.getInstance();
 		return registryService.getModelToProviderMapping();
-	} catch (error) {
+	} catch (_error) {
 		// Fallback to static mapping if service isn't available
 		return staticModelToProvider;
 	}
@@ -305,7 +305,10 @@ export interface LLMProviderMessageResponse {
 
 export type LLMProviderSystem = string | LLMMessageContentPart;
 
-export interface LLMRequestParams {
+/**
+ * Configuration for a specific role's model and parameters
+ */
+export interface LLMModelConfig {
 	model: string;
 	temperature: number;
 	maxTokens: number;
@@ -313,9 +316,32 @@ export interface LLMRequestParams {
 	usePromptCaching?: boolean;
 }
 
+/**
+ * Model configurations for all three BB roles
+ */
+export interface LLMRolesModelConfig {
+	orchestrator: LLMModelConfig | null;
+	agent: LLMModelConfig | null;
+	chat: LLMModelConfig | null;
+}
+
+/**
+ * Request parameters used when calling the LLM provider
+ */
+export interface LLMRequestParams {
+	modelConfig: LLMModelConfig;
+
+	// // Legacy fields for migration - will be removed
+	// model?: string;
+	// temperature?: number;
+	// maxTokens?: number;
+	// extendedThinking?: LLMExtendedThinkingOptions;
+	// usePromptCaching?: boolean;
+}
+
 export interface LLMProviderMessageMeta {
 	system: LLMProviderSystem;
-	requestParams?: LLMRequestParams;
+	llmRequestParams: LLMRequestParams;
 }
 
 export type LLMValidateResponseCallback = (
@@ -332,6 +358,7 @@ export interface LLMSpeakWithOptions {
 	temperature?: number;
 	validateResponseCallback?: LLMValidateResponseCallback;
 	extendedThinking?: LLMExtendedThinkingOptions;
+	usePromptCaching?: boolean;
 }
 
 export interface Task {
@@ -399,7 +426,7 @@ export enum LLMCallbackType {
 
 export type LLMCallbackResult<T> = T extends (...args: unknown[]) => Promise<infer R> ? R : T;
 export type LLMCallbacks = {
-	// @ts-ignore any
+	// deno-lint-ignore no-explicit-any
 	[K in LLMCallbackType]: (...args: any[]) => Promise<any> | any;
 };
 
@@ -412,7 +439,7 @@ export interface BBLLMResponseMetadata {
 	isTool: boolean;
 	stopReason: LLMMessageStop['stopReason'];
 	stopSequence: string | null;
-	requestParams?: LLMRequestParams;
+	llmRequestParams?: LLMRequestParams;
 	rawUsage: Record<string, number>;
 }
 

@@ -1,17 +1,26 @@
 import { Router } from '@oak/oak';
 import { requireAuth } from '../middlewares/auth.middleware.ts';
 import {
-	chatConversation,
-	clearConversation,
-	deleteConversation,
-	getConversation,
-	getConversationDefaults,
-	listConversations,
-} from './api/conversation.handlers.ts';
-import { websocketApp, websocketConversation } from './api/websocket.handlers.ts';
+	chatInteraction,
+	createCollaboration,
+	createInteraction,
+	deleteCollaboration,
+	deleteInteraction,
+	getCollaboration,
+	getCollaborationDefaults,
+	getInteraction,
+	listCollaborations,
+} from './api/collaboration.handlers.ts';
+import { websocketApp, websocketCollaboration } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
 import { getMeta } from './api/meta.handlers.ts';
 import { getModelCapabilities, listModels } from './api/model.handlers.ts';
+import {
+	getValidationRuleSet,
+	getValidationRuleSets,
+	previewValidationConstraints,
+	validateParameters,
+} from './api/validation.handlers.ts';
 import { logEntryFormatter } from './api/logEntryFormatter.handlers.ts';
 import { upgradeApi } from './api/upgrade.handlers.ts';
 import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handlers.ts';
@@ -28,8 +37,8 @@ const apiRouter = new Router();
 
 // Define protected routes
 const protectedPaths = [
-	'/v1/ws/conversation/*',
-	'/v1/conversation/*',
+	'/v1/ws/collaboration/*',
+	'/v1/collaborations/*',
 	'/v1/project/*',
 	'/v1/files/*',
 	'/v1/user/*', // Protect all user routes including subscription
@@ -45,16 +54,25 @@ apiRouter
 	// Model capabilities endpoints
 	.get('/v1/model', listModels)
 	.get('/v1/model/:modelId', getModelCapabilities)
+	// Validation endpoints
+	.get('/v1/validation/rule-sets', getValidationRuleSets)
+	.get('/v1/validation/rule-sets/:ruleSetId', getValidationRuleSet)
+	.post('/v1/validation/validate', validateParameters)
+	.post('/v1/validation/preview', previewValidationConstraints)
 	// WebSocket endpoints
 	.get('/v1/ws/app', websocketApp)
-	.get('/v1/ws/conversation/:id', websocketConversation)
-	// Conversation endpoints
-	.get('/v1/conversation', listConversations)
-	.get('/v1/conversation/defaults', getConversationDefaults)
-	.get('/v1/conversation/:id', getConversation)
-	.post('/v1/conversation/:id', chatConversation)
-	.delete('/v1/conversation/:id', deleteConversation)
-	.post('/v1/conversation/:id/clear', clearConversation)
+	.get('/v1/ws/collaboration/:id', websocketCollaboration)
+	// Collaboration endpoints
+	.get('/v1/collaborations', listCollaborations)
+	.post('/v1/collaborations', createCollaboration)
+	.get('/v1/collaborations/defaults', getCollaborationDefaults)
+	.get('/v1/collaborations/:collaborationId', getCollaboration)
+	.delete('/v1/collaborations/:collaborationId', deleteCollaboration)
+	// Interaction endpoints within collaborations
+	.post('/v1/collaborations/:collaborationId/interactions', createInteraction)
+	.get('/v1/collaborations/:collaborationId/interactions/:interactionId', getInteraction)
+	.post('/v1/collaborations/:collaborationId/interactions/:interactionId', chatInteraction)
+	.delete('/v1/collaborations/:collaborationId/interactions/:interactionId', deleteInteraction)
 	// Log Entries endpoints
 	.post('/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType', logEntryFormatter)
 	/**
@@ -220,8 +238,8 @@ apiRouter
     // Logs endpoint
     .get('/v1/logs', getLogs)
     // Persistence endpoints
-    .post('/v1/persist', persistConversation)
-    .post('/v1/resume', resumeConversation)
+    .post('/v1/persist', persistCollaboration)
+    .post('/v1/resume', resumeCollaboration)
  */
 
 /**

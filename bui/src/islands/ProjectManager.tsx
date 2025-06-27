@@ -10,6 +10,7 @@ import { useAppState } from '../hooks/useAppState.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
 //import type { ProjectConfig } from 'shared/config/types.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 export default function ProjectManager() {
 	const appState = useAppState();
@@ -68,13 +69,13 @@ export default function ProjectManager() {
 		showEditor.value = true;
 	};
 
-	const handleEdit = (projectId: string) => {
+	const handleEdit = (projectId: ProjectId) => {
 		editingProjectId.value = projectId;
 		setSelectedProject(editingProjectId.value);
 		showEditor.value = true;
 	};
 
-	const handleDelete = (projectId: string) => {
+	const handleDelete = (projectId: ProjectId) => {
 		deleteProjectId.value = projectId;
 		showDeleteConfirm.value = true;
 	};

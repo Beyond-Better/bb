@@ -5,6 +5,7 @@ import { getProjectPersistenceManager } from 'api/storage/projectPersistenceMana
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 import type { ClientDataSourceConnection } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { enhanceProjectWithSources, isProjectValid } from 'shared/projectData.ts';
 import { errorMessage } from 'shared/error.ts';
@@ -79,7 +80,7 @@ export const getDsProviders = async (
  *         description: Internal server error
  */
 export const listDsConnections = async (
-	{ params, response }: RouterContext<'/:projectId/datasource', { projectId: string }>,
+	{ params, response }: RouterContext<'/:projectId/datasource', { projectId: ProjectId }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: listDsConnections called');
@@ -137,7 +138,7 @@ export const listDsConnections = async (
  *         description: Internal server error
  */
 export const getDsConnection = async (
-	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
+	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: ProjectId; id: string }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: getDsConnection called');
@@ -201,7 +202,7 @@ export const getDsConnection = async (
  *         description: Internal server error
  */
 export const addDsConnection = async (
-	{ params, request, response }: RouterContext<'/:projectId/datasource', { projectId: string }>,
+	{ params, request, response }: RouterContext<'/:projectId/datasource', { projectId: ProjectId }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: addDsConnection called');
@@ -304,7 +305,7 @@ export const addDsConnection = async (
  *         description: Internal server error
  */
 export const updateDsConnection = async (
-	{ params, request, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
+	{ params, request, response }: RouterContext<'/:projectId/datasource/:id', { projectId: ProjectId; id: string }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: updateDsConnection called');
@@ -411,7 +412,7 @@ export const updateDsConnection = async (
  *         description: Internal server error
  */
 export const removeDsConnection = async (
-	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: string; id: string }>,
+	{ params, response }: RouterContext<'/:projectId/datasource/:id', { projectId: ProjectId; id: string }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: removeDsConnection called');
@@ -503,7 +504,7 @@ export const removeDsConnection = async (
  *         description: Internal server error
  */
 export const setPrimaryDsConnection = async (
-	{ params, request, response }: RouterContext<'/:projectId/primary-datasource', { projectId: string }>,
+	{ params, request, response }: RouterContext<'/:projectId/primary-datasource', { projectId: ProjectId }>,
 ) => {
 	try {
 		//logger.info('DataSourceHandler: setPrimaryDsConnection called');

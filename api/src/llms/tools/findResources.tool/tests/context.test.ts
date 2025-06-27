@@ -139,8 +139,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Context extraction with default contextLines (2) - bbResponse:', result.bbResponse);
 			// console.log('Context extraction with default contextLines (2) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with default contextLines (2) - toolResults:', result.toolResults);
@@ -222,8 +222,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Context extraction with contextLines=0 (no context) - bbResponse:', result.bbResponse);
 			// console.log('Context extraction with contextLines=0 (no context) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with contextLines=0 (no context) - toolResults:', result.toolResults);
@@ -277,8 +277,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Context extraction with contextLines=5 (extended context) - bbResponse:', result.bbResponse);
 			// console.log('Context extraction with contextLines=5 (extended context) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with contextLines=5 (extended context) - toolResults:', result.toolResults);
@@ -341,8 +341,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('maxMatchesPerFile=2 limits results - bbResponse:', result.bbResponse);
 			// console.log('maxMatchesPerFile=2 limits results - toolResponse:', result.toolResponse);
 			// console.log('maxMatchesPerFile=2 limits results - toolResults:', result.toolResults);
@@ -398,8 +398,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('maxMatchesPerFile=1 returns only first match - bbResponse:', result.bbResponse);
 			// console.log('maxMatchesPerFile=1 returns only first match - toolResponse:', result.toolResponse);
 			// console.log('maxMatchesPerFile=1 returns only first match - toolResults:', result.toolResults);
@@ -454,8 +454,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Match at beginning of file (boundary case) - bbResponse:', result.bbResponse);
 			// console.log('Match at beginning of file (boundary case) - toolResponse:', result.toolResponse);
 			// console.log('Match at beginning of file (boundary case) - toolResults:', result.toolResults);
@@ -516,8 +516,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Match at end of file (boundary case) - bbResponse:', result.bbResponse);
 			// console.log('Match at end of file (boundary case) - toolResponse:', result.toolResponse);
 			// console.log('Match at end of file (boundary case) - toolResults:', result.toolResults);
@@ -578,8 +578,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Single line file with match - bbResponse:', result.bbResponse);
 			// console.log('Single line file with match - toolResponse:', result.toolResponse);
 			// console.log('Single line file with match - toolResults:', result.toolResults);
@@ -640,8 +640,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -700,8 +700,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const resultMax = await tool.runTool(conversation, toolUseMax, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const resultMax = await tool.runTool(interaction, toolUseMax, projectEditor);
 
 			assert(isString(resultMax.bbResponse), 'bbResponse should be a string');
 
@@ -750,8 +750,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const resultMax = await tool.runTool(conversation, toolUseMax, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const resultMax = await tool.runTool(interaction, toolUseMax, projectEditor);
 
 			assert(isString(resultMax.bbResponse), 'bbResponse should be a string');
 
@@ -801,8 +801,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -834,7 +834,7 @@ Deno.test({
 			const tool = await toolManager.getTool('find_resources');
 			assert(tool, 'Failed to get tool');
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 
 			// Test metadata search
 			const metadataSearch: LLMAnswerToolUse = {
@@ -846,7 +846,7 @@ Deno.test({
 				},
 			};
 
-			const metadataResult = await tool.runTool(conversation, metadataSearch, projectEditor);
+			const metadataResult = await tool.runTool(interaction, metadataSearch, projectEditor);
 			const metadataOutput = metadataResult.toolResults as string;
 
 			// Test content search
@@ -860,7 +860,7 @@ Deno.test({
 				},
 			};
 
-			const contentResult = await tool.runTool(conversation, contentSearch, projectEditor);
+			const contentResult = await tool.runTool(interaction, contentSearch, projectEditor);
 			const contentOutput = contentResult.toolResults as string;
 
 			// Both should find the file
@@ -913,8 +913,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 
@@ -955,8 +955,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(isString(result.bbResponse), 'bbResponse should be a string');
 

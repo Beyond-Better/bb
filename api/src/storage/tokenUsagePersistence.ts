@@ -1,21 +1,21 @@
 import { ensureDir } from '@std/fs';
 import { join } from '@std/path';
 import { PersistenceError, TokenUsageValidationError } from 'api/errors/error.ts';
-import type { TokenUsageAnalysis, TokenUsageRecord } from 'shared/types.ts';
+import type { InteractionType, TokenUsageAnalysis, TokenUsageRecord } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 /**
  * Handles persistence and analysis of token usage records in the new token usage tracking system.
  * Manages separate files for conversation and chat token usage.
  */
-export class TokenUsagePersistence {
+export default class TokenUsagePersistence {
 	private readonly tokenUsageDir: string;
 	private readonly conversationFile: string;
 	private readonly chatsFile: string;
 	private ensuredDir: boolean = false;
 
-	constructor(private conversationDir: string) {
-		this.tokenUsageDir = join(this.conversationDir, 'tokenUsage');
+	constructor(private conversationDir: string, legacyPath?: string) {
+		this.tokenUsageDir = join(this.conversationDir, legacyPath ?? 'token_usage');
 		this.conversationFile = join(this.tokenUsageDir, 'conversation.jsonl');
 		this.chatsFile = join(this.tokenUsageDir, 'chats.jsonl');
 	}
@@ -149,7 +149,10 @@ export class TokenUsagePersistence {
 		if (
 			typeof record.rawUsage.inputTokens !== 'number' ||
 			typeof record.rawUsage.outputTokens !== 'number' ||
-			typeof record.rawUsage.totalTokens !== 'number'
+			typeof record.rawUsage.totalTokens !== 'number' ||
+			(record.rawUsage.cacheCreationInputTokens &&
+				typeof record.rawUsage.cacheCreationInputTokens !== 'number') ||
+			(record.rawUsage.cacheCreationInputTokens && typeof record.rawUsage.cacheReadInputTokens !== 'number')
 		) {
 			throw new TokenUsageValidationError(
 				'Invalid rawUsage field types',
@@ -249,7 +252,7 @@ export class TokenUsagePersistence {
 	 * Writes a token usage record to the appropriate file based on type.
 	 * Validates the record before writing.
 	 */
-	async writeUsage(record: TokenUsageRecord, type: 'conversation' | 'chat' | 'base'): Promise<void> {
+	async writeUsage(record: TokenUsageRecord, type: Omit<InteractionType, 'base'>): Promise<void> {
 		// Validate type parameter matches record type
 		if (record.type !== type) {
 			throw new TokenUsageValidationError(
@@ -293,8 +296,19 @@ export class TokenUsagePersistence {
 	 * 3. Write all records back
 	 */
 	async updateRecord(record: TokenUsageRecord): Promise<void> {
-		// Validate the record
-		this.validateRecord(record);
+		try {
+			// Validate the record
+			this.validateRecord(record);
+		} catch (error) {
+			//logger.warn('TokenUsagePersistence: Could not update record', { record });
+			throw new PersistenceError(
+				`Failed to validate token usage record: ${(error as Error).message}`,
+				{
+					name: 'TokenUsagePersistenceError',
+					operation: 'validate',
+				},
+			);
+		}
 
 		await this.ensureDirectory();
 		const filePath = record.type === 'conversation' ? this.conversationFile : this.chatsFile;
@@ -314,6 +328,7 @@ export class TokenUsagePersistence {
 			const content = records.map((r) => JSON.stringify(r)).join('\n') + '\n';
 			await Deno.writeTextFile(filePath, content);
 		} catch (error) {
+			//logger.warn('TokenUsagePersistence: Could not update record', { record });
 			throw new PersistenceError(
 				`Failed to update token usage record: ${(error as Error).message}`,
 				{
@@ -325,7 +340,7 @@ export class TokenUsagePersistence {
 		}
 	}
 
-	async getUsage(type: 'conversation' | 'chat' | 'base'): Promise<TokenUsageRecord[]> {
+	async getUsage(type: Omit<InteractionType, 'base'>): Promise<TokenUsageRecord[]> {
 		try {
 			await this.ensureDirectory();
 			const filePath = type === 'conversation' ? this.conversationFile : this.chatsFile;
@@ -350,7 +365,7 @@ export class TokenUsagePersistence {
 		}
 	}
 
-	async analyzeUsage(type: 'conversation' | 'chat'): Promise<TokenUsageAnalysis> {
+	async analyzeUsage(type: Omit<InteractionType, 'base'>): Promise<TokenUsageAnalysis> {
 		const records = await this.getUsage(type);
 
 		const analysis: TokenUsageAnalysis = {

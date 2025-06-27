@@ -2,7 +2,7 @@ import { assertEquals, assertExists, assertThrows } from '../../deps.ts';
 import OrchestratorController from '../../../src/controllers/orchestratorController.ts';
 import InteractionManager from '../../../src/llms/interactions/interactionManager.ts';
 import LLMConversationInteraction from '../../../src/llms/interactions/conversationInteraction.ts';
-import { ConversationId } from 'shared/types.ts';
+import { InteractionId } from 'shared/types.ts';
 
 // Mock dependencies
 class MockInteractionManager extends InteractionManager {
@@ -32,7 +32,7 @@ Deno.test('OrchestratorController - createChildInteraction', async () => {
 	// @ts-ignore: Overwrite private property for testing
 	orchestrator.interactionManager = new MockInteractionManager();
 
-	const parentInteractionId = 'parent-id' as ConversationId;
+	const parentInteractionId = 'parent-id' as InteractionId;
 	const childId = await orchestrator.createChildInteraction(parentInteractionId, 'Test Child');
 
 	assertExists(childId);
@@ -48,8 +48,8 @@ Deno.test('OrchestratorController - initializePrimaryInteraction with existing i
 	orchestrator.promptManager = new MockPromptManager();
 	orchestrator.toolManager = new MockLLMToolManager();
 
-	const existingInteractionId = 'existing-id' as ConversationId;
-	const existingInteraction = new LLMConversationInteraction(new MockLLMProvider(), existingInteractionId);
+	const existingInteractionId = 'existing-id' as InteractionId;
+	const existingInteraction = new LLMConversationInteraction(collaboration, new MockLLMProvider(), existingInteractionId);
 	orchestrator.interactionManager.addInteraction(existingInteraction);
 
 	const result = await orchestrator.initializePrimaryInteraction(existingInteractionId);
@@ -65,7 +65,7 @@ Deno.test('OrchestratorController - initializePrimaryInteraction creates new int
 	orchestrator.promptManager = new MockPromptManager();
 	orchestrator.toolManager = new MockLLMToolManager();
 
-	const newInteractionId = 'new-id' as ConversationId;
+	const newInteractionId = 'new-id' as InteractionId;
 	const result = await orchestrator.initializePrimaryInteraction(newInteractionId);
 	assertExists(result);
 	assertEquals(orchestrator.primaryInteractionId, newInteractionId);
@@ -82,7 +82,7 @@ Deno.test('OrchestratorController - manageAgentTasks with sync execution', async
 		execute: async () => ({ result: 'mock result' }),
 	};
 
-	await orchestrator.initializePrimaryInteraction('primary-id' as ConversationId);
+	await orchestrator.initializePrimaryInteraction('primary-id' as InteractionId);
 
 	const tasks = [{
 		title: 'Test Task',
@@ -94,7 +94,7 @@ Deno.test('OrchestratorController - manageAgentTasks with sync execution', async
 	await orchestrator.manageAgentTasks(tasks, true);
 
 	// Assert that the task was executed (you might need to add more specific assertions based on your implementation)
-	assertExists(orchestrator.interactionManager.getInteractionResult('primary-id' as ConversationId));
+	assertExists(orchestrator.interactionManager.getInteractionResult('primary-id' as InteractionId));
 });
 
 Deno.test('OrchestratorController - manageAgentTasks with error handling', async () => {
@@ -110,7 +110,7 @@ Deno.test('OrchestratorController - manageAgentTasks with error handling', async
 		},
     };
 
-	await orchestrator.initializePrimaryInteraction('primary-id' as ConversationId);
+	await orchestrator.initializePrimaryInteraction('primary-id' as InteractionId);
 
 	const tasks = [{
 		title: 'Test Task',
@@ -142,7 +142,7 @@ Deno.test('OrchestratorController - getInteractionResult', async () => {
 	// @ts-ignore: Overwrite private property for testing
 	orchestrator.interactionManager = new MockInteractionManager();
 
-	const interactionId = 'test-id' as ConversationId;
+	const interactionId = 'test-id' as InteractionId;
 	const mockResult = { data: 'test result' };
 	orchestrator.interactionManager.setInteractionResult(interactionId, mockResult);
 
@@ -156,7 +156,7 @@ Deno.test('OrchestratorController - cleanupChildInteractions', async () => {
 	// @ts-ignore: Overwrite private property for testing
 	orchestrator.interactionManager = new MockInteractionManager();
 
-	const parentInteractionId = 'parent-id' as ConversationId;
+	const parentInteractionId = 'parent-id' as InteractionId;
 	const childId1 = await orchestrator.createChildInteraction(parentInteractionId, 'Child 1');
 	const childId2 = await orchestrator.createChildInteraction(parentInteractionId, 'Child 2');
 	const grandchildId = await orchestrator.createChildInteraction(childId1, 'Grandchild');

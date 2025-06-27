@@ -1,11 +1,11 @@
 # BUI TypeScript Fixes
 
 ## Type Union Handling
-The `ConversationLogDataEntry` type union needs proper handling in components. Current issues:
+The `CollaborationLogDataEntry` type union needs proper handling in components. Current issues:
 
-1. `ConversationLogDataEntry = ConversationStart | ConversationContinue | ConversationResponse`
-   - Properties like `logEntry` and `tokenUsageTurn` exist on `ConversationContinue` and `ConversationResponse`
-   - But not on `ConversationStart`
+1. `CollaborationLogDataEntry = CollaborationStart | CollaborationContinue | CollaborationResponse`
+   - Properties like `logEntry` and `tokenUsageTurn` exist on `CollaborationContinue` and `CollaborationResponse`
+   - But not on `CollaborationStart`
    - Need to analyze usage and possibly create new union type
 
 2. Affected Files:
@@ -14,8 +14,8 @@ The `ConversationLogDataEntry` type union needs proper handling in components. C
 
 3. Analysis Needed:
    - Determine which components truly need all entry types
-   - Identify where we can narrow the type to exclude ConversationStart
-   - Consider creating a new type like `ConversationActiveEntry = ConversationContinue | ConversationResponse`
+   - Identify where we can narrow the type to exclude CollaborationStart
+   - Consider creating a new type like `ConversationActiveEntry = CollaborationContinue | CollaborationResponse`
 
 ## Markdown and Content Formatting
 1. MarkedOptions Type Definition:
@@ -35,7 +35,7 @@ The `ConversationLogDataEntry` type union needs proper handling in components. C
 ## API Response Type Safety
 1. Null Response Handling:
    ```typescript
-   Type 'ConversationResponse | null' is not assignable to type 'ConversationResponse'
+   Type 'CollaborationResponse | null' is not assignable to type 'CollaborationResponse'
    ```
    Files affected:
    - `bui/src/utils/apiClient.utils.ts`
@@ -55,7 +55,7 @@ The `ConversationLogDataEntry` type union needs proper handling in components. C
 
 2. Conversation Type Mismatches:
    ```typescript
-   Type 'ConversationMetadata[]' is not assignable to type 'Conversation[]'
+   Type 'InteractionMetadata[]' is not assignable to type 'Conversation[]'
    ```
    - Align metadata and full conversation types
    - Add proper type transformations
@@ -75,7 +75,7 @@ The `ConversationLogDataEntry` type union needs proper handling in components. C
    - Impact on type safety
    - Frequency of issues
    - Complexity of fixes
-3. Start with ConversationLogDataEntry type union as it affects multiple components
+3. Start with CollaborationLogDataEntry type union as it affects multiple components
 4. Follow with API response safety as it's critical for reliability
 5. Handle formatting issues last as they're more isolated
 

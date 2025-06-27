@@ -1,5 +1,5 @@
 import type { BBLLMResponse, LLMProvider } from 'api/types.ts';
-import type { ConversationId } from 'shared/types.ts';
+import type { CollaborationId, InteractionId } from 'shared/types.ts';
 export type { ErrorObject as AjvErrorObject } from 'ajv';
 import { Status } from '@oak/oak';
 export { isError } from 'shared/error.ts';
@@ -93,7 +93,8 @@ export interface LLMErrorOptions extends ErrorOptions {
 		};
 		bbResponse?: BBLLMResponse;
 	};
-	conversationId: ConversationId;
+	collaborationId?: CollaborationId;
+	interactionId?: InteractionId;
 }
 
 export interface LLMRateLimitErrorOptions extends LLMErrorOptions {
@@ -430,8 +431,8 @@ export const isToolHandlingError = (value: unknown): value is ToolHandlingError 
 };
 
 export interface PersistenceErrorOptions extends ErrorOptions {
-	filePath: string;
-	operation: 'read' | 'write' | 'append';
+	filePath?: string;
+	operation: 'read' | 'write' | 'append' | 'validate';
 }
 
 export class PersistenceError extends Error {

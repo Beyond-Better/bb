@@ -64,7 +64,8 @@ It supports vector embeddings for code and text chunks from local repositories, 
 
 ## Glossary of Terms
 
-- **Conversation**: An ongoing interaction between a user and the BB system, which may include multiple statements and turns.
+- **Collaboration**: An series of interactions between a user and the BB system, which may include orchestrator/agent and admin interactions.
+- **Interaction**: An ongoing interaction between a user and the BB system, which may include multiple statements and turns.
 - **Statement**: A single request or input from the user to the BB system.
 - **Turn**: A single request-response cycle between BB and the LLM.
 - **Session**: The entire duration of a user's interaction with BB, which may include multiple conversations.
@@ -100,9 +101,9 @@ Key API Endpoints:
 - Uses LLM `conversation` to manage calls to LLM providers
 - Implements conversation logging and persistence
 
-## Conversation Management
-- Log all conversations for review using `bb logs` command
-- Implement persistence mechanism for conversation state
+## Collaboration Management
+- Log all collaborations for review using `bb logs` command
+- Implement persistence mechanism for collaboration state
 - Provide `resume` feature for API restarts
 - Store logs in human-readable format (e.g., Markdown or YAML)
 

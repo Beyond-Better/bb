@@ -30,7 +30,7 @@ export interface LLMToolToolNameInput {
 }
 ```
 
-3. Define tool result interface (fields previously inline with `resultContent: ConversationLogEntryContentToolResult`):
+3. Define tool result interface (fields previously inline with `resultContent: CollaborationLogEntryContentToolResult`):
 ```typescript
 export interface LLMToolToolNameResult {
     toolResult: LLMToolRunResultContent;

@@ -1,7 +1,7 @@
 # Token Usage Persistence Testing Plan
 
 ## Overview
-This document outlines the testing strategy for the token usage persistence system, focusing on both TokenUsagePersistence and its integration with ConversationPersistence.
+This document outlines the testing strategy for the token usage persistence system, focusing on both TokenUsagePersistence and its integration with InteractionPersistence.
 
 ## Test Structure
 
@@ -9,7 +9,7 @@ This document outlines the testing strategy for the token usage persistence syst
 ```
 api/tests/t/storage/
   - tokenUsagePersistence.test.ts
-  - conversationPersistence.test.ts
+  - interactionPersistence.test.ts
 ```
 
 ### 2. Test Setup
@@ -35,10 +35,10 @@ Deno.test({
     await withTestProject(async (testProjectId, testProjectRoot) => {
       // Test setup using project structure
       const projectEditor = await getProjectEditor(testProjectId);
-      const interaction = await createTestInteraction('test-conversation', projectEditor);
+      const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
 
       // Test implementation
-      const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+      const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
       
       // Create test record
       const record: TokenUsageRecord = {
@@ -131,18 +131,18 @@ Deno.test('TokenUsagePersistence - Data validation', async (t) => {
 });
 ```
 
-#### 3.2 ConversationPersistence Integration Tests
-Location: `api/tests/t/storage/conversationPersistence.test.ts`
+#### 3.2 InteractionPersistence Integration Tests
+Location: `api/tests/t/storage/interactionPersistence.test.ts`
 
 1. Token Usage Integration
 ```typescript
-Deno.test('ConversationPersistence - Token usage integration', async (t) => {
+Deno.test('InteractionPersistence - Token usage integration', async (t) => {
   await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should initialize TokenUsagePersistence', async () => {
       // Test implementation
     });
 
-    await t.step('should handle token usage in saveConversation', async () => {
+    await t.step('should handle token usage in saveInteraction', async () => {
       // Test implementation
     });
   });
@@ -151,7 +151,7 @@ Deno.test('ConversationPersistence - Token usage integration', async (t) => {
 
 2. Analysis Methods
 ```typescript
-Deno.test('ConversationPersistence - Token usage analysis', async (t) => {
+Deno.test('InteractionPersistence - Token usage analysis', async (t) => {
   await withTestProject(async (testProjectId, testProjectRoot) => {
     await t.step('should analyze token usage', async () => {
       // Test implementation
@@ -185,7 +185,7 @@ Deno.test('ConversationPersistence - Token usage analysis', async (t) => {
 - Role-based metrics
 
 #### 4.4 Integration Points
-- ConversationPersistence integration
+- InteractionPersistence integration
 - Event handling
 - Error propagation
 - Resource cleanup
@@ -195,9 +195,10 @@ Deno.test('ConversationPersistence - Token usage analysis', async (t) => {
 #### 5.1 Mock Data Generation
 ```typescript
 // api/tests/lib/mockData.ts
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 export function createMockTokenUsageRecord(
   role: 'user' | 'assistant' | 'system' = 'assistant',
-  type: 'conversation' | 'chat' = 'conversation'
+  type: InteractionType = 'conversation'
 ): TokenUsageRecord {
   return {
     messageId: crypto.randomUUID(),
@@ -211,16 +212,8 @@ export function createMockTokenUsageRecord(
       cacheCreationInputTokens: Math.floor(Math.random() * 100),
       cacheReadInputTokens: Math.floor(Math.random() * 100)
     },
-    differentialUsage: {
-      inputTokens: 0, // Will be calculated
-      outputTokens: 0, // Will be calculated
-      totalTokens: 0  // Will be calculated
-    },
-    cacheImpact: {
-      potentialCost: 0, // Will be calculated
-      actualCost: 0,    // Will be calculated
-      savings: 0        // Will be calculated
-    }
+    differentialUsage: DEFAULT_TOKEN_USAGE(), // Will be calculated
+    cacheImpact: DEFAULT_TOKEN_USAGE(), // Will be calculated
   };
 }
 ```
@@ -243,7 +236,7 @@ export function createMockTokenUsageRecord(
    - Add differential tracking tests
 
 4. Add integration tests
-   - Test ConversationPersistence integration
+   - Test InteractionPersistence integration
    - Test event handling
    - Test resource management
 

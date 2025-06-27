@@ -37,9 +37,9 @@ The system currently tracks token usage at multiple levels:
 Token usage data is currently stored across multiple files:
 - `messages.jsonl`: Contains raw token usage in `providerResponse.usage` - the canonical source of token metrics
 - `metadata.json`: Contains conversation-level token metrics
-- `conversations.json`: Stores basic usage metrics for listing/overview
-- `conversation.log`: Human-readable log including token usage
-- `conversation.jsonl`: Machine-readable log entries
+- `interactions.json`: Stores basic usage metrics for listing/overview
+- `interaction.log`: Human-readable log including token usage
+- `interaction.jsonl`: Machine-readable log entries
 
 ## 2. Issues and Limitations
 
@@ -70,8 +70,8 @@ Limitations in current usage recording:
 ### 3.1 File Structure
 New directory structure for token usage tracking:
 ```
-conversations/
-  {conversationId}/
+interactions/
+  {interactionId}/
     metadata.json           # Overall conversation metadata
     messages.jsonl         # Message content and basic metadata
     conversation.jsonl     # Conversation log entries
@@ -94,7 +94,7 @@ interface TokenUsageRecord {
   messageId: string;        // Links to message in messages.jsonl
   timestamp: string;        // ISO timestamp
   role: 'user' | 'assistant' | 'system';  // Message role
-  type: 'conversation' | 'chat';          // Interaction type
+  type: InteractionType;          // Interaction type
   
   // Raw Usage from LLM
   rawUsage: {

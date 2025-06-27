@@ -6,6 +6,7 @@ import type {
 	ClientProjectWithConfigSources,
 	//ConfigValue,
 } from 'shared/types/project.ts';
+import type { ProjectId } from 'shared/types.ts';
 import type { MCPServerConfig } from 'shared/config/types.ts';
 import { parse as parseYaml, stringify as stringifyYaml } from '@std/yaml';
 //import MCPServersOverview from '../MCPServersOverview.tsx';
@@ -15,11 +16,15 @@ import { useProjectState } from '../../hooks/useProjectState.ts';
 import type { AppState } from '../../hooks/useAppState.ts';
 import {
 	ModelCombinations,
+	ModelRoleExplanationsContentAgent,
+	ModelRoleExplanationsContentChat,
+	ModelRoleExplanationsContentOrchestrator,
 	ModelSelectHelp,
 	type ModelSelectionValue,
 	ModelSelector,
 	ModelSystemCardsLink,
-} from '../ModelSelector.tsx';
+} from '../ModelManager.tsx';
+import { AgentIcon, ChatIcon, OrchestratorIcon } from 'shared/svgImages.tsx';
 //import { FileBrowser } from '../FileBrowser.tsx';
 
 // Helper function to format YAML with proper array syntax
@@ -88,6 +93,28 @@ function ConfigValueField<T extends string | number | undefined>({
 				>
 					{!value.project ? 'Global Default' : 'Project Setting'}
 				</span>
+				{value.project !== null && value.project !== undefined && (
+					<button
+						type='button'
+						onClick={() => {
+							onChange({
+								...value,
+								project: null,
+							});
+						}}
+						class='text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'
+						title='Reset to global default'
+					>
+						<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+							<path
+								stroke-linecap='round'
+								stroke-linejoin='round'
+								stroke-width='2'
+								d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
+							/>
+						</svg>
+					</button>
+				)}
 			</div>
 			{description && (
 				<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
@@ -115,28 +142,6 @@ function ConfigValueField<T extends string | number | undefined>({
 						value.project ? 'border-blue-300 dark:border-blue-600' : 'dark:border-gray-700'
 					} bg-white dark:bg-gray-800 text-lg text-gray-900 dark:text-gray-100`}
 				/>
-				{value.project !== null && value.project !== undefined && (
-					<button
-						type='button'
-						onClick={() => {
-							onChange({
-								...value,
-								project: null,
-							});
-						}}
-						class='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
-						title='Reset to global default'
-					>
-						<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-							<path
-								stroke-linecap='round'
-								stroke-linejoin='round'
-								stroke-width='2'
-								d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
-							/>
-						</svg>
-					</button>
-				)}
 			</div>
 		</div>
 	);
@@ -150,7 +155,7 @@ interface ProjectEditorProps {
 	className?: string;
 	//onCreateProject: (projectWithSources: ClientProjectWithConfigForUpdates) => Promise<void>;
 	onUpdateProject: (
-		projectId: string,
+		projectId: ProjectId,
 		updates: Partial<ClientProjectWithConfigForUpdates>,
 	) => Promise<void>;
 }
@@ -520,32 +525,6 @@ export function ProjectEditor({
 								Data Sources
 							</button>
 						</li>
-						<li className='mr-4'>
-							<button
-								type='button'
-								onClick={() => activeTab.value = 'tools'}
-								className={`inline-flex items-center px-4 py-2 rounded-md ${
-									activeTab.value === 'tools'
-										? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-										: 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
-								}`}
-							>
-								<svg
-									className='w-4 h-4 mr-2'
-									fill='none'
-									stroke='currentColor'
-									viewBox='0 0 24 24'
-								>
-									<path
-										stroke-linecap='round'
-										stroke-linejoin='round'
-										stroke-width='2'
-										d='M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z'
-									/>
-								</svg>
-								Tools
-							</button>
-						</li>
 						<li>
 							<button
 								type='button'
@@ -570,6 +549,32 @@ export function ProjectEditor({
 									/>
 								</svg>
 								Models
+							</button>
+						</li>
+						<li className='mr-4'>
+							<button
+								type='button'
+								onClick={() => activeTab.value = 'tools'}
+								className={`inline-flex items-center px-4 py-2 rounded-md ${
+									activeTab.value === 'tools'
+										? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
+										: 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100'
+								}`}
+							>
+								<svg
+									className='w-4 h-4 mr-2'
+									fill='none'
+									stroke='currentColor'
+									viewBox='0 0 24 24'
+								>
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z'
+									/>
+								</svg>
+								Tools
 							</button>
 						</li>
 					</ul>
@@ -632,6 +637,28 @@ export function ProjectEditor({
 									>
 										{!llmGuidelinesFile.value.project ? 'Global Default' : 'Project Setting'}
 									</span>
+									{llmGuidelinesFile.value.project !== null && (
+										<button
+											type='button'
+											onClick={() => {
+												llmGuidelinesFile.value = {
+													...llmGuidelinesFile.value,
+													project: null,
+												};
+											}}
+											class='text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'
+											title='Reset to global default'
+										>
+											<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+												<path
+													stroke-linecap='round'
+													stroke-linejoin='round'
+													stroke-width='2'
+													d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
+												/>
+											</svg>
+										</button>
+									)}
 								</div>
 								<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
 									Select a file containing project-specific guidelines for the AI assistant
@@ -769,28 +796,7 @@ export function ProjectEditor({
 											? `suggestion-${selectedIndex.value}`
 											: undefined}
 									/>
-									{llmGuidelinesFile.value.project !== null && (
-										<button
-											type='button'
-											onClick={() => {
-												llmGuidelinesFile.value = {
-													...llmGuidelinesFile.value,
-													project: null,
-												};
-											}}
-											class='absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
-											title='Reset to global default'
-										>
-											<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-												<path
-													stroke-linecap='round'
-													stroke-linejoin='round'
-													stroke-width='2'
-													d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
-												/>
-											</svg>
-										</button>
-									)}
+
 									{isLoadingSuggestions.value && (
 										<div class='absolute right-3 top-2.5'>
 											<div class='animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent'>
@@ -992,72 +998,6 @@ export function ProjectEditor({
 					/>
 				)}
 
-				{activeTab.value === 'tools' && (
-					<div className='tools-tab space-y-6'>
-						{/* Tool Configs */}
-						<div class='form-group mb-6'>
-							<div class='flex items-center gap-2'>
-								<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
-									Tool Configurations (YAML)
-								</label>
-								<span
-									class={`px-2 py-0.5 text-xs rounded-full ${
-										!toolConfigs.value.project
-											? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-											: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
-									}`}
-								>
-									{!toolConfigs.value.project ? 'Global Default' : 'Project Setting'}
-								</span>
-							</div>
-							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-								Configures behavior of the assistant's tools like allowed commands and API keys. Each
-								tool can have its own settings.
-							</p>
-							<div class='relative'>
-								<textarea
-									rows={10}
-									value={toolConfigs.value.project || toolConfigs.value.global || ''}
-									onInput={(e) => {
-										toolConfigs.value = {
-											...toolConfigs.value,
-											project: (e.target as HTMLTextAreaElement).value.trim() || null,
-										};
-									}}
-									placeholder={TOOLS_PLACEHOLDER}
-									class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed border ${
-										toolConfigs.value.project
-											? 'border-blue-300 dark:border-blue-600'
-											: 'border-gray-300 dark:border-gray-700'
-									}`}
-								/>
-								{toolConfigs.value.project !== null && (
-									<button
-										type='button'
-										onClick={() => {
-											toolConfigs.value = {
-												...toolConfigs.value,
-												project: null,
-											};
-										}}
-										class='absolute right-2 top-2 text-gray-400 hover:text-gray-600'
-										title='Reset to global default'
-									>
-										<svg class='w-5 h-5' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-											<path
-												stroke-linecap='round'
-												stroke-linejoin='round'
-												stroke-width='2'
-												d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
-											/>
-										</svg>
-									</button>
-								)}
-							</div>
-						</div>
-					</div>
-				)}
-
 				{activeTab.value === 'models' && (
 					<div className='models-tab space-y-6'>
 						{/* Header with Icon Legend */}
@@ -1071,59 +1011,104 @@ export function ProjectEditor({
 									defaults.
 								</p>
 							</div>
-							<div class='flex-shrink-0 '>
+							<div class='flex items-start gap-3'>
 								<ModelSystemCardsLink />
+								<ModelSelectHelp />
 							</div>
 						</div>
 
-						{/* Model Role Explanations and Icon Legend side by side */}
-						<ModelSelectHelp />
-
-						{/* Model Selection */}
-						<div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+						{/* Model Selection - Column layout with help text on the right */}
+						<div className='space-y-8'>
 							{/* Orchestrator Model */}
-							<ModelSelector
-								key={`orchestrator-${
-									defaultModelsOrchestrator.value.project || defaultModelsOrchestrator.value.global
-								}`}
-								apiClient={appState.value.apiClient!}
-								context='project'
-								role='orchestrator'
-								value={defaultModelsOrchestrator.value}
-								onChange={(value) => {
-									defaultModelsOrchestrator.value = value as ModelSelectionValue;
-								}}
-								label='Orchestrator Model'
-								description='Handles complex reasoning and coordination'
-							/>
+							<div className='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div className='lg:col-span-2'>
+									<ModelSelector
+										key={`orchestrator-${
+											defaultModelsOrchestrator.value.project ||
+											defaultModelsOrchestrator.value.global
+										}`}
+										apiClient={appState.value.apiClient!}
+										context='project'
+										role='orchestrator'
+										value={defaultModelsOrchestrator.value}
+										onChange={(value) => {
+											defaultModelsOrchestrator.value = value as ModelSelectionValue;
+										}}
+										label={
+											<span>
+												<OrchestratorIcon className='ml-2 mr-2 w-5 h-5 text-lg text-blue-800 dark:text-blue-200' />Orchestrator
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div className='lg:col-span-3'>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentOrchestrator />
+								</div>
+							</div>
 
 							{/* Agent Model */}
-							<ModelSelector
-								key={`agent-${defaultModelsAgent.value.project || defaultModelsAgent.value.global}`}
-								apiClient={appState.value.apiClient!}
-								context='project'
-								role='agent'
-								value={defaultModelsAgent.value}
-								onChange={(value) => {
-									defaultModelsAgent.value = value as ModelSelectionValue;
-								}}
-								label='Agent Model'
-								description='Executes tasks and uses tools'
-							/>
+							<div className='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div className='lg:col-span-2'>
+									<ModelSelector
+										key={`agent-${
+											defaultModelsAgent.value.project || defaultModelsAgent.value.global
+										}`}
+										apiClient={appState.value.apiClient!}
+										context='project'
+										role='agent'
+										value={defaultModelsAgent.value}
+										onChange={(value) => {
+											defaultModelsAgent.value = value as ModelSelectionValue;
+										}}
+										label={
+											<span>
+												<AgentIcon className='ml-2 mr-2 w-5 h-5 text-lg text-green-800 dark:text-green-200' />Agent
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div className='lg:col-span-3'>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentAgent />
+								</div>
+							</div>
 
-							{/* Admin Model */}
-							<ModelSelector
-								key={`chat-${defaultModelsChat.value.project || defaultModelsChat.value.global}`}
-								apiClient={appState.value.apiClient!}
-								context='project'
-								role='chat'
-								value={defaultModelsChat.value}
-								onChange={(value) => {
-									defaultModelsChat.value = value as ModelSelectionValue;
-								}}
-								label='Admin Model'
-								description='Handles administrative tasks and meta-operations'
-							/>
+							{/* Chat Model */}
+							<div className='grid grid-cols-1 lg:grid-cols-5 gap-6 items-start'>
+								<div className='lg:col-span-2'>
+									<ModelSelector
+										key={`chat-${
+											defaultModelsChat.value.project || defaultModelsChat.value.global
+										}`}
+										apiClient={appState.value.apiClient!}
+										context='project'
+										role='chat'
+										value={defaultModelsChat.value}
+										onChange={(value) => {
+											defaultModelsChat.value = value as ModelSelectionValue;
+										}}
+										label={
+											<span>
+												<ChatIcon className='ml-2 mr-2 w-5 h-5 text-lg text-purple-800 dark:text-purple-200' />Admin
+												Model
+											</span>
+										}
+									/>
+								</div>
+								<div className='lg:col-span-3'>
+									<div className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+										&nbsp;
+									</div>
+									<ModelRoleExplanationsContentChat />
+								</div>
+							</div>
 						</div>
 
 						{/* Suggested Combinations */}
@@ -1163,6 +1148,72 @@ export function ProjectEditor({
 									{defaultModelsChat.value.project || defaultModelsChat.value.global}{' '}
 									{defaultModelsChat.value.project ? '(Project)' : '(Global)'}
 								</div>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{activeTab.value === 'tools' && (
+					<div className='tools-tab space-y-6'>
+						{/* Tool Configs */}
+						<div class='form-group mb-6'>
+							<div class='flex items-center gap-2'>
+								<label class='block text-sm font-medium text-gray-700 dark:text-gray-200'>
+									Tool Configurations (YAML)
+								</label>
+								<span
+									class={`px-2 py-0.5 text-xs rounded-full ${
+										!toolConfigs.value.project
+											? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+											: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+									}`}
+								>
+									{!toolConfigs.value.project ? 'Global Default' : 'Project Setting'}
+								</span>
+								{toolConfigs.value.project !== null && (
+									<button
+										type='button'
+										onClick={() => {
+											toolConfigs.value = {
+												...toolConfigs.value,
+												project: null,
+											};
+										}}
+										class='text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-400'
+										title='Reset to global default'
+									>
+										<svg class='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+											<path
+												stroke-linecap='round'
+												stroke-linejoin='round'
+												stroke-width='2'
+												d='M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z'
+											/>
+										</svg>
+									</button>
+								)}
+							</div>
+							<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+								Configures behavior of the assistant's tools like allowed commands and API keys. Each
+								tool can have its own settings.
+							</p>
+							<div class='relative'>
+								<textarea
+									rows={10}
+									value={toolConfigs.value.project || toolConfigs.value.global || ''}
+									onInput={(e) => {
+										toolConfigs.value = {
+											...toolConfigs.value,
+											project: (e.target as HTMLTextAreaElement).value.trim() || null,
+										};
+									}}
+									placeholder={TOOLS_PLACEHOLDER}
+									class={`mt-1 w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed border ${
+										toolConfigs.value.project
+											? 'border-blue-300 dark:border-blue-600'
+											: 'border-gray-300 dark:border-gray-700'
+									}`}
+								/>
 							</div>
 						</div>
 					</div>

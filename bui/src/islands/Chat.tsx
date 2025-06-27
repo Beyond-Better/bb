@@ -12,45 +12,42 @@ import type {
 } from '../utils/apiClient.utils.ts';
 
 import { useChatState } from '../hooks/useChatState.ts';
-import { setConversation, useAppState } from '../hooks/useAppState.ts';
-import type { ChatConfig, ChatState, ConversationListState } from '../types/chat.types.ts';
+import { setCollaboration, useAppState } from '../hooks/useAppState.ts';
+import { initializeModelState, useModelState } from '../hooks/useModelState.ts';
+import type { ChatConfig, ChatState, CollaborationListState } from '../types/chat.types.ts';
 import { isProcessing } from '../types/chat.types.ts';
 import { MessageEntry } from '../components/MessageEntry.tsx';
-import { ConversationHeader } from '../components/ConversationHeader.tsx';
-import { ConversationList } from '../components/ConversationList.tsx';
+import { CollaborationHeader } from '../components/CollaborationHeader.tsx';
+import { CollaborationList } from '../components/CollaborationList.tsx';
 import { Toast } from '../components/Toast.tsx';
 import { AnimatedNotification } from '../components/AnimatedNotification.tsx';
 //import { useVersion } from '../hooks/useVersion.ts';
 import { useProjectState } from '../hooks/useProjectState.ts';
 import { ChatInput } from '../components/ChatInput.tsx';
-import { ConversationStateEmpty } from '../components/ConversationStateEmpty.tsx';
+import { CollaborationStateEmpty } from '../components/CollaborationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
-import type { ConversationLogDataEntry, ConversationMetadata } from 'shared/types.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import type { CollaborationLogDataEntry, CollaborationValues } from 'shared/types.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
+import { LLMRolesModelConfig } from 'api/types.ts';
+import { focusChatInputSync } from '../utils/focusManagement.utils.ts';
 
 // Helper functions for URL parameters
-const getConversationId = () => {
+const getCollaborationId = () => {
 	const params = new URLSearchParams(globalThis.location.search);
-	return params?.get('conversationId') || null;
+	return params?.get('collaborationId') || null;
 };
 
 const INPUT_MAX_CHAR_LENGTH = 25000;
 
-// Default LLM request options - will be populated from API response
-// This is a signal that gets updated with proper API defaults when available
-const defaultInputOptions = signal<LLMRequestParams>({
-	model: 'claude-sonnet-4-20250514', // Fallback only, should be overridden by API
-	temperature: 0.7,
-	maxTokens: 16384,
-	extendedThinking: {
-		enabled: true,
-		budgetTokens: 4096,
-	},
-	usePromptCaching: true,
-});
+// Model state hook for centralized model management
+const {
+	modelState,
+	getDefaultRolesModelConfig,
+	getModelCapabilities,
+} = useModelState();
 
 const defaultChatConfig: ChatConfig = {
 	apiUrl: '',
@@ -62,36 +59,95 @@ const defaultChatConfig: ChatConfig = {
 	onOpen: () => console.log('ChatIsland: WebSocket opened'),
 };
 
-// Helper to get options from conversation or defaults
-// For new conversations, this will use the requestParams provided by the API
-// which includes proper defaults from global/project configuration
-const getInputOptionsFromConversation = (
-	conversationId: string | null,
-	conversations: ConversationMetadata[],
+// Helper to get options from collaboration or defaults
+// For new collaborations, this will use the default models from the model state hook
+const getInputOptionsFromCollaboration = (
+	collaborationId: string | null,
+	collaborations: CollaborationValues[],
 ): LLMRequestParams => {
-	//console.log('ChatIsland: getInputOptionsFromConversation', {defaultInputOptions: defaultInputOptions.value});
-	if (!conversationId) return defaultInputOptions.value;
+	if (!collaborationId) {
+		// Use defaults from model state hook
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		return {
+			rolesModelConfig: defaultRolesConfig || {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+		};
+	}
 
-	const conversation = conversations.find((conv) => conv.id === conversationId);
-	if (!conversation || !conversation.requestParams) return defaultInputOptions.value;
-	//console.log('ChatIsland: getInputOptionsFromConversation', {requestParams: conversation.requestParams});
+	const collaboration = collaborations.find((collab) => collab.id === collaborationId);
+	if (!collaboration || !collaboration.collaborationParams || !collaboration.collaborationParams.rolesModelConfig) {
+		// Fallback to defaults from model state hook
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		return {
+			rolesModelConfig: defaultRolesConfig || {
+				orchestrator: null,
+				agent: null,
+				chat: null,
+			},
+		};
+	}
 
-	// Return conversation params with fallbacks to local defaults
-	// The conversation.requestParams should now include proper API defaults
+	// Return collaboration params
 	return {
-		...defaultInputOptions.value,
-		...conversation.requestParams,
+		rolesModelConfig: collaboration.collaborationParams.rolesModelConfig,
 	};
+};
+
+// Dedicated function to initialize chat input options
+const initializeChatInputOptions = async (collaborationId: string | null, collaborations: CollaborationValues[]) => {
+	// Get options from collaboration or defaults
+	const inputOptions = getInputOptionsFromCollaboration(collaborationId, collaborations);
+	chatInputOptions.value = inputOptions;
+
+	// Fetch model capabilities for all models in the configuration
+	const rolesConfig = inputOptions.rolesModelConfig;
+	if (rolesConfig) {
+		const modelIds = [
+			rolesConfig.orchestrator?.model,
+			rolesConfig.agent?.model,
+			rolesConfig.chat?.model,
+		].filter((model): model is string => Boolean(model));
+
+		// Remove duplicates
+		const uniqueModelIds = [...new Set(modelIds)];
+
+		// Load capabilities for all models used in this collaboration
+		if (uniqueModelIds.length > 0) {
+			try {
+				// Load capabilities for the primary model (orchestrator) for backward compatibility
+				if (rolesConfig.orchestrator?.model) {
+					const capabilities = await getModelCapabilities(rolesConfig.orchestrator.model);
+					if (capabilities) {
+						modelData.value = capabilities;
+						console.info('Chat: Updated model capabilities for orchestrator:', capabilities.displayName);
+					}
+				}
+				// Preload other model capabilities in background
+				uniqueModelIds.forEach((modelId) => {
+					if (modelId !== rolesConfig.orchestrator?.model) {
+						getModelCapabilities(modelId).catch((error) => {
+							console.warn(`Chat: Failed to preload capabilities for ${modelId}:`, error);
+						});
+					}
+				});
+			} catch (error) {
+				console.error('Chat: Failed to fetch model capabilities', error);
+			}
+		}
+	}
 };
 
 interface ChatProps {
 	chatState: Signal<ChatState>;
 }
 
-// Initialize conversation list visibility state
-const isConversationListVisible = signal(false);
+// Initialize collaboration list visibility state
+const isCollaborationListVisible = signal(false);
 const chatInputText = signal('');
-const chatInputOptions = signal<LLMRequestParams>({ ...defaultInputOptions.value });
+const chatInputOptions = signal<{ rolesModelConfig: LLMRolesModelConfig }>(getInputOptionsFromCollaboration(null, []));
 const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
@@ -276,28 +332,41 @@ export default function Chat({
 		return () => clearInterval(intervalId);
 	}, [chatState.value.status.lastApiCallTime]);
 
-	// Fetch API defaults when project and API client are available
+	// Initialize model state when project and API client are available
 	useEffect(() => {
 		if (!IS_BROWSER) return;
 		if (!projectId || !chatState.value.apiClient) return;
 
-		// Fetch defaults from API to replace hardcoded fallbacks
-		chatState.value.apiClient.getConversationDefaults(projectId)
-			.then((apiDefaults) => {
-				if (apiDefaults) {
-					//console.log('ChatIsland: Updated defaultInputOptions from API', apiDefaults);
-					defaultInputOptions.value = apiDefaults;
-					// If current options are still using hardcoded defaults, update them too
-					// conversation inputOptions could have the same model value, so the following is dangerous
-					//if (chatInputOptions.value.model === 'claude-sonnet-4-20250514') {
-					//	chatInputOptions.value = { ...apiDefaults };
-					//}
-				}
-			})
-			.catch((error) => {
-				console.warn('Chat: Failed to fetch API defaults, using hardcoded fallbacks:', error);
-			});
+		// Initialize model state with API client and project ID
+		initializeModelState(chatState.value.apiClient, projectId);
 	}, [projectId, chatState.value.apiClient]);
+
+	// Re-initialize chat input options when model state becomes available
+	useEffect(() => {
+		if (!IS_BROWSER) return;
+		if (!chatState.value.collaborationId) return;
+
+		// Check if model state is available
+		const defaultRolesConfig = getDefaultRolesModelConfig();
+		if (!defaultRolesConfig || modelState.value.isLoadingDefaults) {
+			return;
+		}
+
+		// If we have a blank collaboration and no valid options, reinitialize
+		const currentConfig = chatInputOptions.value.rolesModelConfig;
+		const hasValidConfig = currentConfig && (
+			currentConfig.orchestrator?.model ||
+			currentConfig.agent?.model ||
+			currentConfig.chat?.model
+		);
+
+		if (!hasValidConfig) {
+			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+				.catch((error) => {
+					console.error('Chat: Failed to reinitialize chat input options:', error);
+				});
+		}
+	}, [chatState.value.collaborationId, modelState.value.defaultRolesModelConfig, modelState.value.isLoadingDefaults]);
 
 	// Utility functions
 
@@ -328,6 +397,7 @@ export default function Chat({
 		const maxRetries = 3;
 
 		try {
+			console.info('Chat: sendConverse - chatInputOptions', chatInputOptions.value);
 			// Pass the options from the signal to the handler
 			await handlers.sendConverse(trimmedInput, chatInputOptions.value, attachedFiles.value);
 			const duration = performance.now() - startTime;
@@ -347,15 +417,15 @@ export default function Chat({
 		}
 	};
 
-	const transformEntry = (logDataEntry: ConversationLogDataEntry): ConversationLogDataEntry => {
-		// Simply return the entry as it's already a valid ConversationLogDataEntry
+	const transformEntry = (logDataEntry: CollaborationLogDataEntry): CollaborationLogDataEntry => {
+		// Simply return the entry as it's already a valid CollaborationLogDataEntry
 		// The type guards are used in the UI components to safely access properties
 		return logDataEntry;
 	};
 
-	const deleteConversation = async (id: string) => {
+	const deleteCollaboration = async (id: string) => {
 		try {
-			if (!projectId) throw new Error('projectId is undefined for delete conversation');
+			if (!projectId) throw new Error('projectId is undefined for delete collaboration');
 			if (!chatState.value.apiClient) throw new Error('API client not initialized');
 			if (!chatState.value.status.isReady) {
 				throw new Error('WebSocket connection not ready. Please try again.');
@@ -366,24 +436,26 @@ export default function Chat({
 				throw new Error('Please wait for the current operation to complete');
 			}
 
-			await chatState.value.apiClient.deleteConversation(id, projectId);
+			await chatState.value.apiClient.deleteCollaboration(id, projectId);
 
-			// Update conversations list immediately
+			// Update collaborations list immediately
 			chatState.value = {
 				...chatState.value,
-				conversations: chatState.value.conversations.filter((conv: ConversationMetadata) => conv.id !== id),
+				collaborations: chatState.value.collaborations.filter((collab: CollaborationValues) =>
+					collab.id !== id
+				),
 			};
 
-			// Handle currently selected conversation
-			if (id === chatState.value.conversationId) {
-				handlers.clearConversation();
+			// Handle currently selected collaboration
+			if (id === chatState.value.collaborationId) {
+				handlers.clearCollaboration();
 				const url = new URL(globalThis.location.href);
-				url.searchParams.delete('conversationId');
+				url.searchParams.delete('collaborationId');
 				const hash = globalThis.location.hash;
 				globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 			}
 		} catch (error) {
-			console.error('Failed to delete conversation:', error);
+			console.error('Failed to delete collaboration:', error);
 			setToastMessage((error as Error).message || 'Failed to delete conversation');
 			setShowToast(true);
 
@@ -392,7 +464,7 @@ export default function Chat({
 				const retryInterval = setInterval(() => {
 					if (chatState.value.status.isReady) {
 						clearInterval(retryInterval);
-						deleteConversation(id).catch(console.error);
+						deleteCollaboration(id).catch(console.error);
 					}
 				}, 1000);
 				// Clear interval after 10 seconds
@@ -401,42 +473,29 @@ export default function Chat({
 		}
 	};
 
-	const selectConversation = async (id: string) => {
+	const selectCollaboration = async (id: string) => {
 		try {
-			await handlers.selectConversation(id);
-			setConversation(id);
+			await handlers.selectCollaboration(id);
+			setCollaboration(id);
 
-			// Update options based on the selected conversation
-			chatInputOptions.value = getInputOptionsFromConversation(id, chatState.value.conversations);
-			console.info('ChatIsland: Updated options for selected conversation', id, chatInputOptions.value);
-
-			// Fetch model capabilities for the selected model
-			const modelName = chatInputOptions.value.model;
-			if (modelName && chatState.value.apiClient) {
-				try {
-					const modelResponse = await chatState.value.apiClient.getModelCapabilities(modelName);
-					console.info('Chat: Updated model capabilities', { modelResponse });
-					if (modelResponse) {
-						modelData.value = modelResponse.model;
-						console.info('Chat: Updated model capabilities', modelData.value);
-					}
-				} catch (error) {
-					console.error('Chat: Failed to fetch model capabilities', error);
-				}
-			}
+			// Initialize chat input options with the selected collaboration
+			await initializeChatInputOptions(id, chatState.value.collaborations);
 
 			// Update URL while preserving hash parameters
 			//const url = new URL(globalThis.location.href);
-			//url.searchParams.set('conversationId', id);
+			//url.searchParams.set('collaborationId', id);
 			//const hash = globalThis.location.hash;
 			//globalThis.history.pushState({}, '', url.pathname + url.search + hash);
+
+			// Focus the chat input after selecting a collaboration
+			focusChatInputSync(chatInputRef);
 		} catch (error) {
-			console.error('Failed to switch conversation:', error);
+			console.error('Failed to switch collaboration:', error);
 			setToastMessage('Failed to switch conversation');
 			setShowToast(true);
-			// Clear the conversation ID from URL on error
+			// Clear the collaboration ID from URL on error
 			const url = new URL(globalThis.location.href);
-			url.searchParams.delete('conversationId');
+			url.searchParams.delete('collaborationId');
 			const hash = globalThis.location.hash;
 			globalThis.history.pushState({}, '', url.pathname + url.search + hash);
 		}
@@ -453,43 +512,35 @@ export default function Chat({
 	}, [handlers]);
 
 	useEffect(() => {
-		//console.log('Chat: Navigation useEffect', { chatState: chatState.value });
 		if (!IS_BROWSER) return;
 
 		chatInputText.value = '';
 
-		// Initialize options from current conversation
-		if (chatState.value.conversationId) {
-			chatInputOptions.value = getInputOptionsFromConversation(
-				chatState.value.conversationId,
-				chatState.value.conversations,
-			);
-			//console.info(`ChatIsland: Initialized chatInputOptions from conversation: ${chatState.value.conversationId}`, chatInputOptions.value);
-
-			// Fetch model capabilities for the current model
-			const modelName = chatInputOptions.value.model;
-			if (modelName && chatState.value.apiClient) {
-				chatState.value.apiClient.getModelCapabilities(modelName)
-					.then((modelResponse) => {
-						if (modelResponse) {
-							modelData.value = modelResponse.model;
-							console.info('Chat: Loaded model capabilities', modelData.value);
-						}
-					})
-					.catch((error) => console.error('Chat: Failed to fetch model capabilities', error));
-			}
+		// Initialize options from current collaboration
+		if (chatState.value.collaborationId) {
+			// Use the centralized initialization function
+			initializeChatInputOptions(chatState.value.collaborationId, chatState.value.collaborations)
+				.catch((error) => {
+					console.error('Chat: Failed to initialize chat input options:', error);
+					// Fallback to basic initialization
+					const fallbackOptions = getInputOptionsFromCollaboration(
+						chatState.value.collaborationId,
+						chatState.value.collaborations,
+					);
+					chatInputOptions.value = fallbackOptions;
+				});
 		}
 
 		const handlePopState = async () => {
-			const urlConversationId = getConversationId();
-			if (urlConversationId && urlConversationId !== chatState.value.conversationId) {
-				await selectConversation(urlConversationId);
+			const urlCollaborationId = getCollaborationId();
+			if (urlCollaborationId && urlCollaborationId !== chatState.value.collaborationId) {
+				await selectCollaboration(urlCollaborationId);
 			}
 		};
 
 		globalThis.addEventListener('popstate', handlePopState);
 		return () => globalThis.removeEventListener('popstate', handlePopState);
-	}, [chatState.value.conversationId]);
+	}, [chatState.value.collaborationId]);
 
 	// Track input area height changes
 	useEffect(() => {
@@ -637,7 +688,7 @@ export default function Chat({
 		let disconnectTimeoutId: number;
 		let reconnectTimeoutId: number;
 
-		// Ignore connection changes during conversation switching
+		// Ignore connection changes during collaboration switching
 		if (chatState.value.status.isLoading) {
 			return;
 		}
@@ -668,9 +719,9 @@ export default function Chat({
 		};
 	}, [chatState.value.status.isReady, chatState.value.status.isConnecting, chatState.value.status.error]);
 
-	const conversationListState = computed<ConversationListState>(() => ({
-		conversations: chatState.value.conversations,
-		selectedId: chatState.value.conversationId,
+	const collaborationListState = computed<CollaborationListState>(() => ({
+		collaborations: chatState.value.collaborations,
+		selectedId: chatState.value.collaborationId,
 		isLoading: chatState.value.status.isLoading,
 	}));
 
@@ -727,46 +778,46 @@ export default function Chat({
 					)
 					: (
 						<>
-							{/* Collapsible Conversation List */}
+							{/* Collapsible Collaboration List */}
 							<div
 								className={`absolute top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out z-40 ${
-									isConversationListVisible.value
+									isCollaborationListVisible.value
 										? 'w-[30%] min-w-[20rem] translate-x-0'
 										: 'w-0 -translate-x-full'
 								}`}
 							>
 								<div className='h-full w-full overflow-hidden'>
-									<ConversationList
-										conversationListState={conversationListState}
+									<CollaborationList
+										collaborationListState={collaborationListState}
 										onSelect={async (id) => {
-											await selectConversation(id);
-											isConversationListVisible.value = false;
+											await selectCollaboration(id);
+											isCollaborationListVisible.value = false;
 										}}
 										onNew={async () => {
-											const id = shortenConversationId(generateConversationId());
-											await selectConversation(id);
-											isConversationListVisible.value = false;
+											const id = shortenInteractionId(generateInteractionId());
+											await selectCollaboration(id);
+											isCollaborationListVisible.value = false;
 										}}
-										onDelete={deleteConversation}
-										onClose={() => isConversationListVisible.value = false}
+										onDelete={deleteCollaboration}
+										onClose={() => isCollaborationListVisible.value = false}
 									/>
 								</div>
 							</div>
 							{/* Chat area */}
 							<main className='flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-800 overflow-hidden w-full relative'>
-								{/* ConversationHeader */}
-								<ConversationHeader
+								{/* CollaborationHeader */}
+								<CollaborationHeader
 									cacheStatus={chatState.value.status.cacheStatus}
 									status={chatState.value.status}
-									onSelect={selectConversation}
+									onSelect={selectCollaboration}
 									onNew={async () => {
-										const id = shortenConversationId(generateConversationId());
-										await selectConversation(id);
+										const id = shortenInteractionId(generateInteractionId());
+										await selectCollaboration(id);
 									}}
-									onDelete={deleteConversation}
+									onDelete={deleteCollaboration}
 									onToggleList={() =>
-										isConversationListVisible.value = !isConversationListVisible.value}
-									isListVisible={isConversationListVisible.value}
+										isCollaborationListVisible.value = !isCollaborationListVisible.value}
+									isListVisible={isCollaborationListVisible.value}
 									apiClient={chatState.value.apiClient!}
 									chatState={chatState}
 									modelData={modelData}
@@ -840,7 +891,7 @@ export default function Chat({
 											!isProcessing(chatState.value.status) &&
 											(
 												<div className='flex flex-col items-center justify-center min-h-[400px] px-6 py-8'>
-													<ConversationStateEmpty
+													<CollaborationStateEmpty
 														setInputWithTracking={setInputWithTracking}
 														chatInputRef={chatInputRef}
 													/>
@@ -855,7 +906,7 @@ export default function Chat({
 													onCopy={handleCopy}
 													apiClient={chatState.value.apiClient!}
 													projectId={projectId}
-													conversationId={chatState.value.conversationId!}
+													collaborationId={chatState.value.collaborationId!}
 												/>
 											))}
 									</div>
@@ -870,7 +921,6 @@ export default function Chat({
 										chatInputText={chatInputText}
 										chatInputOptions={chatInputOptions}
 										attachedFiles={attachedFiles}
-										modelData={modelData}
 										apiClient={chatState.value.apiClient!}
 										projectId={projectId}
 										primaryDataSourceName={chatState.value.projectData?.dsConnections?.find((ds) =>
@@ -888,8 +938,9 @@ export default function Chat({
 										statusState={statusState}
 										onCancelProcessing={handlers.cancelProcessing}
 										maxLength={INPUT_MAX_CHAR_LENGTH}
-										conversationId={chatState.value.conversationId}
+										collaborationId={chatState.value.collaborationId}
 										onHeightChange={setInputAreaHeight}
+										chatState={chatState}
 									/>
 								</div>
 							</main>

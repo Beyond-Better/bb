@@ -50,8 +50,11 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-collaboration-id',
+				'test-interaction-id',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
 			// console.log('Template Mode - Load existing resources - bbResponse:', result.bbResponse);
 			// console.log('Template Mode - Load existing resources - toolResponse:', result.toolResponse);
 			// console.log('Template Mode - Load existing resources - toolResults:', result.toolResults);
@@ -142,8 +145,12 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-collaboration-id',
+				'test-interaction-id',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
+
 			// console.log('Direct Mode - Load existing resources - bbResponse:', result.bbResponse);
 			// console.log('Direct Mode - Load existing resources - toolResponse:', result.toolResponse);
 			// console.log('Direct Mode - Load existing resources - toolResults:', result.toolResults);
@@ -230,8 +237,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Template Mode - Load non-existent resource - bbResponse:', result.bbResponse);
 			// console.log('Template Mode - Load non-existent resource - toolResponse:', result.toolResponse);
 			// console.log('Template Mode - Load non-existent resource - toolResults:', result.toolResults);
@@ -308,11 +315,11 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
-			console.log('Direct Mode - Load non-existent resource - bbResponse:', result.bbResponse);
-			console.log('Direct Mode - Load non-existent resource - toolResponse:', result.toolResponse);
-			console.log('Direct Mode - Load non-existent resource - toolResults:', result.toolResults);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
+			// console.log('Direct Mode - Load non-existent resource - bbResponse:', result.bbResponse);
+			// console.log('Direct Mode - Load non-existent resource - toolResponse:', result.toolResponse);
+			// console.log('Direct Mode - Load non-existent resource - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -387,8 +394,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Template Mode - Resource outside project root - bbResponse:', result.bbResponse);
 			// console.log('Template Mode - Resource outside project root - toolResponse:', result.toolResponse);
 			// console.log('Template Mode - Resource outside project root - toolResults:', result.toolResults);
@@ -464,8 +471,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Direct Mode - Resource outside project root - bbResponse:', result.bbResponse);
 			// console.log('Direct Mode - Resource outside project root - toolResponse:', result.toolResponse);
 			// console.log('Direct Mode - Resource outside project root - toolResults:', result.toolResults);

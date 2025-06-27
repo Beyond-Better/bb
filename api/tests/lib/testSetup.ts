@@ -8,13 +8,15 @@ import ProjectEditorManager from 'api/editor/projectEditorManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
-import type { ConversationStats } from 'shared/types.ts';
+import type { InteractionStats, ProjectId } from 'shared/types.ts';
 import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
-export async function setupTestProject(): Promise<{ dataSourceRoot: string; projectId: string }> {
+export async function setupTestProject(): Promise<
+	{ dataSourceRoot: string; projectId: ProjectId; globalConfigDir: string; projectAdminDir: string }
+> {
 	Deno.env.set('BB_UNIT_TESTS', '1');
 	// Set custom global config directory
 	const globalConfigDir = await Deno.makeTempDir();
@@ -59,10 +61,10 @@ export async function setupTestProject(): Promise<{ dataSourceRoot: string; proj
 	Deno.env.set('BB_PROJECT_ADMIN_DIR', projectAdminDir);
 	//console.log('setupTestProject', { dataSourceRoot, projectId });
 
-	return { dataSourceRoot, projectId };
+	return { dataSourceRoot, projectId, globalConfigDir, projectAdminDir };
 }
 
-export async function cleanupTestProject(projectId: string, _dataSourceRoot: string) {
+export async function cleanupTestProject(projectId: ProjectId, _dataSourceRoot: string) {
 	try {
 		const projectPersistenceManager = await getProjectPersistenceManager();
 		await projectPersistenceManager.deleteProject(projectId);
@@ -71,12 +73,12 @@ export async function cleanupTestProject(projectId: string, _dataSourceRoot: str
 	}
 }
 
-export async function getProjectEditor(projectId: string): Promise<ProjectEditor> {
+export async function getProjectEditor(projectId: ProjectId): Promise<ProjectEditor> {
 	const projectEditorManager = new ProjectEditorManager();
 	//console.log('getProjectEditor', { projectId });
 	const sessionManager = new SessionManager();
 	await sessionManager.initialize();
-	const projectEditor = await projectEditorManager.getOrCreateEditor('test-conversation', projectId, sessionManager);
+	const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, 'test-collaboration', sessionManager);
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 
@@ -109,27 +111,31 @@ export async function getToolManager(
 export const getTestFilePath = (testProjectRoot: string, filename: string) => join(testProjectRoot, filename);
 
 export async function createTestInteraction(
-	conversationId: string,
+	collaborationId: string,
+	interactionId: string,
 	projectEditor: ProjectEditor,
 ): Promise<LLMConversationInteraction> {
-	const interaction = await projectEditor.initConversation(conversationId);
+	const interaction = await projectEditor.initInteraction(collaborationId, interactionId);
 	return interaction as LLMConversationInteraction;
 }
 
 export async function createTestChatInteraction(
-	conversationId: string,
+	collaborationId: string,
+	interactionId: string,
 	projectEditor: ProjectEditor,
 	chatTitle: string = 'Chat Title',
 ): Promise<LLMChatInteraction> {
+	const interaction = await projectEditor.initInteraction(collaborationId, interactionId);
 	const chatInteraction = await projectEditor.orchestratorController.createChatInteraction(
-		conversationId,
+		interaction.collaboration,
+		interaction.id,
 		chatTitle,
 	);
 	return chatInteraction as LLMChatInteraction;
 }
 
 export async function withTestProject<T>(
-	testFn: (projectId: string, dataSourceRoot: string) => Promise<T>,
+	testFn: (projectId: ProjectId, dataSourceRoot: string) => Promise<T>,
 ): Promise<T> {
 	const { projectId, dataSourceRoot } = await setupTestProject();
 	try {
@@ -139,10 +145,10 @@ export async function withTestProject<T>(
 	}
 }
 
-export function incrementConversationStats(conversationStats: ConversationStats): ConversationStats {
+export function incrementInteractionStats(interactionStats: InteractionStats): InteractionStats {
 	return {
-		statementCount: conversationStats.statementCount++,
-		statementTurnCount: conversationStats.statementTurnCount++,
-		conversationTurnCount: conversationStats.conversationTurnCount++,
+		statementCount: interactionStats.statementCount++,
+		statementTurnCount: interactionStats.statementTurnCount++,
+		interactionTurnCount: interactionStats.interactionTurnCount++,
 	};
 }

@@ -7,6 +7,7 @@ import * as defaultPrompts from './defaultPrompts.ts';
 import type { PromptVariableMap } from './defaultPrompts.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 interface PromptMetadata {
@@ -28,7 +29,7 @@ class PromptManager {
 		this.userPromptsDir = '';
 	}
 
-	async init(projectId: string): Promise<PromptManager> {
+	async init(projectId: ProjectId): Promise<PromptManager> {
 		try {
 			const bbDir = await getBbDir(projectId);
 			this.userPromptsDir = join(bbDir, 'prompts');

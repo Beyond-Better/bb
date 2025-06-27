@@ -1,7 +1,7 @@
 import { stripIndent } from 'common-tags';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import LLMTool from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { ImageOperation, LLMToolImageProcessingResult, LLMToolImageProcessingResultData } from './types.ts';
 
 export function formatLogEntryToolUse(toolInput: LLMToolInputSchema): LLMToolLogEntryFormattedResult {
@@ -41,7 +41,7 @@ export function formatLogEntryToolUse(toolInput: LLMToolInputSchema): LLMToolLog
 }
 
 export function formatLogEntryToolResult(
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult {
 	const result = resultContent as LLMToolImageProcessingResult;
 

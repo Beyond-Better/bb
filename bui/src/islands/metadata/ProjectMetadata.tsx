@@ -3,7 +3,7 @@ import { ChatState } from '../../types/chat.types.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { CacheStatusIndicator } from '../../components/CacheStatusIndicator.tsx';
 //import type { ApiClient } from '../../utils/apiClient.utils.ts';
-//import type { ConversationLogDataEntry } from 'shared/types.ts';
+//import type { CollaborationLogDataEntry } from 'shared/types.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 import { ProjectSelector } from '../../components/ProjectSelector/index.ts';
 
@@ -16,7 +16,7 @@ export function ProjectMetadata({
 }: ProjectMetadataProps) {
 	//if (IS_BROWSER) console.log('ProjectMetadata: chatState', chatState.value);
 
-	// Get projectId and conversationId from URL
+	// Get projectId and collaborationId from URL
 	const projectId = chatState.value.projectData?.projectId || '.';
 	//const projectType = chatState.value.projectData?.type || 'local';
 	const projectName = chatState.value.projectData?.name || 'default';
@@ -104,7 +104,7 @@ export function ProjectMetadata({
 				</div>
 
 				{/* Project Stats */}
-				{(chatState.value.projectData?.stats || chatState.value.conversations) && (
+				{(chatState.value.projectData?.stats || chatState.value.collaborations) && (
 					<div className='flex items-center space-x-6 text-sm'>
 						<div className='flex items-center text-blue-600'>
 							<svg
@@ -121,13 +121,14 @@ export function ProjectMetadata({
 									d='M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z'
 								/>
 							</svg>
-							<span>{chatState.value.conversations.length.toLocaleString()}</span>
+							<span>{chatState.value.collaborations.length.toLocaleString()}</span>
 							<span className='text-gray-500 dark:text-gray-400 ml-1'>
-								{chatState.value.conversations.length === 1 ? 'conversation' : 'conversations'}
+								{chatState.value.collaborations.length === 1 ? 'conversation' : 'conversations'}
 							</span>
 						</div>
 
-						<div className='flex items-center text-purple-600'>
+						{
+							/* <div className='flex items-center text-purple-600'>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								className='h-5 w-5 mr-1.5'
@@ -144,7 +145,8 @@ export function ProjectMetadata({
 							</svg>
 							<span>{chatState.value.projectData?.stats?.totalTokens.toLocaleString() || '--'}</span>
 							<span className='text-gray-500 dark:text-gray-400 ml-1'>tokens used</span>
-						</div>
+						</div> */
+						}
 
 						{chatState.value.projectData?.stats?.lastAccessed && (
 							<div className='flex items-center text-gray-500 dark:text-gray-400'>
@@ -196,7 +198,7 @@ export function ProjectMetadata({
 					>
 						{chatState.value.status.apiStatus === ApiStatus.LLM_PROCESSING && 'Assistant is thinking...'}
 						{chatState.value.status.apiStatus === ApiStatus.TOOL_HANDLING && 'Using tool...'}
-						{chatState.value.status.apiStatus === ApiStatus.API_BUSY && 'API is processing...'}
+						{chatState.value.status.apiStatus === ApiStatus.API_BUSY && 'Beyond Better is processing...'}
 						{chatState.value.status.apiStatus === ApiStatus.ERROR && 'Error occurred'}
 					</span>
 				</div>*/

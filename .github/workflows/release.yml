@@ -292,6 +292,45 @@ jobs:
         id: get_version
         run: echo "VERSION=$(deno eval 'import { VERSION } from "./version.ts"; console.log(VERSION);')" >> $GITHUB_OUTPUT
 
+      - name: Extract release notes from CHANGELOG
+        id: extract_changelog
+        run: |
+          VERSION=$(deno eval 'import { VERSION } from "./version.ts"; console.log(VERSION);')
+          
+          # Extract full release section for current version from CHANGELOG.md
+          RELEASE_SECTION=$(awk "/^## \[$VERSION\]/{flag=1; print; next} /^## \[/{flag=0} flag{print}" CHANGELOG.md)
+          
+          if [ -z "$RELEASE_SECTION" ]; then
+            RELEASE_NOTES="See CHANGELOG.md for version $VERSION details."
+            HAS_BREAKING="false"
+            CRITICAL_NOTICE=""
+          else
+            # Check for breaking changes indicators
+            if echo "$RELEASE_SECTION" | grep -qi "breaking\|BREAKING"; then
+              HAS_BREAKING="true"
+              CRITICAL_NOTICE="🚨 **BREAKING CHANGES DETECTED** - Please backup your projects before upgrading and review the changelog carefully."
+            else
+              HAS_BREAKING="false"
+              CRITICAL_NOTICE=""
+            fi
+            
+            # Extract just the changes (skip the version header)
+            RELEASE_NOTES=$(echo "$RELEASE_SECTION" | tail -n +2 | head -20)
+          fi
+          
+          # Escape for GitHub output
+          RELEASE_NOTES="${RELEASE_NOTES//'%'/'%25'}"
+          RELEASE_NOTES="${RELEASE_NOTES//$'\n'/'%0A'}"
+          RELEASE_NOTES="${RELEASE_NOTES//$'\r'/'%0D'}"
+          
+          CRITICAL_NOTICE="${CRITICAL_NOTICE//'%'/'%25'}"
+          CRITICAL_NOTICE="${CRITICAL_NOTICE//$'\n'/'%0A'}"
+          CRITICAL_NOTICE="${CRITICAL_NOTICE//$'\r'/'%0D'}"
+          
+          echo "RELEASE_NOTES=$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "HAS_BREAKING=$HAS_BREAKING" >> $GITHUB_OUTPUT
+          echo "CRITICAL_NOTICE=$CRITICAL_NOTICE" >> $GITHUB_OUTPUT
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
@@ -323,6 +362,8 @@ jobs:
           body: |
             Beyond Better v${{ steps.get_version.outputs.VERSION }}
 
+            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE || '' }}
+
             Installation Instructions:
 
             1. Download the appropriate installer for your system:
@@ -349,7 +390,7 @@ jobs:
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
             Changes in this Release:
-            ${{ github.event.pull_request && github.event.pull_request.body || (inputs.version && format('Version {0} release', inputs.version)) || 'No release notes provided.' }}
+            ${{ steps.extract_changelog.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
 

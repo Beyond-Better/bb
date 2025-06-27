@@ -2,8 +2,9 @@ import { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiClient } from '../utils/apiClient.utils.ts';
 import type {
-	ConversationLogDataEntry,
-	//ConversationLogEntry
+	CollaborationLogDataEntry,
+	//CollaborationLogEntry
+	ProjectId,
 } from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getDefaultTokenUsage, logDataEntryHasChildren, logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
@@ -20,12 +21,12 @@ import {
 } from '../utils/messageUtils.utils.tsx';
 
 interface MessageEntryProps {
-	logDataEntry: ConversationLogDataEntry;
+	logDataEntry: CollaborationLogDataEntry;
 	index: number;
 	onCopy: (text: string) => void;
 	apiClient: ApiClient;
-	projectId: string;
-	conversationId: string;
+	projectId: ProjectId;
+	collaborationId: string;
 }
 
 marked.setOptions({
@@ -46,7 +47,7 @@ declare global {
 }
 
 // Check if this is a parent logDataEntry with agent tasks
-function isAgentTaskParent(logDataEntry: ConversationLogDataEntry): boolean {
+function isAgentTaskParent(logDataEntry: CollaborationLogDataEntry): boolean {
 	// Tool inputs for delegate_tasks are parents of agent tasks
 	return logDataEntry.logEntry?.entryType === 'tool_use' &&
 		logDataEntry.logEntry?.toolName === 'delegate_tasks';
@@ -61,12 +62,12 @@ export function MessageEntry({
 	onCopy,
 	apiClient,
 	projectId,
-	conversationId,
-}: MessageEntryProps & { allEntries?: ConversationLogDataEntry[] }): JSX.Element {
+	collaborationId,
+}: MessageEntryProps & { allEntries?: CollaborationLogDataEntry[] }): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(
-			conversationId,
+			collaborationId,
 			logDataEntry.agentInteractionId || null,
 			index,
 			logDataEntryHasLogEntry(logDataEntry) ? logDataEntry.logEntry.entryType : 'auxiliary',
@@ -85,7 +86,7 @@ export function MessageEntry({
 					logDataEntry.logEntry.entryType,
 					logDataEntry.logEntry,
 					projectId,
-					conversationId,
+					collaborationId,
 				);
 				if (response) {
 					setFormatted(response);
@@ -96,7 +97,7 @@ export function MessageEntry({
 		};
 
 		fetchFormatted();
-	}, [logDataEntry, apiClient, projectId, conversationId]);
+	}, [logDataEntry, apiClient, projectId, collaborationId]);
 
 	// Handle code block truncation
 	useEffect(() => {
@@ -183,10 +184,10 @@ export function MessageEntry({
 	const toggleExpanded = useCallback(() => {
 		setIsExpanded((prev) => {
 			const newState = !prev;
-			saveCollapseState(conversationId, logDataEntry.agentInteractionId || null, index, newState);
+			saveCollapseState(collaborationId, logDataEntry.agentInteractionId || null, index, newState);
 			return newState;
 		});
-	}, [conversationId, logDataEntry.agentInteractionId, index]);
+	}, [collaborationId, logDataEntry.agentInteractionId, index]);
 
 	const toggleMetadata = useCallback(() => {
 		setShowMetadata((prev) => !prev);
@@ -315,7 +316,7 @@ export function MessageEntry({
 		return () => document.removeEventListener('keydown', handleKeyPress);
 	}, [toggleExpanded]);
 
-	// Handle entries without logEntry (ConversationStart or invalid entries)
+	// Handle entries without logEntry (CollaborationStart or invalid entries)
 	if (!logDataEntryHasLogEntry(logDataEntry)) {
 		return (
 			<div className='bb-message-entry py-3 pl-4 pr-6 mb-2 text-gray-500 dark:text-gray-400 text-sm italic'>
@@ -329,11 +330,11 @@ export function MessageEntry({
 			? logDataEntry.logEntry.entryType
 			: 'start') as keyof typeof messageStyles;
 	// Use type guards to safely access token usage
-	const tokenUsageTurn = 'tokenUsageStats' in logDataEntry
-		? logDataEntry.tokenUsageStats.tokenUsageTurn
+	const tokenUsageTurn = 'tokenUsageStatsForCollaboration' in logDataEntry
+		? logDataEntry.tokenUsageStatsForCollaboration.tokenUsageTurn
 		: getDefaultTokenUsage();
-	const tokenUsageConversation = 'tokenUsageStats' in logDataEntry
-		? logDataEntry.tokenUsageStats.tokenUsageConversation
+	const tokenUsageInteraction = 'tokenUsageStatsForCollaboration' in logDataEntry
+		? logDataEntry.tokenUsageStatsForCollaboration.tokenUsageInteraction
 		: getDefaultTokenUsage();
 	const styles = messageStyles[entryType] || messageStyles.error;
 	const icon = entryType in messageIcons
@@ -437,13 +438,64 @@ export function MessageEntry({
 	// Check if this is a delegate_tasks tool parent with agent tasks
 	const isAgentParent = isAgentTaskParent(logDataEntry);
 
+	const renderAgentTasks = () => {
+		//if (!isExpanded) return null;
+
+		//console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
+		// Handle delegate_tasks with agent tasks
+		//console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
+		return (
+			<>
+				<div className='agent-tasks-container mt-4'>
+					{/* Show loading indicator while fetching agent entries */}
+					{
+						/*isLoadingAgentEntries && (
+						<div className="flex items-center justify-center p-4 mt-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+							<svg className="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+								<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							<span>Loading agent tasks...</span>
+						</div>
+					)*/
+					}
+
+					{/* Then render each agent group */}
+					{logDataEntry.children &&
+						Object.entries(logDataEntry.children).map((
+							[agentInteractionId, childLogDataEntries],
+							groupIndex,
+						) => (
+							<MessageEntryAgentTaskGroup
+								key={agentInteractionId}
+								entries={childLogDataEntries}
+								parentEntry={logDataEntry}
+								parentIndex={index * 1000 + groupIndex}
+								onCopy={onCopy}
+								apiClient={apiClient}
+								projectId={projectId}
+								collaborationId={collaborationId}
+							/>
+						))}
+
+					{/* Show message when no tasks are found */}
+					{logDataEntry.children && Object.keys(logDataEntry.children).length === 0 && (
+						<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
+							No agent tasks found for this delegate_tasks call.
+						</div>
+					)}
+				</div>
+			</>
+		);
+	};
+
 	// Render content based on entry type
 	const renderContent = () => {
 		if (!isExpanded) return null;
 
-		//console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
-		// Handle delegate_tasks with agent tasks
 		if (isAgentParent) {
+			//console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
+			// Handle delegate_tasks with agent tasks
 			//console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
 			return (
 				<>
@@ -454,48 +506,9 @@ export function MessageEntry({
 						content={logDataEntry.logEntry.content}
 						apiClient={apiClient}
 						projectId={projectId}
-						conversationId={conversationId}
+						collaborationId={collaborationId}
 						logEntry={logDataEntry.logEntry}
 					/>
-					<div className='agent-tasks-container mt-4'>
-						{/* Show loading indicator while fetching agent entries */}
-						{
-							/*isLoadingAgentEntries && (
-						<div className="flex items-center justify-center p-4 mt-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-							<svg className="animate-spin h-5 w-5 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-								<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-								<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							<span>Loading agent tasks...</span>
-						</div>
-					)*/
-						}
-
-						{/* Then render each agent group */}
-						{logDataEntry.children &&
-							Object.entries(logDataEntry.children).map((
-								[agentInteractionId, childLogDataEntries],
-								groupIndex,
-							) => (
-								<MessageEntryAgentTaskGroup
-									key={agentInteractionId}
-									entries={childLogDataEntries}
-									parentEntry={logDataEntry}
-									parentIndex={index * 1000 + groupIndex}
-									onCopy={onCopy}
-									apiClient={apiClient}
-									projectId={projectId}
-									conversationId={conversationId}
-								/>
-							))}
-
-						{/* Show message when no tasks are found */}
-						{logDataEntry.children && Object.keys(logDataEntry.children).length === 0 && (
-							<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
-								No agent tasks found for this delegate_tasks call.
-							</div>
-						)}
-					</div>
 				</>
 			);
 		}
@@ -509,7 +522,7 @@ export function MessageEntry({
 					//onCopy={handleCopy}
 					apiClient={apiClient}
 					projectId={projectId}
-					conversationId={conversationId}
+					collaborationId={collaborationId}
 					logEntry={logDataEntry.logEntry}
 				/>
 			);
@@ -564,11 +577,12 @@ export function MessageEntry({
 
 	return (
 		<>
+			{/* LogEntry container */}
 			<div
 				className={`message-entry group relative mb-3 overflow-hidden ${
 					getMessageTypeIndicator(isAgentEntry)
 				} pl-3 w-full`}
-				data-agent-id={logDataEntry.agentInteractionId || ''}
+				data-agent-id={logDataEntry.agentInteractionId !== null ? logDataEntry.agentInteractionId : ''}
 				data-entry-type={entryType || ''}
 				role='region'
 				aria-expanded={isExpanded}
@@ -578,7 +592,7 @@ export function MessageEntry({
 
 				{/* Message container */}
 				<div className='transition-all duration-200 w-full overflow-hidden'>
-					{/* Header */}
+					{/* Message Body */}
 					<div className='flex items-start'>
 						{/* Entry type icon */}
 						<button
@@ -739,7 +753,9 @@ export function MessageEntry({
 											</svg>
 										</button>
 									</div>
+									{/* END Action buttons */}
 								</div>
+								{/* END Title & Subtitle row */}
 							</div>
 
 							{/* Metadata (initially hidden) */}
@@ -791,14 +807,15 @@ export function MessageEntry({
 												</span>
 												<span title='Total conversation tokens (input/output)'>
 													Conversation:{' '}
-													{tokenUsageConversation.inputTokens?.toLocaleString() || 0}↑ /{' '}
-													{tokenUsageConversation.outputTokens?.toLocaleString() || 0}↓
-													({tokenUsageConversation.totalTokens?.toLocaleString() || 0})
+													{tokenUsageInteraction?.inputTokens?.toLocaleString() || 0}↑ /{' '}
+													{tokenUsageInteraction?.outputTokens?.toLocaleString() || 0}↓
+													({tokenUsageInteraction?.totalTokens?.toLocaleString() || 0})
 												</span>
 											</>
 										)
 										: <span>No token usage for {entryType.replace('_', ' ')} entries</span>}
 								</div>
+								{/* END Metadata (initially hidden) */}
 							</div>
 
 							{/* Preview */}
@@ -811,6 +828,7 @@ export function MessageEntry({
 										}}
 									/>
 								)}
+								{/* END Preview */}
 							</div>
 
 							{/* Content area */}
@@ -820,9 +838,14 @@ export function MessageEntry({
 							>
 								{renderContent()}
 							</div>
+							{/* Header content */}
 						</div>
+						{/* END Message Body */}
 					</div>
+					{/* END Message container */}
 				</div>
+				{isAgentParent && renderAgentTasks()}
+				{/* END LogEntry container */}
 			</div>
 
 			{showToast && (

@@ -9,7 +9,7 @@
  */
 
 import type { LLMMessageContentPart, LLMMessageContentPartThinkingBlock } from 'api/llms/llmMessage.ts';
-import type { ConversationLogEntry, ConversationLogEntryContent } from 'api/storage/conversationLogger.ts';
+import type { CollaborationLogEntry, CollaborationLogEntryContent } from 'api/storage/collaborationLogger.ts';
 import type { LLMProviderMessageResponse } from 'api/types.ts';
 
 /**
@@ -22,9 +22,9 @@ export class ThinkingExtractor {
 	 * @param content - The content to extract thinking from
 	 * @returns Object containing extracted thinking and content with thinking removed
 	 */
-	static extract(content: string | LLMMessageContentPart[] | ConversationLogEntryContent): {
+	static extract(content: string | LLMMessageContentPart[] | CollaborationLogEntryContent): {
 		thinking: string;
-		content: string | LLMMessageContentPart[] | ConversationLogEntryContent;
+		content: string | LLMMessageContentPart[] | CollaborationLogEntryContent;
 	} {
 		// Handle string content
 		if (typeof content === 'string') {
@@ -36,7 +36,7 @@ export class ThinkingExtractor {
 			return this.extractFromContentParts(content);
 		}
 
-		// Handle other ConversationLogEntryContent types (like tool inputs, tool results)
+		// Handle other CollaborationLogEntryContent types (like tool inputs, tool results)
 		// For now, these don't typically contain thinking content
 		return { thinking: '', content };
 	}
@@ -163,12 +163,12 @@ export class ThinkingExtractor {
 	}
 
 	/**
-	 * Apply extracted thinking to a ConversationLogEntry
+	 * Apply extracted thinking to a CollaborationLogEntry
 	 *
 	 * @param logEntry - The log entry to process
 	 * @returns Updated log entry with extracted thinking
 	 */
-	static applyToLogEntry(logEntry: ConversationLogEntry): ConversationLogEntry {
+	static applyToLogEntry(logEntry: CollaborationLogEntry): CollaborationLogEntry {
 		// Skip if thinking is already present
 		if (logEntry.thinking) {
 			return logEntry;

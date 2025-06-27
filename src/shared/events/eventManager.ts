@@ -1,27 +1,34 @@
 import { LLMProviderMessageMeta, LLMProviderMessageResponse } from 'api/types/llms.ts';
 import {
 	ApiStatus,
-	ConversationContinue,
-	ConversationDeleted,
-	ConversationId,
-	ConversationLogEntryType,
-	ConversationNew,
-	ConversationResponse,
-	ConversationStart,
-	ConversationStats,
+	CollaborationContinue,
+	CollaborationDeleted,
+	CollaborationId,
+	CollaborationLogEntryType,
+	CollaborationNew,
+	CollaborationResponse,
+	CollaborationStart,
+	InteractionId,
+	InteractionStats,
+	ProjectId,
 } from 'shared/types.ts';
 import { VersionInfo } from '../types/version.types.ts';
 import { logger } from 'shared/logger.ts';
 
 export type EventMap = {
 	projectEditor: {
-		conversationNew: ConversationNew;
-		conversationDeleted: ConversationDeleted;
-		speakWith: { conversationId: ConversationId; projectId: string; prompt: string };
-		conversationReady: ConversationStart & { versionInfo: VersionInfo };
-		conversationContinue: ConversationContinue;
-		conversationAnswer: ConversationResponse;
-		conversationCancelled: { conversationId: ConversationId; message: string };
+		collaborationNew: CollaborationNew;
+		collaborationDeleted: CollaborationDeleted;
+		speakWith: {
+			collaborationId: CollaborationId;
+			interactionId: InteractionId;
+			projectId: ProjectId;
+			prompt: string;
+		};
+		collaborationReady: CollaborationStart & { versionInfo: VersionInfo };
+		collaborationContinue: CollaborationContinue;
+		collaborationAnswer: CollaborationResponse;
+		collaborationCancelled: { collaborationId: CollaborationId; interactionId: InteractionId; message: string };
 		progressStatus: {
 			type: 'progress_status';
 			status: ApiStatus;
@@ -38,11 +45,12 @@ export type EventMap = {
 			startTimestamp: number;
 			duration: number;
 		};
-		conversationError: {
-			conversationId: ConversationId;
-			agentInteractionId: string | null;
-			conversationTitle: string;
-			conversationStats: ConversationStats;
+		collaborationError: {
+			collaborationId: CollaborationId;
+			interactionId: InteractionId | null;
+			agentInteractionId: InteractionId | null;
+			collaborationTitle: string;
+			interactionStats: InteractionStats;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'
@@ -54,13 +62,13 @@ export type EventMap = {
 		};
 	};
 	cli: {
-		conversationNew: ConversationNew;
-		conversationWaitForReady: { conversationId: ConversationId };
-		conversationWaitForAnswer: { conversationId: ConversationId };
-		conversationReady: ConversationStart & { versionInfo: VersionInfo };
-		conversationContinue: ConversationContinue;
-		conversationAnswer: ConversationResponse;
-		websocketReconnected: { conversationId: ConversationId };
+		collaborationNew: CollaborationNew;
+		collaborationWaitForReady: { collaborationId: CollaborationId; interactionId: InteractionId };
+		collaborationWaitForAnswer: { collaborationId: CollaborationId; interactionId: InteractionId };
+		collaborationReady: CollaborationStart & { versionInfo: VersionInfo };
+		collaborationContinue: CollaborationContinue;
+		collaborationAnswer: CollaborationResponse;
+		websocketReconnected: { collaborationId: CollaborationId; interactionId: InteractionId };
 		progressStatus: {
 			type: 'progress_status';
 			status: ApiStatus;
@@ -77,9 +85,10 @@ export type EventMap = {
 			startTimestamp: number;
 			duration: number;
 		};
-		conversationError: {
-			conversationId: ConversationId;
-			agentInteractionId: string | null;
+		collaborationError: {
+			collaborationId: CollaborationId;
+			interactionId: InteractionId | null;
+			agentInteractionId: InteractionId | null;
 			error: string;
 			code?:
 				| 'INVALID_CONVERSATION_ID'
@@ -127,16 +136,17 @@ class EventManager extends EventTarget {
 		return EventManager.instance;
 	}
 
-	private getListenerKey(event: string, conversationId?: ConversationId): string {
-		return `${event}:${conversationId || 'global'}`;
+	private getListenerKey(event: string, collaborationId?: CollaborationId, interactionId?: InteractionId): string {
+		return `${event}:${collaborationId || 'global'}:${interactionId || 'primary'}`;
 	}
 
 	on<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
-		conversationId?: ConversationId,
+		collaborationId?: CollaborationId,
+		interactionId?: InteractionId,
 	): void {
-		const listenerKey = this.getListenerKey(event, conversationId);
+		const listenerKey = this.getListenerKey(event, collaborationId, interactionId);
 		if (!this.listenerMap.has(listenerKey)) {
 			this.listenerMap.set(listenerKey, new WeakMap());
 			this.listenerCounts.set(listenerKey, 0);
@@ -145,9 +155,9 @@ class EventManager extends EventTarget {
 
 		const wrappedListener = ((e: TypedEvent<EventPayload<T, E>>) => {
 			if (
-				!conversationId ||
-				(e.detail && typeof e.detail === 'object' && 'conversationId' in e.detail &&
-					e.detail.conversationId === conversationId)
+				!collaborationId ||
+				(e.detail && typeof e.detail === 'object' && 'collaborationId' in e.detail &&
+					e.detail.collaborationId === collaborationId)
 			) {
 				const result = callback(e.detail);
 				if (result instanceof Promise) {
@@ -164,9 +174,10 @@ class EventManager extends EventTarget {
 	off<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
 		callback: (payload: EventPayload<T, E>) => void | Promise<void>,
-		conversationId?: ConversationId,
+		collaborationId?: CollaborationId,
+		interactionId?: InteractionId,
 	): void {
-		const listenerKey = this.getListenerKey(event, conversationId);
+		const listenerKey = this.getListenerKey(event, collaborationId, interactionId);
 		const listenerWeakMap = this.listenerMap.get(listenerKey);
 		if (listenerWeakMap) {
 			const wrappedListener = listenerWeakMap.get(callback);
@@ -181,14 +192,15 @@ class EventManager extends EventTarget {
 
 	once<T extends keyof EventMap, E extends EventName<T>>(
 		event: E,
-		conversationId?: ConversationId,
+		collaborationId?: CollaborationId,
+		interactionId?: InteractionId,
 	): Promise<EventPayload<T, E>> {
 		return new Promise((resolve) => {
 			const handler = (payload: EventPayload<T, E>) => {
-				this.off(event, handler, conversationId);
+				this.off(event, handler, collaborationId, interactionId);
 				resolve(payload);
 			};
-			this.on(event, handler, conversationId);
+			this.on(event, handler, collaborationId, interactionId);
 		});
 	}
 

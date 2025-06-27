@@ -10,8 +10,8 @@ import {
 	getBbDirFromWorkingRoot,
 	getGlobalConfigDir,
 } from 'shared/dataDir.ts';
-import { ConversationMigration } from 'api/storage/conversationMigration.ts';
-import type { MigrationResult as ConversationMigrationResult } from 'api/storage/conversationMigration.ts';
+//import { StorageMigration } from 'api/storage/storageMigration.ts';
+//import type { MigrationResult as ConversationMigrationResult } from 'api/storage/storageMigration.ts';
 import {
 	getProjectAdminConfigPath,
 	getProjectAdminDataDir,
@@ -19,10 +19,11 @@ import {
 	isProjectMigrated,
 	migrateProjectFiles,
 } from 'shared/projectPath.ts';
+import type { ProjectId } from 'shared/types.ts';
 
 interface MigrationReport {
 	timestamp: string;
-	projectId: string;
+	projectId: ProjectId;
 	projectConfig: {
 		from: string;
 		to: string;
@@ -30,7 +31,7 @@ interface MigrationReport {
 		changes: Array<{ path: string[]; from: unknown; to: unknown }>;
 		errors: Array<{ path: string[]; message: string }>;
 	};
-	conversations?: ConversationMigrationResult;
+	//conversations?: ConversationMigrationResult;
 }
 import type {
 	ConfigVersion,
@@ -150,7 +151,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @returns The project's configuration
 	 * @throws Error if project not found or configuration is invalid
 	 */
-	public async getProjectConfig(projectId: string): Promise<ProjectConfig> {
+	public async getProjectConfig(projectId: ProjectId): Promise<ProjectConfig> {
 		if (!this.projectConfigs.has(projectId)) {
 			const config = mergeGlobalIntoProjectConfig(
 				await this.loadProjectConfig(projectId),
@@ -211,7 +212,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * });
 	 * ```
 	 */
-	public async updateProjectConfig(projectId: string, updates: Partial<ProjectConfig>): Promise<void> {
+	public async updateProjectConfig(projectId: ProjectId, updates: Partial<ProjectConfig>): Promise<void> {
 		await this.ensureLatestProjectConfig(projectId);
 		const current = await this.getProjectConfig(projectId);
 		const updated = { ...current, ...updates };
@@ -235,7 +236,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		this.projectConfigs.set(projectId, mergedConfig);
 	}
 
-	public async setProjectConfigValue(projectId: string, key: string, value: string | null): Promise<void> {
+	public async setProjectConfigValue(projectId: ProjectId, key: string, value: string | null): Promise<void> {
 		await this.ensureLatestProjectConfig(projectId);
 		const configPath = await getProjectAdminConfigPath(projectId);
 
@@ -395,7 +396,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @param appConfigData - Initial app configuration data
 	 */
 	public async createProjectConfig(
-		projectId: string,
+		projectId: ProjectId,
 		appConfigData: Partial<ProjectConfig> = {},
 		workingRoot?: string,
 	): Promise<void> {
@@ -451,7 +452,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	/**
 	 * Gets just the project-specific configuration overrides without merging with global
 	 */
-	public async getProjectAppConfigOverrides(projectId: string): Promise<Partial<ProjectConfig>> {
+	public async getProjectAppConfigOverrides(projectId: ProjectId): Promise<Partial<ProjectConfig>> {
 		const configPath = await getProjectAdminConfigPath(projectId);
 
 		try {
@@ -470,7 +471,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		}
 	}
 
-	public async deleteProjectConfig(projectId: string): Promise<void> {
+	public async deleteProjectConfig(projectId: ProjectId): Promise<void> {
 		try {
 			const workingRoot = this.workingRoots.get(projectId);
 			if (workingRoot) {
@@ -508,14 +509,14 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * Removes project config from cache
 	 * Note: This does not delete the project, just removes it from memory
 	 */
-	public async removeProjectFromCache(projectId: string): Promise<void> {
+	public async removeProjectFromCache(projectId: ProjectId): Promise<void> {
 		this.projectConfigs.delete(projectId);
 	}
 
 	/**
 	 * @deprecated Use ProjectPersistence.deleteProject() instead
 	 */
-	public async archiveProject(projectId: string): Promise<void> {
+	public async archiveProject(projectId: ProjectId): Promise<void> {
 		// For now, just remove from cache
 		this.projectConfigs.delete(projectId);
 	}
@@ -564,7 +565,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		}
 	}
 
-	public async ensureLatestProjectConfig(projectId: string): Promise<void> {
+	public async ensureLatestProjectConfig(projectId: ProjectId): Promise<void> {
 		const configPath = await getProjectAdminConfigPath(projectId);
 		const projectAdminDir = await getProjectAdminDir(projectId);
 
@@ -609,10 +610,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				);
 				this.projectConfigs.set(projectId, mergedConfig);
 
+				/*
+				// Storage files and resrouces are handled by API startup process
+				// and should be decoupled from config management
 				// Migrate conversations if needed
 				try {
 					const projectAdminDataDir = await getProjectAdminDataDir(projectId);
-					const conversationResult = await ConversationMigration.migrateProject(projectAdminDataDir);
+					const conversationResult = await StorageMigration.migrateProjectInteractions(projectId, projectAdminDataDir);
 					if (conversationResult.failed > 0) {
 						logger.warn(
 							`ConfigManager: Some conversations failed to migrate: ${conversationResult.failed} failures out of ${conversationResult.total} total`,
@@ -642,7 +646,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 						skipped: 0,
 						failed: 0,
 						results: [{
-							conversationId: 'all',
+							entityId: 'all',
 							result: {
 								success: false,
 								version: { from: 1, to: 1 },
@@ -664,6 +668,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					reports.push(report);
 					await Deno.writeTextFile(reportPath, JSON.stringify(reports, null, 2));
 				}
+				 */
 			} else {
 				logger.info(`ConfigManager: Config is current version for: ${projectId}`);
 			}
@@ -832,7 +837,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	 * @throws Error if project not found or configuration is invalid
 	 * @internal
 	 */
-	public async loadProjectConfig(projectId: string): Promise<ProjectConfig> {
+	public async loadProjectConfig(projectId: ProjectId): Promise<ProjectConfig> {
 		//logger.info(`ConfigManager: loadProjectConfig for ${projectId}`);
 
 		const migrated = await isProjectMigrated(projectId);
@@ -1624,7 +1629,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		return redactedConfig as GlobalConfig;
 	}
 
-	public async getRedactedProjectConfig(projectId: string): Promise<ProjectConfig> {
+	public async getRedactedProjectConfig(projectId: ProjectId): Promise<ProjectConfig> {
 		const projectConfig = await this.getProjectConfig(projectId);
 		const redactedConfig = this.redactSensitiveInfo(projectConfig);
 		return redactedConfig as ProjectConfig;

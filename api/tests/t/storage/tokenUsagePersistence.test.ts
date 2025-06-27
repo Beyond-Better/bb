@@ -9,13 +9,14 @@ import {
 } from 'api/tests/mockData.ts';
 import { TokenUsageValidationError } from 'api/errors/error.ts';
 import type { TokenUsageRecord } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE_REQUIRED } from 'shared/types.ts';
 
 // Helper function to set up test directory structure
-// async function setupTestDir(testProjectRoot: string, conversationId: string) {
+// async function setupTestDir(testProjectRoot: string, interactionId: string) {
 // 	const bbDir = join(testProjectRoot, '.bb');
-// 	const conversationsDir = join(bbDir, 'data', 'conversations', conversationId);
-// 	await ensureDir(conversationsDir);
-// 	return conversationsDir;
+// 	const interactionsDir = join(bbDir, 'data', 'conversations', interactionId);
+// 	await ensureDir(interactionsDir);
+// 	return interactionsDir;
 // }
 
 Deno.test({
@@ -23,8 +24,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create test record using mock utility
 			const record = createMockTokenUsageRecord('assistant', 'conversation', {
@@ -55,8 +56,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create records in old format (v1)
 			const oldFormatRecords = [
@@ -150,8 +151,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create a valid record
 			const record = createMockTokenUsageRecord('assistant', 'conversation', {
@@ -195,8 +196,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create multiple records with unique IDs
 			const records = Array.from(
@@ -241,8 +242,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Test various cache impact scenarios
 			const cacheTestCases = [
@@ -340,8 +341,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// First, write some valid records
 			const validRecords = createMockTokenUsageRecordSequence(2, {
@@ -361,16 +362,8 @@ Deno.test({
 					role: 'assistant',
 					type: 'conversation',
 					timestamp: new Date().toISOString(),
-					rawUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					rawUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: 0,
 						actualCost: 0,
@@ -390,11 +383,7 @@ Deno.test({
 						outputTokens: 1,
 						totalTokens: 2,
 					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: 1,
 						actualCost: 1,
@@ -414,11 +403,7 @@ Deno.test({
 						outputTokens: Number.MAX_SAFE_INTEGER,
 						totalTokens: Number.MAX_SAFE_INTEGER,
 					},
-					differentialUsage: {
-						inputTokens: 0,
-						outputTokens: 0,
-						totalTokens: 0,
-					},
+					differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 					cacheImpact: {
 						potentialCost: Number.MAX_SAFE_INTEGER,
 						actualCost: Number.MAX_SAFE_INTEGER,
@@ -471,8 +456,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Test cases that might occur in real usage
 			const realWorldCases = [
@@ -561,8 +546,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Test type mismatch - should throw and not save
 			const mismatchedType = createMockTokenUsageRecord('assistant', 'conversation');
@@ -593,11 +578,7 @@ Deno.test({
 					outputTokens: -2,
 					totalTokens: -3,
 				},
-				differentialUsage: {
-					inputTokens: 0,
-					outputTokens: 0,
-					totalTokens: 0,
-				},
+				differentialUsage: DEFAULT_TOKEN_USAGE_REQUIRED(),
 				cacheImpact: {
 					potentialCost: 10,
 					actualCost: 20, // Invalid: actual > potential
@@ -729,8 +710,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create sequence of records
 			const records = createMockTokenUsageRecordSequence(5, {
@@ -774,8 +755,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create initial record
 			const firstRecord = createMockTokenUsageRecord('assistant', 'conversation', {
@@ -821,8 +802,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Test cases that should log warnings but not throw
 			const warningCases = [
@@ -957,8 +938,8 @@ Deno.test({
 	fn: async () => {
 		await withTestProject(async (testProjectId, _testProjectRoot) => {
 			const projectEditor = await getProjectEditor(testProjectId);
-			const interaction = await createTestInteraction('test-conversation', projectEditor);
-			const tokenUsagePersistence = interaction.conversationPersistence['tokenUsagePersistence'];
+			const interaction = await createTestInteraction('test-collaboration', 'test-interaction', projectEditor);
+			const tokenUsagePersistence = interaction.interactionPersistence['tokenUsagePersistence'];
 
 			// Create records with varying cache usage
 			const records = [

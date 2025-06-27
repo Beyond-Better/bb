@@ -8,7 +8,7 @@ export async function getCurrentSubscription(ctx: Context) {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
-				`SubscriptionHandler: HandlerContinueConversation: No session manager configured`,
+				`SubscriptionHandler: getCurrentSubscription: No session manager configured`,
 			);
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'No session manager configured' };
@@ -39,7 +39,7 @@ export async function getAvailablePlans(ctx: Context) {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
-				`SubscriptionHandler: HandlerContinueConversation: No session manager configured`,
+				`SubscriptionHandler: getAvailablePlans: No session manager configured`,
 			);
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'No session manager configured' };
@@ -72,7 +72,7 @@ export async function changePlan(ctx: Context) {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
-				`SubscriptionHandler: HandlerContinueConversation: No session manager configured`,
+				`SubscriptionHandler: changePlan: No session manager configured`,
 			);
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'No session manager configured' };
@@ -118,7 +118,7 @@ export async function getPreview(ctx: Context) {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
-				`SubscriptionHandler: HandlerContinueConversation: No session manager configured`,
+				`SubscriptionHandler: getPreview: No session manager configured`,
 			);
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'No session manager configured' };
@@ -167,7 +167,7 @@ export async function cancelSubscription(ctx: Context) {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
 			logger.warn(
-				`SubscriptionHandler: HandlerContinueConversation: No session manager configured`,
+				`SubscriptionHandler: cancelSubscription: No session manager configured`,
 			);
 			ctx.response.status = 400;
 			ctx.response.body = { error: 'No session manager configured' };

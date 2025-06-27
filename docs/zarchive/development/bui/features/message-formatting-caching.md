@@ -28,7 +28,7 @@ This document outlines the strategy for handling formatted log entries in the BU
    
    // Request body
    {
-     logEntry: ConversationLogEntry;
+     logEntry: CollaborationLogEntry;
      projectId: string;
    }
    ```
@@ -53,7 +53,7 @@ useEffect(() => {
 1. Cache Structure
    ```typescript
    interface FormattedContentCache {
-     [conversationId: string]: {
+     [collaborationId: string]: {
        [entryIndex: number]: {
          formattedContent: string;
          timestamp: number;
@@ -81,19 +81,19 @@ useEffect(() => {
      private static MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
      private static MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-     static async get(conversationId: string, entryIndex: number): Promise<string | null> {
+     static async get(collaborationId: string, entryIndex: number): Promise<string | null> {
        // Implementation
      }
 
      static async set(
-       conversationId: string, 
+       collaborationId: string, 
        entryIndex: number, 
        content: string
      ): Promise<void> {
        // Implementation
      }
 
-     static async clear(conversationId?: string): Promise<void> {
+     static async clear(collaborationId?: string): Promise<void> {
        // Implementation
      }
 

@@ -9,7 +9,7 @@
 
 import { Browser, launch, Page } from 'astral';
 
-import { ConversationId } from 'shared/types.ts';
+import { InteractionId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 
 class FetchManager {

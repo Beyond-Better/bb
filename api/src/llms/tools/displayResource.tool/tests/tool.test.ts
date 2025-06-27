@@ -58,8 +58,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('display text resource - bbResponse:', result.bbResponse);
 			// console.log('display text resource - toolResponse:', result.toolResponse);
 			// console.log('display text resource - toolResults:', result.toolResults);
@@ -193,8 +193,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('display text resource - bbResponse:', result.bbResponse);
 			// console.log('display text resource - toolResponse:', result.toolResponse);
 			// console.log('display text resource - toolResults:', result.toolResults);
@@ -250,8 +250,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('resource outside project - bbResponse:', result.bbResponse);
 			// console.log('resource outside project - toolResponse:', result.toolResponse);
 			// console.log('resource outside project - toolResults:', result.toolResults);
@@ -286,8 +286,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('resource outside project - bbResponse:', result.bbResponse);
 			// console.log('resource outside project - toolResponse:', result.toolResponse);
 			// console.log('resource outside project - toolResults:', result.toolResults);

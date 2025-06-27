@@ -136,11 +136,14 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
-			console.log('List resources from filesystem - bbResponse:', result.bbResponse);
-			console.log('List resources from filesystem - toolResponse:', result.toolResponse);
-			console.log('List resources from filesystem - toolResults:', result.toolResults);
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-collaboration-id',
+				'test-interaction-id',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
+			// console.log('List resources from filesystem - bbResponse:', result.bbResponse);
+			// console.log('List resources from filesystem - toolResponse:', result.toolResponse);
+			// console.log('List resources from filesystem - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -246,8 +249,11 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-metadata-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-metadata-collaboration-id',
+				'test-metadata-interaction-id',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
 			console.log('Get metadata from filesystem - bbResponse:', result.bbResponse);
 
 			assert(
@@ -363,8 +369,11 @@ Deno.test({
 				},
 			};
 
-			const initialConversation = await projectEditor.initConversation('test-both-conversation-id');
-			const result = await tool.runTool(initialConversation, toolUse, projectEditor);
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-both-collaboration-id',
+				'test-both-interaction-id',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
 			console.log('Get both metadata and resources - bbResponse:', result.bbResponse);
 
 			assert(
@@ -467,10 +476,10 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 
 			try {
-				await tool.runTool(conversation, toolUse, projectEditor);
+				await tool.runTool(interaction, toolUse, projectEditor);
 				assert(false, 'Tool should throw an error for non-existent data source');
 			} catch (error) {
 				assert(error instanceof Error, 'Error should be an instance of Error');

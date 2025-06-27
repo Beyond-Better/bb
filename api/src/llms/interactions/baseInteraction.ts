@@ -2,20 +2,30 @@
 //import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 //import LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLM from '../providers/baseLLM.ts';
-import { type LLMCallbacks, LLMCallbackType, type LLMExtendedThinkingOptions, type LLMProvider } from 'api/types.ts';
+import {
+	type LLMCallbacks,
+	LLMCallbackType,
+	type LLMExtendedThinkingOptions,
+	type LLMModelConfig,
+	type LLMProvider,
+} from 'api/types.ts';
 import type {
 	CacheImpact,
-	ConversationId,
-	ConversationMetrics,
-	ConversationStats,
+	CollaborationId,
+	InteractionId,
+	InteractionMetrics,
+	InteractionStats,
+	InteractionType,
 	ObjectivesData,
 	ResourceMetrics,
 	TokenUsage,
 	TokenUsageDifferential,
 	TokenUsageRecord,
-	TokenUsageStats,
+	TokenUsageStatsForCollaboration,
+	TokenUsageStatsForInteraction,
 	ToolStats,
 } from 'shared/types.ts';
+import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import type {
 	LLMMessageContentPart,
 	LLMMessageContentPartImageBlock,
@@ -24,66 +34,45 @@ import type {
 	LLMMessageContentPartToolResultBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import { getLLMModelToProvider, type LLMProviderMessageResponseRole, type LLMRequestParams } from 'api/types/llms.ts';
+import { getLLMModelToProvider, type LLMProviderMessageResponseRole } from 'api/types/llms.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
-import ConversationPersistence from 'api/storage/conversationPersistence.ts';
-import ConversationLogger from 'api/storage/conversationLogger.ts';
-import type { ConversationLogEntry } from 'api/storage/conversationLogger.ts';
-import { generateConversationId, shortenConversationId } from 'shared/conversationManagement.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
+import InteractionPersistence from 'api/storage/interactionPersistence.ts';
+import CollaborationLogger from 'api/storage/collaborationLogger.ts';
+import type { CollaborationLogEntry } from 'api/storage/collaborationLogger.ts';
+import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { logger } from 'shared/logger.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import type { InteractionPreferences, ModelCapabilities } from 'api/types/modelCapabilities.ts';
-import { ModelCapabilitiesManager } from 'api/llms/modelCapabilitiesManager.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import LLMFactory from '../llmProvider.ts';
 import { LLMProvider as LLMProviderEnum } from 'api/types.ts';
+import type { LLMSpeakWithResponse } from 'api/types.ts';
 
 class LLMInteraction {
 	public id: string;
-	public title: string = '';
+	public parentInteractionId?: string;
+	public title: string | null = null;
 	public createdAt: Date = new Date();
 	public updatedAt: Date = new Date();
-	protected _interactionType: 'base' | 'chat' | 'conversation';
+	protected _interactionType: InteractionType;
 
 	private _totalProviderRequests: number = 0;
 	// count of turns for most recent statement
 	protected _statementTurnCount: number = 0;
 	// count of turns for all statements (whole conversation)
-	protected _conversationTurnCount: number = 0;
+	protected _interactionTurnCount: number = 0;
 	// count of statements
 	protected _statementCount: number = 0;
 	// token usage for most recent turn
-	protected _tokenUsageTurn: TokenUsage = {
-		totalTokens: 0,
-		inputTokens: 0,
-		outputTokens: 0,
-		cacheCreationInputTokens: 0,
-		cacheReadInputTokens: 0,
-		thoughtTokens: 0,
-		totalAllTokens: 0,
-	};
+	protected _tokenUsageTurn: TokenUsage = DEFAULT_TOKEN_USAGE();
 	// token usage for most recent statement
-	protected _tokenUsageStatement: TokenUsage = {
-		totalTokens: 0,
-		inputTokens: 0,
-		outputTokens: 0,
-		cacheCreationInputTokens: 0,
-		cacheReadInputTokens: 0,
-		thoughtTokens: 0,
-		totalAllTokens: 0,
-	};
+	protected _tokenUsageStatement: TokenUsage = DEFAULT_TOKEN_USAGE();
 	// token usage for for all statements
-	protected _tokenUsageInteraction: TokenUsage = {
-		totalTokens: 0,
-		inputTokens: 0,
-		outputTokens: 0,
-		cacheCreationInputTokens: 0,
-		cacheReadInputTokens: 0,
-		thoughtTokens: 0,
-		totalAllTokens: 0,
-	};
+	protected _tokenUsageInteraction: TokenUsage = DEFAULT_TOKEN_USAGE();
 	// Task-oriented metrics
 	protected _objectives: ObjectivesData;
 	protected _resourceMetrics: ResourceMetrics = {
@@ -98,8 +87,9 @@ class LLMInteraction {
 	protected tools: Map<string, LLMTool> = new Map();
 	protected _extendedThinking: LLMExtendedThinkingOptions | undefined;
 	protected _baseSystem: string = '';
-	public conversationPersistence!: ConversationPersistence;
-	public conversationLogger!: ConversationLogger;
+	public interactionPersistence!: InteractionPersistence;
+	protected collaborationRef!: WeakRef<Collaboration>;
+	public collaborationLogger!: CollaborationLogger;
 	protected projectConfig!: ProjectConfig;
 
 	private _llmProvider!: LLM;
@@ -112,8 +102,8 @@ class LLMInteraction {
 	protected _temperature: number = 0.2;
 	protected _currentPrompt: string = '';
 
-	protected _requestParams?: LLMRequestParams;
-	// 	protected _requestParams: LLMRequestParams = {
+	protected _modelConfig?: LLMModelConfig;
+	// 	protected _modelConfig: LLMModelConfig = {
 	// 		model: '',
 	// 		temperature: 0,
 	// 		maxTokens: 0,
@@ -121,13 +111,15 @@ class LLMInteraction {
 	// 		usePromptCaching: false,
 	// 	};
 
-	constructor(conversationId?: ConversationId) {
-		this.id = conversationId ?? shortenConversationId(generateConversationId());
-		//this.llm = llm;
+	constructor(collaboration: Collaboration, interactionId?: InteractionId) {
+		this.collaborationRef = new WeakRef(collaboration);
+
+		this.id = interactionId ?? shortenInteractionId(generateInteractionId());
 		this._interactionType = 'base';
+
 		// Ensure objectives are properly initialized
 		this._objectives = {
-			conversation: undefined,
+			collaboration: undefined,
 			statement: [],
 			timestamp: new Date().toISOString(),
 		};
@@ -136,11 +128,12 @@ class LLMInteraction {
 	public async init(
 		interactionModel: string,
 		interactionCallbacks: LLMCallbacks,
-		parentInteractionId?: ConversationId,
+		parentInteractionId?: InteractionId,
 	): Promise<LLMInteraction> {
 		try {
 			this._model = interactionModel;
 			this._interactionCallbacks = interactionCallbacks;
+			this.parentInteractionId = parentInteractionId;
 			const configManager = await getConfigManager();
 			const globalConfig = await configManager.getGlobalConfig();
 			this._localMode = globalConfig.api.localMode ?? false;
@@ -159,36 +152,40 @@ class LLMInteraction {
 			const logEntryHandler = async (
 				messageId: string,
 				parentMessageId: string | null,
-				parentInteractionId: ConversationId,
-				agentInteractionId: ConversationId | null,
+				collaborationId: CollaborationId,
+				//parentInteractionId: InteractionId,
+				agentInteractionId: InteractionId | null,
 				timestamp: string,
-				logEntry: ConversationLogEntry,
-				conversationStats: ConversationStats,
-				tokenUsageStats: TokenUsageStats,
-				requestParams?: LLMRequestParams,
+				logEntry: CollaborationLogEntry,
+				interactionStats: InteractionStats,
+				tokenUsageStatsForCollaboration: TokenUsageStatsForCollaboration,
+				modelConfig?: LLMModelConfig,
 			): Promise<void> => {
 				await this.llm.invoke(
 					LLMCallbackType.LOG_ENTRY_HANDLER,
 					messageId,
 					parentMessageId,
-					parentInteractionId,
+					collaborationId,
+					//parentInteractionId,
 					agentInteractionId,
 					timestamp,
 					logEntry,
-					conversationStats,
-					tokenUsageStats,
-					requestParams,
+					interactionStats,
+					tokenUsageStatsForCollaboration,
+					modelConfig,
 				);
 			};
 			const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
-			this.conversationPersistence = await new ConversationPersistence(
+			this.interactionPersistence = await new InteractionPersistence(
+				this.collaboration.id,
 				this.id,
 				projectEditor,
 				parentInteractionId,
 			).init();
-			this.conversationLogger = await new ConversationLogger(
+			this.collaborationLogger = await new CollaborationLogger(
 				projectEditor,
-				parentInteractionId ?? this.id,
+				this.collaboration.id,
+				//parentInteractionId ?? this.id,
 				logEntryHandler,
 			)
 				.init();
@@ -200,7 +197,39 @@ class LLMInteraction {
 		return this;
 	}
 
-	public get interactionType(): 'chat' | 'conversation' | 'base' {
+	async saveInteraction(
+		currentResponse: LLMSpeakWithResponse,
+	): Promise<void> {
+		try {
+			await this.interactionPersistence.saveInteraction(this);
+
+			// Save system prompt and project info if running in local development
+			if (this.projectConfig.api?.environment === 'localdev') {
+				const system = Array.isArray(currentResponse.messageMeta.system)
+					? currentResponse.messageMeta.system[0].text
+					: currentResponse.messageMeta.system;
+				await this.interactionPersistence.dumpSystemPrompt(system);
+				//const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
+				//await this.interactionPersistence.dumpProjectInfo(projectEditor.projectInfo);
+			}
+
+			logger.info(`LLMInteraction: Saved interaction: ${this.id}`);
+		} catch (error) {
+			logger.error(`LLMInteraction: Error persisting the interaction:`, error);
+			throw error;
+		}
+	}
+
+	public get collaboration(): Collaboration {
+		const collaboration = this.collaborationRef.deref();
+		if (!collaboration) throw new Error('No collaboration to deref from collaborationRef');
+		return collaboration;
+	}
+	public set collaboration(collaboration: Collaboration) {
+		this.collaborationRef = new WeakRef(collaboration);
+	}
+
+	public get interactionType(): InteractionType {
 		return this._interactionType;
 	}
 
@@ -211,37 +240,37 @@ class LLMInteraction {
 		return this._llmProvider;
 	}
 
-	public get conversationStats(): ConversationStats {
+	public get interactionStats(): InteractionStats {
 		return {
 			statementCount: this._statementCount,
 			statementTurnCount: this._statementTurnCount,
-			conversationTurnCount: this._conversationTurnCount,
+			interactionTurnCount: this._interactionTurnCount,
 		};
 	}
-	public set conversationStats(stats: ConversationStats) {
+	public set interactionStats(stats: InteractionStats) {
 		this._statementCount = stats.statementCount;
 		this._statementTurnCount = stats.statementTurnCount;
-		this._conversationTurnCount = stats.conversationTurnCount;
+		this._interactionTurnCount = stats.interactionTurnCount;
 	}
 
-	public get tokenUsageStats(): TokenUsageStats {
+	public get tokenUsageStatsForInteraction(): TokenUsageStatsForInteraction {
 		return {
 			tokenUsageTurn: this._tokenUsageTurn,
 			tokenUsageStatement: this._tokenUsageStatement,
-			tokenUsageConversation: this._tokenUsageInteraction,
+			tokenUsageInteraction: this._tokenUsageInteraction,
 		};
 	}
-	public set tokenUsageStats(stats: TokenUsageStats) {
+	public set tokenUsageStatsForInteraction(stats: TokenUsageStatsForInteraction) {
 		this._tokenUsageTurn = stats.tokenUsageTurn;
 		this._tokenUsageStatement = stats.tokenUsageStatement;
-		this._tokenUsageInteraction = stats.tokenUsageConversation;
+		this._tokenUsageInteraction = stats.tokenUsageInteraction;
 	}
 
-	public get requestParams(): LLMRequestParams | undefined {
-		return this._requestParams;
+	public get modelConfig(): LLMModelConfig | undefined {
+		return this._modelConfig;
 	}
-	public set requestParams(requestParams: LLMRequestParams | undefined) {
-		this._requestParams = requestParams;
+	public set modelConfig(modelConfig: LLMModelConfig | undefined) {
+		this._modelConfig = modelConfig;
 	}
 
 	public get totalProviderRequests(): number {
@@ -259,11 +288,11 @@ class LLMInteraction {
 		this._statementTurnCount = count;
 	}
 	// count of turns for all statement
-	public get conversationTurnCount(): number {
-		return this._conversationTurnCount;
+	public get interactionTurnCount(): number {
+		return this._interactionTurnCount;
 	}
-	public set conversationTurnCount(count: number) {
-		this._conversationTurnCount = count;
+	public set interactionTurnCount(count: number) {
+		this._interactionTurnCount = count;
 	}
 	// count of statements
 	public get statementCount(): number {
@@ -363,6 +392,7 @@ class LLMInteraction {
 				(tokenUsage.thoughtTokens ?? 0),
 		};
 		return {
+			interactionId: this.id,
 			messageId: this.getLastMessageId(),
 			statementCount: this.statementCount,
 			statementTurnCount: this.statementTurnCount,
@@ -392,12 +422,12 @@ class LLMInteraction {
 		) {
 			// Record token usage with interactionType
 			const usageRecord = this.createTokenUsageRecord(tokenUsage, model);
-			this.conversationPersistence.writeTokenUsage(usageRecord, this.interactionType).then(() =>
+			this.interactionPersistence.writeTokenUsage(usageRecord, this.interactionType).then(() =>
 				logger.debug('BaseInteraction - token usage written to JSON log', tokenUsage)
 			);
 		}
 
-		if (this.conversationTurnCount === 0) {
+		if (this.interactionTurnCount === 0) {
 			this.tokenUsageInteraction.totalTokens = 0;
 			this.tokenUsageInteraction.inputTokens = 0;
 			this.tokenUsageInteraction.outputTokens = 0;
@@ -461,6 +491,8 @@ class LLMInteraction {
 
 		this.tokenUsageTurn = tokenUsage;
 
+		this.collaboration.addTokenUsageCollaboration(tokenUsage);
+
 		// logger.error('LLMInteraction: updateTotals - ', {
 		// 	tokenUsageInteraction: this.tokenUsageInteraction,
 		// 	tokenUsageStatement: this.tokenUsageStatement,
@@ -468,7 +500,7 @@ class LLMInteraction {
 		// });
 
 		this.statementTurnCount++;
-		this.conversationTurnCount++;
+		this.interactionTurnCount++;
 	}
 
 	public updateToolStats(toolName: string, success: boolean): void {
@@ -494,19 +526,19 @@ class LLMInteraction {
 		this._resourceMetrics.active.add(resourceMetric);
 	}
 
-	public setObjectives(conversation?: string, statement?: string): void {
+	public setObjectives(collaboration?: string, statement?: string): void {
 		// Initialize objectives if not set
 		if (!this._objectives) {
 			this._objectives = {
-				conversation: undefined,
+				collaboration: undefined,
 				statement: [],
 				timestamp: new Date().toISOString(),
 			};
 		}
 
-		// Update conversation goal if provided
-		if (conversation) {
-			this._objectives.conversation = String(conversation);
+		// Update collaboration goal if provided
+		if (collaboration) {
+			this._objectives.collaboration = String(collaboration);
 		}
 
 		// Append new statement objective if provided
@@ -523,16 +555,16 @@ class LLMInteraction {
 		return this._objectives;
 	}
 
-	public get conversationMetrics(): ConversationMetrics {
+	public get interactionMetrics(): InteractionMetrics {
 		return {
 			statementTurnCount: this.statementTurnCount,
-			conversationTurnCount: this.conversationTurnCount,
+			interactionTurnCount: this.interactionTurnCount,
 			statementCount: this.statementCount,
 
 			// New task-oriented metrics
 			objectives: this._objectives
 				? {
-					conversation: this._objectives.conversation,
+					collaboration: this._objectives.collaboration,
 					statement: this._objectives.statement,
 					timestamp: this._objectives.timestamp,
 				}
@@ -570,7 +602,7 @@ class LLMInteraction {
 			const newMessage = new LLMMessage(
 				'user',
 				Array.isArray(content) ? content : [content],
-				this.conversationStats,
+				this.interactionStats,
 			);
 			this.addMessage(newMessage);
 			return newMessage.id;
@@ -598,7 +630,7 @@ class LLMInteraction {
 			const newMessage = new LLMMessage(
 				'assistant',
 				Array.isArray(content) ? content : [content],
-				this.conversationStats,
+				this.interactionStats,
 				tool_call_id,
 				providerResponse,
 			);
@@ -683,7 +715,7 @@ class LLMInteraction {
 			);
 			const newMessageContent: LLMMessageContentParts = [toolResult];
 			if (bbResult) newMessageContent.push(bbResult);
-			const newMessage = new LLMMessage('user', newMessageContent, this.conversationStats);
+			const newMessage = new LLMMessage('user', newMessageContent, this.interactionStats);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}
@@ -693,7 +725,7 @@ class LLMInteraction {
 		message: {
 			role: LLMProviderMessageResponseRole;
 			content: LLMMessageContentParts;
-			conversationStats: ConversationStats;
+			interactionStats: InteractionStats;
 			id?: string;
 			tool_call_id?: string;
 			providerResponse?: LLMMessageProviderResponse;
@@ -708,7 +740,7 @@ class LLMInteraction {
 			completeMessage = new LLMMessage(
 				message.role,
 				message.content,
-				message.conversationStats,
+				message.interactionStats,
 				message.tool_call_id,
 				message.providerResponse,
 				message.id,
@@ -733,7 +765,7 @@ class LLMInteraction {
 	}
 
 	/**
-	 * Returns the most recent message from the assistant in the conversation.
+	 * Returns the most recent message from the assistant in the interaction.
 	 * This is more reliable than getLastMessage() when specifically needing an assistant message,
 	 * as the last message could be from the user or a tool result.
 	 */
@@ -748,7 +780,7 @@ class LLMInteraction {
 	}
 
 	/**
-	 * Returns the most recent message from the user in the conversation.
+	 * Returns the most recent message from the user in the interaction.
 	 * This is more reliable than getLastMessage() when specifically needing an assistant message,
 	 * as the last message could be from the user or a tool result.
 	 */
@@ -872,7 +904,7 @@ class LLMInteraction {
 		},
 		provider?: LLMProvider,
 	): Promise<{ maxTokens: number; temperature: number; extendedThinking: boolean }> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
+		const registryService = await ModelRegistryService.getInstance(this.projectConfig);
 
 		const modelToProvider = await getLLMModelToProvider();
 		const effectiveProvider = provider || modelToProvider[model];
@@ -887,30 +919,27 @@ class LLMInteraction {
 		const explicitExtendedThinking = parameters.extendedThinking;
 
 		// Resolve maxTokens with proper priority
-		const maxTokens = capabilitiesManager.resolveMaxTokens(
+		const maxTokens = registryService.resolveMaxTokens(
 			model,
 			explicitMaxTokens, // || this._maxTokens,
 			userPreferences?.maxTokens,
 			interactionPreferences.maxTokens,
-			provider,
 		);
 
 		// Resolve temperature with proper priority
-		const temperature = capabilitiesManager.resolveTemperature(
+		const temperature = registryService.resolveTemperature(
 			model,
 			explicitTemperature, // || this._temperature,
 			userPreferences?.temperature,
 			interactionPreferences.temperature,
-			provider,
 		);
 
 		// Resolve temperature with proper priority
-		const extendedThinking = capabilitiesManager.resolveExtendedThinking(
+		const extendedThinking = registryService.resolveExtendedThinking(
 			model,
 			explicitExtendedThinking, // || this._extendedThinking.enabled,
 			userPreferences?.extendedThinking,
 			interactionPreferences.extendedThinking,
-			provider,
 		);
 
 		return { maxTokens, temperature, extendedThinking };
@@ -922,8 +951,8 @@ class LLMInteraction {
 	 * @returns model capabilities for current model for the interaction
 	 */
 	public async getModelCapabilities(): Promise<ModelCapabilities> {
-		const capabilitiesManager = await ModelCapabilitiesManager.getInstance(this.projectConfig);
-		const modelCapabilities = capabilitiesManager.getModelCapabilities(this.model);
+		const registryService = await ModelRegistryService.getInstance(this.projectConfig);
+		const modelCapabilities = registryService.getModelCapabilities(this.model);
 		//logger.info('BaseInteraction: modelCapabilities:', modelCapabilities);
 		return modelCapabilities;
 	}

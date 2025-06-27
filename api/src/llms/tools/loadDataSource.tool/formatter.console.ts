@@ -1,6 +1,6 @@
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
-import type { ConversationLogEntryContentToolResult } from 'shared/types.ts';
+import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolLoadDatasourceInput, LLMToolLoadDatasourceResponseData } from './types.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
@@ -36,7 +36,7 @@ export const formatLogEntryToolUse = (
 };
 
 export const formatLogEntryToolResult = (
-	resultContent: ConversationLogEntryContentToolResult,
+	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
 	const { bbResponse } = resultContent;
 

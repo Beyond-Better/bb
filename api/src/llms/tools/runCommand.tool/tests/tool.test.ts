@@ -162,8 +162,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Output truncation with tail only - bbResponse:', result.bbResponse);
 			// console.log('Output truncation with tail only - toolResponse:', result.toolResponse);
 			// console.log('Output truncation with tail only - toolResults:', result.toolResults);
@@ -241,8 +241,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -314,8 +314,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -371,8 +371,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Execute allowed command: deno task tool:check-types - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:check-types - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:check-types - toolResults:', result.toolResults);
@@ -446,8 +446,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Execute allowed command: deno task tool:test - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:test - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:test - toolResults:', result.toolResults);
@@ -539,8 +539,8 @@ Deno.test({
 				},
 			};
 
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);
@@ -618,8 +618,8 @@ Deno.test({
 					args: ['This command is not allowed'],
 				},
 			};
-			const conversation = await projectEditor.initConversation('test-conversation-id');
-			const result = await tool.runTool(conversation, toolUse, projectEditor);
+			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
 			// console.log('Execute allowed command: deno task tool:format - bbResponse:', result.bbResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResponse:', result.toolResponse);
 			// console.log('Execute allowed command: deno task tool:format - toolResults:', result.toolResults);

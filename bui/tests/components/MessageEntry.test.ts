@@ -16,7 +16,7 @@ const mockEntry = {
 		cacheCreationInputTokens: 20,
 		cacheReadInputTokens: 10,
 	},
-	tokenUsageConversation: {
+	tokenUsageInteraction: {
 		inputTokensTotal: 300,
 		outputTokensTotal: 700,
 		totalTokensTotal: 1000,
@@ -40,7 +40,7 @@ const mockToolEntry = {
 		outputTokens: 60,
 		totalTokens: 100,
 	},
-	tokenUsageConversation: {
+	tokenUsageInteraction: {
 		inputTokensTotal: 400,
 		outputTokensTotal: 600,
 		totalTokensTotal: 1000,

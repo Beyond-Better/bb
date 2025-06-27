@@ -127,7 +127,7 @@ const messageTypeStyles = {
             timestamp: new Date().toISOString(),
         },
         timestamp: new Date().toISOString(),
-        tokenUsageConversation: {
+        tokenUsageInteraction: {
             totalTokensTotal: 100
         }
     }}

@@ -2,6 +2,7 @@ import { join } from '@std/path';
 import { exists } from '@std/fs';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { getWorkingRootFromStartDir } from 'shared/dataDir.ts';
+import type { ProjectId } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import { countTokens } from 'anthropic-tokenizer';
 //import { contentType } from '@std/media-types';
@@ -115,7 +116,7 @@ async function getExcludeOptions(workingRoot: string): Promise<string[]> {
 	return excludeOptions;
 }
 
-export async function generateCtags(bbDir: string, projectId: string): Promise<string | null> {
+export async function generateCtags(bbDir: string, projectId: ProjectId): Promise<string | null> {
 	const configManager = await getConfigManager();
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	const repoInfoConfig = projectConfig.repoInfo;
@@ -142,7 +143,7 @@ export async function generateCtags(bbDir: string, projectId: string): Promise<s
 	return null;
 }
 
-export async function readCtagsFile(bbDir: string, projectId: string): Promise<string | null> {
+export async function readCtagsFile(bbDir: string, projectId: ProjectId): Promise<string | null> {
 	const configManager = await getConfigManager();
 	const projectConfig = await configManager.getProjectConfig(projectId);
 	const repoInfoConfig = projectConfig.repoInfo;

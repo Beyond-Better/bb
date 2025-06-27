@@ -1,6 +1,7 @@
 import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
+import Collaboration from 'api/collaborations/collaboration.ts';
 import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
@@ -8,16 +9,17 @@ import type {
 	//LLMCallbackType,
 	LLMCallbacks,
 } from 'api/types.ts';
-import { getProjectEditor, incrementConversationStats, withTestProject } from 'api/tests/testSetup.ts';
+import { getProjectEditor, incrementInteractionStats, withTestProject } from 'api/tests/testSetup.ts';
 import { makeConversationInteractionStub } from '../lib/stubs.ts';
-import type { LLMRequestParams } from 'api/types/llms.ts';
+import type { LLMModelConfig } from 'api/types/llms.ts';
 
 import type {
-	ConversationId,
-	ConversationLogEntry,
-	ConversationStats,
+	CollaborationLogEntry,
+	InteractionId,
+	InteractionStats,
+	ProjectId,
 	//ObjectivesData,
-	TokenUsageStats,
+	TokenUsageStatsForInteraction,
 } from 'shared/types.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
@@ -46,13 +48,13 @@ const mockInteractionCallbacks: LLMCallbacks = {
 	LOG_ENTRY_HANDLER: async (
 		_messageId: string,
 		_parentMessageId: string | null,
-		_parentInteractionId: ConversationId,
-		_agentInteractionId: ConversationId | null,
+		_parentInteractionId: InteractionId,
+		_agentInteractionId: InteractionId | null,
 		_timestamp: string,
-		_logEntry: ConversationLogEntry,
-		_conversationStats: ConversationStats,
-		_tokenUsageStats: TokenUsageStats,
-		_requestParams?: LLMRequestParams,
+		_logEntry: CollaborationLogEntry,
+		_interactionStats: InteractionStats,
+		_tokenUsageStatsForInteraction: TokenUsageStatsForInteraction,
+		_modelConfig?: LLMModelConfig,
 	): Promise<void> => {
 	},
 	PREPARE_SYSTEM_PROMPT: async (_system: string, _interactionId: string): Promise<string> => {
@@ -68,16 +70,17 @@ const mockInteractionCallbacks: LLMCallbacks = {
 	// [TODO] PREPARE_RESOURCES
 };
 
-async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
+async function setupTestEnvironment(projectId: ProjectId, dataSourceRoot: string) {
 	await GitUtils.initGit(dataSourceRoot);
 	const projectEditor = await getProjectEditor(projectId);
 
-	// Create conversation and stub the LLMFactory to prevent real provider creation
-	const conversation = new LLMConversationInteraction('test-conversation-id');
-	const { factoryStub } = makeConversationInteractionStub(conversation, projectEditor);
+	// Create collaboration, interaction and stub the LLMFactory to prevent real provider creation
+	const collaboration = Collaboration.create('test-collaboration-id', projectId);
+	const interaction = new LLMConversationInteraction(collaboration, 'test-interaction-id');
+	const { factoryStub } = makeConversationInteractionStub(interaction, projectEditor);
 
-	// Now init the conversation - it will use the stubbed factory
-	await conversation.init('claude-3-5-haiku-20241022', mockInteractionCallbacks);
+	// Now init the interaction - it will use the stubbed factory
+	await interaction.init('claude-3-5-haiku-20241022', mockInteractionCallbacks);
 
 	// Create test files
 	const testFiles = ['file1.txt', 'file2.txt'];
@@ -86,30 +89,30 @@ async function setupTestEnvironment(projectId: string, dataSourceRoot: string) {
 		await Deno.writeTextFile(filePath, `Content of ${file}`);
 	}
 
-	return { projectEditor, conversation, dataSourceRoot, testFiles, factoryStub };
+	return { projectEditor, interaction, dataSourceRoot, testFiles, factoryStub };
 }
 
 Deno.test({
 	name: 'LLMConversationInteraction - hydrateMessages',
 	async fn() {
 		await withTestProject(async (testProjectId, testProjectRoot) => {
-			const { projectEditor: _projectEditor, conversation, dataSourceRoot, testFiles, factoryStub } =
+			const { projectEditor: _projectEditor, interaction, dataSourceRoot, testFiles, factoryStub } =
 				await setupTestEnvironment(
 					testProjectId,
 					testProjectRoot,
 				);
 
 			// Create test messages
-			const conversationStats = {
+			const interactionStats = {
 				statementCount: 0,
 				statementTurnCount: 0,
-				conversationTurnCount: 0,
+				interactionTurnCount: 0,
 			};
 			const messages: LLMMessage[] = [
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
-					incrementConversationStats(conversationStats),
+					incrementInteractionStats(interactionStats),
 					undefined,
 					undefined,
 					'msg1',
@@ -117,7 +120,7 @@ Deno.test({
 				new LLMMessage(
 					'assistant',
 					[{ type: 'text', text: 'Acknowledged.' }],
-					incrementConversationStats(conversationStats),
+					incrementInteractionStats(interactionStats),
 					undefined,
 					undefined,
 					'msg2',
@@ -125,7 +128,7 @@ Deno.test({
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[1]}` }],
-					incrementConversationStats(conversationStats),
+					incrementInteractionStats(interactionStats),
 					undefined,
 					undefined,
 					'msg3',
@@ -133,7 +136,7 @@ Deno.test({
 				new LLMMessage(
 					'user',
 					[{ type: 'text', text: `File added: ${testFiles[0]}` }],
-					incrementConversationStats(conversationStats),
+					incrementInteractionStats(interactionStats),
 					undefined,
 					undefined,
 					'msg4',
@@ -141,7 +144,7 @@ Deno.test({
 			];
 
 			// Call hydrateMessages
-			const hydratedMessages = await conversation.hydrateMessages(messages);
+			const hydratedMessages = await interaction.hydrateMessages(messages);
 
 			// Assertions
 			assertEquals(hydratedMessages.length, 4, 'Should have 4 messages');

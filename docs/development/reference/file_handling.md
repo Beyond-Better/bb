@@ -1,6 +1,6 @@
-# File Handling in BB Conversations
+# File Handling in BB Collaborations
 
-This document outlines the conventions and strategies for handling files within BB conversations.
+This document outlines the conventions and strategies for handling files within BB collaborations.
 
 ## File Storage Strategy
 
@@ -30,8 +30,8 @@ This document outlines the conventions and strategies for handling files within 
 
 ## File Updates
 
-- Replace the original file with the edited version in the conversation
-- Maintain a separate log of changes for each conversation using ConversationPersistence
+- Replace the original file with the edited version in the collaboration
+- Maintain a separate log of changes for each collaboration using InteractionPersistence
 
 ## File Metadata
 
@@ -62,23 +62,23 @@ When proposing changes to files, use the diff patch format:
 ## Version Control Integration
 
 - While direct access to git logs is not available, include relevant commit messages or summaries when significant changes occur
-- Provide clear, actionable changes in the conversation
+- Provide clear, actionable changes in the collaboration
 
 ## File Handling Workflow
 
 1. Assistant requests files using the provided tool
-2. BB agent adds requested files to the conversation
+2. BB agent adds requested files to the collaboration
 3. Assistant proposes changes using the diff patch format
-4. BB agent applies changes and updates the conversation state
+4. BB agent applies changes and updates the collaboration state
 
 ## Permissions and Error Handling
 
 - Assume BB has necessary permissions to read/write files
-- If permission issues occur, treat as a conversation-ending error and notify the user
+- If permission issues occur, treat as a collaboration-ending error and notify the user
 
-## Multiple Conversations Warning
+## Multiple Collaborations Warning
 
-- Allow multiple active conversations per project
+- Allow multiple active collaborations per project
 - Implement a prominent warning to users about the risks of concurrent edits
 
 ## Security Considerations
@@ -89,7 +89,7 @@ When proposing changes to files, use the diff patch format:
 ## File Deletion
 
 - Implement a specific tool or command for file removal
-- Log file deletions in the conversation change log
+- Log file deletions in the collaboration change log
 
 ## Important Links
 
@@ -102,6 +102,6 @@ As an AI assistant for the BB project, I should be aware of and use the followin
 - File Handling Guidelines: file_handling.md
 - API Documentation: ../../API.md
 
-When referencing these links in conversations or documentation, I should use the exact URLs provided above to ensure consistency and accuracy.
+When referencing these links in collaborations or documentation, I should use the exact URLs provided above to ensure consistency and accuracy.
 
-By following these conventions and using the correct links, we ensure consistent and efficient file handling and communication throughout BB conversations and documentation.
+By following these conventions and using the correct links, we ensure consistent and efficient file handling and communication throughout BB collaborations and documentation.

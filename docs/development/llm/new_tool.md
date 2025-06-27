@@ -134,7 +134,7 @@ formatLogEntryToolUse = (toolInput: LLMToolInputSchema, format: 'console' | 'bro
     return format === 'console' ? formatLogEntryToolUseConsole(toolInput) : formatLogEntryToolUseBrowser(toolInput);
 };
 
-formatLogEntryToolResult = (resultContent: ConversationLogEntryContentToolResult, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
+formatLogEntryToolResult = (resultContent: CollaborationLogEntryContentToolResult, format: 'console' | 'browser' = 'console'): string | JSX.Element => {
     return format === 'console' ? formatLogEntryToolResultConsole(resultContent) : formatLogEntryToolResultBrowser(resultContent);
 };
 ```

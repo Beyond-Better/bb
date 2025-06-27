@@ -1,7 +1,8 @@
 import { encodeBase64 } from '@std/encoding';
 
 import type { LLMCallbacks, LLMSpeakWithOptions, LLMSpeakWithResponse } from 'api/types.ts';
-import type { ConversationId, ConversationStatementMetadata, TokenUsage } from 'shared/types.ts';
+import type { InteractionId, InteractionStatementMetadata, TokenUsage as _TokenUsage } from 'shared/types.ts';
+import type Collaboration from 'api/collaborations/collaboration.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import LLMInteraction from 'api/llms/baseInteraction.ts';
 import { LLMCallbackType } from 'api/types.ts';
@@ -25,11 +26,11 @@ import { logger } from 'shared/logger.ts';
 import { generateResourceRevisionKey } from 'shared/dataSource.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import type {
-	ResourceForConversation,
+	ResourceForInteraction,
 	//ResourceManager,
 	ResourceMetadata,
 	ResourceRevisionMetadata,
-	ResourcesForConversation,
+	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';
 import type { ResourceType } from 'api/types.ts';
 //import { GitUtils } from 'shared/git.ts';
@@ -82,25 +83,6 @@ class LLMConversationInteraction extends LLMInteraction {
 	 */
 	private _maxHydratedMessagesPerResource: number = 2;
 
-	/**
-	 * Gets the maximum number of messages to keep per resource in the hydratedResources map.
-	 */
-	get maxHydratedMessagesPerResource(): number {
-		return this._maxHydratedMessagesPerResource;
-	}
-
-	/**
-	 * Sets the maximum number of messages to keep per resource in the hydratedResources map.
-	 * @param value - Must be a positive integer
-	 * @throws Error if value is less than 1
-	 */
-	set maxHydratedMessagesPerResource(value: number) {
-		if (!Number.isInteger(value) || value < 1) {
-			throw new Error('maxHydratedMessagesPerResource must be a positive integer');
-		}
-		this._maxHydratedMessagesPerResource = value;
-	}
-
 	//private resourceManager!: ResourceManager;
 	private projectData!: ProjectPersistence;
 	private toolUsageStats: ToolUsageStats = {
@@ -111,15 +93,15 @@ class LLMConversationInteraction extends LLMInteraction {
 	};
 	//private currentCommit: string | null = null;
 
-	constructor(conversationId?: ConversationId) {
-		super(conversationId);
+	constructor(collaboration: Collaboration, interactionId?: InteractionId) {
+		super(collaboration, interactionId);
 		this._interactionType = 'conversation';
 	}
 
 	public override async init(
 		interactionModel: string,
 		interactionCallbacks: LLMCallbacks,
-		parentInteractionId?: ConversationId,
+		parentInteractionId?: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		await super.init(interactionModel, interactionCallbacks, parentInteractionId);
 		const projectEditor = await this.llm.invoke(LLMCallbackType.PROJECT_EDITOR);
@@ -128,21 +110,13 @@ class LLMConversationInteraction extends LLMInteraction {
 		return this;
 	}
 
-	// these methods are really just convenience aliases for tokenUsageInteraction
-	public get tokenUsageConversation(): TokenUsage {
-		return this.tokenUsageInteraction;
-	}
-	public set tokenUsageConversation(tokenUsage: TokenUsage) {
-		this.tokenUsageInteraction = tokenUsage;
-	}
-
 	public override async prepareSytemPrompt(baseSystem: string): Promise<string> {
 		//logger.info('ConversationInteraction: Preparing system prompt', baseSystem);
-		if (!this.conversationPersistence) {
-			throw new Error('ConversationPersistence not initialized');
+		if (!this.interactionPersistence) {
+			throw new Error('InteractionPersistence not initialized');
 		}
 		// First, try to get the system prompt from storage
-		let preparedSystemPrompt = await this.conversationPersistence
+		let preparedSystemPrompt = await this.interactionPersistence
 			.getPreparedSystemPrompt();
 
 		if (!preparedSystemPrompt) {
@@ -157,7 +131,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			//preparedSystemPrompt = await this.appendResourcesToSystem(preparedSystemPrompt);
 
 			// Save the generated system prompt
-			await this.conversationPersistence.savePreparedSystemPrompt(
+			await this.interactionPersistence.savePreparedSystemPrompt(
 				preparedSystemPrompt,
 			);
 			//logger.info('ConversationInteraction: Created system prompt', preparedSystemPrompt);
@@ -168,14 +142,14 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
-		if (!this.conversationPersistence) {
+		if (!this.interactionPersistence) {
 			throw new Error(
-				'ConversationPersistence not initialized',
+				'InteractionPersistence not initialized',
 			);
 		}
 
 		// First, try to get the prepared tools from storage
-		let preparedTools = await this.conversationPersistence.getPreparedTools();
+		let preparedTools = await this.interactionPersistence.getPreparedTools();
 
 		if (!preparedTools) {
 			// If not found in storage, prepare the tools
@@ -187,7 +161,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			} as LLMTool));
 
 			// Save the prepared tools
-			await this.conversationPersistence.savePreparedTools(preparedTools || []);
+			await this.interactionPersistence.savePreparedTools(preparedTools || []);
 		}
 		//logger.info('ConversationInteraction: preparedTools', preparedTools);
 
@@ -333,13 +307,13 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	async storeResourceRevision(resourceUri: string, revisionId: string, content: string | Uint8Array): Promise<void> {
 		logger.info(`ConversationInteraction: Storing resource revision: ${resourceUri} Revision: (${revisionId})`);
-		await this.conversationPersistence.storeResourceRevision(resourceUri, revisionId, content);
+		await this.interactionPersistence.storeResourceRevision(resourceUri, revisionId, content);
 	}
 
 	async getResourceRevision(resourceUri: string, revisionId: string): Promise<string | Uint8Array | null> {
 		logger.info(`ConversationInteraction: Getting resource revision: ${resourceUri} Revision: (${revisionId})`);
 		try {
-			const content = await this.conversationPersistence.getResourceRevision(resourceUri, revisionId);
+			const content = await this.interactionPersistence.getResourceRevision(resourceUri, revisionId);
 			return content;
 		} catch (error) {
 			logger.info(
@@ -601,7 +575,7 @@ class LLMConversationInteraction extends LLMInteraction {
 				const updatedMessage = new LLMMessage(
 					message.role,
 					updatedContent,
-					message.conversationStats,
+					message.interactionStats,
 					message.tool_call_id,
 					message.providerResponse,
 					message.id,
@@ -645,7 +619,7 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	addResourcesForMessage(
-		resourcesToAdd: ResourcesForConversation,
+		resourcesToAdd: ResourcesForInteraction,
 		messageId: string,
 		toolUseId?: string,
 	): Array<{ resourceUri: string; resourceMetadata: ResourceRevisionMetadata }> {
@@ -704,12 +678,40 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	// Getters and setters
-	get conversationId(): ConversationId {
+	get conversationId(): InteractionId {
 		return this.id;
 	}
 
-	set conversationId(value: ConversationId) {
+	set conversationId(value: InteractionId) {
 		this.id = value;
+	}
+
+	// Getters and setters
+	get interactionId(): InteractionId {
+		return this.id;
+	}
+
+	set interactionId(value: InteractionId) {
+		this.id = value;
+	}
+
+	/**
+	 * Gets the maximum number of messages to keep per resource in the hydratedResources map.
+	 */
+	get maxHydratedMessagesPerResource(): number {
+		return this._maxHydratedMessagesPerResource;
+	}
+
+	/**
+	 * Sets the maximum number of messages to keep per resource in the hydratedResources map.
+	 * @param value - Must be a positive integer
+	 * @throws Error if value is less than 1
+	 */
+	set maxHydratedMessagesPerResource(value: number) {
+		if (!Number.isInteger(value) || value < 1) {
+			throw new Error('maxHydratedMessagesPerResource must be a positive integer');
+		}
+		this._maxHydratedMessagesPerResource = value;
 	}
 
 	public getToolUsageStats(): ToolUsageStats {
@@ -736,10 +738,10 @@ class LLMConversationInteraction extends LLMInteraction {
 	}
 
 	// relayToolResult is a lower-level call, to handle tool use/results loop
-	// the caller is responsible for adding to conversationLogger
+	// the caller is responsible for adding to collaborationLogger
 	async relayToolResult(
 		prompt: string,
-		metadata: ConversationStatementMetadata,
+		metadata: InteractionStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
@@ -763,7 +765,7 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		// // these are set in updateTotals
 		// this.statementTurnCount++;
-		// this.conversationTurnCount++;
+		// this.interactionTurnCount++;
 
 		// logToolUse and logToolResult are in orchestratorController
 
@@ -775,9 +777,9 @@ class LLMConversationInteraction extends LLMInteraction {
 		prompt: string,
 		//promptFrom: 'user' | 'orchestrator',
 		parentMessageId: string | null,
-		metadata: ConversationStatementMetadata,
+		metadata: InteractionStatementMetadata,
 		speakOptions?: LLMSpeakWithOptions,
-		attachedResources?: ResourcesForConversation,
+		attachedResources?: ResourcesForInteraction,
 	): Promise<LLMSpeakWithResponse> {
 		// Statement count is now incremented at the beginning of the method
 		if (!speakOptions) {
@@ -822,7 +824,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		// Inject file references into the prompt for chat history
 		let modifiedPrompt = prompt;
 		if (limitedAttachedResources && limitedAttachedResources.length > 0) {
-			let fileReferences = limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
+			let fileReferences = limitedAttachedResources.map((resourceToAdd: ResourceForInteraction) => {
 				// Extract resourceId from uploads URI
 				const resourceUri = resourceToAdd.resourceUri;
 				if (resourceUri.startsWith('bb+filesystem+__uploads+file:./')) {
@@ -850,7 +852,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 
 		const resourcesToAdd = limitedAttachedResources
-			? limitedAttachedResources.map((resourceToAdd: ResourceForConversation) => {
+			? limitedAttachedResources.map((resourceToAdd: ResourceForInteraction) => {
 				return {
 					'type': 'text',
 					'text': `Resource added: <${resourceToAdd.resourceUri}>`,
@@ -870,18 +872,18 @@ class LLMConversationInteraction extends LLMInteraction {
 
 		//if (promptFrom === 'orchestrator') {
 		if (parentMessageId) {
-			this.conversationLogger.logOrchestratorMessage(
+			this.collaborationLogger.logOrchestratorMessage(
 				messageId,
 				parentMessageId,
 				this.id,
 				modifiedPrompt,
-				this.conversationStats,
+				this.interactionStats,
 			);
 		} else {
-			this.conversationLogger.logUserMessage(
+			this.collaborationLogger.logUserMessage(
 				messageId,
 				modifiedPrompt,
-				this.conversationStats,
+				this.interactionStats,
 			);
 		}
 
@@ -904,7 +906,7 @@ class LLMConversationInteraction extends LLMInteraction {
 		this.statementTurnCount = 0;
 		// // these are set in updateTotals
 		// this.statementTurnCount++;
-		// this.conversationTurnCount++;
+		// this.interactionTurnCount++;
 
 		// logAssistantMessage is in orchestratorController
 

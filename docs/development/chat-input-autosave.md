@@ -5,7 +5,7 @@
 ### What Works
 1. Auto-save is triggering:
    - Saves to localStorage on input changes
-   - Uses correct key format: `bb-chat-current-{conversationId}`
+   - Uses correct key format: `bb-chat-current-{collaborationId}`
    - Logs show successful saves
    - Data is present in localStorage after save
 
@@ -20,7 +20,7 @@
 ### Storage Keys
 ```typescript
 // Current format
-const currentInputKey = `bb-chat-current-${conversationId}`;
+const currentInputKey = `bb-chat-current-${collaborationId}`;
 ```
 
 ### Save Operation
@@ -41,7 +41,7 @@ useEffect(() => {
   if (saved && !value) {
     onChange(saved);
   }
-}, [conversationId]);
+}, [collaborationId]);
 ```
 
 ## Identified Issues
@@ -52,7 +52,7 @@ useEffect(() => {
    - Multiple effects might be interfering
 
 2. State Management:
-   - Unclear when conversationId signal is initialized
+   - Unclear when collaborationId signal is initialized
    - Potential race conditions between effects
    - Possible issues with signal updates
 
@@ -72,7 +72,7 @@ useEffect(() => {
 
 2. Added Signal Synchronization:
    ```typescript
-   conversationIdSignal.value = conversationId;
+   collaborationIdSignal.value = collaborationId;
    ```
    - Signal updates working
    - Still not triggering restoration
@@ -143,7 +143,7 @@ useEffect(() => {
 ## Questions for Next Session
 
 1. Component Lifecycle:
-   - When exactly is conversationId available?
+   - When exactly is collaborationId available?
    - What triggers conversation changes?
    - What's the expected mount sequence?
 
