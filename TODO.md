@@ -221,3 +221,29 @@
 √ search project is misleading the LLM - it keeps trying to get file content by searching - either update tool description to make clear the tool only returns resource names (URLs) or modify the tool to return content. Or (this may be better) change the tool to accept "range" criteria, either `-n` grep style, or line numbers (or both)
 √ Auto-scroll of chat history should take into account the height of chat input box (since it grows)
 
+√ Show attached files in logEntries
+√ 1. Fix models list and capabilities in API; unknown models are getting detault label of Claude
+√ 2. In ProjectEditor, saving models doesn't update config in API. 
+√ 4. Add model selection to chat options in conversation:
+√ 3. Add Gemini to bb-sass
+√ Bigger hammer in DUI to restart rogue bb processes 
+√ Add version number to /api/v1/status
+√ Change layout of models page - put model selectors in column with descriptions beside them. 
+√ Change suggeted combos to something more compact or a pop-out. 
+√ Change CustomSelect to fancy select like ConversationSelect
+√ Provider SVG icons
+√ In-your-face notification when 'answer' arrives.
+√ in storageMigration, make backup copy of projects directory
+√ message & notification system in DUI when upgrading
+√ agent answer causes status to end in BUI
+√ ensure modelConfig is being passed to agents from statementParams
+√ ensure modelConfig is being passed to chat from statementParams
+√ persist interactionType to metadata
+√ add parentInteractionId
+√ reloading bui chat page with empty new conversation doesn't load default modelConfig
+√ Add rawUsage to metadata for provider_requests in llm-proxy
+√ Check max_tokens and other params for selected model to ensure they are within model capabilities
+√ # Agent fixes
+√ - passing in requestParams (speakOptions) (ModelCapabilitiesManager)
+√ - loading correct model
+
