@@ -20,7 +20,7 @@ else
   fi
   
   # Extract just the changes (skip the version header)
-  RELEASE_NOTES=$(echo "$RELEASE_SECTION" | tail -n +2 | head -20)
+  RELEASE_NOTES=$(echo "$RELEASE_SECTION" | tail -n +2)
 fi
 
 # For local testing, show readable output

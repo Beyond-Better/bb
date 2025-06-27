@@ -355,12 +355,13 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           release_name: Release v${{ steps.get_version.outputs.VERSION }}
+          ## Any changes made to structure of release notes will need to be checked against parsing code in dui/src-tauri/src/commands/version.rs
           body: |
-            Beyond Better v${{ steps.get_version.outputs.VERSION }}
+            # Beyond Better v${{ steps.get_version.outputs.VERSION }}
 
             ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
 
-            Installation Instructions:
+            ## Installation Instructions:
 
             1. Download the appropriate installer for your system:
 
@@ -385,7 +386,7 @@ jobs:
 
             Note: On Windows, you may need to approve SmartScreen security prompts during first run.
 
-            Changes in this Release:
+            ## Changes in this Release:
             ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}
           draft: false
           prerelease: false
