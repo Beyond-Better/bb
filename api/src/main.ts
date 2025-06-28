@@ -1,3 +1,8 @@
+/*
+ * License: AGPL-3.0-or-later
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ */
+
 import { Application } from '@oak/oak';
 import type { ListenOptions, ListenOptionsTls } from '@oak/oak';
 //import oak_logger from 'oak_logger';

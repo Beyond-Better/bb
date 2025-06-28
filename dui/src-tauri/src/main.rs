@@ -1,3 +1,8 @@
+/*
+ * License: AGPL-3.0-or-later
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ */
+
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 

@@ -1,35 +1,37 @@
 {
-  "name": "Beyond Better",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
-  },
-  "dependencies": {
-    "@babel/plugin-transform-react-jsx-development": "^7.25.9",
-    "@tauri-apps/api": "^2.1.1",
-    "@tauri-apps/plugin-dialog": "~2.3.0",
-    "@tauri-apps/plugin-fs": "^2.2.0",
-    "@tauri-apps/plugin-opener": "^2.2.7",
-    "@tauri-apps/plugin-store": "^2.2.0",
-    "@tauri-apps/plugin-notification": "^2.2.0",
-    "@tauri-apps/plugin-updater": "~2.9.0",
-    "ansi_up": "^6.0.2",
-    "babel-plugin-transform-hook-names": "^1.0.2",
-    "preact": "^10.16.0"
-  },
-  "devDependencies": {
-    "@preact/preset-vite": "^2.5.0",
-    "@tailwindcss/typography": "^0.5.10",
-    "@tauri-apps/cli": "^2.1.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1"
-  }
+	"name": "Beyond Better",
+	"private": true,
+	"version": "0.1.0",
+	"license": "AGPL-3.0-or-later",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"preview": "vite preview",
+		"tauri": "tauri"
+	},
+	"dependencies": {
+		"@babel/plugin-transform-react-jsx-development": "^7.25.9",
+		"@tauri-apps/api": "^2.1.1",
+		"@tauri-apps/plugin-dialog": "~2.3.0",
+		"@tauri-apps/plugin-fs": "^2.2.0",
+		"@tauri-apps/plugin-opener": "^2.2.7",
+		"@tauri-apps/plugin-store": "^2.2.0",
+		"@tauri-apps/plugin-notification": "^2.2.0",
+		"@tauri-apps/plugin-updater": "~2.9.0",
+		"ansi_up": "^6.0.2",
+		"babel-plugin-transform-hook-names": "^1.0.2",
+		"preact": "^10.16.0"
+	},
+	"devDependencies": {
+		"@preact/preset-vite": "^2.5.0",
+		"@tailwindcss/typography": "^0.5.10",
+		"@tauri-apps/cli": "^2.1.0",
+		"autoprefixer": "^10.4.16",
+		"postcss": "^8.4.32",
+		"tailwindcss": "^3.4.0",
+		"typescript": "^5.2.2",
+		"vite": "^5.3.1"
+	}
 }

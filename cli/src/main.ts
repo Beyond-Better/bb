@@ -1,3 +1,8 @@
+/*
+ * License: AGPL-3.0-or-later
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ */
+
 import { Command } from 'cliffy/command';
 import { getConfigManager } from 'shared/config/configManager.ts';
 

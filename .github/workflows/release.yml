@@ -83,7 +83,7 @@ jobs:
               repo: context.repo.repo,
               tag_name: `v${{ steps.get_version.outputs.VERSION }}`,
               name: `Beyond Better v${{ steps.get_version.outputs.VERSION }}`,
-              body: `# Beyond Better v${{ steps.get_version.outputs.VERSION }}
+              body: `# Beyond Better application and server components v${{ steps.get_version.outputs.VERSION }}
 
             ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
             
@@ -114,7 +114,7 @@ jobs:
             
             ## Changes in this Release:
             ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
-              draft: true,
+              draft: false,
               prerelease: false
             })
             return data.id
