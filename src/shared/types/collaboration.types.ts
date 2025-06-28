@@ -29,6 +29,9 @@ export interface CollaborationInterface {
 	// Usage tracking
 	tokenUsageCollaboration: TokenUsage;
 
+	// User preferences
+	starred?: boolean;
+
 	// Timestamps
 	readonly createdAt: string;
 	updatedAt: string;
@@ -46,6 +49,7 @@ export interface CollaborationValues {
 	interactionIds: InteractionId[];
 	lastInteractionId?: InteractionId;
 	lastInteractionMetadata?: InteractionMetadata;
+	starred?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -83,6 +87,7 @@ export interface CollaborationSummary {
 	type: CollaborationType;
 	projectId: ProjectId;
 	totalInteractions: number;
+	starred?: boolean;
 	createdAt: string;
 	updatedAt: string;
 	lastInteractionId?: InteractionId;

@@ -315,6 +315,7 @@ class CollaborationPersistence {
 				type: collaborationValues.type || 'project',
 				collaborationParams: collaborationValues.collaborationParams ||
 					await CollaborationPersistence.defaultCollaborationParams(this.projectEditor.projectId),
+				starred: collaborationValues.starred ?? false,
 				createdAt: collaborationValues.createdAt || new Date().toISOString(),
 				updatedAt: new Date().toISOString(),
 				projectId: this.projectEditor.projectId,
@@ -344,6 +345,7 @@ class CollaborationPersistence {
 					thoughtTokens: tokenAnalysis.combined.totalUsage.thoughtTokens,
 					totalAllTokens: tokenAnalysis.combined.totalUsage.totalAll,
 				},
+				starred: collaborationValues.starred ?? false,
 			};
 
 			await this.saveMetadata(detailedMetadata);

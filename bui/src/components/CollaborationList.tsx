@@ -46,6 +46,10 @@ export function CollaborationList({
 	const isLoading = collaborationListState.value.isLoading;
 	const showDeleteConfirm = useSignal(false);
 	const collaborationToDelete = useSignal<CollaborationToDelete | undefined>(undefined);
+	const editingCollaboration = useSignal<string | null>(null);
+	const editedTitle = useSignal<string>('');
+	const isUpdatingTitle = useSignal(false);
+	const isUpdatingStar = useSignal<string | null>(null);
 
 	return (
 		<>

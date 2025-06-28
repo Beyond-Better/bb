@@ -23,6 +23,9 @@ export default class Collaboration {
 	// Configuration
 	public collaborationParams!: CollaborationParams;
 
+	// User preferences
+	public starred?: boolean;
+
 	// Timestamps
 	public readonly createdAt: string;
 	public updatedAt: string;
@@ -47,6 +50,7 @@ export default class Collaboration {
 			title?: string | null;
 			type?: CollaborationType;
 			collaborationParams?: CollaborationParams;
+			starred?: boolean;
 			createdAt?: string;
 			updatedAt?: string;
 			totalInteractions?: number;
@@ -62,6 +66,7 @@ export default class Collaboration {
 		// Initialize with provided options or defaults
 		this.title = options.title ?? null;
 		this.type = options.type || 'project';
+		this.starred = options.starred ?? false;
 		if (options.collaborationParams) this.collaborationParams = options.collaborationParams;
 		this.createdAt = options.createdAt || new Date().toISOString();
 		this.updatedAt = options.updatedAt || new Date().toISOString();
@@ -211,6 +216,11 @@ export default class Collaboration {
 		this.updatedAt = new Date().toISOString();
 	}
 
+	updateStarred(starred: boolean): void {
+		this.starred = starred;
+		this.updatedAt = new Date().toISOString();
+	}
+
 	updateCollaborationParams(params: Partial<CollaborationParams>): void {
 		this.collaborationParams = { ...this.collaborationParams, ...params };
 		this.updatedAt = new Date().toISOString();
@@ -263,6 +273,7 @@ export default class Collaboration {
 			lastInteractionId: this.lastInteractionId,
 			lastInteractionMetadata: this.lastInteractionMetadata,
 			tokenUsageCollaboration: this.tokenUsageCollaboration,
+			starred: this.starred,
 			createdAt: this.createdAt,
 			updatedAt: this.updatedAt,
 		};
@@ -273,6 +284,7 @@ export default class Collaboration {
 			title: values.title || null,
 			type: values.type,
 			collaborationParams: values.collaborationParams,
+			starred: values.starred,
 			totalInteractions: values.totalInteractions,
 			interactionIds: values.interactionIds,
 			lastInteractionId: values.lastInteractionId,
@@ -291,6 +303,7 @@ export default class Collaboration {
 			type: this.type,
 			projectId: this.projectId,
 			totalInteractions: this.totalInteractions,
+			starred: this.starred,
 			createdAt: this.createdAt,
 			updatedAt: this.updatedAt,
 			lastInteractionId: this.lastInteractionId,
@@ -305,6 +318,7 @@ export default class Collaboration {
 			title?: string;
 			type?: CollaborationType;
 			collaborationParams?: CollaborationParams;
+			starred?: boolean;
 		} = {},
 	): Collaboration {
 		return new Collaboration(id, projectId, {
