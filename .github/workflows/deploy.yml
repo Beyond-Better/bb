@@ -59,7 +59,7 @@ jobs:
 
       - name: Build site
         run: |
-          cd bui/src/
+          cd bui/
           deno task fresh-build
 
       - name: Install SSH key
