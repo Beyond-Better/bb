@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.8] - 2025-06-28
+
+### Added
+
+- self-update for app
+
+### Changed
+
+
+### Fixed
+
+
 ## [0.8.7] - 2025-06-27
 
 ### Notes
