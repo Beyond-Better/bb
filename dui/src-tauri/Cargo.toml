@@ -1,12 +1,11 @@
 [package]
 name = "beyond-better"
-version = "0.8.8"
+version = "0.8.9"
 description = "Beyond Better Desktop App"
 authors = ["cngarrison"]
 edition = "2021"
 homepage = "https://beyondbetter.dev"
 license = "AGPL-3.0-or-later"
-
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary

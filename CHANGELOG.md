@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.9] - 2025-06-28
+
+### Added
+
+- Edit conversation title
+- Starred (favourite) conversations
+
+### Changed
+
+
+### Fixed
+
+
 ## [0.8.8] - 2025-06-28
 
 ### Added

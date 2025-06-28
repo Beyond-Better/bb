@@ -1,6 +1,6 @@
 {
 	"name": "bb-cli",
-	"version": "0.8.8",
+	"version": "0.8.9",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
 	"exports": "./src/main.ts",
