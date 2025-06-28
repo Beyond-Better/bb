@@ -1,3 +1,8 @@
+/*
+ * License: AGPL-3.0-or-later
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ */
+
 use log::{debug, error, info, warn};
 use tauri_plugin_fs;
 // Use Tauri's HTTP types, not the standalone HTTP crate
