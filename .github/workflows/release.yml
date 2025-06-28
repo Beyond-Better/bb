@@ -231,8 +231,26 @@ jobs:
           projectPath: './dui'
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
           tagName: v${{ steps.get_version.outputs.VERSION }}
-          releaseName: "App v${{ steps.get_version.outputs.VERSION }}"
-          releaseBody: "See the assets to download this version and install."
+          releaseName: "Beyond Better v${{ steps.get_version.outputs.VERSION }}"
+          releaseBody: |
+            # Beyond Better v${{ steps.get_version.outputs.VERSION }}
+            
+            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
+            
+            ## What's New
+            ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}
+            
+            ## Installation
+            
+            **Desktop App (Recommended)**:
+            - Download the appropriate installer for your platform below
+            - The app will automatically install BB server components on first run
+            
+            **Manual Installation**:
+            - Download the binary archive for your system
+            - Extract and place binaries in your PATH
+            
+            **Auto-Update**: If you have a previous version installed, the app will prompt you to update automatically.
           includeUpdaterJson: true # this will include the latest.json file in the release
           #releaseDraft: true
           #prerelease: false
@@ -355,49 +373,7 @@ jobs:
           echo "MSI files:" && find . -name "*.msi"
           echo "EXE files:" && find . -name "*.exe"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          release_name: Release v${{ steps.get_version.outputs.VERSION }}
-          ## Any changes made to structure of release notes will need to be checked against parsing code in dui/src-tauri/src/commands/version.rs
-          body: |
-            # Beyond Better v${{ steps.get_version.outputs.VERSION }}
-
-            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
-
-            ## Installation Instructions:
-
-            1. Download the appropriate installer for your system:
-
-               Windows:
-               - MSI installer (recommended): Download the .msi file
-               - EXE installer: Download the -setup.exe file
-               - Run the installer and follow the prompts
-
-               macOS:
-               - Universal (Intel & Apple Silicon): Download the universal.dmg
-               - Open the .dmg file
-               - Drag the Beyond Better app to your Applications folder
-
-               Linux:
-               - Download the .AppImage file
-               - Make it executable: chmod +x BB-app-*.AppImage
-               - Run the AppImage
-
-            2. Binary Installation:
-               - The DUI will automatically download and install the appropriate BB binaries on first run
-               - For manual installation, download the appropriate binary archive for your system
-
-            Note: On Windows, you may need to approve SmartScreen security prompts during first run.
-
-            ## Changes in this Release:
-            ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}
-          draft: false
-          prerelease: false
+      # Note: Release will be created by tauri-action with DUI artifacts
 
       - name: Upload Release Assets
         run: |
@@ -428,7 +404,11 @@ jobs:
             return 1
           }
 
-          # Upload binary artifacts
+          # Wait for tauri-action to create the release
+          echo "Waiting for release to be created by tauri-action..."
+          sleep 10
+          
+          # Upload binary artifacts to the existing release
           for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
             echo "Processing binary target: $target"
             cd "bb-$target"
