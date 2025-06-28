@@ -194,6 +194,7 @@ ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
           path: build/*
 
   build-dui:
+    needs: create-release
     strategy:
       fail-fast: false
       matrix:
@@ -335,7 +336,6 @@ ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
           projectPath: './dui'
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
-          tagName: v${{ steps.get_version.outputs.VERSION }}
           includeUpdaterJson: true # this will include the latest.json file in the release
           #releaseDraft: true
           #prerelease: false
