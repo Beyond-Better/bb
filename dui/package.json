@@ -12,10 +12,12 @@
   "dependencies": {
     "@babel/plugin-transform-react-jsx-development": "^7.25.9",
     "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-dialog": "~2.3.0",
     "@tauri-apps/plugin-fs": "^2.2.0",
     "@tauri-apps/plugin-opener": "^2.2.7",
     "@tauri-apps/plugin-store": "^2.2.0",
     "@tauri-apps/plugin-notification": "^2.2.0",
+    "@tauri-apps/plugin-updater": "~2.9.0",
     "ansi_up": "^6.0.2",
     "babel-plugin-transform-hook-names": "^1.0.2",
     "preact": "^10.16.0"

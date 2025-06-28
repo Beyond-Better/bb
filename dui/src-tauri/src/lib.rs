@@ -29,7 +29,7 @@ pub use crate::commands::proxy::{
     get_proxy_info, set_debug_mode, set_proxy_target, start_proxy_server, stop_proxy_server,
 };
 pub use crate::commands::server_status::check_server_status;
-pub use crate::commands::upgrade::{perform_install, perform_upgrade};
+pub use crate::commands::upgrade::{perform_install, perform_upgrade, check_dui_update, perform_atomic_update, perform_dui_update_only};
 pub use crate::commands::version::{
     check_version_compatibility, get_binary_version, get_version_info,
 };
@@ -504,6 +504,9 @@ pub fn run() {
             check_version_compatibility,
             perform_install,
             perform_upgrade,
+            commands::upgrade::check_dui_update,
+            commands::upgrade::perform_atomic_update,
+            commands::upgrade::perform_dui_update_only,
             set_global_config_value,
             test_read_config,
             get_log_path,
@@ -530,6 +533,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| tauri::async_runtime::block_on(async { setup_windows(app).await }))
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

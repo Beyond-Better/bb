@@ -1,11 +1,12 @@
 import { createContext, JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { invoke } from '@tauri-apps/api/core';
-import type { VersionInfo, VersionState, VersionCompatibility } from '../types/version';
+import type { VersionInfo, VersionState, VersionCompatibility, DuiUpdateInfo } from '../types/version';
 
 const initialState: VersionState = {
 	versionInfo: undefined,
 	versionCompatibility: undefined,
+	duiUpdateInfo: undefined,
 	error: undefined,
 };
 
@@ -69,14 +70,26 @@ export function VersionProvider({ children }: VersionProviderProps): JSX.Element
 				};
 			}
 
+			// Check for DUI updates
+			let duiUpdateInfo: DuiUpdateInfo | null = null;
+			try {
+				duiUpdateInfo = await invoke<DuiUpdateInfo | null>('check_dui_update');
+				console.log('[VersionProvider] DUI update info:', duiUpdateInfo);
+			} catch (error) {
+				console.log('[VersionProvider] DUI update check failed:', error);
+				// Not a critical error, continue without DUI update info
+			}
+
 			console.log('[VersionProvider] Setting version state with:', {
 				versionInfo,
-				versionCompatibility
+				versionCompatibility,
+				duiUpdateInfo
 			});
 			setVersionState({
 				value: {
 					versionInfo,
 					versionCompatibility,
+					duiUpdateInfo,
 					error: undefined,
 				},
 			});

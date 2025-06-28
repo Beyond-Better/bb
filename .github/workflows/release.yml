@@ -212,6 +212,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           MACOSX_DEPLOYMENT_TARGET: "10.13"
           # macOS signing environment variables
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -228,6 +230,10 @@ jobs:
         with:
           projectPath: './dui'
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
+          tagName: v${{ steps.get_version.outputs.VERSION }}
+          includeUpdaterJson: true # this will include the latest.json file in the release
+          #releaseDraft: true
+          #prerelease: false
 
       # Process and upload build artifacts
       - name: Process build artifacts
@@ -354,7 +360,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
-          release_name: Release v${{ steps.get_version.outputs.VERSION }}
+          release_name: Beyond Better v${{ steps.get_version.outputs.VERSION }}
           ## Any changes made to structure of release notes will need to be checked against parsing code in dui/src-tauri/src/commands/version.rs
           body: |
             # Beyond Better v${{ steps.get_version.outputs.VERSION }}
@@ -388,7 +394,7 @@ jobs:
 
             ## Changes in this Release:
             ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}
-          draft: false
+          draft: true
           prerelease: false
 
       - name: Upload Release Assets
@@ -420,7 +426,7 @@ jobs:
             return 1
           }
 
-          # Upload binary artifacts
+          # Upload binary artifacts to the existing release
           for target in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin aarch64-apple-darwin; do
             echo "Processing binary target: $target"
             cd "bb-$target"

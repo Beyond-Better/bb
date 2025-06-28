@@ -1,121 +1,202 @@
 {
-	"$schema": "../gen/schemas/desktop-schema.json",
-	"identifier": "main-capability",
-	"description": "Capability for the main BB Server window",
-	"windows": ["main"],
-	"permissions": [
-		"core:app:default",
-		"core:window:default",
-		"core:window:allow-show",
-		"core:window:allow-set-position",
-		"core:webview:default",
-		"core:webview:allow-create-webview-window",
-		"core:window:allow-close",
-		"core:default",
-		"store:default",
-		"store:allow-load",
-		"opener:default",
-		"notification:default",
-		"notification:allow-is-permission-granted",
-		"notification:allow-request-permission",
-		"notification:allow-notify",
-		"notification:allow-register-action-types",
-		"notification:allow-register-listener",
-		"notification:allow-cancel",
-		"core:event:default",
-		"core:event:allow-listen",
-		"core:event:allow-unlisten",
-		"core:event:allow-emit",
-		"core:event:allow-emit-to",
-		{
-			"identifier": "opener:allow-open-url",
-			"allow": [
-				{
-				  "url": "http://localhost:*"
-				},
-				{
-				  "url": "https://localhost:*"
-				},
-				{
-				  "url": "https://chat.beyondbetter.dev"
-				}
-			]
-		},
-		{
-			"identifier": "fs:allow-open",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-stat",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-fstat",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-read",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-exists",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-read-text-file-lines",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-watch",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		},
-		{
-			"identifier": "fs:allow-unwatch",
-			"allow": [
-				{ "path": "$APPLOG/*" },
-				{ "path": "$APPDATA/bb/logs/*" },
-				{ "path": "$HOME/Library/Logs/dev.beyondbetter.app/*" },
-				{ "path": "$HOME/.bb/logs/*" }
-			]
-		}
-	],
-	"webviewConfig": {
-		"allowedNavigateOrigins": ["https://chat.beyondbetter.dev", "https://localhost:8080"],
-		"allowedProtocols": ["ws", "wss", "http", "https"]
-	}
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-capability",
+  "description": "Capability for the main BB Server window",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:app:default",
+    "core:window:default",
+    "core:window:allow-show",
+    "core:window:allow-set-position",
+    "core:webview:default",
+    "core:webview:allow-create-webview-window",
+    "core:window:allow-close",
+    "core:default",
+    "store:default",
+    "store:allow-load",
+    "opener:default",
+    "notification:default",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-notify",
+    "notification:allow-register-action-types",
+    "notification:allow-register-listener",
+    "notification:allow-cancel",
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "updater:default",
+    "dialog:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "http://localhost:*"
+        },
+        {
+          "url": "https://localhost:*"
+        },
+        {
+          "url": "https://chat.beyondbetter.dev"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-open",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-fstat",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file-lines",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-unwatch",
+      "allow": [
+        {
+          "path": "$APPLOG/*"
+        },
+        {
+          "path": "$APPDATA/bb/logs/*"
+        },
+        {
+          "path": "$HOME/Library/Logs/dev.beyondbetter.app/*"
+        },
+        {
+          "path": "$HOME/.bb/logs/*"
+        }
+      ]
+    }
+  ],
+  "webviewConfig": {
+    "allowedNavigateOrigins": [
+      "https://chat.beyondbetter.dev",
+      "https://localhost:8080"
+    ],
+    "allowedProtocols": [
+      "ws",
+      "wss",
+      "http",
+      "https"
+    ]
+  }
 }

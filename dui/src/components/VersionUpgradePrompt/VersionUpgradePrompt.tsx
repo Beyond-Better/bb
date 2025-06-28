@@ -76,7 +76,22 @@ export function VersionUpgradePrompt(): JSX.Element {
     });
 
     try {
-      await invoke('perform_upgrade');
+      const serverUpdateNeeded = !versionCompatibility.compatible || versionCompatibility.updateAvailable;
+      const duiUpdateNeeded = duiUpdateInfo !== null && duiUpdateInfo !== undefined;
+      
+      if (serverUpdateNeeded && duiUpdateNeeded) {
+        console.log('[VersionUpgradePrompt] Performing atomic update (server + DUI)');
+        await invoke('perform_atomic_update');
+      } else if (serverUpdateNeeded) {
+        console.log('[VersionUpgradePrompt] Performing server-only upgrade');
+        await invoke('perform_upgrade');
+      } else if (duiUpdateNeeded) {
+        console.log('[VersionUpgradePrompt] Performing DUI-only update');
+        await invoke('perform_dui_update_only');
+      } else {
+        throw new Error('No updates available');
+      }
+      
       await checkForUpdates();
       setUpgradeState({
         isInstalling: false,
@@ -102,7 +117,7 @@ export function VersionUpgradePrompt(): JSX.Element {
     }
   }, [upgradeState.error]);
 
-  const { versionInfo, versionCompatibility } = versionState.value;
+  const { versionInfo, versionCompatibility, duiUpdateInfo } = versionState.value;
 
   // Loading state
   console.log('[VersionUpgradePrompt] Checking updates:', isCheckingUpdates);
@@ -119,7 +134,24 @@ export function VersionUpgradePrompt(): JSX.Element {
 
   const renderProgressBar = () => {
     const { stage, progress, message } = upgradeState.progress;
-    const stageText = stage === 'idle' ? '' : stage.charAt(0).toUpperCase() + stage.slice(1);
+    
+    const getStageText = (stage: string) => {
+      switch (stage) {
+        case 'idle': return '';
+        case 'preparing': return 'Preparing';
+        case 'downloading': return 'Downloading';
+        case 'installing': return 'Installing';
+        case 'backup': return 'Creating Backup';
+        case 'upgrading-server': return 'Updating Server';
+        case 'checking-dui': return 'Checking Application Updates';
+        case 'downloading-dui': return 'Downloading Application Update';
+        case 'installing-dui': return 'Installing Application Update';
+        case 'complete': return 'Complete';
+        default: return stage.charAt(0).toUpperCase() + stage.slice(1);
+      }
+    };
+    
+    const stageText = getStageText(stage);
     
     return (
       <div className="mt-3">
@@ -186,8 +218,11 @@ export function VersionUpgradePrompt(): JSX.Element {
     );
   }
 
-  // Version incompatible or update available
-  if (!versionCompatibility.compatible || versionCompatibility.updateAvailable) {
+  // Check if any updates are available (server or DUI)
+  const serverUpdateAvailable = !versionCompatibility.compatible || versionCompatibility.updateAvailable;
+  const duiUpdateAvailable = duiUpdateInfo !== null && duiUpdateInfo !== undefined;
+  
+  if (serverUpdateAvailable || duiUpdateAvailable) {
     const hasBreakingChanges = versionCompatibility.hasBreakingChanges;
     const criticalNotice = versionCompatibility.criticalNotice;
     const releaseNotes = versionCompatibility.releaseNotes;
@@ -225,7 +260,7 @@ export function VersionUpgradePrompt(): JSX.Element {
           </div>
           <div className="ml-3 flex-1">
             <h3 className={`text-sm font-medium ${colorScheme.title}`}>
-              {hasBreakingChanges ? 'Critical Update Required' : (!versionCompatibility.compatible ? 'Update Required' : 'Update Available')}
+              {hasBreakingChanges ? 'Critical Update Required' : (!versionCompatibility.compatible ? 'Update Required' : (duiUpdateAvailable && serverUpdateAvailable ? 'Updates Available' : (duiUpdateAvailable ? 'Application Update Available' : 'Server Update Available')))}
             </h3>
             
             {/* Critical Notice */}
@@ -238,22 +273,44 @@ export function VersionUpgradePrompt(): JSX.Element {
             )}
             
             <div className={`mt-2 text-sm ${colorScheme.text}`}>
-              <p>
-                {!versionCompatibility.compatible
-                  ? `BB Server version ${versionCompatibility.requiredVersion} or higher is required. ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`
-                  : `A new version of BB Server is available (${versionCompatibility.latestVersion}). ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`}
-              </p>
+              {serverUpdateAvailable && (
+                <p>
+                  {!versionCompatibility.compatible
+                    ? `BB Server version ${versionCompatibility.requiredVersion} or higher is required. ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`
+                    : `A new version of BB Server is available (${versionCompatibility.latestVersion}). ${hasBreakingChanges ? 'This update contains breaking changes.' : ''}`}
+                </p>
+              )}
+              {duiUpdateAvailable && (
+                <p className={serverUpdateAvailable ? 'mt-2' : ''}>
+                  A new version of the Beyond Better application is available (v{duiUpdateInfo?.version}).
+                  {duiUpdateAvailable && serverUpdateAvailable && ' Both updates will be installed together.'}
+                </p>
+              )}
               
               {/* Release Notes */}
-              {releaseNotes && (
-                <details className="mt-3">
-                  <summary className="cursor-pointer text-sm font-medium hover:underline">
-                    View Release Notes
-                  </summary>
-                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                    <pre className="text-xs whitespace-pre-wrap font-mono">{releaseNotes}</pre>
-                  </div>
-                </details>
+              {(releaseNotes || duiUpdateInfo?.body) && (
+                <div className="mt-3 space-y-2">
+                  {releaseNotes && (
+                    <details>
+                      <summary className="cursor-pointer text-sm font-medium hover:underline">
+                        View Server Release Notes
+                      </summary>
+                      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                        <pre className="text-xs whitespace-pre-wrap font-mono">{releaseNotes}</pre>
+                      </div>
+                    </details>
+                  )}
+                  {duiUpdateInfo?.body && (
+                    <details>
+                      <summary className="cursor-pointer text-sm font-medium hover:underline">
+                        View Application Release Notes
+                      </summary>
+                      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                        <pre className="text-xs whitespace-pre-wrap font-mono">{duiUpdateInfo.body}</pre>
+                      </div>
+                    </details>
+                  )}
+                </div>
               )}
             </div>
             
@@ -270,10 +327,10 @@ export function VersionUpgradePrompt(): JSX.Element {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Updating...
+                    {duiUpdateAvailable && serverUpdateAvailable ? 'Updating All Components...' : (duiUpdateAvailable ? 'Updating Application...' : 'Updating Server...')}
                   </>
                 ) : (
-                  hasBreakingChanges ? 'Update with Caution' : 'Update BB Server'
+                  hasBreakingChanges ? 'Update with Caution' : (duiUpdateAvailable && serverUpdateAvailable ? 'Update All Components' : (duiUpdateAvailable ? 'Update Application' : 'Update Server'))
                 )}
               </button>
               {upgradeState.isInstalling && renderProgressBar()}
