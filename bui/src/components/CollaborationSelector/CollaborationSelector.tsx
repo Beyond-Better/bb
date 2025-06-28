@@ -3,13 +3,17 @@ import { useEffect, useRef } from 'preact/hooks';
 import { CollaborationTrigger } from './CollaborationTrigger.tsx';
 import { CollaborationList } from './CollaborationList.tsx';
 import type { CollaborationValues } from 'shared/types.ts';
-import type { ChatState, CollaborationListState } from '../../types/chat.types.ts';
+import type {
+	ChatState,
+	//CollaborationListState
+} from '../../types/chat.types.ts';
 
 interface CollaborationSelectorProps {
 	chatState: Signal<ChatState>;
-	onSelect: (id: string) => void;
+	onSelect: (id: string) => Promise<void>;
 	onNew: () => void;
 	onDelete: (id: string) => Promise<void>;
+	onToggleStar?: (id: string, starred: boolean) => Promise<void>;
 	className?: string;
 	placement?: 'top' | 'bottom' | 'left' | 'right';
 	triggerClassName?: string;
@@ -20,8 +24,9 @@ export function CollaborationSelector({
 	onSelect,
 	onNew,
 	onDelete,
+	onToggleStar,
 	className = '',
-	placement = 'bottom',
+	placement: _placement = 'bottom',
 	triggerClassName = '',
 }: CollaborationSelectorProps) {
 	const isOpen = useSignal(false);
@@ -160,6 +165,7 @@ export function CollaborationSelector({
 								await onSelect(id);
 							}}
 							onDelete={onDelete}
+							onToggleStar={onToggleStar}
 						/>
 					</div>
 				)}

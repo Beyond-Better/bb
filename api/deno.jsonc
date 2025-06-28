@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.8.8",
+	"version": "0.8.9",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
 	"exports": "./src/main.ts",
@@ -30,7 +30,9 @@
 	},
 	"lock": false,
 	"importMap": "../import_map.json",
-	"unstable": ["kv"],
+	"unstable": [
+		"kv"
+	],
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,
@@ -38,15 +40,26 @@
 		"semiColons": true,
 		"singleQuote": true,
 		"proseWrap": "preserve",
-		"include": ["src/", "tests/"],
-		"exclude": ["src/testdata/", "src/fixtures/**/*.ts"]
+		"include": [
+			"src/",
+			"tests/"
+		],
+		"exclude": [
+			"src/testdata/",
+			"src/fixtures/**/*.ts"
+		]
 	},
 	"lint": {
 		"files": {
-			"include": ["tests/pipelineProvider.js"]
+			"include": [
+				"tests/pipelineProvider.js"
+			]
 		},
 		"rules": {
-			"exclude": ["require-await", "no-var"]
+			"exclude": [
+				"require-await",
+				"no-var"
+			]
 		}
 	}
 }

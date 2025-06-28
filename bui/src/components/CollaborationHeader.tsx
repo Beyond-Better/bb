@@ -39,9 +39,10 @@ interface ChatInputRef {
 interface CollaborationHeaderProps {
 	cacheStatus: 'active' | 'expiring' | 'inactive';
 	status: ChatStatus;
-	onSelect: (id: string) => void;
+	onSelect: (id: string) => Promise<void>;
 	onNew: () => void;
 	onDelete: (id: string) => Promise<void>;
+	onToggleStar?: (id: string, starred: boolean) => Promise<void>;
 	onToggleList: () => void;
 	isListVisible: boolean;
 	chatState: Signal<ChatState>;
@@ -60,6 +61,7 @@ export function CollaborationHeader({
 	onSelect,
 	onNew,
 	onDelete,
+	onToggleStar,
 	onToggleList,
 	isListVisible,
 	chatState,
@@ -158,8 +160,8 @@ export function CollaborationHeader({
 					{/* Collaboration Selector */}
 					<CollaborationSelector
 						chatState={chatState}
-						onSelect={(id) => {
-							onSelect(id);
+						onSelect={async (id) => {
+							await onSelect(id);
 							// Focus the chat input after selecting a conversation
 							focusChatInputSync(chatInputRef);
 						}}
@@ -169,6 +171,7 @@ export function CollaborationHeader({
 							focusChatInputSync(chatInputRef);
 						}}
 						onDelete={onDelete}
+						onToggleStar={onToggleStar}
 						placement='bottom'
 						className='w-96'
 					/>

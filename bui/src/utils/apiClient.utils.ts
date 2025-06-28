@@ -730,6 +730,18 @@ export class ApiClient {
 		]);
 	}
 
+	async updateCollaborationTitle(collaborationId: string, title: string, projectId: ProjectId): Promise<void> {
+		await this.put(`/api/v1/collaborations/${collaborationId}/title?projectId=${encodeURIComponent(projectId)}`, {
+			title,
+		});
+	}
+
+	async toggleCollaborationStar(collaborationId: string, starred: boolean, projectId: ProjectId): Promise<void> {
+		await this.put(`/api/v1/collaborations/${collaborationId}/star?projectId=${encodeURIComponent(projectId)}`, {
+			starred,
+		});
+	}
+
 	async createInteraction(collaborationId: string, projectId: ProjectId, parentInteractionId?: string): Promise<
 		{
 			collaborationId: string;

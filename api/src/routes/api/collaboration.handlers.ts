@@ -4,8 +4,8 @@ import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 //import type Collaboration from 'api/collaborations/collaboration.ts';
 import type { CollaborationId, CollaborationLogDataEntry, CollaborationResponse, InteractionId } from 'shared/types.ts';
 import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
-import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
-import type { LLMRolesModelConfig } from 'api/types/llms.ts';
+//import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+//import type { LLMRolesModelConfig } from 'api/types/llms.ts';
 import type { CollaborationValues } from 'shared/types/collaboration.ts';
 import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 //import InteractionPersistence from 'api/storage/interactionPersistence.ts';
@@ -103,6 +103,7 @@ export const listCollaborations = async (
 				id: collab.id,
 				title: collab.title,
 				type: collab.type,
+				starred: collab.starred,
 				createdAt: collab.createdAt,
 				updatedAt: collab.updatedAt,
 				totalInteractions: collab.totalInteractions,
@@ -374,6 +375,230 @@ export const deleteCollaboration = async (
 		logger.error(`CollaborationHandler: Error in deleteCollaboration: ${errorMessage(error)}`);
 		response.status = 500;
 		response.body = { error: 'Failed to delete collaboration', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/title:
+ *   put:
+ *     summary: Update collaboration title
+ *     description: Updates the title of a specific collaboration
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the collaboration to update
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: The new title for the collaboration
+ *                 minLength: 1
+ *                 maxLength: 255
+ *     responses:
+ *       200:
+ *         description: Successful response with updated collaboration
+ *       400:
+ *         description: Bad request, missing required parameters or invalid title
+ *       404:
+ *         description: Collaboration not found
+ *       500:
+ *         description: Internal server error
+ */
+export const updateCollaborationTitle = async (
+	{ params, request, response, app }: RouterContext<
+		'/v1/collaborations/:collaborationId/title',
+		{ collaborationId: string }
+	>,
+) => {
+	try {
+		const { collaborationId } = params;
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const body = await request.body.json();
+		const { title } = body;
+
+		logger.info(`CollaborationHandler: updateCollaborationTitle for: ${collaborationId}, title: ${title}`);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		if (!title || typeof title !== 'string' || title.trim().length === 0) {
+			response.status = 400;
+			response.body = { error: 'Missing or invalid title parameter' };
+			return;
+		}
+
+		if (title.length > 255) {
+			response.status = 400;
+			response.body = { error: 'Title must be 255 characters or less' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+
+		// Load current collaboration to check if it exists
+		const collaboration = await collaborationPersistence.loadCollaboration();
+		if (!collaboration) {
+			response.status = 404;
+			response.body = { error: 'Collaboration not found' };
+			return;
+		}
+
+		// Update the collaboration title
+		await collaborationPersistence.saveCollaboration({
+			...collaboration,
+			title: title.trim(),
+			updatedAt: new Date().toISOString(),
+		});
+
+		response.status = 200;
+		response.body = {
+			message: 'Collaboration title updated successfully',
+			collaborationId,
+			title: title.trim(),
+			updatedAt: new Date().toISOString(),
+		};
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in updateCollaborationTitle: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to update collaboration title', details: errorMessage(error) };
+	}
+};
+
+/**
+ * @openapi
+ * /api/v1/collaborations/{collaborationId}/star:
+ *   put:
+ *     summary: Toggle collaboration star status
+ *     description: Updates the starred status of a specific collaboration
+ *     parameters:
+ *       - in: path
+ *         name: collaborationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the collaboration to update
+ *       - in: query
+ *         name: projectId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The project ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - starred
+ *             properties:
+ *               starred:
+ *                 type: boolean
+ *                 description: Whether the collaboration should be starred
+ *     responses:
+ *       200:
+ *         description: Successful response with updated collaboration
+ *       400:
+ *         description: Bad request, missing required parameters
+ *       404:
+ *         description: Collaboration not found
+ *       500:
+ *         description: Internal server error
+ */
+export const toggleCollaborationStar = async (
+	{ params, request, response, app }: RouterContext<
+		'/v1/collaborations/:collaborationId/star',
+		{ collaborationId: string }
+	>,
+) => {
+	try {
+		const { collaborationId } = params;
+		const projectId = request.url.searchParams.get('projectId') || '';
+		const body = await request.body.json();
+		const { starred } = body;
+
+		logger.info(`CollaborationHandler: toggleCollaborationStar for: ${collaborationId}, starred: ${starred}`);
+
+		const sessionManager: SessionManager = app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('CollaborationHandler: No session manager configured');
+			response.status = 400;
+			response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		if (!projectId) {
+			response.status = 400;
+			response.body = { error: 'Missing projectId parameter' };
+			return;
+		}
+
+		if (typeof starred !== 'boolean') {
+			response.status = 400;
+			response.body = { error: 'Missing or invalid starred parameter (must be boolean)' };
+			return;
+		}
+
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
+		await collaborationPersistence.init();
+
+		// Load current collaboration to check if it exists
+		const collaboration = await collaborationPersistence.loadCollaboration();
+		if (!collaboration) {
+			response.status = 404;
+			response.body = { error: 'Collaboration not found' };
+			return;
+		}
+
+		// Update the collaboration starred status
+		await collaborationPersistence.saveCollaboration({
+			...collaboration,
+			starred,
+			updatedAt: new Date().toISOString(),
+		});
+
+		response.status = 200;
+		response.body = {
+			message: `Collaboration ${starred ? 'starred' : 'unstarred'} successfully`,
+			collaborationId,
+			starred,
+			updatedAt: new Date().toISOString(),
+		};
+	} catch (error) {
+		logger.error(`CollaborationHandler: Error in toggleCollaborationStar: ${errorMessage(error)}`);
+		response.status = 500;
+		response.body = { error: 'Failed to update collaboration star status', details: errorMessage(error) };
 	}
 };
 

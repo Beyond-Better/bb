@@ -246,9 +246,6 @@ export function ChatInput({
 	const tokenPercentage = useComputed(() => {
 		if (!chatState?.value || !collaborationId) return 0;
 
-		//const currentCollaboration = chatState.value.collaborations?.find(
-		//	(collab: CollaborationValues) => collab.id === collaborationId,
-		//);
 		const currentCollaboration = chatState.value.selectedCollaboration;
 		//console.info('ChatInput: signal-tokenPercentage:', { currentCollaboration });
 
