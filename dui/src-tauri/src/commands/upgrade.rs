@@ -9,7 +9,8 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 #[cfg(not(target_os = "windows"))]
 use tar::Archive;
-use tauri::{command, AppHandle, Emitter};
+use tauri::{command, AppHandle, Emitter, Manager};
+use tauri_plugin_updater::UpdaterExt;
 use tempfile::TempDir;
 #[cfg(target_os = "windows")]
 use zip::ZipArchive;
@@ -19,6 +20,7 @@ use crate::api::stop_api;
 use crate::bui::stop_bui;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
+const DUI_UPDATE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(300); // 5 minutes
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GithubAsset {
@@ -259,12 +261,21 @@ pub async fn perform_upgrade(app: AppHandle) -> Result<(), String> {
     backup_current_installation(&install_location)?;
 
     // Stop all existing processes robustly before upgrade
-    emit_progress(&app, "stopping", 15.0, Some("Stopping existing processes...".to_string()))
-        .map_err(|e| format!("Failed to emit progress: {}", e))?;
-    
+    emit_progress(
+        &app,
+        "stopping",
+        15.0,
+        Some("Stopping existing processes...".to_string()),
+    )
+    .map_err(|e| format!("Failed to emit progress: {}", e))?;
+
     info!("Stopping existing API and BUI processes for upgrade");
-    let api_stopped = stop_api().await.map_err(|e| format!("Failed to stop API: {}", e))?;
-    let bui_stopped = stop_bui().await.map_err(|e| format!("Failed to stop BUI: {}", e))?;
+    let api_stopped = stop_api()
+        .await
+        .map_err(|e| format!("Failed to stop API: {}", e))?;
+    let bui_stopped = stop_bui()
+        .await
+        .map_err(|e| format!("Failed to stop BUI: {}", e))?;
 
     if !api_stopped {
         warn!("Some API processes may still be running after stop attempt");

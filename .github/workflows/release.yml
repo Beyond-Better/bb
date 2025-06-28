@@ -212,6 +212,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           MACOSX_DEPLOYMENT_TARGET: "10.13"
           # macOS signing environment variables
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -228,6 +230,12 @@ jobs:
         with:
           projectPath: './dui'
           args: ${{ matrix.platform == 'macos' && '--target universal-apple-darwin' || format('--target {0}', matrix.target) }}
+          tagName: v${{ steps.get_version.outputs.VERSION }}
+          releaseName: "App v${{ steps.get_version.outputs.VERSION }}"
+          releaseBody: "See the assets to download this version and install."
+          includeUpdaterJson: true # this will include the latest.json file in the release
+          #releaseDraft: true
+          #prerelease: false
 
       # Process and upload build artifacts
       - name: Process build artifacts
