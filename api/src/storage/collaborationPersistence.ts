@@ -39,10 +39,10 @@ class CollaborationPersistence {
 	private collaborationDir!: string;
 	private metadataPath!: string;
 	private collaborationsMetadataPath!: string;
-	private resourcesMetadataPath!: string;
-	private resourceRevisionsDir!: string;
-	private objectivesPath!: string;
-	private resourcesPath!: string;
+	// private resourcesMetadataPath!: string;
+	// private resourceRevisionsDir!: string;
+	// private objectivesPath!: string;
+	// private resourcesPath!: string;
 	private projectInfoPath!: string;
 	//private interactionsDir!: string;
 	private initialized: boolean = false;
@@ -112,13 +112,13 @@ class CollaborationPersistence {
 
 		this.metadataPath = join(this.collaborationDir, 'metadata.json');
 
-		this.resourcesMetadataPath = join(this.collaborationDir, 'resources_metadata.json');
-		this.resourceRevisionsDir = join(this.collaborationDir, 'resource_revisions');
+		//this.resourcesMetadataPath = join(this.collaborationDir, 'resources_metadata.json');
+		//this.resourceRevisionsDir = join(this.collaborationDir, 'resource_revisions');
 
 		this.projectInfoPath = join(this.collaborationDir, 'project_info.json');
 
-		this.objectivesPath = join(this.collaborationDir, 'objectives.json');
-		this.resourcesPath = join(this.collaborationDir, 'resources.json');
+		//this.objectivesPath = join(this.collaborationDir, 'objectives.json');
+		//this.resourcesPath = join(this.collaborationDir, 'resources.json');
 
 		this.tokenUsagePersistence = await new TokenUsagePersistence(this.collaborationDir).init();
 		//this.llmRequestPersistence = await new LLMRequestPersistence(this.collaborationDir).init();
@@ -709,6 +709,7 @@ class CollaborationPersistence {
 			tokenUsageCollaboration: CollaborationPersistence.defaultTokenUsage(),
 			totalInteractions: 0,
 			interactionIds: [],
+			starred: false, 
 			createdAt: '',
 			updatedAt: '',
 		};

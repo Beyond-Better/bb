@@ -761,20 +761,6 @@ export function useChatState(
 					// 	lastAccessed: new Date().toISOString(),
 					// });
 
-					// Update chatInputOptions with the request parameters from the response if available
-					// if (chatInputOptions && data.logDataEntry.collaborationParams) {
-					// 	console.info(
-					// 		'useChatState: wsManager effect: Updating options from message response',
-					// 		data.logDataEntry.collaborationParams,
-					// 	);
-					// 	chatInputOptions.value = {
-					// 		...chatInputOptions.value,
-					// 		rolesModelConfig: {
-					// 			...chatInputOptions.value.rolesModelConfig,
-					// 			...data.logDataEntry.collaborationParams.rolesModelConfig,
-					// 		},
-					// 	};
-					// }
 
 					chatState.value = {
 						...chatState.value,

@@ -10,6 +10,8 @@ import {
 	getCollaborationDefaults,
 	getInteraction,
 	listCollaborations,
+	toggleCollaborationStar,
+	updateCollaborationTitle,
 } from './api/collaboration.handlers.ts';
 import { websocketApp, websocketCollaboration } from './api/websocket.handlers.ts';
 import { getStatus } from './api/status.handlers.ts';
@@ -68,6 +70,8 @@ apiRouter
 	.get('/v1/collaborations/defaults', getCollaborationDefaults)
 	.get('/v1/collaborations/:collaborationId', getCollaboration)
 	.delete('/v1/collaborations/:collaborationId', deleteCollaboration)
+	.put('/v1/collaborations/:collaborationId/title', updateCollaborationTitle)
+	.put('/v1/collaborations/:collaborationId/star', toggleCollaborationStar)
 	// Interaction endpoints within collaborations
 	.post('/v1/collaborations/:collaborationId/interactions', createInteraction)
 	.get('/v1/collaborations/:collaborationId/interactions/:interactionId', getInteraction)

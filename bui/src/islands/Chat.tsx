@@ -79,8 +79,6 @@ const getInputOptionsFromCollaboration = (
 		};
 	}
 
-	// const collaboration = collaborations.find((collab) => collab.id === collaborationId);
-	// if (!collaboration || !collaboration.collaborationParams || !collaboration.collaborationParams.rolesModelConfig) {
 	if (!selectedCollaboration.collaborationParams || !selectedCollaboration.collaborationParams.rolesModelConfig) {
 		// Fallback to defaults from model state hook
 		const defaultRolesConfig = getDefaultRolesModelConfig();
@@ -482,6 +480,130 @@ export default function Chat({
 		}
 	};
 
+	const updateCollaborationTitle = async (id: string, newTitle: string) => {
+		try {
+			if (!projectId) throw new Error('projectId is undefined for update collaboration title');
+			if (!chatState.value.apiClient) throw new Error('API client not initialized');
+			if (!chatState.value.status.isReady) {
+				throw new Error('WebSocket connection not ready. Please try again.');
+			}
+
+			// Prevent updates during processing
+			if (isProcessing(chatState.value.status)) {
+				throw new Error('Please wait for the current operation to complete');
+			}
+
+			// Optimistic update
+			const updatedCollaborations = chatState.value.collaborations.map((collab: CollaborationValues) =>
+				collab.id === id ? { ...collab, title: newTitle, updatedAt: new Date().toISOString() } : collab
+			);
+
+			chatState.value = {
+				...chatState.value,
+				collaborations: updatedCollaborations,
+			};
+
+			// Update selected collaboration if it's the current one
+			if (id === chatState.value.collaborationId && chatState.value.selectedCollaboration) {
+				chatState.value.selectedCollaboration = {
+					...chatState.value.selectedCollaboration,
+					title: newTitle,
+					updatedAt: new Date().toISOString(),
+				};
+			}
+
+			// Make API call
+			if (!chatState.value.apiClient) {
+				throw new Error('API client not available');
+			}
+			await chatState.value.apiClient.updateCollaborationTitle(id, newTitle, projectId);
+
+			setToastMessage('Title updated successfully');
+			setShowToast(true);
+		} catch (error) {
+			console.error('Failed to update collaboration title:', error);
+			setToastMessage((error as Error).message || 'Failed to update title');
+			setShowToast(true);
+
+			// Revert optimistic update on error
+			if (chatState.value.apiClient && projectId) {
+				try {
+					const collaborations = await chatState.value.apiClient.listCollaborations(projectId);
+					if (collaborations) {
+						chatState.value = {
+							...chatState.value,
+							collaborations: collaborations.collaborations,
+						};
+					}
+				} catch (revertError) {
+					console.error('Failed to revert collaboration list:', revertError);
+				}
+			}
+		}
+	};
+
+	const toggleCollaborationStar = async (id: string, starred: boolean) => {
+		try {
+			if (!projectId) throw new Error('projectId is undefined for toggle collaboration star');
+			if (!chatState.value.apiClient) throw new Error('API client not initialized');
+			if (!chatState.value.status.isReady) {
+				throw new Error('WebSocket connection not ready. Please try again.');
+			}
+
+			// Prevent updates during processing
+			if (isProcessing(chatState.value.status)) {
+				throw new Error('Please wait for the current operation to complete');
+			}
+
+			// Optimistic update
+			const updatedCollaborations = chatState.value.collaborations.map((collab: CollaborationValues) =>
+				collab.id === id ? { ...collab, starred, updatedAt: new Date().toISOString() } : collab
+			);
+
+			chatState.value = {
+				...chatState.value,
+				collaborations: updatedCollaborations,
+			};
+
+			// Update selected collaboration if it's the current one
+			if (id === chatState.value.collaborationId && chatState.value.selectedCollaboration) {
+				chatState.value.selectedCollaboration = {
+					...chatState.value.selectedCollaboration,
+					starred,
+					updatedAt: new Date().toISOString(),
+				};
+			}
+
+			// Make API call
+			if (!chatState.value.apiClient) {
+				throw new Error('API client not available');
+			}
+			await chatState.value.apiClient.toggleCollaborationStar(id, starred, projectId);
+
+			setToastMessage(starred ? 'Added to favorites' : 'Removed from favorites');
+			setShowToast(true);
+		} catch (error) {
+			console.error('Failed to toggle collaboration star:', error);
+			setToastMessage((error as Error).message || 'Failed to update favorites');
+			setShowToast(true);
+
+			// Revert optimistic update on error
+			if (chatState.value.apiClient && projectId) {
+				try {
+					const collaborations = await chatState.value.apiClient.listCollaborations(projectId);
+					if (collaborations) {
+						chatState.value = {
+							...chatState.value,
+							collaborations: collaborations.collaborations,
+						};
+					}
+				} catch (revertError) {
+					console.error('Failed to revert collaboration list:', revertError);
+				}
+			}
+		}
+	};
+
 	const selectCollaboration = async (id: string) => {
 		try {
 			await handlers.selectCollaboration(id);
@@ -809,6 +931,8 @@ export default function Chat({
 											isCollaborationListVisible.value = false;
 										}}
 										onDelete={deleteCollaboration}
+										onTitleUpdate={updateCollaborationTitle}
+										onToggleStar={toggleCollaborationStar}
 										onClose={() => isCollaborationListVisible.value = false}
 									/>
 								</div>
@@ -825,6 +949,7 @@ export default function Chat({
 										await selectCollaboration(id);
 									}}
 									onDelete={deleteCollaboration}
+									onToggleStar={toggleCollaborationStar}
 									onToggleList={() =>
 										isCollaborationListVisible.value = !isCollaborationListVisible.value}
 									isListVisible={isCollaborationListVisible.value}

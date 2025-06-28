@@ -43,6 +43,8 @@ export interface CollaborationMetadata {
 	lastInteractionId?: InteractionId;
 	lastInteractionMetadata?: InteractionMetadata;
 	//lastInteractionMetadata?: Pick<InteractionMetadata, 'llmProviderName' | 'model' | 'updatedAt'>;
+	// User preferences
+	starred?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
