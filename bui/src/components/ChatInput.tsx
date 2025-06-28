@@ -23,7 +23,7 @@ import { ChatHistoryDropdown } from './ChatHistoryDropdown.tsx';
 import { type ModelSelectionValue, ModelSelector } from './ModelManager.tsx';
 import { getControllerRoleIcon } from 'shared/svgImages.tsx';
 import { useModelState } from '../hooks/useModelState.ts';
-import type { CollaborationValues } from 'shared/types.ts';
+//import type { CollaborationValues } from 'shared/types.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 
 interface ChatInputRef {

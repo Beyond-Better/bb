@@ -128,6 +128,9 @@ This is a quick fix. Including change notes from v0.8.5 as well.
 
 ### Changed
 
+- Redesign model selection and help
+- Use SVG instead of emoticons for provider and model capabilities icons
+- Add version number to /api/v1/status
 - rewrote process restart strategy
 
 ### Fixed

@@ -114,7 +114,7 @@ Note: On Windows, you may need to approve SmartScreen security prompts during fi
 
 ## Changes in this Release:
 ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
-              draft: false,
+              draft: true,
               prerelease: false
             })
             return data.id
