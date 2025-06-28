@@ -761,7 +761,6 @@ export function useChatState(
 					// 	lastAccessed: new Date().toISOString(),
 					// });
 
-
 					chatState.value = {
 						...chatState.value,
 						status: {

@@ -208,84 +208,86 @@ export function CollaborationList({
 												{/* Row 1: Title and Buttons */}
 												<div className='flex justify-between items-start gap-2'>
 													<div className='flex-1 min-w-0'>
-													{editingCollaboration.value === collab.id ? (
-															<div className='flex items-center gap-2'>
-																<input
-																	type='text'
-																	value={editedTitle.value}
-																	onInput={(e) =>
-																		editedTitle.value =
-																			(e.target as HTMLInputElement).value}
-																	onClick={(e) => e.stopPropagation()}
-																	onKeyDown={(e) => {
-																		if (e.key === 'Enter') {
-																			e.preventDefault();
+														{editingCollaboration.value === collab.id
+															? (
+																<div className='flex items-center gap-2'>
+																	<input
+																		type='text'
+																		value={editedTitle.value}
+																		onInput={(e) =>
+																			editedTitle.value =
+																				(e.target as HTMLInputElement).value}
+																		onClick={(e) => e.stopPropagation()}
+																		onKeyDown={(e) => {
+																			if (e.key === 'Enter') {
+																				e.preventDefault();
+																				saveTitle(collab.id);
+																			} else if (e.key === 'Escape') {
+																				e.preventDefault();
+																				cancelEditing();
+																			}
+																		}}
+																		className='flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
+																		placeholder='Enter title...'
+																		autoFocus
+																		aria-label='Edit collaboration title'
+																	/>
+																	<button
+																		type='button'
+																		onClick={(e) => {
+																			e.stopPropagation();
 																			saveTitle(collab.id);
-																		} else if (e.key === 'Escape') {
-																			e.preventDefault();
+																		}}
+																		disabled={isUpdatingTitle.value ||
+																			!editedTitle.value.trim()}
+																		className='p-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+																		title='Save title'
+																		aria-label='Save title'
+																	>
+																		<svg
+																			className='w-4 h-4'
+																			fill='none'
+																			stroke='currentColor'
+																			viewBox='0 0 24 24'
+																		>
+																			<path
+																				strokeLinecap='round'
+																				strokeLinejoin='round'
+																				strokeWidth={2}
+																				d='M5 13l4 4L19 7'
+																			/>
+																		</svg>
+																	</button>
+																	<button
+																		type='button'
+																		onClick={(e) => {
+																			e.stopPropagation();
 																			cancelEditing();
-																		}
-																	}}
-																	className='flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500'
-																	placeholder='Enter title...'
-																	autoFocus
-																	aria-label='Edit collaboration title'
-																/>
-																<button
-																	type='button'
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		saveTitle(collab.id);
-																	}}
-																	disabled={isUpdatingTitle.value ||
-																		!editedTitle.value.trim()}
-																	className='p-1 text-green-600 hover:text-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
-																	title='Save title'
-																	aria-label='Save title'
-																>
-																	<svg
-																		className='w-4 h-4'
-																		fill='none'
-																		stroke='currentColor'
-																		viewBox='0 0 24 24'
+																		}}
+																		className='p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+																		title='Cancel editing'
+																		aria-label='Cancel editing'
 																	>
-																		<path
-																			strokeLinecap='round'
-																			strokeLinejoin='round'
-																			strokeWidth={2}
-																			d='M5 13l4 4L19 7'
-																		/>
-																	</svg>
-																</button>
-																<button
-																	type='button'
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		cancelEditing();
-																	}}
-																	className='p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-																	title='Cancel editing'
-																	aria-label='Cancel editing'
-																>
-																	<svg
-																		className='w-4 h-4'
-																		fill='none'
-																		stroke='currentColor'
-																		viewBox='0 0 24 24'
-																	>
-																		<path
-																			strokeLinecap='round'
-																			strokeLinejoin='round'
-																			strokeWidth={2}
-																			d='M6 18L18 6M6 6l12 12'
-																		/>
-																	</svg>
-																</button>
-															</div>
-														)
-														: (
-															<div className='flex items-center gap-2 flex-1 min-w-0'>
-																{/* We don't need a star heading and button */ /* collab.starred && (
+																		<svg
+																			className='w-4 h-4'
+																			fill='none'
+																			stroke='currentColor'
+																			viewBox='0 0 24 24'
+																		>
+																			<path
+																				strokeLinecap='round'
+																				strokeLinejoin='round'
+																				strokeWidth={2}
+																				d='M6 18L18 6M6 6l12 12'
+																			/>
+																		</svg>
+																	</button>
+																</div>
+															)
+															: (
+																<div className='flex items-center gap-2 flex-1 min-w-0'>
+																	{
+																		/* We don't need a star heading and button */ /* collab.starred && (
 																	<svg
 																		className='w-4 h-4 text-yellow-500 flex-shrink-0'
 																		fill='currentColor'
@@ -293,100 +295,101 @@ export function CollaborationList({
 																	>
 																		<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
 																	</svg>
-																) */}
-																<h3
-																	className='font-medium text-gray-900 dark:text-gray-100 text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 truncate'
-																	title={collab.title || 'Untitled'}
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		startEditing(collab);
-																	}}
-																	aria-label='Click to edit title'
-																>
-																	{collab.title || 'Untitled'}
-																</h3>
-															</div>
-														)}
+																) */
+																	}
+																	<h3
+																		className='font-medium text-gray-900 dark:text-gray-100 text-sm cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 truncate'
+																		title={collab.title || 'Untitled'}
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			startEditing(collab);
+																		}}
+																		aria-label='Click to edit title'
+																	>
+																		{collab.title || 'Untitled'}
+																	</h3>
+																</div>
+															)}
 													</div>
 													<div className='flex items-center gap-1'>
-													{/* Star button */}
-													<button
-														type='button'
-														onClick={(e) => {
-															e.stopPropagation();
-															toggleStar(collab.id, collab.starred || false);
-														}}
-														disabled={isUpdatingStar.value === collab.id}
-														className={`p-1 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
-															collab.starred
-																? 'text-yellow-500 hover:text-yellow-600'
-																: 'text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-400'
-														}`}
-														title={collab.starred
-															? 'Remove from favorites'
-															: 'Add to favorites'}
-														aria-label={collab.starred
-															? 'Remove from favorites'
-															: 'Add to favorites'}
-													>
-														{collab.starred
-															? (
-																<svg
-																	className='w-4 h-4'
-																	fill='currentColor'
-																	viewBox='0 0 24 24'
-																>
-																	<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
-																</svg>
-															)
-															: (
-																<svg
-																	className='w-4 h-4'
-																	fill='none'
-																	stroke='currentColor'
-																	viewBox='0 0 24 24'
-																>
-																	<path
-																		strokeLinecap='round'
-																		strokeLinejoin='round'
-																		strokeWidth={2}
-																		d='M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
-																	/>
-																</svg>
-															)}
-													</button>
-													{/* Delete button - only visible on hover */}
-													<button
-														type='button'
-														onClick={(e) => {
-															e.stopPropagation();
-															collaborationToDelete.value = {
-																id: collab.id,
-																title: collab.title || 'Untitled',
-															};
-															showDeleteConfirm.value = true;
-														}}
-														className='opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-300 dark:hover:text-red-400 p-1 rounded transition-opacity duration-200'
-														disabled={isLoading}
-													>
-														<svg
-															xmlns='http://www.w3.org/2000/svg'
-															fill='none'
-															viewBox='0 0 24 24'
-															strokeWidth={1.5}
-															stroke='currentColor'
-															className='w-4 h-4'
+														{/* Star button */}
+														<button
+															type='button'
+															onClick={(e) => {
+																e.stopPropagation();
+																toggleStar(collab.id, collab.starred || false);
+															}}
+															disabled={isUpdatingStar.value === collab.id}
+															className={`p-1 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+																collab.starred
+																	? 'text-yellow-500 hover:text-yellow-600'
+																	: 'text-gray-400 hover:text-yellow-500 dark:text-gray-500 dark:hover:text-yellow-400'
+															}`}
+															title={collab.starred
+																? 'Remove from favorites'
+																: 'Add to favorites'}
+															aria-label={collab.starred
+																? 'Remove from favorites'
+																: 'Add to favorites'}
 														>
-															<path
-																strokeLinecap='round'
-																strokeLinejoin='round'
-																d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'
-															/>
-														</svg>
-													</button>
+															{collab.starred
+																? (
+																	<svg
+																		className='w-4 h-4'
+																		fill='currentColor'
+																		viewBox='0 0 24 24'
+																	>
+																		<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
+																	</svg>
+																)
+																: (
+																	<svg
+																		className='w-4 h-4'
+																		fill='none'
+																		stroke='currentColor'
+																		viewBox='0 0 24 24'
+																	>
+																		<path
+																			strokeLinecap='round'
+																			strokeLinejoin='round'
+																			strokeWidth={2}
+																			d='M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'
+																		/>
+																	</svg>
+																)}
+														</button>
+														{/* Delete button - only visible on hover */}
+														<button
+															type='button'
+															onClick={(e) => {
+																e.stopPropagation();
+																collaborationToDelete.value = {
+																	id: collab.id,
+																	title: collab.title || 'Untitled',
+																};
+																showDeleteConfirm.value = true;
+															}}
+															className='opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-300 dark:hover:text-red-400 p-1 rounded transition-opacity duration-200'
+															disabled={isLoading}
+														>
+															<svg
+																xmlns='http://www.w3.org/2000/svg'
+																fill='none'
+																viewBox='0 0 24 24'
+																strokeWidth={1.5}
+																stroke='currentColor'
+																className='w-4 h-4'
+															>
+																<path
+																	strokeLinecap='round'
+																	strokeLinejoin='round'
+																	d='M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0'
+																/>
+															</svg>
+														</button>
 													</div>
 												</div>
-												
+
 												{/* Row 2: ID and Date */}
 												<div className='grid grid-cols-2 gap-1.5 text-xs text-gray-500 dark:text-gray-400'>
 													<span className='truncate'>ID: {collab.id}</span>
@@ -412,7 +415,7 @@ export function CollaborationList({
 														})}
 													</span>
 												</div>
-												
+
 												{/* Row 3: Turns and Tokens */}
 												<div className='grid grid-cols-2 gap-1.5 text-xs'>
 													{collab.lastInteractionMetadata?.interactionStats && (

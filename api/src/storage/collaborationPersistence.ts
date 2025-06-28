@@ -709,7 +709,7 @@ class CollaborationPersistence {
 			tokenUsageCollaboration: CollaborationPersistence.defaultTokenUsage(),
 			totalInteractions: 0,
 			interactionIds: [],
-			starred: false, 
+			starred: false,
 			createdAt: '',
 			updatedAt: '',
 		};

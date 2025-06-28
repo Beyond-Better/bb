@@ -160,8 +160,8 @@ export function CollaborationHeader({
 					{/* Collaboration Selector */}
 					<CollaborationSelector
 						chatState={chatState}
-						onSelect={(id) => {
-							onSelect(id);
+						onSelect={async (id) => {
+							await onSelect(id);
 							// Focus the chat input after selecting a conversation
 							focusChatInputSync(chatInputRef);
 						}}

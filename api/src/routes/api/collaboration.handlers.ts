@@ -481,7 +481,7 @@ export const updateCollaborationTitle = async (
 		});
 
 		response.status = 200;
-		response.body = { 
+		response.body = {
 			message: 'Collaboration title updated successfully',
 			collaborationId,
 			title: title.trim(),
@@ -589,7 +589,7 @@ export const toggleCollaborationStar = async (
 		});
 
 		response.status = 200;
-		response.body = { 
+		response.body = {
 			message: `Collaboration ${starred ? 'starred' : 'unstarred'} successfully`,
 			collaborationId,
 			starred,

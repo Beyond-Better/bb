@@ -83,7 +83,8 @@ export function CollaborationList({
 								{/* Title and Updated Time */}
 								<div className='flex justify-between items-start mb-1'>
 									<div className='flex items-center gap-2 flex-1 min-w-0'>
-										{/* We don't need a star heading and button */ /*collab.starred && (
+										{
+											/* We don't need a star heading and button */ /*collab.starred && (
 											<svg
 												className='w-4 h-4 text-yellow-500 flex-shrink-0'
 												fill='currentColor'
@@ -91,7 +92,8 @@ export function CollaborationList({
 											>
 												<path d='M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' />
 											</svg>
-										) */}
+										) */
+										}
 										<h3
 											className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'
 											title={collab.title || 'Untitled'}

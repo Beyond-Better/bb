@@ -10,7 +10,7 @@ import type {
 
 interface CollaborationSelectorProps {
 	chatState: Signal<ChatState>;
-	onSelect: (id: string) =>  Promise<void>;
+	onSelect: (id: string) => Promise<void>;
 	onNew: () => void;
 	onDelete: (id: string) => Promise<void>;
 	onToggleStar?: (id: string, starred: boolean) => Promise<void>;
