@@ -1,6 +1,13 @@
 import type { JSX } from 'preact';
 
-import type { CollaborationLogDataEntry, CollaborationValues, ProjectId, TokenUsage } from 'shared/types.ts';
+import type {
+	CollaborationLogDataEntry,
+	CollaborationValues,
+	InteractionStats,
+	ProjectId,
+	TokenUsage,
+	TokenUsageStatsForInteraction,
+} from 'shared/types.ts';
 import type { SystemMeta } from 'shared/types/version.ts';
 import type {
 	ClientDataSourceConnection,
@@ -14,7 +21,7 @@ import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
 import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
-import type { LLMModelConfig, LLMRequestParams } from '../types/llm.types.ts';
+import type { LLMModelConfig } from '../types/llm.types.ts';
 import type {
 	BillingPreviewResults,
 	BillingPreviewWithUsage,
@@ -763,8 +770,8 @@ export class ApiClient {
 			interactionId: string;
 			logEntry: CollaborationLogDataEntry;
 			collaborationTitle: string;
-			interactionStats: any;
-			tokenUsageStats: any;
+			interactionStats: InteractionStats;
+			tokenUsageStatsForInteraction: TokenUsageStatsForInteraction;
 		} | null
 	> {
 		return await this.post<{
@@ -772,8 +779,8 @@ export class ApiClient {
 			interactionId: string;
 			logEntry: CollaborationLogDataEntry;
 			collaborationTitle: string;
-			interactionStats: any;
-			tokenUsageStats: any;
+			interactionStats: InteractionStats;
+			tokenUsageStatsForInteraction: TokenUsageStatsForInteraction;
 		}>(`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}`, {
 			statement,
 			projectId,
