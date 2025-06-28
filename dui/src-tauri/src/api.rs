@@ -378,12 +378,12 @@ pub async fn start_api() -> Result<ApiStartResult, String> {
 #[tauri::command]
 pub async fn stop_api() -> Result<bool, String> {
     use crate::commands::api_status::{find_all_api_processes, robust_terminate_process};
-    
+
     info!("Stopping API - looking for all bb-api processes");
-    
+
     // Find ALL bb-api processes (not just ones with PID files)
     let all_pids = find_all_api_processes().await?;
-    
+
     if all_pids.is_empty() {
         info!("No API processes found");
         // Clean up any stale PID file
@@ -394,9 +394,9 @@ pub async fn stop_api() -> Result<bool, String> {
     }
 
     info!("Found {} API process(es): {:?}", all_pids.len(), all_pids);
-    
+
     let mut all_stopped = true;
-    
+
     // Terminate each process
     for pid in all_pids {
         if !robust_terminate_process(pid, "bb-api").await {
@@ -404,22 +404,22 @@ pub async fn stop_api() -> Result<bool, String> {
             all_stopped = false;
         }
     }
-    
+
     // Clean up PID file regardless
     if let Err(e) = crate::commands::api_status::remove_pid().await {
         warn!("Failed to remove PID file: {}", e);
     }
-    
+
     // Wait and verify all processes are gone
     std::thread::sleep(std::time::Duration::from_millis(1000));
     let remaining_pids = find_all_api_processes().await?;
-    
+
     if !remaining_pids.is_empty() {
         warn!("Some API processes still running: {:?}", remaining_pids);
         all_stopped = false;
     } else {
         info!("All API processes stopped successfully");
     }
-    
+
     Ok(all_stopped)
 }

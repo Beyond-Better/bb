@@ -1,101 +1,89 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Beyond Better",
-  "version": "0.8.7",
-  "identifier": "dev.beyondbetter.app",
-  "build": {
-    "beforeDevCommand": "npx vite",
-    "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npx vite build",
-    "frontendDist": "../dist"
-  },
-  "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "BB Server",
-        "width": 700,
-        "height": 480,
-        "center": false,
-        "x": 100,
-        "y": 100
-      }
-    ],
-    "security": {
-      "capabilities": [
-        "main-capability",
-        "chat-capability"
-      ],
-      "csp": {
-        "default-src": "'self' * 'unsafe-inline' 'unsafe-eval",
-        "connect-src": "'self' * ws: wss: http: https:",
-        "font-src": [
-          "https://fonts.gstatic.com"
-        ],
-        "img-src": "'self' asset: blob: data:",
-        "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
-      }
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": [
-      "app",
-      "dmg",
-      "msi",
-      "nsis",
-      "appimage"
-    ],
-    "category": "Utility",
-    "shortDescription": "Beyond Better Desktop App",
-    "longDescription": "Desktop app for Beyond Better, providing a modern interface for managing BB tools and configurations.",
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": false
-      }
-    },
-    "windows": {
-      "webviewInstallMode": {
-        "type": "embedBootstrapper"
-      },
-      "wix": {
-        "upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
-        "fragmentPaths": [
-          "windows/fragments/registry.wxs"
-        ]
-      },
-      "nsis": {
-        "installMode": "both",
-        "displayLanguageSelector": false,
-        "startMenuFolder": "Beyond Better"
-      }
-    },
-    "macOS": {
-      "frameworks": [],
-      "minimumSystemVersion": "10.13",
-      "signingIdentity": "662F8634EFD7514D1191901F83FDD7CF2A2E7728",
-      "entitlements": "macos/entitlements.plist",
-      "dmg": {
-        "windowSize": {
-          "width": 660,
-          "height": 400
-        },
-        "appPosition": {
-          "x": 90,
-          "y": 170
-        },
-        "applicationFolderPosition": {
-          "x": 180,
-          "y": 170
-        }
-      }
-    },
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ]
-  }
+	"$schema": "https://schema.tauri.app/config/2",
+	"productName": "Beyond Better",
+	"version": "0.8.7",
+	"identifier": "dev.beyondbetter.app",
+	"build": {
+		"beforeDevCommand": "npx vite",
+		"devUrl": "http://localhost:1420",
+		"beforeBuildCommand": "npx vite build",
+		"frontendDist": "../dist"
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDk5RDBCNUExQUJCQ0UzNjgKUldSbzQ3eXJvYlhRbVJKRU13cTY0MVh6QTZmOTF4S3h0WkNkZExaSDIva1hRRm56MWphUEZ3MDQK",
+			"endpoints": ["https://github.com/Beyond-Better/bb/releases/latest/download/latest.json"]
+		}
+	},
+	"app": {
+		"windows": [
+			{
+				"label": "main",
+				"title": "BB Server",
+				"width": 700,
+				"height": 480,
+				"center": false,
+				"x": 100,
+				"y": 100
+			}
+		],
+		"security": {
+			"capabilities": ["main-capability", "chat-capability"],
+			"csp": {
+				"default-src": "'self' * 'unsafe-inline' 'unsafe-eval",
+				"connect-src": "'self' * ws: wss: http: https:",
+				"font-src": ["https://fonts.gstatic.com"],
+				"img-src": "'self' asset: blob: data:",
+				"style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com"
+			}
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": ["app", "dmg", "msi", "nsis", "appimage"],
+		"category": "Utility",
+		"shortDescription": "Beyond Better Desktop App",
+		"longDescription": "Desktop app for Beyond Better, providing a modern interface for managing BB tools and configurations.",
+		"createUpdaterArtifacts": true,
+		"linux": {
+			"appimage": {
+				"bundleMediaFramework": false
+			}
+		},
+		"windows": {
+			"webviewInstallMode": {
+				"type": "embedBootstrapper"
+			},
+			"wix": {
+				"upgradeCode": "C8A8C5A6-5BF5-40D6-9E4F-632D98C26F2D",
+				"fragmentPaths": ["windows/fragments/registry.wxs"]
+			},
+			"nsis": {
+				"installMode": "both",
+				"displayLanguageSelector": false,
+				"startMenuFolder": "Beyond Better"
+			}
+		},
+		"macOS": {
+			"frameworks": [],
+			"minimumSystemVersion": "10.13",
+			"signingIdentity": "662F8634EFD7514D1191901F83FDD7CF2A2E7728",
+			"entitlements": "macos/entitlements.plist",
+			"dmg": {
+				"windowSize": {
+					"width": 660,
+					"height": 400
+				},
+				"appPosition": {
+					"x": 90,
+					"y": 170
+				},
+				"applicationFolderPosition": {
+					"x": 180,
+					"y": 170
+				}
+			}
+		},
+		"icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
+	}
 }

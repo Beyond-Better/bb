@@ -1,9 +1,9 @@
+use log::{error, info};
 use reqwest;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::command;
-use log::{info, error};
 
 use crate::config::read_global_config;
 
@@ -135,9 +135,7 @@ pub async fn find_all_api_processes() -> Result<Vec<i32>, String> {
             .output()
     } else {
         // Linux
-        StdCommand::new("pgrep")
-            .args(&[process_name])
-            .output()
+        StdCommand::new("pgrep").args(&[process_name]).output()
     };
 
     match output {
@@ -178,8 +176,11 @@ pub async fn find_all_api_processes() -> Result<Vec<i32>, String> {
 
 // Add robust termination function
 pub async fn robust_terminate_process(pid: i32, process_name: &str) -> bool {
-    info!("Attempting to terminate {} process PID: {}", process_name, pid);
-    
+    info!(
+        "Attempting to terminate {} process PID: {}",
+        process_name, pid
+    );
+
     // First try graceful termination
     let graceful_result = {
         #[cfg(target_family = "unix")]
@@ -196,7 +197,7 @@ pub async fn robust_terminate_process(pid: i32, process_name: &str) -> bool {
     if graceful_result {
         // Wait a bit for graceful shutdown
         std::thread::sleep(std::time::Duration::from_millis(2000));
-        
+
         // Check if process is gone
         if !check_process_exists(pid) {
             info!("Process {} terminated gracefully", pid);
@@ -215,7 +216,7 @@ pub async fn robust_terminate_process(pid: i32, process_name: &str) -> bool {
         {
             use windows_sys::Win32::Foundation::{CloseHandle, FALSE};
             use windows_sys::Win32::System::Threading::{OpenProcess, TerminateProcess};
-            
+
             const PROCESS_TERMINATE: u32 = 0x0001;
             unsafe {
                 let handle = OpenProcess(PROCESS_TERMINATE, FALSE, pid as u32);
@@ -233,13 +234,13 @@ pub async fn robust_terminate_process(pid: i32, process_name: &str) -> bool {
     // Wait a bit and verify
     std::thread::sleep(std::time::Duration::from_millis(1000));
     let success = !check_process_exists(pid);
-    
+
     if success {
         info!("Process {} terminated successfully", pid);
     } else {
         error!("Failed to terminate process {}", pid);
     }
-    
+
     success
 }
 
@@ -253,7 +254,10 @@ async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
     match reqwest::get(&primary_url).await {
         Ok(response) => {
             let status = response.status();
-            info!("API responded with status: {} on {}", status, primary_scheme);
+            info!(
+                "API responded with status: {} on {}",
+                status, primary_scheme
+            );
             if status.is_success() {
                 return Ok(true);
             }
@@ -272,11 +276,17 @@ async fn check_api_responds(hostname: &str, port: u16, use_tls: bool) -> Result<
     match reqwest::get(&fallback_url).await {
         Ok(response) => {
             let status = response.status();
-            info!("API responded with status: {} on {} (fallback)", status, fallback_scheme);
+            info!(
+                "API responded with status: {} on {} (fallback)",
+                status, fallback_scheme
+            );
             Ok(status.is_success())
         }
         Err(e) => {
-            info!("Failed to connect to API on {} (fallback): {}", fallback_scheme, e);
+            info!(
+                "Failed to connect to API on {} (fallback): {}",
+                fallback_scheme, e
+            );
             Ok(false)
         }
     }

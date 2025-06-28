@@ -45,6 +45,7 @@ tokio-tungstenite = { version = "0.20", features = ["native-tls"] }
 futures-util = { version = "0.3", features = ["sink"] }
 tungstenite = "0.20"
 urlencoding = "2.1"
+tauri-plugin-dialog = "2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 flate2 = "1.0"
@@ -67,3 +68,6 @@ windows-sys = { version = "0.48", features = [
     "Win32_System_Registry",
     "Win32_System_Com"
 ] }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

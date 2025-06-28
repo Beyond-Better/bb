@@ -25,7 +25,8 @@ Create a draft release to test the full update flow:
 
 1. **Temporarily modify the workflow** in `.github/workflows/release.yml`:
    ```yaml
-   releaseDraft: true  # Change from false to true
+   # In the create_release step:
+   draft: true  # Change from false to true
    prerelease: false
    ```
 
@@ -45,7 +46,8 @@ Create a draft release to test the full update flow:
 
 4. **Restore workflow**:
    ```yaml
-   releaseDraft: false  # Change back to false
+   # In the create_release step:
+   draft: false  # Change back to false
    prerelease: false
    ```
 
@@ -55,7 +57,8 @@ For testing with multiple users:
 
 1. **Create a pre-release**:
    ```yaml
-   releaseDraft: false
+   # In the create_release step:
+   draft: false
    prerelease: true  # Change to true temporarily
    ```
 

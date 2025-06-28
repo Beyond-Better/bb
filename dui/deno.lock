@@ -11,10 +11,12 @@
     "npm:@tauri-apps/api@^2.1.1": "2.1.1",
     "npm:@tauri-apps/cli@*": "2.1.0",
     "npm:@tauri-apps/cli@^2.1.0": "2.1.0",
+    "npm:@tauri-apps/plugin-dialog@2.3": "2.3.0",
     "npm:@tauri-apps/plugin-fs@^2.2.0": "2.2.0",
     "npm:@tauri-apps/plugin-notification@^2.2.0": "2.2.2",
     "npm:@tauri-apps/plugin-opener@^2.2.7": "2.2.7",
     "npm:@tauri-apps/plugin-store@^2.2.0": "2.2.0",
+    "npm:@tauri-apps/plugin-updater@2.9": "2.9.0",
     "npm:ansi_up@^6.0.2": "6.0.2",
     "npm:autoprefixer@*": "10.4.20_postcss@8.4.47",
     "npm:autoprefixer@^10.4.16": "10.4.20_postcss@8.4.47",
@@ -524,6 +526,9 @@
     "@tauri-apps/api@2.1.1": {
       "integrity": "sha512-fzUfFFKo4lknXGJq8qrCidkUcKcH2UHhfaaCNt4GzgzGaW2iS26uFOg4tS3H4P8D6ZEeUxtiD5z0nwFF0UN30A=="
     },
+    "@tauri-apps/api@2.6.0": {
+      "integrity": "sha512-hRNcdercfgpzgFrMXWwNDBN0B7vNzOzRepy6ZAmhxi5mDLVPNrTpo9MGg2tN/F7JRugj4d2aF7E1rtPXAHaetg=="
+    },
     "@tauri-apps/cli-darwin-arm64@2.1.0": {
       "integrity": "sha512-ESc6J6CE8hl1yKH2vJ+ALF+thq4Be+DM1mvmTyUCQObvezNCNhzfS6abIUd3ou4x5RGH51ouiANeT3wekU6dCw==",
       "os": ["darwin"],
@@ -590,28 +595,40 @@
       ],
       "bin": true
     },
+    "@tauri-apps/plugin-dialog@2.3.0": {
+      "integrity": "sha512-ylSBvYYShpGlKKh732ZuaHyJ5Ie1JR71QCXewCtsRLqGdc8Is4xWdz6t43rzXyvkItM9syNPMvFVcvjgEy+/GA==",
+      "dependencies": [
+        "@tauri-apps/api@2.6.0"
+      ]
+    },
     "@tauri-apps/plugin-fs@2.2.0": {
       "integrity": "sha512-+08mApuONKI8/sCNEZ6AR8vf5vI9DXD4YfrQ9NQmhRxYKMLVhRW164vdW5BSLmMpuevftpQ2FVoL9EFkfG9Z+g==",
       "dependencies": [
-        "@tauri-apps/api"
+        "@tauri-apps/api@2.1.1"
       ]
     },
     "@tauri-apps/plugin-notification@2.2.2": {
       "integrity": "sha512-d71rJdtkFUTcG4dqydnv6d7ZwlNZVcdjrVOPwc9GsF6y9DgVN1WCZ9T/vbfD2qrJslf7ai+rnNJc62TLLC2IdA==",
       "dependencies": [
-        "@tauri-apps/api"
+        "@tauri-apps/api@2.1.1"
       ]
     },
     "@tauri-apps/plugin-opener@2.2.7": {
       "integrity": "sha512-uduEyvOdjpPOEeDRrhwlCspG/f9EQalHumWBtLBnp3fRp++fKGLqDOyUhSIn7PzX45b/rKep//ZQSAQoIxobLA==",
       "dependencies": [
-        "@tauri-apps/api"
+        "@tauri-apps/api@2.1.1"
       ]
     },
     "@tauri-apps/plugin-store@2.2.0": {
       "integrity": "sha512-hJTRtuJis4w5fW1dkcgftsYxKXK0+DbAqurZ3CURHG5WkAyyZgbxpeYctw12bbzF9ZbZREXZklPq8mocCC3Sgg==",
       "dependencies": [
-        "@tauri-apps/api"
+        "@tauri-apps/api@2.1.1"
+      ]
+    },
+    "@tauri-apps/plugin-updater@2.9.0": {
+      "integrity": "sha512-j++sgY8XpeDvzImTrzWA08OqqGqgkNyxczLD7FjNJJx/uXxMZFz5nDcfkyoI/rCjYuj2101Tci/r/HFmOmoxCg==",
+      "dependencies": [
+        "@tauri-apps/api@2.6.0"
       ]
     },
     "@types/estree@1.0.6": {
@@ -1463,10 +1480,12 @@
         "npm:@tailwindcss/typography@~0.5.10",
         "npm:@tauri-apps/api@^2.1.1",
         "npm:@tauri-apps/cli@^2.1.0",
+        "npm:@tauri-apps/plugin-dialog@2.3",
         "npm:@tauri-apps/plugin-fs@^2.2.0",
         "npm:@tauri-apps/plugin-notification@^2.2.0",
         "npm:@tauri-apps/plugin-opener@^2.2.7",
         "npm:@tauri-apps/plugin-store@^2.2.0",
+        "npm:@tauri-apps/plugin-updater@2.9",
         "npm:ansi_up@^6.0.2",
         "npm:autoprefixer@^10.4.16",
         "npm:babel-plugin-transform-hook-names@^1.0.2",

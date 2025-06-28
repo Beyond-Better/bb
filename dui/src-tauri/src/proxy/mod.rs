@@ -392,7 +392,7 @@ impl HttpProxy {
                 proxy_req_builder = proxy_req_builder.header(key, value);
             }
         }
-        
+
         // Set Host header to match the target domain
         if let Ok(parsed_url) = reqwest::Url::parse(&url) {
             if let Some(host) = parsed_url.host_str() {

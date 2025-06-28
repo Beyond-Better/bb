@@ -120,15 +120,20 @@ async fn fetch_latest_version() -> Option<VersionCache> {
             match response.json::<GithubRelease>().await {
                 Ok(release) => {
                     let version = release.tag_name.trim_start_matches('v').to_string();
-                    
+
                     // Parse release notes and detect breaking changes
-                    let (release_notes, has_breaking_changes, critical_notice) = if let Some(body) = release.body {
-                        let has_breaking = body.contains("🚨 **BREAKING CHANGES") || body.to_lowercase().contains("breaking");
-                        
+                    let (release_notes, has_breaking_changes, critical_notice) = if let Some(body) =
+                        release.body
+                    {
+                        let has_breaking = body.contains("🚨 **BREAKING CHANGES")
+                            || body.to_lowercase().contains("breaking");
+
                         // Extract critical notice (text between warning emoji and installation instructions)
                         let critical_notice = if has_breaking {
                             if let Some(start) = body.find("🚨 **BREAKING CHANGES") {
-                                if let Some(end) = body[start..].find("## Installation Instructions") {
+                                if let Some(end) =
+                                    body[start..].find("## Installation Instructions")
+                                {
                                     Some(body[start..start + end].trim().to_string())
                                 } else {
                                     Some("🚨 **BREAKING CHANGES DETECTED** - Please backup your projects before upgrading.".to_string())
@@ -139,20 +144,21 @@ async fn fetch_latest_version() -> Option<VersionCache> {
                         } else {
                             None
                         };
-                        
+
                         // Extract release notes (text after "Changes in this Release:")
-                        let release_notes = if let Some(start) = body.find("## Changes in this Release:") {
-                            let notes_start = start + "## Changes in this Release:".len();
-                            Some(body[notes_start..].trim().to_string())
-                        } else {
-                            Some(body.clone())
-                        };
-                        
+                        let release_notes =
+                            if let Some(start) = body.find("## Changes in this Release:") {
+                                let notes_start = start + "## Changes in this Release:".len();
+                                Some(body[notes_start..].trim().to_string())
+                            } else {
+                                Some(body.clone())
+                            };
+
                         (release_notes, Some(has_breaking), critical_notice)
                     } else {
                         (None, Some(false), None)
                     };
-                    
+
                     let version_cache = VersionCache {
                         version: version.clone(),
                         release_notes,
@@ -160,7 +166,7 @@ async fn fetch_latest_version() -> Option<VersionCache> {
                         critical_notice,
                         timestamp: Instant::now(),
                     };
-                    
+
                     // Update cache
                     debug!("Successfully fetched latest version: {}", version);
                     if let Ok(mut cache) = GITHUB_VERSION_CACHE.lock() {
@@ -302,17 +308,18 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
     // Fetch latest release info from GitHub
     let latest_release = fetch_latest_version().await;
     debug!("Latest release from GitHub: {:?}", latest_release);
-    
-    let (latest_version, release_notes, has_breaking_changes, critical_notice) = if let Some(release) = latest_release {
-        (
-            Some(release.version),
-            release.release_notes,
-            release.has_breaking_changes,
-            release.critical_notice,
-        )
-    } else {
-        (None, None, None, None)
-    };
+
+    let (latest_version, release_notes, has_breaking_changes, critical_notice) =
+        if let Some(release) = latest_release {
+            (
+                Some(release.version),
+                release.release_notes,
+                release.has_breaking_changes,
+                release.critical_notice,
+            )
+        } else {
+            (None, None, None, None)
+        };
 
     // Check if update is available
     // An update is available if either:

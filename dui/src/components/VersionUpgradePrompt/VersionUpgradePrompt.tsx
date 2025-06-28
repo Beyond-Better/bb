@@ -143,9 +143,9 @@ export function VersionUpgradePrompt(): JSX.Element {
         case 'installing': return 'Installing';
         case 'backup': return 'Creating Backup';
         case 'upgrading-server': return 'Updating Server';
-        case 'checking-dui': return 'Checking DUI Updates';
-        case 'downloading-dui': return 'Downloading DUI Update';
-        case 'installing-dui': return 'Installing DUI Update';
+        case 'checking-dui': return 'Checking Application Updates';
+        case 'downloading-dui': return 'Downloading Application Update';
+        case 'installing-dui': return 'Installing Application Update';
         case 'complete': return 'Complete';
         default: return stage.charAt(0).toUpperCase() + stage.slice(1);
       }
@@ -260,7 +260,7 @@ export function VersionUpgradePrompt(): JSX.Element {
           </div>
           <div className="ml-3 flex-1">
             <h3 className={`text-sm font-medium ${colorScheme.title}`}>
-              {hasBreakingChanges ? 'Critical Update Required' : (!versionCompatibility.compatible ? 'Update Required' : (duiUpdateAvailable && serverUpdateAvailable ? 'Updates Available' : (duiUpdateAvailable ? 'DUI Update Available' : 'Server Update Available')))}
+              {hasBreakingChanges ? 'Critical Update Required' : (!versionCompatibility.compatible ? 'Update Required' : (duiUpdateAvailable && serverUpdateAvailable ? 'Updates Available' : (duiUpdateAvailable ? 'Application Update Available' : 'Server Update Available')))}
             </h3>
             
             {/* Critical Notice */}
@@ -282,7 +282,7 @@ export function VersionUpgradePrompt(): JSX.Element {
               )}
               {duiUpdateAvailable && (
                 <p className={serverUpdateAvailable ? 'mt-2' : ''}>
-                  A new version of the DUI application is available (v{duiUpdateInfo?.version}).
+                  A new version of the Beyond Better application is available (v{duiUpdateInfo?.version}).
                   {duiUpdateAvailable && serverUpdateAvailable && ' Both updates will be installed together.'}
                 </p>
               )}
@@ -303,7 +303,7 @@ export function VersionUpgradePrompt(): JSX.Element {
                   {duiUpdateInfo?.body && (
                     <details>
                       <summary className="cursor-pointer text-sm font-medium hover:underline">
-                        View DUI Release Notes
+                        View Application Release Notes
                       </summary>
                       <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
                         <pre className="text-xs whitespace-pre-wrap font-mono">{duiUpdateInfo.body}</pre>
@@ -327,10 +327,10 @@ export function VersionUpgradePrompt(): JSX.Element {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    {duiUpdateAvailable && serverUpdateAvailable ? 'Updating All Components...' : (duiUpdateAvailable ? 'Updating DUI...' : 'Updating Server...')}
+                    {duiUpdateAvailable && serverUpdateAvailable ? 'Updating All Components...' : (duiUpdateAvailable ? 'Updating Application...' : 'Updating Server...')}
                   </>
                 ) : (
-                  hasBreakingChanges ? 'Update with Caution' : (duiUpdateAvailable && serverUpdateAvailable ? 'Update All Components' : (duiUpdateAvailable ? 'Update DUI' : 'Update Server'))
+                  hasBreakingChanges ? 'Update with Caution' : (duiUpdateAvailable && serverUpdateAvailable ? 'Update All Components' : (duiUpdateAvailable ? 'Update Application' : 'Update Server'))
                 )}
               </button>
               {upgradeState.isInstalling && renderProgressBar()}

@@ -406,12 +406,12 @@ pub async fn start_bui() -> Result<BuiStartResult, String> {
 #[tauri::command]
 pub async fn stop_bui() -> Result<bool, String> {
     use crate::commands::bui_status::{find_all_bui_processes, robust_terminate_process};
-    
+
     info!("Stopping BUI - looking for all bb-bui processes");
-    
+
     // Find ALL bb-bui processes (not just ones with PID files)
     let all_pids = find_all_bui_processes().await?;
-    
+
     if all_pids.is_empty() {
         info!("No BUI processes found");
         // Clean up any stale PID file
@@ -422,9 +422,9 @@ pub async fn stop_bui() -> Result<bool, String> {
     }
 
     info!("Found {} BUI process(es): {:?}", all_pids.len(), all_pids);
-    
+
     let mut all_stopped = true;
-    
+
     // Terminate each process
     for pid in all_pids {
         if !robust_terminate_process(pid, "bb-bui").await {
@@ -432,22 +432,22 @@ pub async fn stop_bui() -> Result<bool, String> {
             all_stopped = false;
         }
     }
-    
+
     // Clean up PID file regardless
     if let Err(e) = crate::commands::bui_status::remove_pid().await {
         warn!("Failed to remove PID file: {}", e);
     }
-    
+
     // Wait and verify all processes are gone
     std::thread::sleep(std::time::Duration::from_millis(1000));
     let remaining_pids = find_all_bui_processes().await?;
-    
+
     if !remaining_pids.is_empty() {
         warn!("Some BUI processes still running: {:?}", remaining_pids);
         all_stopped = false;
     } else {
         info!("All BUI processes stopped successfully");
     }
-    
+
     Ok(all_stopped)
 }

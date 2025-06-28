@@ -9,7 +9,7 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 #[cfg(not(target_os = "windows"))]
 use tar::Archive;
-use tauri::{command, AppHandle, Emitter, Manager};
+use tauri::{command, AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
 use tempfile::TempDir;
 #[cfg(target_os = "windows")]
@@ -20,7 +20,7 @@ use crate::api::stop_api;
 use crate::bui::stop_bui;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
-const DUI_UPDATE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(300); // 5 minutes
+//const DUI_UPDATE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(300); // 5 minutes
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GithubAsset {
@@ -84,46 +84,42 @@ fn check_windows_path_length(path: &PathBuf) -> io::Result<()> {
 
 #[command]
 pub async fn check_dui_update(app: AppHandle) -> Result<Option<DuiUpdateInfo>, String> {
-    info!("Checking for DUI updates");
+    info!("Checking for application updates");
     
     // For testing: return mock update info
     #[cfg(debug_assertions)]
     {
         if std::env::var("BB_TEST_DUI_UPDATE").is_ok() {
-            info!("Returning mock DUI update for testing");
+            info!("Returning mock application update for testing");
             return Ok(Some(DuiUpdateInfo {
                 version: "0.9.0".to_string(),
                 date: Some("2025-06-28T03:00:00Z".to_string()),
-                body: "Test DUI update with new features and improvements.".to_string(),
+                body: "Test application update with new features and improvements.".to_string(),
                 download_url: "".to_string(),
             }));
         }
     }
     
-    match app.updater()?.check().await {
-        Ok(Some(update)) => {
-            info!("DUI update available: version {}", update.version);
+    match app.updater().map_err(|e| format!("Failed to get updater: {}", e))?.check().await.map_err(|e| format!("Failed to check for updates: {}", e))? {
+        Some(update) => {
+            info!("Application update available: version {}", update.version);
             Ok(Some(DuiUpdateInfo {
                 version: update.version,
-                date: update.date,
+                date: update.date.map(|d| d.to_string()),
                 body: update.body.unwrap_or_default(),
                 download_url: "".to_string(), // Not needed for Tauri updater
             }))
         }
-        Ok(None) => {
-            debug!("No DUI update available");
+        None => {
+            debug!("No application update available");
             Ok(None)
-        }
-        Err(e) => {
-            error!("Failed to check for DUI updates: {}", e);
-            Err(format!("Failed to check for DUI updates: {}", e))
         }
     }
 }
 
 #[command]
 pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
-    info!("Starting atomic update process (server components + DUI)");
+    info!("Starting atomic update process (server components + application)");
     
     emit_progress(
         &app,
@@ -161,19 +157,19 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
         &app,
         "checking-dui",
         50.0,
-        Some("Checking for DUI updates...".to_string()),
+        Some("Checking for application updates...".to_string()),
     )
     .map_err(|e| format!("Failed to emit progress: {}", e))?;
     
-    match app.updater()?.check().await {
-        Ok(Some(update)) => {
-            info!("DUI update available, proceeding with download and install");
+    match app.updater().map_err(|e| format!("Failed to get updater: {}", e))?.check().await.map_err(|e| format!("Failed to check for updates: {}", e))? {
+        Some(update) => {
+            info!("Application update available, proceeding with download and install");
             
             emit_progress(
                 &app,
                 "downloading-dui",
                 60.0,
-                Some(format!("Downloading DUI update v{}...", update.version)),
+                Some(format!("Downloading application update v{}...", update.version)),
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
@@ -183,7 +179,7 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             // On Windows, we need to handle the before-exit callback
             #[cfg(target_os = "windows")]
             let update_builder = app.updater_builder().on_before_exit(|| {
-                info!("DUI app is about to exit on Windows for update installation");
+                info!("Beyond Better app is about to exit on Windows for update installation");
             });
             
             #[cfg(not(target_os = "windows"))]
@@ -216,17 +212,17 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
                     }
                 },
                 || {
-                    info!("DUI download completed, installing...");
+                    info!("Application download completed, installing...");
                     let _ = emit_progress(
                         &app,
                         "installing-dui",
                         90.0,
-                        Some("Installing DUI update...".to_string()),
+                        Some("Installing application update...".to_string()),
                     );
                 },
             ).await.map_err(|e| {
-                error!("DUI update failed: {}", e);
-                format!("DUI update failed: {}", e)
+                error!("Application update failed: {}", e);
+                format!("Application update failed: {}", e)
             })?;
             
             emit_progress(
@@ -237,57 +233,50 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
-            info!("DUI update installed successfully, restarting...");
+            info!("Application update installed successfully, restarting...");
             
             // Small delay to ensure progress is shown
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
             
-            // Restart the application
+            // Restart the application (this doesn't return)
             app.restart();
         }
-        Ok(None) => {
-            info!("No DUI update available");
+        None => {
+            info!("No application update available");
             emit_progress(
                 &app,
                 "complete",
                 100.0,
-                Some("Server components updated, no DUI update needed".to_string()),
+                Some("Server components updated, no application update needed".to_string()),
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
+            return Ok(());
         }
-        Err(e) => {
-            warn!("Failed to check for DUI updates: {}", e);
-            emit_progress(
-                &app,
-                "complete",
-                100.0,
-                Some("Server components updated, DUI update check failed".to_string()),
-            )
-            .map_err(|e| format!("Failed to emit progress: {}", e))?;
-        }
+        // Error cases are handled by the ? operator above
     }
-    
+}
+
 #[command]
 pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
-    info!("Starting DUI-only update process");
+    info!("Starting application-only update process");
     
     emit_progress(
         &app,
         "checking-dui",
         0.0,
-        Some("Checking for DUI updates...".to_string()),
+        Some("Checking for application updates...".to_string()),
     )
     .map_err(|e| format!("Failed to emit progress: {}", e))?;
     
-    match app.updater()?.check().await {
-        Ok(Some(update)) => {
-            info!("DUI update available, proceeding with download and install");
+    match app.updater().map_err(|e| format!("Failed to get updater: {}", e))?.check().await.map_err(|e| format!("Failed to check for updates: {}", e))? {
+        Some(update) => {
+            info!("Application update available, proceeding with download and install");
             
             emit_progress(
                 &app,
                 "downloading-dui",
                 20.0,
-                Some(format!("Downloading DUI update v{}...", update.version)),
+                Some(format!("Downloading application update v{}...", update.version)),
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
@@ -295,7 +284,7 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
             
             #[cfg(target_os = "windows")]
             let update_builder = app.updater_builder().on_before_exit(|| {
-                info!("DUI app is about to exit on Windows for update installation");
+                info!("Application app is about to exit on Windows for update installation");
             });
             
             #[cfg(not(target_os = "windows"))]
@@ -328,28 +317,28 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
                     }
                 },
                 || {
-                    info!("DUI download completed, installing...");
+                    info!("Application download completed, installing...");
                     let _ = emit_progress(
                         &app,
                         "installing-dui",
                         90.0,
-                        Some("Installing DUI update...".to_string()),
+                        Some("Installing application update...".to_string()),
                     );
                 },
             ).await.map_err(|e| {
-                error!("DUI update failed: {}", e);
-                format!("DUI update failed: {}", e)
+                error!("Application update failed: {}", e);
+                format!("Application update failed: {}", e)
             })?;
             
             emit_progress(
                 &app,
                 "complete",
                 100.0,
-                Some("DUI update complete, restarting application...".to_string()),
+                Some("Application update complete, restarting application...".to_string()),
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
-            info!("DUI update installed successfully, restarting...");
+            info!("Application update installed successfully, restarting...");
             
             // Small delay to ensure progress is shown
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
@@ -357,17 +346,12 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
             // Restart the application
             app.restart();
         }
-        Ok(None) => {
-            info!("No DUI update available");
-            return Err("No DUI update available".to_string());
+        None => {
+            info!("No Application update available");
+            return Err("No Application update available".to_string());
         }
-        Err(e) => {
-            error!("Failed to check for DUI updates: {}", e);
-            return Err(format!("Failed to check for DUI updates: {}", e));
-        }
+        // Error cases are handled by the ? operator above
     }
-    
-    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -470,7 +454,7 @@ pub async fn perform_install(app: AppHandle) -> Result<(), String> {
                 install_location.path
             );
             return Err(
-                "Installation requires administrator privileges. Please run DUI as administrator."
+                "Installation requires administrator privileges. Please run application as administrator."
                     .to_string(),
             );
         }
