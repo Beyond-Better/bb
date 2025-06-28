@@ -85,35 +85,35 @@ jobs:
               name: `Beyond Better v${{ steps.get_version.outputs.VERSION }}`,
               body: `# Beyond Better v${{ steps.get_version.outputs.VERSION }}
 
-${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
-
-## Installation Instructions:
-
-1. Download the appropriate installer for your system:
-
-   Windows:
-   - MSI installer (recommended): Download the .msi file
-   - EXE installer: Download the -setup.exe file
-   - Run the installer and follow the prompts
-
-   macOS:
-   - Universal (Intel & Apple Silicon): Download the universal.dmg
-   - Open the .dmg file
-   - Drag the Beyond Better app to your Applications folder
-
-   Linux:
-   - Download the .AppImage file
-   - Make it executable: chmod +x BB-app-*.AppImage
-   - Run the AppImage
-
-2. Binary Installation:
-   - The DUI will automatically download and install the appropriate BB binaries on first run
-   - For manual installation, download the appropriate binary archive for your system
-
-Note: On Windows, you may need to approve SmartScreen security prompts during first run.
-
-## Changes in this Release:
-${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
+            ${{ steps.extract_changelog.outputs.HAS_BREAKING == 'true' && steps.extract_changelog.outputs.CRITICAL_NOTICE_RAW || '' }}
+            
+            ## Installation Instructions:
+            
+            1. Download the appropriate installer for your system:
+            
+               Windows:
+               - MSI installer (recommended): Download the .msi file
+               - EXE installer: Download the -setup.exe file
+               - Run the installer and follow the prompts
+            
+               macOS:
+               - Universal (Intel & Apple Silicon): Download the universal.dmg
+               - Open the .dmg file
+               - Drag the Beyond Better app to your Applications folder
+            
+               Linux:
+               - Download the .AppImage file
+               - Make it executable: chmod +x BB-app-*.AppImage
+               - Run the AppImage
+            
+            2. Binary Installation:
+               - The DUI will automatically download and install the appropriate BB binaries on first run
+               - For manual installation, download the appropriate binary archive for your system
+            
+            Note: On Windows, you may need to approve SmartScreen security prompts during first run.
+            
+            ## Changes in this Release:
+            ${{ steps.extract_changelog.outputs.RELEASE_NOTES_RAW }}`,
               draft: true,
               prerelease: false
             })
