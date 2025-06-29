@@ -99,10 +99,18 @@ export default function LandingHero() {
 			<div class='mx-auto max-w-2xl py-16 sm:py-24 lg:py-32'>
 				<div class='text-center'>
 					<h1 class='text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl'>
-						Beyond Better <br />AI Assistant
+						<div className='flex items-center justify-center gap-4 mb-6'>
+							<img src='/logo.png' alt='BB Logo' className='h-16 w-16 sm:h-20 sm:w-20' />
+							<span className='font-bold leading-none tracking-tight'>Beyond Better</span>
+						</div>
+
+						<div class='mt-6'>
+							Your Intelligent <br />Project Partner
+						</div>
 					</h1>
 					<p class='mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400'>
-						Your AI pair programmer that understands your codebase deeply and helps you write better code.
+						Beyond Better is your AI-powered agentic assistant that handles the complexity while you focus
+						on results.
 					</p>
 					<div class='mt-10 flex items-center justify-center gap-x-6 flex-wrap'>
 						{appState.value.status.isReady
