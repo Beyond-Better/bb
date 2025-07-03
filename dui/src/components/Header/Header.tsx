@@ -76,7 +76,7 @@ export function Header({
 // 								} else {
 // 									// Create new window
 // 									const newWindow = new Window('chat', {
-// 										url: 'https://chat.beyondbetter.dev',
+// 										url: 'https://chat.beyondbetter.app',
 // 										title: 'BB Chat',
 // 										width: 1200,
 // 										height: 800,

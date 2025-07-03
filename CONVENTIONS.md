@@ -174,7 +174,7 @@ Key API Endpoints:
 - Use Hurl for API endpoint tests
 - Use JSDoc comments for code documentation
 - Use Swagger/OpenAPI comments for API endpoints
-- Create documentation site at https://beyondbetter.dev
+- Create documentation site at https://beyondbetter.app
 - Refer to docs/development/llm/testing.md for comprehensive testing guidelines and current test coverage
 - Each tool should have its own test file in the `api/tests/t/llms/tools` directory
 - Tests should cover basic functionality, edge cases, and error scenarios

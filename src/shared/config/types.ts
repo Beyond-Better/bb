@@ -355,7 +355,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	logLevel: 'info',
 	logFileHydration: false,
 	localMode: false,
-	supabaseConfigUrl: 'https://www.beyondbetter.dev/api/v1/config/supabase',
+	supabaseConfigUrl: 'https://www.beyondbetter.app/api/v1/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
 	userToolDirectories: ['./tools'],

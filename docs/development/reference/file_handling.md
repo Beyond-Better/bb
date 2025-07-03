@@ -96,7 +96,7 @@ When proposing changes to files, use the diff patch format:
 As an AI assistant for the BB project, I should be aware of and use the following links when appropriate:
 
 - BB GitHub Repository: https://github.com/Beyond-Better/bb
-- BB Documentation (future): https://beyondbetter.dev
+- BB Documentation (future): https://beyondbetter.app
 - Contributing Guidelines: ../../../CONTRIBUTING.md
 - Project Conventions: ../../../CONVENTIONS.md
 - File Handling Guidelines: file_handling.md

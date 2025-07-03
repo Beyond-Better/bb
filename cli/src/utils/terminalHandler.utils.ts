@@ -232,7 +232,7 @@ export class TerminalHandler {
 				//}) + '  ' +
 				ansi.cursorTo(6, 2) +
 				colors.bold.blue.underline('BB') + colors.bold.blue(' - Beyond Better - with code and docs'),
-			//colors.bold.blue(ansi.link('BB', 'https://beyondbetter.dev')) +
+			//colors.bold.blue(ansi.link('BB', 'https://beyondbetter.app')) +
 			//+ '\n',
 		);
 		this.apiClient = await ApiClient.create(this.projectId);

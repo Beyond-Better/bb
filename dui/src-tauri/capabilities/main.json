@@ -46,7 +46,13 @@
           "url": "https://localhost:*"
         },
         {
+          "url": "https://chat.beyondbetter.app"
+        },
+        {
           "url": "https://chat.beyondbetter.dev"
+        },
+        {
+          "url": "https://chat.beyondbetter.team"
         }
       ]
     },
@@ -189,7 +195,9 @@
   ],
   "webviewConfig": {
     "allowedNavigateOrigins": [
+      "https://chat.beyondbetter.app",
       "https://chat.beyondbetter.dev",
+      "https://chat.beyondbetter.team",
       "https://localhost:8080"
     ],
     "allowedProtocols": [

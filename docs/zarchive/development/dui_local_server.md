@@ -1,23 +1,23 @@
 # DUI Local HTTP Proxy Implementation
 
 ## Problem
-When the BUI is loaded in DUI's webview via HTTPS (from chat.beyondbetter.dev), it cannot make HTTP/WS connections to the API due to browser mixed-content restrictions. Previous attempts to solve this using Tauri IPC or a bridge/proxy still face the same issue because the IPC protocol is also blocked by mixed-content restrictions.
+When the BUI is loaded in DUI's webview via HTTPS (from chat.beyondbetter.app), it cannot make HTTP/WS connections to the API due to browser mixed-content restrictions. Previous attempts to solve this using Tauri IPC or a bridge/proxy still face the same issue because the IPC protocol is also blocked by mixed-content restrictions.
 
 ## Solution
 Create a simple HTTP proxy server in the DUI's Rust layer that:
 1. Listens on localhost
-2. Proxies webview requests to https://chat.beyondbetter.dev
+2. Proxies webview requests to https://chat.beyondbetter.app
 3. Allows the BUI to load via HTTP, enabling direct HTTP/WS connections to API
 
 ## Architecture
 
 ```
 Before:
-Webview -> HTTPS (chat.beyondbetter.dev) -> Mixed content blocked
+Webview -> HTTPS (chat.beyondbetter.app) -> Mixed content blocked
                                         -> HTTP/WS to API blocked
 
 After:
-Webview -> HTTP (localhost:port) -> HTTPS proxy -> chat.beyondbetter.dev
+Webview -> HTTP (localhost:port) -> HTTPS proxy -> chat.beyondbetter.app
                                 -> HTTP/WS to API (works because page loaded via HTTP)
 ```
 
@@ -25,7 +25,7 @@ Webview -> HTTP (localhost:port) -> HTTPS proxy -> chat.beyondbetter.dev
 
 1. HTTP Proxy Server (Rust)
    - Simple HTTP proxy
-   - Forwards to chat.beyondbetter.dev
+   - Forwards to chat.beyondbetter.app
    - Handles HTTPS upstream
 
 2. DUI Changes
@@ -77,7 +77,7 @@ pub async fn set_proxy_target(target: String) -> Result<(), String> {
 
 impl HttpProxy {
     const FALLBACK_PORTS: &'static [u16] = &[45819, 45820, 45821, 45822, 45823];
-    const DEFAULT_TARGET: &'static str = "https://chat.beyondbetter.dev";
+    const DEFAULT_TARGET: &'static str = "https://chat.beyondbetter.app";
     
     pub async fn new() -> Result<Self, Error> {
         // Try ports until one works
@@ -103,7 +103,7 @@ impl HttpProxy {
     }
         Self {
             port,
-            target_url: "https://chat.beyondbetter.dev".to_string(),
+            target_url: "https://chat.beyondbetter.app".to_string(),
             client: Client::new(),
         }
     }
@@ -204,7 +204,7 @@ static CURRENT_TARGET: Lazy<RwLock<String>> = Lazy::new(|| {
     let target = if cfg!(debug_assertions) {
         "http://localhost:8080".to_string()
     } else {
-        "https://chat.beyondbetter.dev".to_string()
+        "https://chat.beyondbetter.app".to_string()
     };
     RwLock::new(target)
 });
@@ -374,7 +374,7 @@ if cfg!(debug_assertions) {
 
 ### Production Mode
 ```rust
-// Default target is https://chat.beyondbetter.dev
+// Default target is https://chat.beyondbetter.app
 // Target can still be changed at runtime if needed
 ```
 

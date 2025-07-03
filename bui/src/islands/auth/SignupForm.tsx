@@ -372,14 +372,14 @@ export default function SignupForm() {
 						<label htmlFor='terms' class='font-medium text-gray-700 dark:text-gray-200'>
 							I agree to the{' '}
 							<ExternalLink
-								href='https://beyondbetter.dev/terms-and-conditions'
+								href='https://beyondbetter.app/terms-and-conditions'
 								class='text-purple-600 hover:text-purple-500'
 							>
 								Terms and Conditions
 							</ExternalLink>{' '}
 							and{' '}
 							<ExternalLink
-								href='https://beyondbetter.dev/privacy-policy'
+								href='https://beyondbetter.app/privacy-policy'
 								class='text-purple-600 hover:text-purple-500'
 							>
 								Privacy Policy

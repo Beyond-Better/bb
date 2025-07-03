@@ -539,9 +539,9 @@ function getHtmlResponse(statusData: StatusData): string {
           <div class="help-section">
             <h3>Documentation & Help</h3>
             <div class="docs-links">
-              <a href="https://beyondbetter.dev/docs/security/certificates" target="_blank">📚 Certificate Management Guide</a><br>
-              <a href="https://beyondbetter.dev/docs/security/trust-store" target="_blank">🔐 Trust Store Guide</a><br>
-              <a href="https://beyondbetter.dev/docs/security/troubleshooting" target="_blank">🔧 Security Troubleshooting</a>
+              <a href="https://beyondbetter.app/docs/security/certificates" target="_blank">📚 Certificate Management Guide</a><br>
+              <a href="https://beyondbetter.app/docs/security/trust-store" target="_blank">🔐 Trust Store Guide</a><br>
+              <a href="https://beyondbetter.app/docs/security/troubleshooting" target="_blank">🔧 Security Troubleshooting</a>
             </div>
           </div>
 

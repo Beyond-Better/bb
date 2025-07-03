@@ -151,7 +151,7 @@ export function ServerControl({ onStatusChange, onConnectionChange, onNavigate }
 		const updateBuiUrl = async () => {
 			if (!globalConfig?.bui) return;
 
-			//const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.dev';
+			//const direct = debugMode ? 'https://localhost:8080' : 'https://chat.beyondbetter.app';
 			const direct = `${
 				globalConfig.bui.tls.useTls ? 'https' : 'http'
 			}://${globalConfig.bui.hostname}:${globalConfig.bui.port}`;

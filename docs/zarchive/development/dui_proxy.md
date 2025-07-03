@@ -1,14 +1,14 @@
 # DUI HTTP Proxy Implementation
 
 ## Overview
-The DUI (Desktop User Interface) includes a local HTTP proxy that enforces HTTPS connections for all target URLs. The proxy handles mixed-content restrictions when the BUI is loaded via HTTPS but needs to connect to a non-TLS API. It ensures secure connections by requiring HTTPS for all target URLs, whether in development (https://localhost:8080) or production (https://chat.beyondbetter.dev). The proxy is automatically managed based on the API's TLS configuration.
+The DUI (Desktop User Interface) includes a local HTTP proxy that enforces HTTPS connections for all target URLs. The proxy handles mixed-content restrictions when the BUI is loaded via HTTPS but needs to connect to a non-TLS API. It ensures secure connections by requiring HTTPS for all target URLs, whether in development (https://localhost:8080) or production (https://chat.beyondbetter.app). The proxy is automatically managed based on the API's TLS configuration.
 
 ## Proxy Behavior
 
 ### URL Requirements
 - All target URLs must use HTTPS scheme
 - Local development uses https://localhost:8080
-- Production uses https://chat.beyondbetter.dev
+- Production uses https://chat.beyondbetter.app
 - HTTP URLs are rejected with an error
 
 ### TLS Mode
@@ -52,8 +52,8 @@ The DUI (Desktop User Interface) includes a local HTTP proxy that enforces HTTPS
 
 Example:
 ```
-[2024-03-19 10:15:23.456] GET /api/v1/status 200 45ms -> chat.beyondbetter.dev
-[2024-03-19 10:15:24.789] POST /api/v1/query 500 123ms -> chat.beyondbetter.dev (Connection refused)
+[2024-03-19 10:15:23.456] GET /api/v1/status 200 45ms -> chat.beyondbetter.app
+[2024-03-19 10:15:24.789] POST /api/v1/query 500 123ms -> chat.beyondbetter.app (Connection refused)
 ```
 
 ## URL Validation
@@ -110,7 +110,7 @@ Example:
 ### Configuration
 - Debug mode controlled by `debug_assertions`
 - TLS mode set in Settings UI
-- Proxy target configurable (defaults to chat.beyondbetter.dev)
+- Proxy target configurable (defaults to chat.beyondbetter.app)
 
 ## Health Check
 

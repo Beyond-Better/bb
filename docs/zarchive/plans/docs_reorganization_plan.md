@@ -191,4 +191,4 @@ Each directory should have a README.md with:
 > 4. Multi-category docs were handled by duplication (e.g., tool_io.md)
 > 5. Only root-level docs needed to maintain paths
 > 6. No automated doc generation existed
-> 7. Only beyondbetter.dev linked to docs, updated separately
+> 7. Only beyondbetter.app linked to docs, updated separately

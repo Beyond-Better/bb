@@ -78,7 +78,7 @@ export class GitUtils {
 				message: commitMessage,
 				author: {
 					name: 'Beyond Better',
-					email: 'git@beyondbetter.dev',
+					email: 'git@beyondbetter.app',
 				},
 			});
 

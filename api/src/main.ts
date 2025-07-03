@@ -1,6 +1,6 @@
 /*
  * License: AGPL-3.0-or-later
- * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.app>
  */
 
 import { Application } from '@oak/oak';
@@ -133,8 +133,8 @@ if (apiConfig.logLevel === 'debug') {
 }
 
 app.use(oakCors({
-	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?(bbai\.tips|beyondbetter\.dev)$/],
-})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips, beyondbetter.dev, and chat.beyondbetter.dev
+	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?(bbai\.tips|beyondbetter\.(app|dev|team))$/],
+})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips, beyondbetter.app, and chat.beyondbetter.app, beyondbetter.dev, and chat.beyondbetter.dev
 app.use(router.routes());
 app.use(router.allowedMethods());
 

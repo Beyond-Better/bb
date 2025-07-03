@@ -3331,7 +3331,7 @@ const configManager = await getConfigManager();
   ```typescript
   			);
   
-  			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
+  			const chatUrl = `https://chat.beyondbetter.app/#apiHostname=${
   				encodeURIComponent(apiHostname)
   			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&startDir=${encodeURIComponent(startDir)}`;
   ```
@@ -3340,7 +3340,7 @@ const configManager = await getConfigManager();
   Context:
   ```typescript
   
-  			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
+  			const chatUrl = `https://chat.beyondbetter.app/#apiHostname=${
   				encodeURIComponent(apiHostname)
   			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&startDir=${encodeURIComponent(startDir)}`;
   
@@ -3349,7 +3349,7 @@ const configManager = await getConfigManager();
 - Line 48 (write)
   Context:
   ```typescript
-  			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
+  			const chatUrl = `https://chat.beyondbetter.app/#apiHostname=${
   				encodeURIComponent(apiHostname)
   			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&startDir=${encodeURIComponent(startDir)}`;
   
@@ -3359,7 +3359,7 @@ const configManager = await getConfigManager();
 - Line 48 (write)
   Context:
   ```typescript
-  			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
+  			const chatUrl = `https://chat.beyondbetter.app/#apiHostname=${
   				encodeURIComponent(apiHostname)
   			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}&startDir=${encodeURIComponent(startDir)}`;
   

@@ -76,7 +76,7 @@ export const apiStart = new Command()
 				follow,
 			);
 
-			const chatUrl = `https://chat.beyondbetter.dev/#apiHostname=${
+			const chatUrl = `https://chat.beyondbetter.app/#apiHostname=${
 				encodeURIComponent(apiHostname)
 			}&apiPort=${apiPort}&apiUseTls=${apiUseTls ? 'true' : 'false'}${
 				projectId ? `&projectId=${encodeURIComponent(projectId)}` : ''

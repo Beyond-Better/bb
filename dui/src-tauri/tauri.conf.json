@@ -56,7 +56,7 @@
     ],
     "license": "AGPL-3.0-or-later",
     "licenseFile": "../../LICENSE",
-    "copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+    "copyright": "© 2025 - Beyond Better <charlie@beyondbetter.app>",
     "category": "Utility",
     "shortDescription": "Beyond Better Desktop App",
     "longDescription": "Desktop app for Beyond Better, providing a modern interface for managing BB tools and configurations.",

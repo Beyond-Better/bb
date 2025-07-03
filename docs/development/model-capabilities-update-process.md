@@ -283,13 +283,13 @@ Create environment-specific config files:
 **.env.staging**
 ```bash
 LLM_PROXY_AUTH_TOKEN=your_staging_service_token
-SUPABASE_CONFIG_URL=https://staging.beyondbetter.dev/api/v1/config/supabase
+SUPABASE_CONFIG_URL=https://staging.beyondbetter.app/api/v1/config/supabase
 ```
 
 **.env.production**
 ```bash
 LLM_PROXY_AUTH_TOKEN=your_production_service_token
-SUPABASE_CONFIG_URL=https://www.beyondbetter.dev/api/v1/config/supabase
+SUPABASE_CONFIG_URL=https://www.beyondbetter.app/api/v1/config/supabase
 ```
 
 ### Sync Behavior

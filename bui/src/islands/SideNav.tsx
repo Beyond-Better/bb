@@ -285,7 +285,7 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 				{/* External Links */}
 				<div class='space-y-0.5'>
 					<ExternalLink
-						href='https://beyondbetter.dev/docs'
+						href='https://beyondbetter.app/docs'
 						f-client-nav={false}
 						class={`flex items-center ${
 							isCollapsed.value ? 'justify-center' : 'justify-start'
@@ -308,7 +308,7 @@ export default function SideNav({ currentPath: _currentPath = '/' }: SideNavProp
 						{!isCollapsed.value ? <span class='ml-3'>Help Center</span> : <div></div>}
 					</ExternalLink>
 					<ExternalLink
-						href='https://beyondbetter.dev/blog'
+						href='https://beyondbetter.app/blog'
 						f-client-nav={false}
 						class={`flex items-center ${
 							isCollapsed.value ? 'justify-center' : 'justify-start'
