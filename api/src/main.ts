@@ -174,7 +174,15 @@ for (const signal of signals) {
 
 addEventListener('unhandledrejection', (event) => {
 	logger.error('APIEventLoop: Unhandled Promise Rejection at:', event.promise, 'reason:', event.reason);
+	logger.debug('APIEventLoop: Unhandled Promise Rejection Stack at:', event.reason?.stack);
 	// Optionally prevent default behavior (though this doesn't stop the error)
+	event.preventDefault();
+});
+
+globalThis.addEventListener('error', (event) => {
+	logger.error('APIEventLoop: Global Error:', event.error);
+	logger.debug('APIEventLoop: Global Error Stack:', event.error?.stack);
+	// Prevent the default behavior (which would exit the process)
 	event.preventDefault();
 });
 
