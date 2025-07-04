@@ -62,7 +62,6 @@
 		"tailwindcss/": "npm:/tailwindcss@3.4.1/",
 		"tailwindcss/plugin": "npm:/tailwindcss@3.4.1/plugin.js",
 		"@tailwindcss/typography": "npm:@tailwindcss/typography@0.5.10",
-		"css-select": "npm:css-select@5.1.0",
 		"svgo": "npm:svgo@3.3.2",
 		"postcss-svgo": "npm:postcss-svgo@6.0.3",
 		"cssnano": "npm:cssnano@6.0.3",

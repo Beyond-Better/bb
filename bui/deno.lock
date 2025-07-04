@@ -2411,7 +2411,6 @@
       "npm:@supabase/ssr@*",
       "npm:@supabase/supabase-js@2",
       "npm:@tailwindcss/typography@0.5.10",
-      "npm:css-select@5.1.0",
       "npm:cssnano-preset-default@6.1.2",
       "npm:cssnano@6.0.3",
       "npm:groq-sdk@0.23.0",
@@ -2422,11 +2421,6 @@
       "npm:svgo@3.3.2",
       "npm:swagger-jsdoc@6.2.8",
       "npm:tailwindcss@3.4.1"
-    ],
-    "packageJson": {
-      "dependencies": [
-        "npm:css-select@5.1.0"
-      ]
-    }
+    ]
   }
 }
